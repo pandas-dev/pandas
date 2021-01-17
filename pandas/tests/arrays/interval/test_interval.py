@@ -123,6 +123,31 @@ class TestSetitem:
 
         tm.assert_extension_array_equal(result, expected)
 
+    def test_setitem_mismatched_closed(self):
+        arr = IntervalArray.from_breaks(range(4))
+        orig = arr.copy()
+        other = arr.set_closed("both")
+
+        msg = "'value.closed' is 'both', expected 'right'"
+        with pytest.raises(ValueError, match=msg):
+            arr[0] = other[0]
+        with pytest.raises(ValueError, match=msg):
+            arr[:1] = other[:1]
+        with pytest.raises(ValueError, match=msg):
+            arr[:0] = other[:0]
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = other[::-1]
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = list(other[::-1])
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = other[::-1].astype(object)
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = other[::-1].astype("category")
+
+        # empty list should be no-op
+        arr[:0] = []
+        tm.assert_interval_array_equal(arr, orig)
+
 
 def test_repr():
     # GH 25022
@@ -131,7 +156,7 @@ def test_repr():
     expected = (
         "<IntervalArray>\n"
         "[(0, 1], (1, 2]]\n"
-        "Length: 2, closed: right, dtype: interval[int64]"
+        "Length: 2, dtype: interval[int64, right]"
     )
     assert result == expected
 

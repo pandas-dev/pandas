@@ -5,12 +5,13 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
-from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
 from pandas.tests.frame.common import zip_frames
 
@@ -58,6 +59,12 @@ class TestDataFrameApply:
         assert df.shape == (4, 2)
         assert isinstance(df["c0"].dtype, CategoricalDtype)
         assert isinstance(df["c1"].dtype, CategoricalDtype)
+
+    def test_apply_axis1_with_ea(self):
+        # GH#36785
+        df = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
+        result = df.apply(lambda x: x, axis=1)
+        tm.assert_frame_equal(result, df)
 
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike
@@ -159,8 +166,16 @@ class TestDataFrameApply:
             pytest.param([1, None], {"numeric_only": True}, id="args_and_kwds"),
         ],
     )
-    def test_apply_with_string_funcs(self, float_frame, func, args, kwds):
-        result = float_frame.apply(func, *args, **kwds)
+    @pytest.mark.parametrize("how", ["agg", "apply"])
+    def test_apply_with_string_funcs(self, request, float_frame, func, args, kwds, how):
+        if len(args) > 1 and how == "agg":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="agg/apply signature mismatch - agg passes 2nd "
+                    "argument to func"
+                )
+            )
+        result = getattr(float_frame, how)(func, *args, **kwds)
         expected = getattr(float_frame, func)(*args, **kwds)
         tm.assert_series_equal(result, expected)
 
@@ -266,13 +281,6 @@ class TestDataFrameApply:
         d = float_frame.index[0]
         tapplied = float_frame.apply(np.mean, axis=1)
         assert tapplied[d] == np.mean(float_frame.xs(d))
-
-    def test_apply_ignore_failures(self, float_string_frame):
-        result = frame_apply(
-            float_string_frame, np.mean, 0, ignore_failures=True
-        ).apply_standard()
-        expected = float_string_frame._get_numeric_data().apply(np.mean)
-        tm.assert_series_equal(result, expected)
 
     def test_apply_mixed_dtype_corner(self):
         df = DataFrame({"A": ["foo"], "B": [1.0]})
@@ -570,11 +578,9 @@ class TestDataFrameApply:
 
         # GH 8735
         A = DataFrame([["foo", "bar"], ["spam", "eggs"]])
-        A_dicts = Series(
-            [dict([(0, "foo"), (1, "spam")]), dict([(0, "bar"), (1, "eggs")])]
-        )
+        A_dicts = Series([{0: "foo", 1: "spam"}, {0: "bar", 1: "eggs"}])
         B = DataFrame([[0, 1], [2, 3]])
-        B_dicts = Series([dict([(0, 0), (1, 2)]), dict([(0, 1), (1, 3)])])
+        B_dicts = Series([{0: 0, 1: 2}, {0: 1, 1: 3}])
         fn = lambda x: x.to_dict()
 
         for df, dicts in [(A, A_dicts), (B, B_dicts)]:
@@ -586,6 +592,7 @@ class TestDataFrameApply:
             tm.assert_frame_equal(reduce_false, df)
             tm.assert_series_equal(reduce_none, dicts)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_applymap(self, float_frame):
         applied = float_frame.applymap(lambda x: x * 2)
         tm.assert_frame_equal(applied, float_frame * 2)
@@ -1229,7 +1236,7 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with scalars
-        func = dict([(name1, "mean"), (name2, "sum")])
+        func = {name1: "mean", name2: "sum"}
         result = float_frame.agg(func, axis=axis)
         expected = Series(
             [
@@ -1241,7 +1248,7 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(result, expected)
 
         # dict input with lists
-        func = dict([(name1, ["mean"]), (name2, ["sum"])])
+        func = {name1: ["mean"], name2: ["sum"]}
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
             {
@@ -1257,33 +1264,25 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
-        func = dict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
+        func = {name1: ["mean", "sum"], name2: ["sum", "max"]}
         result = float_frame.agg(func, axis=axis)
         expected = pd.concat(
-            dict(
-                [
-                    (
-                        name1,
-                        Series(
-                            [
-                                float_frame.loc(other_axis)[name1].mean(),
-                                float_frame.loc(other_axis)[name1].sum(),
-                            ],
-                            index=["mean", "sum"],
-                        ),
-                    ),
-                    (
-                        name2,
-                        Series(
-                            [
-                                float_frame.loc(other_axis)[name2].sum(),
-                                float_frame.loc(other_axis)[name2].max(),
-                            ],
-                            index=["sum", "max"],
-                        ),
-                    ),
-                ]
-            ),
+            {
+                name1: Series(
+                    [
+                        float_frame.loc(other_axis)[name1].mean(),
+                        float_frame.loc(other_axis)[name1].sum(),
+                    ],
+                    index=["mean", "sum"],
+                ),
+                name2: Series(
+                    [
+                        float_frame.loc(other_axis)[name2].sum(),
+                        float_frame.loc(other_axis)[name2].max(),
+                    ],
+                    index=["sum", "max"],
+                ),
+            },
             axis=1,
         )
         expected = expected.T if axis in {1, "columns"} else expected
@@ -1323,30 +1322,32 @@ class TestDataFrameAggregate:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_non_callable_aggregates(self):
+    @pytest.mark.parametrize("how", ["agg", "apply"])
+    def test_non_callable_aggregates(self, how):
 
         # GH 16405
         # 'size' is a property of frame/series
         # validate that this is working
+        # GH 39116 - expand to apply
         df = DataFrame(
             {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
         )
 
         # Function aggregate
-        result = df.agg({"A": "count"})
+        result = getattr(df, how)({"A": "count"})
         expected = Series({"A": 2})
 
         tm.assert_series_equal(result, expected)
 
         # Non-function aggregate
-        result = df.agg({"A": "size"})
+        result = getattr(df, how)({"A": "size"})
         expected = Series({"A": 3})
 
         tm.assert_series_equal(result, expected)
 
         # Mix function and non-function aggs
-        result1 = df.agg(["count", "size"])
-        result2 = df.agg(
+        result1 = getattr(df, how)(["count", "size"])
+        result2 = getattr(df, how)(
             {"A": ["count", "size"], "B": ["count", "size"], "C": ["count", "size"]}
         )
         expected = DataFrame(
@@ -1361,13 +1362,13 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result2, expected, check_like=True)
 
         # Just functional string arg is same as calling df.arg()
-        result = df.agg("count")
+        result = getattr(df, how)("count")
         expected = df.count()
 
         tm.assert_series_equal(result, expected)
 
         # Just a string attribute arg same as calling df.arg
-        result = df.agg("size")
+        result = getattr(df, how)("size")
         expected = df.size
 
         assert result == expected
@@ -1585,4 +1586,29 @@ def test_apply_raw_returns_string():
     df = DataFrame({"A": ["aa", "bbb"]})
     result = df.apply(lambda x: x[0], axis=1, raw=True)
     expected = Series(["aa", "bbb"])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op", ["abs", "ceil", "cos", "cumsum", "exp", "log", "sqrt", "square"]
+)
+@pytest.mark.parametrize("how", ["transform", "apply"])
+def test_apply_np_transformer(float_frame, op, how):
+    # GH 39116
+    result = getattr(float_frame, how)(op)
+    expected = getattr(np, op)(float_frame)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
+@pytest.mark.parametrize("how", ["agg", "apply"])
+def test_apply_np_reducer(float_frame, op, how):
+    # GH 39116
+    float_frame = DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = getattr(float_frame, how)(op)
+    # pandas ddof defaults to 1, numpy to 0
+    kwargs = {"ddof": 1} if op in ("std", "var") else {}
+    expected = Series(
+        getattr(np, op)(float_frame, axis=0, **kwargs), index=float_frame.columns
+    )
     tm.assert_series_equal(result, expected)

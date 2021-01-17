@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, Optional, Union, no_type_check
+from typing import Callable, Dict, Optional, Tuple, Union, no_type_check
 
 import numpy as np
 
@@ -14,7 +16,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+from pandas._typing import T, TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
@@ -43,7 +45,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs: Dict[str, str] = dict()
+_shared_docs_kwargs: Dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, ShallowMixin):
@@ -94,7 +96,10 @@ class Resampler(BaseGroupBy, ShallowMixin):
         self.as_index = True
         self.exclusions = set()
         self.binner = None
-        self.grouper = None
+        # pandas\core\resample.py:96: error: Incompatible types in assignment
+        # (expression has type "None", variable has type "BaseGrouper")
+        # [assignment]
+        self.grouper = None  # type: ignore[assignment]
 
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
@@ -228,7 +233,12 @@ class Resampler(BaseGroupBy, ShallowMixin):
     2012-08-04  1""",
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return super().pipe(func, *args, **kwargs)
 
     _agg_see_also_doc = dedent(
@@ -410,14 +420,21 @@ class Resampler(BaseGroupBy, ShallowMixin):
         result : Series or DataFrame
             the result of resample
         """
+        # pandas\core\resample.py:409: error: Cannot determine type of
+        # 'loffset'  [has-type]
         needs_offset = (
-            isinstance(self.loffset, (DateOffset, timedelta, np.timedelta64))
+            isinstance(
+                self.loffset,  # type: ignore[has-type]
+                (DateOffset, timedelta, np.timedelta64),
+            )
             and isinstance(result.index, DatetimeIndex)
             and len(result.index) > 0
         )
 
         if needs_offset:
-            result.index = result.index + self.loffset
+            # pandas\core\resample.py:415: error: Cannot determine type of
+            # 'loffset'  [has-type]
+            result.index = result.index + self.loffset  # type: ignore[has-type]
 
         self.loffset = None
         return result
@@ -852,7 +869,9 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Standard deviation of values within each group.
         """
         nv.validate_resampler_func("std", args, kwargs)
-        return self._downsample("std", ddof=ddof)
+        # pandas\core\resample.py:850: error: Unexpected keyword argument
+        # "ddof" for "_downsample"  [call-arg]
+        return self._downsample("std", ddof=ddof)  # type: ignore[call-arg]
 
     def var(self, ddof=1, *args, **kwargs):
         """
@@ -869,7 +888,9 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Variance of values within each group.
         """
         nv.validate_resampler_func("var", args, kwargs)
-        return self._downsample("var", ddof=ddof)
+        # pandas\core\resample.py:867: error: Unexpected keyword argument
+        # "ddof" for "_downsample"  [call-arg]
+        return self._downsample("var", ddof=ddof)  # type: ignore[call-arg]
 
     @doc(GroupBy.size)
     def size(self):
@@ -927,11 +948,16 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Return a DataFrame, where the coulmns are groupby columns,
             and the values are its quantiles.
         """
-        return self._downsample("quantile", q=q, **kwargs)
+        # pandas\core\resample.py:920: error: Unexpected keyword argument "q"
+        # for "_downsample"  [call-arg]
+
+        # pandas\core\resample.py:920: error: Too many arguments for
+        # "_downsample"  [call-arg]
+        return self._downsample("quantile", q=q, **kwargs)  # type: ignore[call-arg]
 
 
 # downsample methods
-for method in ["sum", "prod"]:
+for method in ["sum", "prod", "min", "max", "first", "last"]:
 
     def f(self, _method=method, min_count=0, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
@@ -942,7 +968,7 @@ for method in ["sum", "prod"]:
 
 
 # downsample methods
-for method in ["min", "max", "first", "last", "mean", "sem", "median", "ohlc"]:
+for method in ["mean", "sem", "median", "ohlc"]:
 
     def g(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
@@ -979,7 +1005,9 @@ class _GroupByMixin(GotItemMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        super().__init__(None)
+        # pandas\core\resample.py:972: error: Too many arguments for "__init__"
+        # of "object"  [call-arg]
+        super().__init__(None)  # type: ignore[call-arg]
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -1044,7 +1072,12 @@ class DatetimeIndexResampler(Resampler):
         # do we have a regular frequency
         if ax.freq is not None or ax.inferred_freq is not None:
 
-            if len(self.grouper.binlabels) > len(ax) and how is None:
+            # pandas\core\resample.py:1037: error: "BaseGrouper" has no
+            # attribute "binlabels"  [attr-defined]
+            if (
+                len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+                and how is None
+            ):
 
                 # let's do an asfreq
                 return self.asfreq()
@@ -1362,10 +1395,22 @@ class TimeGrouper(Grouper):
             if label is None:
                 label = "right"
         else:
-            if closed is None:
-                closed = "left"
-            if label is None:
-                label = "left"
+            # The backward resample sets ``closed`` to ``'right'`` by default
+            # since the last value should be considered as the edge point for
+            # the last bin. When origin in "end" or "end_day", the value for a
+            # specific ``Timestamp`` index stands for the resample result from
+            # the current ``Timestamp`` minus ``freq`` to the current
+            # ``Timestamp`` with a right close.
+            if origin in ["end", "end_day"]:
+                if closed is None:
+                    closed = "right"
+                if label is None:
+                    label = "right"
+            else:
+                if closed is None:
+                    closed = "left"
+                if label is None:
+                    label = "left"
 
         self.closed = closed
         self.label = label
@@ -1378,14 +1423,15 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if origin in ("epoch", "start", "start_day"):
+        if origin in ("epoch", "start", "start_day", "end", "end_day"):
             self.origin = origin
         else:
             try:
                 self.origin = Timestamp(origin)
             except Exception as e:
                 raise ValueError(
-                    "'origin' should be equal to 'epoch', 'start', 'start_day' or "
+                    "'origin' should be equal to 'epoch', 'start', 'start_day', "
+                    "'end', 'end_day' or "
                     f"should be a Timestamp convertible type. Got '{origin}' instead."
                 ) from e
 
@@ -1820,6 +1866,13 @@ def _adjust_dates_anchored(
         origin_nanos = first.value
     elif isinstance(origin, Timestamp):
         origin_nanos = origin.value
+    elif origin in ["end", "end_day"]:
+        origin = last if origin == "end" else last.ceil("D")
+        sub_freq_times = (origin.value - first.value) // freq.nanos
+        if closed == "left":
+            sub_freq_times += 1
+        first = origin - sub_freq_times * freq
+        origin_nanos = first.value
     origin_nanos += offset.value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
@@ -1872,6 +1925,8 @@ def _adjust_dates_anchored(
 def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
     """
     Utility frequency conversion method for Series/DataFrame.
+
+    See :meth:`pandas.NDFrame.asfreq` for full documentation.
     """
     if isinstance(obj.index, PeriodIndex):
         if method is not None:
@@ -1918,6 +1973,10 @@ def _asfreq_compat(index, freq):
     new_index: Index
     if isinstance(index, PeriodIndex):
         new_index = index.asfreq(freq=freq)
-    else:
-        new_index = Index([], dtype=index.dtype, freq=freq, name=index.name)
+    elif isinstance(index, DatetimeIndex):
+        new_index = DatetimeIndex([], dtype=index.dtype, freq=freq, name=index.name)
+    elif isinstance(index, TimedeltaIndex):
+        new_index = TimedeltaIndex([], dtype=index.dtype, freq=freq, name=index.name)
+    else:  # pragma: no cover
+        raise TypeError(type(index))
     return new_index

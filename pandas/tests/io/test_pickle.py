@@ -465,6 +465,12 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
             else:
                 self.headers = {"Content-Encoding": None}
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.close()
+
         def read(self):
             return self.file.read()
 
@@ -576,3 +582,15 @@ def test_pickle_datetimes(datetime_series):
 def test_pickle_strings(string_series):
     unp_series = tm.round_trip_pickle(string_series)
     tm.assert_series_equal(unp_series, string_series)
+
+
+def test_pickle_preserves_block_ndim():
+    # GH#37631
+    ser = Series(list("abc")).astype("category").iloc[[0]]
+    res = tm.round_trip_pickle(ser)
+
+    assert res._mgr.blocks[0].ndim == 1
+    assert res._mgr.blocks[0].shape == (1,)
+
+    # GH#37631 OP issue was about indexing, underlying problem was pickle
+    tm.assert_series_equal(res[[True]], ser)

@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Any, AnyArrayLike
+from pandas._typing import Any, AnyArrayLike, ArrayLike
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -79,6 +79,9 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     -------
     bool
     """
+    if ndim == 1 and is_integer(indexer):
+        # GH37748: allow indexer to be an integer for Series
+        return True
     if isinstance(indexer, tuple):
         if len(indexer) == ndim:
             return all(
@@ -105,7 +108,7 @@ def is_empty_indexer(indexer, arr_value: np.ndarray) -> bool:
         return True
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
-            indexer = tuple([indexer])
+            indexer = (indexer,)
         return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
     return False
 
@@ -267,6 +270,27 @@ def maybe_convert_indices(indices, n: int):
 # Unsorted
 
 
+def is_exact_shape_match(target: ArrayLike, value: ArrayLike) -> bool:
+    """
+    Is setting this value into this target overwriting the entire column?
+
+    Parameters
+    ----------
+    target : np.ndarray or ExtensionArray
+    value : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    bool
+    """
+    return (
+        len(value.shape) > 0
+        and len(target.shape) > 0
+        and value.shape[0] == target.shape[0]
+        and value.size == target.size
+    )
+
+
 def length_of_indexer(indexer, target=None) -> int:
     """
     Return the expected length of target[indexer]
@@ -294,7 +318,7 @@ def length_of_indexer(indexer, target=None) -> int:
             start, stop = stop + 1, start + 1
             step = -step
         return (stop - start + step - 1) // step
-    elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):
+    elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
         if isinstance(indexer, list):
             indexer = np.array(indexer)
 

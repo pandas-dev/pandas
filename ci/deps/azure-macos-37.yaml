@@ -26,7 +26,7 @@ dependencies:
   - python-dateutil==2.7.3
   - pytz
   - xarray
-  - xlrd
+  - xlrd<2.0
   - xlsxwriter
   - xlwt
   - pip

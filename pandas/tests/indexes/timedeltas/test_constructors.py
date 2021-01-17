@@ -27,7 +27,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
         #  has one
-        tdi = pd.timedelta_range("1 second", periods=10 ** 7, freq="1s")
+        tdi = timedelta_range("1 second", periods=10 ** 7, freq="1s")
 
         result = TimedeltaIndex(tdi, freq="infer")
         assert result.freq == tdi.freq
@@ -40,7 +40,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for invalidating a frequency if the passed data already
         #  has one and it does not match the `freq` input
-        tdi = pd.timedelta_range("1 second", periods=100, freq="1s")
+        tdi = timedelta_range("1 second", periods=100, freq="1s")
 
         msg = (
             "Inferred frequency .* from passed values does "

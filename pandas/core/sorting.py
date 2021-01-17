@@ -1,4 +1,6 @@
 """ miscellaneous sorting / groupby utilities """
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -54,7 +56,7 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional
@@ -419,7 +421,7 @@ def nargminmax(values, method: str):
 
 def _ensure_key_mapped_multiindex(
     index: "MultiIndex", key: Callable, level=None
-) -> "MultiIndex":
+) -> MultiIndex:
     """
     Returns a new MultiIndex in which key has been applied
     to all levels specified in level (or all levels if level
@@ -542,8 +544,7 @@ def get_indexer_dict(
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
-        # When all keys are nan and dropna=True, indices_fast can't handle this
-        # and the return is empty anyway
+        # Short-circuit, lib.indices_fast will return the same
         return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)
@@ -605,7 +606,7 @@ def compress_group_index(group_index, sort: bool = True):
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return comp_ids, obs_group_ids
+    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
 def _reorder_by_uniques(uniques, labels):

@@ -130,7 +130,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             elif op_name in ("__truediv__", "__rtruediv__"):
                 # combine with bools does not generate the correct result
                 #  (numpy behaviour for div is to regard the bools as numeric)
-                expected = s.astype(float).combine(other, op)
+                expected = s.astype(float).combine(other, op).astype("Float64")
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
                 expected[result.isna()] = np.nan
@@ -235,6 +235,10 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
+    @pytest.mark.skip(reason="uses nullable integer")
+    def test_value_counts_with_normalize(self, data):
+        pass
+
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values
 
@@ -286,6 +290,22 @@ class TestGroupby(base.BaseGroupbyTests):
         else:
             expected = expected.reset_index()
             self.assert_frame_equal(result, expected)
+
+    def test_groupby_agg_extension(self, data_for_grouping):
+        # GH#38980 groupby agg on extension type fails for non-numeric types
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
+
+        expected = df.iloc[[0, 2, 4]]
+        expected = expected.set_index("A")
+
+        result = df.groupby("A").agg({"B": "first"})
+        self.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").agg("first")
+        self.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").first()
+        self.assert_frame_equal(result, expected)
 
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})

@@ -1,4 +1,6 @@
 # being a bit too dynamic
+from __future__ import annotations
+
 from math import ceil
 from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
 import warnings
@@ -7,10 +9,10 @@ import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 
 from pandas.plotting._matplotlib import compat
 
@@ -30,7 +32,9 @@ def format_date_labels(ax: "Axes", rot):
     fig.subplots_adjust(bottom=0.2)
 
 
-def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> "Table":
+def table(
+    ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
+) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -59,12 +63,10 @@ def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int
 
         nrows, ncols = layout
 
-        # Python 2 compat
-        ceil_ = lambda x: int(ceil(x))
         if nrows == -1 and ncols > 0:
-            layout = nrows, ncols = (ceil_(float(nplots) / ncols), ncols)
+            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = nrows, ncols = (nrows, ceil_(float(nplots) / nrows))
+            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)
@@ -194,7 +196,8 @@ def create_subplots(
         fig = plt.figure(**fig_kw)
     else:
         if is_list_like(ax):
-            ax = flatten_axes(ax)
+            if squeeze:
+                ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored", UserWarning
@@ -206,8 +209,8 @@ def create_subplots(
                     UserWarning,
                     stacklevel=4,
                 )
-            if len(ax) == naxes:
-                fig = ax[0].get_figure()
+            if ax.size == naxes:
+                fig = ax.flat[0].get_figure()
                 return fig, ax
             else:
                 raise ValueError(
@@ -404,7 +407,7 @@ def handle_shared_axes(
 def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
-    elif isinstance(axes, (np.ndarray, ABCIndexClass)):
+    elif isinstance(axes, (np.ndarray, ABCIndex)):
         return np.asarray(axes).ravel()
     return np.array(axes)
 
@@ -444,8 +447,8 @@ def get_all_lines(ax: "Axes") -> List["Line2D"]:
 
 def get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
-    for l in lines:
-        x = l.get_xdata(orig=False)
+    for line in lines:
+        x = line.get_xdata(orig=False)
         left = min(np.nanmin(x), left)
         right = max(np.nanmax(x), right)
     return left, right

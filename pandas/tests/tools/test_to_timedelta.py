@@ -184,7 +184,7 @@ class TestTimedeltas:
         # https://github.com/pandas-dev/pandas/issues/25077
         arr = np.arange(0, 1, 1e-6)[-10:]
         result = pd.to_timedelta(arr, unit="s")
-        expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype="int64")
+        expected_asi8 = np.arange(999990000, 10 ** 9, 1000, dtype="int64")
         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
 
     def test_to_timedelta_coerce_strings_unit(self):
@@ -210,3 +210,37 @@ class TestTimedeltas:
         result = to_timedelta(Series([1, None], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("input", "expected"),
+        [
+            ("8:53:08.71800000001", "8:53:08.718"),
+            ("8:53:08.718001", "8:53:08.718001"),
+            ("8:53:08.7180000001", "8:53:08.7180000001"),
+            ("-8:53:08.71800000001", "-8:53:08.718"),
+            ("8:53:08.7180000089", "8:53:08.718000008"),
+        ],
+    )
+    @pytest.mark.parametrize("func", [pd.Timedelta, pd.to_timedelta])
+    def test_to_timedelta_precision_over_nanos(self, input, expected, func):
+        # GH: 36738
+        expected = pd.Timedelta(expected)
+        result = func(input)
+        assert result == expected
+
+    def test_to_timedelta_zerodim(self):
+        # ndarray.item() incorrectly returns int for dt64[ns] and td64[ns]
+        dt64 = pd.Timestamp.now().to_datetime64()
+        arg = np.array(dt64)
+
+        msg = (
+            "Value must be Timedelta, string, integer, float, timedelta "
+            "or convertible, not datetime64"
+        )
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(arg)
+
+        arg2 = arg.view("m8[ns]")
+        result = to_timedelta(arg2)
+        assert isinstance(result, pd.Timedelta)
+        assert result.value == dt64.view("i8")

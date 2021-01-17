@@ -151,7 +151,7 @@ def test_groupby_with_origin():
     count_ts = ts.groupby(simple_grouper).agg("count")
     count_ts = count_ts[middle:end]
     count_ts2 = ts2.groupby(simple_grouper).agg("count")
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError, match="Index are different"):
         tm.assert_index_equal(count_ts.index, count_ts2.index)
 
     # test origin on 1970-01-01 00:00:00
@@ -362,3 +362,39 @@ def test_apply_to_one_column_of_df():
     tm.assert_series_equal(result, expected)
     result = df.resample("H").apply(lambda group: group["col"].sum())
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_groupby_agg():
+    # GH: 33548
+    df = DataFrame(
+        {
+            "cat": [
+                "cat_1",
+                "cat_1",
+                "cat_2",
+                "cat_1",
+                "cat_2",
+                "cat_1",
+                "cat_2",
+                "cat_1",
+            ],
+            "num": [5, 20, 22, 3, 4, 30, 10, 50],
+            "date": [
+                "2019-2-1",
+                "2018-02-03",
+                "2020-3-11",
+                "2019-2-2",
+                "2019-2-2",
+                "2018-12-4",
+                "2020-3-11",
+                "2020-12-12",
+            ],
+        }
+    )
+    df["date"] = pd.to_datetime(df["date"])
+
+    resampled = df.groupby("cat").resample("Y", on="date")
+    expected = resampled.sum()
+    result = resampled.agg({"num": "sum"})
+
+    tm.assert_frame_equal(result, expected)

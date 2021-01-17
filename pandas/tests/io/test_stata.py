@@ -12,6 +12,8 @@ import zipfile
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
@@ -28,6 +30,9 @@ from pandas.io.stata import (
     StataWriterUTF8,
     read_stata,
 )
+
+# TODO(ArrayManager) the stata code relies on BlockManager internals (eg blknos)
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture()
@@ -1974,12 +1979,12 @@ def test_iterator_value_labels():
     df = DataFrame({f"col{k}": pd.Categorical(values, ordered=True) for k in range(2)})
     with tm.ensure_clean() as path:
         df.to_stata(path, write_index=False)
-        reader = pd.read_stata(path, chunksize=100)
         expected = pd.Index(["a_label", "b_label", "c_label"], dtype="object")
-        for j, chunk in enumerate(reader):
-            for i in range(2):
-                tm.assert_index_equal(chunk.dtypes[i].categories, expected)
-            tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
+        with pd.read_stata(path, chunksize=100) as reader:
+            for j, chunk in enumerate(reader):
+                for i in range(2):
+                    tm.assert_index_equal(chunk.dtypes[i].categories, expected)
+                tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
 
 
 def test_precision_loss():

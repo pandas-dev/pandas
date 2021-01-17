@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import is_url, urlopen, validate_header_arg
+from pandas.io.common import is_url, stringify_path, urlopen, validate_header_arg
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -39,17 +39,13 @@ def _importers():
         return
 
     global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
-    bs4 = import_optional_dependency("bs4", raise_on_missing=False, on_version="ignore")
+    bs4 = import_optional_dependency("bs4", errors="ignore")
     _HAS_BS4 = bs4 is not None
 
-    lxml = import_optional_dependency(
-        "lxml.etree", raise_on_missing=False, on_version="ignore"
-    )
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     _HAS_LXML = lxml is not None
 
-    html5lib = import_optional_dependency(
-        "html5lib", raise_on_missing=False, on_version="ignore"
-    )
+    html5lib = import_optional_dependency("html5lib", errors="ignore")
     _HAS_HTML5LIB = html5lib is not None
 
     _IMPORTS = True
@@ -794,9 +790,8 @@ def _data_to_frame(**kwargs):
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)
-    tp = TextParser(body, header=header, **kwargs)
-    df = tp.read()
-    return df
+    with TextParser(body, header=header, **kwargs) as tp:
+        return tp.read()
 
 
 _valid_parsers = {
@@ -1080,6 +1075,9 @@ def read_html(
             "data (you passed a negative value)"
         )
     validate_header_arg(header)
+
+    io = stringify_path(io)
+
     return _parse(
         flavor=flavor,
         io=io,

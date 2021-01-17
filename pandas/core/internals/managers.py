@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import itertools
 from typing import (
@@ -5,6 +7,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -17,7 +20,8 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
+from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -33,15 +37,15 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
@@ -60,7 +64,7 @@ from pandas.core.internals.ops import blockwise_all, operate_blockwise
 T = TypeVar("T", bound="BlockManager")
 
 
-class BlockManager(PandasObject):
+class BlockManager(DataManager):
     """
     Core internal data structure to implement DataFrame, Series, etc.
 
@@ -267,7 +271,7 @@ class BlockManager(PandasObject):
             "0.14.1": {
                 "axes": axes_array,
                 "blocks": [
-                    dict(values=b.values, mgr_locs=b.mgr_locs.indexer)
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
                     for b in self.blocks
                 ],
             }
@@ -278,14 +282,17 @@ class BlockManager(PandasObject):
         return axes_array, block_values, block_items, extra_state
 
     def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs):
-            return make_block(values, placement=mgr_locs)
+        def unpickle_block(values, mgr_locs, ndim: int):
+            # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            return make_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
             state = state[3]["0.14.1"]
             self.axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(self.axes)
             self.blocks = tuple(
-                unpickle_block(b["values"], b["mgr_locs"]) for b in state["blocks"]
+                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
+                for b in state["blocks"]
             )
         else:
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
@@ -364,7 +371,7 @@ class BlockManager(PandasObject):
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
 
-    def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
+    def operate_blockwise(self, other: "BlockManager", array_op) -> BlockManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
@@ -443,7 +450,7 @@ class BlockManager(PandasObject):
         interpolation="linear",
         qs=None,
         numeric_only=None,
-    ) -> "BlockManager":
+    ) -> BlockManager:
         """
         Iterate over blocks applying quantile reduction.
         This routine is intended for reduction type operations and
@@ -452,6 +459,8 @@ class BlockManager(PandasObject):
         Parameters
         ----------
         axis: reduction axis, default 0
+        consolidate: bool, default True. Join together blocks having same
+            dtype
         transposed: bool, default False
             we are holding transposed data
         interpolation : type of interpolation, default 'linear'
@@ -533,12 +542,10 @@ class BlockManager(PandasObject):
             make_block(values, ndim=1, placement=np.arange(len(values))), axes[0]
         )
 
-    def isna(self, func) -> "BlockManager":
+    def isna(self, func) -> BlockManager:
         return self.apply("apply", func=func)
 
-    def where(
-        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
-    ) -> "BlockManager":
+    def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -551,15 +558,13 @@ class BlockManager(PandasObject):
             other=other,
             cond=cond,
             errors=errors,
-            try_cast=try_cast,
             axis=axis,
         )
 
-    def setitem(self, indexer, value) -> "BlockManager":
+    def setitem(self, indexer, value) -> BlockManager:
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True, axis: int = 0):
-        transpose = self.ndim == 2
 
         if align:
             align_keys = ["new", "mask"]
@@ -572,18 +577,16 @@ class BlockManager(PandasObject):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            inplace=True,
             axis=axis,
-            transpose=transpose,
         )
 
-    def diff(self, n: int, axis: int) -> "BlockManager":
+    def diff(self, n: int, axis: int) -> BlockManager:
         return self.apply("diff", n=n, axis=axis)
 
-    def interpolate(self, **kwargs) -> "BlockManager":
+    def interpolate(self, **kwargs) -> BlockManager:
         return self.apply("interpolate", **kwargs)
 
-    def shift(self, periods: int, axis: int, fill_value) -> "BlockManager":
+    def shift(self, periods: int, axis: int, fill_value) -> BlockManager:
         if fill_value is lib.no_default:
             fill_value = None
 
@@ -608,17 +611,15 @@ class BlockManager(PandasObject):
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> "BlockManager":
+    def fillna(self, value, limit, inplace: bool, downcast) -> BlockManager:
         return self.apply(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def downcast(self) -> "BlockManager":
+    def downcast(self) -> BlockManager:
         return self.apply("downcast")
 
-    def astype(
-        self, dtype, copy: bool = False, errors: str = "raise"
-    ) -> "BlockManager":
+    def astype(self, dtype, copy: bool = False, errors: str = "raise") -> BlockManager:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
     def convert(
@@ -627,20 +628,20 @@ class BlockManager(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
-    ) -> "BlockManager":
+    ) -> BlockManager:
         return self.apply(
             "convert",
             copy=copy,
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,
-            coerce=coerce,
         )
 
-    def replace(self, value, **kwargs) -> "BlockManager":
+    def replace(self, to_replace, value, inplace: bool, regex: bool) -> BlockManager:
         assert np.ndim(value) == 0, value
-        return self.apply("replace", value=value, **kwargs)
+        return self.apply(
+            "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
+        )
 
     def replace_list(
         self: T,
@@ -662,7 +663,7 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def to_native_types(self, **kwargs) -> "BlockManager":
+    def to_native_types(self, **kwargs) -> BlockManager:
         """
         Convert values to native types (strings / python objects) that are used
         in formatting (repr / csv).
@@ -706,17 +707,32 @@ class BlockManager(PandasObject):
 
         return False
 
-    def get_bool_data(self, copy: bool = False) -> "BlockManager":
+    def get_bool_data(self, copy: bool = False) -> BlockManager:
         """
+        Select blocks that are bool-dtype and columns from object-dtype blocks
+        that are all-bool.
+
         Parameters
         ----------
         copy : bool, default False
             Whether to copy the blocks
         """
-        self._consolidate_inplace()
-        return self._combine([b for b in self.blocks if b.is_bool], copy)
 
-    def get_numeric_data(self, copy: bool = False) -> "BlockManager":
+        new_blocks = []
+
+        for blk in self.blocks:
+            if blk.dtype == bool:
+                new_blocks.append(blk)
+
+            elif blk.is_object:
+                nbs = blk._split()
+                for nb in nbs:
+                    if nb.is_bool:
+                        new_blocks.append(nb)
+
+        return self._combine(new_blocks, copy)
+
+    def get_numeric_data(self, copy: bool = False) -> BlockManager:
         """
         Parameters
         ----------
@@ -749,7 +765,7 @@ class BlockManager(PandasObject):
 
         return type(self).from_blocks(new_blocks, axes)
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> "BlockManager":
+    def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
@@ -801,7 +817,7 @@ class BlockManager(PandasObject):
     def as_array(
         self,
         transpose: bool = False,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -857,7 +873,9 @@ class BlockManager(PandasObject):
 
         return arr.transpose() if transpose else arr
 
-    def _interleave(self, dtype=None, na_value=lib.no_default) -> np.ndarray:
+    def _interleave(
+        self, dtype: Optional[Dtype] = None, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
@@ -948,7 +966,7 @@ class BlockManager(PandasObject):
 
         return result
 
-    def consolidate(self) -> "BlockManager":
+    def consolidate(self) -> BlockManager:
         """
         Join together blocks having same dtype
 
@@ -971,7 +989,7 @@ class BlockManager(PandasObject):
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
 
-    def iget(self, i: int) -> "SingleBlockManager":
+    def iget(self, i: int) -> SingleBlockManager:
         """
         Return the data as a SingleBlockManager.
         """
@@ -1149,7 +1167,7 @@ class BlockManager(PandasObject):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc: int, item: Label, value, allow_duplicates: bool = False):
+    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
@@ -1202,28 +1220,14 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
 
         if len(self.blocks) > 100:
-            self._consolidate_inplace()
-
-    def reindex_axis(
-        self,
-        new_index,
-        axis: int,
-        method=None,
-        limit=None,
-        fill_value=None,
-        copy: bool = True,
-    ):
-        """
-        Conform block manager to new index.
-        """
-        new_index = ensure_index(new_index)
-        new_index, indexer = self.axes[axis].reindex(
-            new_index, method=method, limit=limit
-        )
-
-        return self.reindex_indexer(
-            new_index, indexer, axis=axis, fill_value=fill_value, copy=copy
-        )
+            warnings.warn(
+                "DataFrame is highly fragmented.  This is usually the result "
+                "of calling `frame.insert` many times, which has poor performance.  "
+                "Consider using pd.concat instead.  To get a de-fragmented frame, "
+                "use `newframe = frame.copy()`",
+                PerformanceWarning,
+                stacklevel=5,
+            )
 
     def reindex_indexer(
         self: T,
@@ -1234,6 +1238,7 @@ class BlockManager(PandasObject):
         allow_dups: bool = False,
         copy: bool = True,
         consolidate: bool = True,
+        only_slice: bool = False,
     ) -> T:
         """
         Parameters
@@ -1246,6 +1251,8 @@ class BlockManager(PandasObject):
         copy : bool, default True
         consolidate: bool, default True
             Whether to consolidate inplace before reindexing.
+        only_slice : bool, default False
+            Whether to take views, not copies, along columns.
 
         pandas-indexer with -1's only.
         """
@@ -1269,7 +1276,9 @@ class BlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(indexer, fill_value=fill_value)
+            new_blocks = self._slice_take_blocks_ax0(
+                indexer, fill_value=fill_value, only_slice=only_slice
+            )
         else:
             new_blocks = [
                 blk.take_nd(
@@ -1317,7 +1326,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
-                # GH#32959 EABlock would fail since we cant make 0-width
+                # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
@@ -1412,13 +1421,12 @@ class BlockManager(PandasObject):
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
         block_values = np.empty(block_shape, dtype=dtype)
         block_values.fill(fill_value)
-        return make_block(block_values, placement=placement)
+        return make_block(block_values, placement=placement, ndim=block_values.ndim)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
         Take items along any axis.
         """
-        self._consolidate_inplace()
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)
@@ -1435,7 +1443,11 @@ class BlockManager(PandasObject):
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
-            new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
+            new_axis=new_labels,
+            indexer=indexer,
+            axis=axis,
+            allow_dups=True,
+            consolidate=False,
         )
 
     def equals(self, other: object) -> bool:
@@ -1458,7 +1470,7 @@ class BlockManager(PandasObject):
 
         return blockwise_all(self, other, array_equals)
 
-    def unstack(self, unstacker, fill_value) -> "BlockManager":
+    def unstack(self, unstacker, fill_value) -> BlockManager:
         """
         Return a BlockManager with all blocks unstacked..
 
@@ -1524,12 +1536,10 @@ class SingleBlockManager(BlockManager):
             )
 
         self.axes = [axis]
-        self.blocks = tuple([block])
+        self.blocks = (block,)
 
     @classmethod
-    def from_blocks(
-        cls, blocks: List[Block], axes: List[Index]
-    ) -> "SingleBlockManager":
+    def from_blocks(cls, blocks: List[Block], axes: List[Index]) -> SingleBlockManager:
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
@@ -1538,7 +1548,7 @@ class SingleBlockManager(BlockManager):
         return cls(blocks[0], axes[0], do_integrity_check=False)
 
     @classmethod
-    def from_array(cls, array: ArrayLike, index: Index) -> "SingleBlockManager":
+    def from_array(cls, array: ArrayLike, index: Index) -> SingleBlockManager:
         """
         Constructor for if we have an array that is not yet a Block.
         """
@@ -1562,7 +1572,7 @@ class SingleBlockManager(BlockManager):
         """ compat with BlockManager """
         return None
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> "SingleBlockManager":
+    def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
@@ -1635,7 +1645,9 @@ def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
                 # is basically "all items", but if there're many, don't bother
                 # converting, it's an error anyway.
                 blocks = [
-                    make_block(values=blocks[0], placement=slice(0, len(axes[0])))
+                    make_block(
+                        values=blocks[0], placement=slice(0, len(axes[0])), ndim=2
+                    )
                 ]
 
         mgr = BlockManager(blocks, axes)
@@ -1655,8 +1667,11 @@ def create_block_manager_from_arrays(
     assert isinstance(axes, list)
     assert all(isinstance(x, Index) for x in axes)
 
+    # ensure we dont have any PandasArrays when we call get_block_type
+    # Note: just calling extract_array breaks tests that patch PandasArray._typ.
+    arrays = [x if not isinstance(x, ABCPandasArray) else x.to_numpy() for x in arrays]
     try:
-        blocks = form_blocks(arrays, names, axes)
+        blocks = _form_blocks(arrays, names, axes)
         mgr = BlockManager(blocks, axes)
         mgr._consolidate_inplace()
         return mgr
@@ -1688,7 +1703,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
 # -----------------------------------------------------------------------
 
 
-def form_blocks(arrays, names: Index, axes) -> List[Block]:
+def _form_blocks(arrays, names: Index, axes) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
     items_dict: DefaultDict[str, List] = defaultdict(list)
@@ -1735,7 +1750,7 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            make_block(array, klass=DatetimeTZBlock, placement=i)
+            make_block(array, klass=DatetimeTZBlock, placement=i, ndim=2)
             for i, _, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1750,15 +1765,14 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
 
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
-            make_block(array, klass=CategoricalBlock, placement=i)
+            make_block(array, klass=CategoricalBlock, placement=i, ndim=2)
             for i, _, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
-
         external_blocks = [
-            make_block(array, klass=ExtensionBlock, placement=i)
+            make_block(array, klass=ExtensionBlock, placement=i, ndim=2)
             for i, _, array in items_dict["ExtensionBlock"]
         ]
 
@@ -1766,7 +1780,7 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
 
     if len(items_dict["ObjectValuesExtensionBlock"]):
         external_blocks = [
-            make_block(array, klass=ObjectValuesExtensionBlock, placement=i)
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=i, ndim=2)
             for i, _, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
@@ -1779,7 +1793,7 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
         block_values = np.empty(shape, dtype=object)
         block_values.fill(np.nan)
 
-        na_block = make_block(block_values, placement=extra_locs)
+        na_block = make_block(block_values, placement=extra_locs, ndim=2)
         blocks.append(na_block)
 
     return blocks
@@ -1796,11 +1810,11 @@ def _simple_blockify(tuples, dtype) -> List[Block]:
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
-    block = make_block(values, placement=placement)
+    block = make_block(values, placement=placement, ndim=2)
     return [block]
 
 
-def _multi_blockify(tuples, dtype=None):
+def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     """ return an array of blocks that potentially have different dtypes """
     # group by dtype
     grouper = itertools.groupby(tuples, lambda x: x[2].dtype)
@@ -1810,7 +1824,7 @@ def _multi_blockify(tuples, dtype=None):
 
         values, placement = _stack_arrays(list(tup_block), dtype)
 
-        block = make_block(values, placement=placement)
+        block = make_block(values, placement=placement, ndim=2)
         new_blocks.append(block)
 
     return new_blocks
@@ -1875,7 +1889,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks.extend(merged_blocks)
+        new_blocks = extend_blocks(merged_blocks, new_blocks)
     return new_blocks
 
 
@@ -1901,7 +1915,7 @@ def _merge_blocks(
         new_values = new_values[argsort]
         new_mgr_locs = new_mgr_locs[argsort]
 
-        return [make_block(new_values, placement=new_mgr_locs)]
+        return [make_block(new_values, placement=new_mgr_locs, ndim=2)]
 
     # can't consolidate --> no merge
     return blocks

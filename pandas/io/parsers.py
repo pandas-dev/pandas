@@ -10,7 +10,18 @@ import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Type,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -20,7 +31,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, StorageOptions, Union
+from pandas._typing import DtypeArg, FilePathOrBuffer, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -51,7 +62,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms
+from pandas.core import algorithms, generic
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
@@ -63,7 +74,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
+from pandas.io.common import IOHandles, get_handle, validate_header_arg
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -265,11 +276,19 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
@@ -344,13 +363,7 @@ float_precision : str, optional
 
     .. versionchanged:: 1.2
 
-storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a local path or
-    a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values.
+{storage_options}
 
     .. versionadded:: 1.2
 
@@ -428,17 +441,6 @@ def _validate_names(names):
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    storage_options = kwds.get("storage_options", None)
-
-    ioargs = get_filepath_or_buffer(
-        filepath_or_buffer,
-        kwds.get("encoding", None),
-        kwds.get("compression", "infer"),
-        storage_options=storage_options,
-    )
-    kwds["compression"] = ioargs.compression
-    kwds["encoding"] = ioargs.encoding
-
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
             kwds["parse_dates"] = True
@@ -452,20 +454,13 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     _validate_names(kwds.get("names", None))
 
     # Create the parser.
-    parser = TextFileReader(ioargs.filepath_or_buffer, **kwds)
+    parser = TextFileReader(filepath_or_buffer, **kwds)
 
     if chunksize or iterator:
         return parser
 
-    try:
-        data = parser.read(nrows)
-    finally:
-        # close compression and byte/text wrapper
-        parser.close()
-        # close any fsspec-like objects
-        ioargs.close()
-
-    return data
+    with parser:
+        return parser.read(nrows)
 
 
 _parser_defaults = {
@@ -535,6 +530,7 @@ _deprecated_args: Set[str] = set()
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_csv(
@@ -550,7 +546,7 @@ def read_csv(
     prefix=None,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -614,6 +610,7 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_table(
@@ -629,7 +626,7 @@ def read_table(
     prefix=None,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -802,6 +799,7 @@ class TextFileReader(abc.Iterator):
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
+        options["storage_options"] = kwds.get("storage_options", None)
 
         self.chunksize = options.pop("chunksize", None)
         self.nrows = options.pop("nrows", None)
@@ -851,24 +849,24 @@ class TextFileReader(abc.Iterator):
             options[argname] = value
 
         if engine == "python-fwf":
-            for argname, default in _fwf_defaults.items():
+            # pandas\io\parsers.py:907: error: Incompatible types in assignment
+            # (expression has type "object", variable has type "Union[int, str,
+            # None]")  [assignment]
+            for argname, default in _fwf_defaults.items():  # type: ignore[assignment]
                 options[argname] = kwds.get(argname, default)
 
         return options
 
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
-        if is_file_like(f):
-            next_attr = "__next__"
-
-            # The C engine doesn't need the file-like to have the "next" or
-            # "__next__" attribute. However, the Python engine explicitly calls
-            # "next(...)" when iterating through such an object, meaning it
-            # needs to have that attribute ("next" for Python 2.x, "__next__"
-            # for Python 3.x)
-            if engine != "c" and not hasattr(f, next_attr):
-                msg = "The 'python' engine cannot iterate through this file buffer."
-                raise ValueError(msg)
+        if is_file_like(f) and engine != "c" and not hasattr(f, "__next__"):
+            # The C engine doesn't need the file-like to have the "__next__"
+            # attribute. However, the Python engine explicitly calls
+            # "__next__(...)" when iterating through such an object, meaning it
+            # needs to have that attribute
+            raise ValueError(
+                "The 'python' engine cannot iterate through this file buffer."
+            )
 
     def _clean_options(self, options, engine):
         result = options.copy()
@@ -1034,19 +1032,17 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _make_engine(self, engine="c"):
-        mapping = {
+        mapping: Dict[str, Type[ParserBase]] = {
             "c": CParserWrapper,
             "python": PythonParser,
             "python-fwf": FixedWidthFieldParser,
         }
-        try:
-            klass = mapping[engine]
-        except KeyError:
+        if engine not in mapping:
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        else:
-            return klass(self.f, **self.options)
+        # error: Too many arguments for "ParserBase"
+        return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
@@ -1081,6 +1077,12 @@ class TextFileReader(abc.Iterator):
                 raise StopIteration
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
 
 def _is_index_col(col):
@@ -1263,13 +1265,14 @@ def _validate_parse_dates_arg(parse_dates):
 
 class ParserBase:
     def __init__(self, kwds):
+
         self.names = kwds.get("names")
-        self.orig_names = None
+        self.orig_names: Optional[List] = None
         self.prefix = kwds.pop("prefix", None)
 
         self.index_col = kwds.get("index_col", None)
-        self.unnamed_cols = set()
-        self.index_names = None
+        self.unnamed_cols: Set = set()
+        self.index_names: Optional[List] = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -1345,6 +1348,21 @@ class ParserBase:
 
         self._first_chunk = True
 
+        self.handles: Optional[IOHandles] = None
+
+    def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
+        """
+        Let the readers open IOHanldes after they are done with their potential raises.
+        """
+        self.handles = get_handle(
+            src,
+            "r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            storage_options=kwds.get("storage_options", None),
+        )
+
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1394,7 +1412,8 @@ class ParserBase:
             )
 
     def close(self):
-        self.handles.close()
+        if self.handles is not None:
+            self.handles.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1412,7 +1431,7 @@ class ParserBase:
                 name = self.index_names[i]
             else:
                 name = None
-            j = self.index_col[i]
+            j = i if self.index_col is None else self.index_col[i]
 
             if is_scalar(self.parse_dates):
                 return (j == self.parse_dates) or (
@@ -1446,7 +1465,7 @@ class ParserBase:
 
         # clean the index_names
         index_names = header.pop(-1)
-        index_names, names, index_col = _clean_index_names(
+        index_names, _, _ = _clean_index_names(
             index_names, self.index_col, self.unnamed_cols
         )
 
@@ -1490,7 +1509,9 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts = defaultdict(int)
+            # pandas\io\parsers.py:1559: error: Need type annotation for
+            # 'counts'  [var-annotated]
+            counts = defaultdict(int)  # type: ignore[var-annotated]
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -1535,7 +1556,9 @@ class ParserBase:
         # add names for the index
         if indexnamerow:
             coffset = len(indexnamerow) - len(columns)
-            index = index.set_names(indexnamerow[:coffset])
+            # pandas\io\parsers.py:1604: error: Item "None" of "Optional[Any]"
+            # has no attribute "set_names"  [union-attr]
+            index = index.set_names(indexnamerow[:coffset])  # type: ignore[union-attr]
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
@@ -1609,7 +1632,9 @@ class ParserBase:
                 col_na_fvalues = set()
 
             if isinstance(self.na_values, dict):
-                col_name = self.index_names[i]
+                # pandas\io\parsers.py:1678: error: Value of type
+                # "Optional[Any]" is not indexable  [index]
+                col_name = self.index_names[i]  # type: ignore[index]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
@@ -1664,9 +1689,8 @@ class ParserBase:
                     values, set(col_na_values) | col_na_fvalues, try_num_bool=False
                 )
             else:
-                is_str_or_ea_dtype = is_string_dtype(
-                    cast_type
-                ) or is_extension_array_dtype(cast_type)
+                is_ea = is_extension_array_dtype(cast_type)
+                is_str_or_ea_dtype = is_ea or is_string_dtype(cast_type)
                 # skip inference if specified dtype is object
                 # or casting to an EA
                 try_num_bool = not (cast_type and is_str_or_ea_dtype)
@@ -1681,16 +1705,16 @@ class ParserBase:
                     not is_dtype_equal(cvals, cast_type)
                     or is_extension_array_dtype(cast_type)
                 ):
-                    try:
-                        if (
-                            is_bool_dtype(cast_type)
-                            and not is_categorical_dtype(cast_type)
-                            and na_count > 0
-                        ):
-                            raise ValueError(f"Bool column has NA values in column {c}")
-                    except (AttributeError, TypeError):
-                        # invalid input to is_bool_dtype
-                        pass
+                    if not is_ea and na_count > 0:
+                        try:
+                            if is_bool_dtype(cast_type):
+                                raise ValueError(
+                                    f"Bool column has NA values in column {c}"
+                                )
+                        except (AttributeError, TypeError):
+                            # invalid input to is_bool_dtype
+                            pass
+                    cast_type = pandas_dtype(cast_type)
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
@@ -1788,7 +1812,15 @@ class ParserBase:
             cast_type = pandas_dtype(cast_type)
             array_type = cast_type.construct_array_type()
             try:
-                return array_type._from_sequence_of_strings(values, dtype=cast_type)
+                if is_bool_dtype(cast_type):
+                    return array_type._from_sequence_of_strings(
+                        values,
+                        dtype=cast_type,
+                        true_values=self.true_values,
+                        false_values=self.false_values,
+                    )
+                else:
+                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
@@ -1822,25 +1854,11 @@ class ParserBase:
 
 
 class CParserWrapper(ParserBase):
-    def __init__(self, src, **kwds):
+    def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
 
         ParserBase.__init__(self, kwds)
-
-        self.handles = get_handle(
-            src,
-            mode="r",
-            encoding=kwds.get("encoding", None),
-            compression=kwds.get("compression", None),
-            memory_map=kwds.get("memory_map", False),
-            is_text=True,
-        )
-        kwds.pop("encoding", None)
-        kwds.pop("memory_map", None)
-        kwds.pop("compression", None)
-        if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
-            self.handles.handle = self.handles.handle.mmap
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1849,7 +1867,42 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        # open handles
+        self._open_handles(src, kwds)
+        assert self.handles is not None
+        for key in ("storage_options", "encoding", "memory_map", "compression"):
+            kwds.pop(key, None)
+        if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
+            # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "RawIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "BufferedIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "TextIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "TextIOWrapper" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "mmap" of "Union[IO[Any],
+            # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]" has
+            # no attribute "mmap"  [union-attr]
+            self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
+
+        try:
+            self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        except Exception:
+            self.handles.close()
+            raise
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -1892,6 +1945,8 @@ class CParserWrapper(ParserBase):
             usecols = _evaluate_usecols(self.usecols, self.orig_names)
 
             # GH 14671
+            # assert for mypy, orig_names is List or None, None would error in issubset
+            assert self.orig_names is not None
             if self.usecols_dtype == "string" and not set(usecols).issubset(
                 self.orig_names
             ):
@@ -1924,7 +1979,12 @@ class CParserWrapper(ParserBase):
                     self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
-                self.index_names = [None] * len(self.index_names)
+                # pandas\io\parsers.py:1997: error: Argument 1 to "len" has
+                # incompatible type "Optional[Any]"; expected "Sized"
+                # [arg-type]
+                self.index_names = [None] * len(
+                    self.index_names  # type: ignore[arg-type]
+                )
 
         self._implicit_index = self._reader.leading_cols > 0
 
@@ -1956,13 +2016,20 @@ class CParserWrapper(ParserBase):
             usecols = self.names[:]
         else:
             # Usecols is empty.
-            usecols = None
+
+            # pandas\io\parsers.py:2030: error: Incompatible types in
+            # assignment (expression has type "None", variable has type
+            # "List[Any]")  [assignment]
+            usecols = None  # type: ignore[assignment]
 
         def _set(x):
             if usecols is not None and is_integer(x):
                 x = usecols[x]
 
             if not is_integer(x):
+                # assert for mypy, names is List or None, None would error when calling
+                # .index()
+                assert names is not None
                 x = names.index(x)
 
             self._reader.set_noconvert(x)
@@ -2016,6 +2083,7 @@ class CParserWrapper(ParserBase):
                 return index, columns, col_dict
 
             else:
+                self.close()
                 raise
 
         # Done with first read, next time raise StopIteration
@@ -2057,6 +2125,9 @@ class CParserWrapper(ParserBase):
             data = sorted(data.items())
 
             # ugh, mutation
+
+            # assert for mypy, orig_names is List or None, None would error in list(...)
+            assert self.orig_names is not None
             names = list(self.orig_names)
             names = self._maybe_dedup_names(names)
 
@@ -2167,20 +2238,17 @@ def count_empty_vals(vals) -> int:
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f, **kwds):
+    def __init__(self, f: Union[FilePathOrBuffer, List], **kwds):
         """
         Workhorse function for processing nested list into DataFrame
         """
         ParserBase.__init__(self, kwds)
 
-        self.data = None
-        self.buf = []
+        self.data: Optional[Iterator[str]] = None
+        self.buf: List = []
         self.pos = 0
         self.line_pos = 0
 
-        self.encoding = kwds["encoding"]
-        self.compression = kwds["compression"]
-        self.memory_map = kwds["memory_map"]
         self.skiprows = kwds["skiprows"]
 
         if callable(self.skiprows):
@@ -2220,25 +2288,24 @@ class PythonParser(ParserBase):
         self.decimal = kwds["decimal"]
 
         self.comment = kwds["comment"]
-        self._comment_lines = []
-
-        self.handles = get_handle(
-            f,
-            "r",
-            encoding=self.encoding,
-            compression=self.compression,
-            memory_map=self.memory_map,
-        )
 
         # Set self.data to something that can read lines.
-        if hasattr(self.handles.handle, "readline"):
-            self._make_reader(self.handles.handle)
+        if isinstance(f, list):
+            # read_excel: f is a list
+            self.data = cast(Iterator[str], f)
         else:
-            self.data = self.handles.handle
+            self._open_handles(f, kwds)
+            assert self.handles is not None
+            assert hasattr(self.handles.handle, "readline")
+            try:
+                self._make_reader(self.handles.handle)
+            except (csv.Error, UnicodeDecodeError):
+                self.close()
+                raise
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
-        self._col_indices = None
+        self._col_indices: Optional[List[int]] = None
         try:
             (
                 self.columns,
@@ -2280,6 +2347,9 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
+        if self._col_indices is None:
+            self._col_indices = list(range(len(self.columns)))
+
         self._validate_parse_dates_presence(self.columns)
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
@@ -2289,10 +2359,16 @@ class PythonParser(ParserBase):
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
 
+        decimal = re.escape(self.decimal)
         if self.thousands is None:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.decimal}]+")
+            regex = fr"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.thousands}^{self.decimal}]+")
+            thousands = re.escape(self.thousands)
+            regex = (
+                fr"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
+                fr"([0-9]?(E|e)\-?[0-9]+)?$"
+            )
+        self.num = re.compile(regex)
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -2303,7 +2379,9 @@ class PythonParser(ParserBase):
             if is_integer(x):
                 noconvert_columns.add(x)
             else:
-                noconvert_columns.add(self.columns.index(x))
+                assert self._col_indices is not None
+                col_indices = self._col_indices
+                noconvert_columns.add(col_indices[self.columns.index(x)])
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:
@@ -2371,11 +2449,11 @@ class PythonParser(ParserBase):
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
 
-                # Note: self.encoding is irrelevant here
+                # Note: encoding is irrelevant here
                 line_rdr = csv.reader(StringIO(line), dialect=dia)
                 self.buf.extend(list(line_rdr))
 
-            # Note: self.encoding is irrelevant here
+            # Note: encoding is irrelevant here
             reader = csv.reader(f, dialect=dia, strict=True)
 
         else:
@@ -2391,7 +2469,11 @@ class PythonParser(ParserBase):
 
             reader = _read()
 
-        self.data = reader
+        # pandas\io\parsers.py:2427: error: Incompatible types in assignment
+        # (expression has type "_reader", variable has type "Union[IO[Any],
+        # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap, None]")
+        # [assignment]
+        self.data = reader  # type: ignore[assignment]
 
     def read(self, rows=None):
         try:
@@ -2400,12 +2482,16 @@ class PythonParser(ParserBase):
             if self._first_chunk:
                 content = []
             else:
+                self.close()
                 raise
 
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        columns = list(self.orig_names)
+        # pandas\io\parsers.py:2480: error: Argument 1 to "list" has
+        # incompatible type "Optional[Any]"; expected "Iterable[Any]"
+        # [arg-type]
+        columns = list(self.orig_names)  # type: ignore[arg-type]
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
@@ -2423,9 +2509,8 @@ class PythonParser(ParserBase):
             content = content[1:]
 
         alldata = self._rows_to_cols(content)
-        data = self._exclude_implicit_index(alldata)
+        data, columns = self._exclude_implicit_index(alldata)
 
-        columns = self._maybe_dedup_names(self.columns)
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
@@ -2436,24 +2521,21 @@ class PythonParser(ParserBase):
     def _exclude_implicit_index(self, alldata):
         names = self._maybe_dedup_names(self.orig_names)
 
+        offset = 0
         if self._implicit_index:
-            excl_indices = self.index_col
+            offset = len(self.index_col)
 
-            data = {}
-            offset = 0
-            for i, col in enumerate(names):
-                while i + offset in excl_indices:
-                    offset += 1
-                data[col] = alldata[i + offset]
-        else:
-            data = {k: v for k, v in zip(names, alldata)}
+        if self._col_indices is not None and len(names) != len(self._col_indices):
+            names = [names[i] for i in sorted(self._col_indices)]
 
-        return data
+        return {name: alldata[i + offset] for i, name in enumerate(names)}, names
 
     # legacy
     def get_chunk(self, size=None):
         if size is None:
-            size = self.chunksize
+            # pandas\io\parsers.py:2528: error: "PythonParser" has no attribute
+            # "chunksize"  [attr-defined]
+            size = self.chunksize  # type: ignore[attr-defined]
         return self.read(rows=size)
 
     def _convert_data(self, data):
@@ -2462,8 +2544,15 @@ class PythonParser(ParserBase):
             """converts col numbers to names"""
             clean = {}
             for col, v in mapping.items():
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
+                # pandas\io\parsers.py:2537: error: Unsupported right operand
+                # type for in ("Optional[Any]")  [operator]
+                if (
+                    isinstance(col, int)
+                    and col not in self.orig_names  # type: ignore[operator]
+                ):
+                    # pandas\io\parsers.py:2538: error: Value of type
+                    # "Optional[Any]" is not indexable  [index]
+                    col = self.orig_names[col]  # type: ignore[index]
                 clean[col] = v
             return clean
 
@@ -2483,8 +2572,15 @@ class PythonParser(ParserBase):
                 na_value = self.na_values[col]
                 na_fvalue = self.na_fvalues[col]
 
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
+                # pandas\io\parsers.py:2558: error: Unsupported right operand
+                # type for in ("Optional[Any]")  [operator]
+                if (
+                    isinstance(col, int)
+                    and col not in self.orig_names  # type: ignore[operator]
+                ):
+                    # pandas\io\parsers.py:2559: error: Value of type
+                    # "Optional[Any]" is not indexable  [index]
+                    col = self.orig_names[col]  # type: ignore[index]
 
                 clean_na_values[col] = na_value
                 clean_na_fvalues[col] = na_fvalue
@@ -2505,7 +2601,10 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        unnamed_cols = set()
+        # pandas\io\parsers.py:2580: error: Need type annotation for
+        # 'unnamed_cols' (hint: "unnamed_cols: Set[<type>] = ...")
+        # [var-annotated]
+        unnamed_cols = set()  # type: ignore[var-annotated]
 
         if self.header is not None:
             header = self.header
@@ -2519,7 +2618,9 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            columns = []
+            # pandas\io\parsers.py:2594: error: Need type annotation for
+            # 'columns' (hint: "columns: List[<type>] = ...")  [var-annotated]
+            columns = []  # type: ignore[var-annotated]
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -2564,7 +2665,9 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns and self.mangle_dupe_cols:
-                    counts = defaultdict(int)
+                    # pandas\io\parsers.py:2639: error: Need type annotation
+                    # for 'counts'  [var-annotated]
+                    counts = defaultdict(int)  # type: ignore[var-annotated]
 
                     for i, col in enumerate(this_columns):
                         cur_count = counts[col]
@@ -2588,10 +2691,16 @@ class PythonParser(ParserBase):
 
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             clear_buffer = False
-                            this_columns = [None] * lc
+                            # pandas\io\parsers.py:2663: error: List item 0 has
+                            # incompatible type "None"; expected "str"
+                            # [list-item]
+                            this_columns = [None] * lc  # type: ignore[list-item]
                             self.buf = [self.buf[-1]]
 
-                columns.append(this_columns)
+                # pandas\io\parsers.py:2666: error: Argument 1 to "append" of
+                # "list" has incompatible type "List[str]"; expected
+                # "List[None]"  [arg-type]
+                columns.append(this_columns)  # type: ignore[arg-type]
                 unnamed_cols.update({this_columns[i] for i in this_unnamed_cols})
 
                 if len(columns) == 1:
@@ -2601,9 +2710,7 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
-                if (self.usecols is not None and len(names) != len(self.usecols)) or (
-                    self.usecols is None and len(names) != len(columns[0])
-                ):
+                if len(names) > len(columns[0]):
                     raise ValueError(
                         "Number of passed names did not match "
                         "number of header fields in the file"
@@ -2616,7 +2723,6 @@ class PythonParser(ParserBase):
                     # overwritten.
                     self._handle_usecols(columns, names)
                 else:
-                    self._col_indices = None
                     num_original_columns = len(names)
                 columns = [names]
             else:
@@ -2636,9 +2742,19 @@ class PythonParser(ParserBase):
 
             if not names:
                 if self.prefix:
-                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
+                    # pandas\io\parsers.py:2711: error: List comprehension has
+                    # incompatible type List[str]; expected List[None]  [misc]
+                    columns = [
+                        [
+                            f"{self.prefix}{i}"  # type: ignore[misc]
+                            for i in range(ncols)
+                        ]
+                    ]
                 else:
-                    columns = [list(range(ncols))]
+                    # pandas\io\parsers.py:2713: error: Argument 1 to "list"
+                    # has incompatible type "range"; expected "Iterable[None]"
+                    # [arg-type]
+                    columns = [list(range(ncols))]  # type: ignore[arg-type]
                 columns = self._handle_usecols(columns, columns[0])
             else:
                 if self.usecols is None or len(names) >= num_original_columns:
@@ -2688,7 +2804,7 @@ class PythonParser(ParserBase):
                 [n for i, n in enumerate(column) if i in col_indices]
                 for column in columns
             ]
-            self._col_indices = col_indices
+            self._col_indices = sorted(col_indices)
         return columns
 
     def _buffered_line(self):
@@ -2790,6 +2906,8 @@ class PythonParser(ParserBase):
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
+                # assert for mypy, data is Iterator[str] or None, would error in next
+                assert self.data is not None
                 next(self.data)
 
             while True:
@@ -2851,6 +2969,8 @@ class PythonParser(ParserBase):
         row_num : The row number of the line being parsed.
         """
         try:
+            # assert for mypy, data is Iterator[str] or None, would error in next
+            assert self.data is not None
             return next(self.data)
         except csv.Error as e:
             if self.warn_bad_lines or self.error_bad_lines:
@@ -2881,10 +3001,14 @@ class PythonParser(ParserBase):
         if self.comment is None:
             return lines
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for x in l:
-                if not isinstance(x, str) or self.comment not in x:
+            for x in line:
+                if (
+                    not isinstance(x, str)
+                    or self.comment not in x
+                    or x in self.na_values
+                ):
                     rl.append(x)
                 else:
                     x = x[: x.find(self.comment)]
@@ -2910,14 +3034,14 @@ class PythonParser(ParserBase):
             The same array of lines with the "empty" ones removed.
         """
         ret = []
-        for l in lines:
+        for line in lines:
             # Remove empty lines and lines with only one whitespace value
             if (
-                len(l) > 1
-                or len(l) == 1
-                and (not isinstance(l[0], str) or l[0].strip())
+                len(line) > 1
+                or len(line) == 1
+                and (not isinstance(line[0], str) or line[0].strip())
             ):
-                ret.append(l)
+                ret.append(line)
         return ret
 
     def _check_thousands(self, lines):
@@ -2930,14 +3054,14 @@ class PythonParser(ParserBase):
 
     def _search_replace_num_columns(self, lines, search, replace):
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for i, x in enumerate(l):
+            for i, x in enumerate(line):
                 if (
                     not isinstance(x, str)
                     or search not in x
                     or (self._no_thousands_columns and i in self._no_thousands_columns)
-                    or self.nonnum.search(x.strip())
+                    or not self.num.search(x.strip())
                 ):
                     rl.append(x)
                 else:
@@ -3078,18 +3202,21 @@ class PythonParser(ParserBase):
         zipped_content = list(lib.to_object_array(content, min_width=col_len).T)
 
         if self.usecols:
+            assert self._col_indices is not None
+            col_indices = self._col_indices
+
             if self._implicit_index:
                 zipped_content = [
                     a
                     for i, a in enumerate(zipped_content)
                     if (
                         i < len(self.index_col)
-                        or i - len(self.index_col) in self._col_indices
+                        or i - len(self.index_col) in col_indices
                     )
                 ]
             else:
                 zipped_content = [
-                    a for i, a in enumerate(zipped_content) if i in self._col_indices
+                    a for i, a in enumerate(zipped_content) if i in col_indices
                 ]
         return zipped_content
 
@@ -3134,6 +3261,9 @@ class PythonParser(ParserBase):
                 try:
                     if rows is not None:
                         for _ in range(rows):
+                            # assert for mypy, data is Iterator[str] or None, would
+                            # error in next
+                            assert self.data is not None
                             new_rows.append(next(self.data))
                         lines.extend(new_rows)
                     else:
@@ -3312,7 +3442,9 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = STR_NA_VALUES
         else:
             na_values = set()
-        na_fvalues = set()
+        # pandas\io\parsers.py:3387: error: Need type annotation for
+        # 'na_fvalues' (hint: "na_fvalues: Set[<type>] = ...")  [var-annotated]
+        na_fvalues = set()  # type: ignore[var-annotated]
     elif isinstance(na_values, dict):
         old_na_values = na_values.copy()
         na_values = {}  # Prevent aliasing.
@@ -3329,7 +3461,12 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | STR_NA_VALUES
 
             na_values[k] = v
-        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
+        # pandas\io\parsers.py:3404: error: Incompatible types in assignment
+        # (expression has type "Dict[Any, Any]", variable has type "Set[Any]")
+        # [assignment]
+        na_fvalues = {  # type: ignore[assignment]
+            k: _floatify_na_values(v) for k, v in na_values.items()
+        }
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3347,6 +3484,11 @@ def _clean_index_names(columns, index_col, unnamed_cols):
         return None, columns, index_col
 
     columns = list(columns)
+
+    # In case of no rows and multiindex columns we have to set index_names to
+    # list of Nones GH#38292
+    if not columns:
+        return [None] * len(index_col), columns, index_col
 
     cp_cols = list(columns)
     index_names = []
@@ -3370,30 +3512,30 @@ def _clean_index_names(columns, index_col, unnamed_cols):
     # Only clean index names that were placeholders.
     for i, name in enumerate(index_names):
         if isinstance(name, str) and name in unnamed_cols:
-            index_names[i] = None
+            # pandas\io\parsers.py:3445: error: No overload variant of
+            # "__setitem__" of "list" matches argument types "int", "None"
+            # [call-overload]
+            index_names[i] = None  # type: ignore[call-overload]
 
     return index_names, columns, index_col
 
 
-def _get_empty_meta(columns, index_col, index_names, dtype=None):
+def _get_empty_meta(columns, index_col, index_names, dtype: Optional[DtypeArg] = None):
     columns = list(columns)
 
     # Convert `dtype` to a defaultdict of some kind.
     # This will enable us to write `dtype[col_name]`
     # without worrying about KeyError issues later on.
-    if not isinstance(dtype, dict):
+    if not is_dict_like(dtype):
         # if dtype == None, default will be object.
         default_dtype = dtype or object
         dtype = defaultdict(lambda: default_dtype)
     else:
-        # Save a copy of the dictionary.
-        _dtype = dtype.copy()
-        dtype = defaultdict(lambda: object)
-
-        # Convert column indexes to column names.
-        for k, v in _dtype.items():
-            col = columns[k] if is_integer(k) else k
-            dtype[col] = v
+        dtype = cast(dict, dtype)
+        dtype = defaultdict(
+            lambda: object,
+            {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
+        )
 
     # Even though we have no data, the "index" of the empty DataFrame
     # could for example still be an empty MultiIndex. Thus, we need to
@@ -3447,11 +3589,15 @@ def _stringify_na_values(na_values):
                 result.append(f"{v}.0")
                 result.append(str(v))
 
-            result.append(v)
+            # pandas\io\parsers.py:3522: error: Argument 1 to "append" of
+            # "list" has incompatible type "float"; expected "str"  [arg-type]
+            result.append(v)  # type: ignore[arg-type]
         except (TypeError, ValueError, OverflowError):
             pass
         try:
-            result.append(int(x))
+            # pandas\io\parsers.py:3526: error: Argument 1 to "append" of
+            # "list" has incompatible type "int"; expected "str"  [arg-type]
+            result.append(int(x))  # type: ignore[arg-type]
         except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
@@ -3630,6 +3776,19 @@ class FixedWidthFieldParser(PythonParser):
             self.skiprows,
             self.infer_nrows,
         )
+
+    def _remove_empty_lines(self, lines) -> List:
+        """
+        Returns the list of lines without the empty ones. With fixed-width
+        fields, empty lines become arrays of empty strings.
+
+        See PythonParser._remove_empty_lines.
+        """
+        return [
+            line
+            for line in lines
+            if any(not isinstance(e, str) or e.strip() for e in line)
+        ]
 
 
 def _refine_defaults_read(

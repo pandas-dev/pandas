@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import inspect
 from itertools import permutations
 
@@ -176,6 +176,21 @@ class TestDataFrameSelectReindex:
         mask = com.isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
+
+    @pytest.mark.parametrize(
+        "method, exp_values",
+        [("ffill", [0, 1, 2, 3]), ("bfill", [1.0, 2.0, 3.0, np.nan])],
+    )
+    def test_reindex_frame_tz_ffill_bfill(self, frame_or_series, method, exp_values):
+        # GH#38566
+        obj = frame_or_series(
+            [0, 1, 2, 3],
+            index=date_range("2020-01-01 00:00:00", periods=4, freq="H", tz="UTC"),
+        )
+        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="H", tz="UTC")
+        result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
+        expected = frame_or_series(exp_values, index=new_index)
+        tm.assert_equal(result, expected)
 
     def test_reindex_limit(self):
         # GH 28631
@@ -864,3 +879,30 @@ class TestDataFrameSelectReindex:
             "fill_value",
             "tolerance",
         }
+
+    def test_reindex_multiindex_ffill_added_rows(self):
+        # GH#23693
+        # reindex added rows with nan values even when fill method was specified
+        mi = MultiIndex.from_tuples([("a", "b"), ("d", "e")])
+        df = DataFrame([[0, 7], [3, 4]], index=mi, columns=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", "b"), ("d", "e"), ("h", "i")])
+        result = df.reindex(mi2, axis=0, method="ffill")
+        expected = DataFrame([[0, 7], [3, 4], [3, 4]], index=mi2, columns=["x", "y"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"method": "pad", "tolerance": timedelta(seconds=9)},
+            {"method": "backfill", "tolerance": timedelta(seconds=9)},
+            {"method": "nearest"},
+            {"method": None},
+        ],
+    )
+    def test_reindex_empty_frame(self, kwargs):
+        # GH#27315
+        idx = date_range(start="2020", freq="30s", periods=3)
+        df = DataFrame([], index=Index([], name="time"), columns=["a"])
+        result = df.reindex(idx, **kwargs)
+        expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
+        tm.assert_frame_equal(result, expected)
