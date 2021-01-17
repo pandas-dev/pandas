@@ -222,7 +222,7 @@ class Styler:
         if self.tooltips is None:
             self.tooltips = _Tooltips()
 
-    def set_tooltips(self, ttips: DataFrame) -> "Styler":
+    def set_tooltips(self, ttips: DataFrame) -> Styler:
         """
         Add string based tooltips that will appear in the `Styler` HTML result. These
         tooltips are applicable only to`<td>` elements.
@@ -268,7 +268,7 @@ class Styler:
         self,
         name: Optional[str] = None,
         properties: Optional[Sequence[Tuple[str, Union[str, int, float]]]] = None,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Manually configure the name and/or properties of the class for
         creating tooltips on hover.
