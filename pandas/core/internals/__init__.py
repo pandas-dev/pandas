@@ -2,7 +2,6 @@ from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
-    BoolBlock,
     CategoricalBlock,
     DatetimeBlock,
     DatetimeTZBlock,
@@ -24,7 +23,6 @@ from pandas.core.internals.managers import (
 
 __all__ = [
     "Block",
-    "BoolBlock",
     "CategoricalBlock",
     "NumericBlock",
     "DatetimeBlock",

@@ -1961,10 +1961,6 @@ class FloatBlock(NumericBlock):
         return self.make_block(res)
 
 
-class BoolBlock(NumericBlock):
-    __slots__ = ()
-
-
 class DatetimeLikeBlockMixin(HybridMixin, Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
@@ -2474,7 +2470,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     elif kind == "i" or kind == "u":
         cls = NumericBlock
     elif kind == "b":
-        cls = BoolBlock
+        cls = NumericBlock
     else:
         cls = ObjectBlock
     return cls

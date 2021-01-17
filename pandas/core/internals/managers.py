@@ -1751,10 +1751,6 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
         ]
         blocks.extend(dttz_blocks)
 
-    if len(items_dict["BoolBlock"]):
-        bool_blocks = _simple_blockify(items_dict["BoolBlock"], np.bool_)
-        blocks.extend(bool_blocks)
-
     if len(items_dict["ObjectBlock"]) > 0:
         object_blocks = _simple_blockify(items_dict["ObjectBlock"], np.object_)
         blocks.extend(object_blocks)
