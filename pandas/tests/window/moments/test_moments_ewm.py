@@ -310,7 +310,7 @@ def test_ew_empty_series(method):
 
 
 @pytest.mark.parametrize("min_periods", [0, 1])
-@pytest.mark.parametrize("name", ["mean", "var", "vol"])
+@pytest.mark.parametrize("name", ["mean", "var", "std"])
 def test_ew_min_periods(min_periods, name):
     # excluding NaNs correctly
     arr = np.random.randn(50)
@@ -329,7 +329,7 @@ def test_ew_min_periods(min_periods, name):
         assert result[:10].isna().all()
         assert not result[10:].isna().any()
     else:
-        # ewm.std, ewm.vol, ewm.var (with bias=False) require at least
+        # ewm.std, ewm.var (with bias=False) require at least
         # two values
         assert result[:11].isna().all()
         assert not result[11:].isna().any()
@@ -343,7 +343,7 @@ def test_ew_min_periods(min_periods, name):
     if name == "mean":
         tm.assert_series_equal(result, Series([1.0]))
     else:
-        # ewm.std, ewm.vol, ewm.var with bias=False require at least
+        # ewm.std, ewm.var with bias=False require at least
         # two values
         tm.assert_series_equal(result, Series([np.NaN]))
 
