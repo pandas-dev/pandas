@@ -387,6 +387,10 @@ class MPLPlot:
                 return self.axes[0]
 
     def _convert_to_ndarray(self, data):
+        # GH31357: categorical columns are processed separately
+        if is_categorical_dtype(data):
+            return data
+
         # GH32073: cast to float if values contain nulled integers
         if (
             is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
@@ -440,9 +444,7 @@ class MPLPlot:
         if is_empty:
             raise TypeError("no numeric data to plot")
 
-        self.data = numeric_data.apply(
-            lambda x: self._convert_to_ndarray(x) if not is_categorical_dtype(x) else x
-        )
+        self.data = numeric_data.apply(self._convert_to_ndarray)
 
     def _make_plot(self):
         raise AbstractMethodError(self)
@@ -1029,11 +1031,10 @@ class ScatterPlot(PlanePlot):
             c_values = self.plt.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
+        elif color_by_categorical:
+            c_values = self.data[c].cat.codes
         elif c_is_column:
-            if color_by_categorical:
-                c_values = self.data[c].cat.codes
-            else:
-                c_values = self.data[c].values
+            c_values = self.data[c].values
         else:
             c_values = c
 
