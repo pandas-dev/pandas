@@ -2885,6 +2885,11 @@ class StringMethods(NoNewAttributesMixin):
         "isdecimal", docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"]
     )
 
+    @forbid_nonstring_types(["bytes"])
+    def removeprefix(self, prefix=None):
+        result = self._data.array._str_removeprefix(prefix)
+        return self._wrap_result(result)
+
 
 def cat_safe(list_of_columns: List, sep: str):
     """

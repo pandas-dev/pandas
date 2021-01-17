@@ -223,3 +223,7 @@ class BaseStringArrayMethods(abc.ABC):
     @abc.abstractmethod
     def _str_rsplit(self, pat=None, n=-1):
         pass
+
+    @abc.abstractmethod
+    def _str_removeprefix(self, prefix=None):
+        pass

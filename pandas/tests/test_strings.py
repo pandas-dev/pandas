@@ -96,6 +96,7 @@ _any_string_method = [
             "title",
             "upper",
             "casefold",
+            "removeprefix"
         ],
         [()] * 100,
         [{}] * 100,
@@ -3681,7 +3682,8 @@ def test_str_accessor_in_apply_func():
 
 
 def test_str_removeprefix():
+    # https://github.com/pandas-dev/pandas/issues/36944
     df = DataFrame({"A": ["str_string1", "str_string2", "str_string3"]})
-    df["A"] = df["A"].str.removeprefix("str")
+    df["A"] = df["A"].str.removeprefix("str_")
     expected = DataFrame({"A": ["string1", "string2", "string3"]})
     tm.assert_frame_equal(df, expected)
