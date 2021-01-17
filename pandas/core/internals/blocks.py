@@ -2465,11 +2465,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         cls = TimeDeltaBlock
     elif kind == "f":
         cls = FloatBlock
-    elif kind == "c":
-        cls = NumericBlock
-    elif kind == "i" or kind == "u":
-        cls = NumericBlock
-    elif kind == "b":
+    elif kind in ["c", "i", "u", "b"]:
         cls = NumericBlock
     else:
         cls = ObjectBlock
