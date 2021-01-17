@@ -213,7 +213,26 @@ class MPLPlot:
 
     def _validate_subplots_kwarg(
         self, subplots: Union[bool, Sequence[Sequence[str]]]
-    ) -> Union[bool, Sequence[Sequence[int]]]:
+    ) -> Union[bool, List[Tuple[int]]]:
+        """
+        Validate the subplots parameter
+
+        - check type and content
+        - check for duplicate columns
+        - check for invalid column names
+        - convert column names into indices
+        - add missing columns in a group of their own
+        See comments in code below for more details.
+
+        Parameters
+        ----------
+        subplots : subplots parameters as passed to PlotAccessor
+
+        Returns
+        -------
+        validated subplots : a bool or a list of tuples of column indices. Columns
+        in the same tuple will be grouped together in the resulting plot.
+        """
 
         if isinstance(subplots, bool):
             return subplots
