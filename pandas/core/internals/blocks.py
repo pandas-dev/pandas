@@ -101,7 +101,6 @@ class Block(PandasObject):
     is_numeric = False
     is_float = False
     is_integer = False
-    is_complex = False
     is_datetime = False
     is_datetimetz = False
     is_timedelta = False
@@ -1956,14 +1955,15 @@ class FloatBlock(NumericBlock):
         return self.make_block(res)
 
 
-class ComplexBlock(NumericBlock):
-    __slots__ = ()
-    is_complex = True
-
-
 class IntBlock(NumericBlock):
     __slots__ = ()
     is_integer = True
+    _can_hold_na = False
+
+
+class BoolBlock(NumericBlock):
+    __slots__ = ()
+    is_bool = True
     _can_hold_na = False
 
 
@@ -2269,12 +2269,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return super().fillna(value, **kwargs)
 
 
-class BoolBlock(NumericBlock):
-    __slots__ = ()
-    is_bool = True
-    _can_hold_na = False
-
-
 class ObjectBlock(Block):
     __slots__ = ()
     is_object = True
@@ -2478,7 +2472,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     elif kind == "f":
         cls = FloatBlock
     elif kind == "c":
-        cls = ComplexBlock
+        cls = NumericBlock
     elif kind == "i" or kind == "u":
         cls = IntBlock
     elif kind == "b":

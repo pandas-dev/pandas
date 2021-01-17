@@ -1732,8 +1732,8 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
         float_blocks = _multi_blockify(items_dict["FloatBlock"])
         blocks.extend(float_blocks)
 
-    if len(items_dict["ComplexBlock"]):
-        complex_blocks = _multi_blockify(items_dict["ComplexBlock"])
+    if len(items_dict["NumericBlock"]):
+        complex_blocks = _multi_blockify(items_dict["NumericBlock"])
         blocks.extend(complex_blocks)
 
     if len(items_dict["TimeDeltaBlock"]):
