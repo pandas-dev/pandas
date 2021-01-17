@@ -4,7 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
@@ -917,9 +916,6 @@ def test_searchsorted_different_argument_classes(klass):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    is_numpy_dev, reason="GH#39089 Numpy changed dtype inference", strict=False
-)
 @pytest.mark.parametrize(
     "arg", [[1, 2], ["a", "b"], [Timestamp("2020-01-01", tz="Europe/London")] * 2]
 )

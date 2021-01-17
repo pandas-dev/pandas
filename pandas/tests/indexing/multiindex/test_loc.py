@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
@@ -146,7 +144,6 @@ class TestMultiIndexLoc:
         with pytest.raises(KeyError, match="not in index"):
             df.loc[key]
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_loc_multiindex_too_many_dims_raises(self):
         # GH 14885
         s = Series(

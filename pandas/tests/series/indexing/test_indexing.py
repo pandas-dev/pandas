@@ -5,8 +5,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -227,7 +225,6 @@ def test_getitem_dups_with_missing():
         s[["foo", "bar", "bah", "bam"]]
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_getitem_dups():
     s = Series(range(5), index=["A", "A", "B", "C", "C"], dtype=np.int64)
     expected = Series([3, 4], index=["C", "C"], dtype=np.int64)

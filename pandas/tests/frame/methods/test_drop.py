@@ -3,7 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -109,7 +108,6 @@ class TestDataFrameDrop:
         expected = Index(["a", "b", "c"], name="first")
         tm.assert_index_equal(dropped.index, expected)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_drop(self):
         simple = DataFrame({"A": [1, 2, 3, 4], "B": [0, 1, 2, 3]})
         tm.assert_frame_equal(simple.drop("A", axis=1), simple[["B"]])
