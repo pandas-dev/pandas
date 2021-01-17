@@ -5155,6 +5155,10 @@ class DataFrame(NDFrame, OpsMixin):
         Series.dropna : Drop missing values.
         Index.dropna : Drop missing indices.
 
+        Notes
+        -----
+        If both ``how`` and ``thresh`` are specified then ``thresh`` takes the precedence.
+
         Examples
         --------
         >>> df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
