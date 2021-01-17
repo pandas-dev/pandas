@@ -1657,11 +1657,12 @@ class TimeGrouper(Grouper):
         if not len(memb):
             if len(ax) == 0:
                 # if index is empty, return empty bins
-                data = bins = []
+                data = []
+                bins = np.array([], dtype=np.int64)
             else:
                 # if index is all NaT, return a single bin
                 data = [NaT]
-                bins = [len(ax)]
+                bins = np.array([len(ax)])
             binner = labels = PeriodIndex(data=data, freq=self.freq, name=ax.name)
             return binner, bins, labels
 

@@ -789,7 +789,7 @@ class TestPeriodIndex:
         pi = PeriodIndex([pd.NaT] * 3, freq="S")
         frame = DataFrame([2, 3, 5], index=pi, columns=["a"])
         expected_index = PeriodIndex(data=[], freq=pi.freq)
-        expected = DataFrame(index=expected_index, columns=["a"], dtype=int)
+        expected = DataFrame(index=expected_index, columns=["a"], dtype="int64")
         result = frame.resample("1s").mean()
         tm.assert_frame_equal(result, expected)
 
