@@ -213,7 +213,7 @@ class MPLPlot:
 
     def _validate_subplots_kwarg(
         self, subplots: Union[bool, Sequence[Sequence[str]]]
-    ) -> Union[bool, List[Tuple[int]]]:
+    ) -> Union[bool, List[Tuple[int, ...]]]:
         """
         Validate the subplots parameter
 
