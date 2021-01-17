@@ -2,6 +2,8 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
+from __future__ import annotations
+
 from contextlib import suppress
 import copy
 from datetime import date, tzinfo
@@ -1771,7 +1773,7 @@ class HDFStore:
         s.infer_axes()
         return s.read()
 
-    def _identify_group(self, key: str, append: bool) -> "Node":
+    def _identify_group(self, key: str, append: bool) -> Node:
         """Identify HDF5 group based on key, delete/create group if needed."""
         group = self.get_node(key)
 
@@ -1789,7 +1791,7 @@ class HDFStore:
 
         return group
 
-    def _create_nodes_and_group(self, key: str) -> "Node":
+    def _create_nodes_and_group(self, key: str) -> Node:
         """Create nodes from key and return group name."""
         # assertion for mypy
         assert self._handle is not None
@@ -2326,7 +2328,7 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: ArrayLike) -> "Col":
+    def _get_atom(cls, values: ArrayLike) -> Col:
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
@@ -2376,7 +2378,7 @@ class DataCol(IndexCol):
         return getattr(_tables(), col_name)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
     @classmethod
@@ -2533,7 +2535,7 @@ class DataIndexableCol(DataCol):
         return _tables().StringCol(itemsize=itemsize)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)()
 
     @classmethod

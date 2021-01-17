@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union, cast
@@ -113,7 +115,7 @@ class Block(PandasObject):
     @classmethod
     def _simple_new(
         cls, values: ArrayLike, placement: BlockPlacement, ndim: int
-    ) -> "Block":
+    ) -> Block:
         """
         Fastpath constructor, does *no* validation
         """
@@ -272,7 +274,7 @@ class Block(PandasObject):
 
         self._mgr_locs = new_mgr_locs
 
-    def make_block(self, values, placement=None) -> "Block":
+    def make_block(self, values, placement=None) -> Block:
         """
         Create a new block, with type inference propagate any values that are
         not specified
