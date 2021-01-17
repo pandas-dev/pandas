@@ -329,7 +329,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
-    def isin(self, values) -> "BooleanArray":
+    def isin(self, values) -> BooleanArray:
 
         from pandas.core.arrays import BooleanArray
 
