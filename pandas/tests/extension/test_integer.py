@@ -31,7 +31,7 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.tests.extension import base
-
+from pandas.api.types import is_integer_dtype
 
 def make_data():
     return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
@@ -119,7 +119,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             if (
                 hasattr(other, "dtype")
                 and not is_extension_array_dtype(other.dtype)
-                and pd.api.types.is_integer_dtype(other.dtype)
+                and is_integer_dtype(other.dtype)
             ):
                 # other is np.int64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype
