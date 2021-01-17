@@ -492,7 +492,7 @@ class TestExcelWriter:
 
     @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
     def test_bool_types(self, np_type, path):
-        # Test np.bool values read come back as float.
+        # Test np.bool8 and np.bool_ values read come back as float.
         df = DataFrame([1, 0, True, False], dtype=np_type)
         df.to_excel(path, "test1")
 
@@ -727,7 +727,7 @@ class TestExcelWriter:
 
         df["new"] = df["A"].apply(lambda x: timedelta(seconds=x))
         expected["new"] = expected["A"].apply(
-            lambda x: timedelta(seconds=x).total_seconds() / float(86400)
+            lambda x: timedelta(seconds=x).total_seconds() / 86400
         )
 
         df.to_excel(path, "test1")

@@ -221,7 +221,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         from pandas.core.arrays import FloatingArray, IntegerArray
 
         klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
-        values = klass(data, mask)
+        values = klass(data, mask.copy())
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)

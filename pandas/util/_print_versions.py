@@ -80,9 +80,7 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
 
     result: Dict[str, JSONSerializable] = {}
     for modname in deps:
-        mod = import_optional_dependency(
-            modname, raise_on_missing=False, on_version="ignore"
-        )
+        mod = import_optional_dependency(modname, errors="ignore")
         result[modname] = _get_version(mod) if mod else None
     return result
 
