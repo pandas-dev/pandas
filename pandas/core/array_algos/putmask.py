@@ -106,8 +106,11 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
         # preserves dtype if possible
         return _putmask_preserve(values, new, mask)
 
-    # change the dtype if needed
-    dtype, _ = maybe_promote(new.dtype)
+    if values.dtype == bool and new.dtype.kind == "f":
+        dtype = object
+    else:
+        # change the dtype if needed
+        dtype, _ = maybe_promote(new.dtype)
 
     values = values.astype(dtype)
 
