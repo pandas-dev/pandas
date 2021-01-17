@@ -10587,8 +10587,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # [assignment]
         cls.all = all  # type: ignore[assignment]
 
+        # error: Argument 1 to "doc" has incompatible type "Optional[str]"; expected
+        # "Union[str, Callable[..., Any]]"
         @doc(
-            NDFrame.mad,
+            NDFrame.mad.__doc__,  # type: ignore[arg-type]
             desc="Return the mean absolute deviation of the values "
             "over the requested axis.",
             name1=name1,
