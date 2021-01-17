@@ -3678,3 +3678,10 @@ def test_str_accessor_in_apply_func():
     expected = Series(["A/D", "B/E", "C/F"])
     result = df.apply(lambda f: "/".join(f.str.upper()), axis=1)
     tm.assert_series_equal(result, expected)
+
+
+def test_str_removeprefix():
+    df = DataFrame({"A": ["str_string1", "str_string2", "str_string3"]})
+    df["A"] = df["A"].str.removeprefix("str")
+    expected = DataFrame({"A": ["string1", "string2", "string3"]})
+    tm.assert_frame_equal(df, expected)
