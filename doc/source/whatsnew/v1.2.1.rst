@@ -38,12 +38,12 @@ Fixed regressions
 
 .. _whatsnew_121.ufunc_deprecation:
 
-Calling numpy ufuncs on non-aligned DataFrames
+Calling NumPy ufuncs on non-aligned DataFrames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Before pandas 1.2.0, calling a numpy ufunc on non-aligned DataFrames (or
+Before pandas 1.2.0, calling a NumPy ufunc on non-aligned DataFrames (or
 DataFrame / Series combination) would ignore the indices, only match
-the inputs by shape, and use the index/rows of the first DataFrame for
+the inputs by shape, and use the index/columns of the first DataFrame for
 the result:
 
 .. code-block:: python
@@ -75,15 +75,18 @@ the inputs:
     1  3.0  7.0
     2  NaN  NaN
 
-In pandas 1.2.0, we refactored how numpy ufuncs are called on DataFrames,
-and this started to align the inputs first, as happens in other pandas
-operations. For pandas 1.2.1, we restored the previous behaviour to avoid
-a breaking change, but the above example of ``np.add(df1, df2)`` with
-non-aligned inputs will now to raise a warning, and a future pandas 2.0
-release will start aligning the inputs first.
+In pandas 1.2.0, we refactored how NumPy ufuncs are called on DataFrames, and
+this started to align the inputs first, as happens in other pandas operations
+and as it happens for ufuncs called on Series objects.
+
+For pandas 1.2.1, we restored the previous behaviour to avoid a breaking
+change, but the above example of ``np.add(df1, df2)`` with non-aligned inputs
+will now to raise a warning, and a future pandas 2.0 release will start
+aligning the inputs first (:issue:`39184`). Calling a NumPy ufunc on Series
+objects (eg ``np.add(s1, s2)``) already aligns and continues to do so.
 
 To avoid the warning and keep the current behaviour of ignoring the indices,
-convert one of the arguments to a numpy array:
+convert one of the arguments to a NumPy array:
 
 .. code-block:: python
 
