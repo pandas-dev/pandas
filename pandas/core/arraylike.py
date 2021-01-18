@@ -160,52 +160,57 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
     from pandas.core.internals import BlockManager
-    from pandas.core.series import Series
 
     cls = type(self)
 
     is_ndframe = [isinstance(x, NDFrame) for x in inputs]
     is_frame = [isinstance(x, DataFrame) for x in inputs]
 
-    if (len(inputs) == 2) and (sum(is_ndframe) == 2) and (sum(is_frame) >= 1):
+    if (len(inputs) == 2) and (sum(is_ndframe) >= 2) and (sum(is_frame) >= 1):
         # if there are 2 alignable inputs, of which at least 1 is a
         # DataFrame -> we would have had no alignment before -> warn that this
         # will align in the future
 
-        # check if the two objects are aligned or not
-        aligned = False
-        if sum(is_frame) == 2:
-            if inputs[0]._indexed_same(inputs[1]):
-                aligned = True
-        else:
-            # DataFrame / Series
-            if isinstance(inputs[0], DataFrame):
-                if inputs[0].columns.equals(inputs[1].index):
-                    aligned = True
+        # the first frame is what determines the output index/columns in pandas < 1.2
+        for x in inputs:
+            if isinstance(x, DataFrame):
+                first_frame = x
+                break
+
+        # check if the objects are aligned or not
+        def is_aligned(frame, other):
+            if isinstance(other, DataFrame):
+                return frame._indexed_same(other)
             else:
-                if inputs[1].columns.equals(inputs[0].index):
-                    aligned = True
+                # Series -> match index
+                return frame.columns.equals(other.index)
 
-            # TODO need to check if Series index matches DataFrame columns
-            pass
+        non_aligned = sum(
+            not is_aligned(first_frame, x) for x in inputs if isinstance(x, NDFrame)
+        )
 
-        # only warn and fallback to array behaviour if not aligned
-        if not aligned:
-            # TODO expand warning
-            warnings.warn("Will align in the future", FutureWarning, stacklevel=3)
+        # if at least one is not aligned -> warn and fallback to array behaviour
+        if non_aligned:
+            warnings.warn(
+                "Calling a ufunc on non-aligned DataFrames/Series. Currently, the "
+                "indices are ignored and the result takes the index/rows of the first "
+                "DataFrame. In the future (pandas 2.0), the DataFrames/Series will be "
+                "aligned before applying the ufunc.\nConvert one of the arguments to "
+                "a numpy array (eg 'ufunc(df1, np.asarray(df2)') to keep the current "
+                "behaviour, or align manually (eg 'df1, df2 = df1.align(df2)') before "
+                "passing to the ufunc to obtain the future behaviour and silence this "
+                "warning.",
+                FutureWarning,
+                stacklevel=3,
+            )
 
             # keep the first dataframe of the inputs, other DataFrame/Series is
             # converted to array for fallback behaviour
             new_inputs = []
-            frame_count = 0
             for x in inputs:
-                if isinstance(x, DataFrame):
-                    if frame_count == 0:
-                        new_inputs.append(x)
-                    else:
-                        new_inputs.append(np.asarray(x))
-                    frame_count += 1
-                elif isinstance(x, Series):
+                if x is first_frame:
+                    new_inputs.append(x)
+                elif isinstance(x, NDFrame):
                     new_inputs.append(np.asarray(x))
                 else:
                     new_inputs.append(x)

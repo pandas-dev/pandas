@@ -123,6 +123,7 @@ def test_binary_input_aligns_index(request, dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Calling a ufunc on non-aligned:FutureWarning")
 def test_binary_frame_series_raises():
     # We don't currently implement
     df = pd.DataFrame({"A": [1, 2]})
@@ -148,14 +149,16 @@ def test_alignment_deprecation():
     s1 = pd.Series([1, 2], index=["a", "b"])
     s2 = pd.Series([1, 2], index=["b", "c"])
 
-    # binary
+    # binary dataframe / dataframe
+    expected = pd.DataFrame({"a": [2, 4, 6], "b": [8, 10, 12]})
+
     with tm.assert_produces_warning(None):
         # aligned -> no warning!
         result = np.add(df1, df1)
-    expected = pd.DataFrame({"a": [2, 4, 6], "b": [8, 10, 12]})
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(FutureWarning):
+        # non-aligned -> warns
         result = np.add(df1, df2)
     tm.assert_frame_equal(result, expected)
 
@@ -166,14 +169,16 @@ def test_alignment_deprecation():
     expected = pd.DataFrame({"b": [2, 4, 6], "c": [8, 10, 12]})
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = np.add(df1, s2)
+    # binary dataframe / series
     expected = pd.DataFrame({"a": [2, 3, 4], "b": [6, 7, 8]})
-    tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
         # aligned -> no warning!
         result = np.add(df1, s1)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = np.add(df1, s2)
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(FutureWarning):
