@@ -1622,7 +1622,7 @@ class TestMergeCategorical:
         merged = pd.merge(left, left, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), np.dtype("O")],
+            [CategoricalDtype(categories=["foo", "bar"]), np.dtype("O"), np.dtype("O")],
             index=["X", "Y_x", "Y_y"],
         )
         tm.assert_series_equal(result, expected)
@@ -1633,7 +1633,11 @@ class TestMergeCategorical:
         merged = pd.merge(left, right, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), np.dtype("int64")],
+            [
+                CategoricalDtype(categories=["foo", "bar"]),
+                np.dtype("O"),
+                np.dtype("int64"),
+            ],
             index=["X", "Y", "Z"],
         )
         tm.assert_series_equal(result, expected)
@@ -1713,7 +1717,11 @@ class TestMergeCategorical:
         merged = pd.merge(left, right, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), CategoricalDtype()],
+            [
+                CategoricalDtype(categories=["foo", "bar"]),
+                np.dtype("O"),
+                CategoricalDtype(categories=[1, 2]),
+            ],
             index=["X", "Y", "Z"],
         )
         tm.assert_series_equal(result, expected)
@@ -1803,9 +1811,9 @@ class TestMergeCategorical:
 
         expected_outer = DataFrame(
             [
-                [pd.Timestamp("2001-01-01"), 1.1, 1.3],
-                [pd.Timestamp("2001-01-02"), 1.3, np.nan],
-                [pd.Timestamp("2001-01-03"), np.nan, 1.4],
+                [pd.Timestamp("2001-01-01").date(), 1.1, 1.3],
+                [pd.Timestamp("2001-01-02").date(), 1.3, np.nan],
+                [pd.Timestamp("2001-01-03").date(), np.nan, 1.4],
             ],
             columns=["date", "num2", "num4"],
         )
@@ -1813,7 +1821,8 @@ class TestMergeCategorical:
         tm.assert_frame_equal(result_outer, expected_outer)
 
         expected_inner = DataFrame(
-            [[pd.Timestamp("2001-01-01"), 1.1, 1.3]], columns=["date", "num2", "num4"]
+            [[pd.Timestamp("2001-01-01").date(), 1.1, 1.3]],
+            columns=["date", "num2", "num4"],
         )
         result_inner = pd.merge(df, df2, how="inner", on=["date"])
         tm.assert_frame_equal(result_inner, expected_inner)
@@ -2349,3 +2358,32 @@ def test_merge_join_cols_error_reporting_on_and_index(func, kwargs):
     )
     with pytest.raises(MergeError, match=msg):
         getattr(pd, func)(left, right, on="a", **kwargs)
+
+
+def test_merge_right_left_index():
+    # GH#38616
+    left = DataFrame({"x": [1, 1], "z": ["foo", "foo"]})
+    right = DataFrame({"x": [1, 1], "z": ["foo", "foo"]})
+    result = pd.merge(left, right, how="right", left_index=True, right_on="x")
+    expected = DataFrame(
+        {
+            "x": [1, 1],
+            "x_x": [1, 1],
+            "z_x": ["foo", "foo"],
+            "x_y": [1, 1],
+            "z_y": ["foo", "foo"],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_result_empty_index_and_on():
+    # GH#33814
+    df1 = DataFrame({"a": [1], "b": [2]}).set_index(["a", "b"])
+    df2 = DataFrame({"b": [1]}).set_index(["b"])
+    expected = DataFrame({"a": [], "b": []}, dtype=np.int64).set_index(["a", "b"])
+    result = merge(df1, df2, left_on=["b"], right_index=True)
+    tm.assert_frame_equal(result, expected)
+
+    result = merge(df2, df1, left_index=True, right_on=["b"])
+    tm.assert_frame_equal(result, expected)

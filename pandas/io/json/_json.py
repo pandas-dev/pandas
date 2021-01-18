@@ -11,6 +11,8 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
+    DtypeArg,
+    FrameOrSeriesUnion,
     IndexLabel,
     JSONSerializable,
     StorageOptions,
@@ -296,7 +298,7 @@ def read_json(
     path_or_buf=None,
     orient=None,
     typ="frame",
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     convert_axes=None,
     convert_dates=True,
     keep_default_dates: bool = True,
@@ -437,6 +439,10 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
 
+        .. versionchanged:: 1.2
+
+           ``JsonReader`` is a context manager.
+
     compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
@@ -555,7 +561,8 @@ def read_json(
     if chunksize:
         return json_reader
 
-    return json_reader.read()
+    with json_reader:
+        return json_reader.read()
 
 
 class JsonReader(abc.Iterator):
@@ -625,7 +632,7 @@ class JsonReader(abc.Iterator):
         If self.chunksize, we prepare the data for the `__next__` method.
         Otherwise, we read it into memory for the `read` method.
         """
-        if hasattr(data, "read") and (not self.chunksize or not self.nrows):
+        if hasattr(data, "read") and not (self.chunksize or self.nrows):
             data = data.read()
             self.close()
         if not hasattr(data, "read") and (self.chunksize or self.nrows):
@@ -747,6 +754,12 @@ class JsonReader(abc.Iterator):
         self.close()
         raise StopIteration
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
 
 class Parser:
     _split_keys: Tuple[str, ...]
@@ -764,7 +777,7 @@ class Parser:
         self,
         json,
         orient,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         convert_axes=True,
         convert_dates=True,
         keep_default_dates=False,
@@ -798,7 +811,7 @@ class Parser:
         self.convert_dates = convert_dates
         self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
-        self.obj = None
+        self.obj: Optional[FrameOrSeriesUnion] = None
 
     def check_keys_split(self, decoded):
         """
@@ -881,14 +894,11 @@ class Parser:
             if result:
                 return new_data, True
 
-        result = False
-
         if data.dtype == "object":
 
             # try float
             try:
                 data = data.astype("float64")
-                result = True
             except (TypeError, ValueError):
                 pass
 
@@ -899,7 +909,6 @@ class Parser:
                 # coerce floats to 64
                 try:
                     data = data.astype("float64")
-                    result = True
                 except (TypeError, ValueError):
                     pass
 
@@ -911,7 +920,6 @@ class Parser:
                 new_data = data.astype("int64")
                 if (new_data == data).all():
                     data = new_data
-                    result = True
             except (TypeError, ValueError, OverflowError):
                 pass
 
@@ -921,11 +929,15 @@ class Parser:
             # coerce floats to 64
             try:
                 data = data.astype("int64")
-                result = True
             except (TypeError, ValueError):
                 pass
 
-        return data, result
+        # if we have an index, we want to preserve dtypes
+        if name == "index" and len(data):
+            if self.orient == "split":
+                return data, False
+
+        return data, True
 
     def _try_convert_to_date(self, data):
         """

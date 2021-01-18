@@ -117,10 +117,12 @@ def test_aaa_group_order():
     tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 5)), df[4::5])
 
 
-def test_aggregate_normal(resample_method):
+def test_aggregate_normal(request, resample_method):
     """Check TimeGrouper's aggregation is identical as normal groupby."""
     if resample_method == "ohlc":
-        pytest.xfail(reason="DataError: No numeric types to aggregate")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="DataError: No numeric types to aggregate")
+        )
 
     data = np.random.randn(20, 4)
     normal_df = DataFrame(data, columns=["A", "B", "C", "D"])
@@ -158,12 +160,12 @@ def test_aggregate_normal(resample_method):
 @pytest.mark.parametrize(
     "method, method_args, unit",
     [
-        ("sum", dict(), 0),
-        ("sum", dict(min_count=0), 0),
-        ("sum", dict(min_count=1), np.nan),
-        ("prod", dict(), 1),
-        ("prod", dict(min_count=0), 1),
-        ("prod", dict(min_count=1), np.nan),
+        ("sum", {}, 0),
+        ("sum", {"min_count": 0}, 0),
+        ("sum", {"min_count": 1}, np.nan),
+        ("prod", {}, 1),
+        ("prod", {"min_count": 0}, 1),
+        ("prod", {"min_count": 1}, np.nan),
     ],
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
@@ -267,14 +269,14 @@ def test_repr():
 @pytest.mark.parametrize(
     "method, method_args, expected_values",
     [
-        ("sum", dict(), [1, 0, 1]),
-        ("sum", dict(min_count=0), [1, 0, 1]),
-        ("sum", dict(min_count=1), [1, np.nan, 1]),
-        ("sum", dict(min_count=2), [np.nan, np.nan, np.nan]),
-        ("prod", dict(), [1, 1, 1]),
-        ("prod", dict(min_count=0), [1, 1, 1]),
-        ("prod", dict(min_count=1), [1, np.nan, 1]),
-        ("prod", dict(min_count=2), [np.nan, np.nan, np.nan]),
+        ("sum", {}, [1, 0, 1]),
+        ("sum", {"min_count": 0}, [1, 0, 1]),
+        ("sum", {"min_count": 1}, [1, np.nan, 1]),
+        ("sum", {"min_count": 2}, [np.nan, np.nan, np.nan]),
+        ("prod", {}, [1, 1, 1]),
+        ("prod", {"min_count": 0}, [1, 1, 1]),
+        ("prod", {"min_count": 1}, [1, np.nan, 1]),
+        ("prod", {"min_count": 2}, [np.nan, np.nan, np.nan]),
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):

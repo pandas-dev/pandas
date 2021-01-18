@@ -1636,3 +1636,10 @@ class TestDataFrameReplace:
         result = df1.replace(columns_values_map)
         expected = DataFrame({"positive": np.ones(3)})
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_bytes(self, frame_or_series):
+        # GH#38900
+        obj = frame_or_series(["o"]).astype("|S")
+        expected = obj.copy()
+        obj = obj.replace({None: np.nan})
+        tm.assert_equal(obj, expected)

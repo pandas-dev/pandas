@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from functools import partial
 from textwrap import dedent
@@ -12,6 +14,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
@@ -60,7 +63,7 @@ def get_center_of_mass(
     elif span is not None:
         if span < 1:
             raise ValueError("span must satisfy: span >= 1")
-        comass = (span - 1) / 2.0
+        comass = (span - 1) / 2
     elif halflife is not None:
         if halflife <= 0:
             raise ValueError("halflife must satisfy: halflife > 0")
@@ -69,14 +72,14 @@ def get_center_of_mass(
     elif alpha is not None:
         if alpha <= 0 or alpha > 1:
             raise ValueError("alpha must satisfy: 0 < alpha <= 1")
-        comass = (1.0 - alpha) / alpha
+        comass = (1 - alpha) / alpha
     else:
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
     return float(comass)
 
 
-def wrap_result(obj: "Series", result: np.ndarray) -> "Series":
+def wrap_result(obj: "Series", result: np.ndarray) -> Series:
     """
     Wrap a single 1D result.
     """
@@ -241,6 +244,7 @@ class ExponentialMovingWindow(BaseWindow):
         self.on = None
         self.center = False
         self.closed = None
+        self.method = "single"
         if times is not None:
             if isinstance(times, str):
                 times = self._selected_obj[times]
@@ -252,7 +256,9 @@ class ExponentialMovingWindow(BaseWindow):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.times = np.asarray(times.astype(np.int64))
+            if isna(times).any():
+                raise ValueError("Cannot convert NaT values to integer")
+            self.times = np.asarray(times.view(np.int64))
             self.halflife = Timedelta(halflife).value
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
@@ -269,10 +275,6 @@ class ExponentialMovingWindow(BaseWindow):
             self.times = None
             self.halflife = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
-
-    @property
-    def _constructor(self):
-        return ExponentialMovingWindow
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -332,14 +334,14 @@ class ExponentialMovingWindow(BaseWindow):
         """
         nv.validate_window_func("mean", args, kwargs)
         if self.times is not None:
-            window_func = self._get_roll_func("ewma_time")
+            window_func = window_aggregations.ewma_time
             window_func = partial(
                 window_func,
                 times=self.times,
                 halflife=self.halflife,
             )
         else:
-            window_func = self._get_roll_func("ewma")
+            window_func = window_aggregations.ewma
             window_func = partial(
                 window_func,
                 com=self.com,
@@ -368,7 +370,7 @@ class ExponentialMovingWindow(BaseWindow):
         Exponential weighted moving variance.
         """
         nv.validate_window_func("var", args, kwargs)
-        window_func = self._get_roll_func("ewmcov")
+        window_func = window_aggregations.ewmcov
         window_func = partial(
             window_func,
             com=self.com,
@@ -504,6 +506,10 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     """
     Provide an exponential moving window groupby implementation.
     """
+
+    @property
+    def _constructor(self):
+        return ExponentialMovingWindow
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """

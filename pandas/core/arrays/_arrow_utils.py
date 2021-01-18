@@ -30,7 +30,7 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
     bitmask = buflist[0]
     if bitmask is not None:
         mask = pyarrow.BooleanArray.from_buffers(
-            pyarrow.bool_(), len(arr), [None, bitmask]
+            pyarrow.bool_(), len(arr), [None, bitmask], offset=arr.offset
         )
         mask = np.asarray(mask)
     else:
@@ -127,7 +127,7 @@ if _pyarrow_version_ge_015:
         def to_pandas_dtype(self):
             import pandas as pd
 
-            return pd.IntervalDtype(self.subtype.to_pandas_dtype())
+            return pd.IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
 
     # register the type with a dummy instance
     _interval_type = ArrowIntervalType(pyarrow.int64(), "left")

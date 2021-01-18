@@ -28,7 +28,12 @@ class BaseNoReduceTests(BaseReduceTests):
         op_name = all_numeric_reductions
         s = pd.Series(data)
 
-        with pytest.raises(TypeError):
+        msg = (
+            "[Cc]annot perform|Categorical is not ordered for operation|"
+            "'Categorical' does not implement reduction|"
+        )
+
+        with pytest.raises(TypeError, match=msg):
             getattr(s, op_name)(skipna=skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
@@ -36,7 +41,12 @@ class BaseNoReduceTests(BaseReduceTests):
         op_name = all_boolean_reductions
         s = pd.Series(data)
 
-        with pytest.raises(TypeError):
+        msg = (
+            "[Cc]annot perform|Categorical is not ordered for operation|"
+            "'Categorical' does not implement reduction|"
+        )
+
+        with pytest.raises(TypeError, match=msg):
             getattr(s, op_name)(skipna=skipna)
 
 
