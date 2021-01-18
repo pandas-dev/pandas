@@ -1301,18 +1301,20 @@ def convert_dtypes(
     return inferred_dtype
 
 
-def maybe_castable(dtype: DtypeObj) -> bool:
+def maybe_castable(arr: np.ndarray) -> bool:
     # return False to force a non-fastpath
+
+    assert isinstance(arr, np.ndarray)  # GH 37024
 
     # check datetime64[ns]/timedelta64[ns] are valid
     # otherwise try to coerce
-    kind = dtype.kind
+    kind = arr.dtype.kind
     if kind == "M":
-        return is_datetime64_ns_dtype(dtype)
+        return is_datetime64_ns_dtype(arr.dtype)
     elif kind == "m":
-        return is_timedelta64_ns_dtype(dtype)
+        return is_timedelta64_ns_dtype(arr.dtype)
 
-    return dtype.name not in POSSIBLY_CAST_DTYPES
+    return arr.dtype.name not in POSSIBLY_CAST_DTYPES
 
 
 def maybe_infer_to_datetimelike(
