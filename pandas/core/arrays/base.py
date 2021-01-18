@@ -613,7 +613,7 @@ class ExtensionArray:
         """
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self.isna().any():
-            return -1
+            raise NotImplementedError
         return nargminmax(self, "argmin")
 
     def argmax(self, skipna: bool = True) -> int:
@@ -633,7 +633,7 @@ class ExtensionArray:
         """
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self.isna().any():
-            return -1
+            raise NotImplementedError
         return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):
