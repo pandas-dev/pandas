@@ -34,6 +34,9 @@ Fixed regressions
 - Fixed regression that raised ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
 - Fixed regression in :func:`pandas.testing.assert_frame_equal` raising ``TypeError`` with ``check_like=True`` when :class:`Index` or columns have mixed dtype (:issue:`39168`)
 
+We have reverted a commit that resulted in several plotting related regressions in pandas 1.2.0 (:issue:`38969`, :issue:`38736`, :issue:`38865`, :issue:`38947` and :issue:`39126`).
+As a result, bugs reported as fixed in pandas 1.2.0 related to inconsistent tick labeling in bar plots are again present (:issue:`26186` and :issue:`11465`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_121.bug_fixes:
