@@ -1081,7 +1081,7 @@ class TestDataFrameReshape:
         index = MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 1)], names=["a", "b"])
         df = DataFrame(
             {
-                "A": pd.core.arrays.integer_array([0, 1, None]),
+                "A": pd.array([0, 1, None], dtype="Int64"),
                 "B": pd.Categorical(["a", "a", "b"]),
             },
             index=index,
@@ -1880,3 +1880,54 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
         assert result.shape == (500, 2)
+
+    def test_unstack_with_missing_int_cast_to_float(self):
+        # https://github.com/pandas-dev/pandas/issues/37115
+        df = DataFrame(
+            {
+                "a": ["A", "A", "B"],
+                "b": ["ca", "cb", "cb"],
+                "v": [10] * 3,
+            }
+        ).set_index(["a", "b"])
+
+        # add another int column to get 2 blocks
+        df["is_"] = 1
+        assert len(df._mgr.blocks) == 2
+
+        result = df.unstack("b")
+        result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
+
+        expected = DataFrame(
+            [[10.0, 10.0, 1.0, 1.0], [np.nan, 10.0, 0.0, 1.0]],
+            index=Index(["A", "B"], dtype="object", name="a"),
+            columns=MultiIndex.from_tuples(
+                [("v", "ca"), ("v", "cb"), ("is_", "ca"), ("is_", "cb")],
+                names=[None, "b"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_with_level_has_nan(self):
+        # GH 37510
+        df1 = DataFrame(
+            {
+                "L1": [1, 2, 3, 4],
+                "L2": [3, 4, 1, 2],
+                "L3": [1, 1, 1, 1],
+                "x": [1, 2, 3, 4],
+            }
+        )
+        df1 = df1.set_index(["L1", "L2", "L3"])
+        new_levels = ["n1", "n2", "n3", None]
+        df1.index = df1.index.set_levels(levels=new_levels, level="L1")
+        df1.index = df1.index.set_levels(levels=new_levels, level="L2")
+
+        result = df1.unstack("L3")[("x", 1)].sort_index().index
+        expected = MultiIndex(
+            levels=[["n1", "n2", "n3", None], ["n1", "n2", "n3", None]],
+            codes=[[0, 1, 2, 3], [2, 3, 0, 1]],
+            names=["L1", "L2"],
+        )
+
+        tm.assert_index_equal(result, expected)

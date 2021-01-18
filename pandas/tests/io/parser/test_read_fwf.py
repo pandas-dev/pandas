@@ -536,7 +536,7 @@ def test_variable_width_unicode():
         "\r\n"
     )
     encoding = "utf8"
-    kwargs = dict(header=None, encoding=encoding)
+    kwargs = {"header": None, "encoding": encoding}
 
     expected = read_fwf(
         BytesIO(data.encode(encoding)), colspecs=[(0, 4), (5, 9)], **kwargs
@@ -545,7 +545,7 @@ def test_variable_width_unicode():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", [dict(), {"a": "float64", "b": str, "c": "int32"}])
+@pytest.mark.parametrize("dtype", [{}, {"a": "float64", "b": str, "c": "int32"}])
 def test_dtype(dtype):
     data = """ a    b    c
 1    2    3.2
@@ -647,7 +647,7 @@ def test_fwf_compression(compression_only, infer):
     compression = compression_only
     extension = "gz" if compression == "gzip" else compression
 
-    kwargs = dict(widths=[5, 5], names=["one", "two"])
+    kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
 
     data = bytes(data, encoding="utf-8")

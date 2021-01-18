@@ -167,7 +167,7 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("ufunc", [np.divmod])  # any others?
+@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: any others?
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
@@ -300,5 +300,5 @@ def test_outer():
     s = pd.Series([1, 2, 3])
     o = np.array([1, 2, 3])
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
         np.subtract.outer(s, o)

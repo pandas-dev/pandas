@@ -161,7 +161,6 @@ cdef extern from "parser/tokenizer.h":
 
         char commentchar
         int allow_embedded_newline
-        int strict                 # raise exception on bad CSV */
 
         int usecols
 
@@ -739,8 +738,8 @@ cdef class TextReader:
                 elif self.names is None and nuse < passed_count:
                     self.leading_cols = field_count - passed_count
                 elif passed_count != field_count:
-                    raise ValueError('Passed header names '
-                                     'mismatches usecols')
+                    raise ValueError('Number of passed names did not match number of '
+                                     'header fields in the file')
             # oh boy, #2442, #2981
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
@@ -1085,11 +1084,18 @@ cdef class TextReader:
         elif is_extension_array_dtype(dtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
+
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                result = array_type._from_sequence_of_strings(result,
-                                                              dtype=dtype)
+                if is_bool_dtype(dtype):
+                    true_values = [x.decode() for x in self.true_values]
+                    false_values = [x.decode() for x in self.false_values]
+                    result = array_type._from_sequence_of_strings(
+                        result, dtype=dtype, true_values=true_values,
+                        false_values=false_values)
+                else:
+                    result = array_type._from_sequence_of_strings(result, dtype=dtype)
             except NotImplementedError:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "

@@ -465,6 +465,12 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
             else:
                 self.headers = {"Content-Encoding": None}
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.close()
+
         def read(self):
             return self.file.read()
 

@@ -421,6 +421,8 @@ else:
         extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
+        extra_compile_args.append("-UNDEBUG")
+        extra_compile_args.append("-O0")
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
@@ -433,7 +435,7 @@ if is_platform_mac():
             "MACOSX_DEPLOYMENT_TARGET", current_system
         )
         if (
-            LooseVersion(python_target) < "10.9"
+            LooseVersion(str(python_target)) < "10.9"
             and LooseVersion(current_system) >= "10.9"
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
