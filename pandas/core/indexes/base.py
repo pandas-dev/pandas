@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from copy import copy as copy_func
 from datetime import datetime
 from itertools import zip_longest
@@ -263,7 +265,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __new__(
         cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
-    ) -> "Index":
+    ) -> Index:
 
         if kwargs:
             warnings.warn(
@@ -3850,7 +3852,16 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._join_non_unique(
                     other, how=how, return_indexers=return_indexers
                 )
-        elif self.is_monotonic and other.is_monotonic:
+        elif (
+            self.is_monotonic
+            and other.is_monotonic
+            and (
+                not isinstance(self, ABCMultiIndex)
+                or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
+            )
+        ):
+            # Categorical is monotonic if data are ordered as categories, but join can
+            #  not handle this in case of not lexicographically monotonic GH#38502
             try:
                 return self._join_monotonic(
                     other, how=how, return_indexers=return_indexers
@@ -4508,7 +4519,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat: List["Index"], name: Hashable) -> "Index":
+    def _concat(self, to_concat: List["Index"], name: Hashable) -> Index:
         """
         Concatenate multiple Index objects.
         """
@@ -5264,7 +5275,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
-    def _transform_index(self, func, level=None) -> "Index":
+    def _transform_index(self, func, level=None) -> Index:
         """
         Apply function to all values found in index.
 
@@ -6110,7 +6121,7 @@ def _validate_join_method(method: str):
         raise ValueError(f"do not recognize join method {method}")
 
 
-def default_index(n: int) -> "RangeIndex":
+def default_index(n: int) -> RangeIndex:
     from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)

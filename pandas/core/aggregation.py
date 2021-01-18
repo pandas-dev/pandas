@@ -704,7 +704,8 @@ def agg_dict_like(
     # if we have a dict of any non-scalars
     # eg. {'A' : ['mean']}, normalize all to
     # be list-likes
-    if any(is_aggregator(x) for x in arg.values()):
+    # Cannot use arg.values() because arg may be a Series
+    if any(is_aggregator(x) for _, x in arg.items()):
         new_arg: AggFuncTypeDict = {}
         for k, v in arg.items():
             if not isinstance(v, (tuple, list, dict)):

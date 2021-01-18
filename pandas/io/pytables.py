@@ -2,6 +2,8 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
+from __future__ import annotations
+
 from contextlib import suppress
 import copy
 from datetime import date, tzinfo
@@ -21,6 +23,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -67,6 +70,7 @@ import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
+from pandas.core.internals import BlockManager
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
@@ -1769,7 +1773,7 @@ class HDFStore:
         s.infer_axes()
         return s.read()
 
-    def _identify_group(self, key: str, append: bool) -> "Node":
+    def _identify_group(self, key: str, append: bool) -> Node:
         """Identify HDF5 group based on key, delete/create group if needed."""
         group = self.get_node(key)
 
@@ -1787,7 +1791,7 @@ class HDFStore:
 
         return group
 
-    def _create_nodes_and_group(self, key: str) -> "Node":
+    def _create_nodes_and_group(self, key: str) -> Node:
         """Create nodes from key and return group name."""
         # assertion for mypy
         assert self._handle is not None
@@ -2324,7 +2328,7 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: ArrayLike) -> "Col":
+    def _get_atom(cls, values: ArrayLike) -> Col:
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
@@ -2374,7 +2378,7 @@ class DataCol(IndexCol):
         return getattr(_tables(), col_name)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
     @classmethod
@@ -2531,7 +2535,7 @@ class DataIndexableCol(DataCol):
         return _tables().StringCol(itemsize=itemsize)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)()
 
     @classmethod
@@ -3983,19 +3987,21 @@ class Table(Fixed):
         def get_blk_items(mgr):
             return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
-        blocks: List["Block"] = list(frame._mgr.blocks)
-        blk_items: List[Index] = get_blk_items(frame._mgr)
+        mgr = frame._mgr
+        mgr = cast(BlockManager, mgr)
+        blocks: List["Block"] = list(mgr.blocks)
+        blk_items: List[Index] = get_blk_items(mgr)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
 
-            blocks = list(mgr.blocks)
+            blocks = list(mgr.blocks)  # type: ignore[union-attr]
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
-                blocks.extend(mgr.blocks)
+                blocks.extend(mgr.blocks)  # type: ignore[union-attr]
                 blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
