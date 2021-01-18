@@ -9418,7 +9418,7 @@ NaN 12.3   33.0
         how: Optional[str] = None,
         normalize: bool = False,
         fill_value=None,
-    ) -> "DataFrame":
+    ) -> DataFrame:
         return super().asfreq(
             freq=freq,
             method=method,
@@ -9442,7 +9442,7 @@ NaN 12.3   33.0
         level=None,
         origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
         offset: Optional["TimedeltaConvertibleTypes"] = None,
-    ) -> "Resampler":
+    ) -> Resampler:
         return super().resample(
             rule=rule,
             axis=axis,
