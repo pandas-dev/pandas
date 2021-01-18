@@ -49,6 +49,7 @@ from pandas._typing import (
     NpDtype,
     Renamer,
     StorageOptions,
+    T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
@@ -5359,7 +5360,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         r"""
         Apply func(self, \*args, \*\*kwargs).
 
@@ -10581,8 +10587,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # [assignment]
         cls.all = all  # type: ignore[assignment]
 
+        # error: Argument 1 to "doc" has incompatible type "Optional[str]"; expected
+        # "Union[str, Callable[..., Any]]"
         @doc(
-            NDFrame.mad,
+            NDFrame.mad.__doc__,  # type: ignore[arg-type]
             desc="Return the mean absolute deviation of the values "
             "over the requested axis.",
             name1=name1,

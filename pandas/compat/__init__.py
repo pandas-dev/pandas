@@ -12,7 +12,6 @@ import sys
 import warnings
 
 from pandas._typing import F
-from pandas.compat.numpy import is_numpy_dev
 
 PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
@@ -119,8 +118,3 @@ def get_lzma_file(lzma):
             "might be required to solve this issue."
         )
     return lzma.LZMAFile
-
-
-__all__ = [
-    "is_numpy_dev",
-]

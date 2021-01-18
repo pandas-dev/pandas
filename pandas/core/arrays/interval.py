@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 from operator import le, lt
 import textwrap
@@ -861,7 +863,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def isna(self) -> np.ndarray:
         return isna(self._left)
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
+    def shift(self, periods: int = 1, fill_value: object = None) -> IntervalArray:
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -955,12 +957,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # list-like of intervals
         try:
             array = IntervalArray(value)
-            # TODO: self._check_closed_matches(array, name="value")
+            self._check_closed_matches(array, name="value")
             value_left, value_right = array.left, array.right
         except TypeError as err:
             # wrong type: not interval or NA
             msg = f"'value' should be an interval type, got {type(value)} instead."
             raise TypeError(msg) from err
+
+        try:
+            self.left._validate_fill_value(value_left)
+        except (ValueError, TypeError) as err:
+            msg = (
+                "'value' should be a compatible interval type, "
+                f"got {type(value)} instead."
+            )
+            raise TypeError(msg) from err
+
         return value_left, value_right
 
     def _validate_scalar(self, value):
@@ -995,10 +1007,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 value = np.timedelta64("NaT")
             value_left, value_right = value, value
 
-        elif is_interval_dtype(value) or isinstance(value, Interval):
+        elif isinstance(value, Interval):
             # scalar interval
             self._check_closed_matches(value, name="value")
             value_left, value_right = value.left, value.right
+            self.left._validate_fill_value(value_left)
+            self.left._validate_fill_value(value_right)
 
         else:
             return self._validate_listlike(value)

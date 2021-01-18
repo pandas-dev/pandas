@@ -3,6 +3,7 @@ Module responsible for execution of NDFrame.describe() method.
 
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List, Optional, Sequence, Union, cast
@@ -111,7 +112,7 @@ class SeriesDescriber(NDFrameDescriberAbstract):
 
     obj: "Series"
 
-    def describe(self, percentiles: Sequence[float]) -> "Series":
+    def describe(self, percentiles: Sequence[float]) -> Series:
         return describe_1d(
             self.obj,
             percentiles=percentiles,
@@ -148,7 +149,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         validate_frame(obj)
         super().__init__(obj, datetime_is_numeric=datetime_is_numeric)
 
-    def describe(self, percentiles: Sequence[float]) -> "DataFrame":
+    def describe(self, percentiles: Sequence[float]) -> DataFrame:
         data = self._select_data()
 
         ldesc = [
@@ -204,7 +205,7 @@ def reorder_columns(ldesc: Sequence["Series"]) -> List[Hashable]:
     return names
 
 
-def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> "Series":
+def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> Series:
     """Describe series containing numerical data.
 
     Parameters
@@ -227,7 +228,7 @@ def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> "Seri
     return Series(d, index=stat_index, name=series.name)
 
 
-def describe_categorical_1d(data: "Series", is_series: bool) -> "Series":
+def describe_categorical_1d(data: "Series", is_series: bool) -> Series:
     """Describe series containing categorical data.
 
     Parameters
@@ -289,7 +290,7 @@ def describe_categorical_1d(data: "Series", is_series: bool) -> "Series":
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> "Series":
+def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> Series:
     """Describe series containing datetime64 dtype.
 
     Parameters
@@ -319,7 +320,7 @@ def describe_1d(
     datetime_is_numeric: bool,
     *,
     is_series: bool,
-) -> "Series":
+) -> Series:
     """Describe series.
 
     Parameters
@@ -382,6 +383,6 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
     return unique_pcts
 
 
-def validate_frame(frame: "DataFrame"):
+def validate_frame(frame: "DataFrame") -> None:
     if frame.ndim == 2 and frame.columns.size == 0:
         raise ValueError("Cannot describe a DataFrame without columns")
