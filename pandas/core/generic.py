@@ -5494,10 +5494,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             try:
                 existing = getattr(self, name)
-                if isinstance(existing, Index) or name not in self._info_axis:
+                if isinstance(existing, Index):
                     object.__setattr__(self, name, value)
-                else:
+                elif name in self._info_axis:
                     self[name] = value
+                else:
+                    object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
                 if isinstance(self, ABCDataFrame) and (is_list_like(value)):
                     warnings.warn(
