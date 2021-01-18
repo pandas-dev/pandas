@@ -2297,7 +2297,11 @@ class PythonParser(ParserBase):
             self._open_handles(f, kwds)
             assert self.handles is not None
             assert hasattr(self.handles.handle, "readline")
-            self._make_reader(self.handles.handle)
+            try:
+                self._make_reader(self.handles.handle)
+            except (csv.Error, UnicodeDecodeError):
+                self.close()
+                raise
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
