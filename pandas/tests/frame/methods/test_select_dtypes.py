@@ -129,6 +129,7 @@ class TestSelectDtypes:
         tm.assert_frame_equal(r, e)
 
     def test_select_dtypes_exclude_include_int(self):
+        # Fix select_dtypes(include='int') for Windows, FYI #36596
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -141,15 +142,21 @@ class TestSelectDtypes:
         )
         exclude = (np.datetime64,)
         include = np.bool_, "int"
-        r = df.select_dtypes(include=include, exclude=exclude)
-        e = df[["b", "c", "e"]]
-        tm.assert_frame_equal(r, e)
+        result = df.select_dtypes(include=include, exclude=exclude)
+        expected = df[["b", "c", "e"]]
+        tm.assert_frame_equal(result, expected)
+
+        exclude = (np.datetime64,)
+        include = np.bool_, "integer"
+        result = df.select_dtypes(include=include, exclude=exclude)
+        expected = df[["b", "c", "e"]]
+        tm.assert_frame_equal(result, expected)
 
         exclude = ("datetime",)
         include = "bool", int
-        r = df.select_dtypes(include=include, exclude=exclude)
-        e = df[["b", "c", "e"]]
-        tm.assert_frame_equal(r, e)
+        result = df.select_dtypes(include=include, exclude=exclude)
+        expected = df[["b", "c", "e"]]
+        tm.assert_frame_equal(result, expected)
 
     def test_select_dtypes_include_using_scalars(self):
         df = DataFrame(
