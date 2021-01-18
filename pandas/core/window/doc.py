@@ -7,14 +7,11 @@ _shared_docs = dict(**_shared_docs)
 
 doc_template = dedent(
     """
-    Calculate the {window_method} {aggregation_description}
+    Calculate the {window_method} {aggregation_description}.
 
     Parameters
     ----------
-    {parameters}
-
-    {numpy_args_kwargs}
-
+    {parameters}{numpy_args_kwargs}
     Returns
     -------
     Series or DataFrame
@@ -27,15 +24,12 @@ doc_template = dedent(
     pandas.Series.{agg_method} : Aggregating {agg_method} for Series.
     pandas.DataFrame.{agg_method} : Aggregating {agg_method} for DataFrame.
     {other_see_also}
-
     Notes
     -----
     {notes}
-
     Examples
     --------
-    {examples}
-    """
+    {examples}"""
 )
 
 numpy_args_kwargs = dedent(

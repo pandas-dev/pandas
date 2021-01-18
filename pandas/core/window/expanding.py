@@ -279,7 +279,7 @@ class Expanding(RollingAndExpandingMixin):
         ),
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="std",
-        other_see_also="numpy.std : Equivalent method for Numpy array.",
+        other_see_also="numpy.std : Equivalent method for Numpy array.\n",
         notes=dedent(
             """
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
@@ -321,7 +321,7 @@ class Expanding(RollingAndExpandingMixin):
         ),
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="var",
-        other_see_also="numpy.var : Equivalent method for Numpy array.",
+        other_see_also="numpy.var : Equivalent method for Numpy array.\n",
         notes=dedent(
             """
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
@@ -388,7 +388,7 @@ class Expanding(RollingAndExpandingMixin):
         parameters=kwargs_compat,
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="skew",
-        other_see_also="scipy.stats.skew : Third moment of a probability density.",
+        other_see_also="scipy.stats.skew : Third moment of a probability density.\n",
         notes="A minimum of three periods is required for the rolling calculation.",
         examples="",
     )
@@ -402,7 +402,7 @@ class Expanding(RollingAndExpandingMixin):
         parameters=kwargs_compat,
         numpy_args_kwargs="",
         agg_method="kurt",
-        other_see_also="scipy.stats.kurtosis : Reference SciPy method.",
+        other_see_also="scipy.stats.kurtosis : Reference SciPy method.\n",
         notes=dedent(
             """
         A minimum of four periods is required for the calculation.
@@ -410,9 +410,6 @@ class Expanding(RollingAndExpandingMixin):
         ),
         examples=dedent(
             """
-        Examples
-        --------
-
         The example below will show a rolling calculation with a window size of
         four matching the equivalent function call using `scipy.stats`.
 
