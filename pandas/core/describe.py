@@ -146,7 +146,10 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
     ):
         self.include = include
         self.exclude = exclude
-        validate_frame(obj)
+
+        if obj.ndim == 2 and obj.columns.size == 0:
+            raise ValueError("Cannot describe a DataFrame without columns")
+
         super().__init__(obj, datetime_is_numeric=datetime_is_numeric)
 
     def describe(self, percentiles: Sequence[float]) -> DataFrame:
@@ -381,8 +384,3 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
         raise ValueError("percentiles cannot contain duplicates")
 
     return unique_pcts
-
-
-def validate_frame(frame: "DataFrame") -> None:
-    if frame.ndim == 2 and frame.columns.size == 0:
-        raise ValueError("Cannot describe a DataFrame without columns")
