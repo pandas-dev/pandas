@@ -1915,11 +1915,11 @@ class NumericBlock(Block):
         return can_hold_element(self.dtype, element)
 
     @property
-    def _can_hold_na(self) -> bool:
+    def _can_hold_na(self):
         return self.dtype.kind not in ["b", "i", "u"]
 
     @property
-    def is_bool(self) -> bool:
+    def is_bool(self):
         return self.dtype.kind == "b"
 
 
