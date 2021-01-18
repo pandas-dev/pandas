@@ -97,7 +97,7 @@ class NDFrameDescriberAbstract(ABC):
         self.datetime_is_numeric = datetime_is_numeric
 
     @abstractmethod
-    def describe(self, percentiles: Sequence[float]) -> "FrameOrSeriesUnion":
+    def describe(self, percentiles: Sequence[float]) -> FrameOrSeriesUnion:
         """Do describe either series or dataframe.
 
         Parameters
