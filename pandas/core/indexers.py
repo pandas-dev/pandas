@@ -486,6 +486,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
         or not is_list_like(indexer)
     ):
         return indexer
+
     # convert list-likes to array
     if not is_array_like(indexer):
         indexer = pd_array(indexer)
