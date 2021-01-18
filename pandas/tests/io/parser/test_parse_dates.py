@@ -64,7 +64,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
         return pd.to_timedelta(time, unit="s")
 
     testdata = StringIO(
-        """time    e   n   h
+        """time e n h
         41047.00	-98573.7297	871458.0640	389.0089
         41048.00	-98573.7299	871458.0640	389.0089
         41049.00	-98573.7300	871458.0642	389.0088
