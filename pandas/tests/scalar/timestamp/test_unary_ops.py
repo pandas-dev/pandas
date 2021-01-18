@@ -261,7 +261,10 @@ class TestTimestampUnaryOps:
         with pytest.raises(OverflowError, match="value too large"):
             Timestamp.min.floor("s")
 
-        msg = "Python int too large to convert to C long"
+        # the second message here shows up in windows builds
+        msg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
         with pytest.raises(OverflowError, match=msg):
             Timestamp.max.ceil("s")
 
