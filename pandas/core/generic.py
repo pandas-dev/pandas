@@ -8675,12 +8675,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        if (
-            is_datetime64tz_dtype(left.index.dtype)
-            and left.index.tz != right.index.tz
-            and join_index is not None
-        ):
-            left, right = _set_join_index(left, right, join_index)
+        if is_datetime64tz_dtype(left.index.dtype):
+            if left.index.tz != right.index.tz:
+                if join_index is not None:
+                    # GH#33671 ensure we don't change the index on
+                    #  our original Series (NB: by default deep=False)
+                    left = left.copy()
+                    right = right.copy()
+                    left.index = join_index
+                    right.index = join_index
 
         return (
             left.__finalize__(self),
@@ -8763,13 +8766,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right = right.fillna(fill_value, method=method, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
-        if (
-            (is_series or axis == 0)
-            and is_datetime64tz_dtype(left.index.dtype)
-            and left.index.tz != right.index.tz
-            and join_index is not None
-        ):
-            left, right = _set_join_index(left, right, join_index)
+        if is_series or (not is_series and axis == 0):
+            if is_datetime64tz_dtype(left.index.dtype):
+                if left.index.tz != right.index.tz:
+                    if join_index is not None:
+                        # GH#33671 ensure we don't change the index on
+                        #  our original Series (NB: by default deep=False)
+                        left = left.copy()
+                        right = right.copy()
+                        left.index = join_index
+                        right.index = join_index
 
         return (
             left.__finalize__(self),
@@ -11093,18 +11099,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
     def last_valid_index(self):
         return self._find_valid_index("last")
-
-
-def _set_join_index(
-    left: FrameOrSeries, right: FrameOrSeries, join_index: Index
-) -> Tuple[FrameOrSeries, FrameOrSeries]:
-    # GH#33671 ensure we don't change the index on
-    # our original Series (NB: by default deep=False)
-    left = left.copy()
-    right = right.copy()
-    left.index = join_index
-    right.index = join_index
-    return left, right
 
 
 def _doc_parms(cls):
