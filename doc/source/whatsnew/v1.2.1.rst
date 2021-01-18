@@ -14,26 +14,29 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed regression in :meth:`to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
-- Fixed regression in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
-- Fixed regression in :meth:`DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
-- Fixed regression in :meth:`DataFrame.any` and :meth:`DataFrame.all` not returning a result for tz-aware ``datetime64`` columns (:issue:`38723`)
-- Fixed regression in :meth:`DataFrame.__setitem__` raising ``ValueError`` when expanding :class:`DataFrame` and new column is from type ``"0 - name"`` (:issue:`39010`)
-- Fixed regression in :meth:`.GroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
-- Fixed regression in :meth:`DataFrame.loc.__setitem__` raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
-- Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
-- Fixed regression in :meth:`Rolling.skew` and :meth:`Rolling.kurt` modifying the object inplace (:issue:`38908`)
+- Fixed regression in :meth:`~DataFrame.to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
+- Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
+- Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occured (:issue:`39202`)
+- Fixed regression in ``DataFrame.__setitem__`` raising ``ValueError`` when expanding :class:`DataFrame` and new column is from type ``"0 - name"`` (:issue:`39010`)
+- Fixed regression in setting with :meth:`DataFrame.loc`  raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
+- Fixed regression in setting with :meth:`DataFrame.loc` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
+- Fixed regression in :meth:`~DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
+- Fixed regression in :meth:`.GroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
+- Fixed regression in :meth:`.DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
+- Fixed regression in :meth:`DataFrame.groupby` when aggregating an ``ExtensionDType`` that could fail for non-numeric values (:issue:`38980`)
+- Fixed regression in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` modifying the object inplace (:issue:`38908`)
+- Fixed regression in :meth:`DataFrame.any` and :meth:`DataFrame.all` not returning a result for tz-aware ``datetime64`` columns (:issue:`38723`)
 - Fixed regression in :meth:`DataFrame.apply` with ``axis=1`` using str accessor in apply function (:issue:`38979`)
 - Fixed regression in :meth:`DataFrame.replace` raising ``ValueError`` when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
-- Fixed regression in :meth:`DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
 - Fixed regression in :meth:`Series.fillna` that raised ``RecursionError`` with ``datetime64[ns, UTC]`` dtype (:issue:`38851`)
+- Fixed regression in comparisons between ``NaT`` and ``datetime.date`` objects incorrectly returning ``True`` (:issue:`39151`)
+- Fixed regression in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
 - Fixed regression that raised ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
 - Fixed regression in :func:`pandas.testing.assert_frame_equal` raising ``TypeError`` with ``check_like=True`` when :class:`Index` or columns have mixed dtype (:issue:`39168`)
-- Fixed regression in :meth:`DataFrame.groupby` when aggregating an :class:`ExtensionDType` that could fail for non-numeric values (:issue:`38980`)
-- Fixed regression in :meth:`DataFrame.loc.__setitem__` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
-- Fixed regression in comparisons between ``NaT`` and ``datetime.date`` objects incorrectly returning ``True`` (:issue:`39151`)
-- Fixed regression in :func:`pandas.testing.assert_index_equal` raising ``TypeError`` with ``check_order=False`` when :class:`Index` has mixed dtype (:issue:`39168`)
+
+We have reverted a commit that resulted in several plotting related regressions in pandas 1.2.0 (:issue:`38969`, :issue:`38736`, :issue:`38865`, :issue:`38947` and :issue:`39126`).
+As a result, bugs reported as fixed in pandas 1.2.0 related to inconsistent tick labeling in bar plots are again present (:issue:`26186` and :issue:`11465`)
 
 .. ---------------------------------------------------------------------------
 
@@ -44,6 +47,7 @@ Bug fixes
 
 - Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
 - Bug in :func:`read_csv` not closing an opened file handle when a ``csv.Error`` or ``UnicodeDecodeError`` occurred while initializing (:issue:`39024`)
+- Bug in :func:`pandas.testing.assert_index_equal` raising ``TypeError`` with ``check_order=False`` when :class:`Index` has mixed dtype (:issue:`39168`)
 
 .. ---------------------------------------------------------------------------
 
