@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -138,12 +140,12 @@ def test_binary_frame_series_raises():
 
 def test_frame_outer_deprecated():
     df = pd.DataFrame({"A": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         np.subtract.outer(df, df)
 
 
 def test_alignment_deprecation():
-
+    # https://github.com/pandas-dev/pandas/issues/39184
     df1 = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df2 = pd.DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
     s1 = pd.Series([1, 2], index=["a", "b"])
@@ -186,4 +188,46 @@ def test_alignment_deprecation():
     tm.assert_frame_equal(result, expected)
 
     result = np.add(df1, s2.values)
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_alignment_deprecation_many_inputs():
+    # https://github.com/pandas-dev/pandas/issues/39184
+    # test that the deprecation also works with > 2 inputs -> using a numba
+    # written ufunc for this because numpy itself doesn't have such ufuncs
+    from numba import float64, vectorize
+
+    @vectorize([float64(float64, float64, float64)])
+    def my_ufunc(x, y, z):
+        return x + y + z
+
+    df1 = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df2 = pd.DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
+    df3 = pd.DataFrame({"a": [1, 2, 3], "c": [4, 5, 6]})
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = my_ufunc(df1, df2, df3)
+    expected = pd.DataFrame([[3.0, 12.0], [6.0, 15.0], [9.0, 18.0]], columns=["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    # all aligned -> no warning
+    with tm.assert_produces_warning(None):
+        result = my_ufunc(df1, df1, df1)
+    tm.assert_frame_equal(result, expected)
+
+    # mixed frame / arrays
+    with tm.assert_produces_warning(FutureWarning):
+        result = my_ufunc(df1, df2, df3.values)
+    tm.assert_frame_equal(result, expected)
+
+    # single frame -> no warning
+    with tm.assert_produces_warning(None):
+        result = my_ufunc(df1, df2.values, df3.values)
+    tm.assert_frame_equal(result, expected)
+
+    # takes indices of first frame
+    with tm.assert_produces_warning(FutureWarning):
+        result = my_ufunc(df1.values, df2, df3)
+    expected = expected.set_axis(["b", "c"], axis=1)
     tm.assert_frame_equal(result, expected)

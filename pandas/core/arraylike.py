@@ -166,7 +166,7 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
     is_ndframe = [isinstance(x, NDFrame) for x in inputs]
     is_frame = [isinstance(x, DataFrame) for x in inputs]
 
-    if (len(inputs) == 2) and (sum(is_ndframe) >= 2) and (sum(is_frame) >= 1):
+    if (sum(is_ndframe) >= 2) and (sum(is_frame) >= 1):
         # if there are 2 alignable inputs, of which at least 1 is a
         # DataFrame -> we would have had no alignment before -> warn that this
         # will align in the future
