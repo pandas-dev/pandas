@@ -274,8 +274,13 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         result = getattr(ufunc, method)(*inputs, **kwargs)
     else:
         # ufunc(dataframe)
-        mgr = inputs[0]._mgr
-        result = mgr.apply(getattr(ufunc, method))
+        if method == "__call__":
+            mgr = inputs[0]._mgr
+            result = mgr.apply(getattr(ufunc, method))
+        else:
+            # specific ufunc methods (eg accumulate) have an axis keyword
+            # and thus can't be called block-by-block
+            result = getattr(ufunc, method)(np.asarray(inputs[0]), **kwargs)
 
     if ufunc.nout > 1:  # type: ignore[attr-defined]
         result = tuple(reconstruct(x) for x in result)
