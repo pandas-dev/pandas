@@ -575,16 +575,14 @@ class BlockManager(DataManager):
 
         col_indexer = ensure_iterable_indexer(len(self.items), col_indexer)
         col_indexer = Index(col_indexer)
-        col_indexer2 = list(col_indexer)
 
         def handle_block(blk: Block) -> List[Block]:
             locs = Index(blk.mgr_locs.as_array).intersection(col_indexer)
-            ilocs = [list(blk.mgr_locs).index(x) for x in locs]
             # For blocks that are among self.blocks (i.e. not reached via recursion)
             #  this should match self.blklocs[locs]
-            rlocs = [col_indexer2.index(x) for x in locs]
-            rlocs2 = col_indexer.get_indexer(locs)
-            assert (rlocs2 == rlocs).all()
+            ilocs = [list(blk.mgr_locs).index(x) for x in locs]
+
+            rlocs = col_indexer.get_indexer(locs)
 
             if not len(ilocs):
                 nbs = [blk]
