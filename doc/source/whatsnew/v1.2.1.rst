@@ -17,6 +17,7 @@ Fixed regressions
 - Fixed regression in :meth:`~DataFrame.to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
 - Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
+- Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occured (:issue:`39202`)
 - Fixed regression in ``DataFrame.__setitem__`` raising ``ValueError`` when expanding :class:`DataFrame` and new column is from type ``"0 - name"`` (:issue:`39010`)
 - Fixed regression in setting with :meth:`DataFrame.loc`  raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
 - Fixed regression in setting with :meth:`DataFrame.loc` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
