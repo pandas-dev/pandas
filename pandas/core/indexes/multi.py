@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import wraps
 from sys import getsizeof
 from typing import (
@@ -20,7 +22,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
-from pandas._typing import AnyArrayLike, DtypeObj, Label, Scalar, Shape
+from pandas._typing import AnyArrayLike, DtypeObj, Scalar, Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -216,7 +218,6 @@ class MultiIndex(Index):
     set_codes
     to_frame
     to_flat_index
-    is_lexsorted
     sortlevel
     droplevel
     swaplevel
@@ -391,11 +392,11 @@ class MultiIndex(Index):
                     f"Level values must be unique: {list(level)} on level {i}"
                 )
         if self.sortorder is not None:
-            if self.sortorder > self._lexsort_depth():
+            if self.sortorder > _lexsort_depth(self.codes, self.nlevels):
                 raise ValueError(
                     "Value for sortorder must be inferior or equal to actual "
                     f"lexsort_depth: sortorder {self.sortorder} "
-                    f"with lexsort_depth {self._lexsort_depth()}"
+                    f"with lexsort_depth {_lexsort_depth(self.codes, self.nlevels)}"
                 )
 
         codes = [
@@ -405,7 +406,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> MultiIndex:
         """
         Convert arrays to MultiIndex.
 
@@ -476,7 +477,7 @@ class MultiIndex(Index):
         cls,
         tuples,
         sortorder: Optional[int] = None,
-        names: Optional[Sequence[Label]] = None,
+        names: Optional[Sequence[Hashable]] = None,
     ):
         """
         Convert list of tuples to MultiIndex.
@@ -518,7 +519,7 @@ class MultiIndex(Index):
         elif is_iterator(tuples):
             tuples = list(tuples)
 
-        arrays: List[Sequence[Label]]
+        arrays: List[Sequence[Hashable]]
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
@@ -701,7 +702,7 @@ class MultiIndex(Index):
         )
 
     @cache_readonly
-    def dtypes(self) -> "Series":
+    def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex
         """
@@ -1787,6 +1788,10 @@ class MultiIndex(Index):
         pd.Index
             Index with the MultiIndex data represented in Tuples.
 
+        See Also
+        --------
+        MultiIndex.from_tuples : Convert flat index back to MultiIndex.
+
         Notes
         -----
         This method will simply return the caller if called by anything other
@@ -1809,6 +1814,15 @@ class MultiIndex(Index):
         return False
 
     def is_lexsorted(self) -> bool:
+        warnings.warn(
+            "MultiIndex.is_lexsorted is deprecated as a public function, "
+            "users should use MultiIndex.is_monotonic_increasing instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._is_lexsorted()
+
+    def _is_lexsorted(self) -> bool:
         """
         Return True if the codes are lexicographically sorted.
 
@@ -1840,15 +1854,19 @@ class MultiIndex(Index):
         ...                            ['bb', 'aa', 'aa', 'bb']]).is_lexsorted()
         False
         """
-        return self.lexsort_depth == self.nlevels
+        return self._lexsort_depth == self.nlevels
+
+    @property
+    def lexsort_depth(self):
+        warnings.warn(
+            "MultiIndex.is_lexsorted is deprecated as a public function, "
+            "users should use MultiIndex.is_monotonic_increasing instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._lexsort_depth
 
     @cache_readonly
-    def lexsort_depth(self):
-        if self.sortorder is not None:
-            return self.sortorder
-
-        return self._lexsort_depth()
-
     def _lexsort_depth(self) -> int:
         """
         Compute and return the lexsort_depth, the number of levels of the
@@ -1858,11 +1876,9 @@ class MultiIndex(Index):
         -------
         int
         """
-        int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
-        for k in range(self.nlevels, 0, -1):
-            if libalgos.is_lexsorted(int64_codes[:k]):
-                return k
-        return 0
+        if self.sortorder is not None:
+            return self.sortorder
+        return _lexsort_depth(self.codes, self.nlevels)
 
     def _sort_levels_monotonic(self):
         """
@@ -1898,7 +1914,7 @@ class MultiIndex(Index):
                     ('b', 'bb')],
                    )
         """
-        if self.is_lexsorted() and self.is_monotonic:
+        if self._is_lexsorted() and self.is_monotonic:
             return self
 
         new_levels = []
@@ -2184,7 +2200,7 @@ class MultiIndex(Index):
                     step = loc.step if loc.step is not None else 1
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
-                    if self.lexsort_depth == 0:
+                    if self._lexsort_depth == 0:
                         warnings.warn(
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
@@ -2755,10 +2771,10 @@ class MultiIndex(Index):
         return super().slice_locs(start, end, step, kind=kind)
 
     def _partial_tup_index(self, tup, side="left"):
-        if len(tup) > self.lexsort_depth:
+        if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
-                f"({self.lexsort_depth})"
+                f"({self._lexsort_depth})"
             )
 
         n = len(tup)
@@ -2897,7 +2913,7 @@ class MultiIndex(Index):
         # break the key into 2 parts based on the lexsort_depth of the index;
         # the first part returns a continuous slice of the index; the 2nd part
         # needs linear search within the slice
-        i = self.lexsort_depth
+        i = self._lexsort_depth
         lead_key, follow_key = key[:i], key[i:]
         start, stop = (
             self.slice_locs(lead_key, lead_key) if lead_key else (0, len(self))
@@ -3150,7 +3166,7 @@ class MultiIndex(Index):
                 stop = getattr(stop, "stop", stop)
                 return convert_indexer(start, stop, step)
 
-            elif level > 0 or self.lexsort_depth == 0 or step is not None:
+            elif level > 0 or self._lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
                 # searching as when we are using a slice
                 # so include the stop+1 (so we include stop)
@@ -3165,7 +3181,7 @@ class MultiIndex(Index):
 
             idx = self._get_loc_single_level_index(level_index, key)
 
-            if level > 0 or self.lexsort_depth == 0:
+            if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
                 locs = np.array(level_codes == idx, dtype=bool, copy=False)
                 if not locs.any():
@@ -3222,10 +3238,10 @@ class MultiIndex(Index):
 
         # must be lexsorted to at least as many levels
         true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
-        if true_slices and true_slices[-1] >= self.lexsort_depth:
+        if true_slices and true_slices[-1] >= self._lexsort_depth:
             raise UnsortedIndexError(
                 "MultiIndex slicing requires the index to be lexsorted: slicing "
-                f"on levels {true_slices}, lexsort depth {self.lexsort_depth}"
+                f"on levels {true_slices}, lexsort depth {self._lexsort_depth}"
             )
         # indexer
         # this is the list of all values that we want to select
@@ -3347,7 +3363,7 @@ class MultiIndex(Index):
         """
         # If the index is lexsorted and the list_like label in seq are sorted
         # then we do not need to sort
-        if self.is_lexsorted():
+        if self._is_lexsorted():
             need_sort = False
             for i, k in enumerate(seq):
                 if is_list_like(k):
@@ -3564,16 +3580,9 @@ class MultiIndex(Index):
                 uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
-            other_uniq = set(rvals)
-            seen = set()
-            # pandas\core\indexes\multi.py:3503: error: "add" of "set" does not
-            # return a value  [func-returns-value]
-            uniq_tuples = [
-                x
-                for x in lvals
-                if x in other_uniq
-                and not (x in seen or seen.add(x))  # type: ignore[func-returns-value]
-            ]
+            left_unique = self.drop_duplicates()
+            indexer = left_unique.get_indexer(other.drop_duplicates())
+            uniq_tuples = left_unique.take(np.sort(indexer[indexer != -1]))
 
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)
@@ -3766,6 +3775,15 @@ class MultiIndex(Index):
     __pos__ = make_invalid_op("__pos__")
     __abs__ = make_invalid_op("__abs__")
     __inv__ = make_invalid_op("__inv__")
+
+
+def _lexsort_depth(codes: List[np.ndarray], nlevels: int) -> int:
+    """Count depth (up to a maximum of `nlevels`) with which codes are lexsorted."""
+    int64_codes = [ensure_int64(level_codes) for level_codes in codes]
+    for k in range(nlevels, 0, -1):
+        if libalgos.is_lexsorted(int64_codes[:k]):
+            return k
+    return 0
 
 
 def sparsify_labels(label_list, start: int = 0, sentinel=""):

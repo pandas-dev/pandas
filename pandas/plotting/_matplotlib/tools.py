@@ -1,4 +1,6 @@
 # being a bit too dynamic
+from __future__ import annotations
+
 from math import ceil
 from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
 import warnings
@@ -32,7 +34,7 @@ def format_date_labels(ax: "Axes", rot):
 
 def table(
     ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
-) -> "Table":
+) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -61,12 +63,10 @@ def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int
 
         nrows, ncols = layout
 
-        # Python 2 compat
-        ceil_ = lambda x: int(ceil(x))
         if nrows == -1 and ncols > 0:
-            layout = nrows, ncols = (ceil_(float(nplots) / ncols), ncols)
+            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = nrows, ncols = (nrows, ceil_(float(nplots) / nrows))
+            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)

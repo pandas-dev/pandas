@@ -246,12 +246,13 @@ def group_cumsum(numeric[:, :] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        numeric val
-        numeric[:, :] accum
+        numeric val, y, t
+        numeric[:, :] accum, compensation
         int64_t lab
 
     N, K = (<object>values).shape
     accum = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
+    compensation = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
 
     with nogil:
         for i in range(N):
@@ -264,7 +265,10 @@ def group_cumsum(numeric[:, :] out,
 
                 if numeric == float32_t or numeric == float64_t:
                     if val == val:
-                        accum[lab, j] += val
+                        y = val - compensation[lab, j]
+                        t = accum[lab, j] + y
+                        compensation[lab, j] = t - accum[lab, j] - y
+                        accum[lab, j] = t
                         out[i, j] = accum[lab, j]
                     else:
                         out[i, j] = NaN
@@ -272,7 +276,10 @@ def group_cumsum(numeric[:, :] out,
                             accum[lab, j] = NaN
                             break
                 else:
-                    accum[lab, j] += val
+                    y = val - compensation[lab, j]
+                    t = accum[lab, j] + y
+                    compensation[lab, j] = t - accum[lab, j] - y
+                    accum[lab, j] = t
                     out[i, j] = accum[lab, j]
 
 
@@ -467,12 +474,12 @@ def _group_add(complexfloating_t[:, :] out,
                const int64_t[:] labels,
                Py_ssize_t min_count=0):
     """
-    Only aggregates on axis=0
+    Only aggregates on axis=0 using Kahan summation
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        complexfloating_t val, count
-        complexfloating_t[:, :] sumx
+        complexfloating_t val, count, t, y
+        complexfloating_t[:, :] sumx, compensation
         int64_t[:, :] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
@@ -481,6 +488,7 @@ def _group_add(complexfloating_t[:, :] out,
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros_like(out)
+    compensation = np.zeros_like(out)
 
     N, K = (<object>values).shape
 
@@ -497,12 +505,10 @@ def _group_add(complexfloating_t[:, :] out,
                 # not nan
                 if val == val:
                     nobs[lab, j] += 1
-                    if (complexfloating_t is complex64_t or
-                            complexfloating_t is complex128_t):
-                        # clang errors if we use += with these dtypes
-                        sumx[lab, j] = sumx[lab, j] + val
-                    else:
-                        sumx[lab, j] += val
+                    y = val - compensation[lab, j]
+                    t = sumx[lab, j] + y
+                    compensation[lab, j] = t - sumx[lab, j] - y
+                    sumx[lab, j] = t
 
         for i in range(ncounts):
             for j in range(K):
@@ -638,8 +644,8 @@ def _group_mean(floating[:, :] out,
                 Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        floating val, count
-        floating[:, :] sumx
+        floating val, count, y, t
+        floating[:, :] sumx, compensation
         int64_t[:, :] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
@@ -650,6 +656,7 @@ def _group_mean(floating[:, :] out,
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros_like(out)
+    compensation = np.zeros_like(out)
 
     N, K = (<object>values).shape
 
@@ -665,7 +672,10 @@ def _group_mean(floating[:, :] out,
                 # not nan
                 if val == val:
                     nobs[lab, j] += 1
-                    sumx[lab, j] += val
+                    y = val - compensation[lab, j]
+                    t = sumx[lab, j] + y
+                    compensation[lab, j] = t - sumx[lab, j] - y
+                    sumx[lab, j] = t
 
         for i in range(ncounts):
             for j in range(K):

@@ -209,6 +209,7 @@ class TestS3:
         with pytest.raises(IOError, match=msg):
             read_csv("s3://cant_get_it/file.csv")
 
+    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     def test_write_s3_csv_fails(self, tips_df, s3so):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
@@ -224,6 +225,7 @@ class TestS3:
                 "s3://an_s3_bucket_data_doesnt_exit/not_real.csv", storage_options=s3so
             )
 
+    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df, s3so):
         # GH 27679

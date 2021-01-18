@@ -905,7 +905,7 @@ class SQLTable(PandasObject):
         elif chunksize == 0:
             raise ValueError("chunksize argument should be non-zero")
 
-        chunks = int(nrows / chunksize) + 1
+        chunks = (nrows // chunksize) + 1
 
         with self.pd_sql.run_transaction() as conn:
             for i in range(chunks):
@@ -926,11 +926,17 @@ class SQLTable(PandasObject):
         parse_dates=None,
     ):
         """Return generator through chunked result set."""
+        has_read_data = False
         while True:
             data = result.fetchmany(chunksize)
             if not data:
+                if not has_read_data:
+                    yield DataFrame.from_records(
+                        [], columns=columns, coerce_float=coerce_float
+                    )
                 break
             else:
+                has_read_data = True
                 self.frame = DataFrame.from_records(
                     data, columns=columns, coerce_float=coerce_float
                 )
@@ -1343,11 +1349,21 @@ class SQLDatabase(PandasSQL):
         dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
+        has_read_data = False
         while True:
             data = result.fetchmany(chunksize)
             if not data:
+                if not has_read_data:
+                    yield _wrap_result(
+                        [],
+                        columns,
+                        index_col=index_col,
+                        coerce_float=coerce_float,
+                        parse_dates=parse_dates,
+                    )
                 break
             else:
+                has_read_data = True
                 yield _wrap_result(
                     data,
                     columns,
@@ -1849,14 +1865,20 @@ class SQLiteDatabase(PandasSQL):
         dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
+        has_read_data = False
         while True:
             data = cursor.fetchmany(chunksize)
             if type(data) == tuple:
                 data = list(data)
             if not data:
                 cursor.close()
+                if not has_read_data:
+                    yield DataFrame.from_records(
+                        [], columns=columns, coerce_float=coerce_float
+                    )
                 break
             else:
+                has_read_data = True
                 yield _wrap_result(
                     data,
                     columns,
