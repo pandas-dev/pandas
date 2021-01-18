@@ -5489,7 +5489,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # if this fails, go on to more involved attribute setting
         # (note that this matches __getattr__, above).
-        if name in self._internal_names_set or name in self._metadata:
+        if name in self._internal_names_set:
+            object.__setattr__(self, name, value)
+        elif name in self._metadata:
             object.__setattr__(self, name, value)
         else:
             try:
@@ -6405,7 +6407,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     )
                     value = value.reindex(self.index, copy=False)
                     value = value._values
-                elif is_list_like(value):
+                elif not is_list_like(value):
+                    pass
+                else:
                     raise TypeError(
                         '"value" parameter must be a scalar, dict '
                         "or Series, but you passed a "

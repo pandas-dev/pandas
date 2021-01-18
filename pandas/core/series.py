@@ -2558,7 +2558,9 @@ Name: Max Speed, dtype: float64
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
             ).__finalize__(self, method="dot")
-        elif isinstance(other, Series) or isinstance(rvals, np.ndarray):
+        elif isinstance(other, Series):
+            return np.dot(lvals, rvals)
+        elif isinstance(rvals, np.ndarray):
             return np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")

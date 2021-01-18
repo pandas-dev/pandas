@@ -480,11 +480,10 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     # indexers that are not array-like: integer, slice, Ellipsis, None)
     # In this context, tuples are not considered as array-like, as they have
     # a specific meaning in indexing (multi-dimensional indexing)
-    if (
-        is_list_like(indexer)
-        and isinstance(indexer, tuple)
-        or not is_list_like(indexer)
-    ):
+    if is_list_like(indexer):
+        if isinstance(indexer, tuple):
+            return indexer
+    else:
         return indexer
 
     # convert list-likes to array

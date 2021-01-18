@@ -114,7 +114,9 @@ def _ensure_data(
         values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
-    if is_object_dtype(dtype) or (is_object_dtype(values) and dtype is None):
+    if is_object_dtype(dtype):
+        return ensure_object(np.asarray(values)), np.dtype("object")
+    elif is_object_dtype(values) and dtype is None:
         return ensure_object(np.asarray(values)), np.dtype("object")
 
     try:
