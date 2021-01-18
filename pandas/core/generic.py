@@ -11101,10 +11101,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._find_valid_index("last")
 
 
-def _doc_parms(cls):
-    """Return a tuple of the doc params."""
-
-
 def _doc_params(cls):
     """Return a tuple of the doc params."""
     axis_descr = (
