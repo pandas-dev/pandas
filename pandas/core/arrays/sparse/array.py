@@ -1,6 +1,8 @@
 """
 SparseArray data structure
 """
+from __future__ import annotations
+
 from collections import abc
 import numbers
 import operator
@@ -812,7 +814,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, *, allow_fill=False, fill_value=None) -> "SparseArray":
+    def take(self, indices, *, allow_fill=False, fill_value=None) -> SparseArray:
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
@@ -1403,7 +1405,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
                 return _sparse_array_op(self, other, op, op_name)
 
-    def _cmp_method(self, other, op) -> "SparseArray":
+    def _cmp_method(self, other, op) -> SparseArray:
         if not is_scalar(other) and not isinstance(other, type(self)):
             # convert list-like to ndarray
             other = np.asarray(other)
@@ -1431,19 +1433,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     _logical_method = _cmp_method
 
-    def _unary_method(self, op) -> "SparseArray":
+    def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
         values = op(self.sp_values)
         dtype = SparseDtype(values.dtype, fill_value)
         return type(self)._simple_new(values, self.sp_index, dtype)
 
-    def __pos__(self) -> "SparseArray":
+    def __pos__(self) -> SparseArray:
         return self._unary_method(operator.pos)
 
-    def __neg__(self) -> "SparseArray":
+    def __neg__(self) -> SparseArray:
         return self._unary_method(operator.neg)
 
-    def __invert__(self) -> "SparseArray":
+    def __invert__(self) -> SparseArray:
         return self._unary_method(operator.invert)
 
     # ----------

@@ -9,11 +9,12 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 https://www.statsmodels.org/devel/
 """
+from __future__ import annotations
+
 from collections import abc
 import datetime
 from io import BytesIO
 import os
-from pathlib import Path
 import struct
 import sys
 from typing import (
@@ -1072,7 +1073,7 @@ class StataReader(StataParser, abc.Iterator):
         self._read_header()
         self._setup_dtype()
 
-    def __enter__(self) -> "StataReader":
+    def __enter__(self) -> StataReader:
         """ enter context manager """
         return self
 
@@ -2464,8 +2465,8 @@ supported types."""
             if self.handles.compression["method"] is not None:
                 # ZipFile creates a file (with the same name) for each write call.
                 # Write it first into a buffer and then write the buffer to the ZipFile.
-                self._output_file = self.handles.handle
-                self.handles.handle = BytesIO()
+                self._output_file, self.handles.handle = self.handles.handle, BytesIO()
+                self.handles.created_handles.append(self.handles.handle)
 
             try:
                 self._write_header(
@@ -2486,20 +2487,23 @@ supported types."""
                 self._write_value_labels()
                 self._write_file_close_tag()
                 self._write_map()
-            except Exception as exc:
                 self._close()
-                if isinstance(self._fname, (str, Path)):
+            except Exception as exc:
+                self.handles.close()
+                # Only @runtime_checkable protocols can be used with instance and class
+                # checks
+                if isinstance(
+                    self._fname, (str, os.PathLike)  # type: ignore[misc]
+                ) and os.path.isfile(self._fname):
                     try:
                         os.unlink(self._fname)
                     except OSError:
                         warnings.warn(
                             f"This save was not successful but {self._fname} could not "
-                            "be deleted.  This file is not valid.",
+                            "be deleted. This file is not valid.",
                             ResourceWarning,
                         )
                 raise exc
-            else:
-                self._close()
 
     def _close(self) -> None:
         """
@@ -2511,11 +2515,8 @@ supported types."""
         # write compression
         if self._output_file is not None:
             assert isinstance(self.handles.handle, BytesIO)
-            bio = self.handles.handle
-            bio.seek(0)
-            self.handles.handle = self._output_file
-            self.handles.handle.write(bio.read())  # type: ignore[arg-type]
-            bio.close()
+            bio, self.handles.handle = self.handles.handle, self._output_file
+            self.handles.handle.write(bio.getvalue())  # type: ignore[arg-type]
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
