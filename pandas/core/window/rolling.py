@@ -975,7 +975,7 @@ class Window(BaseWindow):
         numpy_args_kwargs="",
         agg_method="var",
         other_see_also="",
-        notes=".. versionadded:: 1.0.0",
+        notes=".. versionadded:: 1.0.0 \n",
         examples="",
     )
     def var(self, ddof: int = 1, *args, **kwargs):
@@ -992,7 +992,7 @@ class Window(BaseWindow):
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="std",
         other_see_also="",
-        notes=".. versionadded:: 1.0.0",
+        notes=".. versionadded:: 1.0.0 \n",
         examples="",
     )
     def std(self, ddof: int = 1, *args, **kwargs):
@@ -1378,7 +1378,7 @@ class Rolling(RollingAndExpandingMixin):
         doc_template,
         window_method="rolling",
         aggregation_description="count of non NaN observations",
-        parameters="",
+        parameters="No parameters",
         numpy_args_kwargs="",
         agg_method="count",
         other_see_also="",
