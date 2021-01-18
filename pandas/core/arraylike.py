@@ -192,14 +192,14 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         # if at least one is not aligned -> warn and fallback to array behaviour
         if non_aligned:
             warnings.warn(
-                "Calling a ufunc on non-aligned DataFrames/Series. Currently, the "
-                "indices are ignored and the result takes the index/columns of the "
-                "first DataFrame. In the future (pandas 2.0), the DataFrames/Series "
-                "will be aligned before applying the ufunc.\nConvert one of the "
-                "arguments to a NumPy array (eg 'ufunc(df1, np.asarray(df2)') to keep "
-                "the current behaviour, or align manually (eg "
-                "'df1, df2 = df1.align(df2)') before passing to the ufunc to obtain "
-                "the future behaviour and silence this warning.",
+                "Calling a ufunc on non-aligned DataFrames (or DataFrame/Series "
+                "combination). Currently, the indices are ignored and the result "
+                "takes the index/columns of the first DataFrame. In the future "
+                "(pandas 2.0), the DataFrames/Series will be aligned before "
+                "applying the ufunc.\nConvert one of the arguments to a NumPy array "
+                "(eg 'ufunc(df1, np.asarray(df2)') to keep the current behaviour, "
+                "or align manually (eg 'df1, df2 = df1.align(df2)') before passing to "
+                "the ufunc to obtain the future behaviour and silence this warning.",
                 FutureWarning,
                 stacklevel=3,
             )
