@@ -1,4 +1,4 @@
-.. _overview:
+.. _howtoread:
 
 {{ header }}
 
