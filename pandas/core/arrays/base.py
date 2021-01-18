@@ -30,7 +30,7 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
@@ -596,7 +596,7 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
-    def argmin(self, axis=None, skipna: bool = True):
+    def argmin(self, skipna: bool = True) -> int:
         """
         Return the index of minimum value.
 
@@ -611,11 +611,12 @@ class ExtensionArray:
         --------
         ExtensionArray.argmax
         """
-        if not skipna:
-            raise NotImplementedError
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            return -1
         return nargminmax(self, "argmin")
 
-    def argmax(self, axis=None, skipna: bool = True):
+    def argmax(self, skipna: bool = True) -> int:
         """
         Return the index of maximum value.
 
@@ -630,8 +631,9 @@ class ExtensionArray:
         --------
         ExtensionArray.argmin
         """
-        if not skipna:
-            raise NotImplementedError
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            return -1
         return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):

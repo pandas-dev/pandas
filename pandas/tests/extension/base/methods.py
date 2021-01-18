@@ -110,6 +110,21 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "op_name, skipna, expected",
         [
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argmin_argmax_skipna(
+        self, op_name, skipna, expected, data_missing_for_sorting
+    ):
+        result = getattr(data_missing_for_sorting, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
             ("idxmax", True, 0),
             ("idxmin", True, 2),
             ("argmax", True, 0),
