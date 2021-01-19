@@ -713,8 +713,7 @@ class StataValueLabel:
         for text in self.txt:
             bio.write(text + null_byte)
 
-        bio.seek(0)
-        return bio.read()
+        return bio.getvalue()
 
 
 class StataMissingValue:
@@ -2932,8 +2931,7 @@ class StataStrLWriter:
             bio.write(utf8_string)
             bio.write(null)
 
-        bio.seek(0)
-        return bio.read()
+        return bio.getvalue()
 
 
 class StataWriter117(StataWriter):
@@ -3127,8 +3125,7 @@ class StataWriter117(StataWriter):
         # '\x11' added due to inspection of Stata file
         stata_ts = b"\x11" + bytes(ts, "utf-8")
         bio.write(self._tag(stata_ts, "timestamp"))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "header"))
+        self._write_bytes(self._tag(bio.getvalue(), "header"))
 
     def _write_map(self) -> None:
         """
@@ -3158,16 +3155,14 @@ class StataWriter117(StataWriter):
         bio = BytesIO()
         for val in self._map.values():
             bio.write(struct.pack(self._byteorder + "Q", val))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "map"))
+        self._write_bytes(self._tag(bio.getvalue(), "map"))
 
     def _write_variable_types(self) -> None:
         self._update_map("variable_types")
         bio = BytesIO()
         for typ in self.typlist:
             bio.write(struct.pack(self._byteorder + "H", typ))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "variable_types"))
+        self._write_bytes(self._tag(bio.getvalue(), "variable_types"))
 
     def _write_varnames(self) -> None:
         self._update_map("varnames")
@@ -3178,8 +3173,7 @@ class StataWriter117(StataWriter):
             name = self._null_terminate_str(name)
             name = _pad_bytes_new(name[:32].encode(self._encoding), vn_len + 1)
             bio.write(name)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "varnames"))
+        self._write_bytes(self._tag(bio.getvalue(), "varnames"))
 
     def _write_sortlist(self) -> None:
         self._update_map("sortlist")
@@ -3192,8 +3186,7 @@ class StataWriter117(StataWriter):
         fmt_len = 49 if self._dta_version == 117 else 57
         for fmt in self.fmtlist:
             bio.write(_pad_bytes_new(fmt.encode(self._encoding), fmt_len))
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "formats"))
+        self._write_bytes(self._tag(bio.getvalue(), "formats"))
 
     def _write_value_label_names(self) -> None:
         self._update_map("value_label_names")
@@ -3208,8 +3201,7 @@ class StataWriter117(StataWriter):
             name = self._null_terminate_str(name)
             encoded_name = _pad_bytes_new(name[:32].encode(self._encoding), vl_len + 1)
             bio.write(encoded_name)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "value_label_names"))
+        self._write_bytes(self._tag(bio.getvalue(), "value_label_names"))
 
     def _write_variable_labels(self) -> None:
         # Missing labels are 80 blank characters plus null termination
@@ -3222,8 +3214,7 @@ class StataWriter117(StataWriter):
         if self._variable_labels is None:
             for _ in range(self.nvar):
                 bio.write(blank)
-            bio.seek(0)
-            self._write_bytes(self._tag(bio.read(), "variable_labels"))
+            self._write_bytes(self._tag(bio.getvalue(), "variable_labels"))
             return
 
         for col in self.data:
@@ -3242,8 +3233,7 @@ class StataWriter117(StataWriter):
                 bio.write(_pad_bytes_new(encoded, vl_len + 1))
             else:
                 bio.write(blank)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "variable_labels"))
+        self._write_bytes(self._tag(bio.getvalue(), "variable_labels"))
 
     def _write_characteristics(self) -> None:
         self._update_map("characteristics")
@@ -3270,8 +3260,7 @@ class StataWriter117(StataWriter):
             lab = vl.generate_value_label(self._byteorder)
             lab = self._tag(lab, "lbl")
             bio.write(lab)
-        bio.seek(0)
-        self._write_bytes(self._tag(bio.read(), "value_labels"))
+        self._write_bytes(self._tag(bio.getvalue(), "value_labels"))
 
     def _write_file_close_tag(self) -> None:
         self._update_map("stata_data_close")
