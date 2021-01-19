@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`~DataFrame.to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
+- Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamReaderWriter`` in binary mode instead of in text mode (:issue:`39247`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
 - Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
 - Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occured (:issue:`39202`)
@@ -31,6 +32,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.replace` raising ``ValueError`` when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
 - Fixed regression in :meth:`Series.fillna` that raised ``RecursionError`` with ``datetime64[ns, UTC]`` dtype (:issue:`38851`)
 - Fixed regression in comparisons between ``NaT`` and ``datetime.date`` objects incorrectly returning ``True`` (:issue:`39151`)
+- Fixed regression in calling NumPy :func:`~numpy.ufunc.accumulate` ufuncs on DataFrames, e.g. ``np.maximum.accumulate(df)`` (:issue:`39259`)
 - Fixed regression in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
 - Fixed regression that raised ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
 - Fixed regression in :func:`pandas.testing.assert_frame_equal` raising ``TypeError`` with ``check_like=True`` when :class:`Index` or columns have mixed dtype (:issue:`39168`)
