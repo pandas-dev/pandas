@@ -1483,6 +1483,60 @@ cdef class PeriodMixin:
             return FR_SEC
         return base
 
+    @property
+    def start_time(self) -> Timestamp:
+        """
+        Get the Timestamp for the start of the period.
+
+        Returns
+        -------
+        Timestamp
+
+        See Also
+        --------
+        Period.end_time : Return the end Timestamp.
+        Period.dayofyear : Return the day of year.
+        Period.daysinmonth : Return the days in that month.
+        Period.dayofweek : Return the day of the week.
+
+        Examples
+        --------
+        >>> period = pd.Period('2012-1-1', freq='D')
+        >>> period
+        Period('2012-01-01', 'D')
+
+        >>> period.start_time
+        Timestamp('2012-01-01 00:00:00')
+
+        >>> period.end_time
+        Timestamp('2012-01-01 23:59:59.999999999')
+        """
+        return self.to_timestamp(how="start")
+
+    @property
+    def end_time(self) -> Timestamp:
+        return self.to_timestamp(how="end")
+
+    def _require_matching_freq(self, other, base=False):
+        # See also arrays.period.raise_on_incompatible
+        if is_offset_object(other):
+            other_freq = other
+        else:
+            other_freq = other.freq
+
+        if base:
+            condition = self.freq.base != other_freq.base
+        else:
+            condition = self.freq != other_freq
+
+        if condition:
+            msg = DIFFERENT_FREQ.format(
+                cls=type(self).__name__,
+                own_freq=self.freqstr,
+                other_freq=other_freq.freqstr,
+            )
+            raise IncompatibleFrequency(msg)
+
 
 cdef class _Period(PeriodMixin):
 
@@ -1540,11 +1594,7 @@ cdef class _Period(PeriodMixin):
 
     def __richcmp__(self, other, op):
         if is_period_object(other):
-            if other.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                            own_freq=self.freqstr,
-                                            other_freq=other.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._require_matching_freq(other)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
@@ -1553,15 +1603,15 @@ cdef class _Period(PeriodMixin):
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
-    def _add_delta(self, other) -> "Period":
+    def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
-            int64_t nanos, offset_nanos
+            int64_t nanos, base_nanos
 
         if is_tick_object(self.freq):
             nanos = delta_to_nanoseconds(other)
-            offset_nanos = self.freq.base.nanos
-            if nanos % offset_nanos == 0:
-                ordinal = self.ordinal + (nanos // offset_nanos)
+            base_nanos = self.freq.base.nanos
+            if nanos % base_nanos == 0:
+                ordinal = self.ordinal + (nanos // base_nanos)
                 return Period(ordinal=ordinal, freq=self.freq)
         raise IncompatibleFrequency("Input cannot be converted to "
                                     f"Period(freq={self.freqstr})")
@@ -1571,14 +1621,10 @@ cdef class _Period(PeriodMixin):
         cdef:
             int64_t ordinal
 
-        if other.base == self.freq.base:
-            ordinal = self.ordinal + other.n
-            return Period(ordinal=ordinal, freq=self.freq)
+        self._require_matching_freq(other, base=True)
 
-        msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                    own_freq=self.freqstr,
-                                    other_freq=other.freqstr)
-        raise IncompatibleFrequency(msg)
+        ordinal = self.ordinal + other.n
+        return Period(ordinal=ordinal, freq=self.freq)
 
     def __add__(self, other):
         if not is_period_object(self):
@@ -1588,7 +1634,7 @@ cdef class _Period(PeriodMixin):
             return other.__add__(self)
 
         if is_any_td_scalar(other):
-            return self._add_delta(other)
+            return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
             return self._add_offset(other)
         elif other is NaT:
@@ -1625,11 +1671,7 @@ cdef class _Period(PeriodMixin):
             ordinal = self.ordinal - other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
         elif is_period_object(other):
-            if other.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                            own_freq=self.freqstr,
-                                            other_freq=other.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._require_matching_freq(other)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self.ordinal - other.ordinal) * self.freq.base
         elif other is NaT:
@@ -1666,40 +1708,6 @@ cdef class _Period(PeriodMixin):
         ordinal = period_asfreq(ordinal, base1, base2, end)
 
         return Period(ordinal=ordinal, freq=freq)
-
-    @property
-    def start_time(self) -> Timestamp:
-        """
-        Get the Timestamp for the start of the period.
-
-        Returns
-        -------
-        Timestamp
-
-        See Also
-        --------
-        Period.end_time : Return the end Timestamp.
-        Period.dayofyear : Return the day of year.
-        Period.daysinmonth : Return the days in that month.
-        Period.dayofweek : Return the day of the week.
-
-        Examples
-        --------
-        >>> period = pd.Period('2012-1-1', freq='D')
-        >>> period
-        Period('2012-01-01', 'D')
-
-        >>> period.start_time
-        Timestamp('2012-01-01 00:00:00')
-
-        >>> period.end_time
-        Timestamp('2012-01-01 23:59:59.999999999')
-        """
-        return self.to_timestamp(how='S')
-
-    @property
-    def end_time(self) -> Timestamp:
-        return self.to_timestamp(how="end")
 
     def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
         """
