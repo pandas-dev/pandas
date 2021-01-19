@@ -1,6 +1,7 @@
 """Common IO api utilities"""
 
 import bz2
+import codecs
 from collections import abc
 import dataclasses
 import gzip
@@ -844,9 +845,12 @@ def file_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
 
 def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     """Whether the handle is opened in binary mode"""
-    # classes that expect bytes
-    binary_classes = [BufferedIOBase, RawIOBase]
+    # classes that expect string but have 'b' in mode
+    text_classes = (codecs.StreamReaderWriter,)
+    if isinstance(handle, text_classes):
+        return False
 
-    return isinstance(handle, tuple(binary_classes)) or "b" in getattr(
-        handle, "mode", mode
-    )
+    # classes that expect bytes
+    binary_classes = (BufferedIOBase, RawIOBase)
+
+    return isinstance(handle, binary_classes) or "b" in getattr(handle, "mode", mode)
