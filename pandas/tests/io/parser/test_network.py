@@ -14,7 +14,7 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather
-from pandas.io.parsers.readers import read_csv
+from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network

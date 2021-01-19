@@ -8,7 +8,7 @@ from io import StringIO
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.parsers.readers import TextParser
+from pandas.io.parsers import TextParser
 
 
 def test_read_data_list(all_parsers):
