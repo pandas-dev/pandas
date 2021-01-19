@@ -343,7 +343,7 @@ class ArrayManager(DataManager):
     # def setitem(self, indexer, value) -> ArrayManager:
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True, axis: int = 0):
+    def putmask(self, mask, new, align: bool = True):
 
         if align:
             align_keys = ["new", "mask"]
@@ -356,7 +356,6 @@ class ArrayManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            axis=axis,
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
