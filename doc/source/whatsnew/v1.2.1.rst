@@ -76,8 +76,8 @@ the inputs:
     2  NaN  NaN
 
 In pandas 1.2.0, we refactored how NumPy ufuncs are called on DataFrames, and
-this started to align the inputs first, as happens in other pandas operations
-and as it happens for ufuncs called on Series objects.
+this started to align the inputs first (:issue:`39184`), as happens in other
+pandas operations and as it happens for ufuncs called on Series objects.
 
 For pandas 1.2.1, we restored the previous behaviour to avoid a breaking
 change, but the above example of ``np.add(df1, df2)`` with non-aligned inputs
