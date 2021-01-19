@@ -1502,7 +1502,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
     def __init__(
         self,
-        values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
+        values: Union[np.ndarray, Series, DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,

@@ -3455,7 +3455,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _filter_indexer_tolerance(
         self,
-        target: Union["Index", np.ndarray, ExtensionArray],
+        target: Union[Index, np.ndarray, ExtensionArray],
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
@@ -4519,7 +4519,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat: List["Index"], name: Hashable) -> Index:
+    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
         """
         Concatenate multiple Index objects.
         """

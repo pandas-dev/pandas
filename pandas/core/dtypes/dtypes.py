@@ -59,7 +59,7 @@ class PandasExtensionDtype(ExtensionDtype):
     base = None
     isbuiltin = 0
     isnative = 0
-    _cache: Dict[str_type, "PandasExtensionDtype"] = {}
+    _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __str__(self) -> str_type:
         """
@@ -445,7 +445,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
-    def construct_array_type(cls) -> Type["Categorical"]:
+    def construct_array_type(cls) -> Type[Categorical]:
         """
         Return the array type associated with this dtype.
 
@@ -514,7 +514,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return categories
 
     def update_dtype(
-        self, dtype: Union[str_type, "CategoricalDtype"]
+        self, dtype: Union[str_type, CategoricalDtype]
     ) -> CategoricalDtype:
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
@@ -647,7 +647,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
-    def __init__(self, unit: Union[str_type, "DatetimeTZDtype"] = "ns", tz=None):
+    def __init__(self, unit: Union[str_type, DatetimeTZDtype] = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
             # error: "str" has no attribute "tz"
             unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
@@ -694,7 +694,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return self._tz
 
     @classmethod
-    def construct_array_type(cls) -> Type["DatetimeArray"]:
+    def construct_array_type(cls) -> Type[DatetimeArray]:
         """
         Return the array type associated with this dtype.
 
@@ -940,7 +940,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         return super().is_dtype(dtype)
 
     @classmethod
-    def construct_array_type(cls) -> Type["PeriodArray"]:
+    def construct_array_type(cls) -> Type[PeriodArray]:
         """
         Return the array type associated with this dtype.
 
@@ -953,7 +953,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         return PeriodArray
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
     ) -> PeriodArray:
         """
         Construct PeriodArray from pyarrow Array/ChunkedArray.
@@ -1090,7 +1090,7 @@ class IntervalDtype(PandasExtensionDtype):
         return self._subtype
 
     @classmethod
-    def construct_array_type(cls) -> Type["IntervalArray"]:
+    def construct_array_type(cls) -> Type[IntervalArray]:
         """
         Return the array type associated with this dtype.
 
@@ -1184,7 +1184,7 @@ class IntervalDtype(PandasExtensionDtype):
         return super().is_dtype(dtype)
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
     ) -> IntervalArray:
         """
         Construct IntervalArray from pyarrow Array/ChunkedArray.

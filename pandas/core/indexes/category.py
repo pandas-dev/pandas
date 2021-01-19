@@ -605,7 +605,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: List["Index"], name: Hashable) -> Index:
+    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
             codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])

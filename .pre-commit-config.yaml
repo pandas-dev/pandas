@@ -150,9 +150,15 @@ repos:
             (?x)
             \#\ type:\ (?!ignore)|
             \#\ type:\s?ignore(?!\[)|
-            \)\ ->\ \"
+
+            # string return type annotation
+            \)\ ->\ \"|
+
+            # string type annotation in generic
+            (Callable|Dict|Iterable|Iterator|List|Mapping|MutableMapping|Sequence|Set|Tuple|Type|Union)\[[^\]]*\".+?\"[^\]]*\]
         language: pygrep
         types: [python]
+        exclude: ^pandas/_typing\.py$
     -   id: np-bool
         name: Check for use of np.bool instead of np.bool_
         entry: np\.bool[^_8]

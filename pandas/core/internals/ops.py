@@ -51,7 +51,7 @@ def operate_blockwise(
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
-    res_blks: List["Block"] = []
+    res_blks: List[Block] = []
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
         res_values = array_op(lvals, rvals)
         if left_ea and not right_ea and hasattr(res_values, "reshape"):
@@ -79,7 +79,7 @@ def operate_blockwise(
     return new_mgr
 
 
-def _reset_block_mgr_locs(nbs: List["Block"], locs):
+def _reset_block_mgr_locs(nbs: List[Block], locs):
     """
     Reset mgr_locs to correspond to our original DataFrame.
     """

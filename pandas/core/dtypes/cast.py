@@ -397,7 +397,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
 
 
 def maybe_cast_to_extension_array(
-    cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
+    cls: Type[ExtensionArray], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
 ) -> ArrayLike:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.

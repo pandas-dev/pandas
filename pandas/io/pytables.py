@@ -529,7 +529,7 @@ class HDFStore:
     >>> store.close()   # only now, data is written to disk
     """
 
-    _handle: Optional["File"]
+    _handle: Optional[File]
     _mode: str
     _complevel: int
     _fletcher32: bool
@@ -1471,7 +1471,7 @@ class HDFStore:
 
             yield (g._v_pathname.rstrip("/"), groups, leaves)
 
-    def get_node(self, key: str) -> Optional["Node"]:
+    def get_node(self, key: str) -> Optional[Node]:
         """ return the node with the key or None if it does not exist """
         self._check_if_open()
         if not key.startswith("/"):
@@ -1487,7 +1487,7 @@ class HDFStore:
         assert isinstance(node, _table_mod.Node), type(node)
         return node
 
-    def get_storer(self, key: str) -> Union["GenericFixed", "Table"]:
+    def get_storer(self, key: str) -> Union[GenericFixed, Table]:
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
@@ -1621,9 +1621,9 @@ class HDFStore:
         value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
-    ) -> Union["GenericFixed", "Table"]:
+    ) -> Union[GenericFixed, Table]:
         """ return a suitable class to operate """
-        cls: Union[Type["GenericFixed"], Type["Table"]]
+        cls: Union[Type[GenericFixed], Type[Table]]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
@@ -1835,12 +1835,12 @@ class TableIterator:
 
     chunksize: Optional[int]
     store: HDFStore
-    s: Union["GenericFixed", "Table"]
+    s: Union[GenericFixed, Table]
 
     def __init__(
         self,
         store: HDFStore,
-        s: Union["GenericFixed", "Table"],
+        s: Union[GenericFixed, Table],
         func,
         where,
         nrows,
@@ -2363,7 +2363,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     @classmethod
-    def get_atom_coltype(cls, kind: str) -> Type["Col"]:
+    def get_atom_coltype(cls, kind: str) -> Type[Col]:
         """ return the PyTables column class for this column """
         if kind.startswith("uint"):
             k4 = kind[4:]
@@ -3989,7 +3989,7 @@ class Table(Fixed):
 
         mgr = frame._mgr
         mgr = cast(BlockManager, mgr)
-        blocks: List["Block"] = list(mgr.blocks)
+        blocks: List[Block] = list(mgr.blocks)
         blk_items: List[Index] = get_blk_items(mgr)
 
         if len(data_columns):
@@ -4010,7 +4010,7 @@ class Table(Fixed):
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
-            new_blocks: List["Block"] = []
+            new_blocks: List[Block] = []
             new_blk_items = []
             for ea in values_axes:
                 items = tuple(ea.values)
@@ -4906,7 +4906,7 @@ def _maybe_convert_for_string_atom(
     elif not (inferred_type == "string" or dtype_name == "object"):
         return block.values
 
-    blocks: List["Block"] = block.fillna(nan_rep, downcast=False)
+    blocks: List[Block] = block.fillna(nan_rep, downcast=False)
     # Note: because block is always object dtype, fillna goes
     #  through a path such that the result is always a 1-element list
     assert len(blocks) == 1

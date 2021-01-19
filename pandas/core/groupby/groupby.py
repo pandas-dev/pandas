@@ -1371,7 +1371,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Type["Series"]:
+    def _obj_1d_constructor(self) -> Type[Series]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced

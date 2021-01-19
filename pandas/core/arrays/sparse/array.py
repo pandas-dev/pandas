@@ -896,7 +896,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return taken
 
-    def _take_without_fill(self, indices) -> Union[np.ndarray, "SparseArray"]:
+    def _take_without_fill(self, indices) -> Union[np.ndarray, SparseArray]:
         to_shift = indices < 0
         indices = indices.copy()
 

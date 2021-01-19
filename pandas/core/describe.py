@@ -164,7 +164,7 @@ def describe_frame(
     return d
 
 
-def reorder_columns(ldesc: Sequence["Series"]) -> List[Hashable]:
+def reorder_columns(ldesc: Sequence[Series]) -> List[Hashable]:
     """Set a convenient order for rows for display."""
     names: List[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)

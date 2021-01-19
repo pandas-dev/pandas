@@ -422,7 +422,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._dtype
 
     @property
-    def _constructor(self) -> Type["Categorical"]:
+    def _constructor(self) -> Type[Categorical]:
         return Categorical
 
     @classmethod

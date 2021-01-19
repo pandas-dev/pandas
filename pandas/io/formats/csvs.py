@@ -91,7 +91,7 @@ class CSVFormatter:
         return self.fmt.na_rep
 
     @property
-    def float_format(self) -> Optional["FloatFormatType"]:
+    def float_format(self) -> Optional[FloatFormatType]:
         return self.fmt.float_format
 
     @property

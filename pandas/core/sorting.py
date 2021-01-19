@@ -517,7 +517,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 def get_flattened_list(
     comp_ids: np.ndarray,
     ngroups: int,
-    levels: Iterable["Index"],
+    levels: Iterable[Index],
     labels: Iterable[np.ndarray],
 ) -> List[Tuple]:
     """Map compressed group id -> key tuple."""
@@ -532,7 +532,7 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List["Index"]
+    label_list: List[np.ndarray], keys: List[Index]
 ) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns

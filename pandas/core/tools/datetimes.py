@@ -68,13 +68,13 @@ if TYPE_CHECKING:
 
     from pandas import Series
 
-# ---------------------------------------------------------------------
-# types used in annotations
+    # ---------------------------------------------------------------------
+    # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
-Scalar = Union[int, float, str]
-DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
-DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
+    ArrayConvertible = Union[List, Tuple, AnyArrayLike, Series]
+    Scalar = Union[int, float, str]
+    DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
+    DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
 
 # ---------------------------------------------------------------------
@@ -571,7 +571,7 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Union[DatetimeScalar, "NaTType"]:
+) -> Union[DatetimeScalar, NaTType]:
     ...
 
 
@@ -621,7 +621,7 @@ def to_datetime(
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> Union[DatetimeIndex, "Series", DatetimeScalar, "NaTType"]:
+) -> Union[DatetimeIndex, Series, DatetimeScalar, NaTType]:
     """
     Convert argument to datetime.
 
