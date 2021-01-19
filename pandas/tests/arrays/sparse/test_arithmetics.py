@@ -3,7 +3,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p20
+from pandas.compat import _np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm

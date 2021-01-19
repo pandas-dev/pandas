@@ -10,7 +10,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat.numpy import _np_version_under1p19
+from pandas.compat import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
