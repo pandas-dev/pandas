@@ -119,6 +119,7 @@ class TestSeriesDtypes:
         series = pd.Series([], dtype=object)
         series['timestamp'] = timestamp
         expected = type(series.timestamp)
+        
         series = pd.Series([], dtype=object)
         series['anything'] = 300.0
         series['timestamp'] = timestamp
