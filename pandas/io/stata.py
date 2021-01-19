@@ -9,14 +9,26 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 https://www.statsmodels.org/devel/
 """
+from __future__ import annotations
+
 from collections import abc
 import datetime
 from io import BytesIO
 import os
-from pathlib import Path
 import struct
 import sys
-from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    AnyStr,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -24,13 +36,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import (
-    Buffer,
-    CompressionOptions,
-    FilePathOrBuffer,
-    Label,
-    StorageOptions,
-)
+from pandas._typing import Buffer, CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import (
@@ -1067,7 +1073,7 @@ class StataReader(StataParser, abc.Iterator):
         self._read_header()
         self._setup_dtype()
 
-    def __enter__(self) -> "StataReader":
+    def __enter__(self) -> StataReader:
         """ enter context manager """
         return self
 
@@ -1959,7 +1965,7 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         raise NotImplementedError(f"Format {fmt} not implemented")
 
 
-def _maybe_convert_to_int_keys(convert_dates: Dict, varlist: List[Label]) -> Dict:
+def _maybe_convert_to_int_keys(convert_dates: Dict, varlist: List[Hashable]) -> Dict:
     new_dict = {}
     for key in convert_dates:
         if not convert_dates[key].startswith("%"):  # make sure proper fmts
@@ -2144,12 +2150,12 @@ class StataWriter(StataParser):
         self,
         fname: FilePathOrBuffer,
         data: DataFrame,
-        convert_dates: Optional[Dict[Label, str]] = None,
+        convert_dates: Optional[Dict[Hashable, str]] = None,
         write_index: bool = True,
         byteorder: Optional[str] = None,
         time_stamp: Optional[datetime.datetime] = None,
         data_label: Optional[str] = None,
-        variable_labels: Optional[Dict[Label, str]] = None,
+        variable_labels: Optional[Dict[Hashable, str]] = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
@@ -2170,7 +2176,7 @@ class StataWriter(StataParser):
         self._byteorder = _set_endianness(byteorder)
         self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
-        self._converted_names: Dict[Label, str] = {}
+        self._converted_names: Dict[Hashable, str] = {}
 
     def _write(self, to_write: str) -> None:
         """
@@ -2292,8 +2298,8 @@ class StataWriter(StataParser):
         dates are exported, the variable name is propagated to the date
         conversion dictionary
         """
-        converted_names: Dict[Label, str] = {}
-        columns: List[Label] = list(data.columns)
+        converted_names: Dict[Hashable, str] = {}
+        columns = list(data.columns)
         original_columns = columns[:]
 
         duplicate_var_id = 0
@@ -2459,8 +2465,8 @@ supported types."""
             if self.handles.compression["method"] is not None:
                 # ZipFile creates a file (with the same name) for each write call.
                 # Write it first into a buffer and then write the buffer to the ZipFile.
-                self._output_file = self.handles.handle
-                self.handles.handle = BytesIO()
+                self._output_file, self.handles.handle = self.handles.handle, BytesIO()
+                self.handles.created_handles.append(self.handles.handle)
 
             try:
                 self._write_header(
@@ -2481,20 +2487,23 @@ supported types."""
                 self._write_value_labels()
                 self._write_file_close_tag()
                 self._write_map()
-            except Exception as exc:
                 self._close()
-                if isinstance(self._fname, (str, Path)):
+            except Exception as exc:
+                self.handles.close()
+                # Only @runtime_checkable protocols can be used with instance and class
+                # checks
+                if isinstance(
+                    self._fname, (str, os.PathLike)  # type: ignore[misc]
+                ) and os.path.isfile(self._fname):
                     try:
                         os.unlink(self._fname)
                     except OSError:
                         warnings.warn(
                             f"This save was not successful but {self._fname} could not "
-                            "be deleted.  This file is not valid.",
+                            "be deleted. This file is not valid.",
                             ResourceWarning,
                         )
                 raise exc
-            else:
-                self._close()
 
     def _close(self) -> None:
         """
@@ -2506,11 +2515,8 @@ supported types."""
         # write compression
         if self._output_file is not None:
             assert isinstance(self.handles.handle, BytesIO)
-            bio = self.handles.handle
-            bio.seek(0)
-            self.handles.handle = self._output_file
-            self.handles.handle.write(bio.read())  # type: ignore[arg-type]
-            bio.close()
+            bio, self.handles.handle = self.handles.handle, self._output_file
+            self.handles.handle.write(bio.getvalue())  # type: ignore[arg-type]
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
@@ -3023,18 +3029,18 @@ class StataWriter117(StataWriter):
         self,
         fname: FilePathOrBuffer,
         data: DataFrame,
-        convert_dates: Optional[Dict[Label, str]] = None,
+        convert_dates: Optional[Dict[Hashable, str]] = None,
         write_index: bool = True,
         byteorder: Optional[str] = None,
         time_stamp: Optional[datetime.datetime] = None,
         data_label: Optional[str] = None,
-        variable_labels: Optional[Dict[Label, str]] = None,
-        convert_strl: Optional[Sequence[Label]] = None,
+        variable_labels: Optional[Dict[Hashable, str]] = None,
+        convert_strl: Optional[Sequence[Hashable]] = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
         # Copy to new list since convert_strl might be modified later
-        self._convert_strl: List[Label] = []
+        self._convert_strl: List[Hashable] = []
         if convert_strl is not None:
             self._convert_strl.extend(convert_strl)
 
@@ -3424,13 +3430,13 @@ class StataWriterUTF8(StataWriter117):
         self,
         fname: FilePathOrBuffer,
         data: DataFrame,
-        convert_dates: Optional[Dict[Label, str]] = None,
+        convert_dates: Optional[Dict[Hashable, str]] = None,
         write_index: bool = True,
         byteorder: Optional[str] = None,
         time_stamp: Optional[datetime.datetime] = None,
         data_label: Optional[str] = None,
-        variable_labels: Optional[Dict[Label, str]] = None,
-        convert_strl: Optional[Sequence[Label]] = None,
+        variable_labels: Optional[Dict[Hashable, str]] = None,
+        convert_strl: Optional[Sequence[Hashable]] = None,
         version: Optional[int] = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,

@@ -12,6 +12,8 @@ import zipfile
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
@@ -28,6 +30,9 @@ from pandas.io.stata import (
     StataWriterUTF8,
     read_stata,
 )
+
+# TODO(ArrayManager) the stata code relies on BlockManager internals (eg blknos)
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture()
@@ -550,6 +555,7 @@ class TestStata:
             msg = "time_stamp should be datetime type"
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, time_stamp=time_stamp, version=version)
+            assert not os.path.isfile(path)
 
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
@@ -1916,10 +1922,10 @@ def test_compression_dict(method, file_ext):
         compression = {"method": method, "archive_name": archive_name}
         df.to_stata(path, compression=compression)
         if method == "zip" or file_ext == "zip":
-            zp = zipfile.ZipFile(path, "r")
-            assert len(zp.filelist) == 1
-            assert zp.filelist[0].filename == archive_name
-            fp = io.BytesIO(zp.read(zp.filelist[0]))
+            with zipfile.ZipFile(path, "r") as zp:
+                assert len(zp.filelist) == 1
+                assert zp.filelist[0].filename == archive_name
+                fp = io.BytesIO(zp.read(zp.filelist[0]))
         else:
             fp = path
         reread = read_stata(fp, index_col="index")

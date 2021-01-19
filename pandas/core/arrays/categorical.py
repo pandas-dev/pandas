@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
@@ -740,7 +742,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         self._dtype = new_dtype
 
-    def _set_dtype(self, dtype: CategoricalDtype) -> "Categorical":
+    def _set_dtype(self, dtype: CategoricalDtype) -> Categorical:
         """
         Internal method for directly updating the CategoricalDtype
 
@@ -1740,7 +1742,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _ndarray(self) -> np.ndarray:
         return self._codes
 
-    def _from_backing_data(self, arr: np.ndarray) -> "Categorical":
+    def _from_backing_data(self, arr: np.ndarray) -> Categorical:
         return self._constructor(arr, dtype=self.dtype, fastpath=True)
 
     def _box_func(self, i: int):
@@ -2160,7 +2162,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def _encode_with_my_categories(self, other: "Categorical") -> "Categorical":
+    def _encode_with_my_categories(self, other: "Categorical") -> Categorical:
         """
         Re-encode another categorical using this Categorical's categories.
 
