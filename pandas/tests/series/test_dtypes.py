@@ -111,4 +111,16 @@ class TestSeriesDtypes:
         new_dtype = str
         s1 = s.reindex(new_index).astype(temp_dtype).astype(new_dtype)
         s2 = s.astype(temp_dtype).reindex(new_index).astype(new_dtype)
-        tm.assert_series_equal(s1, s2)
+        tm.assert_series_equal(s1, s2
+        
+    def test_series_with_object_dtype(self):
+        # GH 21881
+        timestamp = pd.Timestamp(1412526600000000000)
+        series = pd.Series([], dtype=object)
+        series['timestamp'] = timestamp
+        expected = type(series.timestamp)
+        series = pd.Series([], dtype=object)
+        series['anything'] = 300.0
+        series['timestamp'] = timestamp
+        result = type(series.timestamp)
+        assert result == expected
