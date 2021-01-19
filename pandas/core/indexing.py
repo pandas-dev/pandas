@@ -104,7 +104,7 @@ class IndexingMixin:
     """
 
     @property
-    def iloc(self) -> "_iLocIndexer":
+    def iloc(self) -> _iLocIndexer:
         """
         Purely integer-location based indexing for selection by position.
 
@@ -241,7 +241,7 @@ class IndexingMixin:
         return _iLocIndexer("iloc", self)
 
     @property
-    def loc(self) -> "_LocIndexer":
+    def loc(self) -> _LocIndexer:
         """
         Access a group of rows and columns by label(s) or a boolean array.
 
@@ -501,7 +501,7 @@ class IndexingMixin:
         return _LocIndexer("loc", self)
 
     @property
-    def at(self) -> "_AtIndexer":
+    def at(self) -> _AtIndexer:
         """
         Access a single value for a row/column label pair.
 
@@ -550,7 +550,7 @@ class IndexingMixin:
         return _AtIndexer("at", self)
 
     @property
-    def iat(self) -> "_iAtIndexer":
+    def iat(self) -> _iAtIndexer:
         """
         Access a single value for a row/column pair by integer position.
 
@@ -663,9 +663,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
-        if isinstance(key, tuple) and not isinstance(self.obj.index, ABCMultiIndex):
+        if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
-            # if index is not a MultiIndex, set key to column part
+            # if length of key is > 1 set key to column part
             key = key[column_axis]
             axis = column_axis
 

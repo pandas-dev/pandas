@@ -195,6 +195,20 @@ class Apply(metaclass=abc.ABCMeta):
                 self.kwds["axis"] = self.axis
         return self.obj._try_aggregate_string_function(f, *self.args, **self.kwds)
 
+    def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
+        """
+        Compute apply in case of a list-like or dict-like.
+
+        Returns
+        -------
+        result: Series, DataFrame, or None
+            Result when self.f is a list-like or dict-like, None otherwise.
+        """
+        # Note: dict-likes are list-like
+        if not is_list_like(self.f):
+            return None
+        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwds)
+
 
 class FrameApply(Apply):
     obj: DataFrame
@@ -248,12 +262,9 @@ class FrameApply(Apply):
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
         # dispatch to agg
-        if is_list_like(self.f) or is_dict_like(self.f):
-            # pandas\core\apply.py:144: error: "aggregate" of "DataFrame" gets
-            # multiple values for keyword argument "axis"
-            return self.obj.aggregate(  # type: ignore[misc]
-                self.f, axis=self.axis, *self.args, **self.kwds
-            )
+        result = self.maybe_apply_multiple()
+        if result is not None:
+            return result
 
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
@@ -587,16 +598,14 @@ class SeriesApply(Apply):
 
     def apply(self) -> FrameOrSeriesUnion:
         obj = self.obj
-        func = self.f
-        args = self.args
-        kwds = self.kwds
 
         if len(obj) == 0:
             return self.apply_empty_result()
 
         # dispatch to agg
-        if isinstance(func, (list, dict)):
-            return obj.aggregate(func, *args, **kwds)
+        result = self.maybe_apply_multiple()
+        if result is not None:
+            return result
 
         # if we are a string, try to dispatch
         result = self.maybe_apply_str()

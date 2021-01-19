@@ -6513,7 +6513,18 @@ Keep all original rows and columns and also all original values
 
             return expressions.where(mask, y_values, x_values)
 
-        return self.combine(other, combiner, overwrite=False)
+        combined = self.combine(other, combiner, overwrite=False)
+
+        dtypes = {
+            col: find_common_type([self.dtypes[col], other.dtypes[col]])
+            for col in self.columns.intersection(other.columns)
+            if not is_dtype_equal(combined.dtypes[col], self.dtypes[col])
+        }
+
+        if dtypes:
+            combined = combined.astype(dtypes)
+
+        return combined
 
     def update(
         self,
@@ -9407,7 +9418,7 @@ NaN 12.3   33.0
         how: Optional[str] = None,
         normalize: bool = False,
         fill_value=None,
-    ) -> "DataFrame":
+    ) -> DataFrame:
         return super().asfreq(
             freq=freq,
             method=method,
@@ -9431,7 +9442,7 @@ NaN 12.3   33.0
         level=None,
         origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
         offset: Optional["TimedeltaConvertibleTypes"] = None,
-    ) -> "Resampler":
+    ) -> Resampler:
         return super().resample(
             rule=rule,
             axis=axis,

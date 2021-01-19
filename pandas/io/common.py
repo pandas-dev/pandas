@@ -1,6 +1,8 @@
 """Common IO api utilities"""
+from __future__ import annotations
 
 import bz2
+import codecs
 from collections import abc
 import dataclasses
 import gzip
@@ -97,7 +99,7 @@ class IOHandles:
         self.created_handles = []
         self.is_wrapped = False
 
-    def __enter__(self) -> "IOHandles":
+    def __enter__(self) -> IOHandles:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -783,7 +785,7 @@ class _MMapWrapper(abc.Iterator):
             return lambda: self.attributes[name]
         return getattr(self.mmap, name)
 
-    def __iter__(self) -> "_MMapWrapper":
+    def __iter__(self) -> _MMapWrapper:
         return self
 
     def __next__(self) -> str:
@@ -856,9 +858,12 @@ def file_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
 
 def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     """Whether the handle is opened in binary mode"""
-    # classes that expect bytes
-    binary_classes = [BufferedIOBase, RawIOBase]
+    # classes that expect string but have 'b' in mode
+    text_classes = (codecs.StreamReaderWriter,)
+    if isinstance(handle, text_classes):
+        return False
 
-    return isinstance(handle, tuple(binary_classes)) or "b" in getattr(
-        handle, "mode", mode
-    )
+    # classes that expect bytes
+    binary_classes = (BufferedIOBase, RawIOBase)
+
+    return isinstance(handle, binary_classes) or "b" in getattr(handle, "mode", mode)
