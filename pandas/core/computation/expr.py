@@ -558,11 +558,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
-        import pandas as pd
+        from pandas import eval as pd_eval
 
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
-        result = pd.eval(
+        result = pd_eval(
             slobj, local_dict=self.env, engine=self.engine, parser=self.parser
         )
         try:
@@ -570,7 +570,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             v = value.value[result]
         except AttributeError:
             # an Op instance
-            lhs = pd.eval(
+            lhs = pd_eval(
                 value, local_dict=self.env, engine=self.engine, parser=self.parser
             )
             v = lhs[result]
