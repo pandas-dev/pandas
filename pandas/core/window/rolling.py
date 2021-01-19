@@ -58,6 +58,7 @@ from pandas.core.window.common import (
     _doc_template,
     _shared_docs,
     flex_binary_moment,
+    flex_binary_moment_,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -431,6 +432,31 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         self._insert_on_column(out, obj)
         return out
+
+    def _apply_pairwise(self, series_x, series_y, pairwise_func):
+        """
+        Computes the result of a pairwise rolling operation (e.g. corr, cov)
+        of 2, 1-D slices provided by flex_binary_moment
+        """
+        assert len(series_x) == len(series_y)
+
+        array_x = self._prep_values(series_x)
+        array_y = self._prep_values(series_y)
+
+        window_indexer = self._get_window_indexer()
+        min_periods = (
+            self.min_periods
+            if self.min_periods is not None
+            else window_indexer.window_size
+        )
+        start, end = window_indexer.get_window_bounds(
+            num_values=len(array_x),
+            min_periods=min_periods,
+            center=self.center,
+            closed=self.closed,
+        )
+        result = pairwise_func(array_x, array_y, start, end, min_periods)
+        return result
 
     def _apply(
         self,
@@ -1861,6 +1887,13 @@ class RollingAndExpandingMixin(BaseWindow):
         # GH 16058: offset window
         window = self._get_cov_corr_window(other)
 
+        def cov_func(x, y, start, end, min_periods):
+            mean_x_y = window_aggregations.roll_mean(x * y, start, end, min_periods)
+            mean_x = window_aggregations.roll_mean(x, start, end, min_periods)
+            mean_y = window_aggregations.roll_mean(y, start, end, min_periods)
+            count_x_y = window_aggregations.roll_sum(notna(x + y), start, end, 0)
+            return (mean_x_y - mean_x * mean_y) * (count_x_y / (count_x_y - ddof))
+
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
             # to avoid potential overflow, cast the data to float64
@@ -2016,6 +2049,7 @@ class RollingAndExpandingMixin(BaseWindow):
             # while std is not.
             return a.cov(b, **kwargs) / (a.var(**kwargs) * b.var(**kwargs)) ** 0.5
 
+        flex_binary_moment_()
         return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
         )
