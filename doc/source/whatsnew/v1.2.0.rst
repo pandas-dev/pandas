@@ -751,7 +751,7 @@ Plotting
 
 - Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes caused a ``ValueError`` (:issue:`21003`)
-- Bug in :meth:`DataFrame.plot.bar` and :meth:`Series.plot.bar` where ticks positions were assigned by value order instead of using the actual value for numeric or a smart ordering for string (:issue:`26186`, :issue:`11465`)
+- Bug in :meth:`DataFrame.plot.bar` and :meth:`Series.plot.bar` where ticks positions were assigned by value order instead of using the actual value for numeric or a smart ordering for string (:issue:`26186`, :issue:`11465`). This fix has been reverted in pandas 1.2.1, see :doc:`v1.2.1`
 - Twinned axes were losing their tick labels which should only happen to all but the last row or column of 'externally' shared axes (:issue:`33819`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` was throwing a :exc:`ValueError` when the Series or DataFrame was
   indexed by a :class:`.TimedeltaIndex` with a fixed frequency and the x-axis lower limit was greater than the upper limit (:issue:`37454`)
