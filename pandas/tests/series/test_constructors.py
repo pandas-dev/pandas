@@ -32,7 +32,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
-from pandas.core.internals.blocks import IntBlock
+from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
@@ -1649,7 +1649,7 @@ class TestSeriesConstructorInternals:
         ser = Series([1, 2, 3])
         result = Series(ser.array)
         tm.assert_series_equal(ser, result)
-        assert isinstance(result._mgr.blocks[0], IntBlock)
+        assert isinstance(result._mgr.blocks[0], NumericBlock)
 
     def test_from_array(self):
         result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
