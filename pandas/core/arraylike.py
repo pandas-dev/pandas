@@ -149,44 +149,50 @@ class OpsMixin:
         return self._arith_method(other, roperator.rpow)
 
 
-def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
-    """
-    Compatibility with numpy ufuncs.
+# -----------------------------------------------------------------------------
+# Helpers to implement __array_ufunc__
 
-    See also
-    --------
-    numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
+
+def _is_aligned(frame, other):
+    """
+    Helper to check if a DataFrame is aligned with another DataFrame or Series.
+    """
+    from pandas.core.frame import DataFrame
+
+    if isinstance(other, DataFrame):
+        return frame._indexed_same(other)
+    else:
+        # Series -> match index
+        return frame.columns.equals(other.index)
+
+
+def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+    """
+    In the future DataFrame, inputs to ufuncs will be aligned before applying
+    the ufunc, but for now we ignore the index but raise a warning if behaviour
+    would change in the future.
+    This helper detects the case where a warning is needed and then fallbacks
+    to applying the ufunc on arrays to avoid alignment.
+
+    See https://github.com/pandas-dev/pandas/pull/39239
     """
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
-    from pandas.core.internals import BlockManager
-
-    cls = type(self)
 
     is_ndframe = [isinstance(x, NDFrame) for x in inputs]
     is_frame = [isinstance(x, DataFrame) for x in inputs]
 
     if (sum(is_ndframe) >= 2) and (sum(is_frame) >= 1):
-        # if there are 2 alignable inputs, of which at least 1 is a
+        # if there are 2 alignable inputs (NDFrames), of which at least 1 is a
         # DataFrame -> we would have had no alignment before -> warn that this
         # will align in the future
 
         # the first frame is what determines the output index/columns in pandas < 1.2
-        for x in inputs:
-            if isinstance(x, DataFrame):
-                first_frame = x
-                break
+        first_frame = next(x for x in inputs if isinstance(x, DataFrame))
 
         # check if the objects are aligned or not
-        def is_aligned(frame, other):
-            if isinstance(other, DataFrame):
-                return frame._indexed_same(other)
-            else:
-                # Series -> match index
-                return frame.columns.equals(other.index)
-
         non_aligned = sum(
-            not is_aligned(first_frame, x) for x in inputs if isinstance(x, NDFrame)
+            not _is_aligned(first_frame, x) for x in inputs if isinstance(x, NDFrame)
         )
 
         # if at least one is not aligned -> warn and fallback to array behaviour
@@ -217,6 +223,28 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
 
             # call the ufunc on those transformed inputs
             return getattr(ufunc, method)(*new_inputs, **kwargs)
+        else:
+            # signal that we didn't fallback / execute the ufunc yet
+            return NotImplemented
+
+
+def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+    """
+    Compatibility with numpy ufuncs.
+
+    See also
+    --------
+    numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
+    """
+    from pandas.core.generic import NDFrame
+    from pandas.core.internals import BlockManager
+
+    cls = type(self)
+
+    # for backwards compatibility check and potentially fallback for non-aligned frames
+    result = _maybe_fallback(ufunc, method, *inputs, **kwargs)
+    if result is not NotImplemented:
+        return result
 
     # for binary ops, use our custom dunder methods
     result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
