@@ -18,6 +18,8 @@ from pandas.compat.numpy import (
     np_datetime64_compat,
     np_version_under1p17,
     np_version_under1p18,
+    np_version_under1p19,
+    np_version_under1p20,
 )
 
 PY38 = sys.version_info >= (3, 8)
@@ -133,4 +135,6 @@ __all__ = [
     "np_datetime64_compat",
     "np_version_under1p17",
     "np_version_under1p18",
+    "np_version_under1p19",
+    "np_version_under1p20",
 ]
