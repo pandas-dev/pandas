@@ -207,7 +207,7 @@ def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
                 "or align manually (eg 'df1, df2 = df1.align(df2)') before passing to "
                 "the ufunc to obtain the future behaviour and silence this warning.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=4,
             )
 
             # keep the first dataframe of the inputs, other DataFrame/Series is
@@ -223,9 +223,9 @@ def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
 
             # call the ufunc on those transformed inputs
             return getattr(ufunc, method)(*new_inputs, **kwargs)
-        else:
-            # signal that we didn't fallback / execute the ufunc yet
-            return NotImplemented
+
+    # signal that we didn't fallback / execute the ufunc yet
+    return NotImplemented
 
 
 def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
