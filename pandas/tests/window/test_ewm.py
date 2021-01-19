@@ -135,3 +135,11 @@ def test_ewm_with_nat_raises(halflife_with_times):
     times = DatetimeIndex(["NaT"])
     with pytest.raises(ValueError, match="Cannot convert NaT values to integer"):
         ser.ewm(com=0.1, halflife=halflife_with_times, times=times)
+
+
+def test_ewm_vol_deprecated():
+    ser = Series(range(1))
+    with tm.assert_produces_warning(FutureWarning):
+        result = ser.ewm(com=0.1).vol()
+    expected = ser.ewm(com=0.1).std()
+    tm.assert_series_equal(result, expected)
