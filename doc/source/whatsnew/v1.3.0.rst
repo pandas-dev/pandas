@@ -241,7 +241,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
-
+- Bug in different ``tzinfo`` objects representing UTC not being treated as equivalent (:issue:`39216`)
 -
 -
 

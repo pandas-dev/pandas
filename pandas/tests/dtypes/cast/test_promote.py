@@ -7,7 +7,7 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import NaT, tz_compare
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -431,7 +431,7 @@ def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture, tz_aware_fix
 
     # filling datetimetz with datetimetz casts to object, unless tz matches
     exp_val_for_scalar = fill_value
-    if dtype.tz == fill_dtype.tz:
+    if tz_compare(dtype.tz, fill_dtype.tz):
         expected_dtype = dtype
     else:
         expected_dtype = np.dtype(object)

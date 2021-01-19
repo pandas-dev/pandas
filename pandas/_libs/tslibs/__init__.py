@@ -24,6 +24,7 @@ __all__ = [
     "to_offset",
     "Tick",
     "BaseOffset",
+    "tz_compare",
 ]
 
 from . import dtypes
@@ -35,6 +36,7 @@ from .offsets import BaseOffset, Tick, to_offset
 from .period import IncompatibleFrequency, Period
 from .timedeltas import Timedelta, delta_to_nanoseconds, ints_to_pytimedelta
 from .timestamps import Timestamp
+from .timezones import tz_compare
 from .tzconversion import tz_convert_from_utc_single
 from .vectorized import (
     dt64arr_to_periodarr,
