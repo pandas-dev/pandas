@@ -29,7 +29,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import infer_fill_value, isna
 
-import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
@@ -1851,7 +1850,7 @@ class _iLocIndexer(_LocationIndexer):
                     for i, idx in enumerate(indexer)
                     if i != info_axis
                 )
-                and algos.unique(item_labels[indexer[info_axis]])
+                and is_scalar(item_labels[indexer[info_axis]])
             ):
                 self.obj[item_labels[indexer[info_axis]]] = value
                 return
