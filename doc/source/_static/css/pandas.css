@@ -1,3 +1,10 @@
+/* Override some aspects of the pydata-sphinx-theme */
+
+:root {
+  /* Use softer blue from bootstrap's default info color */
+  --color-info: 23, 162, 184;
+}
+
 /* Getting started index page */
 
 .intro-card {
