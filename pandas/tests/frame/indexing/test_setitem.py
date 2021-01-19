@@ -373,6 +373,15 @@ class TestDataFrameSetItemWithExpansion:
         expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_empty_df_duplicate_columns(self):
+        # GH#38521
+        df = DataFrame(columns=["a", "b", "b"], dtype="float64")
+        df.loc[:, "a"] = list(range(2))
+        expected = DataFrame(
+            [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):
