@@ -603,6 +603,10 @@ class ExtensionArray:
         In case of multiple occurrences of the minimum value, the index
         corresponding to the first occurrence is returned.
 
+        Parameters
+        ----------
+        skipna : bool, default True
+
         Returns
         -------
         int
@@ -622,6 +626,10 @@ class ExtensionArray:
 
         In case of multiple occurrences of the maximum value, the index
         corresponding to the first occurrence is returned.
+
+        Parameters
+        ----------
+        skipna : bool, default True
 
         Returns
         -------
