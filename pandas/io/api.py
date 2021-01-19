@@ -12,7 +12,7 @@ from pandas.io.html import read_html
 from pandas.io.json import read_json
 from pandas.io.orc import read_orc
 from pandas.io.parquet import read_parquet
-from pandas.io.parsers.readers import read_csv, read_fwf, read_table
+from pandas.io.parsers import read_csv, read_fwf, read_table
 from pandas.io.pickle import read_pickle, to_pickle
 from pandas.io.pytables import HDFStore, read_hdf
 from pandas.io.sas import read_sas

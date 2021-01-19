@@ -16,8 +16,8 @@ from pandas.errors import EmptyDataError, ParserError
 from pandas import DataFrame, Index, Series, compat
 import pandas._testing as tm
 
+from pandas.io.parsers import TextFileReader
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-from pandas.io.parsers.readers import TextFileReader
 
 
 def test_override_set_noconvert_columns():

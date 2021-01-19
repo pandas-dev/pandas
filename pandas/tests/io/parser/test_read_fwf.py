@@ -17,7 +17,7 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex
 import pandas._testing as tm
 
-from pandas.io.parsers.readers import read_csv, read_fwf
+from pandas.io.parsers import read_csv, read_fwf
 
 
 def test_basic():

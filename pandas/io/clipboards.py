@@ -33,7 +33,7 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
 
     from pandas.io.clipboard import clipboard_get
-    from pandas.io.parsers.readers import read_csv
+    from pandas.io.parsers import read_csv
 
     text = clipboard_get()
 

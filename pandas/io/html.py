@@ -22,7 +22,7 @@ from pandas.core.frame import DataFrame
 
 from pandas.io.common import is_url, stringify_path, urlopen, validate_header_arg
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.parsers.readers import TextParser
+from pandas.io.parsers import TextParser
 
 _IMPORTS = False
 _HAS_BS4 = False
