@@ -177,6 +177,16 @@ class TestDataFrameApply:
         expected = getattr(float_frame, func)(*args, **kwds)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "how, args", [("pct_change", ()), ("nsmallest", (1, ["a", "b"])), ("tail", 1)]
+    )
+    def test_apply_str_axis_1_raises(self, how, args):
+        # GH 39211 - some ops don't support axis=1
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        msg = f"Operation {how} does not support axis=1"
+        with pytest.raises(ValueError, match=msg):
+            df.apply(how, axis=1, args=args)
+
     def test_apply_broadcast(self, float_frame, int_frame_const_col):
 
         # scalars
