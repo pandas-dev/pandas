@@ -735,7 +735,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  by _validate_key_length
         return tup
 
-    def _has_valid_tuple(self, key: Tuple):
+    def _validate_tuple_indexer(self, key: Tuple) -> Tuple:
         """
         Check the key for valid keys across my indexer.
         """
@@ -1094,7 +1094,7 @@ class _LocIndexer(_LocationIndexer):
             return self._getitem_lowerdim(tup)
 
         # no multi-index, so validate all of the indexers
-        tup = self._has_valid_tuple(tup)
+        tup = self._validate_tuple_indexer(tup)
 
         # ugly hack for GH #836
         if self._multi_take_opportunity(tup):
@@ -1481,7 +1481,7 @@ class _iLocIndexer(_LocationIndexer):
 
     def _getitem_tuple(self, tup: Tuple):
 
-        tup = self._has_valid_tuple(tup)
+        tup = self._validate_tuple_indexer(tup)
         with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
 
