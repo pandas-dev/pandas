@@ -192,6 +192,7 @@ Deprecations
 - Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 - Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
+- Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
 -
 
 .. ---------------------------------------------------------------------------
