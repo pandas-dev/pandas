@@ -1850,7 +1850,8 @@ class _iLocIndexer(_LocationIndexer):
                     for i, idx in enumerate(indexer)
                     if i != info_axis
                 )
-                and is_scalar(item_labels[indexer[info_axis]])
+                and len(item_labels.get_indexer_for([item_labels[indexer[info_axis]]]))
+                == 1
             ):
                 self.obj[item_labels[indexer[info_axis]]] = value
                 return
