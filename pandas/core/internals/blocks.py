@@ -996,7 +996,7 @@ class Block(PandasObject):
         block = self.make_block(values)
         return block
 
-    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
+    def putmask(self, mask, new) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -1007,7 +1007,6 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
-        axis : int
 
         Returns
         -------
@@ -1024,8 +1023,6 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            # We only get here for non-Extension Blocks, so _try_coerce_args
-            #  is only relevant for DatetimeBlock and TimedeltaBlock
             if self.dtype.kind in ["m", "M"]:
                 arr = self.array_values()
                 arr = cast("NDArrayBackedExtensionArray", arr)
@@ -1038,14 +1035,17 @@ class Block(PandasObject):
                 new_values = new_values.T
 
             putmask_without_repeat(new_values, mask, new)
+            return [self]
 
-        # maybe upcast me
-        elif mask.any():
+        elif not mask.any():
+            return [self]
+
+        else:
+            # may need to upcast
             if transpose:
                 mask = mask.T
                 if isinstance(new, np.ndarray):
                     new = new.T
-                axis = new_values.ndim - axis - 1
 
             # operate column-by-column
             def f(mask, val, idx):
@@ -1071,8 +1071,6 @@ class Block(PandasObject):
 
             new_blocks = self.split_and_operate(mask, f, True)
             return new_blocks
-
-        return [self]
 
     def coerce_to_target_dtype(self, other):
         """
@@ -1575,7 +1573,7 @@ class ExtensionBlock(Block):
         assert locs.tolist() == [0]
         self.values = values
 
-    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
+    def putmask(self, mask, new) -> List["Block"]:
         """
         See Block.putmask.__doc__
         """

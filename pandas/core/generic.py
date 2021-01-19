@@ -8935,9 +8935,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # reconstruct the block manager
 
             self._check_inplace_setting(other)
-            new_data = self._mgr.putmask(
-                mask=cond, new=other, align=align, axis=block_axis
-            )
+            new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor(new_data)
             return self._update_inplace(result)
 
