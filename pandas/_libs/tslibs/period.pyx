@@ -1543,7 +1543,7 @@ cdef class _Period(PeriodMixin):
             if other.freq != self.freq:
                 if op == Py_EQ:
                     return False
-                if op == Py_NE:
+                elif op == Py_NE:
                     return True
                 msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
                                             own_freq=self.freqstr,

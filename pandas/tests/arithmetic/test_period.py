@@ -272,7 +272,7 @@ class TestPeriodIndexComparisons:
         tm.assert_equal(base <= idx, exp)
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
-    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box_with_array):
+    def test_parr_cmp_pi_mismatched_freq(self, freq, box_with_array):
         # GH#13200
         # different base freq
         base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
