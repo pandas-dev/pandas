@@ -9,6 +9,11 @@ from pandas._libs.tslibs import conversion, timezones
 from pandas import Timestamp
 
 
+def test_is_utc(utc_fixture):
+    tz = timezones.maybe_get_tz(utc_fixture)
+    assert timezones.is_utc(tz)
+
+
 @pytest.mark.parametrize("tz_name", list(pytz.common_timezones))
 def test_cache_keys_are_distinct_for_pytz_vs_dateutil(tz_name):
     if tz_name == "UTC":
