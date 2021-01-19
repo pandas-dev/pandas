@@ -157,7 +157,7 @@ def _is_aligned(frame, other):
     """
     Helper to check if a DataFrame is aligned with another DataFrame or Series.
     """
-    from pandas.core.frame import DataFrame
+    from pandas import DataFrame
 
     if isinstance(other, DataFrame):
         return frame._indexed_same(other)
@@ -176,15 +176,15 @@ def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
 
     See https://github.com/pandas-dev/pandas/pull/39239
     """
-    from pandas.core.frame import DataFrame
+    from pandas import DataFrame
     from pandas.core.generic import NDFrame
 
-    is_ndframe = [isinstance(x, NDFrame) for x in inputs]
-    is_frame = [isinstance(x, DataFrame) for x in inputs]
+    n_alignable = sum(isinstance(x, NDFrame) for x in inputs)
+    n_frames = sum(isinstance(x, DataFrame) for x in inputs)
 
-    if (sum(is_ndframe) >= 2) and (sum(is_frame) >= 1):
-        # if there are 2 alignable inputs (NDFrames), of which at least 1 is a
-        # DataFrame -> we would have had no alignment before -> warn that this
+    if n_alignable >= 2 and n_frames >= 1:
+        # if there are 2 alignable inputs (Series or DataFrame), of which at least 1
+        # is a DataFrame -> we would have had no alignment before -> warn that this
         # will align in the future
 
         # the first frame is what determines the output index/columns in pandas < 1.2
