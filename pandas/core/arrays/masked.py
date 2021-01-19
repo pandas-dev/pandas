@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.algorithms import factorize_array, take
-from pandas.core.array_algos import masked_reductions
+from pandas.core.array_algos import masked_accumulations, masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
@@ -413,3 +413,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return libmissing.NA
 
         return result
+
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> BaseMaskedArrayT:
+        data = self._data
+        mask = self._mask
+
+        if name in {"cumsum", "cumprod", "cummin", "cummax"}:
+            op = getattr(masked_accumulations, name)
+            data, mask = op(data, mask, skipna=skipna, **kwargs)
+
+        from pandas.core.arrays import BooleanArray, IntegerArray
+
+        if isinstance(self, BooleanArray):
+            return IntegerArray(data, mask, copy=False)
+
+        return type(self)(data, mask, copy=False)
+
+        raise NotImplementedError(
+            "Accumlation {name} not implemented for BaseMaskedArray"
+        )

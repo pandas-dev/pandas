@@ -682,13 +682,6 @@ class BooleanArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def _accumulate(self, name: str, skipna: bool = True, **kwargs):
-        from pandas.arrays import IntegerArray
-
-        return IntegerArray(self._data.astype("int8"), self._mask)._accumulate(
-            name, skipna, **kwargs
-        )
-
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:

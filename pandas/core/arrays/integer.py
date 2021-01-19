@@ -470,21 +470,6 @@ class IntegerArray(NumericArray):
 
         return BooleanArray(result, mask)
 
-    def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> "IntegerArray":
-        cum_function = {
-            "cumprod": np.cumprod,
-            "cummax": np.maximum.accumulate,
-            "cumsum": np.cumsum,
-            "cummin": np.minimum.accumulate,
-        }.get(name)
-        if not cum_function:
-            raise ValueError(f"{name} is not defined for IntegerArrays")
-
-        from pandas.core.nanops import na_accum_func
-
-        result = na_accum_func(self, cum_function, skipna=skipna)
-        return result
-
     def sum(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
         return super()._reduce("sum", skipna=skipna, min_count=min_count)
