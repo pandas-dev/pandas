@@ -281,6 +281,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
 - Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
+- Bug in setting ``datetime64`` values into a :class:`Series` with integer-dtype incorrect casting the datetime64 values to integers (:issue:`39266`)
 
 Missing
 ^^^^^^^
