@@ -45,7 +45,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import factorize_array, unique
+from pandas.core.algorithms import factorize_array, isin, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
@@ -78,6 +78,7 @@ class ExtensionArray:
     factorize
     fillna
     equals
+    isin
     isna
     ravel
     repeat
@@ -851,6 +852,22 @@ class ExtensionArray:
                 equal_values = equal_values.fillna(False)
             equal_na = self.isna() & other.isna()
             return bool((equal_values | equal_na).all())
+
+    def isin(self, values) -> np.ndarray:
+        """
+        Pointwise comparison for set containment in the given values.
+
+        Roughly equivalent to `np.array([x in values for x in self])`
+
+        Parameters
+        ----------
+        values : Sequence
+
+        Returns
+        -------
+        np.ndarray[bool]
+        """
+        return isin(np.asarray(self), values)
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """

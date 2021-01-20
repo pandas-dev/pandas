@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -68,7 +67,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
-    from pandas.core.arrays import DatetimeArray, IntervalArray, TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -450,13 +449,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_categorical_dtype(comps.dtype):
-        # TODO(extension)
-        # handle categoricals
-        return cast("Categorical", comps).isin(values)
-
-    elif is_interval_dtype(comps.dtype):
-        return cast("IntervalArray", comps).isin(values)
+    if is_extension_array_dtype(comps.dtype):
+        return comps.isin(values)
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -468,9 +462,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     elif needs_i8_conversion(values.dtype):
         return isin(comps, values.astype(object))
 
-    elif is_extension_array_dtype(comps.dtype) or is_extension_array_dtype(
-        values.dtype
-    ):
+    elif is_extension_array_dtype(values.dtype):
         return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
@@ -481,7 +473,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
-            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+
+            def f(c, v):
+                return np.logical_or(np.in1d(c, v), np.isnan(c))
+
         else:
             f = np.in1d
 
