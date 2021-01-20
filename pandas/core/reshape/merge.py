@@ -77,7 +77,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate: Optional[str] = None,
-) -> "DataFrame":
+) -> DataFrame:
     op = _MergeOperation(
         left,
         right,
@@ -168,7 +168,7 @@ def merge_ordered(
     fill_method: Optional[str] = None,
     suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform merge with optional filling/interpolation.
 
@@ -315,7 +315,7 @@ def merge_asof(
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform an asof merge.
 
@@ -2160,7 +2160,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
+def _validate_operand(obj: FrameOrSeries) -> DataFrame:
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):

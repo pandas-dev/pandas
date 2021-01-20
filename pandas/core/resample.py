@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, Optional, Union, no_type_check
+from typing import Callable, Dict, Optional, Tuple, Union, no_type_check
 
 import numpy as np
 
@@ -14,7 +16,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+from pandas._typing import T, TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
@@ -179,8 +181,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
         -------
         obj : converted object
         """
-        obj = obj._consolidate()
-        return obj
+        return obj._consolidate()
 
     def _get_binner_for_time(self):
         raise AbstractMethodError(self)
@@ -231,7 +232,12 @@ class Resampler(BaseGroupBy, ShallowMixin):
     2012-08-04  1""",
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return super().pipe(func, *args, **kwargs)
 
     _agg_see_also_doc = dedent(
@@ -1063,17 +1069,16 @@ class DatetimeIndexResampler(Resampler):
             return obj
 
         # do we have a regular frequency
-        if ax.freq is not None or ax.inferred_freq is not None:
+        # pandas\core\resample.py:1037: error: "BaseGrouper" has no
+        # attribute "binlabels"  [attr-defined]
+        if (
+            (ax.freq is not None or ax.inferred_freq is not None)
+            and len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+            and how is None
+        ):
 
-            # pandas\core\resample.py:1037: error: "BaseGrouper" has no
-            # attribute "binlabels"  [attr-defined]
-            if (
-                len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
-                and how is None
-            ):
-
-                # let's do an asfreq
-                return self.asfreq()
+            # let's do an asfreq
+            return self.asfreq()
 
         # we are downsampling
         # we want to call the actual grouper method here

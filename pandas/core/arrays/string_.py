@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Optional, Type, Union
 
 import numpy as np
@@ -84,7 +86,7 @@ class StringDtype(ExtensionDtype):
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "StringArray":
+    ) -> StringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """

@@ -145,11 +145,12 @@ repos:
         language: pygrep
         types_or: [python, cython]
     -   id: unwanted-typing
-        name: Check for use of comment-based annotation syntax and missing error codes
+        name: Check for outdated annotation syntax and missing error codes
         entry: |
             (?x)
             \#\ type:\ (?!ignore)|
-            \#\ type:\s?ignore(?!\[)
+            \#\ type:\s?ignore(?!\[)|
+            \)\ ->\ \"
         language: pygrep
         types: [python]
     -   id: np-bool
