@@ -181,8 +181,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
         -------
         obj : converted object
         """
-        obj = obj._consolidate()
-        return obj
+        return obj._consolidate()
 
     def _get_binner_for_time(self):
         raise AbstractMethodError(self)
@@ -1070,17 +1069,16 @@ class DatetimeIndexResampler(Resampler):
             return obj
 
         # do we have a regular frequency
-        if ax.freq is not None or ax.inferred_freq is not None:
+        # pandas\core\resample.py:1037: error: "BaseGrouper" has no
+        # attribute "binlabels"  [attr-defined]
+        if (
+            (ax.freq is not None or ax.inferred_freq is not None)
+            and len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+            and how is None
+        ):
 
-            # pandas\core\resample.py:1037: error: "BaseGrouper" has no
-            # attribute "binlabels"  [attr-defined]
-            if (
-                len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
-                and how is None
-            ):
-
-                # let's do an asfreq
-                return self.asfreq()
+            # let's do an asfreq
+            return self.asfreq()
 
         # we are downsampling
         # we want to call the actual grouper method here

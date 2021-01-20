@@ -388,7 +388,6 @@ def validate_func_kwargs(
     >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
     (['one', 'two'], ['min', 'max'])
     """
-    no_arg_message = "Must provide 'func' or named aggregation **kwargs."
     tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
@@ -397,6 +396,7 @@ def validate_func_kwargs(
             raise TypeError(tuple_given_message.format(type(col_func).__name__))
         func.append(col_func)
     if not columns:
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
 
@@ -499,14 +499,14 @@ def transform_dict_like(
         try:
             results[name] = transform(colg, how, 0, *args, **kwargs)
         except Exception as err:
-            if (
-                str(err) == "Function did not transform"
-                or str(err) == "No transform functions were provided"
-            ):
+            if str(err) in {
+                "Function did not transform",
+                "No transform functions were provided",
+            }:
                 raise err
 
     # combine results
-    if len(results) == 0:
+    if not results:
         raise ValueError("Transform function failed")
     return concat(results, axis=1)
 

@@ -1001,10 +1001,7 @@ class _LocIndexer(_LocationIndexer):
             return False
 
         # just too complicated
-        if any(com.is_bool_indexer(x) for x in tup):
-            return False
-
-        return True
+        return not any(com.is_bool_indexer(x) for x in tup)
 
     def _multi_take(self, tup: Tuple):
         """
@@ -1424,11 +1421,7 @@ class _iLocIndexer(_LocationIndexer):
         if len(key) != self.ndim:
             return False
 
-        for k in key:
-            if not is_integer(k):
-                return False
-
-        return True
+        return all(is_integer(k) for k in key)
 
     def _validate_integer(self, key: int, axis: int) -> None:
         """
@@ -1551,12 +1544,11 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and self.obj._mgr.blocks:
-            if self.ndim > 1:
-                # in case of dict, keys are indices
-                val = list(value.values()) if isinstance(value, dict) else value
-                blk = self.obj._mgr.blocks[0]
-                take_split_path = not blk._can_hold_element(val)
+        if not take_split_path and self.obj._mgr.blocks and self.ndim > 1:
+            # in case of dict, keys are indices
+            val = list(value.values()) if isinstance(value, dict) else value
+            blk = self.obj._mgr.blocks[0]
+            take_split_path = not blk._can_hold_element(val)
 
         # if we have any multi-indexes that have non-trivial slices
         # (not null slices) then we must take the split path, xref

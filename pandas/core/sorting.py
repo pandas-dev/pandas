@@ -465,9 +465,7 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    labels = type(index).from_arrays(mapped)
-
-    return labels
+    return type(index).from_arrays(mapped)
 
 
 def ensure_key_mapped(values, key: Optional[Callable], levels=None):
