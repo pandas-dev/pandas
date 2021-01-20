@@ -16,7 +16,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.api.types import is_extension_array_dtype
 
 import pandas as pd
 import pandas._testing as tm
