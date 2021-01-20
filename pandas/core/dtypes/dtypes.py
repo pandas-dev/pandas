@@ -1,6 +1,7 @@
 """
 Define extension dtypes.
 """
+from __future__ import annotations
 
 import re
 from typing import (
@@ -20,8 +21,16 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp, dtypes, timezones, to_offset
-from pandas._libs.tslibs.offsets import BaseOffset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    NaT,
+    Period,
+    Timestamp,
+    dtypes,
+    timezones,
+    to_offset,
+    tz_compare,
+)
 from pandas._typing import Dtype, DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
@@ -162,7 +171,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     @classmethod
     def _from_fastpath(
         cls, categories=None, ordered: Optional[bool] = None
-    ) -> "CategoricalDtype":
+    ) -> CategoricalDtype:
         self = cls.__new__(cls)
         self._finalize(categories, ordered, fastpath=True)
         return self
@@ -170,7 +179,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     @classmethod
     def _from_categorical_dtype(
         cls, dtype: "CategoricalDtype", categories=None, ordered: Ordered = None
-    ) -> "CategoricalDtype":
+    ) -> CategoricalDtype:
         if categories is ordered is None:
             return dtype
         if categories is None:
@@ -186,7 +195,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         categories=None,
         ordered: Optional[bool] = None,
         dtype: Optional[Dtype] = None,
-    ) -> "CategoricalDtype":
+    ) -> CategoricalDtype:
         """
         Construct dtype from the input parameters used in :class:`Categorical`.
 
@@ -275,7 +284,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return cast(CategoricalDtype, dtype)
 
     @classmethod
-    def construct_from_string(cls, string: str_type) -> "CategoricalDtype":
+    def construct_from_string(cls, string: str_type) -> CategoricalDtype:
         """
         Construct a CategoricalDtype from a string.
 
@@ -514,7 +523,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def update_dtype(
         self, dtype: Union[str_type, "CategoricalDtype"]
-    ) -> "CategoricalDtype":
+    ) -> CategoricalDtype:
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
@@ -706,7 +715,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return DatetimeArray
 
     @classmethod
-    def construct_from_string(cls, string: str_type) -> "DatetimeTZDtype":
+    def construct_from_string(cls, string: str_type) -> DatetimeTZDtype:
         """
         Construct a DatetimeTZDtype from a string.
 
@@ -763,7 +772,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return (
             isinstance(other, DatetimeTZDtype)
             and self.unit == other.unit
-            and str(self.tz) == str(other.tz)
+            and tz_compare(self.tz, other.tz)
         )
 
     def __setstate__(self, state) -> None:
@@ -865,7 +874,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         raise ValueError("could not construct PeriodDtype")
 
     @classmethod
-    def construct_from_string(cls, string: str_type) -> "PeriodDtype":
+    def construct_from_string(cls, string: str_type) -> PeriodDtype:
         """
         Strict construction from a string, raise a TypeError if not
         possible
@@ -953,7 +962,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         """
         Construct PeriodArray from pyarrow Array/ChunkedArray.
         """
@@ -1184,7 +1193,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "IntervalArray":
+    ) -> IntervalArray:
         """
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """

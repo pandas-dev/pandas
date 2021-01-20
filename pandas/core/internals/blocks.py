@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union, cast
@@ -100,8 +102,6 @@ class Block(PandasObject):
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
     is_float = False
-    is_integer = False
-    is_complex = False
     is_datetime = False
     is_datetimetz = False
     is_timedelta = False
@@ -115,7 +115,7 @@ class Block(PandasObject):
     @classmethod
     def _simple_new(
         cls, values: ArrayLike, placement: BlockPlacement, ndim: int
-    ) -> "Block":
+    ) -> Block:
         """
         Fastpath constructor, does *no* validation
         """
@@ -274,7 +274,7 @@ class Block(PandasObject):
 
         self._mgr_locs = new_mgr_locs
 
-    def make_block(self, values, placement=None) -> "Block":
+    def make_block(self, values, placement=None) -> Block:
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -993,7 +993,7 @@ class Block(PandasObject):
         block = self.make_block(values)
         return block
 
-    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
+    def putmask(self, mask, new) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -1004,7 +1004,6 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
-        axis : int
 
         Returns
         -------
@@ -1021,8 +1020,6 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            # We only get here for non-Extension Blocks, so _try_coerce_args
-            #  is only relevant for DatetimeBlock and TimedeltaBlock
             if self.dtype.kind in ["m", "M"]:
                 arr = self.array_values()
                 arr = cast("NDArrayBackedExtensionArray", arr)
@@ -1035,14 +1032,17 @@ class Block(PandasObject):
                 new_values = new_values.T
 
             putmask_without_repeat(new_values, mask, new)
+            return [self]
 
-        # maybe upcast me
-        elif mask.any():
+        elif not mask.any():
+            return [self]
+
+        else:
+            # may need to upcast
             if transpose:
                 mask = mask.T
                 if isinstance(new, np.ndarray):
                     new = new.T
-                axis = new_values.ndim - axis - 1
 
             # operate column-by-column
             def f(mask, val, idx):
@@ -1068,8 +1068,6 @@ class Block(PandasObject):
 
             new_blocks = self.split_and_operate(mask, f, True)
             return new_blocks
-
-        return [self]
 
     def coerce_to_target_dtype(self, other):
         """
@@ -1190,7 +1188,7 @@ class Block(PandasObject):
 
         # only deal with floats
         if not self.is_float:
-            if not self.is_integer:
+            if self.dtype.kind not in ["i", "u"]:
                 return [self]
             data = data.astype(np.float64)
 
@@ -1311,7 +1309,7 @@ class Block(PandasObject):
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
             if (
-                (self.is_integer or self.is_bool)
+                (self.dtype.kind in ["b", "i", "u"])
                 and lib.is_float(other)
                 and np.isnan(other)
             ):
@@ -1327,7 +1325,7 @@ class Block(PandasObject):
                 return self._maybe_downcast(blocks, "infer")
 
             if not (
-                (self.is_integer or self.is_bool)
+                (self.dtype.kind in ["b", "i", "u"])
                 and lib.is_float(other)
                 and np.isnan(other)
             ):
@@ -1572,7 +1570,7 @@ class ExtensionBlock(Block):
         assert locs.tolist() == [0]
         self.values = values
 
-    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
+    def putmask(self, mask, new) -> List["Block"]:
         """
         See Block.putmask.__doc__
         """
@@ -1907,7 +1905,6 @@ class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
 class NumericBlock(Block):
     __slots__ = ()
     is_numeric = True
-    _can_hold_na = True
 
     def _can_hold_element(self, element: Any) -> bool:
         element = extract_array(element, extract_numpy=True)
@@ -1915,6 +1912,14 @@ class NumericBlock(Block):
             if element._mask.any():
                 return False
         return can_hold_element(self.dtype, element)
+
+    @property
+    def _can_hold_na(self):
+        return self.dtype.kind not in ["b", "i", "u"]
+
+    @property
+    def is_bool(self):
+        return self.dtype.kind == "b"
 
 
 class FloatBlock(NumericBlock):
@@ -1953,17 +1958,6 @@ class FloatBlock(NumericBlock):
         )
         res = formatter.get_result_as_array()
         return self.make_block(res)
-
-
-class ComplexBlock(NumericBlock):
-    __slots__ = ()
-    is_complex = True
-
-
-class IntBlock(NumericBlock):
-    __slots__ = ()
-    is_integer = True
-    _can_hold_na = False
 
 
 class DatetimeLikeBlockMixin(HybridMixin, Block):
@@ -2231,7 +2225,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return ndim
 
 
-class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
+class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_timedelta = True
     _can_hold_na = True
@@ -2266,12 +2260,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
                 "`pd.Timedelta(seconds=n)` instead."
             )
         return super().fillna(value, **kwargs)
-
-
-class BoolBlock(NumericBlock):
-    __slots__ = ()
-    is_bool = True
-    _can_hold_na = False
 
 
 class ObjectBlock(Block):
@@ -2476,12 +2464,8 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         cls = TimeDeltaBlock
     elif kind == "f":
         cls = FloatBlock
-    elif kind == "c":
-        cls = ComplexBlock
-    elif kind == "i" or kind == "u":
-        cls = IntBlock
-    elif kind == "b":
-        cls = BoolBlock
+    elif kind in ["c", "i", "u", "b"]:
+        cls = NumericBlock
     else:
         cls = ObjectBlock
     return cls

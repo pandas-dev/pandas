@@ -35,8 +35,8 @@ from pandas._libs.tslibs import (
     conversion,
     iNaT,
     ints_to_pydatetime,
+    tz_compare,
 )
-from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
@@ -944,7 +944,7 @@ def coerce_indexer_dtype(indexer, categories):
 
 def astype_dt64_to_dt64tz(
     values: ArrayLike, dtype: DtypeObj, copy: bool, via_utc: bool = False
-) -> "DatetimeArray":
+) -> DatetimeArray:
     # GH#33401 we have inconsistent behaviors between
     #  Datetimeindex[naive].astype(tzaware)
     #  Series[dt64].astype(tzaware)

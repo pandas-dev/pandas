@@ -193,6 +193,8 @@ class Apply(metaclass=abc.ABCMeta):
             sig = inspect.getfullargspec(func)
             if "axis" in sig.args:
                 self.kwds["axis"] = self.axis
+            elif self.axis != 0:
+                raise ValueError(f"Operation {f} does not support axis=1")
         return self.obj._try_aggregate_string_function(f, *self.args, **self.kwds)
 
     def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
