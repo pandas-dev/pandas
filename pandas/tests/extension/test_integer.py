@@ -16,11 +16,9 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.api.types import is_extension_array_dtype
-
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_integer_dtype
+from pandas.api.types import is_extension_array_dtype, is_integer_dtype
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
