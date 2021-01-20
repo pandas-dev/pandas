@@ -828,7 +828,7 @@ class Styler:
 
     def _apply(
         self,
-        func: Callable[..., "Styler"],
+        func: Callable[..., Styler],
         axis: Optional[Axis] = 0,
         subset=None,
         **kwargs,
@@ -867,7 +867,7 @@ class Styler:
 
     def apply(
         self,
-        func: Callable[..., "Styler"],
+        func: Callable[..., Styler],
         axis: Optional[Axis] = 0,
         subset=None,
         **kwargs,
