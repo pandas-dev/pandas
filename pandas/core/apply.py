@@ -530,8 +530,7 @@ class FrameColumnApply(FrameApply):
                 ser._mgr = mgr
                 blk.values = arr
                 ser.name = name
-                # To fix bug #39166
-                yield ser.copy()
+                yield ser
 
     @property
     def result_index(self) -> Index:
