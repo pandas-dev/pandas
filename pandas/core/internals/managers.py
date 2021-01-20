@@ -600,9 +600,11 @@ class BlockManager(DataManager):
                 blk_indexer = (pi, ilocs)
                 blk_indexer = maybe_convert_ix(*blk_indexer)
 
-                # without the extra condition we fail in tests.indexing.test_indexing:: test_astype_assignment, but
+                # without the extra condition we fail in
+                #  tests.indexing.test_indexing:: test_astype_assignment, but
                 #  that is doing `df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
-                #  which i _think_ *should* be inplace, so should not be casting, which the test wants to do
+                #  which i _think_ *should* be inplace, so should not be casting,
+                #  which the test wants to do
                 if blk._can_hold_element(vfb) and (
                     not blk.is_object or (is2d and vfb.shape[1] == blk.shape[0])
                 ):

@@ -1679,14 +1679,9 @@ class _iLocIndexer(_LocationIndexer):
                     # Setting entire column, so swapping out
                     # GH#??? we may want to change this behavior
                     self.obj._iset_item(ilocs[0], value)
-                elif is_extension_array_dtype(value):
-                    # TODO(EA2D): special case not needed with 2D EAs
+                else:
                     obj = type(self.obj)(value)
                     self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), obj)
-                    self.obj._clear_item_cache()
-                else:
-                    val = np.atleast_2d(value).T
-                    self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), val)
                     self.obj._clear_item_cache()
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
@@ -1775,7 +1770,6 @@ class _iLocIndexer(_LocationIndexer):
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        sub_indexer = list(indexer)
         pi = indexer[0]
 
         multiindex_indexer = isinstance(self.obj.columns, ABCMultiIndex)

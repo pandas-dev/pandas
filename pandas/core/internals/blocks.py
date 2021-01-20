@@ -903,6 +903,7 @@ class Block(PandasObject):
 
         values = self.values
 
+        # FIXME: avoid getting here with DataFrame value; ambiguous casting
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
@@ -935,6 +936,25 @@ class Block(PandasObject):
 
         if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
+
+            is_full = exact_match or (
+                isinstance(indexer, tuple)
+                and len(indexer) == self.ndim
+                and com.is_null_slice(indexer[0])
+            )
+            if is_full:
+                # test_loc_setitem_consistency,
+                #  test_loc_setitem_consistency_dt64_to_float
+                value2 = lib.item_from_zerodim(value)
+                if lib.is_scalar(value2):
+                    # TODO: de-duplicate with similar in setitem_single_block
+                    value2 = np.full(self.shape, arr_value)
+                    return self.make_block(value2)
+                elif arr_value.shape == self.shape[::-1]:
+                    return self.make_block(arr_value.T)
+                else:
+                    assert False  # just checking we never get here
+
             # TODO: can we just use coerce_to_target_dtype for all this
             if hasattr(value, "dtype"):
                 dtype = value.dtype
@@ -947,15 +967,6 @@ class Block(PandasObject):
                 # TODO: watch out for case with listlike value and scalar/empty indexer
                 dtype, _ = maybe_promote(np.array(value).dtype)
                 return self.astype(dtype).setitem(indexer, value)
-
-            if isinstance(indexer, tuple) and len(indexer) == self.ndim:
-                # test_loc_setitem_consistency, test_loc_setitem_consistency_dt64_to_float
-                if com.is_null_slice(indexer[0]):
-                    value2 = lib.item_from_zerodim(value)
-                    if lib.is_scalar(value2):
-                        # TODO: de-duplicate with similar in setitem_single_block
-                        value2 = np.full(self.shape, arr_value)
-                        return self.make_block(value2)
 
             dtype = find_common_type([values.dtype, dtype])
             assert not is_dtype_equal(self.dtype, dtype)
