@@ -21,8 +21,16 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp, dtypes, timezones, to_offset
-from pandas._libs.tslibs.offsets import BaseOffset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    NaT,
+    Period,
+    Timestamp,
+    dtypes,
+    timezones,
+    to_offset,
+    tz_compare,
+)
 from pandas._typing import Dtype, DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
@@ -764,7 +772,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return (
             isinstance(other, DatetimeTZDtype)
             and self.unit == other.unit
-            and str(self.tz) == str(other.tz)
+            and tz_compare(self.tz, other.tz)
         )
 
     def __setstate__(self, state) -> None:
