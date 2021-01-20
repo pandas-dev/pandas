@@ -405,14 +405,15 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
 
     Parameters
     ----------
-    mat : Array to compute kendall correlation on
+    mat : np.ndarray[float64_t, ndim=2]
+        Array to compute kendall correlation on
     minp : int, default 1
         Minimum number of observations required per pair of columns
         to have a valid result.
 
     Returns
     -------
-    numpy.ndarray
+    numpy.ndarray[float64_t, ndim=2]
         Correlation matrix
     """
     cdef:
@@ -469,7 +470,7 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
                         if col[k] > currj:
                             n_concordant += 1
                     total_concordant += n_concordant
-                    total_discordant += (n_obs-1-j-n_concordant)
+                    total_discordant += (n_obs - 1 - j - n_concordant)
                 # Note: we do total_concordant+total_discordant here which is
                 # equivalent to the C(n, 2), the total # of pairs,
                 # listed on wikipedia
