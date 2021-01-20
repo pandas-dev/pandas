@@ -204,6 +204,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
+- Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -269,7 +270,7 @@ Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalIndex.intersection` and :meth:`IntervalIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38653`, :issue:`38741`)
 - Bug in :meth:`IntervalIndex.intersection` returning duplicates when at least one of both Indexes has duplicates which are present in the other (:issue:`38743`)
--
+- :meth:`IntervalIndex.union`, :meth:`IntervalIndex.intersection`, :meth:`IntervalIndex.difference`, and :meth:`IntervalIndex.symmetric_difference` now cast to the appropriate dtype instead of raising ``TypeError`` when operating with another :class:`IntervalIndex` with incompatible dtype (:issue:`39267`)
 
 Indexing
 ^^^^^^^^

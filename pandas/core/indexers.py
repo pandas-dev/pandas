@@ -82,12 +82,11 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     if ndim == 1 and is_integer(indexer):
         # GH37748: allow indexer to be an integer for Series
         return True
-    if isinstance(indexer, tuple):
-        if len(indexer) == ndim:
-            return all(
-                is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
-                for x in indexer
-            )
+    if isinstance(indexer, tuple) and len(indexer) == ndim:
+        return all(
+            is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
+            for x in indexer
+        )
     return False
 
 

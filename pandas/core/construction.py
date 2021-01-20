@@ -343,8 +343,7 @@ def array(
     elif is_timedelta64_ns_dtype(dtype):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
-    result = PandasArray._from_sequence(data, dtype=dtype, copy=copy)
-    return result
+    return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
 
 def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayLike]:
