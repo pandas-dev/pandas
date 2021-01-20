@@ -92,7 +92,7 @@ class Preprocessors:
                 md = markdown.Markdown(
                     extensions=context["main"]["markdown_extensions"]
                 )
-                with open(os.path.join(posts_path, fname)) as f:
+                with open(os.path.join(posts_path, fname), encoding='utf8') as f:
                     html = md.convert(f.read())
                 title = md.Meta["title"][0]
                 summary = re.sub(tag_expr, "", html)
