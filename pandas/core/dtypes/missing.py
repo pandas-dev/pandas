@@ -525,7 +525,7 @@ def infer_fill_value(val, length: int):
 
         dtype = val.dtype
         cls = dtype.construct_array_type()
-        return cls._from_sequence([dtype._na_value], dtype=dtype).repeat(length)
+        return cls._from_sequence([dtype.na_value], dtype=dtype).repeat(length)
 
     val = np.array(val, copy=False)
     if needs_i8_conversion(val.dtype):

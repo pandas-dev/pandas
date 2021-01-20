@@ -18,6 +18,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
+    NaT,
     Series,
     SparseDtype,
     Timedelta,
@@ -1343,6 +1344,19 @@ class TestLocSetitemWithExpansion:
         result.loc[:, "B"] = Categorical(["b"], ordered=ordered)
         expected = DataFrame({"A": [1], "B": Categorical(["b"], ordered=ordered)})
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_setitem_ea_not_full_column(self):
+        # GH#39163
+        df = DataFrame({"A": range(5)})
+
+        val = date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+        df.loc[[0, 1, 2], "B"] = val
+
+        bex = val.append(DatetimeIndex([NaT, NaT], dtype=val.dtype))
+        expected = DataFrame({"A": range(5), "B": bex})
+        assert expected.dtypes["B"] == val.dtype
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocCallable:
