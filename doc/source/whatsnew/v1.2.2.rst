@@ -1,0 +1,47 @@
+.. _whatsnew_122:
+
+What's new in 1.2.2 (February ??, 2021)
+---------------------------------------
+
+These are the changes in pandas 1.2.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_122.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_122.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_122.other:
+
+Other
+~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_122.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.1..v1.2.2|HEAD

@@ -144,4 +144,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.2.0..v1.2.1|HEAD
+.. contributors:: v1.2.0..v1.2.1
