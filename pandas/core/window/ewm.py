@@ -19,7 +19,15 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import flex_binary_moment, zsqrt
-from pandas.core.window.doc import _shared_docs, doc_template, numpy_args_kwargs
+from pandas.core.window.doc import (
+    _shared_docs,
+    args_compat,
+    create_section_header,
+    kwargs_compat,
+    template_header,
+    template_returns,
+    template_see_also,
+)
 from pandas.core.window.indexers import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -304,15 +312,17 @@ class ExponentialMovingWindow(BaseWindow):
     agg = aggregate
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
         window_method="ewm",
         aggregation_description="(exponential weighted moment) mean",
-        parameters="",
-        numpy_args_kwargs=numpy_args_kwargs,
         agg_method="mean",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
@@ -334,20 +344,23 @@ class ExponentialMovingWindow(BaseWindow):
         return self._apply(window_func)
 
     @doc(
-        doc_template,
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) standard deviation",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ),
-        numpy_args_kwargs=numpy_args_kwargs,
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) standard deviation",
         agg_method="std",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def std(self, bias: bool = False, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
@@ -356,20 +369,23 @@ class ExponentialMovingWindow(BaseWindow):
     vol = std
 
     @doc(
-        doc_template,
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) variance",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ),
-        numpy_args_kwargs=numpy_args_kwargs,
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) variance",
         agg_method="var",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def var(self, bias: bool = False, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
@@ -388,10 +404,9 @@ class ExponentialMovingWindow(BaseWindow):
         return self._apply(var_func)
 
     @doc(
-        doc_template,
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) sample covarance",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         other : Series, DataFrame, or ndarray, optional
             If not supplied then will default to self and produce pairwise
@@ -406,12 +421,15 @@ class ExponentialMovingWindow(BaseWindow):
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ),
-        numpy_args_kwargs=numpy_args_kwargs,
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) sample covariance",
         agg_method="cov",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def cov(
         self,
@@ -447,10 +465,9 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
     @doc(
-        doc_template,
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) sample correlation",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         other : Series, DataFrame, or ndarray, optional
             If not supplied then will default to self and produce pairwise
@@ -463,12 +480,15 @@ class ExponentialMovingWindow(BaseWindow):
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         """
-        ),
-        numpy_args_kwargs=numpy_args_kwargs,
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) sample correlation",
         agg_method="corr",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def corr(
         self,
