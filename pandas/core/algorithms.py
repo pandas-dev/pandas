@@ -150,12 +150,10 @@ def _ensure_data(
             from pandas import PeriodIndex
 
             values = PeriodIndex(values)._data
-            dtype = values.dtype
         elif is_timedelta64_dtype(values.dtype) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
             values = TimedeltaIndex(values)._data
-            dtype = values.dtype
         else:
             # Datetime
             if values.ndim > 1 and is_datetime64_ns_dtype(values.dtype):
@@ -169,8 +167,7 @@ def _ensure_data(
             from pandas import DatetimeIndex
 
             values = DatetimeIndex(values)._data
-            dtype = values.dtype
-
+        dtype = values.dtype
         return values.asi8, dtype
 
     elif is_categorical_dtype(values.dtype) and (
@@ -875,10 +872,9 @@ def value_counts_arraylike(values, dropna: bool):
         keys, counts = f(values, dropna)
 
         mask = isna(values)
-        if not dropna and mask.any():
-            if not isna(keys).any():
-                keys = np.insert(keys, 0, np.NaN)
-                counts = np.insert(counts, 0, mask.sum())
+        if not dropna and mask.any() and not isna(keys).any():
+            keys = np.insert(keys, 0, np.NaN)
+            counts = np.insert(counts, 0, mask.sum())
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
@@ -1741,9 +1737,8 @@ def take_nd(
                     dtype, fill_value = arr.dtype, arr.dtype.type()
 
     flip_order = False
-    if arr.ndim == 2:
-        if arr.flags.f_contiguous:
-            flip_order = True
+    if arr.ndim == 2 and arr.flags.f_contiguous:
+        flip_order = True
 
     if flip_order:
         arr = arr.T
@@ -1915,8 +1910,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    result = arr.searchsorted(value, side=side, sorter=sorter)
-    return result
+    return arr.searchsorted(value, side=side, sorter=sorter)
 
 
 # ---- #
