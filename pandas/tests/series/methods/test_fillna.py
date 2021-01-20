@@ -20,6 +20,16 @@ import pandas._testing as tm
 
 
 class TestSeriesFillNA:
+    def test_fillna_column(self):
+        series1 = np.random.randint(5,30,size=13)
+        series2 = np.random.randint(5, 30, size=13)
+        series2[-1] = np.nan
+        series2[3] = pd.NaT
+        series2_backup = series2.copy()
+        series2.fillna(value=series1, inplace=True)
+        assert series2 != series2_backup
+        assert not any(series2.isna())
+        
     def test_fillna_nat(self):
         series = Series([0, 1, 2, NaT.value], dtype="M8[ns]")
 
