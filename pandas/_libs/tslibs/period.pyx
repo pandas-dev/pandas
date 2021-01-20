@@ -1547,6 +1547,10 @@ cdef class _Period(PeriodMixin):
     def __richcmp__(self, other, op):
         if is_period_object(other):
             if other.freq != self.freq:
+                if op == Py_EQ:
+                    return False
+                elif op == Py_NE:
+                    return True
                 msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
                                             own_freq=self.freqstr,
                                             other_freq=other.freqstr)
