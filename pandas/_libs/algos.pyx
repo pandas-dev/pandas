@@ -449,7 +449,10 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
                 for j in range(n_obs - 1):
                     currj = col[j]
                     # Count num concordant and discordant pairs
-                    n_concordant = np.count_nonzero(col[j+1:]>=currj)
+                    n_concordant = 0
+                    for k in range(j, n_obs):
+                        if col[k] > currj:
+                            n_concordant += 1
                     total_concordant += n_concordant
                     total_discordant += (n_obs-1-j-n_concordant)
                 kendall_tau = (total_concordant - total_discordant) / \
