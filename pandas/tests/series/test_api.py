@@ -172,11 +172,11 @@ class TestSeriesMisc:
         # GH 21881
         timestamp = pd.Timestamp(1412526600000000000)
         series = pd.Series([], dtype=object)
-        series['timestamp'] = timestamp
+        series["timestamp"] = timestamp
         expected = type(series.timestamp)
         
         series = pd.Series([], dtype=object)
-        series['anything'] = 300.0
-        series['timestamp'] = timestamp
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
         result = type(series.timestamp)
         assert result == expected
