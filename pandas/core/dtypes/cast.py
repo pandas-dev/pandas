@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 from datetime import datetime, timedelta
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -942,12 +943,10 @@ def coerce_indexer_dtype(indexer, categories):
     return ensure_int64(indexer)
 
 
-def _find_level() -> int:
+def find_stack_level() -> int:
     """
     Find the appropriate stacklevel with which to issue a warning for astype.
     """
-    import inspect
-
     stack = inspect.stack()
 
     # find the lowest-level "astype" call that got us here
@@ -991,7 +990,7 @@ def astype_dt64_to_dt64tz(
             # this should be the only copy
             values = values.copy()
 
-        level = _find_level()
+        level = find_stack_level()
         warnings.warn(
             "Using .astype to convert from timezone-naive dtype to "
             "timezone-aware dtype is deprecated and will raise in a "
@@ -1009,7 +1008,7 @@ def astype_dt64_to_dt64tz(
 
         if values.tz is None and aware:
             dtype = cast(DatetimeTZDtype, dtype)
-            level = _find_level()
+            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-naive dtype to "
                 "timezone-aware dtype is deprecated and will raise in a "
@@ -1029,7 +1028,7 @@ def astype_dt64_to_dt64tz(
             return result
 
         elif values.tz is not None:
-            level = _find_level()
+            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-aware dtype to "
                 "timezone-naive dtype is deprecated and will raise in a "

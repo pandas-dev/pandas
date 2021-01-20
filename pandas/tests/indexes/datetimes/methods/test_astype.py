@@ -61,6 +61,10 @@ class TestDatetimeIndex:
         with tm.assert_produces_warning(FutureWarning):
             # deprecated
             result = rng.astype("datetime64[ns]")
+        with tm.assert_produces_warning(FutureWarning):
+            # check DatetimeArray while we're here deprecated
+            rng._data.astype("datetime64[ns]")
+
         expected = (
             date_range("1/1/2000", periods=10, tz="US/Eastern")
             .tz_convert("UTC")
@@ -83,6 +87,10 @@ class TestDatetimeIndex:
         with tm.assert_produces_warning(FutureWarning):
             # dt64->dt64tz deprecated
             result = idx.astype("datetime64[ns, US/Eastern]")
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64->dt64tz deprecated
+            idx._data.astype("datetime64[ns, US/Eastern]")
+
         expected = date_range("20170101", periods=4, tz="US/Eastern")
         expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
