@@ -1,6 +1,6 @@
 .. _whatsnew_121:
 
-What's new in 1.2.1 (January 18, 2021)
+What's new in 1.2.1 (January 20, 2021)
 --------------------------------------
 
 These are the changes in pandas 1.2.1. See :ref:`release` for a full changelog
