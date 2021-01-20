@@ -890,6 +890,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
 
     # replace passed unit with _unit_map
     def f(value):
+        value = float(value) #some values being read as int raising error with lower method used below
         if value in _unit_map:
             return _unit_map[value]
 
