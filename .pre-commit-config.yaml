@@ -174,7 +174,7 @@ repos:
         entry: pd\.api\.types
         language: pygrep
         types: [python]
-        files: ^pandas/test/
+        files: ^pandas/tests/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
