@@ -60,11 +60,11 @@ repos:
         entry: |
             (?x)
             # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-            from\ pandas\.core\.common\ import|
-            from\ pandas\.core\ import\ common|
+            from\ pandas\.core\.common\ import
+            |from\ pandas\.core\ import\ common
 
             # Check for imports from collections.abc instead of `from collections import abc`
-            from\ collections\.abc\ import
+            |from\ collections\.abc\ import
 
     -   id: non-standard-numpy.random-related-imports
         name: Check for non-standard numpy.random-related imports excluding pandas/_testing.py
@@ -73,8 +73,8 @@ repos:
         entry: |
             (?x)
             # Check for imports from np.random.<method> instead of `from numpy import random` or `from numpy.random import <method>`
-            from\ numpy\ import\ random|
-            from\ numpy.random\ import
+            from\ numpy\ import\ random
+            |from\ numpy.random\ import
         types: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
@@ -82,15 +82,15 @@ repos:
         entry: |
             (?x)
             # Check for imports from pandas._testing instead of `import pandas._testing as tm`
-            from\ pandas\._testing\ import|
-            from\ pandas\ import\ _testing\ as\ tm|
+            from\ pandas\._testing\ import
+            |from\ pandas\ import\ _testing\ as\ tm
 
             # No direct imports from conftest
-            conftest\ import|
-            import\ conftest
+            |conftest\ import
+            |import\ conftest
 
             # Check for use of pandas.testing instead of tm
-            pd\.testing\.
+            |pd\.testing\.
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives
@@ -148,9 +148,9 @@ repos:
         name: Check for outdated annotation syntax and missing error codes
         entry: |
             (?x)
-            \#\ type:\ (?!ignore)|
-            \#\ type:\s?ignore(?!\[)|
-            \)\ ->\ \"
+            \#\ type:\ (?!ignore)
+            |\#\ type:\s?ignore(?!\[)
+            |\)\ ->\ \"
         language: pygrep
         types: [python]
     -   id: np-bool
@@ -166,9 +166,9 @@ repos:
         files: ^pandas/tests/
         exclude: |
             (?x)^
-            pandas/tests/io/excel/test_writers\.py|
-            pandas/tests/io/pytables/common\.py|
-            pandas/tests/io/pytables/test_store\.py$
+            pandas/tests/io/excel/test_writers\.py
+            |pandas/tests/io/pytables/common\.py
+            |pandas/tests/io/pytables/test_store\.py$
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
