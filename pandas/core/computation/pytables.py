@@ -12,13 +12,13 @@ from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
-import pandas as pd
 import pandas.core.common as com
 from pandas.core.computation import expr, ops, scope as _scope
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.core.construction import extract_array
+from pandas.core.indexes.base import Index
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
@@ -250,7 +250,7 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
-    filter: Optional[Tuple[Any, Any, pd.Index]] = None
+    filter: Optional[Tuple[Any, Any, Index]] = None
 
     def __repr__(self) -> str:
         if self.filter is None:
@@ -285,7 +285,7 @@ class FilterBinOp(BinOp):
             if self.op in ["==", "!="] and len(values) > self._max_selectors:
 
                 filter_op = self.generate_filter_op()
-                self.filter = (self.lhs, filter_op, pd.Index(values))
+                self.filter = (self.lhs, filter_op, Index(values))
 
                 return self
             return None
@@ -294,7 +294,7 @@ class FilterBinOp(BinOp):
         if self.op in ["==", "!="]:
 
             filter_op = self.generate_filter_op()
-            self.filter = (self.lhs, filter_op, pd.Index(values))
+            self.filter = (self.lhs, filter_op, Index(values))
 
         else:
             raise TypeError(

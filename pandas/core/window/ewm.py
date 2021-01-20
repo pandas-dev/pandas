@@ -4,6 +4,7 @@ import datetime
 from functools import partial
 from textwrap import dedent
 from typing import TYPE_CHECKING, Optional, Union
+import warnings
 
 import numpy as np
 
@@ -360,7 +361,16 @@ class ExponentialMovingWindow(BaseWindow):
         nv.validate_window_func("std", args, kwargs)
         return zsqrt(self.var(bias=bias, **kwargs))
 
-    vol = std
+    def vol(self, bias: bool = False, *args, **kwargs):
+        warnings.warn(
+            (
+                "vol is deprecated will be removed in a future version. "
+                "Use std instead."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.std(bias, *args, **kwargs)
 
     @Substitution(name="ewm", func_name="var")
     @Appender(_doc_template)
