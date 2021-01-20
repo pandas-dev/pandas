@@ -35,8 +35,8 @@ from pandas._libs.tslibs import (
     conversion,
     iNaT,
     ints_to_pydatetime,
+    tz_compare,
 )
-from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
@@ -779,7 +779,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
             dtype = PeriodDtype(freq=val.freq)
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype)
+            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
     return dtype, val
 
@@ -944,7 +944,7 @@ def coerce_indexer_dtype(indexer, categories):
 
 def astype_dt64_to_dt64tz(
     values: ArrayLike, dtype: DtypeObj, copy: bool, via_utc: bool = False
-) -> "DatetimeArray":
+) -> DatetimeArray:
     # GH#33401 we have inconsistent behaviors between
     #  Datetimeindex[naive].astype(tzaware)
     #  Series[dt64].astype(tzaware)
@@ -1874,9 +1874,52 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ):
         raise ValueError("Cannot assign nan to integer series")
 
-    if (
-        issubclass(dtype.type, (np.integer, np.floating, complex))
-        and not issubclass(dtype.type, np.bool_)
-        and is_bool(value)
-    ):
-        raise ValueError("Cannot assign bool to float/integer series")
+    if dtype.kind in ["i", "u", "f", "c"]:
+        if is_bool(value) or isinstance(value, np.timedelta64):
+            # numpy will cast td64 to integer if we're not careful
+            raise ValueError(
+                f"Cannot assign {type(value).__name__} to float/integer series"
+            )
+
+
+def can_hold_element(dtype: np.dtype, element: Any) -> bool:
+    """
+    Can we do an inplace setitem with this element in an array with this dtype?
+
+    Parameters
+    ----------
+    dtype : np.dtype
+    element : Any
+
+    Returns
+    -------
+    bool
+    """
+    tipo = maybe_infer_dtype_type(element)
+
+    if dtype.kind in ["i", "u"]:
+        if tipo is not None:
+            return tipo.kind in ["i", "u"] and dtype.itemsize >= tipo.itemsize
+
+        # We have not inferred an integer from the dtype
+        # check if we have a builtin int or a float equal to an int
+        return is_integer(element) or (is_float(element) and element.is_integer())
+
+    elif dtype.kind == "f":
+        if tipo is not None:
+            return tipo.kind in ["f", "i", "u"]
+        return lib.is_integer(element) or lib.is_float(element)
+
+    elif dtype.kind == "c":
+        if tipo is not None:
+            return tipo.kind in ["c", "f", "i", "u"]
+        return (
+            lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element)
+        )
+
+    elif dtype.kind == "b":
+        if tipo is not None:
+            return tipo.kind == "b"
+        return lib.is_bool(element)
+
+    raise NotImplementedError(dtype)

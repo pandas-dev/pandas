@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from typing import Any, Optional
 import warnings
@@ -155,7 +157,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         other_name="PeriodArray",
         **_shared_doc_kwargs,
     )
-    def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
+    def asfreq(self, freq=None, how: str = "E") -> PeriodIndex:
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -649,7 +651,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods=None, freq=None, name=None
+    start=None, end=None, periods: Optional[int] = None, freq=None, name=None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
