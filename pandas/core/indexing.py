@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
 # "null slice"
 _NS = slice(None, None)
+_one_ellipsis_message = "indexer may only contain one '...' entry"
 
 
 # the public IndexSlicerMaker
@@ -722,6 +723,8 @@ class _LocationIndexer(NDFrameIndexerBase):
         number of null slices.
         """
         if any(x is Ellipsis for x in tup):
+            if tup.count(Ellipsis) > 1:
+                raise IndexingError(_one_ellipsis_message)
 
             if len(tup) == self.ndim:
                 # It is unambiguous what axis this Ellipsis is indexing,
@@ -785,6 +788,8 @@ class _LocationIndexer(NDFrameIndexerBase):
             if key[0] is Ellipsis:
                 # e.g. Series.iloc[..., 3] reduces to just Series.iloc[3]
                 key = key[1:]
+                if Ellipsis in key:
+                    raise IndexingError(_one_ellipsis_message)
                 return self._validate_key_length(key)
             raise IndexingError("Too many indexers")
         return key
@@ -1124,6 +1129,8 @@ class _LocIndexer(_LocationIndexer):
         key = item_from_zerodim(key)
         if is_iterator(key):
             key = list(key)
+        if key is Ellipsis:
+            key = slice(None)
 
         labels = self.obj._get_axis(axis)
         key = labels._get_partial_string_timestamp_match_key(key)
@@ -1504,6 +1511,8 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
+        if key is Ellipsis:
+            key = slice(None)
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
