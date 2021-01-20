@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range, option_context
 import pandas._testing as tm
@@ -349,7 +347,6 @@ class TestChaining:
             with pytest.raises(com.SettingWithCopyError, match=msg):
                 df.loc[0]["A"] = 111
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
         # xref gh-13017.
         with option_context("chained_assignment", "warn"):
