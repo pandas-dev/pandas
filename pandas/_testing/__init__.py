@@ -478,7 +478,7 @@ def makeTimeDataFrame(nper=None, freq="B"):
 
 def makeDataFrame() -> DataFrame:
     data = getSeriesData()
-    return DataFrame(data)
+    return DataFrame(data)._consolidate()
 
 
 def getMixedTypeDict():
@@ -977,3 +977,11 @@ def loc(x):
 
 def iloc(x):
     return x.iloc
+
+
+def at(x):
+    return x.at
+
+
+def iat(x):
+    return x.iat

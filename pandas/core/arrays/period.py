@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Type, Union
@@ -191,7 +193,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         values: np.ndarray,
         freq: Optional[BaseOffset] = None,
         dtype: Optional[Dtype] = None,
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
@@ -204,7 +206,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         *,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         if dtype and isinstance(dtype, PeriodDtype):
             freq = dtype.freq
         else:
@@ -225,11 +227,11 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Optional[Dtype] = None, copy=False
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_datetime64(cls, data, freq, tz=None) -> "PeriodArray":
+    def _from_datetime64(cls, data, freq, tz=None) -> PeriodArray:
         """
         Construct a PeriodArray from a datetime64 array
 
@@ -504,7 +506,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
-    def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
+    def asfreq(self, freq=None, how: str = "E") -> PeriodArray:
         """
         Convert the {klass} to the specified frequency `freq`.
 
@@ -675,7 +677,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     def _addsub_int_array(
         self, other: np.ndarray, op: Callable[[Any, Any], Any]
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         """
         Add or subtract array of integers; equivalent to applying
         `_time_shift` pointwise.

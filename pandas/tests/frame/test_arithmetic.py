@@ -972,7 +972,7 @@ class TestFrameArithmeticUnsorted:
 
         result = ts + ts[::2]
         expected = ts + ts
-        expected.values[1::2] = np.nan
+        expected.iloc[1::2] = np.nan
         tm.assert_frame_equal(result, expected)
 
         half = ts[::2]
@@ -1305,7 +1305,7 @@ class TestFrameArithmeticUnsorted:
             f(df, 0)
 
     def test_comparison_protected_from_errstate(self):
-        missing_df = tm.makeDataFrame()._consolidate()
+        missing_df = tm.makeDataFrame()
         missing_df.iloc[0]["A"] = np.nan
         with np.errstate(invalid="ignore"):
             expected = missing_df.values < 0

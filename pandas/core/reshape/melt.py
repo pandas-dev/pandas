@@ -33,7 +33,7 @@ def melt(
     value_name="value",
     col_level=None,
     ignore_index: bool = True,
-) -> "DataFrame":
+) -> DataFrame:
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
     if isinstance(frame.columns, MultiIndex):
@@ -141,7 +141,7 @@ def melt(
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)
-def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> "DataFrame":
+def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
@@ -237,7 +237,7 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> "DataF
 
 def wide_to_long(
     df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
-) -> "DataFrame":
+) -> DataFrame:
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
