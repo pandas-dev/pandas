@@ -28,8 +28,12 @@ import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
-from pandas._libs.tslibs.timezones import tz_compare
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    OutOfBoundsDatetime,
+    Timestamp,
+    tz_compare,
+)
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
@@ -3003,6 +3007,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+    @final
     def difference(self, other, sort=None):
         """
         Return a new Index with elements of index not in `other`.
@@ -3127,7 +3132,7 @@ class Index(IndexOpsMixin, PandasObject):
             result_name = result_name_update
 
         if not self._should_compare(other):
-            return self.union(other).rename(result_name)
+            return self.union(other, sort=sort).rename(result_name)
         elif not is_dtype_equal(self.dtype, other.dtype):
             dtype = find_common_type([self.dtype, other.dtype])
             this = self.astype(dtype, copy=False)
@@ -6236,7 +6241,7 @@ def _maybe_cast_data_without_dtype(subarr):
         try:
             data = IntervalArray._from_sequence(subarr, copy=False)
             return data
-        except ValueError:
+        except (ValueError, TypeError):
             # GH27172: mixed closed Intervals --> object dtype
             pass
     elif inferred == "boolean":

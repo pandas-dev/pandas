@@ -1,11 +1,12 @@
 import warnings
 
+cimport numpy as cnp
 from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompareBool
-from numpy cimport import_array, int64_t, ndarray
+from numpy cimport int64_t, ndarray
 
 import numpy as np
 
-import_array()
+cnp.import_array()
 
 from libc.stdlib cimport free, malloc
 from libc.string cimport memset, strlen
@@ -75,6 +76,7 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
 )
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
+
 from pandas._libs.tslibs.parsing import parse_time_string
 
 from pandas._libs.tslibs.nattype cimport (
@@ -993,29 +995,6 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
         return ensure_datetime64ns(dta)
 
 
-cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
-    """
-    Convert period ordinal from one frequency to another, and if upsampling,
-    choose to use start ('S') or end ('E') of period.
-    """
-    cdef:
-        int64_t retval
-        freq_conv_func func
-        asfreq_info af_info
-
-    if ordinal == NPY_NAT:
-        return NPY_NAT
-
-    func = get_asfreq_func(freq1, freq2)
-    get_asfreq_info(freq1, freq2, end, &af_info)
-    retval = func(ordinal, &af_info)
-
-    if retval == INT32_MIN:
-        raise ValueError('Frequency conversion failed')
-
-    return retval
-
-
 cdef void get_asfreq_info(int from_freq, int to_freq,
                           bint is_end, asfreq_info *af_info) nogil:
     """
@@ -1068,6 +1047,18 @@ cdef inline int calc_week_end(int freq, int group) nogil:
     return freq - group
 
 
+cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
+    """
+    Convert period ordinal from one frequency to another, and if upsampling,
+    choose to use start ('S') or end ('E') of period.
+    """
+    cdef:
+        int64_t retval
+
+    _period_asfreq(&ordinal, &retval, 1, freq1, freq2, end)
+    return retval
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
@@ -1076,35 +1067,50 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     if upsampling, choose to use start ('S') or end ('E') of period.
     """
     cdef:
-        int64_t[:] result
-        Py_ssize_t i, n
+        Py_ssize_t n = len(arr)
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+
+    _period_asfreq(
+        <int64_t*>cnp.PyArray_DATA(arr),
+        <int64_t*>cnp.PyArray_DATA(result),
+        n,
+        freq1,
+        freq2,
+        end,
+    )
+    return result
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _period_asfreq(
+    int64_t* ordinals,
+    int64_t* out,
+    Py_ssize_t length,
+    int freq1,
+    int freq2,
+    bint end,
+):
+    """See period_asfreq.__doc__"""
+    cdef:
+        Py_ssize_t i
         freq_conv_func func
         asfreq_info af_info
         int64_t val
 
-    n = len(arr)
-    result = np.empty(n, dtype=np.int64)
+    if length == 1 and ordinals[0] == NPY_NAT:
+        # fastpath avoid calling get_asfreq_func
+        out[0] = NPY_NAT
+        return
 
     func = get_asfreq_func(freq1, freq2)
     get_asfreq_info(freq1, freq2, end, &af_info)
 
-    mask = arr == NPY_NAT
-    if mask.any():      # NaT process
-        for i in range(n):
-            val = arr[i]
-            if val != NPY_NAT:
-                val = func(val, &af_info)
-                if val == INT32_MIN:
-                    raise ValueError("Unable to convert to desired frequency.")
-            result[i] = val
-    else:
-        for i in range(n):
-            val = func(arr[i], &af_info)
-            if val == INT32_MIN:
-                raise ValueError("Unable to convert to desired frequency.")
-            result[i] = val
-
-    return result.base  # .base to access underlying np.ndarray
+    for i in range(length):
+        val = ordinals[i]
+        if val != NPY_NAT:
+            val = func(val, &af_info)
+        out[i] = val
 
 
 cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
@@ -1541,6 +1547,10 @@ cdef class _Period(PeriodMixin):
     def __richcmp__(self, other, op):
         if is_period_object(other):
             if other.freq != self.freq:
+                if op == Py_EQ:
+                    return False
+                elif op == Py_NE:
+                    return True
                 msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
                                             own_freq=self.freqstr,
                                             other_freq=other.freqstr)

@@ -286,6 +286,8 @@ Other enhancements
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
 - Calling a NumPy ufunc on a ``DataFrame`` with extension types now preserves the extension types when possible (:issue:`23743`)
 - Calling a binary-input NumPy ufunc on multiple ``DataFrame`` objects now aligns, matching the behavior of binary operations and ufuncs on ``Series`` (:issue:`23743`).
+  This change has been reverted in pandas 1.2.1, and the behaviour to not align DataFrames
+  is deprecated instead, see the :ref:`the 1.2.1 release notes <whatsnew_121.ufunc_deprecation>`.
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - :meth:`DataFrame.to_parquet` now supports :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
 - :func:`read_parquet` gained a ``use_nullable_dtypes=True`` option to use nullable dtypes that use ``pd.NA`` as missing value indicator where possible for the resulting DataFrame (default is ``False``, and only applicable for ``engine="pyarrow"``) (:issue:`31242`)
@@ -535,6 +537,14 @@ Deprecations
 - Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`.DatetimeIndex`, :class:`.TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - The ``null_counts`` parameter of :meth:`DataFrame.info` is deprecated and replaced by ``show_counts``. It will be removed in a future version (:issue:`37999`)
+
+**Calling NumPy ufuncs on non-aligned DataFrames**
+
+Calling NumPy ufuncs on non-aligned DataFrames changed behaviour in pandas
+1.2.0 (to align the inputs before calling the ufunc), but this change is
+reverted in pandas 1.2.1. The behaviour to not align is now deprecated instead,
+see the :ref:`the 1.2.1 release notes <whatsnew_121.ufunc_deprecation>` for
+more details.
 
 .. ---------------------------------------------------------------------------
 

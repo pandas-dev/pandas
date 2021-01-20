@@ -128,6 +128,16 @@ class BaseMethodsTests(BaseExtensionTests):
         result = getattr(ser, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
+    def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
+        # GH#38733
+        data = data_missing_for_sorting
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmin(skipna=False)
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmax(skipna=False)
+
     @pytest.mark.parametrize(
         "na_position, expected",
         [
