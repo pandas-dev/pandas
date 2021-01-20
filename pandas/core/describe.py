@@ -235,7 +235,7 @@ def describe_categorical_1d(
     ----------
     data : Series
         Series to be described.
-    percentiles : list-like of numbers
+    percentiles_ignored : list-like of numbers
         Ignored, but in place to unify interface.
     """
     names = ["count", "unique", "top", "freq"]
@@ -267,7 +267,7 @@ def describe_timestamp_as_categorical_1d(
     ----------
     data : Series
         Series to be described.
-    percentiles : list-like of numbers
+    percentiles_ignored : list-like of numbers
         Ignored, but in place to unify interface.
     """
     names = ["count", "unique"]
@@ -342,15 +342,13 @@ def select_describe_func(
     datetime_is_numeric : bool
         Whether to treat datetime dtypes as numeric.
     """
-    describe_func: Callable
-
     if is_bool_dtype(data.dtype):
-        describe_func = describe_categorical_1d
+        return describe_categorical_1d
     elif is_numeric_dtype(data):
-        describe_func = describe_numeric_1d
+        return describe_numeric_1d
     elif is_datetime64_any_dtype(data.dtype):
         if datetime_is_numeric:
-            describe_func = describe_timestamp_1d
+            return describe_timestamp_1d
         else:
             warnings.warn(
                 "Treating datetime data as categorical rather than numeric in "
@@ -360,13 +358,11 @@ def select_describe_func(
                 FutureWarning,
                 stacklevel=5,
             )
-            describe_func = describe_timestamp_as_categorical_1d
+            return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):
-        describe_func = describe_numeric_1d
+        return describe_numeric_1d
     else:
-        describe_func = describe_categorical_1d
-
-    return describe_func
+        return describe_categorical_1d
 
 
 def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
