@@ -443,14 +443,13 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
                     col = ranked_mat[valid.nonzero()][:, yi]
                 else:
                     col = ranked_mat[:, yi]
-                # Unfortunately we have to sort here, since we can have tied indices
                 n_obs = col.shape[0]
                 total_concordant = 0
                 total_discordant = 0
                 for j in range(n_obs - 1):
                     currj = col[j]
                     # Count num concordant and discordant pairs
-                    n_concordant = np.sum(col[j+1:]>=currj)
+                    n_concordant = np.count_nonzero(col[j+1:]>=currj)
                     total_concordant += n_concordant
                     total_discordant += (n_obs-1-j-n_concordant)
                 kendall_tau = (total_concordant - total_discordant) / \
