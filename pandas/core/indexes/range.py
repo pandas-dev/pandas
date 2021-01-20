@@ -632,14 +632,14 @@ class RangeIndex(Int64Index):
                     return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
-    def difference(self, other, sort=None):
+    def _difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
         if not isinstance(other, RangeIndex):
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
 
         res_name = ops.get_op_result_name(self, other)
 
@@ -654,11 +654,11 @@ class RangeIndex(Int64Index):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
             # We won't end up with RangeIndex, so fall back
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
         if overlap.step != first.step:
             # In some cases we might be able to get a RangeIndex back,
             #  but not worth the effort.
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
 
         if overlap[0] == first.start:
             # The difference is everything after the intersection
@@ -668,7 +668,7 @@ class RangeIndex(Int64Index):
             new_rng = range(first.start, overlap[0], first.step)
         else:
             # The difference is not range-like
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
 
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
