@@ -322,7 +322,7 @@ I/O
 
 Period
 ^^^^^^
-
+- Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`??`)
 -
 -
 
