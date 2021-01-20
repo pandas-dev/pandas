@@ -333,6 +333,17 @@ def select_describe_func(
     data: "Series",
     datetime_is_numeric: bool,
 ) -> Callable:
+    """Select proper function for describing series based on data type.
+
+    Parameters
+    ----------
+    data : Series
+        Series to be described.
+    datetime_is_numeric : bool
+        Whether to treat datetime dtypes as numeric.
+    """
+    describe_func: Callable
+
     if is_bool_dtype(data.dtype):
         describe_func = describe_categorical_1d
     elif is_numeric_dtype(data):
