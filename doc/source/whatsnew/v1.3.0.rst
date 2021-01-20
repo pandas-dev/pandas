@@ -205,7 +205,7 @@ Performance improvements
 - Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
--
+- Performance improvement in :meth:`DataFrame.corr` for method=kendall (:issue:`28329`)
 
 .. ---------------------------------------------------------------------------
 
