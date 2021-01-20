@@ -372,7 +372,7 @@ class TestTimestampConstructors:
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
-        min_ts_us = np.datetime64(Timestamp.min).astype("M8[us]")
+        min_ts_us = np.datetime64(Timestamp.min).astype("M8[us]") + one_us
         max_ts_us = np.datetime64(Timestamp.max).astype("M8[us]")
 
         # No error for the min/max datetimes
