@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from contextlib import suppress
 from datetime import datetime, timedelta
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,6 +38,7 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -941,30 +941,6 @@ def coerce_indexer_dtype(indexer, categories):
     elif length < _int32_max:
         return ensure_int32(indexer)
     return ensure_int64(indexer)
-
-
-def find_stack_level() -> int:
-    """
-    Find the appropriate stacklevel with which to issue a warning for astype.
-    """
-    stack = inspect.stack()
-
-    # find the lowest-level "astype" call that got us here
-    for n in range(2, 6):
-        if stack[n].function == "astype":
-            break
-
-    while stack[n].function in ["astype", "apply", "_astype"]:
-        # e.g.
-        #  bump up Block.astype -> BlockManager.astype -> NDFrame.astype
-        #  bump up Datetime.Array.astype -> DatetimeIndex.astype
-        n += 1
-
-    if stack[n].function == "__init__":
-        # Series.__init__
-        n += 1
-
-    return n
 
 
 def astype_dt64_to_dt64tz(
