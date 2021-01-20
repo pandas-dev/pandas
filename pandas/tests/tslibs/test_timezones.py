@@ -61,6 +61,12 @@ def test_tzlocal_is_not_utc():
     assert not timezones.tz_compare(tz, dateutil.tz.tzutc())
 
 
+def test_tz_compare_utc(utc_fixture, utc_fixture2):
+    tz = timezones.maybe_get_tz(utc_fixture)
+    tz2 = timezones.maybe_get_tz(utc_fixture2)
+    assert timezones.tz_compare(tz, tz2)
+
+
 @pytest.fixture(
     params=[
         (pytz.timezone("US/Eastern"), lambda tz, x: tz.localize(x)),
