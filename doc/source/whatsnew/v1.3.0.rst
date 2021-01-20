@@ -233,6 +233,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
 - Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
+- Bug in :func:`date_range` incorrectly creating :class:`DatetimeIndex` containing ``NaT`` instead of raising ``OutOfBoundsDatetime`` in corner cases (:issue:`24124`)
 
 Timedelta
 ^^^^^^^^^
