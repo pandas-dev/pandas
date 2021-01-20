@@ -92,35 +92,36 @@ class StrategyAbstract(ABC):
         self.data = data
         self.percentiles = percentiles
 
-    def describe(self) -> "Series":
+    @abstractmethod
+    def describe(self) -> Series:
         """Describe series."""
 
 
 class CategoricalStrategy(StrategyAbstract):
     """Strategy for series with categorical values."""
 
-    def describe(self) -> "Series":
+    def describe(self) -> Series:
         return describe_categorical_1d(self.data)
 
 
 class TimestampAsCategoricalStrategy(StrategyAbstract):
     """Strategy for series with timestamp values treated as categorical values."""
 
-    def describe(self) -> "Series":
+    def describe(self) -> Series:
         return describe_timestamp_as_categorical_1d(self.data)
 
 
 class TimestampStrategy(StrategyAbstract):
     """Strategy for series with timestamp values."""
 
-    def describe(self) -> "Series":
+    def describe(self) -> Series:
         return describe_timestamp_1d(self.data, percentiles=self.percentiles)
 
 
 class NumericStrategy(StrategyAbstract):
     """Strategy for series with numeric values."""
 
-    def describe(self) -> "Series":
+    def describe(self) -> Series:
         return describe_numeric_1d(self.data, percentiles=self.percentiles)
 
 
