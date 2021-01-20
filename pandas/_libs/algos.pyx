@@ -395,13 +395,28 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
 
 # ----------------------------------------------------------------------
 # Kendall correlation
-
+# Wikipedia article: https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
+    """
+    Perform kendall correlation on a 2d array
+
+    Parameters
+    ----------
+    mat : Array to compute kendall correlation on
+    minp : int, default 1
+        Minimum number of observations required per pair of columns
+        to have a valid result.
+
+    Returns
+    -------
+    numpy.ndarray
+        Correlation matrix
+    """
     cdef:
-        Py_ssize_t i, j, xi, yi, N, K
+        Py_ssize_t i, j, k, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
         ndarray[float64_t, ndim=2] ranked_mat
         ndarray[uint8_t, ndim=2] mask
@@ -455,6 +470,9 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
                             n_concordant += 1
                     total_concordant += n_concordant
                     total_discordant += (n_obs-1-j-n_concordant)
+                # Note: we do total_concordant+total_discordant here which is
+                # equivalent to the C(n, 2), the total # of pairs,
+                # listed on wikipedia
                 kendall_tau = (total_concordant - total_discordant) / \
                               (total_concordant + total_discordant)
                 result[xi, yi] = kendall_tau

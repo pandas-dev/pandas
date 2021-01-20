@@ -8463,8 +8463,7 @@ NaN 12.3   33.0
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for Pearson
-            and Spearman correlation.
+            to have a valid result.
 
         Returns
         -------
