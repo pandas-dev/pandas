@@ -184,4 +184,5 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^pandas/core/
+        files: ^pandas/
+        exclude: ^pandas/tests/
