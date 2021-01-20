@@ -6,7 +6,7 @@ Method NDFrame.describe() delegates actual execution to function describe_ndfram
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, List, Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -81,6 +81,49 @@ def describe_ndframe(
     return cast(FrameOrSeries, result)
 
 
+class StrategyAbstract(ABC):
+    """Abstract strategy for describing series."""
+
+    def __init__(
+        self,
+        data: "Series",
+        percentiles: Sequence[float],
+    ):
+        self.data = data
+        self.percentiles = percentiles
+
+    def describe(self) -> "Series":
+        """Describe series."""
+
+
+class CategoricalStrategy(StrategyAbstract):
+    """Strategy for series with categorical values."""
+
+    def describe(self) -> "Series":
+        return describe_categorical_1d(self.data)
+
+
+class TimestampAsCategoricalStrategy(StrategyAbstract):
+    """Strategy for series with timestamp values treated as categorical values."""
+
+    def describe(self) -> "Series":
+        return describe_timestamp_as_categorical_1d(self.data)
+
+
+class TimestampStrategy(StrategyAbstract):
+    """Strategy for series with timestamp values."""
+
+    def describe(self) -> "Series":
+        return describe_timestamp_1d(self.data, percentiles=self.percentiles)
+
+
+class NumericStrategy(StrategyAbstract):
+    """Strategy for series with numeric values."""
+
+    def describe(self) -> "Series":
+        return describe_numeric_1d(self.data, percentiles=self.percentiles)
+
+
 class NDFrameDescriberAbstract(ABC):
     """Abstract class for describing dataframe or series.
 
@@ -113,11 +156,12 @@ class SeriesDescriber(NDFrameDescriberAbstract):
     obj: "Series"
 
     def describe(self, percentiles: Sequence[float]) -> Series:
-        describe_func = select_describe_func(
+        strategy = create_strategy(
             self.obj,
             self.datetime_is_numeric,
+            percentiles=percentiles,
         )
-        return describe_func(self.obj, percentiles)
+        return strategy.describe()
 
 
 class DataFrameDescriber(NDFrameDescriberAbstract):
@@ -156,8 +200,12 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         ldesc: List["Series"] = []
         for _, series in data.items():
-            describe_func = select_describe_func(series, self.datetime_is_numeric)
-            ldesc.append(describe_func(series, percentiles))
+            strategy = create_strategy(
+                series,
+                datetime_is_numeric=self.datetime_is_numeric,
+                percentiles=percentiles,
+            )
+            ldesc.append(strategy.describe())
 
         col_names = reorder_columns(ldesc)
         d = concat(
@@ -225,18 +273,13 @@ def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> Serie
     return Series(d, index=stat_index, name=series.name)
 
 
-def describe_categorical_1d(
-    data: "Series",
-    percentiles_ignored: Sequence[float],
-) -> Series:
+def describe_categorical_1d(data: "Series") -> Series:
     """Describe series containing categorical data.
 
     Parameters
     ----------
     data : Series
         Series to be described.
-    percentiles_ignored : list-like of numbers
-        Ignored, but in place to unify interface.
     """
     names = ["count", "unique", "top", "freq"]
     objcounts = data.value_counts()
@@ -257,18 +300,13 @@ def describe_categorical_1d(
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_as_categorical_1d(
-    data: "Series",
-    percentiles_ignored: Sequence[float],
-) -> Series:
+def describe_timestamp_as_categorical_1d(data: "Series") -> Series:
     """Describe series containing timestamp data treated as categorical.
 
     Parameters
     ----------
     data : Series
         Series to be described.
-    percentiles_ignored : list-like of numbers
-        Ignored, but in place to unify interface.
     """
     names = ["count", "unique"]
     objcounts = data.value_counts()
@@ -329,11 +367,12 @@ def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> Serie
     return Series(d, index=stat_index, name=data.name)
 
 
-def select_describe_func(
+def create_strategy(
     data: "Series",
     datetime_is_numeric: bool,
-) -> Callable:
-    """Select proper function for describing series based on data type.
+    percentiles: Sequence[float],
+) -> StrategyAbstract:
+    """Create proper instance of Strategy for describing series based on data type.
 
     Parameters
     ----------
@@ -341,14 +380,18 @@ def select_describe_func(
         Series to be described.
     datetime_is_numeric : bool
         Whether to treat datetime dtypes as numeric.
+    percentiles : list-like of numbers
+        The percentiles to include in the output.
     """
+    strategy: Type[StrategyAbstract]
+
     if is_bool_dtype(data.dtype):
-        return describe_categorical_1d
+        strategy = CategoricalStrategy
     elif is_numeric_dtype(data):
-        return describe_numeric_1d
+        strategy = NumericStrategy
     elif is_datetime64_any_dtype(data.dtype):
         if datetime_is_numeric:
-            return describe_timestamp_1d
+            strategy = TimestampStrategy
         else:
             warnings.warn(
                 "Treating datetime data as categorical rather than numeric in "
@@ -358,11 +401,12 @@ def select_describe_func(
                 FutureWarning,
                 stacklevel=5,
             )
-            return describe_timestamp_as_categorical_1d
+            strategy = TimestampAsCategoricalStrategy
     elif is_timedelta64_dtype(data.dtype):
-        return describe_numeric_1d
+        strategy = NumericStrategy
     else:
-        return describe_categorical_1d
+        strategy = CategoricalStrategy
+    return strategy(data, percentiles)
 
 
 def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
