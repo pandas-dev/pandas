@@ -1862,8 +1862,6 @@ class Rolling(RollingAndExpandingMixin):
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
                 * midpoint: (`i` + `j`) / 2.
-        **kwargs
-            For function compatibility and will not have an effect on the result.
         """
         ).replace("\n", "", 1),
         kwargs_compat,

@@ -9,11 +9,13 @@ from pandas.util._decorators import doc
 
 from pandas.core.window.doc import (
     _shared_docs,
-    doc_template,
+    args_compat,
+    create_section_header,
     kwargs_compat,
     numba_notes,
-    numpy_args_kwargs,
-    window_agg_numba_args_kwargs_parameters,
+    template_header,
+    template_returns,
+    template_see_also,
     window_agg_numba_parameters,
     window_apply_parameters,
 )
@@ -151,29 +153,29 @@ class Expanding(RollingAndExpandingMixin):
     agg = aggregate
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
         window_method="expanding",
         aggregation_description="count of non NaN observations",
-        parameters=kwargs_compat,
-        numpy_args_kwargs="",
         agg_method="count",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def count(self):
         return super().count()
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        window_apply_parameters,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
         window_method="expanding",
         aggregation_description="custom aggregation function",
-        parameters=window_apply_parameters,
-        numpy_args_kwargs="",
         agg_method="apply",
-        other_see_also="",
-        notes=numba_notes,
-        examples="",
     )
     def apply(
         self,
@@ -194,102 +196,131 @@ class Expanding(RollingAndExpandingMixin):
         )
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        window_agg_numba_parameters,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes,
         window_method="expanding",
         aggregation_description="sum",
-        parameters=window_agg_numba_args_kwargs_parameters,
-        numpy_args_kwargs="",
         agg_method="sum",
-        other_see_also="",
-        notes=numba_notes,
-        examples="",
     )
     def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("sum", args, kwargs)
         return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        window_agg_numba_parameters,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes,
         window_method="expanding",
         aggregation_description="maximum",
-        parameters=window_agg_numba_args_kwargs_parameters,
-        numpy_args_kwargs="",
         agg_method="max",
-        other_see_also="",
-        notes=numba_notes,
-        examples="",
     )
     def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("max", args, kwargs)
         return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        window_agg_numba_parameters,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes,
         window_method="expanding",
         aggregation_description="minimum",
-        parameters=window_agg_numba_args_kwargs_parameters,
-        numpy_args_kwargs="",
         agg_method="min",
-        other_see_also="",
-        notes=numba_notes,
-        examples="",
     )
     def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("min", args, kwargs)
         return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        window_agg_numba_parameters,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes,
         window_method="expanding",
         aggregation_description="mean",
-        parameters=window_agg_numba_args_kwargs_parameters,
-        numpy_args_kwargs="",
         agg_method="mean",
-        other_see_also="",
-        notes=numba_notes,
-        examples="",
     )
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("mean", args, kwargs)
         return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        window_agg_numba_parameters,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes,
         window_method="expanding",
         aggregation_description="median",
-        parameters=window_agg_numba_parameters,
-        numpy_args_kwargs="",
         agg_method="median",
-        other_see_also="",
-        notes=numba_notes,
-        examples="",
     )
     def median(self, engine=None, engine_kwargs=None, **kwargs):
         return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
-        doc_template,
-        window_method="expanding",
-        aggregation_description="standard deviation",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
         """
-        ),
-        numpy_args_kwargs=numpy_args_kwargs,
-        agg_method="std",
-        other_see_also="numpy.std : Equivalent method for Numpy array.\n",
-        notes=dedent(
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        "numpy.std : Equivalent method for Numpy array.\n",
+        create_section_header("Notes"),
+        dedent(
             """
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
         A minimum of one period is required for the rolling calculation.
         """
-        ),
-        examples=dedent(
+        ).replace("\n", "", 1),
+        create_section_header("Examples"),
+        dedent(
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
 
@@ -303,35 +334,43 @@ class Expanding(RollingAndExpandingMixin):
         6    0.786796
         dtype: float64
         """
-        ),
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="standard deviation",
+        agg_method="std",
     )
     def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
     @doc(
-        doc_template,
-        window_method="expanding",
-        aggregation_description="variance",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
         """
-        ),
-        numpy_args_kwargs=numpy_args_kwargs,
-        agg_method="var",
-        other_see_also="numpy.var : Equivalent method for Numpy array.\n",
-        notes=dedent(
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        "numpy.var : Equivalent method for Numpy array.\n",
+        create_section_header("Notes"),
+        dedent(
             """
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
         A minimum of one period is required for the rolling calculation.
         """
-        ),
-        examples=dedent(
+        ).replace("\n", "", 1),
+        create_section_header("Examples"),
+        dedent(
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
 
@@ -345,28 +384,35 @@ class Expanding(RollingAndExpandingMixin):
         6    0.619048
         dtype: float64
         """
-        ),
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="variance",
+        agg_method="var",
     )
     def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
     @doc(
-        doc_template,
-        window_method="expanding",
-        aggregation_description="standard error of mean",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
         """
-        ),
-        numpy_args_kwargs="",
-        agg_method="sem",
-        other_see_also="",
-        notes="A minimum of one period is required for the calculation.",
-        examples=dedent(
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        "A minimum of one period is required for the calculation.\n",
+        create_section_header("Examples"),
+        dedent(
             """
         >>> s = pd.Series([0, 1, 2, 3])
 
@@ -377,39 +423,45 @@ class Expanding(RollingAndExpandingMixin):
         3    0.745356
         dtype: float64
         """
-        ),
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="standard error of mean",
+        agg_method="sem",
     )
     def sem(self, ddof: int = 1, *args, **kwargs):
         return super().sem(ddof=ddof, **kwargs)
 
     @doc(
-        doc_template,
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        "scipy.stats.skew : Third moment of a probability density.\n",
+        create_section_header("Notes"),
+        "A minimum of three periods is required for the rolling calculation.\n",
         window_method="expanding",
         aggregation_description="unbiased skewness",
-        parameters=kwargs_compat,
-        numpy_args_kwargs=numpy_args_kwargs,
         agg_method="skew",
-        other_see_also="scipy.stats.skew : Third moment of a probability density.\n",
-        notes="A minimum of three periods is required for the rolling calculation.",
-        examples="",
     )
     def skew(self, **kwargs):
         return super().skew(**kwargs)
 
     @doc(
-        doc_template,
-        window_method="expanding",
-        aggregation_description="Fisher's definition of kurtosis without bias",
-        parameters=kwargs_compat,
-        numpy_args_kwargs="",
-        agg_method="kurt",
-        other_see_also="scipy.stats.kurtosis : Reference SciPy method.\n",
-        notes=dedent(
-            """
-        A minimum of four periods is required for the calculation.
-        """
-        ),
-        examples=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        "scipy.stats.kurtosis : Reference SciPy method.\n",
+        create_section_header("Notes"),
+        "A minimum of four periods is required for the calculation.\n",
+        create_section_header("Examples"),
+        dedent(
             """
         The example below will show a rolling calculation with a window size of
         four matching the equivalent function call using `scipy.stats`.
@@ -429,16 +481,18 @@ class Expanding(RollingAndExpandingMixin):
         4    4.999874
         dtype: float64
         """
-        ),
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="Fisher's definition of kurtosis without bias",
+        agg_method="kurt",
     )
     def kurt(self, **kwargs):
         return super().kurt(**kwargs)
 
     @doc(
-        doc_template,
-        window_method="expanding",
-        aggregation_description="quantile",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         quantile : float
             Quantile to compute. 0 <= quantile <= 1.
@@ -452,15 +506,16 @@ class Expanding(RollingAndExpandingMixin):
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
                 * midpoint: (`i` + `j`) / 2.
-        **kwargs
-            For function compatibility and will not have an effect on the result.
         """
-        ),
-        numpy_args_kwargs="",
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        window_method="expanding",
+        aggregation_description="quantile",
         agg_method="quantile",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def quantile(
         self,
@@ -475,10 +530,9 @@ class Expanding(RollingAndExpandingMixin):
         )
 
     @doc(
-        doc_template,
-        window_method="expanding",
-        aggregation_description="sample covariance",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         other : Series, DataFrame, or ndarray, optional
             If not supplied then will default to self and produce pairwise
@@ -493,15 +547,16 @@ class Expanding(RollingAndExpandingMixin):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
-        **kwargs
-            For function compatibility and will not have an effect on the result.
         """
-        ),
-        numpy_args_kwargs="",
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        window_method="expanding",
+        aggregation_description="sample covariance",
         agg_method="cov",
-        other_see_also="",
-        notes="",
-        examples="",
     )
     def cov(
         self,
@@ -513,31 +568,35 @@ class Expanding(RollingAndExpandingMixin):
         return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @doc(
-        doc_template,
-        window_method="rolling",
-        aggregation_description="covariance",
-        parameters=dedent(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
             """
         other : Series, DataFrame, or ndarray, optional
-            If not supplied then will default to self.
+            If not supplied then will default to self and produce pairwise
+            output.
         pairwise : bool, default None
-            Calculate pairwise combinations of columns within a
-            DataFrame. If `other` is not specified, defaults to `True`,
-            otherwise defaults to `False`.
-            Not relevant for :class:`~pandas.Series`.
-        **kwargs
-            For function compatibility and will not have an effect on the result.
+            If False then only matching columns between self and other will be
+            used and the output will be a DataFrame.
+            If True then all pairwise combinations will be calculated and the
+            output will be a MultiIndexed DataFrame in the case of DataFrame
+            inputs. In the case of missing elements, only complete pairwise
+            observations will be used.
         """
-        ),
-        numpy_args_kwargs="",
-        agg_method="corr",
-        other_see_also=dedent(
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        dedent(
             """
         cov : Similar method to calculate covariance.
         numpy.corrcoef : NumPy Pearson's correlation calculation.
         """
-        ),
-        notes=dedent(
+        ).replace("\n", "", 1),
+        create_section_header("Notes"),
+        dedent(
             """
         This function uses Pearson's definition of correlation
         (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
@@ -559,8 +618,10 @@ class Expanding(RollingAndExpandingMixin):
         In the case of missing elements, only complete pairwise observations
         will be used.
         """
-        ),
-        examples="",
+        ).replace("\n", "", 1),
+        window_method="expanding",
+        aggregation_description="correlation",
+        agg_method="corr",
     )
     def corr(
         self,
