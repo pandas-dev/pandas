@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 from pandas import Index, Timedelta, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
@@ -79,9 +81,14 @@ class TestTimedeltaIndexInsert:
 
     def test_insert_invalid_na(self):
         idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
-        msg = r"value should be a 'Timedelta' or 'NaT'\. Got 'datetime64' instead\."
-        with pytest.raises(TypeError, match=msg):
-            idx.insert(0, np.datetime64("NaT"))
+
+        # FIXME: assert_index_equal fails if we pass a different
+        #  instance of np.datetime64("NaT")
+        item = np.datetime64("NaT")
+        result = idx.insert(0, item)
+
+        expected = Index([item] + list(idx), dtype=object, name="idx")
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "item", [0, np.int64(0), np.float64(0), np.array(0), np.datetime64(456, "us")]
@@ -90,18 +97,30 @@ class TestTimedeltaIndexInsert:
         # GH#33703 dont cast these to td64
         tdi = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
-        msg = r"value should be a 'Timedelta' or 'NaT'\. Got '.*' instead\."
-        with pytest.raises(TypeError, match=msg):
-            tdi.insert(1, item)
+        result = tdi.insert(1, item)
 
-    def test_insert_dont_cast_strings(self):
-        # To match DatetimeIndex and PeriodIndex behavior, dont try to
-        #  parse strings to Timedelta
+        expected = Index(
+            [tdi[0], lib.item_from_zerodim(item)] + list(tdi[1:]),
+            dtype=object,
+            name="idx",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_insert_castable_str(self):
         idx = timedelta_range("1day", "3day")
 
         result = idx.insert(0, "1 Day")
-        assert result.dtype == object
-        assert result[0] == "1 Day"
+
+        expected = TimedeltaIndex([idx[0]] + list(idx))
+        tm.assert_index_equal(result, expected)
+
+    def test_insert_non_castable_str(self):
+        idx = timedelta_range("1day", "3day")
+
+        result = idx.insert(0, "foo")
+
+        expected = Index(["foo"] + list(idx), dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_insert_empty(self):
         # Corner case inserting with length zero doesnt raise IndexError
