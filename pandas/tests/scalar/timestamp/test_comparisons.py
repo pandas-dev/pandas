@@ -253,8 +253,7 @@ class TestTimestampComparison:
 
         # This may change if the implementation bound is dropped to match
         #  DatetimeArray/DatetimeIndex GH#24124
-        assert Timestamp.min == other
-        assert Timestamp.min > other - us
+        assert Timestamp.min > other
         # Note: numpy gets the reversed comparison wrong
 
         other = np.datetime64(Timestamp.max).astype("M8[us]")

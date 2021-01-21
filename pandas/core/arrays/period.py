@@ -201,7 +201,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls: Type["PeriodArray"],
+        cls: Type[PeriodArray],
         scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
         *,
         dtype: Optional[Dtype] = None,
@@ -289,8 +289,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _check_compatible_with(self, other, setitem: bool = False):
         if other is NaT:
             return
-        if self.freqstr != other.freqstr:
-            raise raise_on_incompatible(self, other)
+        self._require_matching_freq(other)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -424,14 +423,6 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         Logical indicating if the date belongs to a leap year.
         """
         return isleapyear_arr(np.asarray(self.year))
-
-    @property
-    def start_time(self):
-        return self.to_timestamp(how="start")
-
-    @property
-    def end_time(self):
-        return self.to_timestamp(how="end")
 
     def to_timestamp(self, freq=None, how="start"):
         """
@@ -659,11 +650,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         result : np.ndarray[object]
             Array of DateOffset objects; nulls represented by NaT.
         """
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+        self._require_matching_freq(other)
 
         new_values = algos.checked_add_with_arr(
             self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
@@ -702,8 +689,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
-        if other.base != self.freq.base:
-            raise raise_on_incompatible(self, other)
+        self._require_matching_freq(other, base=True)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
