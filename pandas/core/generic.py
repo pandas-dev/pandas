@@ -6363,7 +6363,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2   NaN 1.0 NaN 5
         3   NaN 3.0 NaN 4
 
-        Replacement happens along same column names and same indices
+        When filling using a DataFrame, replacement happens along
+        the same column names and same indices
 
         >>> df2 = pd.DataFrame(np.zeros((5, 5)), columns=list("ABCED"))
         >>> df.fillna(df2)
