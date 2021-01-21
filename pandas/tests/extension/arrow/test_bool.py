@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_bool_dtype
 from pandas.tests.extension import base
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
@@ -89,7 +90,7 @@ class TestReduceBoolean(base.BaseBooleanReduceTests):
 
 
 def test_is_bool_dtype(data):
-    assert pd.api.types.is_bool_dtype(data)
+    assert is_bool_dtype(data)
     assert pd.core.common.is_bool_indexer(data)
     s = pd.Series(range(len(data)))
     result = s[data]

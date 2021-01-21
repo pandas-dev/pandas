@@ -16,10 +16,9 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_extension_array_dtype
-
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_extension_array_dtype, is_integer_dtype
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
@@ -119,7 +118,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             if (
                 hasattr(other, "dtype")
                 and not is_extension_array_dtype(other.dtype)
-                and pd.api.types.is_integer_dtype(other.dtype)
+                and is_integer_dtype(other.dtype)
             ):
                 # other is np.int64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype

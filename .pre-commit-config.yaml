@@ -168,6 +168,12 @@ repos:
             pandas/tests/io/excel/test_writers\.py
             |pandas/tests/io/pytables/common\.py
             |pandas/tests/io/pytables/test_store\.py$
+    -   id: no-pandas-api-types
+        name: Check code for instances of pd.api.types
+        entry: (pd|pandas)\.api\.types\.
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:

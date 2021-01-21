@@ -5813,7 +5813,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Convert to ordered categorical type with custom ordering:
 
-        >>> cat_dtype = pd.api.types.CategoricalDtype(
+        >>> from pandas.api.types import CategoricalDtype
+        >>> cat_dtype = CategoricalDtype(
         ...     categories=[2, 1], ordered=True)
         >>> ser.astype(cat_dtype)
         0    1
