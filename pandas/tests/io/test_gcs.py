@@ -114,7 +114,15 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     compression["method"] = "infer"
     path_gcs += f".{compression_only}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
-    assert gcs_buffer.getvalue() == buffer.getvalue()
+
+    res = gcs_buffer.getvalue()
+    expected = buffer.getvalue()
+    # We would like to assert these are equal, but the 11th byte is a last-modified
+    #  timestamp, which in some builds is off-by-one, so we check around that
+    #  See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
+    assert res[:10] == expected[:10]
+    assert res[11:] == expected[11:]
+
     read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
     tm.assert_frame_equal(df, read_df)
 
