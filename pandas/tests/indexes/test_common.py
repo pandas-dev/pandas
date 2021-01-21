@@ -352,6 +352,13 @@ class TestCommon:
         if dtype in ["int64", "uint64"]:
             if needs_i8_conversion(index.dtype):
                 warn = FutureWarning
+        elif (
+            isinstance(index, DatetimeIndex)
+            and index.tz is not None
+            and dtype == "datetime64[ns]"
+        ):
+            # This astype is deprecated in favor of tz_localize
+            warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn, check_stacklevel=False):

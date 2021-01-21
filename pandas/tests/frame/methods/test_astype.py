@@ -515,7 +515,9 @@ class TestAstype:
         result = timezone_frame.astype(object)
         tm.assert_frame_equal(result, expected)
 
-        result = timezone_frame.astype("datetime64[ns]")
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64tz->dt64 deprecated
+            result = timezone_frame.astype("datetime64[ns]")
         expected = DataFrame(
             {
                 "A": date_range("20130101", periods=3),
