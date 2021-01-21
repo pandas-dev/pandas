@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union, cast
 
 import numpy as np
 
@@ -21,13 +23,13 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import (
     astype_dt64_to_dt64tz,
     astype_nansafe,
+    can_hold_element,
     convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
-    maybe_infer_dtype_type,
     maybe_promote,
     maybe_upcast,
     soft_convert_objects,
@@ -40,7 +42,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float,
     is_integer,
     is_list_like,
     is_object_dtype,
@@ -51,7 +52,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
@@ -75,6 +76,7 @@ from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
+    is_exact_shape_match,
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
@@ -98,8 +100,6 @@ class Block(PandasObject):
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
     is_float = False
-    is_integer = False
-    is_complex = False
     is_datetime = False
     is_datetimetz = False
     is_timedelta = False
@@ -113,7 +113,7 @@ class Block(PandasObject):
     @classmethod
     def _simple_new(
         cls, values: ArrayLike, placement: BlockPlacement, ndim: int
-    ) -> "Block":
+    ) -> Block:
         """
         Fastpath constructor, does *no* validation
         """
@@ -275,7 +275,7 @@ class Block(PandasObject):
 
         self._mgr_locs = new_mgr_locs
 
-    def make_block(self, values, placement=None) -> "Block":
+    def make_block(self, values, placement=None) -> Block:
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -371,7 +371,7 @@ class Block(PandasObject):
         self.values = np.delete(self.values, loc, 0)
         self.mgr_locs = self.mgr_locs.delete(loc)
 
-    def apply(self, func, **kwargs) -> List["Block"]:
+    def apply(self, func, **kwargs) -> List[Block]:
         """
         apply the function to my values; return a block if we are not
         one
@@ -381,7 +381,7 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
-    def reduce(self, func, ignore_failures: bool = False) -> List["Block"]:
+    def reduce(self, func, ignore_failures: bool = False) -> List[Block]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
@@ -402,7 +402,7 @@ class Block(PandasObject):
         nb = self.make_block(res_values)
         return [nb]
 
-    def _split_op_result(self, result) -> List["Block"]:
+    def _split_op_result(self, result) -> List[Block]:
         # See also: split_and_operate
         if is_extension_array_dtype(result) and result.ndim > 1:
             # TODO(EA2D): unnecessary with 2D EAs
@@ -421,7 +421,7 @@ class Block(PandasObject):
 
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
@@ -462,7 +462,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, inplace)
 
-    def _split(self) -> List["Block"]:
+    def _split(self) -> List[Block]:
         """
         Split a block into a list of single-column blocks.
         """
@@ -478,7 +478,7 @@ class Block(PandasObject):
 
     def split_and_operate(
         self, mask, f, inplace: bool, ignore_failures: bool = False
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -546,7 +546,7 @@ class Block(PandasObject):
 
         return new_blocks
 
-    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
+    def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
 
         # no need to downcast our float
         # unless indicated
@@ -555,7 +555,7 @@ class Block(PandasObject):
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
 
-    def downcast(self, dtypes=None) -> List["Block"]:
+    def downcast(self, dtypes=None) -> List[Block]:
         """ try to downcast each item to the dict of dtypes if present """
         # turn it off completely
         if dtypes is False:
@@ -701,7 +701,7 @@ class Block(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
@@ -711,11 +711,7 @@ class Block(PandasObject):
 
     def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
-        dtype = self.values.dtype.type
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, dtype)
-        return isinstance(element, dtype)
+        raise NotImplementedError("Implemented on subclasses")
 
     def should_store(self, value: ArrayLike) -> bool:
         """
@@ -763,7 +759,7 @@ class Block(PandasObject):
         value,
         inplace: bool = False,
         regex: bool = False,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
@@ -810,7 +806,7 @@ class Block(PandasObject):
         inplace: bool = False,
         convert: bool = True,
         mask=None,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         Replace elements by the given value.
 
@@ -857,7 +853,7 @@ class Block(PandasObject):
         dest_list: List[Any],
         inplace: bool = False,
         regex: bool = False,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         See BlockManager._replace_list docstring.
         """
@@ -960,15 +956,7 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-        if self._can_hold_element(value):
-            # We only get here for non-Extension Blocks, so _try_coerce_args
-            #  is only relevant for DatetimeBlock and TimedeltaBlock
-            if self.dtype.kind in ["m", "M"]:
-                arr = self.array_values().T
-                arr[indexer] = value
-                return self
-
-        else:
+        if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
             # TODO: can we just use coerce_to_target_dtype for all this
             if hasattr(value, "dtype"):
@@ -989,6 +977,11 @@ class Block(PandasObject):
 
             return self.astype(dtype).setitem(indexer, value)
 
+        if self.dtype.kind in ["m", "M"]:
+            arr = self.array_values().T
+            arr[indexer] = value
+            return self
+
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
@@ -1004,11 +997,7 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        exact_match = (
-            len(arr_value.shape)
-            and arr_value.shape[0] == values.shape[0]
-            and arr_value.size == values.size
-        )
+        exact_match = is_exact_shape_match(values, arr_value)
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -1022,7 +1011,13 @@ class Block(PandasObject):
             # GH25495 - If the current dtype is not categorical,
             # we need to create a new categorical block
             values[indexer] = value
-            return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+            if values.ndim == 2:
+                # TODO(EA2D): special case not needed with 2D EAs
+                if values.shape[-1] != 1:
+                    # shouldn't get here (at least until 2D EAs)
+                    raise NotImplementedError
+                values = values[:, 0]
+            return self.make_block(Categorical(values, dtype=arr_value.dtype))
 
         elif exact_match and is_ea_value:
             # GH#32395 if we're going to replace the values entirely, just
@@ -1054,7 +1049,7 @@ class Block(PandasObject):
         block = self.make_block(values)
         return block
 
-    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
+    def putmask(self, mask, new) -> List[Block]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -1065,7 +1060,6 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
-        axis : int
 
         Returns
         -------
@@ -1082,8 +1076,6 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            # We only get here for non-Extension Blocks, so _try_coerce_args
-            #  is only relevant for DatetimeBlock and TimedeltaBlock
             if self.dtype.kind in ["m", "M"]:
                 arr = self.array_values()
                 arr = cast("NDArrayBackedExtensionArray", arr)
@@ -1095,18 +1087,18 @@ class Block(PandasObject):
             if transpose:
                 new_values = new_values.T
 
-            # pandas/core/internals/blocks.py:1052: error: Argument 1 to
-            # "putmask_without_repeat" has incompatible type "Union[ndarray,
-            # ExtensionArray]"; expected "ndarray"  [arg-type]
-            putmask_without_repeat(new_values, mask, new)  # type: ignore[arg-type]
+            putmask_without_repeat(new_values, mask, new)
+            return [self]
 
-        # maybe upcast me
-        elif mask.any():
+        elif not mask.any():
+            return [self]
+
+        else:
+            # may need to upcast
             if transpose:
                 mask = mask.T
                 if isinstance(new, np.ndarray):
                     new = new.T
-                axis = new_values.ndim - axis - 1
 
             # operate column-by-column
             def f(mask, val, idx):
@@ -1133,8 +1125,6 @@ class Block(PandasObject):
             new_blocks = self.split_and_operate(mask, f, True)
             return new_blocks
 
-        return [self]
-
     def coerce_to_target_dtype(self, other):
         """
         coerce the current block to a dtype compat for other
@@ -1154,7 +1144,7 @@ class Block(PandasObject):
         self,
         method: str = "pad",
         axis: int = 0,
-        index: Optional["Index"] = None,
+        index: Optional[Index] = None,
         inplace: bool = False,
         limit: Optional[int] = None,
         limit_direction: str = "forward",
@@ -1216,7 +1206,7 @@ class Block(PandasObject):
         limit: Optional[int] = None,
         limit_area: Optional[str] = None,
         downcast: Optional[str] = None,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -1238,7 +1228,7 @@ class Block(PandasObject):
     def _interpolate(
         self,
         method: str,
-        index: "Index",
+        index: Index,
         fill_value: Optional[Any] = None,
         axis: int = 0,
         limit: Optional[int] = None,
@@ -1247,14 +1237,14 @@ class Block(PandasObject):
         inplace: bool = False,
         downcast: Optional[str] = None,
         **kwargs,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """ interpolate using scipy wrappers """
         inplace = validate_bool_kwarg(inplace, "inplace")
         data = self.values if inplace else self.values.copy()
 
         # only deal with floats
         if not self.is_float:
-            if not self.is_integer:
+            if self.dtype.kind not in ["i", "u"]:
                 return [self]
             data = data.astype(np.float64)
 
@@ -1323,7 +1313,7 @@ class Block(PandasObject):
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def diff(self, n: int, axis: int = 1) -> List["Block"]:
+    def diff(self, n: int, axis: int = 1) -> List[Block]:
         """ return block for the diff of the values """
         new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
         return [self.make_block(values=new_values)]
@@ -1344,7 +1334,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1381,7 +1371,7 @@ class Block(PandasObject):
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
             if (
-                (self.is_integer or self.is_bool)
+                (self.dtype.kind in ["b", "i", "u"])
                 and lib.is_float(other)
                 and np.isnan(other)
             ):
@@ -1397,7 +1387,7 @@ class Block(PandasObject):
                 return self._maybe_downcast(blocks, "infer")
 
             if not (
-                (self.is_integer or self.is_bool)
+                (self.dtype.kind in ["b", "i", "u"])
                 and lib.is_float(other)
                 and np.isnan(other)
             ):
@@ -1427,7 +1417,7 @@ class Block(PandasObject):
         cond = cond.swapaxes(axis, 0)
         mask = np.array([cond[i].all() for i in range(cond.shape[0])], dtype=bool)
 
-        result_blocks: List["Block"] = []
+        result_blocks: List[Block] = []
         for m in [mask, ~mask]:
             if m.any():
                 result = cast(np.ndarray, result)  # EABlock overrides where
@@ -1531,7 +1521,7 @@ class Block(PandasObject):
         mask: np.ndarray,
         inplace: bool = True,
         regex: bool = False,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         Replace value corresponding to the given boolean array with another
         value.
@@ -1652,7 +1642,7 @@ class ExtensionBlock(Block):
         assert locs.tolist() == [0]
         self.values = values
 
-    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
+    def putmask(self, mask, new) -> List[Block]:
         """
         See Block.putmask.__doc__
         """
@@ -1857,7 +1847,7 @@ class ExtensionBlock(Block):
             placement=self.mgr_locs,
         )
 
-    def diff(self, n: int, axis: int = 1) -> List["Block"]:
+    def diff(self, n: int, axis: int = 1) -> List[Block]:
         if axis == 0 and n != 0:
             # n==0 case will be a no-op so let is fall through
             # Since we only have one column, the result will be all-NA.
@@ -1872,7 +1862,7 @@ class ExtensionBlock(Block):
 
     def shift(
         self, periods: int, axis: int = 0, fill_value: Any = None
-    ) -> List["ExtensionBlock"]:
+    ) -> List[ExtensionBlock]:
         """
         Shift the block by `periods`.
 
@@ -1887,7 +1877,7 @@ class ExtensionBlock(Block):
             )
         ]
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
 
         cond = _extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
@@ -1958,7 +1948,24 @@ class ExtensionBlock(Block):
         return blocks, mask
 
 
-class ObjectValuesExtensionBlock(ExtensionBlock):
+class HybridMixin:
+    """
+    Mixin for Blocks backed (maybe indirectly) by ExtensionArrays.
+    """
+
+    array_values: Callable
+
+    def _can_hold_element(self, element: Any) -> bool:
+        values = self.array_values()
+
+        try:
+            values._validate_setitem_value(element)
+            return True
+        except (ValueError, TypeError):
+            return False
+
+
+class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
     """
     Block providing backwards-compatibility for `.values`.
 
@@ -1969,39 +1976,26 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     def external_values(self):
         return self.values.astype(object)
 
-    def _can_hold_element(self, element: Any) -> bool:
-        if is_valid_nat_for_dtype(element, self.dtype):
-            return True
-        if isinstance(element, list) and len(element) == 0:
-            return True
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, self.dtype.type)
-        return isinstance(element, self.dtype.type)
-
 
 class NumericBlock(Block):
     __slots__ = ()
     is_numeric = True
-    _can_hold_na = True
+
+    def _can_hold_element(self, element: Any) -> bool:
+        return can_hold_element(self.dtype, element)
+
+    @property
+    def _can_hold_na(self):
+        return self.dtype.kind not in ["b", "i", "u"]
+
+    @property
+    def is_bool(self):
+        return self.dtype.kind == "b"
 
 
 class FloatBlock(NumericBlock):
     __slots__ = ()
     is_float = True
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
-                tipo.type, np.timedelta64
-            )
-        return isinstance(
-            element, (float, int, np.floating, np.int_)
-        ) and not isinstance(
-            element,
-            (bool, np.bool_, np.timedelta64),
-        )
 
     def to_native_types(
         self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
@@ -2037,41 +2031,16 @@ class FloatBlock(NumericBlock):
         return self.make_block(res)
 
 
-class ComplexBlock(NumericBlock):
-    __slots__ = ()
-    is_complex = True
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, (np.floating, np.integer, np.complexfloating))
-        return isinstance(
-            element, (float, int, complex, np.float_, np.int_)
-        ) and not isinstance(element, (bool, np.bool_))
-
-
-class IntBlock(NumericBlock):
-    __slots__ = ()
-    is_integer = True
-    _can_hold_na = False
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return (
-                issubclass(tipo.type, np.integer)
-                and not issubclass(tipo.type, np.timedelta64)
-                and self.dtype.itemsize >= tipo.itemsize
-            )
-        # We have not inferred an integer from the dtype
-        # check if we have a builtin int or a float equal to an int
-        return is_integer(element) or (is_float(element) and element.is_integer())
-
-
-class DatetimeLikeBlockMixin(Block):
+class DatetimeLikeBlockMixin(HybridMixin, Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
-    _can_hold_na = True
+    @property
+    def _holder(self):
+        return DatetimeArray
+
+    @property
+    def fill_value(self):
+        return np.datetime64("NaT", "ns")
 
     def get_values(self, dtype: Optional[Dtype] = None):
         """
@@ -2094,7 +2063,7 @@ class DatetimeLikeBlockMixin(Block):
         # TODO(EA2D): this can be removed if we ever have 2D EA
         return self.array_values().reshape(self.shape)[key]
 
-    def diff(self, n: int, axis: int = 0) -> List["Block"]:
+    def diff(self, n: int, axis: int = 0) -> List[Block]:
         """
         1st discrete difference.
 
@@ -2135,7 +2104,7 @@ class DatetimeLikeBlockMixin(Block):
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         return self.make_block(result)
 
-    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
 
@@ -2151,21 +2120,14 @@ class DatetimeLikeBlockMixin(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
-    def _can_hold_element(self, element: Any) -> bool:
-        arr = self.array_values()
-
-        try:
-            arr._validate_setitem_value(element)
-            return True
-        except (TypeError, ValueError):
-            return False
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
-    _holder = DatetimeArray
-    fill_value = np.datetime64("NaT", "ns")
+
+    @property
+    def _can_hold_na(self):
+        return True
 
     def _maybe_coerce_values(self, values):
         """
@@ -2211,17 +2173,17 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_extension = True
 
     internal_values = Block.internal_values
-
-    _holder = DatetimeBlock._holder
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     diff = DatetimeBlock.diff
-    fillna = DatetimeBlock.fillna  # i.e. Block.fillna
-    fill_value = DatetimeBlock.fill_value
-    _can_hold_na = DatetimeBlock._can_hold_na
+    fill_value = np.datetime64("NaT", "ns")
     where = DatetimeBlock.where
 
     array_values = ExtensionBlock.array_values
+
+    @property
+    def _holder(self):
+        return DatetimeArray
 
     def _maybe_coerce_values(self, values):
         """
@@ -2285,7 +2247,21 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def external_values(self):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
+        if self.is_datetimetz:
+            # avoid FutureWarning in .astype in casting from dt64t to dt64
+            return self.values._data
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
+
+    def fillna(self, value, limit=None, inplace=False, downcast=None):
+        # We support filling a DatetimeTZ with a `value` whose timezone
+        # is different by coercing to object.
+        if self._can_hold_element(value):
+            return super().fillna(value, limit, inplace, downcast)
+
+        # different timezones, or a non-tz
+        return self.astype(object).fillna(
+            value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
@@ -2326,6 +2302,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_timedelta = True
+    _can_hold_na = True
+    is_numeric = False
     fill_value = np.timedelta64("NaT", "ns")
 
     def _maybe_coerce_values(self, values):
@@ -2356,18 +2334,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
                 "`pd.Timedelta(seconds=n)` instead."
             )
         return super().fillna(value, **kwargs)
-
-
-class BoolBlock(NumericBlock):
-    __slots__ = ()
-    is_bool = True
-    _can_hold_na = False
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, np.bool_)
-        return isinstance(element, (bool, np.bool_))
 
 
 class ObjectBlock(Block):
@@ -2424,7 +2390,7 @@ class ObjectBlock(Block):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         """
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
@@ -2454,7 +2420,7 @@ class ObjectBlock(Block):
 
         return blocks
 
-    def _maybe_downcast(self, blocks: List["Block"], downcast=None) -> List["Block"]:
+    def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
 
         if downcast is not None:
             return blocks
@@ -2471,7 +2437,7 @@ class ObjectBlock(Block):
         value,
         inplace: bool = False,
         regex: bool = False,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
         #  go through _replace_list
@@ -2507,7 +2473,7 @@ class CategoricalBlock(ExtensionBlock):
         dest_list: List[Any],
         inplace: bool = False,
         regex: bool = False,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         if len(algos.unique(dest_list)) == 1:
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
@@ -2520,7 +2486,7 @@ class CategoricalBlock(ExtensionBlock):
         value,
         inplace: bool = False,
         regex: bool = False,
-    ) -> List["Block"]:
+    ) -> List[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
 
@@ -2572,12 +2538,8 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
         cls = TimeDeltaBlock
     elif kind == "f":
         cls = FloatBlock
-    elif kind == "c":
-        cls = ComplexBlock
-    elif kind == "i" or kind == "u":
-        cls = IntBlock
-    elif kind == "b":
-        cls = BoolBlock
+    elif kind in ["c", "i", "u", "b"]:
+        cls = NumericBlock
     else:
         cls = ObjectBlock
     return cls

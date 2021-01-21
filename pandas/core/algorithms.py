@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -68,7 +67,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
-    from pandas.core.arrays import DatetimeArray, IntervalArray, TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -153,15 +152,10 @@ def _ensure_data(
             from pandas import PeriodIndex
 
             values = PeriodIndex(values)._data
-            dtype = values.dtype
         elif is_timedelta64_dtype(values.dtype) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
-            # pandas/core/algorithms.py:151: error: Incompatible types in assignment
-            # (expression has type "TimedeltaArray", variable has type "ndarray")
-            # [assignment]
-            values = TimedeltaIndex(values)._data  # type: ignore[assignment]
-            dtype = values.dtype
+            values = TimedeltaIndex(values)._data
         else:
             # Datetime
             if values.ndim > 1 and is_datetime64_ns_dtype(values.dtype):
@@ -177,19 +171,9 @@ def _ensure_data(
 
             from pandas import DatetimeIndex
 
-            # pandas/core/algorithms.py:168: error: Incompatible types in assignment
-            # (expression has type "DatetimeArray", variable has type "ndarray")
-            # [assignment]
-            values = DatetimeIndex(values)._data  # type: ignore[assignment]
-            dtype = values.dtype
-
-        # error: Incompatible return value type (got "Tuple[Any, Union[dtype,
-        # ExtensionDtype, None]]", expected "Tuple[ndarray, Union[dtype,
-        # ExtensionDtype]]")
-
-        # pandas/core/algorithms.py:174: error: Item "ndarray" of "Union[Any, ndarray]"
-        # has no attribute "asi8"  [union-attr]
-        return values.asi8, dtype  # type: ignore[return-value,union-attr]
+            values = DatetimeIndex(values)._data
+        dtype = values.dtype
+        return values.asi8, dtype
 
     elif is_categorical_dtype(values.dtype) and (
         is_categorical_dtype(dtype) or dtype is None
@@ -519,19 +503,9 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
 
     comps = _ensure_arraylike(comps)
-    # pandas/core/algorithms.py:471: error: Incompatible types in assignment (expression
-    # has type "Union[Any, ExtensionArray]", variable has type "Index")  [assignment]
-
-    # pandas/core/algorithms.py:471: error: Incompatible types in assignment (expression
-    # has type "Union[Any, ExtensionArray]", variable has type "Series")  [assignment]
-    comps = extract_array(comps, extract_numpy=True)  # type: ignore[assignment]
-    if is_categorical_dtype(comps.dtype):
-        # TODO(extension)
-        # handle categoricals
-        return cast("Categorical", comps).isin(values)
-
-    elif is_interval_dtype(comps.dtype):
-        return cast("IntervalArray", comps).isin(values)
+    comps = extract_array(comps, extract_numpy=True)
+    if is_extension_array_dtype(comps.dtype):
+        return comps.isin(values)
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -543,9 +517,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     elif needs_i8_conversion(values.dtype):
         return isin(comps, values.astype(object))
 
-    elif is_extension_array_dtype(comps.dtype) or is_extension_array_dtype(
-        values.dtype
-    ):
+    elif is_extension_array_dtype(values.dtype):
         return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
@@ -556,7 +528,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
-            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+
+            def f(c, v):
+                return np.logical_or(np.in1d(c, v), np.isnan(c))
+
         else:
             f = np.in1d
 
@@ -655,7 +630,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -963,10 +938,9 @@ def value_counts_arraylike(values, dropna: bool):
         keys, counts = f(values, dropna)
 
         mask = isna(values)
-        if not dropna and mask.any():
-            if not isna(keys).any():
-                keys = np.insert(keys, 0, np.NaN)
-                counts = np.insert(counts, 0, mask.sum())
+        if not dropna and mask.any() and not isna(keys).any():
+            keys = np.insert(keys, 0, np.NaN)
+            counts = np.insert(counts, 0, mask.sum())
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
@@ -1833,9 +1807,8 @@ def take_nd(
                     dtype, fill_value = arr.dtype, arr.dtype.type()
 
     flip_order = False
-    if arr.ndim == 2:
-        if arr.flags.f_contiguous:
-            flip_order = True
+    if arr.ndim == 2 and arr.flags.f_contiguous:
+        flip_order = True
 
     if flip_order:
         arr = arr.T
@@ -2007,8 +1980,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    result = arr.searchsorted(value, side=side, sorter=sorter)
-    return result
+    return arr.searchsorted(value, side=side, sorter=sorter)
 
 
 # ---- #

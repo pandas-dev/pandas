@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Type, Union
@@ -191,7 +193,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         values: np.ndarray,
         freq: Optional[BaseOffset] = None,
         dtype: Optional[Dtype] = None,
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
@@ -199,12 +201,12 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls: Type["PeriodArray"],
+        cls: Type[PeriodArray],
         scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
         *,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         if dtype and isinstance(dtype, PeriodDtype):
             freq = dtype.freq
         else:
@@ -225,11 +227,11 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Optional[Dtype] = None, copy=False
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_datetime64(cls, data, freq, tz=None) -> "PeriodArray":
+    def _from_datetime64(cls, data, freq, tz=None) -> PeriodArray:
         """
         Construct a PeriodArray from a datetime64 array
 
@@ -287,8 +289,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _check_compatible_with(self, other, setitem: bool = False):
         if other is NaT:
             return
-        if self.freqstr != other.freqstr:
-            raise raise_on_incompatible(self, other)
+        self._require_matching_freq(other)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -423,14 +424,6 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """
         return isleapyear_arr(np.asarray(self.year))
 
-    @property
-    def start_time(self):
-        return self.to_timestamp(how="start")
-
-    @property
-    def end_time(self):
-        return self.to_timestamp(how="end")
-
     def to_timestamp(self, freq=None, how="start"):
         """
         Cast to DatetimeArray/Index.
@@ -504,7 +497,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
-    def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
+    def asfreq(self, freq=None, how: str = "E") -> PeriodArray:
         """
         Convert the {klass} to the specified frequency `freq`.
 
@@ -657,11 +650,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         result : np.ndarray[object]
             Array of DateOffset objects; nulls represented by NaT.
         """
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+        self._require_matching_freq(other)
 
         new_values = algos.checked_add_with_arr(
             self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
@@ -675,7 +664,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     def _addsub_int_array(
         self, other: np.ndarray, op: Callable[[Any, Any], Any]
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         """
         Add or subtract array of integers; equivalent to applying
         `_time_shift` pointwise.
@@ -700,8 +689,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
-        if other.base != self.freq.base:
-            raise raise_on_incompatible(self, other)
+        self._require_matching_freq(other, base=True)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here

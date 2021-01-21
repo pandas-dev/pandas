@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import datetime
 from distutils.version import LooseVersion
@@ -410,6 +412,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
+        if hasattr(self.book, "close"):
+            # pyxlsb opens a TemporaryFile
+            self.book.close()
         self.handles.close()
 
     @property
@@ -483,6 +488,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
+            if hasattr(sheet, "close"):
+                # pyxlsb opens two TemporaryFiles
+                sheet.close()
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
@@ -783,7 +791,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, "ExcelWriter"],
+        path: Union[FilePathOrBuffer, ExcelWriter],
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -1043,12 +1051,7 @@ class ExcelFile:
         self._io = stringify_path(path_or_buffer)
 
         # Determine xlrd version if installed
-        if (
-            import_optional_dependency(
-                "xlrd", raise_on_missing=False, on_version="ignore"
-            )
-            is None
-        ):
+        if import_optional_dependency("xlrd", errors="ignore") is None:
             xlrd_version = None
         else:
             import xlrd

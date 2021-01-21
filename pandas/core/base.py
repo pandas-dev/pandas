@@ -321,10 +321,9 @@ class SelectionMixin:
             return f
 
         f = getattr(np, arg, None)
-        if f is not None:
-            if hasattr(self, "__array__"):
-                # in particular exclude Window
-                return f(self, *args, **kwargs)
+        if f is not None and hasattr(self, "__array__"):
+            # in particular exclude Window
+            return f(self, *args, **kwargs)
 
         raise AttributeError(
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
@@ -1064,7 +1063,7 @@ class IndexOpsMixin(OpsMixin):
         1.0    1
         dtype: int64
         """
-        result = value_counts(
+        return value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -1072,7 +1071,6 @@ class IndexOpsMixin(OpsMixin):
             bins=bins,
             dropna=dropna,
         )
-        return result
 
     def unique(self):
         values = self._values
@@ -1335,8 +1333,7 @@ class IndexOpsMixin(OpsMixin):
         duplicated = self.duplicated(keep=keep)
         # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
         # indexable  [index]
-        result = self[np.logical_not(duplicated)]  # type: ignore[index]
-        return result
+        return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep="first"):
         # pandas/core/base.py:1316: error: Value of type variable "ArrayLike" of

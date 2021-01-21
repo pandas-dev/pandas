@@ -313,6 +313,10 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
+    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
+    def test_groupby_agg_extension(self, data_for_grouping):
+        super().test_groupby_agg_extension(data_for_grouping)
+
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):

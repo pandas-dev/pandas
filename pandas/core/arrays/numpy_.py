@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numbers
 from typing import Optional, Tuple, Type, Union
 
@@ -75,7 +77,7 @@ class PandasDtype(ExtensionDtype):
         return self.kind == "b"
 
     @classmethod
-    def construct_from_string(cls, string: str) -> "PandasDtype":
+    def construct_from_string(cls, string: str) -> PandasDtype:
         try:
             dtype = np.dtype(string)
         except TypeError as err:
@@ -87,7 +89,7 @@ class PandasDtype(ExtensionDtype):
         return cls(dtype)
 
     @classmethod
-    def construct_array_type(cls) -> Type["PandasArray"]:
+    def construct_array_type(cls) -> Type[PandasArray]:
         """
         Return the array type associated with this dtype.
 
@@ -153,7 +155,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: Union[np.ndarray, "PandasArray"], copy: bool = False):
+    def __init__(self, values: Union[np.ndarray, PandasArray], copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -174,7 +176,7 @@ class PandasArray(
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "PandasArray":
+    ) -> PandasArray:
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
@@ -189,10 +191,10 @@ class PandasArray(
         return cls(result)
 
     @classmethod
-    def _from_factorized(cls, values, original) -> "PandasArray":
+    def _from_factorized(cls, values, original) -> PandasArray:
         return cls(values)
 
-    def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
+    def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
 
     # ------------------------------------------------------------------------
