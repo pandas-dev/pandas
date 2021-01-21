@@ -135,7 +135,7 @@ Should you wish to subsequently access the data in the ``tips.xlsx`` file, you c
 
 .. code-block:: python
 
-    tips_df = pd.read_excel("./tips.xlsx", header=None)
+    tips_df = pd.read_excel("./tips.xlsx", index_col=0)
 
 You have just read in an Excel file using pandas!
 
