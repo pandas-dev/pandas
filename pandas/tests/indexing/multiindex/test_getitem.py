@@ -231,6 +231,26 @@ def test_frame_getitem_nan_multiindex(nulls_fixture):
     tm.assert_frame_equal(result, expected)
 
 
+def test_frame_getitem_nan_cols_multiindex(nulls_fixture):
+    # Slicing MultiIndex including levels with nan values, for more information
+    # see GH#25154
+    data = [[1, 2, 3], [4, 5, 6]]
+    index = ["First", nulls_fixture]
+    columns = MultiIndex.from_tuples([("a", "foo"), ("b", "foo"), ("b", nulls_fixture)])
+    df = DataFrame(data=data, columns=columns, index=index, dtype="int64")
+
+    # Slicing out 'b', ['foo', nan]
+    cols = (["b"], ["foo", nulls_fixture])
+    result = df.loc[:, cols]
+    expected_columns = MultiIndex.from_tuples([("b", "foo"), ("b", nulls_fixture)])
+    expected_index = ["First", nulls_fixture]
+    expected = DataFrame(
+        [[2, 3], [5, 6]], columns=expected_columns, index=expected_index, dtype="int64"
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
 # ----------------------------------------------------------------------------
 # test indexing of DataFrame with multi-level Index with duplicates
 # ----------------------------------------------------------------------------
