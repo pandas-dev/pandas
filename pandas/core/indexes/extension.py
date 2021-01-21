@@ -42,7 +42,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     """
     attr = getattr(delegate, name)
 
-    if isinstance(attr, property):
+    if isinstance(attr, property) or type(attr).__name__ == "getset_descriptor":
+        # getset_descriptor i.e. property defined in cython class
         if cache:
 
             def cached(self):
