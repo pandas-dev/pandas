@@ -6,7 +6,7 @@ whatsnew,whatsnew/index
 release,whatsnew/index
 
 # web
-/getting_started.html,/docs/getting_started/index.html
+getting_started,docs/getting_started/index
 
 # getting started
 install,getting_started/install
