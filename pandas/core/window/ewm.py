@@ -320,7 +320,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
+        template_see_also[:-1],
         window_method="ewm",
         aggregation_description="(exponential weighted moment) mean",
         agg_method="mean",

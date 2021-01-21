@@ -553,7 +553,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
+        template_see_also[:-1],
         window_method="expanding",
         aggregation_description="sample covariance",
         agg_method="cov",
