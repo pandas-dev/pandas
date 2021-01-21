@@ -38,6 +38,7 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -321,7 +322,7 @@ def maybe_downcast_numeric(result, dtype: DtypeObj, do_round: bool = False):
 
 
 def maybe_cast_result(
-    result: ArrayLike, obj: "Series", numeric_only: bool = False, how: str = ""
+    result: ArrayLike, obj: Series, numeric_only: bool = False, how: str = ""
 ) -> ArrayLike:
     """
     Try casting result to a different type if appropriate
@@ -397,7 +398,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
 
 
 def maybe_cast_to_extension_array(
-    cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
+    cls: Type[ExtensionArray], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
 ) -> ArrayLike:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
@@ -964,6 +965,16 @@ def astype_dt64_to_dt64tz(
         if copy:
             # this should be the only copy
             values = values.copy()
+
+        level = find_stack_level()
+        warnings.warn(
+            "Using .astype to convert from timezone-naive dtype to "
+            "timezone-aware dtype is deprecated and will raise in a "
+            "future version.  Use ser.dt.tz_localize instead.",
+            FutureWarning,
+            stacklevel=level,
+        )
+
         # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
         return values.tz_localize("UTC").tz_convert(dtype.tz)
@@ -973,6 +984,15 @@ def astype_dt64_to_dt64tz(
 
         if values.tz is None and aware:
             dtype = cast(DatetimeTZDtype, dtype)
+            level = find_stack_level()
+            warnings.warn(
+                "Using .astype to convert from timezone-naive dtype to "
+                "timezone-aware dtype is deprecated and will raise in a "
+                "future version.  Use obj.tz_localize instead.",
+                FutureWarning,
+                stacklevel=level,
+            )
+
             return values.tz_localize(dtype.tz)
 
         elif aware:
@@ -984,6 +1004,16 @@ def astype_dt64_to_dt64tz(
             return result
 
         elif values.tz is not None:
+            level = find_stack_level()
+            warnings.warn(
+                "Using .astype to convert from timezone-aware dtype to "
+                "timezone-naive dtype is deprecated and will raise in a "
+                "future version.  Use obj.tz_localize(None) or "
+                "obj.tz_convert('UTC').tz_localize(None) instead",
+                FutureWarning,
+                stacklevel=level,
+            )
+
             result = values.tz_convert("UTC").tz_localize(None)
             if copy:
                 result = result.copy()

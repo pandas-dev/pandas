@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Hashable, List, Optional, Tuple
 import warnings
 
@@ -288,11 +290,11 @@ class MPLPlot:
     def _args_adjust(self):
         pass
 
-    def _has_plotted_object(self, ax: "Axes") -> bool:
+    def _has_plotted_object(self, ax: Axes) -> bool:
         """check whether ax has data"""
         return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
 
-    def _maybe_right_yaxis(self, ax: "Axes", axes_num):
+    def _maybe_right_yaxis(self, ax: Axes, axes_num):
         if not self.on_right(axes_num):
             # secondary axes may be passed via ax kw
             return self._get_ax_layer(ax)
@@ -536,7 +538,7 @@ class MPLPlot:
                     raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
-    def _apply_axis_properties(self, axis: "Axis", rot=None, fontsize=None):
+    def _apply_axis_properties(self, axis: Axis, rot=None, fontsize=None):
         """
         Tick creation within matplotlib is reasonably expensive and is
         internally deferred until accessed as Ticks are created/destroyed
@@ -616,7 +618,7 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend_handle(self, ax: "Axes"):
+    def _get_ax_legend_handle(self, ax: Axes):
         """
         Take in axes and return ax, legend and handle under different scenarios
         """
@@ -671,7 +673,7 @@ class MPLPlot:
 
     @classmethod
     @register_pandas_matplotlib_converters
-    def _plot(cls, ax: "Axes", x, y, style=None, is_errorbar: bool = False, **kwds):
+    def _plot(cls, ax: Axes, x, y, style=None, is_errorbar: bool = False, **kwds):
         mask = isna(y)
         if mask.any():
             y = np.ma.array(y)
@@ -944,14 +946,14 @@ class PlanePlot(MPLPlot):
     def nseries(self) -> int:
         return 1
 
-    def _post_plot_logic(self, ax: "Axes", data):
+    def _post_plot_logic(self, ax: Axes, data):
         x, y = self.x, self.y
         xlabel = self.xlabel if self.xlabel is not None else pprint_thing(x)
         ylabel = self.ylabel if self.ylabel is not None else pprint_thing(y)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
 
-    def _plot_colorbar(self, ax: "Axes", **kwds):
+    def _plot_colorbar(self, ax: Axes, **kwds):
         # Addresses issues #10611 and #10678:
         # When plotting scatterplots and hexbinplots in IPython
         # inline backend the colorbar axis height tends not to
@@ -1167,7 +1169,7 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _plot(
-        cls, ax: "Axes", x, y, style=None, column_num=None, stacking_id=None, **kwds
+        cls, ax: Axes, x, y, style=None, column_num=None, stacking_id=None, **kwds
     ):
         # column_num is used to get the target column from plotf in line and
         # area plots
@@ -1179,7 +1181,7 @@ class LinePlot(MPLPlot):
         return lines
 
     @classmethod
-    def _ts_plot(cls, ax: "Axes", x, data, style=None, **kwds):
+    def _ts_plot(cls, ax: Axes, x, data, style=None, **kwds):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
@@ -1206,7 +1208,7 @@ class LinePlot(MPLPlot):
             return None
 
     @classmethod
-    def _initialize_stacker(cls, ax: "Axes", stacking_id, n: int):
+    def _initialize_stacker(cls, ax: Axes, stacking_id, n: int):
         if stacking_id is None:
             return
         if not hasattr(ax, "_stacker_pos_prior"):
@@ -1217,7 +1219,7 @@ class LinePlot(MPLPlot):
         ax._stacker_neg_prior[stacking_id] = np.zeros(n)
 
     @classmethod
-    def _get_stacked_values(cls, ax: "Axes", stacking_id, values, label):
+    def _get_stacked_values(cls, ax: Axes, stacking_id, values, label):
         if stacking_id is None:
             return values
         if not hasattr(ax, "_stacker_pos_prior"):
@@ -1236,7 +1238,7 @@ class LinePlot(MPLPlot):
         )
 
     @classmethod
-    def _update_stacker(cls, ax: "Axes", stacking_id, values):
+    def _update_stacker(cls, ax: Axes, stacking_id, values):
         if stacking_id is None:
             return
         if (values >= 0).all():
@@ -1244,7 +1246,7 @@ class LinePlot(MPLPlot):
         elif (values <= 0).all():
             ax._stacker_neg_prior[stacking_id] += values
 
-    def _post_plot_logic(self, ax: "Axes", data):
+    def _post_plot_logic(self, ax: Axes, data):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
@@ -1303,7 +1305,7 @@ class AreaPlot(LinePlot):
     @classmethod
     def _plot(
         cls,
-        ax: "Axes",
+        ax: Axes,
         x,
         y,
         style=None,
@@ -1345,7 +1347,7 @@ class AreaPlot(LinePlot):
         res = [rect]
         return res
 
-    def _post_plot_logic(self, ax: "Axes", data):
+    def _post_plot_logic(self, ax: Axes, data):
         LinePlot._post_plot_logic(self, ax, data)
 
         is_shared_y = len(list(ax.get_shared_y_axes())) > 0
@@ -1401,7 +1403,7 @@ class BarPlot(MPLPlot):
             self.left = np.array(self.left)
 
     @classmethod
-    def _plot(cls, ax: "Axes", x, y, w, start=0, log=False, **kwds):
+    def _plot(cls, ax: Axes, x, y, w, start=0, log=False, **kwds):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
     @property
@@ -1483,7 +1485,7 @@ class BarPlot(MPLPlot):
                 )
             self._add_legend_handle(rect, label, index=i)
 
-    def _post_plot_logic(self, ax: "Axes", data):
+    def _post_plot_logic(self, ax: Axes, data):
         if self.use_index:
             str_index = [pprint_thing(key) for key in data.index]
         else:
@@ -1495,7 +1497,7 @@ class BarPlot(MPLPlot):
 
         self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
 
-    def _decorate_ticks(self, ax: "Axes", name, ticklabels, start_edge, end_edge):
+    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
 
         if self.xticks is not None:
@@ -1518,10 +1520,10 @@ class BarhPlot(BarPlot):
         return self.left
 
     @classmethod
-    def _plot(cls, ax: "Axes", x, y, w, start=0, log=False, **kwds):
+    def _plot(cls, ax: Axes, x, y, w, start=0, log=False, **kwds):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 
-    def _decorate_ticks(self, ax: "Axes", name, ticklabels, start_edge, end_edge):
+    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
         ax.set_yticks(self.tick_pos)
