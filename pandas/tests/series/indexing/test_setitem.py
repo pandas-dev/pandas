@@ -367,7 +367,7 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(series, expected)
         assert series.index.freq == expected.index.freq
 
-    def test_series_with_object_dtype(self):
+    def test_series_with_empty(self):
         # GH 21881
         timestamp = Timestamp(1412526600000000000)
         expected = Series([], dtype=object)
