@@ -46,6 +46,7 @@ class DocBuilder:
         warnings_are_errors=False,
     ):
         self.num_jobs = num_jobs
+        self.include_api = include_api
         self.verbosity = verbosity
         self.warnings_are_errors = warnings_are_errors
 
@@ -83,8 +84,8 @@ class DocBuilder:
                 obj = pandas  # noqa: F821
                 for name in single_doc.split("."):
                     obj = getattr(obj, name)
-            except AttributeError:
-                raise ImportError(f"Could not import {single_doc}")
+            except AttributeError as err:
+                raise ImportError(f"Could not import {single_doc}") from err
             else:
                 return single_doc[len("pandas.") :]
         else:
@@ -188,7 +189,14 @@ class DocBuilder:
                 if not row or row[0].strip().startswith("#"):
                     continue
 
-                path = os.path.join(BUILD_PATH, "html", *row[0].split("/")) + ".html"
+                html_path = os.path.join(BUILD_PATH, "html")
+                path = os.path.join(html_path, *row[0].split("/")) + ".html"
+
+                if not self.include_api and (
+                    os.path.join(html_path, "reference") in path
+                    or os.path.join(html_path, "generated") in path
+                ):
+                    continue
 
                 try:
                     title = self._get_page_title(row[1])
@@ -197,11 +205,6 @@ class DocBuilder:
                     # may not be able to read the rst because it has some
                     # sphinx specific stuff
                     title = "this page"
-
-                if os.path.exists(path):
-                    raise RuntimeError(
-                        f"Redirection would overwrite an existing file: {path}"
-                    )
 
                 with open(path, "w") as moved_page_fd:
                     html = f"""\
@@ -286,12 +289,12 @@ def main():
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
-        description="pandas documentation builder", epilog=f"Commands: {joined}",
+        description="pandas documentation builder", epilog=f"Commands: {joined}"
     )
 
     joined = ", ".join(cmds)
     argparser.add_argument(
-        "command", nargs="?", default="html", help=f"command to run: {joined}",
+        "command", nargs="?", default="html", help=f"command to run: {joined}"
     )
     argparser.add_argument(
         "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"

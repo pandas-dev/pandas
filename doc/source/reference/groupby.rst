@@ -36,8 +36,10 @@ Function application
 
    GroupBy.apply
    GroupBy.agg
-   GroupBy.aggregate
-   GroupBy.transform
+   SeriesGroupBy.aggregate
+   DataFrameGroupBy.aggregate
+   SeriesGroupBy.transform
+   DataFrameGroupBy.transform
    GroupBy.pipe
 
 Computations / descriptive stats
@@ -48,6 +50,7 @@ Computations / descriptive stats
    GroupBy.all
    GroupBy.any
    GroupBy.bfill
+   GroupBy.backfill
    GroupBy.count
    GroupBy.cumcount
    GroupBy.cummax
@@ -65,6 +68,7 @@ Computations / descriptive stats
    GroupBy.ngroup
    GroupBy.nth
    GroupBy.ohlc
+   GroupBy.pad
    GroupBy.prod
    GroupBy.rank
    GroupBy.pct_change
@@ -86,10 +90,12 @@ application to columns of a specific data type.
 
    DataFrameGroupBy.all
    DataFrameGroupBy.any
+   DataFrameGroupBy.backfill
    DataFrameGroupBy.bfill
    DataFrameGroupBy.corr
    DataFrameGroupBy.count
    DataFrameGroupBy.cov
+   DataFrameGroupBy.cumcount
    DataFrameGroupBy.cummax
    DataFrameGroupBy.cummin
    DataFrameGroupBy.cumprod
@@ -104,11 +110,13 @@ application to columns of a specific data type.
    DataFrameGroupBy.idxmin
    DataFrameGroupBy.mad
    DataFrameGroupBy.nunique
+   DataFrameGroupBy.pad
    DataFrameGroupBy.pct_change
    DataFrameGroupBy.plot
    DataFrameGroupBy.quantile
    DataFrameGroupBy.rank
    DataFrameGroupBy.resample
+   DataFrameGroupBy.sample
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
    DataFrameGroupBy.skew
@@ -120,6 +128,7 @@ The following methods are available only for ``SeriesGroupBy`` objects.
 .. autosummary::
    :toctree: api/
 
+   SeriesGroupBy.hist
    SeriesGroupBy.nlargest
    SeriesGroupBy.nsmallest
    SeriesGroupBy.nunique

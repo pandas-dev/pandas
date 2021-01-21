@@ -1,4 +1,7 @@
-from pathlib import Path
+from datetime import datetime, timedelta, tzinfo
+from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
+from mmap import mmap
+from os import PathLike
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -11,6 +14,9 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
+    Tuple,
+    Type,
     TypeVar,
     Union,
 )
@@ -21,14 +27,28 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from pandas._libs import Period, Timedelta, Timestamp  # noqa: F401
+    from typing import final
+
+    from pandas._libs import Period, Timedelta, Timestamp
+
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
+    from pandas import Interval
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
-    from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
-    from pandas.core.indexes.base import Index  # noqa: F401
+    from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame  # noqa: F401
-    from pandas import Interval  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
-    from pandas.core.frame import DataFrame  # noqa: F401
+    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
+    from pandas.core.indexes.base import Index
+    from pandas.core.internals import ArrayManager, BlockManager
+    from pandas.core.resample import Resampler
+    from pandas.core.series import Series
+    from pandas.core.window.rolling import BaseWindow
+
+    from pandas.io.formats.format import EngFormatter
+else:
+    # typing.final does not exist until py38
+    final = lambda x: x
+
 
 # array-like
 
@@ -42,11 +62,15 @@ DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timed
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
-# other
+# timestamp and timedelta convertible types
 
-Dtype = Union[str, np.dtype, "ExtensionDtype"]
-DtypeObj = Union[np.dtype, "ExtensionDtype"]
-FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
+TimestampConvertibleTypes = Union[
+    "Timestamp", datetime, np.datetime64, int, np.int64, float, str
+]
+TimedeltaConvertibleTypes = Union[
+    "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
+]
+Timezone = Union[str, tzinfo]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
@@ -61,14 +85,81 @@ FrameOrSeriesUnion = Union["DataFrame", "Series"]
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
-Label = Optional[Hashable]
-Level = Union[Label, int]
+IndexLabel = Union[Hashable, Sequence[Hashable]]
+Level = Union[Hashable, int]
+Shape = Tuple[int, ...]
+Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
-JSONSerializable = Union[PythonScalar, List, Dict]
+JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
 
+# dtypes
+NpDtype = Union[str, np.dtype]
+Dtype = Union[
+    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+]
+# DtypeArg specifies all allowable dtypes in a functions its dtype argument
+DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
+
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
+Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
+
+# used in decorators to preserve the signature of the function it decorates
+# see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+FuncType = Callable[..., Any]
+F = TypeVar("F", bound=FuncType)
+
+# types of vectorized key functions for DataFrame::sort_values and
+# DataFrame::sort_index, among others
+ValueKeyFunc = Optional[Callable[["Series"], Union["Series", AnyArrayLike]]]
+IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
+
+# types of `func` kwarg for DataFrame.aggregate and Series.aggregate
+AggFuncTypeBase = Union[Callable, str]
+AggFuncTypeDict = Dict[Hashable, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
+AggFuncType = Union[
+    AggFuncTypeBase,
+    List[AggFuncTypeBase],
+    AggFuncTypeDict,
+]
+AggObjType = Union[
+    "Series",
+    "DataFrame",
+    "SeriesGroupBy",
+    "DataFrameGroupBy",
+    "BaseWindow",
+    "Resampler",
+]
+
+PythonFuncType = Callable[[Any], Any]
+
+# filenames and file-like-objects
+Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
+FileOrBuffer = Union[str, Buffer[T]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
+
+# for arbitrary kwargs passed during reading/writing files
+StorageOptions = Optional[Dict[str, Any]]
+
+
+# compression keywords and compression
+CompressionDict = Dict[str, Any]
+CompressionOptions = Optional[Union[str, CompressionDict]]
+
+
+# types in DataFrameFormatter
+FormattersType = Union[
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
+]
+ColspaceType = Mapping[Hashable, Union[str, int]]
+FloatFormatType = Union[str, Callable, "EngFormatter"]
+ColspaceArgType = Union[
+    str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
+]
+
+# internals
+Manager = Union["ArrayManager", "BlockManager"]

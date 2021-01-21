@@ -72,7 +72,7 @@ def fill_zeros(result, x, y):
 
 def mask_zero_div_zero(x, y, result):
     """
-    Set results of 0 / 0 or 0 // 0 to np.nan, regardless of the dtypes
+    Set results of  0 // 0 to np.nan, regardless of the dtypes
     of the numerator or the denominator.
 
     Parameters
@@ -83,13 +83,16 @@ def mask_zero_div_zero(x, y, result):
 
     Returns
     -------
-    filled_result : ndarray
+    ndarray
+        The filled result.
 
     Examples
     --------
     >>> x = np.array([1, 0, -1], dtype=np.int64)
+    >>> x
+    array([ 1,  0, -1])
     >>> y = 0       # int 0; numpy behavior is different with float
-    >>> result = x / y
+    >>> result = x // y
     >>> result      # raw numpy result does not fill division by zero
     array([0, 0, 0])
     >>> mask_zero_div_zero(x, y, result)

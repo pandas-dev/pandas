@@ -87,8 +87,8 @@ def test_series_getitem_returns_scalar(
         (lambda s: s[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4, 5)], IndexingError, "Too many indexers"),
-        (lambda s: s.__getitem__(len(s)), IndexError, "is out of bounds"),
-        (lambda s: s[len(s)], IndexError, "is out of bounds"),
+        (lambda s: s.__getitem__(len(s)), KeyError, ""),  # match should include len(s)
+        (lambda s: s[len(s)], KeyError, ""),  # match should include len(s)
         (
             lambda s: s.iloc[len(s)],
             IndexError,
@@ -197,6 +197,38 @@ def test_frame_mixed_depth_get():
     tm.assert_series_equal(result, expected)
 
 
+def test_frame_getitem_nan_multiindex(nulls_fixture):
+    # GH#29751
+    # loc on a multiindex containing nan values
+    n = nulls_fixture  # for code readability
+    cols = ["a", "b", "c"]
+    df = DataFrame(
+        [[11, n, 13], [21, n, 23], [31, n, 33], [41, n, 43]],
+        columns=cols,
+        dtype="int64",
+    ).set_index(["a", "b"])
+
+    idx = (21, n)
+    result = df.loc[:idx]
+    expected = DataFrame(
+        [[11, n, 13], [21, n, 23]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[idx:]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33], [41, n, 43]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    idx1, idx2 = (21, n), (31, n)
+    result = df.loc[idx1:idx2]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+
 # ----------------------------------------------------------------------------
 # test indexing of DataFrame with multi-level Index with duplicates
 # ----------------------------------------------------------------------------
@@ -259,4 +291,23 @@ def test_frame_mi_empty_slice():
     expected = DataFrame(
         index=[0, 1], columns=MultiIndex(levels=[[1], [2]], codes=[[], []])
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_empty_multiindex():
+    # GH#36936
+    arrays = [["a", "a", "b", "a"], ["a", "a", "b", "b"]]
+    index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+    df = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
+
+    # loc on empty multiindex == loc with False mask
+    empty_multiindex = df.loc[df.loc[:, "value"] == 0, :].index
+    result = df.loc[empty_multiindex, :]
+    expected = df.loc[[False] * len(df.index), :]
+    tm.assert_frame_equal(result, expected)
+
+    # replacing value with loc on empty multiindex
+    df.loc[df.loc[df.loc[:, "value"] == 0].index, "value"] = 5
+    result = df
+    expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
     tm.assert_frame_equal(result, expected)

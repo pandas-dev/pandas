@@ -5,7 +5,6 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
-import pandas as pd
 from pandas import (
     Index,
     NaT,
@@ -147,9 +146,9 @@ class TestPeriodIndex:
 
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(idx._ndarray_values)
+            PeriodIndex(idx.asi8)
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(list(idx._ndarray_values))
+            PeriodIndex(list(idx.asi8))
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
@@ -195,7 +194,7 @@ class TestPeriodIndex:
         if box is None:
             data = data._values
         elif box == "series":
-            data = pd.Series(data)
+            data = Series(data)
 
         result = PeriodIndex(data, freq="D")
         expected = PeriodIndex(
@@ -322,14 +321,15 @@ class TestPeriodIndex:
         idx = period_range("2007-01", name="p", periods=2, freq="M")
 
         with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
-            idx._simple_new(idx, name="p", freq=idx.freq)
+            idx._simple_new(idx, name="p")
 
-        result = idx._simple_new(idx._data, name="p", freq=idx.freq)
+        result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
-        with pytest.raises(AssertionError):
+        msg = "Should be numpy array of type i8"
+        with pytest.raises(AssertionError, match=msg):
             # Need ndarray, not Int64Index
-            type(idx._data)._simple_new(idx.astype("i8"), freq=idx.freq)
+            type(idx._data)._simple_new(idx._int64index, freq=idx.freq)
 
         arr = type(idx._data)._simple_new(idx.asi8, freq=idx.freq)
         result = idx._simple_new(arr, name="p")
@@ -339,19 +339,19 @@ class TestPeriodIndex:
         # GH13079
         idx = PeriodIndex([], freq="M", name="p")
         with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
-            idx._simple_new(idx, name="p", freq="M")
+            idx._simple_new(idx, name="p")
 
-        result = idx._simple_new(idx._data, name="p", freq="M")
+        result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
     @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
         with pytest.raises(AssertionError, match="<class "):
-            PeriodIndex._simple_new(floats, freq="M")
+            PeriodIndex._simple_new(floats)
 
         msg = "PeriodIndex does not allow floating point in construction"
         with pytest.raises(TypeError, match=msg):
-            PeriodIndex(floats, freq="M")
+            PeriodIndex(floats)
 
     def test_constructor_nat(self):
         msg = "start and end must not be NaT"
@@ -361,7 +361,7 @@ class TestPeriodIndex:
             period_range(start="2011-01-01", end="NaT", freq="M")
 
     def test_constructor_year_and_quarter(self):
-        year = pd.Series([2001, 2002, 2003])
+        year = Series([2001, 2002, 2003])
         quarter = year - 2000
         idx = PeriodIndex(year=year, quarter=quarter)
         strs = [f"{t[0]:d}Q{t[1]:d}" for t in zip(quarter, year)]
@@ -462,12 +462,6 @@ class TestPeriodIndex:
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
-        end_intv = Period("2006-12-31", ("w", 1))
-        i2 = period_range(end=end_intv, periods=10)
-        assert len(i1) == len(i2)
-        assert (i1 == i2).all()
-        assert i1.freq == i2.freq
-
         end_intv = Period("2005-05-01", "B")
         i1 = period_range(start=start, end=end_intv)
 
@@ -488,6 +482,10 @@ class TestPeriodIndex:
         vals = np.array(vals)
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(vals)
+
+        # tuple freq disallowed GH#34703
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
         "freq", ["M", "Q", "A", "D", "B", "T", "S", "L", "U", "N", "H"]

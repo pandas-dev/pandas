@@ -4,7 +4,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 import pandas._testing as tm
 import pandas.core.algorithms as algos
@@ -31,7 +31,7 @@ def writeable(request):
         (np.int16, False),
         (np.int8, False),
         (np.object_, True),
-        (np.bool, False),
+        (np.bool_, False),
     ]
 )
 def dtype_can_hold_na(request):

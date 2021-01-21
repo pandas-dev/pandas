@@ -1,11 +1,11 @@
-from numpy.random import randn
+import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 
 
 class TestMultiIndexInsertion:
-    def test_mixed_depth_insert(self):
+    def test_setitem_mixed_depth(self):
         arrays = [
             ["a", "top", "top", "routine1", "routine1", "routine2"],
             ["", "OD", "OD", "result1", "result2", "result1"],
@@ -14,7 +14,7 @@ class TestMultiIndexInsertion:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4, 6), columns=index)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
 
         result = df.copy()
         expected = df.copy()

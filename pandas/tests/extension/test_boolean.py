@@ -16,8 +16,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p14
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -102,16 +100,15 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
+    implements = {"__sub__", "__rsub__"}
+
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
-            if op_name in ("__sub__", "__rsub__"):
-                # subtraction for bools raises TypeError (but not yet in 1.13)
-                if _np_version_under1p14:
-                    pytest.skip("__sub__ does not yet raise in numpy 1.13")
+            if op_name in self.implements:
                 msg = r"numpy boolean subtract"
                 with pytest.raises(TypeError, match=msg):
                     op(s, other)
@@ -133,7 +130,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             elif op_name in ("__truediv__", "__rtruediv__"):
                 # combine with bools does not generate the correct result
                 #  (numpy behaviour for div is to regard the bools as numeric)
-                expected = s.astype(float).combine(other, op)
+                expected = s.astype(float).combine(other, op).astype("Float64")
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
                 expected[result.isna()] = np.nan
@@ -150,6 +147,14 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         # other specific errors tested in the boolean array specific tests
         pass
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        # frame & scalar
+        op_name = all_arithmetic_operators
+        if op_name not in self.implements:
+            mark = pytest.mark.xfail(reason="_reduce needs implementation")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
@@ -230,6 +235,27 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
+    @pytest.mark.skip(reason="uses nullable integer")
+    def test_value_counts_with_normalize(self, data):
+        pass
+
+    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
+        # override because there are only 2 unique values
+
+        # data_for_sorting -> [B, C, A] with A < B < C -> here True, True, False
+        assert data_for_sorting.argmax() == 0
+        assert data_for_sorting.argmin() == 2
+
+        # with repeated values -> first occurence
+        data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
+        assert data.argmax() == 1
+        assert data.argmin() == 0
+
+        # with missing values
+        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        assert data_missing_for_sorting.argmax() == 0
+        assert data_missing_for_sorting.argmin() == 2
+
 
 class TestCasting(base.BaseCastingTests):
     pass
@@ -264,6 +290,22 @@ class TestGroupby(base.BaseGroupbyTests):
         else:
             expected = expected.reset_index()
             self.assert_frame_equal(result, expected)
+
+    def test_groupby_agg_extension(self, data_for_grouping):
+        # GH#38980 groupby agg on extension type fails for non-numeric types
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
+
+        expected = df.iloc[[0, 2, 4]]
+        expected = expected.set_index("A")
+
+        result = df.groupby("A").agg({"B": "first"})
+        self.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").agg("first")
+        self.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").first()
+        self.assert_frame_equal(result, expected)
 
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
@@ -321,6 +363,23 @@ class TestGroupby(base.BaseGroupbyTests):
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("min_count", [0, 10])
+    def test_groupby_sum_mincount(self, data_for_grouping, min_count):
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
+        result = df.groupby("A").sum(min_count=min_count)
+        if min_count == 0:
+            expected = pd.DataFrame(
+                {"B": pd.array([3, 0, 0], dtype="Int64")},
+                index=pd.Index([1, 2, 3], name="A"),
+            )
+            tm.assert_frame_equal(result, expected)
+        else:
+            expected = pd.DataFrame(
+                {"B": pd.array([pd.NA] * 3, dtype="Int64")},
+                index=pd.Index([1, 2, 3], name="A"),
+            )
+            tm.assert_frame_equal(result, expected)
+
 
 class TestNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, s, op_name, skipna):
@@ -346,6 +405,5 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
 
 
-# TODO parsing not yet supported
-# class TestParsing(base.BaseParsingTests):
-#     pass
+class TestParsing(base.BaseParsingTests):
+    pass

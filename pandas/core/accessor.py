@@ -4,7 +4,7 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-from typing import FrozenSet, Set
+from typing import FrozenSet, List, Set
 import warnings
 
 from pandas.util._decorators import doc
@@ -12,28 +12,21 @@ from pandas.util._decorators import doc
 
 class DirNamesMixin:
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset()
+    _hidden_attrs: FrozenSet[str] = frozenset()
 
-    def _dir_deletions(self):
+    def _dir_deletions(self) -> Set[str]:
         """
         Delete unwanted __dir__ for this object.
         """
-        return self._accessors | self._deprecations
+        return self._accessors | self._hidden_attrs
 
-    def _dir_additions(self):
+    def _dir_additions(self) -> Set[str]:
         """
         Add additional __dir__ for this object.
         """
-        rv = set()
-        for accessor in self._accessors:
-            try:
-                getattr(self, accessor)
-                rv.add(accessor)
-            except AttributeError:
-                pass
-        return rv
+        return {accessor for accessor in self._accessors if hasattr(self, accessor)}
 
-    def __dir__(self):
+    def __dir__(self) -> List[str]:
         """
         Provide method name lookup and completion.
 
@@ -41,7 +34,7 @@ class DirNamesMixin:
         -----
         Only provide 'public' methods.
         """
-        rv = set(dir(type(self)))
+        rv = set(super().__dir__())
         rv = (rv - self._dir_deletions()) | self._dir_additions()
         return sorted(rv)
 
@@ -211,7 +204,9 @@ def _register_accessor(name, cls):
 
     See Also
     --------
-    {others}
+    register_dataframe_accessor : Register a custom accessor on DataFrame objects.
+    register_series_accessor : Register a custom accessor on Series objects.
+    register_index_accessor : Register a custom accessor on Index objects.
 
     Notes
     -----
@@ -255,19 +250,20 @@ def _register_accessor(name, cls):
 
     Back in an interactive IPython session:
 
-        >>> ds = pd.DataFrame({{'longitude': np.linspace(0, 10),
-        ...                    'latitude': np.linspace(0, 20)}})
-        >>> ds.geo.center
-        (5.0, 10.0)
-        >>> ds.geo.plot()
-        # plots data on a map
+        .. code-block:: ipython
+
+            In [1]: ds = pd.DataFrame({{"longitude": np.linspace(0, 10),
+               ...:                    "latitude": np.linspace(0, 20)}})
+            In [2]: ds.geo.center
+            Out[2]: (5.0, 10.0)
+            In [3]: ds.geo.plot()  # plots data on a map
     """
 
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
                 f"registration of accessor {repr(accessor)} under name "
-                f"{repr(name)} for type {repr(cls)} is overriding a preexisting"
+                f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
                 stacklevel=2,
@@ -279,33 +275,21 @@ def _register_accessor(name, cls):
     return decorator
 
 
-@doc(
-    _register_accessor,
-    klass="DataFrame",
-    others="register_series_accessor, register_index_accessor",
-)
+@doc(_register_accessor, klass="DataFrame")
 def register_dataframe_accessor(name):
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
 
 
-@doc(
-    _register_accessor,
-    klass="Series",
-    others="register_dataframe_accessor, register_index_accessor",
-)
+@doc(_register_accessor, klass="Series")
 def register_series_accessor(name):
     from pandas import Series
 
     return _register_accessor(name, Series)
 
 
-@doc(
-    _register_accessor,
-    klass="Index",
-    others="register_dataframe_accessor, register_series_accessor",
-)
+@doc(_register_accessor, klass="Index")
 def register_index_accessor(name):
     from pandas import Index
 

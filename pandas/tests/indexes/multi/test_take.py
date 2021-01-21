@@ -11,9 +11,6 @@ def test_take(idx):
     expected = idx[indexer]
     assert result.equals(expected)
 
-    # FIXME: Remove Commented Code
-    # if not isinstance(idx,
-    #                   (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
     # GH 10791
     msg = "'MultiIndex' object has no attribute 'freq'"
     with pytest.raises(AttributeError, match=msg):

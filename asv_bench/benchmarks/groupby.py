@@ -16,7 +16,7 @@ from pandas import (
 
 from .pandas_vb_common import tm
 
-method_blacklist = {
+method_blocklist = {
     "object": {
         "median",
         "prod",
@@ -29,7 +29,6 @@ method_blacklist = {
         "skew",
         "cumprod",
         "cummax",
-        "rank",
         "pct_change",
         "min",
         "var",
@@ -126,6 +125,9 @@ class Groups:
 
     def time_series_groups(self, data, key):
         self.ser.groupby(self.ser).groups
+
+    def time_series_indices(self, data, key):
+        self.ser.groupby(self.ser).indices
 
 
 class GroupManyLabels:
@@ -358,6 +360,26 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class FillNA:
+    def setup(self):
+        N = 100
+        self.df = DataFrame(
+            {"group": [1] * N + [2] * N, "value": [np.nan, 1.0] * N}
+        ).set_index("group")
+
+    def time_df_ffill(self):
+        self.df.groupby("group").fillna(method="ffill")
+
+    def time_df_bfill(self):
+        self.df.groupby("group").fillna(method="bfill")
+
+    def time_srs_ffill(self):
+        self.df.groupby("group")["value"].fillna(method="ffill")
+
+    def time_srs_bfill(self):
+        self.df.groupby("group")["value"].fillna(method="bfill")
+
+
 class GroupByMethods:
 
     param_names = ["dtype", "method", "application"]
@@ -403,7 +425,7 @@ class GroupByMethods:
     ]
 
     def setup(self, dtype, method, application):
-        if method in method_blacklist.get(dtype, {}):
+        if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
         ngroups = 1000
         size = ngroups * 2
@@ -466,7 +488,7 @@ class Float32:
         tmp2 = (np.random.random(10000) * 10.0).astype(np.float32)
         tmp = np.concatenate((tmp1, tmp2))
         arr = np.repeat(tmp, 10)
-        self.df = DataFrame(dict(a=arr, b=arr))
+        self.df = DataFrame({"a": arr, "b": arr})
 
     def time_sum(self):
         self.df.groupby(["a"])["b"].sum()
@@ -605,7 +627,7 @@ class TransformBools:
     def setup(self):
         N = 120000
         transition_points = np.sort(np.random.choice(np.arange(N), 1400))
-        transitions = np.zeros(N, dtype=np.bool)
+        transitions = np.zeros(N, dtype=np.bool_)
         transitions[transition_points] = True
         self.g = transitions.cumsum()
         self.df = DataFrame({"signal": np.random.rand(N)})
@@ -624,6 +646,116 @@ class TransformNaN:
 
     def time_first(self):
         self.df_nans.groupby("key").transform("first")
+
+
+class TransformEngine:
+
+    param_names = ["parallel"]
+    params = [[True, False]]
+
+    def setup(self, parallel):
+        N = 10 ** 3
+        data = DataFrame(
+            {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N},
+            columns=[0, 1],
+        )
+        self.parallel = parallel
+        self.grouper = data.groupby(0)
+
+    def time_series_numba(self, parallel):
+        def function(values, index):
+            return values * 5
+
+        self.grouper[1].transform(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
+
+    def time_series_cython(self, parallel):
+        def function(values):
+            return values * 5
+
+        self.grouper[1].transform(function, engine="cython")
+
+    def time_dataframe_numba(self, parallel):
+        def function(values, index):
+            return values * 5
+
+        self.grouper.transform(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
+
+    def time_dataframe_cython(self, parallel):
+        def function(values):
+            return values * 5
+
+        self.grouper.transform(function, engine="cython")
+
+
+class AggEngine:
+
+    param_names = ["parallel"]
+    params = [[True, False]]
+
+    def setup(self, parallel):
+        N = 10 ** 3
+        data = DataFrame(
+            {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N},
+            columns=[0, 1],
+        )
+        self.parallel = parallel
+        self.grouper = data.groupby(0)
+
+    def time_series_numba(self, parallel):
+        def function(values, index):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper[1].agg(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
+
+    def time_series_cython(self, parallel):
+        def function(values):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper[1].agg(function, engine="cython")
+
+    def time_dataframe_numba(self, parallel):
+        def function(values, index):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper.agg(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
+
+    def time_dataframe_cython(self, parallel):
+        def function(values):
+            total = 0
+            for i, value in enumerate(values):
+                if i % 2:
+                    total += value + 5
+                else:
+                    total += value * 2
+            return total
+
+        self.grouper.agg(function, engine="cython")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

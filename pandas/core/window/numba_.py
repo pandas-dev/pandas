@@ -1,4 +1,4 @@
-import types
+import functools
 from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
@@ -6,78 +6,11 @@ import numpy as np
 from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
-
-def make_rolling_apply(
-    func: Callable[..., Scalar],
-    args: Tuple,
-    nogil: bool,
-    parallel: bool,
-    nopython: bool,
-):
-    """
-    Creates a JITted rolling apply function with a JITted version of
-    the user's function.
-
-    Parameters
-    ----------
-    func : function
-        function to be applied to each window and will be JITed
-    args : tuple
-        *args to be passed into the function
-    nogil : bool
-        nogil parameter from engine_kwargs for numba.jit
-    parallel : bool
-        parallel parameter from engine_kwargs for numba.jit
-    nopython : bool
-        nopython parameter from engine_kwargs for numba.jit
-
-    Returns
-    -------
-    Numba function
-    """
-    numba = import_optional_dependency("numba")
-
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
-
-    if isinstance(func, numba.targets.registry.CPUDispatcher):
-        # Don't jit a user passed jitted function
-        numba_func = func
-    else:
-
-        @numba.generated_jit(nopython=nopython, nogil=nogil, parallel=parallel)
-        def numba_func(window, *_args):
-            if getattr(np, func.__name__, False) is func or isinstance(
-                func, types.BuiltinFunctionType
-            ):
-                jf = func
-            else:
-                jf = numba.jit(func, nopython=nopython, nogil=nogil)
-
-            def impl(window, *_args):
-                return jf(window, *_args)
-
-            return impl
-
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-    def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int,
-    ) -> np.ndarray:
-        result = np.empty(len(begin))
-        for i in loop_range(len(result)):
-            start = begin[i]
-            stop = end[i]
-            window = values[start:stop]
-            count_nan = np.sum(np.isnan(window))
-            if len(window) - count_nan >= minimum_periods:
-                result[i] = numba_func(window, *args)
-            else:
-                result[i] = np.nan
-        return result
-
-    return roll_apply
+from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
+    get_jit_arguments,
+    jit_user_function,
+)
 
 
 def generate_numba_apply_func(
@@ -85,6 +18,7 @@ def generate_numba_apply_func(
     kwargs: Dict[str, Any],
     func: Callable[..., Scalar],
     engine_kwargs: Optional[Dict[str, bool]],
+    name: str,
 ):
     """
     Generate a numba jitted apply function specified by values from engine_kwargs.
@@ -105,22 +39,203 @@ def generate_numba_apply_func(
         function to be applied to each window and will be JITed
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
+    name: str
+        name of the caller (Rolling/Expanding)
 
     Returns
     -------
     Numba function
     """
-    if engine_kwargs is None:
-        engine_kwargs = {}
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
-    nopython = engine_kwargs.get("nopython", True)
-    nogil = engine_kwargs.get("nogil", False)
-    parallel = engine_kwargs.get("parallel", False)
+    cache_key = (func, f"{name}_apply_single")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
 
-    if kwargs and nopython:
-        raise ValueError(
-            "numba does not support kwargs with nopython=True: "
-            "https://github.com/numba/numba/issues/2916"
-        )
+    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba = import_optional_dependency("numba")
 
-    return make_rolling_apply(func, args, nogil, parallel, nopython)
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def roll_apply(
+        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
+    ) -> np.ndarray:
+        result = np.empty(len(begin))
+        for i in numba.prange(len(result)):
+            start = begin[i]
+            stop = end[i]
+            window = values[start:stop]
+            count_nan = np.sum(np.isnan(window))
+            if len(window) - count_nan >= minimum_periods:
+                result[i] = numba_func(window, *args)
+            else:
+                result[i] = np.nan
+        return result
+
+    return roll_apply
+
+
+def generate_numba_groupby_ewma_func(
+    engine_kwargs: Optional[Dict[str, bool]],
+    com: float,
+    adjust: bool,
+    ignore_na: bool,
+):
+    """
+    Generate a numba jitted groupby ewma function specified by values
+    from engine_kwargs.
+
+    Parameters
+    ----------
+    engine_kwargs : dict
+        dictionary of arguments to be passed into numba.jit
+    com : float
+    adjust : bool
+    ignore_na : bool
+
+    Returns
+    -------
+    Numba function
+    """
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+
+    cache_key = (lambda x: x, "groupby_ewma")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
+
+    numba = import_optional_dependency("numba")
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def groupby_ewma(
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+    ) -> np.ndarray:
+        result = np.empty(len(values))
+        alpha = 1.0 / (1.0 + com)
+        for i in numba.prange(len(begin)):
+            start = begin[i]
+            stop = end[i]
+            window = values[start:stop]
+            sub_result = np.empty(len(window))
+
+            old_wt_factor = 1.0 - alpha
+            new_wt = 1.0 if adjust else alpha
+
+            weighted_avg = window[0]
+            nobs = int(not np.isnan(weighted_avg))
+            sub_result[0] = weighted_avg if nobs >= minimum_periods else np.nan
+            old_wt = 1.0
+
+            for j in range(1, len(window)):
+                cur = window[j]
+                is_observation = not np.isnan(cur)
+                nobs += is_observation
+                if not np.isnan(weighted_avg):
+
+                    if is_observation or not ignore_na:
+
+                        old_wt *= old_wt_factor
+                        if is_observation:
+
+                            # avoid numerical errors on constant series
+                            if weighted_avg != cur:
+                                weighted_avg = (
+                                    (old_wt * weighted_avg) + (new_wt * cur)
+                                ) / (old_wt + new_wt)
+                            if adjust:
+                                old_wt += new_wt
+                            else:
+                                old_wt = 1.0
+                elif is_observation:
+                    weighted_avg = cur
+
+                sub_result[j] = weighted_avg if nobs >= minimum_periods else np.nan
+
+            result[start:stop] = sub_result
+
+        return result
+
+    return groupby_ewma
+
+
+def generate_numba_table_func(
+    args: Tuple,
+    kwargs: Dict[str, Any],
+    func: Callable[..., np.ndarray],
+    engine_kwargs: Optional[Dict[str, bool]],
+    name: str,
+):
+    """
+    Generate a numba jitted function to apply window calculations table-wise.
+
+    Func will be passed a M window size x N number of columns array, and
+    must return a 1 x N number of columns array. Func is intended to operate
+    row-wise, but the result will be transposed for axis=1.
+
+    1. jit the user's function
+    2. Return a rolling apply function with the jitted function inline
+
+    Parameters
+    ----------
+    args : tuple
+        *args to be passed into the function
+    kwargs : dict
+        **kwargs to be passed into the function
+    func : function
+        function to be applied to each window and will be JITed
+    engine_kwargs : dict
+        dictionary of arguments to be passed into numba.jit
+    name : str
+        caller (Rolling/Expanding) and original method name for numba cache key
+
+    Returns
+    -------
+    Numba function
+    """
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
+
+    cache_key = (func, f"{name}_table")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
+
+    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba = import_optional_dependency("numba")
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def roll_table(
+        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
+    ):
+        result = np.empty(values.shape)
+        min_periods_mask = np.empty(values.shape)
+        for i in numba.prange(len(result)):
+            start = begin[i]
+            stop = end[i]
+            window = values[start:stop]
+            count_nan = np.sum(np.isnan(window), axis=0)
+            sub_result = numba_func(window, *args)
+            nan_mask = len(window) - count_nan >= minimum_periods
+            min_periods_mask[i, :] = nan_mask
+            result[i, :] = sub_result
+        result = np.where(min_periods_mask, result, np.nan)
+        return result
+
+    return roll_table
+
+
+# This function will no longer be needed once numba supports
+# axis for all np.nan* agg functions
+# https://github.com/numba/numba/issues/1269
+@functools.lru_cache(maxsize=None)
+def generate_manual_numpy_nan_agg_with_axis(nan_func):
+    numba = import_optional_dependency("numba")
+
+    @numba.jit(nopython=True, nogil=True, parallel=True)
+    def nan_agg_with_axis(table):
+        result = np.empty(table.shape[1])
+        for i in numba.prange(table.shape[1]):
+            partition = table[:, i]
+            result[i] = nan_func(partition)
+        return result
+
+    return nan_agg_with_axis

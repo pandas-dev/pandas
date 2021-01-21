@@ -7,7 +7,7 @@ Extending pandas
 ****************
 
 While pandas provides a rich set of methods, containers, and data types, your
-needs may not be fully satisfied. Pandas offers a few options for extending
+needs may not be fully satisfied. pandas offers a few options for extending
 pandas.
 
 .. _extending.register-accessors:
@@ -34,7 +34,7 @@ decorate a class, providing the name of attribute to add. The class's
        @staticmethod
        def _validate(obj):
            # verify there is a column latitude and a column longitude
-           if 'latitude' not in obj.columns or 'longitude' not in obj.columns:
+           if "latitude" not in obj.columns or "longitude" not in obj.columns:
                raise AttributeError("Must have 'latitude' and 'longitude'.")
 
        @property
@@ -50,8 +50,9 @@ decorate a class, providing the name of attribute to add. The class's
 
 Now users can access your methods using the ``geo`` namespace:
 
-      >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
-      ...                    'latitude': np.linspace(0, 20)})
+      >>> ds = pd.Dataframe(
+      ...     {"longitude": np.linspace(0, 10), "latitude": np.linspace(0, 20)}
+      ... )
       >>> ds.geo.center
       (5.0, 10.0)
       >>> ds.geo.plot()
@@ -61,7 +62,7 @@ This can be a convenient way to extend pandas objects without subclassing them.
 If you write a custom accessor, make a pull request adding it to our
 :ref:`ecosystem` page.
 
-We highly recommend validating the data in your accessor's `__init__`.
+We highly recommend validating the data in your accessor's ``__init__``.
 In our ``GeoAccessor``, we validate that the data contains the expected columns,
 raising an ``AttributeError`` when the validation fails.
 For a ``Series`` accessor, you should validate the ``dtype`` if the accessor
@@ -73,15 +74,13 @@ applies only to certain dtypes.
 Extension types
 ---------------
 
-.. versionadded:: 0.23.0
-
 .. warning::
 
    The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
    experimental. They may change between versions without warning.
 
-Pandas defines an interface for implementing data types and arrays that *extend*
-NumPy's type system. Pandas itself uses the extension system for some types
+pandas defines an interface for implementing data types and arrays that *extend*
+NumPy's type system. pandas itself uses the extension system for some types
 that aren't built into NumPy (categorical, period, interval, datetime with
 timezone).
 
@@ -122,7 +121,7 @@ This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
 ``dtype`` attribute.
 
-Pandas makes no restrictions on how an extension array is created via its
+pandas makes no restrictions on how an extension array is created via its
 ``__new__`` or ``__init__``, and puts no restrictions on how you store your
 data. We do require that your array be convertible to a NumPy array, even if
 this is relatively expensive (as it is for ``Categorical``).
@@ -139,7 +138,7 @@ and comments contain guidance for properly implementing the interface.
 
 .. _extending.extension.operator:
 
-:class:`~pandas.api.extensions.ExtensionArray` Operator Support
+:class:`~pandas.api.extensions.ExtensionArray` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. versionadded:: 0.24.0
@@ -178,6 +177,7 @@ your ``MyExtensionArray`` class, as follows:
 
     from pandas.api.extensions import ExtensionArray, ExtensionScalarOpsMixin
 
+
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
 
@@ -210,7 +210,7 @@ will
 
 .. _extending.extension.ufunc:
 
-NumPy Universal Functions
+NumPy universal functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`Series` implements ``__array_ufunc__``. As part of the implementation,
@@ -219,12 +219,12 @@ and re-boxes it if necessary.
 
 If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
 extension array to avoid coercion to an ndarray. See
-`the numpy documentation <https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
+`the NumPy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
 for an example.
 
 As part of your implementation, we require that you defer to pandas when a pandas
 container (:class:`Series`, :class:`DataFrame`, :class:`Index`) is detected in ``inputs``.
-If any of those is present, you should return ``NotImplemented``. Pandas will take care of
+If any of those is present, you should return ``NotImplemented``. pandas will take care of
 unboxing the array from the container and re-calling the ufunc with the unwrapped input.
 
 .. _extending.extension.testing:
@@ -273,6 +273,7 @@ included as a column in a pandas DataFrame):
         def __arrow_array__(self, type=None):
             # convert the underlying array values to a pyarrow Array
             import pyarrow
+
             return pyarrow.array(..., type=type)
 
 The ``ExtensionDtype.__from_arrow__`` method then controls the conversion
@@ -349,7 +350,6 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 .. code-block:: python
 
    class SubclassedSeries(pd.Series):
-
        @property
        def _constructor(self):
            return SubclassedSeries
@@ -360,7 +360,6 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 
 
    class SubclassedDataFrame(pd.DataFrame):
-
        @property
        def _constructor(self):
            return SubclassedDataFrame
@@ -379,7 +378,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(to_framed)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> df = SubclassedDataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
@@ -389,7 +388,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(df)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> sliced1 = df[['A', 'B']]
+   >>> sliced1 = df[["A", "B"]]
    >>> sliced1
       A  B
    0  1  4
@@ -399,7 +398,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(sliced1)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> sliced2 = df['A']
+   >>> sliced2 = df["A"]
    >>> sliced2
    0    1
    1    2
@@ -424,11 +423,11 @@ Below is an example to define two original properties, "internal_cache" as a tem
    class SubclassedDataFrame2(pd.DataFrame):
 
        # temporary properties
-       _internal_names = pd.DataFrame._internal_names + ['internal_cache']
+       _internal_names = pd.DataFrame._internal_names + ["internal_cache"]
        _internal_names_set = set(_internal_names)
 
        # normal properties
-       _metadata = ['added_property']
+       _metadata = ["added_property"]
 
        @property
        def _constructor(self):
@@ -436,15 +435,15 @@ Below is an example to define two original properties, "internal_cache" as a tem
 
 .. code-block:: python
 
-   >>> df = SubclassedDataFrame2({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame2({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
    1  2  5  8
    2  3  6  9
 
-   >>> df.internal_cache = 'cached'
-   >>> df.added_property = 'property'
+   >>> df.internal_cache = "cached"
+   >>> df.added_property = "property"
 
    >>> df.internal_cache
    cached
@@ -452,11 +451,11 @@ Below is an example to define two original properties, "internal_cache" as a tem
    property
 
    # properties defined in _internal_names is reset after manipulation
-   >>> df[['A', 'B']].internal_cache
+   >>> df[["A", "B"]].internal_cache
    AttributeError: 'SubclassedDataFrame2' object has no attribute 'internal_cache'
 
    # properties defined in _metadata are retained
-   >>> df[['A', 'B']].added_property
+   >>> df[["A", "B"]].added_property
    property
 
 .. _extending.plotting-backends:
@@ -470,7 +469,7 @@ one based on Matplotlib. For example:
 
 .. code-block:: python
 
-    >>> pd.set_option('plotting.backend', 'backend.module')
+    >>> pd.set_option("plotting.backend", "backend.module")
     >>> pd.Series([1, 2, 3]).plot()
 
 This would be more or less equivalent to:

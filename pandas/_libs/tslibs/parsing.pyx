@@ -9,33 +9,44 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython.object cimport PyObject_Str
-
 from cpython.datetime cimport datetime, datetime_new, import_datetime, tzinfo
+from cpython.object cimport PyObject_Str
 from cpython.version cimport PY_VERSION_HEX
+
 import_datetime()
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (PyArray_GETITEM, PyArray_ITER_DATA, PyArray_ITER_NEXT,
-                    PyArray_IterNew, flatiter, float64_t)
+from numpy cimport (
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+    flatiter,
+    float64_t,
+)
+
 cnp.import_array()
 
 # dateutil compat
-from dateutil.tz import (tzoffset,
-                         tzlocal as _dateutil_tzlocal,
-                         tzutc as _dateutil_tzutc,
-                         tzstr as _dateutil_tzstr)
+
+from dateutil.parser import DEFAULTPARSER, parse as du_parse
 from dateutil.relativedelta import relativedelta
-from dateutil.parser import DEFAULTPARSER
-from dateutil.parser import parse as du_parse
+from dateutil.tz import (
+    tzlocal as _dateutil_tzlocal,
+    tzoffset,
+    tzstr as _dateutil_tzstr,
+    tzutc as _dateutil_tzutc,
+)
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-from pandas._libs.tslibs.nattype import nat_strings, NaT
-from pandas._libs.tslibs.util cimport is_array, get_c_string_buf_and_size
-from pandas._libs.tslibs.frequencies cimport get_rule_month
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT, c_nat_strings as nat_strings
+from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.util cimport get_c_string_buf_and_size, is_array
+
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
@@ -189,8 +200,12 @@ cdef inline bint does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
-def parse_datetime_string(date_string: str, freq=None, dayfirst=False,
-                          yearfirst=False, **kwargs):
+def parse_datetime_string(
+    str date_string,
+    bint dayfirst=False,
+    bint yearfirst=False,
+    **kwargs,
+):
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -217,7 +232,7 @@ def parse_datetime_string(date_string: str, freq=None, dayfirst=False,
         return dt
 
     try:
-        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
+        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq=None)
         return dt
     except DateParseError:
         raise
@@ -254,10 +269,7 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     -------
     datetime, datetime/dateutil.parser._result, str
     """
-    if not isinstance(arg, str):
-        raise TypeError("parse_time_string argument must be str")
-
-    if getattr(freq, "_typ", None) == "dateoffset":
+    if is_offset_object(freq):
         freq = freq.rule_code
 
     if dayfirst is None or yearfirst is None:
@@ -272,8 +284,9 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     return res
 
 
-cdef parse_datetime_string_with_reso(str date_string, freq=None, dayfirst=False,
-                                     yearfirst=False):
+cdef parse_datetime_string_with_reso(
+    str date_string, str freq=None, bint dayfirst=False, bint yearfirst=False,
+):
     """
     Parse datetime string and try to identify its resolution.
 
@@ -349,7 +362,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         elif py_string in _not_datelike_strings:
             return False
         else:
-            # xstrtod with such paramaters copies behavior of python `float`
+            # xstrtod with such parameters copies behavior of python `float`
             # cast; for example, " 35.e-1 " is valid string for this cast so,
             # for correctly xstrtod call necessary to pass these params:
             # b'.' - a dot is used as separator, b'e' - an exponential form of
@@ -364,11 +377,12 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef inline object _parse_dateabbr_string(object date_string, object default,
-                                          object freq):
+cdef inline object _parse_dateabbr_string(object date_string, datetime default,
+                                          str freq=None):
     cdef:
         object ret
-        int year, quarter = -1, month, mnum, date_len
+        # year initialized to prevent compiler warnings
+        int year = -1, quarter = -1, month, mnum, date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     assert isinstance(date_string, str)
@@ -424,20 +438,13 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                                      f'quarter must be '
                                      f'between 1 and 4: {date_string}')
 
-            if freq is not None:
-                # hack attack, #1228
-                try:
-                    mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
-                except (KeyError, ValueError):
-                    raise DateParseError(f'Unable to retrieve month '
-                                         f'information from given '
-                                         f'freq: {freq}')
-
-                month = (mnum + (quarter - 1) * 3) % 12 + 1
-                if month > mnum:
-                    year -= 1
-            else:
-                month = (quarter - 1) * 3 + 1
+            try:
+                # GH#1228
+                year, month = quarter_to_myear(year, quarter, freq)
+            except KeyError:
+                raise DateParseError("Unable to retrieve month "
+                                     "information from given "
+                                     f"freq: {freq}")
 
             ret = default.replace(year=year, month=month)
             return ret, 'quarter'
@@ -467,8 +474,49 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     raise ValueError(f'Unable to parse {date_string}')
 
 
-cdef dateutil_parse(str timestr, object default, ignoretz=False,
-                    tzinfos=None, dayfirst=None, yearfirst=None):
+cpdef quarter_to_myear(int year, int quarter, str freq):
+    """
+    A quarterly frequency defines a "year" which may not coincide with
+    the calendar-year.  Find the calendar-year and calendar-month associated
+    with the given year and quarter under the `freq`-derived calendar.
+
+    Parameters
+    ----------
+    year : int
+    quarter : int
+    freq : str or None
+
+    Returns
+    -------
+    year : int
+    month : int
+
+    See Also
+    --------
+    Period.qyear
+    """
+    if quarter <= 0 or quarter > 4:
+        raise ValueError("Quarter must be 1 <= q <= 4")
+
+    if freq is not None:
+        mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+        month = (mnum + (quarter - 1) * 3) % 12 + 1
+        if month > mnum:
+            year -= 1
+    else:
+        month = (quarter - 1) * 3 + 1
+
+    return year, month
+
+
+cdef dateutil_parse(
+    str timestr,
+    object default,
+    bint ignoretz=False,
+    object tzinfos=None,
+    bint dayfirst=False,
+    bint yearfirst=False,
+):
     """ lifted from dateutil to get resolution"""
 
     cdef:
@@ -531,8 +579,9 @@ cdef dateutil_parse(str timestr, object default, ignoretz=False,
 # Parsing for type-inference
 
 
-def try_parse_dates(object[:] values, parser=None,
-                    dayfirst=False, default=None):
+def try_parse_dates(
+    object[:] values, parser=None, bint dayfirst=False, default=None,
+):
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -569,16 +618,21 @@ def try_parse_dates(object[:] values, parser=None,
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_date_and_time(object[:] dates, object[:] times,
-                            date_parser=None, time_parser=None,
-                            dayfirst=False, default=None):
+def try_parse_date_and_time(
+    object[:] dates,
+    object[:] times,
+    date_parser=None,
+    time_parser=None,
+    bint dayfirst=False,
+    default=None,
+):
     cdef:
         Py_ssize_t i, n
         object[:] result
 
     n = len(dates)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(times) != n:
+    # TODO(cython 3.0): Use len instead of `shape[0]`
+    if times.shape[0] != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
 
@@ -607,15 +661,14 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(object[:] years, object[:] months,
-                             object[:] days):
+def try_parse_year_month_day(object[:] years, object[:] months, object[:] days):
     cdef:
         Py_ssize_t i, n
         object[:] result
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n:
+    # TODO(cython 3.0): Use len instead of `shape[0]`
+    if months.shape[0] != n or days.shape[0] != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
@@ -640,10 +693,14 @@ def try_parse_datetime_components(object[:] years,
         double micros
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if (<Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n or
-            <Py_ssize_t>len(hours) != n or <Py_ssize_t>len(minutes) != n or
-            <Py_ssize_t>len(seconds) != n):
+    # TODO(cython 3.0): Use len instead of `shape[0]`
+    if (
+        months.shape[0] != n
+        or days.shape[0] != n
+        or hours.shape[0] != n
+        or minutes.shape[0] != n
+        or seconds.shape[0] != n
+    ):
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 
@@ -701,6 +758,9 @@ class _timelex:
         function maintains a "token stack", for when the ambiguous context
         demands that multiple tokens be parsed at once.
         """
+        cdef:
+            Py_ssize_t n
+
         stream = self.stream.replace('\x00', '')
 
         # TODO: Change \s --> \s+ (this doesn't match existing behavior)
@@ -738,7 +798,7 @@ class _timelex:
 _DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
-def _format_is_iso(f) -> bint:
+def format_is_iso(f: str) -> bint:
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
@@ -756,15 +816,20 @@ def _format_is_iso(f) -> bint:
     return False
 
 
-def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
-                           dt_str_split=_DATEUTIL_LEXER_SPLIT):
+def guess_datetime_format(
+    dt_str,
+    bint dayfirst=False,
+    dt_str_parse=du_parse,
+    dt_str_split=_DATEUTIL_LEXER_SPLIT,
+):
     """
     Guess the datetime format of a given datetime string.
 
     Parameters
     ----------
-    dt_str : string, datetime string to guess the format of
-    dayfirst : boolean, default False
+    dt_str : str
+        Datetime string to guess the format of.
+    dayfirst : bool, default False
         If True parses dates with the day first, eg 20/01/2005
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug).
@@ -801,6 +866,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
         (('second',), '%S', 2),
         (('microsecond',), '%f', 6),
         (('second', 'microsecond'), '%S.%f', 0),
+        (('tzinfo',), '%Z', 0),
     ]
 
     if dayfirst:
@@ -873,8 +939,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline object convert_to_unicode(object item,
-                                      bint keep_trivial_numbers):
+cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
     """
     Convert `item` to str.
 
@@ -909,7 +974,7 @@ cdef inline object convert_to_unicode(object item,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 
@@ -928,7 +993,7 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     --------
     >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
     >>> times=np.array(['11:20', '10:45'], dtype=object)
-    >>> result = _concat_date_cols((dates, times))
+    >>> result = concat_date_cols((dates, times))
     >>> result
     array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
     """
@@ -983,3 +1048,31 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
             result_view[row_idx] = " ".join(list_to_join)
 
     return result
+
+
+cpdef str get_rule_month(str source):
+    """
+    Return starting month of given freq, default is December.
+
+    Parameters
+    ----------
+    source : str
+        Derived from `freq.rule_code` or `freq.freqstr`.
+
+    Returns
+    -------
+    rule_month: str
+
+    Examples
+    --------
+    >>> get_rule_month('D')
+    'DEC'
+
+    >>> get_rule_month('A-JAN')
+    'JAN'
+    """
+    source = source.upper()
+    if "-" not in source:
+        return "DEC"
+    else:
+        return source.split("-")[1]

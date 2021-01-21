@@ -1,20 +1,23 @@
+import numpy as np
 import pytest
 
 from pandas import Index, MultiIndex
+import pandas._testing as tm
 
 
 class TestIndexConstructor:
     # Tests for the Index constructor, specifically for cases that do
     #  not return a subclass
 
-    def test_constructor_corner(self):
+    @pytest.mark.parametrize("value", [1, np.int64(1)])
+    def test_constructor_corner(self, value):
         # corner case
         msg = (
             r"Index\(\.\.\.\) must be called with a collection of some "
-            "kind, 0 was passed"
+            f"kind, {value} was passed"
         )
         with pytest.raises(TypeError, match=msg):
-            Index(0)
+            Index(value)
 
     @pytest.mark.parametrize("index_vals", [[("A", 1), "B"], ["B", ("A", 1)]])
     def test_construction_list_mixed_tuples(self, index_vals):
@@ -27,7 +30,8 @@ class TestIndexConstructor:
     def test_constructor_wrong_kwargs(self):
         # GH #19348
         with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
-            Index([], foo="bar")
+            with tm.assert_produces_warning(FutureWarning):
+                Index([], foo="bar")
 
     @pytest.mark.xfail(reason="see GH#21311: Index doesn't enforce dtype argument")
     def test_constructor_cast(self):

@@ -16,7 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :class:`DataFrame` setting values with a slice (e.g. ``df[-4:] = 1``) indexing by label instead of position (:issue:`31469`)
-- Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containg a :class:`datetime.date` (:issue:`31501`)
+- Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containing a :class:`datetime.date` (:issue:`31501`)
 - Fixed regression in ``DataFrame.__setitem__`` raising an ``AttributeError`` with a :class:`MultiIndex` and a non-monotonic indexer (:issue:`31449`)
 - Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)
 - Fixed regression in ``.groupby().agg()`` raising an ``AssertionError`` for some reductions like ``min`` on object-dtype columns (:issue:`31522`)

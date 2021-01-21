@@ -1,16 +1,25 @@
 language: python
 python: 3.7
 
+addons:
+  apt:
+    update: true
+    packages:
+      - xvfb
+
+services:
+  - xvfb
+
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
 # To delete caches go to https://travis-ci.org/OWNER/REPOSITORY/caches or run
 # travis cache --delete inside the project directory from the travis command line client
 # The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
+  apt: true
   ccache: true
   directories:
     - $HOME/.cache # cython cache
-    - $HOME/.ccache # compiler cache
 
 env:
   global:
@@ -20,44 +29,26 @@ env:
     - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
-  # for cloning
   depth: false
 
 matrix:
   fast_finish: true
 
   include:
-    - env:
-        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
+    - arch: arm64
+      env:
+        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
-    - env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
+  allow_failures:
+    # Moved to allowed_failures 2020-09-29 due to timeouts https://github.com/pandas-dev/pandas/issues/36719
+    - arch: arm64
+      env:
+        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
-    - env:
-        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
-      services:
-        - mysql
-        - postgresql
-
-    - env:
-        # Enabling Deprecations when running tests
-        # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
-        # See pandas/_testing.py for more details.
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
-      services:
-        - mysql
-        - postgresql
-
-    - env:
-        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
-      services:
-        - mysql
-        - postgresql
 
 before_install:
   - echo "before_install"
-  # set non-blocking IO on travis
-  # https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+  # Use blocking IO on travis.  Ref:  https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
   - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
   - source ci/travis_process_gbq_encryption.sh
   - export PATH="$HOME/miniconda3/bin:$PATH"
@@ -66,12 +57,6 @@ before_install:
   - uname -a
   - git --version
   - ./ci/check_git_tags.sh
-  # Because travis runs on Google Cloud and has a /etc/boto.cfg,
-  # it breaks moto import, see:
-  # https://github.com/spulec/moto/issues/1771
-  # https://github.com/boto/boto/issues/3741
-  # This overrides travis and tells it to look nowhere.
-  - export BOTO_CONFIG=/dev/null
 
 install:
   - echo "install start"

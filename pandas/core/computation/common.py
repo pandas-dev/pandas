@@ -5,7 +5,7 @@ import numpy as np
 from pandas._config import get_option
 
 
-def _ensure_decoded(s):
+def ensure_decoded(s):
     """
     If we have bytes, decode them to unicode.
     """
@@ -24,7 +24,3 @@ def result_type_many(*arrays_and_dtypes):
     except ValueError:
         # we have > NPY_MAXARGS terms in our expression
         return reduce(np.result_type, arrays_and_dtypes)
-
-
-class NameResolutionError(NameError):
-    pass

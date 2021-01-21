@@ -70,8 +70,17 @@ class TestDataFrameToDict:
         with pytest.raises(ValueError, match=msg):
             df.to_dict(orient="xinvalid")
 
+    @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
+    def test_to_dict_short_orient_warns(self, orient):
+        # GH#32515
+        df = DataFrame({"A": [0, 1]})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df.to_dict(orient=orient)
+
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
+        # orient= should only take the listed options
+        # see GH#32515
         test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
 
         # GH#16122
@@ -81,19 +90,19 @@ class TestDataFrameToDict:
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][k2]
 
-        recons_data = DataFrame(test_data).to_dict("l", mapping)
+        recons_data = DataFrame(test_data).to_dict("list", mapping)
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][int(k2) - 1]
 
-        recons_data = DataFrame(test_data).to_dict("s", mapping)
+        recons_data = DataFrame(test_data).to_dict("series", mapping)
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][k2]
 
-        recons_data = DataFrame(test_data).to_dict("sp", mapping)
+        recons_data = DataFrame(test_data).to_dict("split", mapping)
         expected_split = {
             "columns": ["A", "B"],
             "index": ["1", "2", "3"],
@@ -101,7 +110,7 @@ class TestDataFrameToDict:
         }
         tm.assert_dict_equal(recons_data, expected_split)
 
-        recons_data = DataFrame(test_data).to_dict("r", mapping)
+        recons_data = DataFrame(test_data).to_dict("records", mapping)
         expected_records = [
             {"A": 1.0, "B": "1"},
             {"A": 2.0, "B": "2"},
@@ -109,11 +118,11 @@ class TestDataFrameToDict:
         ]
         assert isinstance(recons_data, list)
         assert len(recons_data) == 3
-        for l, r in zip(recons_data, expected_records):
-            tm.assert_dict_equal(l, r)
+        for left, right in zip(recons_data, expected_records):
+            tm.assert_dict_equal(left, right)
 
         # GH#10844
-        recons_data = DataFrame(test_data).to_dict("i")
+        recons_data = DataFrame(test_data).to_dict("index")
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
@@ -121,7 +130,7 @@ class TestDataFrameToDict:
 
         df = DataFrame(test_data)
         df["duped"] = df[df.columns[0]]
-        recons_data = df.to_dict("i")
+        recons_data = df.to_dict("index")
         comp_data = test_data.copy()
         comp_data["duped"] = comp_data[df.columns[0]]
         for k, v in comp_data.items():
@@ -248,17 +257,30 @@ class TestDataFrameToDict:
         assert result == expected
 
     def test_to_dict_orient_dtype(self):
-        # GH#22620
-        # Input Data
-        input_data = {"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["X", "Y", "Z"]}
-        df = DataFrame(input_data)
-        # Expected Dtypes
-        expected = {"a": int, "b": float, "c": str}
-        # Extracting dtypes out of to_dict operation
-        for df_dict in df.to_dict("records"):
-            result = {
-                "a": type(df_dict["a"]),
-                "b": type(df_dict["b"]),
-                "c": type(df_dict["c"]),
+        # GH22620 & GH21256
+
+        df = DataFrame(
+            {
+                "bool": [True, True, False],
+                "datetime": [
+                    datetime(2018, 1, 1),
+                    datetime(2019, 2, 2),
+                    datetime(2020, 3, 3),
+                ],
+                "float": [1.0, 2.0, 3.0],
+                "int": [1, 2, 3],
+                "str": ["X", "Y", "Z"],
             }
+        )
+
+        expected = {
+            "int": int,
+            "float": float,
+            "str": str,
+            "datetime": Timestamp,
+            "bool": bool,
+        }
+
+        for df_dict in df.to_dict("records"):
+            result = {col: type(df_dict[col]) for col in list(df.columns)}
             assert result == expected

@@ -1,26 +1,14 @@
-.. _tutorials:
+.. _communitytutorials:
 
 {{ header }}
 
-*********
-Tutorials
-*********
+*******************
+Community tutorials
+*******************
 
-This is a guide to many pandas tutorials, geared mainly for new users.
+This is a guide to many pandas tutorials by the community, geared mainly for new users.
 
-Internal guides
-===============
-
-pandas' own :ref:`10 Minutes to pandas<10min>`.
-
-More complex recipes are in the :ref:`Cookbook<cookbook>`.
-
-A handy pandas `cheat sheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_.
-
-Community guides
-================
-
-pandas Cookbook by Julia Evans
+pandas cookbook by Julia Evans
 ------------------------------
 
 The goal of this 2015 cookbook (by `Julia Evans <https://jvns.ca>`_) is to
@@ -30,7 +18,7 @@ entails.
 For the table of contents, see the `pandas-cookbook GitHub
 repository <https://github.com/jvns/pandas-cookbook>`_.
 
-Learn Pandas by Hernan Rojas
+Learn pandas by Hernan Rojas
 ----------------------------
 
 A set of lesson for new pandas users: https://bitbucket.org/hrojas/learn-pandas
@@ -106,4 +94,4 @@ Various tutorials
 * `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
 * `Pandas and Python: Top 10, by Manish Amde <https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
 * `Pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
-* `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1>`_
+* `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1/>`_

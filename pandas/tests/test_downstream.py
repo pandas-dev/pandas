@@ -8,6 +8,8 @@ import sys
 import numpy as np  # noqa
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -18,7 +20,7 @@ def import_module(name):
 
     try:
         return importlib.import_module(name)
-    except ModuleNotFoundError:  # noqa
+    except ModuleNotFoundError:
         pytest.skip(f"skipping as {name} not available")
 
 
@@ -39,12 +41,24 @@ def test_dask(df):
     assert ddf.compute() is not None
 
 
-@pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
     xarray = import_module("xarray")  # noqa
 
     assert df.to_xarray() is not None
+
+
+@td.skip_if_no("cftime")
+@td.skip_if_no("xarray", "0.10.4")
+def test_xarray_cftimeindex_nearest():
+    # https://github.com/pydata/xarray/issues/3751
+    import cftime
+    import xarray
+
+    times = xarray.cftime_range("0001", periods=2)
+    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    expected = 1
+    assert result == expected
 
 
 def test_oo_optimizable():
@@ -54,6 +68,7 @@ def test_oo_optimizable():
 
 @tm.network
 # Cython import warning
+@pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
@@ -74,7 +89,7 @@ def test_statsmodels():
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa
-    from sklearn import svm, datasets
+    from sklearn import datasets, svm
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)
@@ -97,11 +112,11 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module("pandas_gbq")  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending")
+@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
 @tm.network
 def test_pandas_datareader():
 
-    pandas_datareader = import_module("pandas_datareader")  # noqa
+    pandas_datareader = import_module("pandas_datareader")
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
@@ -109,7 +124,7 @@ def test_pandas_datareader():
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_geopandas():
 
-    geopandas = import_module("geopandas")  # noqa
+    geopandas = import_module("geopandas")
     fp = geopandas.datasets.get_path("naturalearth_lowres")
     assert geopandas.read_file(fp) is not None
 
@@ -119,25 +134,37 @@ def test_geopandas():
 @pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
-    pyarrow = import_module("pyarrow")  # noqa
+    pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(reason="pandas-wheels-50", strict=False)
 def test_missing_required_dependency():
     # GH 23868
     # To ensure proper isolation, we pass these flags
     # -S : disable site-packages
     # -s : disable user site-packages
     # -E : disable PYTHON* env vars, especially PYTHONPATH
-    # And, that's apparently not enough, so we give up.
     # https://github.com/MacPython/pandas-wheels/pull/50
-    call = ["python", "-sSE", "-c", "import pandas"]
+
+    pyexe = sys.executable.replace("\\", "/")
+
+    # We skip this test if pandas is installed as a site package. We first
+    # import the package normally and check the path to the module before
+    # executing the test which imports pandas with site packages disabled.
+    call = [pyexe, "-c", "import pandas;print(pandas.__file__)"]
+    output = subprocess.check_output(call).decode()
+    if "site-packages" in output:
+        pytest.skip("pandas installed as site package")
+
+    # This test will fail if pandas is installed as a site package. The flags
+    # prevent pandas being imported and the test will report Failed: DID NOT
+    # RAISE <class 'subprocess.CalledProcessError'>
+    call = [pyexe, "-sSE", "-c", "import pandas"]
 
     msg = (
-        r"Command '\['python', '-sSE', '-c', 'import pandas'\]' "
+        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
         "returned non-zero exit status 1."
     )
 

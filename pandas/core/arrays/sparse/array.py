@@ -1,10 +1,12 @@
 """
 SparseArray data structure
 """
+from __future__ import annotations
+
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable
+from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -13,7 +15,7 @@ from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
-import pandas.compat as compat
+from pandas._typing import Dtype, NpDtype, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -21,12 +23,13 @@ from pandas.core.dtypes.cast import (
     astype_nansafe,
     construct_1d_arraylike_from_scalar,
     find_common_type,
-    infer_dtype_from_scalar,
+    maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer,
     is_object_dtype,
@@ -34,30 +37,32 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCSparseArray
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import sanitize_array
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
+from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
-from pandas.core.ops.common import unpack_zerodim_and_defer
 
 import pandas.io.formats.printing as printing
 
 # ----------------------------------------------------------------------------
 # Array
 
+SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 
-_sparray_doc_kwargs = dict(klass="SparseArray")
+_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
-def _get_fill(arr: ABCSparseArray) -> np.ndarray:
+def _get_fill(arr: SparseArray) -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -82,7 +87,7 @@ def _get_fill(arr: ABCSparseArray) -> np.ndarray:
 
 
 def _sparse_array_op(
-    left: ABCSparseArray, right: ABCSparseArray, op: Callable, name: str
+    left: SparseArray, right: SparseArray, op: Callable, name: str
 ) -> Any:
     """
     Perform a binary operation between two arrays.
@@ -147,7 +152,7 @@ def _sparse_array_op(
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)
-            result_dtype = np.bool
+            result_dtype = bool
         else:
             opname = f"sparse_{name}_{dtype}"
             left_sp_values = left.sp_values
@@ -171,7 +176,7 @@ def _sparse_array_op(
     return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
-def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
+def _wrap_result(name, data, sparse_index, fill_value, dtype: Optional[Dtype] = None):
     """
     wrap op result to have correct dtype
     """
@@ -180,7 +185,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
         name = name[2:-2]
 
     if name in ("eq", "ne", "lt", "gt", "le", "ge"):
-        dtype = np.bool
+        dtype = bool
 
     fill_value = lib.item_from_zerodim(fill_value)
 
@@ -192,7 +197,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     )
 
 
-class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
+class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
 
@@ -255,11 +260,20 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> from pandas.arrays import SparseArray
+    >>> arr = SparseArray([0, 0, 1, 2])
+    >>> arr
+    [0, 0, 1, 2]
+    Fill: 0
+    IntIndex
+    Indices: array([2, 3], dtype=int32)
     """
 
-    _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
-    _deprecations = PandasObject._deprecations | frozenset(["get_values"])
+    _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
     _sparse_index: SparseIndex
 
     def __init__(
@@ -269,7 +283,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         index=None,
         fill_value=None,
         kind="integer",
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy=False,
     ):
 
@@ -302,12 +316,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             dtype = dtype.subtype
 
         if index is not None and not is_scalar(data):
-            raise Exception("must only pass scalars with an index ")
+            raise Exception("must only pass scalars with an index")
 
         if is_scalar(data):
-            if index is not None:
-                if data is None:
-                    data = np.nan
+            if index is not None and data is None:
+                data = np.nan
 
             if index is not None:
                 npoints = len(index)
@@ -316,8 +329,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 npoints = sparse_index.length
 
-            dtype = infer_dtype_from_scalar(data)[0]
-            data = construct_1d_arraylike_from_scalar(data, npoints, dtype)
+            data = construct_1d_arraylike_from_scalar(data, npoints, dtype=None)
+            dtype = data.dtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -325,7 +338,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if data is None:
-            # XXX: What should the empty dtype be? Object or float?
+            # TODO: What should the empty dtype be? Object or float?
             data = np.array([], dtype=dtype)
 
         if not is_array_like(data):
@@ -357,6 +370,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             sparse_index = data._sparse_index
             sparse_values = np.asarray(data.sp_values, dtype=dtype)
         elif sparse_index is None:
+            data = extract_array(data, extract_numpy=True)
+            if not isinstance(data, np.ndarray):
+                # EA
+                if is_datetime64tz_dtype(data.dtype):
+                    warnings.warn(
+                        f"Creating SparseArray from {data.dtype} data "
+                        "loses timezone information.  Cast to object before "
+                        "sparse to retain timezone information.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    data = np.asarray(data, dtype="datetime64[ns]")
+                data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value, dtype=dtype
             )
@@ -373,9 +399,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
-    ) -> "SparseArray":
-        new = cls([])
+        cls: Type[SparseArrayT],
+        sparse_array: np.ndarray,
+        sparse_index: SparseIndex,
+        dtype: SparseDtype,
+    ) -> SparseArrayT:
+        new = object.__new__(cls)
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
         new._dtype = dtype
@@ -416,11 +445,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
+        data = data.tocsc()
+        data.sort_indices()
         arr = data.data
-        idx, _ = data.nonzero()
-        loc = np.argsort(idx)
-        arr = arr.take(loc)
-        idx.sort()
+        idx = data.indices
 
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)
@@ -428,7 +456,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype=None, copy=True) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
@@ -461,7 +489,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -479,7 +507,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return self._sparse_index
 
     @property
-    def sp_values(self):
+    def sp_values(self) -> np.ndarray:
         """
         An ndarray containing the non- ``fill_value`` values.
 
@@ -552,8 +580,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         >>> s.density
         0.6
         """
-        r = float(self.sp_index.npoints) / float(self.sp_index.length)
-        return r
+        return self.sp_index.npoints / self.sp_index.length
 
     @property
     def npoints(self) -> int:
@@ -711,35 +738,25 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         from pandas import Index, Series
 
-        keys, counts = algos._value_counts_arraylike(self.sp_values, dropna=dropna)
+        keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
-        if fcounts > 0:
-            if self._null_fill_value and dropna:
-                pass
+        if fcounts > 0 and (not self._null_fill_value or not dropna):
+            mask = isna(keys) if self._null_fill_value else keys == self.fill_value
+            if mask.any():
+                counts[mask] += fcounts
             else:
-                if self._null_fill_value:
-                    mask = isna(keys)
-                else:
-                    mask = keys == self.fill_value
+                keys = np.insert(keys, 0, self.fill_value)
+                counts = np.insert(counts, 0, fcounts)
 
-                if mask.any():
-                    counts[mask] += fcounts
-                else:
-                    keys = np.insert(keys, 0, self.fill_value)
-                    counts = np.insert(counts, 0, fcounts)
-
-        if not isinstance(keys, ABCIndexClass):
+        if not isinstance(keys, ABCIndex):
             keys = Index(keys)
-        result = Series(counts, index=keys)
-        return result
+        return Series(counts, index=keys)
 
     # --------
     # Indexing
     # --------
 
     def __getitem__(self, key):
-        # avoid mypy issues when importing at the top-level
-        from pandas.core.indexing import check_bool_indexer
 
         if isinstance(key, tuple):
             if len(key) > 1:
@@ -762,7 +779,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
             # key's fill_value for True / False, and then do an intersection
-            # on the indicies of the sp_values.
+            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
                     key = key.to_dense()
@@ -772,7 +789,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):
-                key = check_bool_indexer(self, key)
 
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
@@ -795,16 +811,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return self.fill_value
         else:
             val = self.sp_values[sp_loc]
-            val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
+            val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, allow_fill=False, fill_value=None):
+    def take(self, indices, *, allow_fill=False, fill_value=None) -> SparseArray:
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
 
         if indices.size == 0:
-            result = []
+            result = np.array([], dtype="object")
             kwargs = {"dtype": self.dtype}
         elif allow_fill:
             result = self._take_with_fill(indices, fill_value=fill_value)
@@ -815,7 +831,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(result, fill_value=self.fill_value, kind=self.kind, **kwargs)
 
-    def _take_with_fill(self, indices, fill_value=None):
+    def _take_with_fill(self, indices, fill_value=None) -> np.ndarray:
         if fill_value is None:
             fill_value = self.dtype.na_value
 
@@ -838,23 +854,25 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
 
+        # sp_indexer may be -1 for two reasons
+        # 1.) we took for an index of -1 (new)
+        # 2.) we took a value that was self.fill_value (old)
         sp_indexer = self.sp_index.lookup_array(indices)
+        new_fill_indices = indices == -1
+        old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
-        if self.sp_index.npoints == 0:
-            # Avoid taking from the empty self.sp_values
+        if self.sp_index.npoints == 0 and old_fill_indices.all():
+            # We've looked up all valid points on an all-sparse array.
             taken = np.full(
-                sp_indexer.shape,
-                fill_value=fill_value,
-                dtype=np.result_type(type(fill_value)),
+                sp_indexer.shape, fill_value=self.fill_value, dtype=self.dtype.subtype
             )
+
+        elif self.sp_index.npoints == 0:
+            # Avoid taking from the empty self.sp_values
+            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
         else:
             taken = self.sp_values.take(sp_indexer)
-
-            # sp_indexer may be -1 for two reasons
-            # 1.) we took for an index of -1 (new)
-            # 2.) we took a value that was self.fill_value (old)
-            new_fill_indices = indices == -1
-            old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
             # Fill in two steps.
             # Old fill values
@@ -878,7 +896,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return taken
 
-    def _take_without_fill(self, indices):
+    def _take_without_fill(self, indices) -> Union[np.ndarray, SparseArray]:
         to_shift = indices < 0
         indices = indices.copy()
 
@@ -924,33 +942,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 
-    def copy(self):
+    def copy(self: SparseArrayT) -> SparseArrayT:
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
-        fill_values = [x.fill_value for x in to_concat]
-
-        fill_value = fill_values[0]
-
-        # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
-            warnings.warn(
-                "Concatenating sparse arrays with multiple fill "
-                f"values: '{fill_values}'. Picking the first and "
-                "converting the rest.",
-                PerformanceWarning,
-                stacklevel=6,
-            )
-            keep = to_concat[0]
-            to_concat2 = [keep]
-
-            for arr in to_concat[1:]:
-                to_concat2.append(cls(np.asarray(arr), fill_value=fill_value))
-
-            to_concat = to_concat2
+    def _concat_same_type(
+        cls: Type[SparseArrayT], to_concat: Sequence[SparseArrayT]
+    ) -> SparseArrayT:
+        fill_value = to_concat[0].fill_value
 
         values = []
         length = 0
@@ -977,10 +977,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         else:
             # when concatenating block indices, we don't claim that you'll
-            # get an identical index as concating the values and then
+            # get an identical index as concatenating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
-            # BlockIndex may have more blocs.
+            # BlockIndex may have more blocks.
             blengths = []
             blocs = []
 
@@ -1000,7 +1000,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype=None, copy=True):
+    def astype(self, dtype: Optional[Dtype] = None, copy=True):
         """
         Change the dtype of a SparseArray.
 
@@ -1025,7 +1025,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         Examples
         --------
-        >>> arr = SparseArray([0, 0, 1, 2])
+        >>> arr = pd.arrays.SparseArray([0, 0, 1, 2])
         >>> arr
         [0, 0, 1, 2]
         Fill: 0
@@ -1043,8 +1043,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         >>> arr.astype(np.dtype('float64'))
         ... # doctest: +NORMALIZE_WHITESPACE
-        [0, 0, 1.0, 2.0]
-        Fill: 0
+        [0.0, 0.0, 1.0, 2.0]
+        Fill: 0.0
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
@@ -1057,9 +1057,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+            else:
+                return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        subtype = dtype._subtype_with_str
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
+        subtype = pandas_dtype(dtype._subtype_with_str)
+        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
+        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
         if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()
 
@@ -1084,19 +1091,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Examples
         --------
         >>> arr = pd.arrays.SparseArray([0, 1, 2])
-        >>> arr.apply(lambda x: x + 10)
+        >>> arr.map(lambda x: x + 10)
         [10, 11, 12]
         Fill: 10
         IntIndex
         Indices: array([1, 2], dtype=int32)
 
-        >>> arr.apply({0: 10, 1: 11, 2: 12})
+        >>> arr.map({0: 10, 1: 11, 2: 12})
         [10, 11, 12]
         Fill: 10
         IntIndex
         Indices: array([1, 2], dtype=int32)
 
-        >>> arr.apply(pd.Series([10, 11, 12], index=[0, 1, 2]))
+        >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
         [10, 11, 12]
         Fill: 10
         IntIndex
@@ -1156,7 +1163,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:
@@ -1218,21 +1225,36 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return values.any().item()
 
-    def sum(self, axis=0, *args, **kwargs):
+    def sum(self, axis: int = 0, min_count: int = 0, *args, **kwargs) -> Scalar:
         """
         Sum of non-NA/null values
 
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        min_count : int, default 0
+            The required number of valid values to perform the summation. If fewer
+            than ``min_count`` valid values are present, the result will be the missing
+            value indicator for subarray type.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+
         Returns
         -------
-        sum : float
+        scalar
         """
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         if self._null_fill_value:
+            if check_below_min_count(valid_vals.shape, None, min_count):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum
         else:
             nsparse = self.sp_index.ngaps
+            if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
     def cumsum(self, axis=0, *args, **kwargs):
@@ -1285,19 +1307,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
-
-    def transpose(self, *axes):
-        """
-        Returns the SparseArray.
-        """
-        return self
-
-    @property
-    def T(self):
-        """
-        Returns the SparseArray.
-        """
-        return self
 
     # ------------------------------------------------------------------------
     # Ufuncs
@@ -1362,110 +1371,82 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Ops
     # ------------------------------------------------------------------------
 
-    @classmethod
-    def _create_unary_method(cls, op) -> Callable[["SparseArray"], "SparseArray"]:
-        def sparse_unary_method(self) -> "SparseArray":
-            fill_value = op(np.array(self.fill_value)).item()
-            values = op(self.sp_values)
-            dtype = SparseDtype(values.dtype, fill_value)
-            return cls._simple_new(values, self.sp_index, dtype)
-
-        name = f"__{op.__name__}__"
-        return compat.set_function_name(sparse_unary_method, name, cls)
-
-    @classmethod
-    def _create_arithmetic_method(cls, op):
+    def _arith_method(self, other, op):
         op_name = op.__name__
 
-        @unpack_zerodim_and_defer(op_name)
-        def sparse_arithmetic_method(self, other):
+        if isinstance(other, SparseArray):
+            return _sparse_array_op(self, other, op, op_name)
 
-            if isinstance(other, SparseArray):
-                return _sparse_array_op(self, other, op, op_name)
+        elif is_scalar(other):
+            with np.errstate(all="ignore"):
+                fill = op(_get_fill(self), np.asarray(other))
+                result = op(self.sp_values, other)
 
-            elif is_scalar(other):
-                with np.errstate(all="ignore"):
-                    fill = op(_get_fill(self), np.asarray(other))
-                    result = op(self.sp_values, other)
+            if op_name == "divmod":
+                left, right = result
+                lfill, rfill = fill
+                return (
+                    _wrap_result(op_name, left, self.sp_index, lfill),
+                    _wrap_result(op_name, right, self.sp_index, rfill),
+                )
 
-                if op_name == "divmod":
-                    left, right = result
-                    lfill, rfill = fill
-                    return (
-                        _wrap_result(op_name, left, self.sp_index, lfill),
-                        _wrap_result(op_name, right, self.sp_index, rfill),
-                    )
+            return _wrap_result(op_name, result, self.sp_index, fill)
 
-                return _wrap_result(op_name, result, self.sp_index, fill)
-
-            else:
-                other = np.asarray(other)
-                with np.errstate(all="ignore"):
-                    # TODO: look into _wrap_result
-                    if len(self) != len(other):
-                        raise AssertionError(
-                            (f"length mismatch: {len(self)} vs. {len(other)}")
-                        )
-                    if not isinstance(other, SparseArray):
-                        dtype = getattr(other, "dtype", None)
-                        other = SparseArray(
-                            other, fill_value=self.fill_value, dtype=dtype
-                        )
-                    return _sparse_array_op(self, other, op, op_name)
-
-        name = f"__{op.__name__}__"
-        return compat.set_function_name(sparse_arithmetic_method, name, cls)
-
-    @classmethod
-    def _create_comparison_method(cls, op):
-        op_name = op.__name__
-        if op_name in {"and_", "or_"}:
-            op_name = op_name[:-1]
-
-        @unpack_zerodim_and_defer(op_name)
-        def cmp_method(self, other):
-
-            if not is_scalar(other) and not isinstance(other, type(self)):
-                # convert list-like to ndarray
-                other = np.asarray(other)
-
-            if isinstance(other, np.ndarray):
-                # TODO: make this more flexible than just ndarray...
+        else:
+            other = np.asarray(other)
+            with np.errstate(all="ignore"):
+                # TODO: look into _wrap_result
                 if len(self) != len(other):
                     raise AssertionError(
                         f"length mismatch: {len(self)} vs. {len(other)}"
                     )
-                other = SparseArray(other, fill_value=self.fill_value)
-
-            if isinstance(other, SparseArray):
+                if not isinstance(other, SparseArray):
+                    dtype = getattr(other, "dtype", None)
+                    other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
                 return _sparse_array_op(self, other, op, op_name)
-            else:
-                with np.errstate(all="ignore"):
-                    fill_value = op(self.fill_value, other)
-                    result = op(self.sp_values, other)
 
-                return type(self)(
-                    result,
-                    sparse_index=self.sp_index,
-                    fill_value=fill_value,
-                    dtype=np.bool_,
-                )
+    def _cmp_method(self, other, op) -> SparseArray:
+        if not is_scalar(other) and not isinstance(other, type(self)):
+            # convert list-like to ndarray
+            other = np.asarray(other)
 
-        name = f"__{op.__name__}__"
-        return compat.set_function_name(cmp_method, name, cls)
+        if isinstance(other, np.ndarray):
+            # TODO: make this more flexible than just ndarray...
+            if len(self) != len(other):
+                raise AssertionError(f"length mismatch: {len(self)} vs. {len(other)}")
+            other = SparseArray(other, fill_value=self.fill_value)
 
-    @classmethod
-    def _add_unary_ops(cls):
-        cls.__pos__ = cls._create_unary_method(operator.pos)
-        cls.__neg__ = cls._create_unary_method(operator.neg)
-        cls.__invert__ = cls._create_unary_method(operator.invert)
+        if isinstance(other, SparseArray):
+            op_name = op.__name__.strip("_")
+            return _sparse_array_op(self, other, op, op_name)
+        else:
+            with np.errstate(all="ignore"):
+                fill_value = op(self.fill_value, other)
+                result = op(self.sp_values, other)
 
-    @classmethod
-    def _add_comparison_ops(cls):
-        cls.__and__ = cls._create_comparison_method(operator.and_)
-        cls.__or__ = cls._create_comparison_method(operator.or_)
-        cls.__xor__ = cls._create_arithmetic_method(operator.xor)
-        super()._add_comparison_ops()
+            return type(self)(
+                result,
+                sparse_index=self.sp_index,
+                fill_value=fill_value,
+                dtype=np.bool_,
+            )
+
+    _logical_method = _cmp_method
+
+    def _unary_method(self, op) -> SparseArray:
+        fill_value = op(np.array(self.fill_value)).item()
+        values = op(self.sp_values)
+        dtype = SparseDtype(values.dtype, fill_value)
+        return type(self)._simple_new(values, self.sp_index, dtype)
+
+    def __pos__(self) -> SparseArray:
+        return self._unary_method(operator.pos)
+
+    def __neg__(self) -> SparseArray:
+        return self._unary_method(operator.neg)
+
+    def __invert__(self) -> SparseArray:
+        return self._unary_method(operator.invert)
 
     # ----------
     # Formatting
@@ -1482,12 +1463,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return None
 
 
-SparseArray._add_arithmetic_ops()
-SparseArray._add_comparison_ops()
-SparseArray._add_unary_ops()
-
-
-def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
+def make_sparse(
+    arr: np.ndarray, kind="block", fill_value=None, dtype: Optional[NpDtype] = None
+):
     """
     Convert ndarray to sparse format
 
@@ -1503,7 +1481,7 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
     -------
     (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
-    arr = com.values_from_object(arr)
+    assert isinstance(arr, np.ndarray)
 
     if arr.ndim > 1:
         raise TypeError("expected dimension <= 1 data")
@@ -1515,7 +1493,7 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
         mask = notna(arr)
     else:
         # cast to object comparison to be safe
-        if is_string_dtype(arr):
+        if is_string_dtype(arr.dtype):
             arr = arr.astype(object)
 
         if is_object_dtype(arr.dtype):
@@ -1533,7 +1511,7 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
     else:
         indices = mask.nonzero()[0].astype(np.int32)
 
-    index = _make_index(length, indices, kind)
+    index = make_sparse_index(length, indices, kind)
     sparsified_values = arr[mask]
     if dtype is not None:
         sparsified_values = astype_nansafe(sparsified_values, dtype=dtype)
@@ -1541,7 +1519,7 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
     return sparsified_values, index, fill_value
 
 
-def _make_index(length, indices, kind):
+def make_sparse_index(length, indices, kind):
 
     if kind == "block" or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)

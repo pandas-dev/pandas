@@ -18,7 +18,9 @@ int to_double(char *item, double *p_value, char sci, char decimal,
     char *p_end = NULL;
     int error = 0;
 
-    *p_value = xstrtod(item, &p_end, decimal, sci, '\0', 1, &error, maybe_int);
+    /* Switch to precise xstrtod GH 31364 */
+    *p_value = precise_xstrtod(item, &p_end, decimal, sci, '\0', 1,
+                               &error, maybe_int);
 
     return (error == 0) && (!*p_end);
 }
@@ -34,6 +36,9 @@ int floatify(PyObject *str, double *result, int *maybe_int) {
         data = PyBytes_AS_STRING(str);
     } else if (PyUnicode_Check(str)) {
         tmp = PyUnicode_AsUTF8String(str);
+        if (tmp == NULL) {
+            return -1;
+        }
         data = PyBytes_AS_STRING(tmp);
     } else {
         PyErr_SetString(PyExc_TypeError, "Invalid object type");

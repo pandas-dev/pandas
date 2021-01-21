@@ -1,23 +1,24 @@
-import cython
-from cython import Py_ssize_t
-
 import numbers
 
+import cython
+from cython import Py_ssize_t
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t, float64_t
+from numpy cimport float64_t, int64_t, ndarray, uint8_t
+
 cnp.import_array()
 
-cimport pandas._libs.util as util
-
-from pandas._libs.tslibs.np_datetime cimport (
-    get_timedelta64_value, get_datetime64_value)
+from pandas._libs cimport util
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
+    c_NaT as NaT,
+    checknull_with_nat,
+    is_null_datetimelike,
+)
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-
-from pandas.compat import is_platform_32bit
-
+from pandas.compat import IS64
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -25,7 +26,7 @@ cdef:
 
     int64_t NPY_NAT = util.get_nat()
 
-    bint is_32bit = is_platform_32bit()
+    bint is_32bit = not IS64
 
 
 cpdef bint checknull(object val):
@@ -37,6 +38,7 @@ cpdef bint checknull(object val):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
 
     Parameters
     ----------
@@ -44,7 +46,7 @@ cpdef bint checknull(object val):
 
     Returns
     -------
-    result : bool
+    bool
 
     Notes
     -----
@@ -84,11 +86,6 @@ cpdef bint checknull_old(object val):
     elif util.is_float_object(val) or util.is_complex_object(val):
         return val == INF or val == NEGINF
     return False
-
-
-cdef inline bint _check_none_nan_inf_neginf(object val):
-    return val is None or (isinstance(val, float) and
-                           (val != val or val == INF or val == NEGINF))
 
 
 @cython.wraparound(False)
@@ -137,6 +134,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
      - INF
      - NEGINF
      - NaT
+     - NA
 
     Parameters
     ----------
@@ -157,7 +155,10 @@ def isnaobj_old(arr: ndarray) -> ndarray:
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
+        result[i] = (
+            checknull(val)
+            or util.is_float_object(val) and (val == INF or val == NEGINF)
+        )
     return result.view(np.bool_)
 
 
@@ -223,7 +224,7 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
 
     Returns
     -------
-    result : ndarray (dtype=np.bool_)
+    ndarray (dtype=np.bool_)
 
     Notes
     -----
@@ -248,17 +249,11 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
 
 
 def isposinf_scalar(val: object) -> bool:
-    if util.is_float_object(val) and val == INF:
-        return True
-    else:
-        return False
+    return util.is_float_object(val) and val == INF
 
 
 def isneginf_scalar(val: object) -> bool:
-    if util.is_float_object(val) and val == NEGINF:
-        return True
-    else:
-        return False
+    return util.is_float_object(val) and val == NEGINF
 
 
 cdef inline bint is_null_datetime64(v):
@@ -281,10 +276,9 @@ cdef inline bint is_null_timedelta64(v):
     return False
 
 
-cdef inline bint is_null_period(v):
-    # determine if we have a null for a Period (or integer versions),
-    # excluding np.datetime64('nat') and np.timedelta64('nat')
-    return checknull_with_nat(v)
+cdef bint checknull_with_nat_and_na(object obj):
+    # See GH#32214
+    return checknull_with_nat(obj) or obj is C_NA
 
 
 # -----------------------------------------------------------------------------
@@ -356,6 +350,12 @@ class NAType(C_NAType):
     def __repr__(self) -> str:
         return "<NA>"
 
+    def __format__(self, format_spec) -> str:
+        try:
+            return self.__repr__().__format__(format_spec)
+        except ValueError:
+            return self.__repr__()
+
     def __bool__(self):
         raise TypeError("boolean value of NA is ambiguous")
 
@@ -363,6 +363,9 @@ class NAType(C_NAType):
         # GH 30013: Ensure hash is large enough to avoid hash collisions with integers
         exponent = 31 if is_32bit else 61
         return 2 ** exponent - 1
+
+    def __reduce__(self):
+        return "NA"
 
     # Binary arithmetic and comparison ops -> propagate
 
@@ -423,7 +426,6 @@ class NAType(C_NAType):
                 return NA
         elif isinstance(other, np.ndarray):
             return np.where(other == 1, other, NA)
-
         return NotImplemented
 
     # Logical ops using Kleene logic
@@ -433,8 +435,7 @@ class NAType(C_NAType):
             return False
         elif other is True or other is C_NA:
             return NA
-        else:
-            return NotImplemented
+        return NotImplemented
 
     __rand__ = __and__
 
@@ -443,8 +444,7 @@ class NAType(C_NAType):
             return True
         elif other is False or other is C_NA:
             return NA
-        else:
-            return NotImplemented
+        return NotImplemented
 
     __ror__ = __or__
 

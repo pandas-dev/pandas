@@ -1,5 +1,3 @@
-import operator
-
 import numpy as np
 import pytest
 
@@ -10,6 +8,35 @@ from .base import BaseExtensionTests
 
 
 class BaseSetitemTests(BaseExtensionTests):
+    @pytest.fixture(
+        params=[
+            lambda x: x.index,
+            lambda x: list(x.index),
+            lambda x: slice(None),
+            lambda x: slice(0, len(x)),
+            lambda x: range(len(x)),
+            lambda x: list(range(len(x))),
+            lambda x: np.ones(len(x), dtype=bool),
+        ],
+        ids=[
+            "index",
+            "list[index]",
+            "null_slice",
+            "full_slice",
+            "range",
+            "list(range)",
+            "mask",
+        ],
+    )
+    def full_indexer(self, request):
+        """
+        Fixture for an indexer to pass to obj.loc to get/set the full length of the
+        object.
+
+        In some cases, assumes that obj.index is the default RangeIndex.
+        """
+        return request.param
+
     def test_setitem_scalar_series(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
@@ -42,7 +69,7 @@ class BaseSetitemTests(BaseExtensionTests):
             ser[slice(3)] = value
         self.assert_series_equal(ser, original)
 
-    def test_setitem_empty_indxer(self, data, box_in_series):
+    def test_setitem_empty_indexer(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
@@ -60,7 +87,7 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_scalar(self, data, setter):
         arr = pd.Series(data)
         setter = getattr(arr, setter)
-        operator.setitem(setter, 0, data[1])
+        setter[0] = data[1]
         assert arr[0] == data[1]
 
     def test_setitem_loc_scalar_mixed(self, data):
@@ -98,8 +125,9 @@ class BaseSetitemTests(BaseExtensionTests):
         [
             np.array([True, True, True, False, False]),
             pd.array([True, True, True, False, False], dtype="boolean"),
+            pd.array([True, True, True, pd.NA, pd.NA], dtype="boolean"),
         ],
-        ids=["numpy-array", "boolean-array"],
+        ids=["numpy-array", "boolean-array", "boolean-array-na"],
     )
     def test_setitem_mask(self, data, mask, box_in_series):
         arr = data[:5].copy()
@@ -124,20 +152,17 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError, match="wrong length"):
             data[mask] = data[0]
 
-    def test_setitem_mask_boolean_array_raises(self, data, box_in_series):
-        # missing values in mask
+    def test_setitem_mask_boolean_array_with_na(self, data, box_in_series):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
-        mask[:2] = pd.NA
+        mask[:3] = True
+        mask[3:5] = pd.NA
 
         if box_in_series:
             data = pd.Series(data)
 
-        msg = (
-            "Cannot mask with a boolean indexer containing NA values|"
-            "cannot mask with array containing NA / NaN values"
-        )
-        with pytest.raises(ValueError, match=msg):
-            data[mask] = data[0]
+        data[mask] = data[0]
+
+        assert (data[:3] == data[0]).all()
 
     @pytest.mark.parametrize(
         "idx",
@@ -198,7 +223,7 @@ class BaseSetitemTests(BaseExtensionTests):
             # Series.__setitem__
             target = ser
 
-        operator.setitem(target, mask2, data[5:7])
+        target[mask2] = data[5:7]
 
         ser[mask2] = data[5:7]
         assert ser[0] == data[5]
@@ -215,7 +240,7 @@ class BaseSetitemTests(BaseExtensionTests):
         else:  # __setitem__
             target = ser
 
-        operator.setitem(target, mask, data[10])
+        target[mask] = data[10]
         assert ser[0] == data[10]
         assert ser[1] == data[10]
 
@@ -248,7 +273,10 @@ class BaseSetitemTests(BaseExtensionTests):
 
     def test_setitem_frame_invalid_length(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
-        xpr = "Length of values does not match length of index"
+        xpr = (
+            rf"Length of values \({len(data[:5])}\) "
+            rf"does not match length of index \({len(df)}\)"
+        )
         with pytest.raises(ValueError, match=xpr):
             df["B"] = data[:5]
 
@@ -305,3 +333,21 @@ class BaseSetitemTests(BaseExtensionTests):
         data[0] = data[1]
         assert view1[0] == data[1]
         assert view2[0] == data[1]
+
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]
+        self.assert_frame_equal(result, expected)
+
+    def test_setitem_series(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = expected = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
+
+        key = full_indexer(ser)
+        result.loc[key] = ser
+        self.assert_series_equal(result, expected)

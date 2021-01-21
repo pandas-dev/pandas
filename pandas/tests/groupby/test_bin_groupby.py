@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas._libs import groupby, lib, reduction as libreduction
+from pandas._libs import lib, reduction as libreduction
 
-from pandas.core.dtypes.common import ensure_int64
-
-from pandas import Index, Series, isna
+import pandas as pd
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -51,6 +50,30 @@ def test_series_bin_grouper():
     tm.assert_almost_equal(counts, exp_counts)
 
 
+def assert_block_lengths(x):
+    assert len(x) == len(x._mgr.blocks[0].mgr_locs)
+    return 0
+
+
+def cumsum_max(x):
+    x.cumsum().max()
+    return 0
+
+
+@pytest.mark.parametrize("func", [cumsum_max, assert_block_lengths])
+def test_mgr_locs_updated(func):
+    # https://github.com/pandas-dev/pandas/issues/31802
+    # Some operations may require creating new blocks, which requires
+    # valid mgr_locs
+    df = pd.DataFrame({"A": ["a", "a", "a"], "B": ["a", "b", "b"], "C": [1, 1, 1]})
+    result = df.groupby(["A", "B"]).agg(func)
+    expected = pd.DataFrame(
+        {"C": [0, 0]},
+        index=pd.MultiIndex.from_product([["a"], ["a", "b"]], names=["A", "B"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "binner,closed,expected",
     [
@@ -78,70 +101,5 @@ def test_generate_bins(binner, closed, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_group_ohlc():
-    def _check(dtype):
-        obj = np.array(np.random.randn(20), dtype=dtype)
-
-        bins = np.array([6, 12, 20])
-        out = np.zeros((3, 4), dtype)
-        counts = np.zeros(len(out), dtype=np.int64)
-        labels = ensure_int64(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
-
-        func = getattr(groupby, f"group_ohlc_{dtype}")
-        func(out, counts, obj[:, None], labels)
-
-        def _ohlc(group):
-            if isna(group).all():
-                return np.repeat(np.nan, 4)
-            return [group[0], group.max(), group.min(), group[-1]]
-
-        expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]), _ohlc(obj[12:])])
-
-        tm.assert_almost_equal(out, expected)
-        tm.assert_numpy_array_equal(counts, np.array([6, 6, 8], dtype=np.int64))
-
-        obj[:6] = np.nan
-        func(out, counts, obj[:, None], labels)
-        expected[0] = np.nan
-        tm.assert_almost_equal(out, expected)
-
-    _check("float32")
-    _check("float64")
-
-
 class TestMoments:
     pass
-
-
-class TestReducer:
-    def test_int_index(self):
-        arr = np.random.randn(100, 4)
-
-        msg = "Must pass either dummy and labels, or neither"
-        # we must pass either both labels and dummy, or neither
-        with pytest.raises(ValueError, match=msg):
-            libreduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
-
-        with pytest.raises(ValueError, match=msg):
-            libreduction.compute_reduction(
-                arr, np.sum, axis=1, labels=Index(np.arange(100))
-            )
-
-        dummy = Series(0.0, index=np.arange(100))
-        result = libreduction.compute_reduction(
-            arr, np.sum, dummy=dummy, labels=Index(np.arange(4))
-        )
-        expected = arr.sum(0)
-        tm.assert_almost_equal(result, expected)
-
-        dummy = Series(0.0, index=np.arange(4))
-        result = libreduction.compute_reduction(
-            arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
-        )
-        expected = arr.sum(1)
-        tm.assert_almost_equal(result, expected)
-
-        result = libreduction.compute_reduction(
-            arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
-        )
-        tm.assert_almost_equal(result, expected)

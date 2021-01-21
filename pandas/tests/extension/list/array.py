@@ -3,6 +3,8 @@ Test extension array for storing nested data in a pandas container.
 
 The ListArray stores an ndarray of lists.
 """
+from __future__ import annotations
+
 import numbers
 import random
 import string
@@ -13,6 +15,7 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
+from pandas.api.types import is_object_dtype, is_string_dtype
 from pandas.core.arrays import ExtensionArray
 
 
@@ -22,7 +25,7 @@ class ListDtype(ExtensionDtype):
     na_value = np.nan
 
     @classmethod
-    def construct_array_type(cls) -> Type["ListArray"]:
+    def construct_array_type(cls) -> Type[ListArray]:
         """
         Return the array type associated with this dtype.
 
@@ -86,13 +89,13 @@ class ListArray(ExtensionArray):
                 output = [
                     self.data[loc] if loc != -1 else fill_value for loc in indexer
                 ]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
         else:
             try:
                 output = [self.data[loc] for loc in indexer]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
 
         return self._from_sequence(output)
 
@@ -104,9 +107,7 @@ class ListArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        elif pd.api.types.is_string_dtype(dtype) and not pd.api.types.is_object_dtype(
-            dtype
-        ):
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # numpy has problems with astype(str) for nested elements
             return np.array([str(x) for x in self.data], dtype=dtype)
         return np.array(self.data, dtype=dtype, copy=copy)

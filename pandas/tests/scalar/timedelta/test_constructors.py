@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import OutOfBoundsTimedelta
+
 from pandas import Timedelta, offsets, to_timedelta
 
 
@@ -51,6 +53,7 @@ def test_construction():
     assert Timedelta("1 milli") == timedelta(milliseconds=1)
     assert Timedelta("1 millisecond") == timedelta(milliseconds=1)
     assert Timedelta("1 us") == timedelta(microseconds=1)
+    assert Timedelta("1 µs") == timedelta(microseconds=1)
     assert Timedelta("1 micros") == timedelta(microseconds=1)
     assert Timedelta("1 microsecond") == timedelta(microseconds=1)
     assert Timedelta("1.5 microsecond") == Timedelta("00:00:00.000001500")
@@ -79,22 +82,26 @@ def test_construction():
 
     # Currently invalid as it has a - on the hh:mm:dd part
     # (only allowed on the days)
-    with pytest.raises(ValueError):
+    msg = "only leading negative signs are allowed"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("-10 days -1 h 1.5m 1s 3us")
 
     # only leading neg signs are allowed
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         Timedelta("10 days -1 h 1.5m 1s 3us")
 
     # no units specified
-    with pytest.raises(ValueError):
+    msg = "no units specified"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("3.1415")
 
     # invalid construction
-    with pytest.raises(ValueError, match="cannot construct a Timedelta"):
+    msg = "cannot construct a Timedelta"
+    with pytest.raises(ValueError, match=msg):
         Timedelta()
 
-    with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
+    msg = "unit abbreviation w/o a number"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("foo")
 
     msg = (
@@ -121,7 +128,8 @@ def test_construction():
     assert result == expected
     assert to_timedelta(offsets.Hour(2)) == Timedelta("0 days, 02:00:00")
 
-    with pytest.raises(ValueError):
+    msg = "unit abbreviation w/o a number"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("foo bar")
 
 
@@ -170,24 +178,50 @@ def test_td_from_repr_roundtrip(val):
     td = Timedelta(val)
     assert Timedelta(td.value) == td
 
-    # str does not normally display nanos
-    if not td.nanoseconds:
-        assert Timedelta(str(td)) == td
+    assert Timedelta(str(td)) == td
     assert Timedelta(td._repr_base(format="all")) == td
+    assert Timedelta(td._repr_base()) == td
 
 
 def test_overflow_on_construction():
+    msg = "int too (large|big) to convert"
+
     # GH#3374
     value = Timedelta("1day").value * 20169940
-    with pytest.raises(OverflowError):
+    with pytest.raises(OverflowError, match=msg):
         Timedelta(value)
 
     # xref GH#17637
-    with pytest.raises(OverflowError):
+    with pytest.raises(OverflowError, match=msg):
         Timedelta(7 * 19999, unit="D")
 
-    with pytest.raises(OverflowError):
+    with pytest.raises(OverflowError, match=msg):
         Timedelta(timedelta(days=13 * 19999))
+
+
+def test_construction_out_of_bounds_td64():
+    # TODO: parametrize over units just above/below the implementation bounds
+    #  once GH#38964 is resolved
+
+    # Timedelta.max is just under 106752 days
+    td64 = np.timedelta64(106752, "D")
+    assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
+
+    msg = "106752 days"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 - 1) == td64 - 1
+
+    td64 *= -1
+    assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
+
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 + 1) == td64 + 1
 
 
 @pytest.mark.parametrize(
@@ -221,6 +255,14 @@ def test_overflow_on_construction():
         ("P0DT0H0M0.001S", Timedelta(milliseconds=1)),
         ("P0DT0H1M0S", Timedelta(minutes=1)),
         ("P1DT25H61M61S", Timedelta(days=1, hours=25, minutes=61, seconds=61)),
+        ("PT1S", Timedelta(seconds=1)),
+        ("PT0S", Timedelta(seconds=0)),
+        ("P1WT0S", Timedelta(days=7, seconds=0)),
+        ("P1D", Timedelta(days=1)),
+        ("P1DT1H", Timedelta(days=1, hours=1)),
+        ("P1W", Timedelta(days=7)),
+        ("PT300S", Timedelta(seconds=300)),
+        ("P1DT0H0M00000000000S", Timedelta(days=1)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -234,7 +276,6 @@ def test_iso_constructor(fmt, exp):
         "PDTHMS",
         "P0DT999H999M999S",
         "P1DT0H0M0.0000000000000S",
-        "P1DT0H0M00000000000S",
         "P1DT0H0M0.S",
     ],
 )
@@ -272,7 +313,8 @@ def test_td_constructor_on_nanoseconds(constructed_td, conversion):
 
 
 def test_td_constructor_value_error():
-    with pytest.raises(TypeError):
+    msg = "Invalid type <class 'str'>. Must be int or float."
+    with pytest.raises(TypeError, match=msg):
         Timedelta(nanoseconds="abc")
 
 
@@ -281,3 +323,17 @@ def test_timedelta_constructor_identity():
     expected = Timedelta(np.timedelta64(1, "s"))
     result = Timedelta(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize(
+    "constructor, value, unit, expectation",
+    [
+        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+    ],
+)
+def test_string_with_unit(constructor, value, unit, expectation):
+    exp, match = expectation
+    with pytest.raises(exp, match=match):
+        _ = constructor(value, unit=unit)

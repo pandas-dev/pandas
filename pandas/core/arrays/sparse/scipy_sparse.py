@@ -85,7 +85,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     return values, i_coord, j_coord, i_labels, j_labels
 
 
-def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
+def sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """
     Convert a sparse Series to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
@@ -113,7 +113,7 @@ def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=F
     return sparse_matrix, rows, columns
 
 
-def _coo_to_sparse_series(A, dense_index: bool = False):
+def coo_to_sparse_series(A, dense_index: bool = False):
     """
     Convert a scipy.sparse.coo_matrix to a SparseSeries.
 
@@ -134,8 +134,10 @@ def _coo_to_sparse_series(A, dense_index: bool = False):
 
     try:
         s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
-    except AttributeError:
-        raise TypeError(f"Expected coo_matrix. Got {type(A).__name__} instead.")
+    except AttributeError as err:
+        raise TypeError(
+            f"Expected coo_matrix. Got {type(A).__name__} instead."
+        ) from err
     s = s.sort_index()
     s = s.astype(SparseDtype(s.dtype))
     if dense_index:

@@ -20,8 +20,9 @@ Nullable Boolean data type
 Indexing with NA values
 -----------------------
 
-pandas does not allow indexing with NA values. Attempting to do so
-will raise a ``ValueError``.
+pandas allows indexing with ``NA`` values in a boolean array, which are treated as ``False``.
+
+.. versionchanged:: 1.0.2
 
 .. ipython:: python
    :okexcept:
@@ -30,16 +31,15 @@ will raise a ``ValueError``.
    mask = pd.array([True, False, pd.NA], dtype="boolean")
    s[mask]
 
-The missing values will need to be explicitly filled with True or False prior
-to using the array as a mask.
+If you would prefer to keep the ``NA`` values you can manually fill them with ``fillna(True)``.
 
 .. ipython:: python
 
-   s[mask.fillna(False)]
+   s[mask.fillna(True)]
 
 .. _boolean.kleene:
 
-Kleene Logical Operations
+Kleene logical operations
 -------------------------
 
 :class:`arrays.BooleanArray` implements `Kleene Logic`_ (sometimes called three-value logic) for
@@ -82,7 +82,7 @@ the ``NA`` really is ``True`` or ``False``, since ``True & True`` is ``True``,
 but ``True & False`` is ``False``, so we can't determine the output.
 
 
-This differs from how ``np.nan`` behaves in logical operations. Pandas treated
+This differs from how ``np.nan`` behaves in logical operations. pandas treated
 ``np.nan`` is *always false in the output*.
 
 In ``or``

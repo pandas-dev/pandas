@@ -1,7 +1,6 @@
 from textwrap import dedent
 
 import numpy as np
-from numpy.random import randint
 import pytest
 
 import pandas as pd
@@ -38,11 +37,11 @@ def df(request):
     data_type = request.param
 
     if data_type == "delims":
-        return pd.DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
+        return DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
     elif data_type == "utf8":
-        return pd.DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
+        return DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
     elif data_type == "utf16":
-        return pd.DataFrame(
+        return DataFrame(
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
@@ -54,14 +53,14 @@ def df(request):
         return tm.makeCustomDataframe(
             max_rows + 1,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
             r_idx_names=[None],
         )
     elif data_type == "nonascii":
-        return pd.DataFrame({"en": "in English".split(), "es": "en español".split()})
+        return DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
         _cw = get_option("display.max_colwidth") + 1
         return tm.makeCustomDataframe(
@@ -75,7 +74,11 @@ def df(request):
         )
     elif data_type == "mixed":
         return DataFrame(
-            {"a": np.arange(1.0, 6.0) + 0.01, "b": np.arange(1, 6), "c": list("abcde")}
+            {
+                "a": np.arange(1.0, 6.0) + 0.01,
+                "b": np.arange(1, 6).astype(np.int64),
+                "c": list("abcde"),
+            }
         )
     elif data_type == "float":
         return tm.makeCustomDataframe(
@@ -91,7 +94,7 @@ def df(request):
         return tm.makeCustomDataframe(
             5,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -146,7 +149,7 @@ class TestClipboard:
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
         result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
-        tm.assert_frame_equal(data, result, check_dtype=False)
+        tm.assert_frame_equal(data, result)
 
     # Test that default arguments copy as tab delimited
     def test_round_trip_frame(self, df):
@@ -196,7 +199,7 @@ class TestClipboard:
 
     def test_read_clipboard_infer_excel(self, request, mock_clipboard):
         # gh-19010: avoid warnings
-        clip_kwargs = dict(engine="python")
+        clip_kwargs = {"engine": "python"}
 
         text = dedent(
             """
@@ -235,10 +238,11 @@ class TestClipboard:
         tm.assert_frame_equal(res, exp)
 
     def test_invalid_encoding(self, df):
+        msg = "clipboard only supports utf-8 encoding"
         # test case for testing invalid encoding
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.to_clipboard(encoding="ascii")
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             pd.read_clipboard(encoding="ascii")
 
     @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])

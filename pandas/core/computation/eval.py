@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Top level ``eval`` module.
 """
@@ -10,8 +9,8 @@ import warnings
 from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.computation.engines import _engines
-from pandas.core.computation.expr import Expr, _parsers
+from pandas.core.computation.engines import ENGINES
+from pandas.core.computation.expr import PARSERS, Expr
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
@@ -39,13 +38,13 @@ def _check_engine(engine: Optional[str]) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import _NUMEXPR_INSTALLED
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
 
     if engine is None:
-        engine = "numexpr" if _NUMEXPR_INSTALLED else "python"
+        engine = "numexpr" if NUMEXPR_INSTALLED else "python"
 
-    if engine not in _engines:
-        valid_engines = list(_engines.keys())
+    if engine not in ENGINES:
+        valid_engines = list(ENGINES.keys())
         raise KeyError(
             f"Invalid engine '{engine}' passed, valid engines are {valid_engines}"
         )
@@ -53,12 +52,11 @@ def _check_engine(engine: Optional[str]) -> str:
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
-    if engine == "numexpr":
-        if not _NUMEXPR_INSTALLED:
-            raise ImportError(
-                "'numexpr' is not installed or an unsupported version. Cannot use "
-                "engine='numexpr' for query/eval if 'numexpr' is not installed"
-            )
+    if engine == "numexpr" and not NUMEXPR_INSTALLED:
+        raise ImportError(
+            "'numexpr' is not installed or an unsupported version. Cannot use "
+            "engine='numexpr' for query/eval if 'numexpr' is not installed"
+        )
 
     return engine
 
@@ -76,9 +74,9 @@ def _check_parser(parser: str):
     KeyError
       * If an invalid parser is passed
     """
-    if parser not in _parsers:
+    if parser not in PARSERS:
         raise KeyError(
-            f"Invalid parser '{parser}' passed, valid parsers are {_parsers.keys()}"
+            f"Invalid parser '{parser}' passed, valid parsers are {PARSERS.keys()}"
         )
 
 
@@ -213,7 +211,8 @@ def eval(
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3.
-        deprecated:: 1.0.0
+
+        .. deprecated:: 1.0.0
 
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
@@ -242,7 +241,8 @@ def eval(
 
     Returns
     -------
-    ndarray, numeric scalar, DataFrame, Series
+    ndarray, numeric scalar, DataFrame, Series, or None
+        The completion value of evaluating the given code or None if ``inplace=True``.
 
     Raises
     ------
@@ -266,8 +266,10 @@ def eval(
 
     See Also
     --------
-    DataFrame.query
-    DataFrame.eval
+    DataFrame.query : Evaluates a boolean expression to query the columns
+            of a frame.
+    DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
     Notes
     -----
@@ -340,7 +342,7 @@ def eval(
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
         # construct the engine and evaluate the parsed expression
-        eng = _engines[engine]
+        eng = ENGINES[engine]
         eng_inst = eng(parsed_expr)
         ret = eng_inst.evaluate()
 
@@ -362,8 +364,8 @@ def eval(
             if not inplace and first_expr:
                 try:
                     target = env.target.copy()
-                except AttributeError:
-                    raise ValueError("Cannot return a copy of the target")
+                except AttributeError as err:
+                    raise ValueError("Cannot return a copy of the target") from err
             else:
                 target = env.target
 
@@ -375,8 +377,8 @@ def eval(
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
                     target[assigner] = ret
-            except (TypeError, IndexError):
-                raise ValueError("Cannot assign expression output to target")
+            except (TypeError, IndexError) as err:
+                raise ValueError("Cannot assign expression output to target") from err
 
             if not resolvers:
                 resolvers = ({assigner: ret},)

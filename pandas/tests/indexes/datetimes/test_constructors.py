@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from operator import attrgetter
 
@@ -16,7 +16,9 @@ from pandas.core.arrays import DatetimeArray, period_array
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("dt_cls", [DatetimeIndex, DatetimeArray._from_sequence])
+    @pytest.mark.parametrize(
+        "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
+    )
     def test_freq_validation_with_nat(self, dt_cls):
         # GH#11587 make sure we get a useful error message when generate_range
         #  raises
@@ -25,15 +27,15 @@ class TestDatetimeIndex:
             "to passed frequency D"
         )
         with pytest.raises(ValueError, match=msg):
-            dt_cls([pd.NaT, pd.Timestamp("2011-01-01")], freq="D")
+            dt_cls([pd.NaT, Timestamp("2011-01-01")], freq="D")
         with pytest.raises(ValueError, match=msg):
-            dt_cls([pd.NaT, pd.Timestamp("2011-01-01").value], freq="D")
+            dt_cls([pd.NaT, Timestamp("2011-01-01").value], freq="D")
 
     # TODO: better place for tests shared by DTI/TDI?
     @pytest.mark.parametrize(
         "index",
         [
-            pd.date_range("2016-01-01", periods=5, tz="US/Pacific"),
+            date_range("2016-01-01", periods=5, tz="US/Pacific"),
             pd.timedelta_range("1 Day", periods=5),
         ],
     )
@@ -51,9 +53,9 @@ class TestDatetimeIndex:
     def test_categorical_preserves_tz(self):
         # GH#18664 retain tz when going DTI-->Categorical-->DTI
         # TODO: parametrize over DatetimeIndex/DatetimeArray
-        #  once CategoricalIndex(DTA) works
+        #  once pd.CategoricalIndex(DTA) works
 
-        dti = pd.DatetimeIndex(
+        dti = DatetimeIndex(
             [pd.NaT, "2015-01-01", "1999-04-06 15:14:13", "2015-01-01"], tz="US/Eastern"
         )
 
@@ -62,7 +64,7 @@ class TestDatetimeIndex:
         cser = pd.Series(ci)
 
         for obj in [ci, carr, cser]:
-            result = pd.DatetimeIndex(obj)
+            result = DatetimeIndex(obj)
             tm.assert_index_equal(result, dti)
 
     def test_dti_with_period_data_raises(self):
@@ -97,18 +99,29 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             to_datetime(pd.TimedeltaIndex(data))
 
+    def test_constructor_from_sparse_array(self):
+        # https://github.com/pandas-dev/pandas/issues/35843
+        values = [
+            Timestamp("2012-05-01T01:00:00.000000"),
+            Timestamp("2016-05-01T01:00:00.000000"),
+        ]
+        arr = pd.arrays.SparseArray(values)
+        result = Index(arr)
+        expected = DatetimeIndex(values)
+        tm.assert_index_equal(result, expected)
+
     def test_construction_caching(self):
 
         df = pd.DataFrame(
             {
-                "dt": pd.date_range("20130101", periods=3),
-                "dttz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+                "dt": date_range("20130101", periods=3),
+                "dttz": date_range("20130101", periods=3, tz="US/Eastern"),
                 "dt_with_null": [
-                    pd.Timestamp("20130101"),
+                    Timestamp("20130101"),
                     pd.NaT,
-                    pd.Timestamp("20130103"),
+                    Timestamp("20130103"),
                 ],
-                "dtns": pd.date_range("20130101", periods=3, freq="ns"),
+                "dtns": date_range("20130101", periods=3, freq="ns"),
             }
         )
         assert df.dttz.dtype.tz.zone == "US/Eastern"
@@ -119,7 +132,7 @@ class TestDatetimeIndex:
     )
     def test_construction_with_alt(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
-        i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
+        i = date_range("20130101", periods=5, freq="H", tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
         result = DatetimeIndex(i, **kwargs)
         tm.assert_index_equal(i, result)
@@ -130,7 +143,8 @@ class TestDatetimeIndex:
     )
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
-        i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
+        i = date_range("20130101", periods=5, freq="H", tz=tz)
+        i = i._with_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
         if "tz" in kwargs:
@@ -360,7 +374,9 @@ class TestDatetimeIndex:
         assert result.tz is None
 
         # all NaT with tz
-        result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
+        with tm.assert_produces_warning(FutureWarning):
+            # subclass-specific kwargs to pd.Index
+            result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
         exp = DatetimeIndex([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
 
         tm.assert_index_equal(result, exp, exact=True)
@@ -415,7 +431,8 @@ class TestDatetimeIndex:
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
-        with pytest.raises(ValueError):
+        msg = "cannot be converted to datetime64"
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
                     Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
@@ -424,7 +441,6 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        msg = "cannot be converted to datetime64"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
@@ -435,7 +451,7 @@ class TestDatetimeIndex:
                 name="idx",
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(
                 [
                     Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
@@ -448,25 +464,27 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
-            Index(
-                [
-                    pd.NaT,
-                    Timestamp("2011-01-01 10:00"),
-                    pd.NaT,
-                    Timestamp("2011-01-02 10:00", tz="US/Eastern"),
-                ],
-                tz="Asia/Tokyo",
-                name="idx",
-            )
+            with tm.assert_produces_warning(FutureWarning):
+                # subclass-specific kwargs to pd.Index
+                Index(
+                    [
+                        pd.NaT,
+                        Timestamp("2011-01-01 10:00"),
+                        pd.NaT,
+                        Timestamp("2011-01-02 10:00", tz="US/Eastern"),
+                    ],
+                    tz="Asia/Tokyo",
+                    name="idx",
+                )
 
     def test_construction_base_constructor(self):
-        arr = [pd.Timestamp("2011-01-01"), pd.NaT, pd.Timestamp("2011-01-03")]
-        tm.assert_index_equal(pd.Index(arr), pd.DatetimeIndex(arr))
-        tm.assert_index_equal(pd.Index(np.array(arr)), pd.DatetimeIndex(np.array(arr)))
+        arr = [Timestamp("2011-01-01"), pd.NaT, Timestamp("2011-01-03")]
+        tm.assert_index_equal(Index(arr), DatetimeIndex(arr))
+        tm.assert_index_equal(Index(np.array(arr)), DatetimeIndex(np.array(arr)))
 
-        arr = [np.nan, pd.NaT, pd.Timestamp("2011-01-03")]
-        tm.assert_index_equal(pd.Index(arr), pd.DatetimeIndex(arr))
-        tm.assert_index_equal(pd.Index(np.array(arr)), pd.DatetimeIndex(np.array(arr)))
+        arr = [np.nan, pd.NaT, Timestamp("2011-01-03")]
+        tm.assert_index_equal(Index(arr), DatetimeIndex(arr))
+        tm.assert_index_equal(Index(np.array(arr)), DatetimeIndex(np.array(arr)))
 
     def test_construction_outofbounds(self):
         # GH 13663
@@ -480,7 +498,8 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
 
@@ -499,13 +518,13 @@ class TestDatetimeIndex:
 
         result = DatetimeIndex(values).tz_localize("US/Central")
 
-        expected = pd.DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
         tm.assert_index_equal(result, expected)
 
         # but UTC is *not* deprecated.
         with tm.assert_produces_warning(None):
             result = DatetimeIndex(values, tz="UTC")
-        expected = pd.DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
 
     def test_constructor_coverage(self):
         rng = date_range("1/1/2000", periods=10.5)
@@ -516,7 +535,8 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-        with pytest.raises(TypeError):
+        msg = "DatetimeIndex\\(\\) must be called with a collection"
+        with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
 
         # generator expression
@@ -664,7 +684,8 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize("dtype", [object, np.int32, np.int64])
     def test_constructor_invalid_dtype_raises(self, dtype):
         # GH 23986
-        with pytest.raises(ValueError):
+        msg = "Unexpected value for 'dtype'"
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
@@ -681,7 +702,8 @@ class TestDatetimeIndex:
     def test_disallow_setting_tz(self):
         # GH 3746
         dti = DatetimeIndex(["2010"], tz="UTC")
-        with pytest.raises(AttributeError):
+        msg = "Cannot directly set timezone"
+        with pytest.raises(AttributeError, match=msg):
             dti.tz = pytz.timezone("US/Pacific")
 
     @pytest.mark.parametrize(
@@ -699,7 +721,9 @@ class TestDatetimeIndex:
         end = Timestamp("2013-01-02 06:00:00", tz="America/Los_Angeles")
         result = date_range(freq="D", start=start, end=end, tz=tz)
         expected = DatetimeIndex(
-            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"], tz="America/Los_Angeles"
+            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
+            tz="America/Los_Angeles",
+            freq="D",
         )
         tm.assert_index_equal(result, expected)
         # Especially assert that the timezone is consistent for pytz
@@ -745,16 +769,16 @@ class TestDatetimeIndex:
 
     def test_construction_from_replaced_timestamps_with_dst(self):
         # GH 18785
-        index = pd.date_range(
-            pd.Timestamp(2000, 1, 1),
-            pd.Timestamp(2005, 1, 1),
+        index = date_range(
+            Timestamp(2000, 1, 1),
+            Timestamp(2005, 1, 1),
             freq="MS",
             tz="Australia/Melbourne",
         )
         test = pd.DataFrame({"data": range(len(index))}, index=index)
         test = test.resample("Y").mean()
-        result = pd.DatetimeIndex([x.replace(month=6, day=1) for x in test.index])
-        expected = pd.DatetimeIndex(
+        result = DatetimeIndex([x.replace(month=6, day=1) for x in test.index])
+        expected = DatetimeIndex(
             [
                 "2000-06-01 00:00:00",
                 "2001-06-01 00:00:00",
@@ -770,7 +794,8 @@ class TestDatetimeIndex:
     def test_construction_with_tz_and_tz_aware_dti(self):
         # GH 23579
         dti = date_range("2016-01-01", periods=3, tz="US/Central")
-        with pytest.raises(TypeError):
+        msg = "data is already tz-aware US/Central, unable to set specified tz"
+        with pytest.raises(TypeError, match=msg):
             DatetimeIndex(dti, tz="Asia/Tokyo")
 
     def test_construction_with_nat_and_tzlocal(self):
@@ -779,19 +804,79 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([Timestamp("2018", tz=tz), pd.NaT])
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_with_ambiguous_keyword_arg(self):
+        # GH 35297
+
+        expected = DatetimeIndex(
+            ["2020-11-01 01:00:00", "2020-11-02 01:00:00"],
+            dtype="datetime64[ns, America/New_York]",
+            freq="D",
+            ambiguous=False,
+        )
+
+        # ambiguous keyword in start
+        timezone = "America/New_York"
+        start = Timestamp(year=2020, month=11, day=1, hour=1).tz_localize(
+            timezone, ambiguous=False
+        )
+        result = date_range(start=start, periods=2, ambiguous=False)
+        tm.assert_index_equal(result, expected)
+
+        # ambiguous keyword in end
+        timezone = "America/New_York"
+        end = Timestamp(year=2020, month=11, day=2, hour=1).tz_localize(
+            timezone, ambiguous=False
+        )
+        result = date_range(end=end, periods=2, ambiguous=False)
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_with_nonexistent_keyword_arg(self):
+        # GH 35297
+
+        timezone = "Europe/Warsaw"
+
+        # nonexistent keyword in start
+        start = Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = date_range(start=start, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+                Timestamp("2015-03-29 04:00:00+02:00", tz=timezone),
+            ]
+        )
+
+        tm.assert_index_equal(result, expected)
+
+        # nonexistent keyword in end
+        end = Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = date_range(end=end, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                Timestamp("2015-03-29 01:00:00+01:00", tz=timezone),
+                Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+            ]
+        )
+
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739
 
         msg = "with no precision is not allowed"
         with pytest.raises(ValueError, match=msg):
-            pd.DatetimeIndex(["2000"], dtype="datetime64")
+            DatetimeIndex(["2000"], dtype="datetime64")
 
         with pytest.raises(ValueError, match=msg):
-            pd.Index(["2000"], dtype="datetime64")
+            Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
-        with pytest.raises(ValueError):
-            pd.DatetimeIndex(["2000"], dtype="datetime64[us]")
+        msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(["2000"], dtype="datetime64[us]")
 
     def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
         # GH 27011
@@ -806,6 +891,16 @@ class TestTimeSeries:
 
         rng2 = DatetimeIndex(rng)
         assert rng.freq == rng2.freq
+
+    def test_explicit_none_freq(self):
+        # Explicitly passing freq=None is respected
+        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
+
+        result = DatetimeIndex(rng, freq=None)
+        assert result.freq is None
+
+        result = DatetimeIndex(rng._data, freq=None)
+        assert result.freq is None
 
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -927,11 +1022,6 @@ class TestTimeSeries:
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
 
-        idx = date_range(end=edate, freq=("D", 5), periods=20)
-        assert len(idx) == 20
-        assert idx[-1] == edate
-        assert idx.freq == "5D"
-
         idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
         idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
         assert len(idx1) == len(idx2)
@@ -959,3 +1049,101 @@ class TestTimeSeries:
         expected = Index(rng.to_pydatetime(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
+
+    def test_date_range_tuple_freq_raises(self):
+        # GH#34703
+        edate = datetime(2000, 1, 1)
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            date_range(end=edate, freq=("D", 5), periods=20)
+
+
+def test_timestamp_constructor_invalid_fold_raise():
+    # Test for #25057
+    # Valid fold values are only [None, 0, 1]
+    msg = "Valid values for the fold argument are None, 0, or 1."
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(123, fold=2)
+
+
+def test_timestamp_constructor_pytz_fold_raise():
+    # Test for #25057
+    # pytz doesn't support fold. Check that we raise
+    # if fold is passed with pytz
+    msg = "pytz timezones do not support fold. Please use dateutil timezones."
+    tz = pytz.timezone("Europe/London")
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(datetime(2019, 10, 27, 0, 30, 0, 0), tz=tz, fold=0)
+
+
+@pytest.mark.parametrize("fold", [0, 1])
+@pytest.mark.parametrize(
+    "ts_input",
+    [
+        1572136200000000000,
+        1572136200000000000.0,
+        np.datetime64(1572136200000000000, "ns"),
+        "2019-10-27 01:30:00+01:00",
+        datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc),
+    ],
+)
+def test_timestamp_constructor_fold_conflict(ts_input, fold):
+    # Test for #25057
+    # Check that we raise on fold conflict
+    msg = (
+        "Cannot pass fold with possibly unambiguous input: int, float, "
+        "numpy.datetime64, str, or timezone-aware datetime-like. "
+        "Pass naive datetime-like or build Timestamp from components."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(ts_input=ts_input, fold=fold)
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", None])
+@pytest.mark.parametrize("fold", [0, 1])
+def test_timestamp_constructor_retain_fold(tz, fold):
+    # Test for #25057
+    # Check that we retain fold
+    ts = Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=tz, fold=fold)
+    result = ts.fold
+    expected = fold
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+@pytest.mark.parametrize(
+    "ts_input,fold_out",
+    [
+        (1572136200000000000, 0),
+        (1572139800000000000, 1),
+        ("2019-10-27 01:30:00+01:00", 0),
+        ("2019-10-27 01:30:00+00:00", 1),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 0),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), 1),
+    ],
+)
+def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
+    # Test for #25057
+    # Check that we infer fold correctly based on timestamps since utc
+    # or strings
+    ts = Timestamp(ts_input, tz=tz)
+    result = ts.fold
+    expected = fold_out
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+@pytest.mark.parametrize(
+    "ts_input,fold,value_out",
+    [
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000000),
+    ],
+)
+def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_out):
+    # Test for #25057
+    # Check that we adjust value for fold correctly
+    # based on timestamps since utc
+    ts = Timestamp(ts_input, tz=tz, fold=fold)
+    result = ts.value
+    expected = value_out
+    assert result == expected

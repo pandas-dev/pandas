@@ -219,11 +219,51 @@ class ToHTML:
         self.df2.to_html()
 
 
+class ToNumpy:
+    def setup(self):
+        N = 10000
+        M = 10
+        self.df_tall = DataFrame(np.random.randn(N, M))
+        self.df_wide = DataFrame(np.random.randn(M, N))
+        self.df_mixed_tall = self.df_tall.copy()
+        self.df_mixed_tall["foo"] = "bar"
+        self.df_mixed_tall[0] = period_range("2000", periods=N)
+        self.df_mixed_tall[1] = range(N)
+        self.df_mixed_wide = self.df_wide.copy()
+        self.df_mixed_wide["foo"] = "bar"
+        self.df_mixed_wide[0] = period_range("2000", periods=M)
+        self.df_mixed_wide[1] = range(M)
+
+    def time_to_numpy_tall(self):
+        self.df_tall.to_numpy()
+
+    def time_to_numpy_wide(self):
+        self.df_wide.to_numpy()
+
+    def time_to_numpy_mixed_tall(self):
+        self.df_mixed_tall.to_numpy()
+
+    def time_to_numpy_mixed_wide(self):
+        self.df_mixed_wide.to_numpy()
+
+    def time_values_tall(self):
+        self.df_tall.values
+
+    def time_values_wide(self):
+        self.df_wide.values
+
+    def time_values_mixed_tall(self):
+        self.df_mixed_tall.values
+
+    def time_values_mixed_wide(self):
+        self.df_mixed_wide.values
+
+
 class Repr:
     def setup(self):
         nrows = 10000
         data = np.random.randn(nrows, 10)
-        arrays = np.tile(np.random.randn(3, int(nrows / 100)), 100)
+        arrays = np.tile(np.random.randn(3, nrows // 100), 100)
         idx = MultiIndex.from_arrays(arrays)
         self.df3 = DataFrame(data, index=idx)
         self.df4 = DataFrame(data, index=np.random.randn(nrows))
@@ -557,6 +597,19 @@ class Quantile:
         self.df.quantile([0.1, 0.5], axis=axis)
 
 
+class Rank:
+    param_names = ["dtype"]
+    params = [
+        ["int", "uint", "float", "object"],
+    ]
+
+    def setup(self, dtype):
+        self.df = DataFrame(np.random.randn(10000, 10), columns=range(10), dtype=dtype)
+
+    def time_rank(self, dtype):
+        self.df.rank()
+
+
 class GetDtypeCounts:
     # 2807
     def setup(self):
@@ -564,7 +617,7 @@ class GetDtypeCounts:
 
     def time_frame_get_dtype_counts(self):
         with warnings.catch_warnings(record=True):
-            self.df._data.get_dtype_counts()
+            self.df.dtypes.value_counts()
 
     def time_info(self):
         self.df.info()
@@ -595,9 +648,9 @@ class Describe:
     def setup(self):
         self.df = DataFrame(
             {
-                "a": np.random.randint(0, 100, int(1e6)),
-                "b": np.random.randint(0, 100, int(1e6)),
-                "c": np.random.randint(0, 100, int(1e6)),
+                "a": np.random.randint(0, 100, 10 ** 6),
+                "b": np.random.randint(0, 100, 10 ** 6),
+                "c": np.random.randint(0, 100, 10 ** 6),
             }
         )
 
@@ -617,6 +670,19 @@ class SelectDtypes:
 
     def time_select_dtypes(self, n):
         self.df.select_dtypes(include="int")
+
+
+class MemoryUsage:
+    def setup(self):
+        self.df = DataFrame(np.random.randn(100000, 2), columns=list("AB"))
+        self.df2 = self.df.copy()
+        self.df2["A"] = self.df2["A"].astype("object")
+
+    def time_memory_usage(self):
+        self.df.memory_usage(deep=True)
+
+    def time_memory_usage_object_dtype(self):
+        self.df2.memory_usage(deep=True)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

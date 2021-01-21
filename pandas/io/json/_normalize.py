@@ -1,13 +1,15 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
+from __future__ import annotations
 
-from collections import defaultdict
+from collections import abc, defaultdict
 import copy
 from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas._typing import Scalar
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -117,7 +119,7 @@ def _json_normalize(
     errors: str = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -162,11 +164,11 @@ def _json_normalize(
     >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'}},
     ...         {'id': 2, 'name': 'Faye Raker'}]
-    >>> pandas.json_normalize(data)
-        id        name name.family name.first name.given name.last
-    0  1.0         NaN         NaN     Coleen        NaN      Volk
-    1  NaN         NaN      Regner        NaN       Mose       NaN
-    2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+    >>> pd.json_normalize(data)
+        id name.first name.last name.given name.family        name
+    0  1.0     Coleen      Volk        NaN         NaN         NaN
+    1  NaN        NaN       NaN       Mose      Regner         NaN
+    2  2.0        NaN       NaN        NaN         NaN  Faye Raker
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
@@ -175,11 +177,11 @@ def _json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=0)
-                fitness                 id        name
-    0   {'height': 130, 'weight': 60}  1.0   Cole Volk
-    1   {'height': 130, 'weight': 60}  NaN    Mose Reg
-    2   {'height': 130, 'weight': 60}  2.0  Faye Raker
+    >>> pd.json_normalize(data, max_level=0)
+        id        name                        fitness
+    0  1.0   Cole Volk  {'height': 130, 'weight': 60}
+    1  NaN    Mose Reg  {'height': 130, 'weight': 60}
+    2  2.0  Faye Raker  {'height': 130, 'weight': 60}
 
     Normalizes nested data up to level 1.
 
@@ -190,11 +192,11 @@ def _json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=1)
-      fitness.height  fitness.weight   id    name
-    0   130              60          1.0    Cole Volk
-    1   130              60          NaN    Mose Reg
-    2   130              60          2.0    Faye Raker
+    >>> pd.json_normalize(data, max_level=1)
+        id        name  fitness.height  fitness.weight
+    0  1.0   Cole Volk             130              60
+    1  NaN    Mose Reg             130              60
+    2  2.0  Faye Raker             130              60
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
@@ -207,7 +209,7 @@ def _json_normalize(
     ...          'info': {'governor': 'John Kasich'},
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> result = json_normalize(data, 'counties', ['state', 'shortname',
+    >>> result = pd.json_normalize(data, 'counties', ['state', 'shortname',
     ...                                            ['info', 'governor']])
     >>> result
              name  population    state shortname info.governor
@@ -218,7 +220,7 @@ def _json_normalize(
     4    Cuyahoga        1337   Ohio       OH    John Kasich
 
     >>> data = {'A': [1, 2]}
-    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+    >>> pd.json_normalize(data, 'A', record_prefix='Prefix.')
         Prefix.0
     0          1
     1          2
@@ -226,31 +228,49 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
-        result = js  # type: ignore
+    def _pull_field(
+        js: Dict[str, Any], spec: Union[List, str]
+    ) -> Union[Scalar, Iterable]:
+        """Internal function to pull field"""
+        result = js
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
         else:
             result = result[spec]
+        return result
 
-        if not isinstance(result, Iterable):
+    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> List:
+        """
+        Internal function to pull field for records, and similar to
+        _pull_field, but require to return list. And will raise error
+        if has non iterable value.
+        """
+        result = _pull_field(js, spec)
+
+        # GH 31507 GH 30145, GH 26284 if result is not list, raise TypeError if not
+        # null, otherwise return an empty list
+        if not isinstance(result, list):
             if pd.isnull(result):
-                result = []  # type: ignore
+                result = []
             else:
                 raise TypeError(
-                    f"{js} has non iterable value {result} for path {spec}. "
-                    "Must be iterable or null."
+                    f"{js} has non list value {result} for path {spec}. "
+                    "Must be list or null."
                 )
-
         return result
 
     if isinstance(data, list) and not data:
         return DataFrame()
-
-    # A bit of a hackjob
-    if isinstance(data, dict):
+    elif isinstance(data, dict):
+        # A bit of a hackjob
         data = [data]
+    elif isinstance(data, abc.Iterable) and not isinstance(data, str):
+        # GH35923 Fix pd.json_normalize to not skip the first element of a
+        # generator input
+        data = list(data)
+    else:
+        raise NotImplementedError
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
@@ -292,7 +312,7 @@ def _json_normalize(
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_field(obj, path[0])
+                recs = _pull_records(obj, path[0])
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)
@@ -315,7 +335,7 @@ def _json_normalize(
                                 raise KeyError(
                                     "Try running with errors='ignore' as key "
                                     f"{e} is not always present"
-                                )
+                                ) from e
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
 

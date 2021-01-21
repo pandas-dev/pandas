@@ -1,3 +1,10 @@
+"""
+These benchmarks are for Series and DataFrame indexing methods.  For the
+lower-level methods directly on Index and subclasses, see index_object.py,
+indexing_engine.py, and index_cached.py
+"""
+import itertools
+import string
 import warnings
 
 import numpy as np
@@ -153,9 +160,9 @@ class DataFrameStringIndexing:
 class DataFrameNumericIndexing:
     def setup(self):
         self.idx_dupe = np.array(range(30)) * 99
-        self.df = DataFrame(np.random.randn(10000, 5))
+        self.df = DataFrame(np.random.randn(100000, 5))
         self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
-        self.bool_indexer = [True] * 5000 + [False] * 5000
+        self.bool_indexer = [True] * 50000 + [False] * 50000
 
     def time_iloc_dups(self):
         self.df_dup.iloc[self.idx_dupe]
@@ -186,7 +193,7 @@ class Take:
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
-        self.indexer = [True, False, True, True, False] * 20000
+        self.indexer = np.random.randint(0, N, size=N)
 
     def time_take(self, index):
         self.s.take(self.indexer)
@@ -250,6 +257,9 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
+        self.data_unique = CategoricalIndex(
+            ["".join(perm) for perm in itertools.permutations(string.printable, 3)]
+        )
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
@@ -276,7 +286,7 @@ class CategoricalIndexIndexing:
         self.data.get_loc(self.cat_scalar)
 
     def time_get_indexer_list(self, index):
-        self.data.get_indexer(self.cat_list)
+        self.data_unique.get_indexer(self.cat_list)
 
 
 class MethodLookup:
@@ -303,6 +313,31 @@ class GetItemSingleColumn:
         self.df_int_col[0]
 
 
+class IndexSingleRow:
+    params = [True, False]
+    param_names = ["unique_cols"]
+
+    def setup(self, unique_cols):
+        arr = np.arange(10 ** 7).reshape(-1, 10)
+        df = DataFrame(arr)
+        dtypes = ["u1", "u2", "u4", "u8", "i1", "i2", "i4", "i8", "f8", "f4"]
+        for i, d in enumerate(dtypes):
+            df[i] = df[i].astype(d)
+
+        if not unique_cols:
+            # GH#33032 single-row lookups with non-unique columns were
+            #  15x slower than with unique columns
+            df.columns = ["A", "A"] + list(df.columns[2:])
+
+        self.df = df
+
+    def time_iloc_row(self, unique_cols):
+        self.df.iloc[10000]
+
+    def time_loc_row(self, unique_cols):
+        self.df.loc[10000]
+
+
 class AssignTimeseriesIndex:
     def setup(self):
         N = 100000
@@ -327,6 +362,14 @@ class InsertColumns:
         np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
+
+    def time_assign_list_like_with_setitem(self):
+        np.random.seed(1234)
+        self.df[list(range(100))] = np.random.randn(self.N, 100)
+
+    def time_assign_list_of_columns_concat(self):
+        df = DataFrame(np.random.randn(self.N, 100))
+        concat([self.df, df], axis=1)
 
 
 class ChainIndexing:

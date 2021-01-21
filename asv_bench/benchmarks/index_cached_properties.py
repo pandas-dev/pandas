@@ -7,6 +7,7 @@ class IndexCache:
 
     params = [
         [
+            "CategoricalIndex",
             "DatetimeIndex",
             "Float64Index",
             "IntervalIndex",
@@ -42,6 +43,8 @@ class IndexCache:
             self.idx = pd.Float64Index(range(N))
         elif index_type == "UInt64Index":
             self.idx = pd.UInt64Index(range(N))
+        elif index_type == "CategoricalIndex":
+            self.idx = pd.CategoricalIndex(range(N), range(N))
         else:
             raise ValueError
         assert len(self.idx) == N

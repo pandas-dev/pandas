@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import decimal
 import numbers
 import random
@@ -7,9 +9,12 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.common import is_dtype_equal, pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
+from pandas.api.types import is_list_like, is_scalar
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 from pandas.core.indexers import check_array_indexer
 
@@ -28,7 +33,7 @@ class DecimalDtype(ExtensionDtype):
         return f"DecimalDtype(context={self.context})"
 
     @classmethod
-    def construct_array_type(cls) -> Type["DecimalArray"]:
+    def construct_array_type(cls) -> Type[DecimalArray]:
         """
         Return the array type associated with this dtype.
 
@@ -43,7 +48,7 @@ class DecimalDtype(ExtensionDtype):
         return True
 
 
-class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
+class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None):
@@ -79,7 +84,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
-    def to_numpy(self, dtype=None, copy=False, na_value=no_default, decimals=None):
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
+    ) -> np.ndarray:
         result = np.asarray(self, dtype=dtype)
         if decimals is not None:
             result = np.asarray([round(x, decimals) for x in result])
@@ -128,13 +135,18 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+        dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
-            return type(self)(self._data, context=dtype.context)
-        return np.asarray(self, dtype=dtype)
+            return type(self)(self._data, copy=copy, context=dtype.context)
+
+        return super().astype(dtype, copy=copy)
 
     def __setitem__(self, key, value):
-        if pd.api.types.is_list_like(value):
-            if pd.api.types.is_scalar(key):
+        if is_list_like(value):
+            if is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
             value = [decimal.Decimal(v) for v in value]
         else:
@@ -145,6 +157,14 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def __len__(self) -> int:
         return len(self._data)
+
+    def __contains__(self, item) -> bool:
+        if not isinstance(item, decimal.Decimal):
+            return False
+        elif item.is_nan():
+            return self.isna().any()
+        else:
+            return super().__contains__(item)
 
     @property
     def nbytes(self) -> int:
@@ -162,14 +182,14 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def _formatter(self, boxed=False):
         if boxed:
-            return "Decimal: {0}".format
+            return "Decimal: {}".format
         return repr
 
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if skipna:
             # If we don't have any NAs, we can ignore skipna
@@ -183,9 +203,30 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
         try:
             op = getattr(self.data, name)
-        except AttributeError:
-            raise NotImplementedError(f"decimal does not support the {name} operation")
+        except AttributeError as err:
+            raise NotImplementedError(
+                f"decimal does not support the {name} operation"
+            ) from err
         return op(axis=0)
+
+    def _cmp_method(self, other, op):
+        # For use with OpsMixin
+        def convert_values(param):
+            if isinstance(param, ExtensionArray) or is_list_like(param):
+                ovalues = param
+            else:
+                # Assume it's an object
+                ovalues = [param] * len(self)
+            return ovalues
+
+        lvalues = self
+        rvalues = convert_values(other)
+
+        # If the operator is not defined for the underlying objects,
+        # a TypeError should be raised
+        res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+
+        return np.asarray(res, dtype=bool)
 
 
 def to_decimal(values, context=None):
@@ -197,4 +238,3 @@ def make_data():
 
 
 DecimalArray._add_arithmetic_ops()
-DecimalArray._add_comparison_ops()

@@ -5,7 +5,8 @@ from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import PeriodDtype, registry
+from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -37,6 +38,7 @@ def test_registered():
         ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
         (pd.Series(pd.date_range("2017", periods=3)), None, [17167, 17168, 17169]),
         (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
+        (pd.period_range("2017", periods=4, freq="Q"), None, [188, 189, 190, 191]),
     ],
 )
 def test_period_array_ok(data, freq, expected):
@@ -111,7 +113,8 @@ def test_take_raises():
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr.take([0, -1], allow_fill=True, fill_value=pd.Period("2000", freq="W"))
 
-    with pytest.raises(ValueError, match="foo"):
+    msg = "value should be a 'Period' or 'NaT'. Got 'str' instead"
+    with pytest.raises(TypeError, match=msg):
         arr.take([0, -1], allow_fill=True, fill_value="foo")
 
 
@@ -120,13 +123,18 @@ def test_astype(dtype):
     # We choose to ignore the sign and size of integers for
     # Period/Datetime/Timedelta astype
     arr = period_array(["2000", "2001", None], freq="D")
-    result = arr.astype(dtype)
+    with tm.assert_produces_warning(FutureWarning):
+        # astype(int..) deprecated
+        result = arr.astype(dtype)
 
     if np.dtype(dtype).kind == "u":
         expected_dtype = np.dtype("uint64")
     else:
         expected_dtype = np.dtype("int64")
-    expected = arr.astype(expected_dtype)
+
+    with tm.assert_produces_warning(FutureWarning):
+        # astype(int..) deprecated
+        expected = arr.astype(expected_dtype)
 
     assert result.dtype == expected_dtype
     tm.assert_numpy_array_equal(result, expected)
@@ -134,12 +142,17 @@ def test_astype(dtype):
 
 def test_astype_copies():
     arr = period_array(["2000", "2001", None], freq="D")
-    result = arr.astype(np.int64, copy=False)
+    with tm.assert_produces_warning(FutureWarning):
+        # astype(int..) deprecated
+        result = arr.astype(np.int64, copy=False)
+
     # Add the `.base`, since we now use `.asi8` which returns a view.
     # We could maybe override it in PeriodArray to return ._data directly.
     assert result.base is arr._data
 
-    result = arr.astype(np.int64, copy=True)
+    with tm.assert_produces_warning(FutureWarning):
+        # astype(int..) deprecated
+        result = arr.astype(np.int64, copy=True)
     assert result is not arr._data
     tm.assert_numpy_array_equal(result, arr._data.view("i8"))
 
@@ -357,6 +370,7 @@ def test_arrow_extension_type():
 )
 def test_arrow_array(data, freq):
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
@@ -382,6 +396,7 @@ def test_arrow_array(data, freq):
 @pyarrow_skip
 def test_arrow_array_missing():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
@@ -397,6 +412,7 @@ def test_arrow_array_missing():
 @pyarrow_skip
 def test_arrow_table_roundtrip():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
@@ -413,3 +429,21 @@ def test_arrow_table_roundtrip():
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pyarrow_skip
+def test_arrow_table_roundtrip_without_metadata():
+    import pyarrow as pa
+
+    arr = PeriodArray([1, 2, 3], freq="H")
+    arr[1] = pd.NaT
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    # remove the metadata
+    table = table.replace_schema_metadata()
+    assert table.schema.metadata is None
+
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, PeriodDtype)
+    tm.assert_frame_equal(result, df)

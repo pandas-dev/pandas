@@ -1,8 +1,13 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
+
+# TODO(ArrayManager) concat with reindexing
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def test_error():
@@ -161,4 +166,22 @@ def test_duplicate_index(input_dict, input_index, expected_dict, expected_index)
     df = pd.DataFrame(input_dict, index=input_index)
     result = df.explode("col1")
     expected = pd.DataFrame(expected_dict, index=expected_index, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ignore_index():
+    # GH 34932
+    df = pd.DataFrame({"id": range(0, 20, 10), "values": [list("ab"), list("cd")]})
+    result = df.explode("values", ignore_index=True)
+    expected = pd.DataFrame(
+        {"id": [0, 0, 10, 10], "values": list("abcd")}, index=[0, 1, 2, 3]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_explode_sets():
+    # https://github.com/pandas-dev/pandas/issues/35614
+    df = pd.DataFrame({"a": [{"x", "y"}], "b": [1]}, index=[1])
+    result = df.explode(column="a").sort_values(by="a")
+    expected = pd.DataFrame({"a": ["x", "y"], "b": [1, 1]}, index=[1, 1])
     tm.assert_frame_equal(result, expected)
