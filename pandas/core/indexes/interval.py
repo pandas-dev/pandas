@@ -127,13 +127,17 @@ def setop_check(method):
     def wrapped(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
-        if not isinstance(other, IntervalIndex):
-            result = getattr(self.astype(object), op_name)(other)
-            if op_name in ("difference",):
-                result = result.astype(self.dtype)
-            return result
+        if op_name == "difference":
+            if not isinstance(other, IntervalIndex):
+                result = getattr(self.astype(object), op_name)(other, sort=sort)
+                return result.astype(self.dtype)
+
+            elif not self._should_compare(other):
+                # GH#19016: ensure set op will not return a prohibited dtype
+                result = getattr(self.astype(object), op_name)(other, sort=sort)
+                return result.astype(self.dtype)
 
         return method(self, other, sort)
 
@@ -912,17 +916,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _assert_can_do_setop(self, other):
-        super()._assert_can_do_setop(other)
-
-        if isinstance(other, IntervalIndex) and not self._should_compare(other):
-            # GH#19016: ensure set op will not return a prohibited dtype
-            raise TypeError(
-                "can only do set operations between two IntervalIndex "
-                "objects that are closed on the same side "
-                "and have compatible dtypes"
-            )
-
     def _intersection(self, other, sort):
         """
         intersection specialized to the case with matching dtypes.
@@ -1014,7 +1007,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return setop_check(func)
 
     _union = _setop("union")
-    difference = _setop("difference")
+    _difference = _setop("difference")
 
     # --------------------------------------------------------------------
 
