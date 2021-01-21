@@ -519,6 +519,7 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         if data is None:
             data = {}
+            copy = True
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
