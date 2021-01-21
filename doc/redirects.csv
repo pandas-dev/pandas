@@ -5,6 +5,9 @@
 whatsnew,whatsnew/index
 release,whatsnew/index
 
+# web
+/getting_started.html,/docs/getting_started/index.html
+
 # getting started
 install,getting_started/install
 comparison_with_r,getting_started/comparison/comparison_with_r
