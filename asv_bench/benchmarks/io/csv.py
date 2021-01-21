@@ -96,7 +96,8 @@ class ToCSVIndexes(BaseIO):
     def setup(self):
         ROWS = 100000
         COLS = 5
-        # For tests using .head(), create an initial dataframe with this many times more rows
+        # For tests using .head(), create an initial dataframe with this many times
+        # more rows
         HEAD_ROW_MULTIPLIER = 10
 
         self.df_standard_index = self._create_df(ROWS, COLS)
