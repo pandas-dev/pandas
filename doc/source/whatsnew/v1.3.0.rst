@@ -273,6 +273,7 @@ Interval
 - Bug in :meth:`IntervalIndex.intersection` and :meth:`IntervalIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38653`, :issue:`38741`)
 - Bug in :meth:`IntervalIndex.intersection` returning duplicates when at least one of both Indexes has duplicates which are present in the other (:issue:`38743`)
 - :meth:`IntervalIndex.union`, :meth:`IntervalIndex.intersection`, :meth:`IntervalIndex.difference`, and :meth:`IntervalIndex.symmetric_difference` now cast to the appropriate dtype instead of raising ``TypeError`` when operating with another :class:`IntervalIndex` with incompatible dtype (:issue:`39267`)
+- :meth:`PeriodIndex.union`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference`, :meth:`PeriodIndex.difference` now cast to object dtype instead of raising ``IncompatibleFrequency`` when opearting with another :class:`PeriodIndex` with incompatible dtype (:issue:`??`)
 
 Indexing
 ^^^^^^^^
