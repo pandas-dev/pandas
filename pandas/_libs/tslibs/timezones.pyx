@@ -30,7 +30,7 @@ from pandas._libs.tslibs.util cimport get_nat, is_integer_object
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
 cdef tzinfo utc_pytz = UTC
-cdef tzinfo utc_dateutil1 = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
+cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
 
 
 # ----------------------------------------------------------------------
@@ -40,7 +40,7 @@ cpdef inline bint is_utc(tzinfo tz):
         tz is utc_pytz
         or tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
-        or tz is utc_dateutil1
+        or tz is utc_dateutil_str
     )
 
 
