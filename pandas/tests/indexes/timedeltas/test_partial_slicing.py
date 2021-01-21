@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas import Series, timedelta_range
 import pandas._testing as tm
@@ -21,13 +20,6 @@ class TestSlicing:
         result = s[:"6 day"]
         expected = s.iloc[:134]
         tm.assert_series_equal(result, expected)
-
-        result = s["6 days, 23:11:12"]
-        assert result == s.iloc[133]
-
-        msg = r"^Timedelta\('50 days 00:00:00'\)$"
-        with pytest.raises(KeyError, match=msg):
-            s["50 days"]
 
     def test_partial_slice_high_reso(self):
 

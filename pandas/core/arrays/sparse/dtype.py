@@ -1,4 +1,5 @@
 """Sparse Dtype"""
+from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
@@ -172,7 +173,7 @@ class SparseDtype(ExtensionDtype):
         return self.name
 
     @classmethod
-    def construct_array_type(cls) -> Type["SparseArray"]:
+    def construct_array_type(cls) -> Type[SparseArray]:
         """
         Return the array type associated with this dtype.
 
@@ -185,7 +186,7 @@ class SparseDtype(ExtensionDtype):
         return SparseArray
 
     @classmethod
-    def construct_from_string(cls, string: str) -> "SparseDtype":
+    def construct_from_string(cls, string: str) -> SparseDtype:
         """
         Construct a SparseDtype from a string form.
 
@@ -371,7 +372,7 @@ class SparseDtype(ExtensionDtype):
         fill_value = fill_values[0]
 
         # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
+        # NaNs here, so we ignore the all NA case too.
         if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "

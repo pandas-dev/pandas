@@ -1,15 +1,16 @@
-import numbers
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
+from __future__ import annotations
+
+from typing import Dict, List, Optional, Tuple, Type
 import warnings
 
 import numpy as np
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import ArrayLike, Dtype, DtypeObj
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import register_extension_dtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -22,18 +23,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
-from .numeric import NumericArray
-
-if TYPE_CHECKING:
-    import pyarrow
+from .numeric import NumericArray, NumericDtype
 
 
-class _IntegerDtype(BaseMaskedDtype):
+class _IntegerDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
@@ -60,7 +57,7 @@ class _IntegerDtype(BaseMaskedDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["IntegerArray"]:
+    def construct_array_type(cls) -> Type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 
@@ -91,57 +88,6 @@ class _IntegerDtype(BaseMaskedDtype):
 
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
-
-    def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "IntegerArray":
-        """
-        Construct IntegerArray from pyarrow Array/ChunkedArray.
-        """
-        import pyarrow
-
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
-        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
-            array = array.cast(pyarrow_type)
-
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            # pyarrow.ChunkedArray
-            chunks = array.chunks
-
-        results = []
-        for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
-            int_arr = IntegerArray(data.copy(), ~mask, copy=False)
-            results.append(int_arr)
-
-        return IntegerArray._concat_same_type(results)
-
-
-def integer_array(values, dtype=None, copy: bool = False) -> "IntegerArray":
-    """
-    Infer and return an integer array of the values.
-
-    Parameters
-    ----------
-    values : 1D list-like
-    dtype : dtype, optional
-        dtype to coerce
-    copy : bool, default False
-
-    Returns
-    -------
-    IntegerArray
-
-    Raises
-    ------
-    TypeError if incompatible types
-    """
-    values, mask = coerce_to_array(values, dtype=dtype, copy=copy)
-    return IntegerArray(values, mask)
 
 
 def safe_cast(values, dtype, copy: bool):
@@ -358,63 +304,17 @@ class IntegerArray(NumericArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
-    ) -> "IntegerArray":
-        return integer_array(scalars, dtype=dtype, copy=copy)
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+    ) -> IntegerArray:
+        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype=None, copy: bool = False
-    ) -> "IntegerArray":
+        cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
+    ) -> IntegerArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
-
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
-        # For IntegerArray inputs, we apply the ufunc to ._data
-        # and mask the result.
-        if method == "reduce":
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
-        out = kwargs.get("out", ())
-
-        for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):
-                return NotImplemented
-
-        # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
-
-        mask = np.zeros(len(self), dtype=bool)
-        inputs2 = []
-        for x in inputs:
-            if isinstance(x, IntegerArray):
-                mask |= x._mask
-                inputs2.append(x._data)
-            else:
-                inputs2.append(x)
-
-        def reconstruct(x):
-            # we don't worry about scalar `x` here, since we
-            # raise for reduce up above.
-
-            if is_integer_dtype(x.dtype):
-                m = mask.copy()
-                return IntegerArray(x, m)
-            else:
-                x[mask] = np.nan
-            return x
-
-        result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
-            return tuple(reconstruct(x) for x in result)
-        else:
-            return reconstruct(result)
 
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
@@ -443,24 +343,10 @@ class IntegerArray(NumericArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.masked import BaseMaskedDtype
-        from pandas.core.arrays.string_ import StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        # if the dtype is exactly the same, we can fastpath
-        if self.dtype == dtype:
-            # return the same object for copy=False
-            return self.copy() if copy else self
-        # if we are astyping to another nullable masked dtype, we can fastpath
-        if isinstance(dtype, BaseMaskedDtype):
-            data = self._data.astype(dtype.numpy_dtype, copy=copy)
-            # mask is copied depending on whether the data was copied, and
-            # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.copy()
-            return dtype.construct_array_type()(data, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):

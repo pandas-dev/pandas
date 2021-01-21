@@ -531,10 +531,16 @@ def test_idxmin_idxmax_returns_int_types(func, values):
         }
     )
     df["c_date"] = pd.to_datetime(df["c_date"])
+    df["c_date_tz"] = df["c_date"].dt.tz_localize("US/Pacific")
+    df["c_timedelta"] = df["c_date"] - df["c_date"].iloc[0]
+    df["c_period"] = df["c_date"].dt.to_period("W")
 
     result = getattr(df.groupby("name"), func)()
 
     expected = DataFrame(values, index=Index(["A", "B"], name="name"))
+    expected["c_date_tz"] = expected["c_date"]
+    expected["c_timedelta"] = expected["c_date"]
+    expected["c_period"] = expected["c_date"]
 
     tm.assert_frame_equal(result, expected)
 
@@ -1093,7 +1099,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
     idx = Index([1, 2, 3], dtype=object, name="a")
-    expected = DataFrame({"b": arr}, index=idx)
+    expected = DataFrame({"b": arr}, index=idx).astype("Float64")
 
     groups = DataFrame(values, dtype="Int64").groupby("a")
 

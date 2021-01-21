@@ -1,8 +1,10 @@
 """
 Routines for filling missing data.
 """
+from __future__ import annotations
+
 from functools import partial
-from typing import Any, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Set, Union
 
 import numpy as np
 
@@ -10,7 +12,7 @@ from pandas._libs import algos, lib
 from pandas._typing import ArrayLike, Axis, DtypeObj
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     ensure_float64,
     is_integer_dtype,
@@ -18,6 +20,9 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
@@ -37,7 +42,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     # When called from Block.replace/replace_list, values_to_mask is a scalar
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
-    dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
+    dtype, values_to_mask = infer_dtype_from(values_to_mask)
     values_to_mask = np.array(values_to_mask, dtype=dtype)
 
     na_mask = isna(values_to_mask)
@@ -144,7 +149,7 @@ def find_valid_index(values, how: str):
     if how == "first":
         idxpos = is_valid[::].argmax()
 
-    if how == "last":
+    elif how == "last":
         idxpos = len(values) - 1 - is_valid[::-1].argmax()
 
     chk_notna = is_valid[idxpos]
@@ -155,7 +160,7 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues: np.ndarray,
+    xvalues: Index,
     yvalues: np.ndarray,
     method: Optional[str] = "linear",
     limit: Optional[int] = None,
@@ -177,9 +182,7 @@ def interpolate_1d(
     valid = ~invalid
 
     if not valid.any():
-        # have to call np.asarray(xvalues) since xvalues could be an Index
-        # which can't be mutated
-        result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
+        result = np.empty(xvalues.shape, dtype=np.float64)
         result.fill(np.nan)
         return result
 
@@ -187,8 +190,7 @@ def interpolate_1d(
         return yvalues
 
     if method == "time":
-        if not getattr(xvalues, "_is_all_dates", None):
-            # if not issubclass(xvalues.dtype.type, np.datetime64):
+        if not needs_i8_conversion(xvalues.dtype):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -252,20 +254,18 @@ def interpolate_1d(
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
 
-    yvalues = getattr(yvalues, "values", yvalues)
     result = yvalues.copy()
 
-    # xvalues to pass to NumPy/SciPy
+    # xarr to pass to NumPy/SciPy
+    xarr = xvalues._values
+    if needs_i8_conversion(xarr.dtype):
+        # GH#1646 for dt64tz
+        xarr = xarr.view("i8")
 
-    xvalues = getattr(xvalues, "values", xvalues)
     if method == "linear":
-        inds = xvalues
+        inds = xarr
     else:
-        inds = np.asarray(xvalues)
-
-        # hack for DatetimeIndex, #1646
-        if needs_i8_conversion(inds.dtype):
-            inds = inds.view(np.int64)
+        inds = np.asarray(xarr)
 
         if method in ("values", "index"):
             if inds.dtype == np.object_:

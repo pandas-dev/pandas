@@ -2,13 +2,24 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick
-from pandas._typing import Callable, Label
+from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -108,7 +119,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _simple_new(
         cls,
         values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
-        name: Label = None,
+        name: Optional[Hashable] = None,
     ):
         assert isinstance(values, cls._data_cls), type(values)
 
@@ -147,7 +158,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         if not is_period_dtype(self.dtype) and attrs["freq"]:
             # no need to infer if freq is None
             attrs["freq"] = "infer"
-        return Index(result, **attrs)
+        return type(self)(result, **attrs)
 
     # ------------------------------------------------------------------------
 
@@ -164,12 +175,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return False
         elif not isinstance(other, type(self)):
             should_try = False
-            inferrable = self._data._infer_matches
+            inferable = self._data._infer_matches
             if other.dtype == object:
-                should_try = other.inferred_type in inferrable
+                should_try = other.inferred_type in inferable
             elif is_categorical_dtype(other.dtype):
                 other = cast("CategoricalIndex", other)
-                should_try = other.categories.inferred_type in inferrable
+                should_try = other.categories.inferred_type in inferable
 
             if should_try:
                 try:
@@ -597,9 +608,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Join/Set Methods
 
-    def _can_union_without_object_cast(self, other) -> bool:
-        return is_dtype_equal(self.dtype, other.dtype)
-
     def _get_join_freq(self, other):
         """
         Get the freq to attach to the result of a join operation.
@@ -626,7 +634,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return com.asarray_tuplesafe(keyarr)
 
 
-class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
+class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     """
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
@@ -652,61 +660,19 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    @Appender(Index.difference.__doc__)
-    def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)._with_freq(None)
+    def _difference(self, other, sort=None):
+        new_idx = super()._difference(other, sort=sort)._with_freq(None)
         return new_idx
-
-    def intersection(self, other, sort=False):
-        """
-        Specialized intersection for DatetimeIndex/TimedeltaIndex.
-
-        May be much faster than Index.intersection
-
-        Parameters
-        ----------
-        other : Same type as self or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-            .. versionchanged:: 0.25.0
-
-               The `sort` keyword is added
-
-        Returns
-        -------
-        y : Index or same type as self
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
-
-        return self._intersection(other, sort=sort)
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
         intersection specialized to the case with matching dtypes.
         """
+        other = cast("DatetimeTimedeltaMixin", other)
         if len(self) == 0:
             return self.copy()._get_reconciled_name_object(other)
         if len(other) == 0:
             return other.copy()._get_reconciled_name_object(self)
-
-        if not isinstance(other, type(self)):
-            result = Index.intersection(self, other, sort=sort)
-            return result
 
         elif not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
@@ -754,6 +720,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # this along with matching freqs ensure that we "line up",
             #  so intersection will preserve freq
             return True
+
+        elif not len(self) or not len(other):
+            return False
 
         elif isinstance(self.freq, Tick):
             # We "line up" if and only if the difference between two of our points
@@ -838,9 +807,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return left
 
     def _union(self, other, sort):
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
 
@@ -860,11 +826,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             i8self = Int64Index._simple_new(self.asi8)
             i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
-            # pandas\core\indexes\datetimelike.py:887: error: Unexpected
-            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
-            result = type(self)(
-                i8result, dtype=self.dtype, freq="infer"  # type: ignore[call-arg]
-            )
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------

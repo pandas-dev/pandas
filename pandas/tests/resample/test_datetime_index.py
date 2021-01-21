@@ -124,7 +124,9 @@ def test_resample_integerarray():
 
     result = ts.resample("3T").mean()
     expected = Series(
-        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64"
+        [1, 4, 7],
+        index=pd.date_range("1/1/2000", periods=3, freq="3T"),
+        dtype="Float64",
     )
     tm.assert_series_equal(result, expected)
 
@@ -770,8 +772,9 @@ def test_resample_bad_origin(origin):
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
     msg = (
-        "'origin' should be equal to 'epoch', 'start', 'start_day' or "
-        f"should be a Timestamp convertible type. Got '{origin}' instead."
+        "'origin' should be equal to 'epoch', 'start', 'start_day', "
+        "'end', 'end_day' or should be a Timestamp convertible type. Got "
+        f"'{origin}' instead."
     )
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", origin=origin)
