@@ -440,7 +440,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
             if DatetimeTZDtype.is_dtype(categories.dtype):
                 # Avoid future warning.
-                categories = categories.astype("datetime64[ns]")
+                categories = categories.view("datetime64[ns]")
 
             cat_array = hash_array(np.asarray(categories), categorize=False)
         if ordered:
