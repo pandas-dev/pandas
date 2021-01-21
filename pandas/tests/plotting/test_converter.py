@@ -7,8 +7,7 @@ import pytest
 
 import pandas._config.config as cf
 
-from pandas.compat import is_platform_windows
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import is_platform_windows, np_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas import Index, Period, Series, Timestamp, date_range

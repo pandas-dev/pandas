@@ -12,7 +12,7 @@ import pytz
 from pytz import timezone, utc
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timedelta, Timestamp

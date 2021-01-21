@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import ApplyTypeError, BDay, BMonthEnd, CDay
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 
 from pandas import DatetimeIndex, _testing as tm, read_pickle
 from pandas.tests.tseries.offsets.common import (

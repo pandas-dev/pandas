@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
-from pandas.compat.numpy import np_version_under1p18
+from pandas.compat import np_version_under1p18
 
 import pandas as pd
 from pandas import DatetimeIndex, Period, PeriodIndex, TimedeltaIndex

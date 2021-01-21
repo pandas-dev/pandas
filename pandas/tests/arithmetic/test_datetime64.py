@@ -12,7 +12,7 @@ import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 import pandas as pd

@@ -3,7 +3,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p20
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm
@@ -122,7 +122,7 @@ class TestSparseArrayArithmetics:
     ):
         op = all_arithmetic_functions
 
-        if not _np_version_under1p20:
+        if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv]:
                 mark = pytest.mark.xfail(strict=False, reason="GH#38172")
                 request.node.add_marker(mark)
@@ -169,7 +169,7 @@ class TestSparseArrayArithmetics:
         # when sp_index are the same
         op = all_arithmetic_functions
 
-        if not _np_version_under1p20:
+        if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv]:
                 mark = pytest.mark.xfail(strict=False, reason="GH#38172")
                 request.node.add_marker(mark)
@@ -349,7 +349,7 @@ class TestSparseArrayArithmetics:
     def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions, request):
         op = all_arithmetic_functions
 
-        if not _np_version_under1p20:
+        if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv] and mix:
                 mark = pytest.mark.xfail(strict=True, reason="GH#38172")
                 request.node.add_marker(mark)
