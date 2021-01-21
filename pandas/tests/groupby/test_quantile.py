@@ -271,7 +271,7 @@ def test_columns_groupby_quantile():
             [9.6, 8.4, 10.6, 9.4],
         ],
         index=list("XYZ"),
-        columns=Index(
+        columns=pd.MultiIndex.from_tuples(
             [("A", 0.8), ("A", 0.2), ("B", 0.8), ("B", 0.2)], names=["col", None]
         ),
     )

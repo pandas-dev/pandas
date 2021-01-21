@@ -175,22 +175,34 @@ class TestDatetimeArray:
     )
     def test_astype_copies(self, dtype, other):
         # https://github.com/pandas-dev/pandas/pull/32490
-        s = pd.Series([1, 2], dtype=dtype)
-        orig = s.copy()
-        t = s.astype(other)
+        ser = pd.Series([1, 2], dtype=dtype)
+        orig = ser.copy()
+
+        warn = None
+        if (dtype == "datetime64[ns]") ^ (other == "datetime64[ns]"):
+            # deprecated in favor of tz_localize
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            t = ser.astype(other)
         t[:] = pd.NaT
-        tm.assert_series_equal(s, orig)
+        tm.assert_series_equal(ser, orig)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
         arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
-        result = arr.astype(dtype)
+        with tm.assert_produces_warning(FutureWarning):
+            # astype(int..) deprecated
+            result = arr.astype(dtype)
 
         if np.dtype(dtype).kind == "u":
             expected_dtype = np.dtype("uint64")
         else:
             expected_dtype = np.dtype("int64")
-        expected = arr.astype(expected_dtype)
+
+        with tm.assert_produces_warning(FutureWarning):
+            # astype(int..) deprecated
+            expected = arr.astype(expected_dtype)
 
         assert result.dtype == expected_dtype
         tm.assert_numpy_array_equal(result, expected)

@@ -182,7 +182,7 @@ class TestDataFrameSetItem:
         "obj,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -338,6 +338,34 @@ class TestDataFrameSetItem:
 
         tm.assert_index_equal(df.columns, expected_cols)
 
+    @pytest.mark.parametrize("indexer", ["B", ["B"]])
+    def test_setitem_frame_length_0_str_key(self, indexer):
+        # GH#38831
+        df = DataFrame(columns=["A", "B"])
+        other = DataFrame({"B": [1, 2]})
+        df[indexer] = other
+        expected = DataFrame({"A": [np.nan] * 2, "B": [1, 2]})
+        expected["A"] = expected["A"].astype("object")
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_frame_duplicate_columns(self):
+        # GH#15695
+        cols = ["A", "B", "C"] * 2
+        df = DataFrame(index=range(3), columns=cols)
+        df.loc[0, "A"] = (0, 3)
+        df.loc[:, "B"] = (1, 4)
+        df["C"] = (2, 5)
+        expected = DataFrame(
+            [
+                [0, 1, 2, 3, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+            ],
+            columns=cols,
+            dtype="object",
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemWithExpansion:
     def test_setitem_listlike_views(self):
@@ -355,6 +383,22 @@ class TestDataFrameSetItemWithExpansion:
 
         expected = Series([100, 2, 3], name="a")
         tm.assert_series_equal(ser, expected)
+
+    def test_setitem_string_column_numpy_dtype_raising(self):
+        # GH#39010
+        df = DataFrame([[1, 2], [3, 4]])
+        df["0 - Name"] = [5, 6]
+        expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_empty_df_duplicate_columns(self):
+        # GH#38521
+        df = DataFrame(columns=["a", "b", "b"], dtype="float64")
+        df.loc[:, "a"] = list(range(2))
+        expected = DataFrame(
+            [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:

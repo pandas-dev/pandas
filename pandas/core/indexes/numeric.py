@@ -1,10 +1,10 @@
-from typing import Any
+from typing import Any, Hashable, Optional
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype, DtypeObj, Label
+from pandas._typing import Dtype, DtypeObj
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -45,12 +45,21 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
     _can_hold_strings = False
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None):
-        cls._validate_dtype(dtype)
+    def __new__(cls, data=None, dtype: Optional[Dtype] = None, copy=False, name=None):
         name = maybe_extract_name(name, data, cls)
 
-        # Coerce to ndarray if not already ndarray or Index
+        subarr = cls._ensure_array(data, dtype, copy)
+        return cls._simple_new(subarr, name=name)
+
+    @classmethod
+    def _ensure_array(cls, data, dtype, copy: bool):
+        """
+        Ensure we have a valid array to pass to _simple_new.
+        """
+        cls._validate_dtype(dtype)
+
         if not isinstance(data, (np.ndarray, Index)):
+            # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
                 raise cls._scalar_data_error(data)
 
@@ -74,7 +83,7 @@ class NumericIndex(Index):
             raise ValueError("Index data must be 1-dimensional")
 
         subarr = np.asarray(subarr)
-        return cls._simple_new(subarr, name=name)
+        return subarr
 
     @classmethod
     def _validate_dtype(cls, dtype: Dtype) -> None:
@@ -106,7 +115,7 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+    def _shallow_copy(self, values=None, name: Hashable = lib.no_default):
         if values is not None and not self._can_hold_na and values.dtype.kind == "f":
             name = self.name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
@@ -142,6 +151,10 @@ class NumericIndex(Index):
                 if not value.is_integer():
                     raise TypeError
                 value = int(value)
+
+        elif hasattr(value, "dtype") and value.dtype.kind in ["m", "M"]:
+            # TODO: if we're checking arraylike here, do so systematically
+            raise TypeError
 
         return value
 

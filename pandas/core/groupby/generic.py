@@ -5,6 +5,8 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
+from __future__ import annotations
+
 from collections import abc, namedtuple
 import copy
 from functools import partial
@@ -15,6 +17,7 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -30,7 +33,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, reduction as libreduction
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -42,6 +45,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
+    is_categorical_dtype,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
@@ -681,9 +685,10 @@ class SeriesGroupBy(GroupBy[Series]):
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
 
-        if bins is not None and not np.iterable(bins):
-            # scalar bins cannot be done at top level
-            # in a backward compatible way
+        ids, _, _ = self.grouper.group_info
+        val = self.obj._values
+
+        def apply_series_value_counts():
             return self.apply(
                 Series.value_counts,
                 normalize=normalize,
@@ -692,8 +697,14 @@ class SeriesGroupBy(GroupBy[Series]):
                 bins=bins,
             )
 
-        ids, _, _ = self.grouper.group_info
-        val = self.obj._values
+        if bins is not None:
+            if not np.iterable(bins):
+                # scalar bins cannot be done at top level
+                # in a backward compatible way
+                return apply_series_value_counts()
+        elif is_categorical_dtype(val):
+            # GH38672
+            return apply_series_value_counts()
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -1077,10 +1088,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  in the operation.  We un-split here.
             result = result._consolidate()
             assert isinstance(result, (Series, DataFrame))  # for mypy
-            assert len(result._mgr.blocks) == 1
+            mgr = result._mgr
+            assert isinstance(mgr, BlockManager)
+            assert len(mgr.blocks) == 1
 
             # unwrap DataFrame to get array
-            result = result._mgr.blocks[0].values
+            result = mgr.blocks[0].values
             return result
 
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
@@ -1121,7 +1134,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result: Dict[Label, Union[NDFrame, np.ndarray]] = {}
+        result: Dict[Hashable, Union[NDFrame, np.ndarray]] = {}
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1677,7 +1690,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: Sequence["Block"], items: Index) -> DataFrame:
+    def _wrap_agged_blocks(self, blocks: Sequence[Block], items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
