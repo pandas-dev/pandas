@@ -155,7 +155,10 @@ def _ensure_data(
         elif is_timedelta64_dtype(values.dtype) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
-            values = TimedeltaIndex(values)._data
+            # pandas/core/algorithms.py:158: error: Incompatible types in assignment
+            # (expression has type "TimedeltaArray", variable has type "ndarray")
+            # [assignment]
+            values = TimedeltaIndex(values)._data  # type: ignore[assignment]
         else:
             # Datetime
             if values.ndim > 1 and is_datetime64_ns_dtype(values.dtype):
@@ -171,9 +174,14 @@ def _ensure_data(
 
             from pandas import DatetimeIndex
 
-            values = DatetimeIndex(values)._data
+            # pandas/core/algorithms.py:174: error: Incompatible types in assignment
+            # (expression has type "DatetimeArray", variable has type "ndarray")
+            # [assignment]
+            values = DatetimeIndex(values)._data  # type: ignore[assignment]
         dtype = values.dtype
-        return values.asi8, dtype
+        # pandas/core/algorithms.py:176: error: Item "ndarray" of "Union[PeriodArray,
+        # Any, ndarray]" has no attribute "asi8"  [union-attr]
+        return values.asi8, dtype  # type: ignore[union-attr]
 
     elif is_categorical_dtype(values.dtype) and (
         is_categorical_dtype(dtype) or dtype is None
@@ -503,9 +511,19 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
 
     comps = _ensure_arraylike(comps)
-    comps = extract_array(comps, extract_numpy=True)
+    # pandas/core/algorithms.py:506: error: Incompatible types in assignment (expression
+    # has type "Union[Any, ExtensionArray]", variable has type "Index")  [assignment]
+
+    # pandas/core/algorithms.py:506: error: Incompatible types in assignment (expression
+    # has type "Union[Any, ExtensionArray]", variable has type "Series")  [assignment]
+    comps = extract_array(comps, extract_numpy=True)  # type: ignore[assignment]
     if is_extension_array_dtype(comps.dtype):
-        return comps.isin(values)
+        # pandas/core/algorithms.py:508: error: Incompatible return value type (got
+        # "Series", expected "ndarray")  [return-value]
+
+        # pandas/core/algorithms.py:508: error: Item "ndarray" of "Union[Any, ndarray]"
+        # has no attribute "isin"  [union-attr]
+        return comps.isin(values)  # type: ignore[return-value,union-attr]
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin

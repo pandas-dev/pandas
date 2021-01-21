@@ -1027,7 +1027,9 @@ def astype_dt64_to_dt64tz(
                 stacklevel=level,
             )
 
-            return values.tz_localize(dtype.tz)
+            # pandas/core/dtypes/cast.py:1030: error: "ndarray" has no attribute
+            # "tz_localize"  [attr-defined]
+            return values.tz_localize(dtype.tz)  # type: ignore[attr-defined]
 
         elif aware:
             # GH#18951: datetime64_tz dtype but not equal means different tz
@@ -1039,7 +1041,9 @@ def astype_dt64_to_dt64tz(
                 result = result.copy()
             return result
 
-        elif values.tz is not None:
+        # pandas/core/dtypes/cast.py:1042: error: "ndarray" has no attribute "tz"
+        # [attr-defined]
+        elif values.tz is not None:  # type: ignore[attr-defined]
             level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-aware dtype to "
@@ -1050,7 +1054,11 @@ def astype_dt64_to_dt64tz(
                 stacklevel=level,
             )
 
-            result = values.tz_convert("UTC").tz_localize(None)
+            # pandas/core/dtypes/cast.py:1053: error: "ndarray" has no attribute
+            # "tz_convert"  [attr-defined]
+            result = values.tz_convert("UTC").tz_localize(  # type: ignore[attr-defined]
+                None
+            )
             if copy:
                 result = result.copy()
             return result

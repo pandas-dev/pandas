@@ -353,7 +353,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
-    def isin(self, values) -> BooleanArray:
+    # pandas/core/arrays/masked.py:356: error: Return type "BooleanArray" of "isin"
+    # incompatible with return type "ndarray" in supertype "ExtensionArray"  [override]
+    def isin(self, values) -> BooleanArray:  # type: ignore[override]
 
         from pandas.core.arrays import BooleanArray
 
@@ -363,7 +365,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result += self._mask
             else:
                 result *= np.invert(self._mask)
-        mask = np.zeros_like(self, dtype=bool)
+        # pandas/core/arrays/masked.py:366: error: No overload variant of "zeros_like"
+        # matches argument types "BaseMaskedArray", "Type[bool]"  [call-overload]
+        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
         return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:

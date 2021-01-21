@@ -629,7 +629,9 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        # pandas/core/arrays/base.py:632: error: "ExtensionArray" has no attribute "any"
+        # [attr-defined]
+        if not skipna and self.isna().any():  # type: ignore[attr-defined]
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -653,7 +655,9 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        # pandas/core/arrays/base.py:656: error: "ExtensionArray" has no attribute "any"
+        # [attr-defined]
+        if not skipna and self.isna().any():  # type: ignore[attr-defined]
             raise NotImplementedError
         return nargminmax(self, "argmax")
 

@@ -997,7 +997,10 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        exact_match = is_exact_shape_match(values, arr_value)
+        # pandas/core/internals/blocks.py:1000: error: Value of type variable
+        # "ArrayLike" of "is_exact_shape_match" cannot be "Union[Any, ndarray,
+        # ExtensionArray]"  [type-var]
+        exact_match = is_exact_shape_match(values, arr_value)  # type: ignore[type-var]
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -1016,7 +1019,10 @@ class Block(PandasObject):
                 if values.shape[-1] != 1:
                     # shouldn't get here (at least until 2D EAs)
                     raise NotImplementedError
-                values = values[:, 0]
+                # pandas/core/internals/blocks.py:1019: error: Invalid index type
+                # "Tuple[slice, int]" for "Union[ndarray, ExtensionArray]"; expected
+                # type "Union[int, slice, ndarray]"  [index]
+                values = values[:, 0]  # type: ignore[index]
             return self.make_block(Categorical(values, dtype=arr_value.dtype))
 
         elif exact_match and is_ea_value:
@@ -1087,7 +1093,10 @@ class Block(PandasObject):
             if transpose:
                 new_values = new_values.T
 
-            putmask_without_repeat(new_values, mask, new)
+            # pandas/core/internals/blocks.py:1090: error: Argument 1 to
+            # "putmask_without_repeat" has incompatible type "Union[ndarray,
+            # ExtensionArray]"; expected "ndarray"  [arg-type]
+            putmask_without_repeat(new_values, mask, new)  # type: ignore[arg-type]
             return [self]
 
         elif not mask.any():
