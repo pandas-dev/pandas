@@ -731,10 +731,14 @@ class SeriesGroupBy(GroupBy[Series]):
 
         # group boundaries are where group ids change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
+        if len(ids) == 0:
+            idx = ids
 
         # new values are where sorted labels change
         lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
         inc = np.r_[True, lchanges]
+        if len(lchanges) == 0:
+            inc = lchanges
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
 

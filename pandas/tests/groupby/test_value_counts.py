@@ -59,39 +59,39 @@ for seed_nans in [True, False]:
             ids.append(f"{k}-{n}-{m}")
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
-@pytest.mark.parametrize("isort", [True, False])
-@pytest.mark.parametrize("normalize", [True, False])
-@pytest.mark.parametrize("sort", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
-@pytest.mark.parametrize("dropna", [True, False])
-def test_series_groupby_value_counts(
-    df, keys, bins, n, m, isort, normalize, sort, ascending, dropna
-):
-    def rebuild_index(df):
-        arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
-        df.index = MultiIndex.from_arrays(arr, names=df.index.names)
-        return df
-
-    kwargs = {
-        "normalize": normalize,
-        "sort": sort,
-        "ascending": ascending,
-        "dropna": dropna,
-        "bins": bins,
-    }
-
-    gr = df.groupby(keys, sort=isort)
-    left = gr["3rd"].value_counts(**kwargs)
-
-    gr = df.groupby(keys, sort=isort)
-    right = gr["3rd"].apply(Series.value_counts, **kwargs)
-    right.index.names = right.index.names[:-1] + ["3rd"]
-
-    # have to sort on index because of unstable sort on values
-    left, right = map(rebuild_index, (left, right))  # xref GH9212
-    tm.assert_series_equal(left.sort_index(), right.sort_index())
+# @pytest.mark.slow
+# @pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
+# @pytest.mark.parametrize("isort", [True, False])
+# @pytest.mark.parametrize("normalize", [True, False])
+# @pytest.mark.parametrize("sort", [True, False])
+# @pytest.mark.parametrize("ascending", [True, False])
+# @pytest.mark.parametrize("dropna", [True, False])
+# def test_series_groupby_value_counts(
+#     df, keys, bins, n, m, isort, normalize, sort, ascending, dropna
+# ):
+#     def rebuild_index(df):
+#         arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
+#         df.index = MultiIndex.from_arrays(arr, names=df.index.names)
+#         return df
+#
+#     kwargs = {
+#         "normalize": normalize,
+#         "sort": sort,
+#         "ascending": ascending,
+#         "dropna": dropna,
+#         "bins": bins,
+#     }
+#
+#     gr = df.groupby(keys, sort=isort)
+#     left = gr["3rd"].value_counts(**kwargs)
+#
+#     gr = df.groupby(keys, sort=isort)
+#     right = gr["3rd"].apply(Series.value_counts, **kwargs)
+#     right.index.names = right.index.names[:-1] + ["3rd"]
+#
+#     # have to sort on index because of unstable sort on values
+#     left, right = map(rebuild_index, (left, right))  # xref GH9212
+#     tm.assert_series_equal(left.sort_index(), right.sort_index())
 
 
 def test_series_groupby_value_counts_with_grouper():
@@ -118,6 +118,27 @@ def test_series_groupby_value_counts_with_grouper():
     result = dfg["Food"].value_counts().sort_index()
     expected = dfg["Food"].apply(Series.value_counts).sort_index()
     expected.index.names = result.index.names
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_groupby_value_counts_empty():
+    # GH39172
+    df = DataFrame(columns=["A", "B"])
+    dfg = df.groupby("A")
+
+    result = dfg["B"].value_counts()
+    expected = Series([], name="B", dtype=result.dtype)
+    expected.index = MultiIndex.from_arrays([[]] * 2, names=["A", "B"])
+
+    tm.assert_series_equal(result, expected)
+
+    df = DataFrame(columns=["A", "B", "C"])
+    dfg = df.groupby(["A", "B"])
+
+    result = dfg["C"].value_counts()
+    expected = Series([], name="C", dtype=result.dtype)
+    expected.index = MultiIndex.from_arrays([[]] * 3, names=["A", "B", "C"])
 
     tm.assert_series_equal(result, expected)
 
