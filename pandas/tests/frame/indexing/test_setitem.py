@@ -348,6 +348,24 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_duplicate_columns(self):
+        # GH#15695
+        cols = ["A", "B", "C"] * 2
+        df = DataFrame(index=range(3), columns=cols)
+        df.loc[0, "A"] = (0, 3)
+        df.loc[:, "B"] = (1, 4)
+        df["C"] = (2, 5)
+        expected = DataFrame(
+            [
+                [0, 1, 2, 3, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+            ],
+            columns=cols,
+            dtype="object",
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemWithExpansion:
     def test_setitem_listlike_views(self):
