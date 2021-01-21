@@ -404,7 +404,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return this.rename(res_name)
         return this
 
-    def _maybe_utc_convert(self, other: Index) -> Tuple["DatetimeIndex", Index]:
+    def _maybe_utc_convert(self, other: Index) -> Tuple[DatetimeIndex, Index]:
         this = self
 
         if isinstance(other, DatetimeIndex):
