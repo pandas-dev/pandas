@@ -8,6 +8,8 @@ import threading
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -180,13 +182,25 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
     "responder, read_method, port, parquet_engine",
     [
         (CSVUserAgentResponder, pd.read_csv, 34259, None),
-        (JSONUserAgentResponder, pd.read_json, 34260, None),
+        pytest.param(
+            JSONUserAgentResponder,
+            pd.read_json,
+            34260,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34268, "pyarrow"),
         (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34273, "fastparquet"),
         (PickleUserAgentResponder, pd.read_pickle, 34271, None),
         (StataUserAgentResponder, pd.read_stata, 34272, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, 34261, None),
-        (GzippedJSONUserAgentResponder, pd.read_json, 34262, None),
+        pytest.param(
+            GzippedJSONUserAgentResponder,
+            pd.read_json,
+            34262,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
     ],
 )
 def test_server_and_default_headers(responder, read_method, port, parquet_engine):
@@ -212,13 +226,25 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
     "responder, read_method, port, parquet_engine",
     [
         (CSVUserAgentResponder, pd.read_csv, 34263, None),
-        (JSONUserAgentResponder, pd.read_json, 34264, None),
+        pytest.param(
+            JSONUserAgentResponder,
+            pd.read_json,
+            34264,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34270, "pyarrow"),
         (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34275, "fastparquet"),
         (PickleUserAgentResponder, pd.read_pickle, 34273, None),
         (StataUserAgentResponder, pd.read_stata, 34274, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
-        (GzippedJSONUserAgentResponder, pd.read_json, 34266, None),
+        pytest.param(
+            GzippedJSONUserAgentResponder,
+            pd.read_json,
+            34266,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
     ],
 )
 def test_server_and_custom_headers(responder, read_method, port, parquet_engine):
@@ -305,5 +331,9 @@ def test_to_parquet_to_disk_with_storage_options(engine):
     pytest.importorskip(engine)
 
     true_df = pd.DataFrame({"column_name": ["column_value"]})
-    with pytest.raises(ValueError):
+    msg = (
+        "storage_options passed with file object or non-fsspec file path|"
+        "storage_options passed with buffer, or non-supported URL"
+    )
+    with pytest.raises(ValueError, match=msg):
         true_df.to_parquet("/tmp/junk.parquet", storage_options=headers, engine=engine)

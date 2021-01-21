@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -7,7 +7,7 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Label
+from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import (
@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import accessor
@@ -181,36 +180,28 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
+        cls,
+        data=None,
+        categories=None,
+        ordered=None,
+        dtype: Optional[Dtype] = None,
+        copy=False,
+        name=None,
     ):
-
-        dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
         name = maybe_extract_name(name, data, cls)
 
-        if not is_categorical_dtype(data):
-            # don't allow scalars
-            # if data is None, then categories must be provided
-            if is_scalar(data):
-                if data is not None or categories is None:
-                    raise cls._scalar_data_error(data)
-                data = []
+        if is_scalar(data):
+            raise cls._scalar_data_error(data)
 
-        assert isinstance(dtype, CategoricalDtype), dtype
-        data = extract_array(data, extract_numpy=True)
-
-        if not isinstance(data, Categorical):
-            data = Categorical(data, dtype=dtype)
-        elif isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
-            # we want to silently ignore dtype='category'
-            data = data._set_dtype(dtype)
-
-        data = data.copy() if copy else data
+        data = Categorical(
+            data, categories=categories, ordered=ordered, dtype=dtype, copy=copy
+        )
 
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: Categorical, name: Label = None):
+    def _simple_new(cls, values: Categorical, name: Optional[Hashable] = None):
         assert isinstance(values, Categorical), type(values)
         result = object.__new__(cls)
 
@@ -230,7 +221,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _shallow_copy(  # type:ignore[override]
         self,
         values: Optional[Categorical] = None,
-        name: Label = no_default,
+        name: Hashable = no_default,
     ):
         name = self.name if name is no_default else name
 
@@ -365,11 +356,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return contains(self, key, container=self._engine)
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        res_data = self._data.astype(dtype, copy=copy)
-        return Index(res_data, name=self.name)
-
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
@@ -482,7 +468,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._data._unbox_scalar(key)
 
     def _get_indexer(
-        self, target: "Index", method=None, limit=None, tolerance=None
+        self, target: Index, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
 
         if self.equals(target):
@@ -619,7 +605,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: List["Index"], name: Label) -> Index:
+    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
             codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
