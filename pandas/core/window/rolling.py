@@ -1368,7 +1368,7 @@ class Rolling(RollingAndExpandingMixin):
         1  3.0   9.0  15.0
         2  5.0  11.0  17.0
 
-        >>> df.rolling(2).agg({{"A": "sum", "B": "min"}})
+        >>> df.rolling(2).agg({"A": "sum", "B": "min"})
              A    B
         0  NaN  NaN
         1  3.0  4.0
