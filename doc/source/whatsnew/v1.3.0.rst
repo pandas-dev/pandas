@@ -205,7 +205,7 @@ Performance improvements
 - Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
--
+- Performance improvement in :meth:`DataFrame.corr` for method=kendall (:issue:`28329`)
 
 .. ---------------------------------------------------------------------------
 
@@ -233,6 +233,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
 - Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
+- Bug in :func:`date_range` incorrectly creating :class:`DatetimeIndex` containing ``NaT`` instead of raising ``OutOfBoundsDatetime`` in corner cases (:issue:`24124`)
 
 Timedelta
 ^^^^^^^^^
@@ -270,7 +271,7 @@ Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalIndex.intersection` and :meth:`IntervalIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38653`, :issue:`38741`)
 - Bug in :meth:`IntervalIndex.intersection` returning duplicates when at least one of both Indexes has duplicates which are present in the other (:issue:`38743`)
--
+- :meth:`IntervalIndex.union`, :meth:`IntervalIndex.intersection`, :meth:`IntervalIndex.difference`, and :meth:`IntervalIndex.symmetric_difference` now cast to the appropriate dtype instead of raising ``TypeError`` when operating with another :class:`IntervalIndex` with incompatible dtype (:issue:`39267`)
 
 Indexing
 ^^^^^^^^
@@ -322,7 +323,7 @@ I/O
 
 Period
 ^^^^^^
-
+- Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`??`)
 -
 -
 
