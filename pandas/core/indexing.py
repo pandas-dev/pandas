@@ -1842,10 +1842,11 @@ class _iLocIndexer(_LocationIndexer):
                     for i, idx in enumerate(indexer)
                     if i != info_axis
                 )
-                and item_labels.is_unique
             ):
-                self.obj[item_labels[indexer[info_axis]]] = value
-                return
+                selected_item_labels = item_labels[indexer[info_axis]]
+                if len(item_labels.get_indexer_for([selected_item_labels])) == 1:
+                    self.obj[selected_item_labels] = value
+                    return
 
             indexer = maybe_convert_ix(*indexer)
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
