@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import decimal
 import numbers
 import random
@@ -30,7 +32,7 @@ class DecimalDtype(ExtensionDtype):
         return f"DecimalDtype(context={self.context})"
 
     @classmethod
-    def construct_array_type(cls) -> Type["DecimalArray"]:
+    def construct_array_type(cls) -> Type[DecimalArray]:
         """
         Return the array type associated with this dtype.
 

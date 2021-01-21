@@ -57,7 +57,7 @@ class _IntegerDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["IntegerArray"]:
+    def construct_array_type(cls) -> Type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 
