@@ -80,26 +80,34 @@ class ToCSVIndexes(BaseIO):
 
     fname = "__test__.csv"
 
-    def setup(self):
-        ROWS = 1000000
-        COLS = 5
-        N_HEAD = 100000
+    @staticmethod
+    def _create_df(rows, cols):
         index_cols = {
-            "index1": np.random.randint(0, ROWS, ROWS),
-            "index2": np.full(ROWS, 1, dtype=np.int),
-            "index3": np.full(ROWS, 1, dtype=np.int),
+            "index1": np.random.randint(0, rows, rows),
+            "index2": np.full(rows, 1, dtype=np.int),
+            "index3": np.full(rows, 1, dtype=np.int),
         }
         data_cols = {
-            f"col{i}": np.random.uniform(0, 100000.0, ROWS) for i in range(COLS)
+            f"col{i}": np.random.uniform(0, 100000.0, rows) for i in range(cols)
         }
         df = DataFrame({**index_cols, **data_cols})
-        self.df_standard_index = df.head(N_HEAD)
-        self.df_custom_index_then_head = df.set_index(
-            ["index1", "index2", "index3"]
-        ).head(N_HEAD)
-        self.df_head_then_custom_index = df.head(N_HEAD).set_index(
-            ["index1", "index2", "index3"]
-        )
+        return df
+
+    def setup(self):
+        ROWS = 100000
+        COLS = 5
+        # For tests using .head(), create an initial dataframe with this many times more rows
+        HEAD_ROW_MULTIPLIER = 10
+
+        self.df_standard_index = self._create_df(ROWS, COLS)
+
+        self.df_custom_index_then_head = self._create_df(
+            ROWS * HEAD_ROW_MULTIPLIER, COLS
+        ).set_index(["index1", "index2", "index3"]).head(ROWS)
+
+        self.df_head_then_custom_index = self._create_df(
+            ROWS * HEAD_ROW_MULTIPLIER, COLS
+        ).head(ROWS).set_index(["index1", "index2", "index3"])
 
     def time_standard_index(self):
         self.df_standard_index.to_csv(self.fname)
