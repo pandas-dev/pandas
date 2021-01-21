@@ -522,7 +522,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level: Optional[IndexLabel] = None,
-        grouper: Optional["ops.BaseGrouper"] = None,
+        grouper: Optional[ops.BaseGrouper] = None,
         exclusions: Optional[Set[Hashable]] = None,
         selection: Optional[IndexLabel] = None,
         as_index: bool = True,
@@ -1371,7 +1371,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Type["Series"]:
+    def _obj_1d_constructor(self) -> Type[Series]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced

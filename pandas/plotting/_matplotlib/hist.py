@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -99,7 +101,7 @@ class HistPlot(LinePlot):
         kwds["bins"] = self.bins
         return kwds
 
-    def _post_plot_logic(self, ax: "Axes", data):
+    def _post_plot_logic(self, ax: Axes, data):
         if self.orientation == "horizontal":
             ax.set_xlabel("Frequency")
         else:

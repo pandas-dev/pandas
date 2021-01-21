@@ -9,8 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import IS64, np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -349,6 +348,9 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
+        warn = None if tz_naive_fixture is None else FutureWarning
+        # astype dt64 -> dt64tz deprecated
+
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
@@ -356,7 +358,8 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = DatetimeIndex(arg).astype(dtype)
+            with tm.assert_produces_warning(warn):
+                result = DatetimeIndex(arg).astype(dtype)
         else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
@@ -368,7 +371,8 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = DatetimeIndex(list(arg)).astype(dtype)
+            with tm.assert_produces_warning(warn):
+                result = DatetimeIndex(list(arg)).astype(dtype)
         else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)

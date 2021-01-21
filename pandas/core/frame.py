@@ -3195,6 +3195,11 @@ class DataFrame(NDFrame, OpsMixin):
             self._setitem_array(key, value)
         elif isinstance(value, DataFrame):
             self._set_item_frame_value(key, value)
+        elif is_list_like(value) and 1 < len(
+            self.columns.get_indexer_for([key])
+        ) == len(value):
+            # Column to set is duplicated
+            self._setitem_array([key], value)
         else:
             # set column
             self._set_item(key, value)
@@ -8463,8 +8468,7 @@ NaN 12.3   33.0
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for Pearson
-            and Spearman correlation.
+            to have a valid result.
 
         Returns
         -------
@@ -8498,7 +8502,9 @@ NaN 12.3   33.0
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall" or callable(method):
+        elif method == "kendall":
+            correl = libalgos.nancorr_kendall(mat, minp=min_periods)
+        elif callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = mat.T
@@ -9440,8 +9446,8 @@ NaN 12.3   33.0
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
-        offset: Optional["TimedeltaConvertibleTypes"] = None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
     ) -> Resampler:
         return super().resample(
             rule=rule,
