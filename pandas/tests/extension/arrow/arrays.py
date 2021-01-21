@@ -23,6 +23,7 @@ from pandas.api.extensions import (
     register_extension_dtype,
     take,
 )
+from pandas.api.types import is_scalar
 from pandas.core.arraylike import OpsMixin
 
 
@@ -91,7 +92,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return f"{type(self).__name__}({repr(self._data)})"
 
     def __getitem__(self, item):
-        if pd.api.types.is_scalar(item):
+        if is_scalar(item):
             return self._data.to_pandas()[item]
         else:
             vals = self._data.to_pandas()[item]

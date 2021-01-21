@@ -15,6 +15,7 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
+from pandas.api.types import is_object_dtype, is_string_dtype
 from pandas.core.arrays import ExtensionArray
 
 
@@ -106,9 +107,7 @@ class ListArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        elif pd.api.types.is_string_dtype(dtype) and not pd.api.types.is_object_dtype(
-            dtype
-        ):
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # numpy has problems with astype(str) for nested elements
             return np.array([str(x) for x in self.data], dtype=dtype)
         return np.array(self.data, dtype=dtype, copy=copy)
