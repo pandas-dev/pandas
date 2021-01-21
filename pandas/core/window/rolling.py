@@ -910,7 +910,7 @@ class Window(BaseWindow):
             """
         Examples
         --------
-        >>> df = pd.DataFrame({{"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}})
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         >>> df
            A  B  C
         0  1  4  7
@@ -1355,7 +1355,7 @@ class Rolling(RollingAndExpandingMixin):
             """
         Examples
         --------
-        >>> df = pd.DataFrame({{"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}})
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         >>> df
            A  B  C
         0  1  4  7
