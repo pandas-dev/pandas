@@ -102,13 +102,17 @@ class ToCSVIndexes(BaseIO):
 
         self.df_standard_index = self._create_df(ROWS, COLS)
 
-        self.df_custom_index_then_head = self._create_df(
-            ROWS * HEAD_ROW_MULTIPLIER, COLS
-        ).set_index(["index1", "index2", "index3"]).head(ROWS)
+        self.df_custom_index_then_head = (
+            self._create_df(ROWS * HEAD_ROW_MULTIPLIER, COLS)
+            .set_index(["index1", "index2", "index3"])
+            .head(ROWS)
+        )
 
-        self.df_head_then_custom_index = self._create_df(
-            ROWS * HEAD_ROW_MULTIPLIER, COLS
-        ).head(ROWS).set_index(["index1", "index2", "index3"])
+        self.df_head_then_custom_index = (
+            self._create_df(ROWS * HEAD_ROW_MULTIPLIER, COLS)
+            .head(ROWS)
+            .set_index(["index1", "index2", "index3"])
+        )
 
     def time_standard_index(self):
         self.df_standard_index.to_csv(self.fname)
