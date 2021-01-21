@@ -28,8 +28,12 @@ import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
-from pandas._libs.tslibs.timezones import tz_compare
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    OutOfBoundsDatetime,
+    Timestamp,
+    tz_compare,
+)
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
@@ -2855,7 +2859,7 @@ class Index(IndexOpsMixin, PandasObject):
         if sort is None and self.is_monotonic and other.is_monotonic:
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
-            except TypeError:
+            except (TypeError, IncompatibleFrequency):
                 # incomparable objects
                 result = list(lvals)
 
@@ -3003,6 +3007,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+    @final
     def difference(self, other, sort=None):
         """
         Return a new Index with elements of index not in `other`.
@@ -3127,7 +3132,7 @@ class Index(IndexOpsMixin, PandasObject):
             result_name = result_name_update
 
         if not self._should_compare(other):
-            return self.union(other).rename(result_name)
+            return self.union(other, sort=sort).rename(result_name)
         elif not is_dtype_equal(self.dtype, other.dtype):
             dtype = find_common_type([self.dtype, other.dtype])
             this = self.astype(dtype, copy=False)
@@ -3158,6 +3163,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index(the_diff, name=result_name)
 
+    @final
     def _assert_can_do_setop(self, other):
         if not is_list_like(other):
             raise TypeError("Input must be Index or array-like")
@@ -3308,7 +3314,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
-        self, target: "Index", method=None, limit=None, tolerance=None
+        self, target: Index, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
@@ -3367,7 +3373,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer(
-        self, target: "Index", method: str_t, limit=None, tolerance=None
+        self, target: Index, method: str_t, limit=None, tolerance=None
     ) -> np.ndarray:
 
         target_values = target._get_engine_target()
@@ -3387,7 +3393,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer_searchsorted(
-        self, target: "Index", method: str_t, limit=None
+        self, target: Index, method: str_t, limit=None
     ) -> np.ndarray:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
@@ -3420,7 +3426,7 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _get_nearest_indexer(self, target: "Index", limit, tolerance) -> np.ndarray:
+    def _get_nearest_indexer(self, target: Index, limit, tolerance) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -3455,7 +3461,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _filter_indexer_tolerance(
         self,
-        target: Union["Index", np.ndarray, ExtensionArray],
+        target: Union[Index, np.ndarray, ExtensionArray],
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
@@ -4519,7 +4525,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat: List["Index"], name: Hashable) -> Index:
+    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
         """
         Concatenate multiple Index objects.
         """
@@ -4719,7 +4725,7 @@ class Index(IndexOpsMixin, PandasObject):
                 loc = loc.indices(len(self))[-1]
             return self[loc]
 
-    def asof_locs(self, where: "Index", mask) -> np.ndarray:
+    def asof_locs(self, where: Index, mask) -> np.ndarray:
         """
         Return the locations (indices) of labels in the index.
 
@@ -4950,7 +4956,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.argsort(*args, **kwargs)
 
     @final
-    def get_value(self, series: "Series", key):
+    def get_value(self, series: Series, key):
         """
         Fast lookup of value from 1-dimensional ndarray.
 
@@ -5000,7 +5006,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return not self.holds_integer() and not self.is_boolean()
 
-    def _get_values_for_loc(self, series: "Series", loc, key):
+    def _get_values_for_loc(self, series: Series, loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
@@ -5116,7 +5122,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
-    def _get_indexer_non_comparable(self, target: "Index", method, unique: bool = True):
+    def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
         """
         Called from get_indexer or get_indexer_non_unique when the target
         is of a non-comparable dtype.
@@ -5166,7 +5172,7 @@ class Index(IndexOpsMixin, PandasObject):
     _requires_unique_msg = "Reindexing only valid with uniquely valued Index objects"
 
     @final
-    def _maybe_promote(self, other: "Index"):
+    def _maybe_promote(self, other: Index):
         """
         When dealing with an object-dtype Index and a non-object Index, see
         if we can upcast the object-dtype one to improve performance.
@@ -5190,7 +5196,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self, other
 
-    def _should_compare(self, other: "Index") -> bool:
+    def _should_compare(self, other: Index) -> bool:
         """
         Check if `self == other` can ever have non-False entries.
         """
@@ -6236,7 +6242,7 @@ def _maybe_cast_data_without_dtype(subarr):
         try:
             data = IntervalArray._from_sequence(subarr, copy=False)
             return data
-        except ValueError:
+        except (ValueError, TypeError):
             # GH27172: mixed closed Intervals --> object dtype
             pass
     elif inferred == "boolean":

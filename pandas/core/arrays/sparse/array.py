@@ -62,7 +62,7 @@ SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 _sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
-def _get_fill(arr: "SparseArray") -> np.ndarray:
+def _get_fill(arr: SparseArray) -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -87,7 +87,7 @@ def _get_fill(arr: "SparseArray") -> np.ndarray:
 
 
 def _sparse_array_op(
-    left: "SparseArray", right: "SparseArray", op: Callable, name: str
+    left: SparseArray, right: SparseArray, op: Callable, name: str
 ) -> Any:
     """
     Perform a binary operation between two arrays.
@@ -896,7 +896,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return taken
 
-    def _take_without_fill(self, indices) -> Union[np.ndarray, "SparseArray"]:
+    def _take_without_fill(self, indices) -> Union[np.ndarray, SparseArray]:
         to_shift = indices < 0
         indices = indices.copy()
 
