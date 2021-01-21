@@ -1697,7 +1697,7 @@ class Styler:
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
-        # mypy doesnt like dynamically-defined class
+        # mypy doesn't like dynamically-defined classes
         # error: Variable "cls" is not valid as a type  [valid-type]
         # error: Invalid base class "cls"  [misc]
         class MyStyler(cls):  # type:ignore[valid-type,misc]
