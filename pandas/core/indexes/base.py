@@ -2896,10 +2896,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _wrap_setop_result(self, other, result):
-        if isinstance(self, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
-            result, np.ndarray
-        ):
-            result = type(self._data)._simple_new(result, dtype=self.dtype)
+        if needs_i8_conversion(self.dtype) and isinstance(result, np.ndarray):
+            result = self._data._from_backing_data(result)
         elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
             result = Categorical(result, dtype=self.dtype)
 

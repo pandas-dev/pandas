@@ -8,6 +8,12 @@ import pandas._testing as tm
 
 
 class TestJoin:
+    def test_join_outer_indexer(self):
+        # smoke check that PeriodIgit standex._outer_indexer works
+        pi = period_range("1/1/2000", "1/20/2000", freq="D")
+
+        pi._outer_indexer(pi._values, pi._values)
+
     def test_joins(self, join_type):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
 
