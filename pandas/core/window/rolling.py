@@ -910,7 +910,7 @@ class Window(BaseWindow):
             """
         Examples
         --------
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        >>> df = pd.DataFrame({{"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}})
         >>> df
            A  B  C
         0  1  4  7
@@ -974,7 +974,7 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n",
+        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_scipy,
         create_section_header("Returns"),
@@ -993,7 +993,7 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n",
+        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_scipy,
         create_section_header("Returns"),
@@ -1355,7 +1355,7 @@ class Rolling(RollingAndExpandingMixin):
             """
         Examples
         --------
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        >>> df = pd.DataFrame({{"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}})
         >>> df
            A  B  C
         0  1  4  7
@@ -1368,7 +1368,7 @@ class Rolling(RollingAndExpandingMixin):
         1  3.0   9.0  15.0
         2  5.0  11.0  17.0
 
-        >>> df.rolling(2).agg({"A": "sum", "B": "min"})
+        >>> df.rolling(2).agg({{"A": "sum", "B": "min"}})
              A    B
         0  NaN  NaN
         1  3.0  4.0
@@ -1496,7 +1496,7 @@ class Rolling(RollingAndExpandingMixin):
 
         For DataFrame, each sum is computed column-wise.
 
-        >>> df = pd.DataFrame({"A": s, "B": s ** 2})
+        >>> df = pd.DataFrame({{"A": s, "B": s ** 2}})
         >>> df
            A   B
         0  1   1
@@ -1667,8 +1667,8 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "numpy.std : Equivalent method for Numpy array.\n",
+        template_see_also,
         create_section_header("Notes"),
         dedent(
             """
@@ -1716,8 +1716,8 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "numpy.var : Equivalent method for Numpy array.\n",
+        template_see_also,
         create_section_header("Notes"),
         dedent(
             """
@@ -1757,8 +1757,8 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "scipy.stats.skew : Third moment of a probability density.\n",
+        template_see_also,
         create_section_header("Notes"),
         "A minimum of three periods is required for the rolling calculation.\n",
         window_method="rolling",
@@ -1812,8 +1812,8 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "scipy.stats.kurtosis : Reference SciPy method.\n",
+        template_see_also,
         create_section_header("Notes"),
         "A minimum of four periods is required for the calculation.\n",
         create_section_header("Examples"),
@@ -1824,9 +1824,9 @@ class Rolling(RollingAndExpandingMixin):
 
         >>> arr = [1, 2, 3, 4, 999]
         >>> import scipy.stats
-        >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
+        >>> print(f"{{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}}")
         -1.200000
-        >>> print(f"{scipy.stats.kurtosis(arr[1:], bias=False):.6f}")
+        >>> print(f"{{scipy.stats.kurtosis(arr[1:], bias=False):.6f}}")
         3.999946
         >>> s = pd.Series(arr)
         >>> s.rolling(4).kurt()
@@ -1852,7 +1852,7 @@ class Rolling(RollingAndExpandingMixin):
             """
         quantile : float
             Quantile to compute. 0 <= quantile <= 1.
-        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
@@ -1952,13 +1952,13 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         dedent(
             """
         cov : Similar method to calculate covariance.
         numpy.corrcoef : NumPy Pearson's correlation calculation.
         """
         ).replace("\n", "", 1),
+        template_see_also,
         create_section_header("Notes"),
         dedent(
             """
@@ -1993,9 +1993,9 @@ class Rolling(RollingAndExpandingMixin):
         >>> v2 = [3, 4, 4, 4, 8]
         >>> # numpy returns a 2X2 array, the correlation coefficient
         >>> # is the number at entry [0][1]
-        >>> print(f"{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.6f}")
+        >>> print(f"{{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.6f}}")
         0.333333
-        >>> print(f"{np.corrcoef(v1[1:], v2[1:])[0][1]:.6f}")
+        >>> print(f"{{np.corrcoef(v1[1:], v2[1:])[0][1]:.6f}}")
         0.916949
         >>> s1 = pd.Series(v1)
         >>> s2 = pd.Series(v2)

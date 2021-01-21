@@ -300,7 +300,7 @@ class Expanding(RollingAndExpandingMixin):
             """
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
-            is ``N - ddof``, where ``N`` represents the number of elements.
+            is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
         args_compat,
@@ -308,15 +308,15 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "numpy.std : Equivalent method for Numpy array.\n",
+        template_see_also,
         create_section_header("Notes"),
         dedent(
             """
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -350,7 +350,7 @@ class Expanding(RollingAndExpandingMixin):
             """
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
-            is ``N - ddof``, where ``N`` represents the number of elements.
+            is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
         args_compat,
@@ -358,15 +358,15 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "numpy.var : Equivalent method for Numpy array.\n",
+        template_see_also,
         create_section_header("Notes"),
         dedent(
             """
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -400,7 +400,7 @@ class Expanding(RollingAndExpandingMixin):
             """
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
-            is ``N - ddof``, where ``N`` represents the number of elements.
+            is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
         args_compat,
@@ -438,8 +438,8 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "scipy.stats.skew : Third moment of a probability density.\n",
+        template_see_also,
         create_section_header("Notes"),
         "A minimum of three periods is required for the rolling calculation.\n",
         window_method="expanding",
@@ -456,8 +456,8 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         "scipy.stats.kurtosis : Reference SciPy method.\n",
+        template_see_also,
         create_section_header("Notes"),
         "A minimum of four periods is required for the calculation.\n",
         create_section_header("Examples"),
@@ -468,9 +468,9 @@ class Expanding(RollingAndExpandingMixin):
 
         >>> arr = [1, 2, 3, 4, 999]
         >>> import scipy.stats
-        >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
+        >>> print(f"{{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}}")
         -1.200000
-        >>> print(f"{scipy.stats.kurtosis(arr, bias=False):.6f}")
+        >>> print(f"{{scipy.stats.kurtosis(arr, bias=False):.6f}}")
         4.999874
         >>> s = pd.Series(arr)
         >>> s.expanding(4).kurt()
@@ -496,7 +496,7 @@ class Expanding(RollingAndExpandingMixin):
             """
         quantile : float
             Quantile to compute. 0 <= quantile <= 1.
-        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
@@ -588,13 +588,13 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also,
         dedent(
             """
         cov : Similar method to calculate covariance.
         numpy.corrcoef : NumPy Pearson's correlation calculation.
         """
         ).replace("\n", "", 1),
+        template_see_also,
         create_section_header("Notes"),
         dedent(
             """
