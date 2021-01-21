@@ -416,7 +416,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _accumulate(
         self, name: str, *, skipna: bool = True, **kwargs
-    ) -> BaseMaskedArrayT:
+    ) -> BaseMaskedArray:
         data = self._data
         mask = self._mask
 
