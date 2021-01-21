@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import operator
 
 import numpy as np
@@ -243,6 +243,25 @@ class TestTimestampComparison:
         assert stamp >= datetime(1600, 1, 1)
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
+
+        other = Timestamp.min.to_pydatetime(warn=False)
+        assert other - timedelta(microseconds=1) < Timestamp.min
+
+    def test_timestamp_compare_oob_dt64(self):
+        us = np.timedelta64(1, "us")
+        other = np.datetime64(Timestamp.min).astype("M8[us]")
+
+        # This may change if the implementation bound is dropped to match
+        #  DatetimeArray/DatetimeIndex GH#24124
+        assert Timestamp.min > other
+        # Note: numpy gets the reversed comparison wrong
+
+        other = np.datetime64(Timestamp.max).astype("M8[us]")
+        assert Timestamp.max > other  # not actually OOB
+        assert other < Timestamp.max
+
+        assert Timestamp.max < other + us
+        # Note: numpy gets the reversed comparison wrong
 
     def test_compare_zerodim_array(self):
         # GH#26916
