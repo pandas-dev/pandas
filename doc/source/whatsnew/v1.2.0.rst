@@ -746,7 +746,7 @@ I/O
 - Parse missing values using :func:`read_json` with ``dtype=False`` to ``NaN`` instead of ``None`` (:issue:`28501`)
 - :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other ``read_*`` functions (:issue:`37909`)
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
-- Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
+- Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`, :issue:`37983`)
 - :meth:`DataFrame.to_csv` was re-opening file-like handles that also implement ``os.PathLike`` (:issue:`38125`)
 - Bug in the conversion of a sliced ``pyarrow.Table`` with missing values to a DataFrame (:issue:`38525`)
 - Bug in :func:`read_sql_table` raising a ``sqlalchemy.exc.OperationalError`` when column names contained a percentage sign (:issue:`37517`)
