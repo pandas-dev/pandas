@@ -670,14 +670,12 @@ cdef class _Timestamp(ABCTimestamp):
 
         try:
             stamp += self.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
         except ValueError:
             year2000 = self.replace(year=2000)
             stamp += year2000.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
 
+        if self.tzinfo:
+            zone = get_timezone(self.tzinfo)
         try:
             stamp += zone.strftime(' %%Z')
         except AttributeError:
@@ -1556,11 +1554,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
-# the smallest value we could actually represent is
-#   INT64_MIN + 1 == -9223372036854775807
-# but to allow overflow free conversion with a microsecond resolution
-# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9_223_372_036_854_775_000
+cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
 
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)

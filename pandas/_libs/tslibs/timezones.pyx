@@ -123,7 +123,7 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     return tz
 
 
-def _p_tz_cache_key(tz):
+def _p_tz_cache_key(tz: tzinfo):
     """
     Python interface for cache function to facilitate testing.
     """
@@ -341,21 +341,27 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
     bool
     """
     # GH 18523
+    if is_utc(start):
+        # GH#38851 consider pytz/dateutil/stdlib UTCs as equivalent
+        return is_utc(end)
+    elif is_utc(end):
+        # Ensure we don't treat tzlocal as equal to UTC when running in UTC
+        return False
     return get_timezone(start) == get_timezone(end)
 
 
-def tz_standardize(tz: tzinfo):
+def tz_standardize(tz: tzinfo) -> tzinfo:
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version
 
     Parameters
     ----------
-    tz : tz object
+    tz : tzinfo
 
-    Returns:
+    Returns
     -------
-    tz object
+    tzinfo
 
     Examples:
     --------
