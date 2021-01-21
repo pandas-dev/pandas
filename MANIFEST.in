@@ -37,6 +37,7 @@ global-exclude .DS_Store
 global-exclude .git*
 global-exclude \#*
 
+# GH 39321
 prune pandas/tests/io/parser/data
 
 include versioneer.py
