@@ -76,6 +76,41 @@ class ToCSVDatetimeBig(BaseIO):
         self.data.to_csv(self.fname)
 
 
+class ToCSVIndexes(BaseIO):
+
+    fname = "__test__.csv"
+
+    def setup(self):
+        ROWS = 1000000
+        COLS = 5
+        N_HEAD = 100000
+        index_cols = {
+            "index1": np.random.randint(0, ROWS, ROWS),
+            "index2": np.full(ROWS, 1, dtype=np.int),
+            "index3": np.full(ROWS, 1, dtype=np.int),
+        }
+        data_cols = {
+            f"col{i}": np.random.uniform(0, 100000.0, ROWS) for i in range(COLS)
+        }
+        df = DataFrame({**index_cols, **data_cols})
+        self.df_standard_index = df.head(N_HEAD)
+        self.df_custom_index_then_head = df.set_index(
+            ["index1", "index2", "index3"]
+        ).head(N_HEAD)
+        self.df_head_then_custom_index = df.head(N_HEAD).set_index(
+            ["index1", "index2", "index3"]
+        )
+
+    def time_standard_index(self):
+        self.df_standard_index.to_csv(self.fname)
+
+    def time_multiindex(self):
+        self.df_head_then_custom_index.to_csv(self.fname)
+
+    def time_head_of_multiindex(self):
+        self.df_custom_index_then_head.to_csv(self.fname)
+
+
 class StringIORewind:
     def data(self, stringio_object):
         stringio_object.seek(0)
