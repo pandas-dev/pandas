@@ -131,7 +131,7 @@ def fill_binop(left, right, fill_value):
 # Series
 
 
-def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
+def align_method_SERIES(left: Series, right, align_asobject: bool = False):
     """ align lhs and rhs Series """
     # ToDo: Different from align_method_FRAME, list, tuple and ndarray
     # are not coerced here
@@ -367,7 +367,7 @@ def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> Da
     return result
 
 
-def _maybe_align_series_as_frame(frame: DataFrame, series: "Series", axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.

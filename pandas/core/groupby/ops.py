@@ -100,7 +100,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: Sequence["grouper.Grouping"],
+        groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -119,7 +119,7 @@ class BaseGrouper:
         self.dropna = dropna
 
     @property
-    def groupings(self) -> List["grouper.Grouping"]:
+    def groupings(self) -> List[grouper.Grouping]:
         return self._groupings
 
     @property
