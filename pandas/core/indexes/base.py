@@ -2859,7 +2859,7 @@ class Index(IndexOpsMixin, PandasObject):
         if sort is None and self.is_monotonic and other.is_monotonic:
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
-            except TypeError:
+            except (TypeError, IncompatibleFrequency):
                 # incomparable objects
                 result = list(lvals)
 
@@ -3163,6 +3163,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index(the_diff, name=result_name)
 
+    @final
     def _assert_can_do_setop(self, other):
         if not is_list_like(other):
             raise TypeError("Input must be Index or array-like")

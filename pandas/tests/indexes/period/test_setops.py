@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-
-from pandas._libs.tslibs import IncompatibleFrequency
 
 import pandas as pd
 from pandas import PeriodIndex, date_range, period_range
@@ -145,12 +142,12 @@ class TestPeriodIndex:
             tm.assert_index_equal(result, index)
         assert tm.equalContents(result, index)
 
-        # raise if different frequencies
+        # cast if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        msg = r"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.union(index2, sort=sort)
+        result = index.union(index2, sort=sort)
+        expected = index.astype(object).union(index2.astype(object), sort=sort)
+        tm.assert_index_equal(result, expected)
 
     # TODO: belongs elsewhere
     def test_union_dataframe_index(self):
@@ -178,17 +175,17 @@ class TestPeriodIndex:
             tm.assert_index_equal(result, index[10:-5])
         assert tm.equalContents(result, index[10:-5])
 
-        # raise if different frequencies
+        # cast if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        msg = r"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.intersection(index2, sort=sort)
+
+        result = index.intersection(index2, sort=sort)
+        expected = pd.Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        msg = r"Input has different freq=2D from PeriodIndex\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.intersection(index3, sort=sort)
+        result = index.intersection(index3, sort=sort)
+        tm.assert_index_equal(result, expected)
 
     def test_intersection_cases(self, sort):
         base = period_range("6/1/2000", "6/30/2000", freq="D", name="idx")
