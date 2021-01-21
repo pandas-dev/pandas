@@ -8,7 +8,7 @@ from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
 from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Period, PeriodIndex, TimedeltaIndex
+from pandas import DatetimeIndex, Period, PeriodIndex, TimedeltaIndex
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PandasArray, PeriodArray, TimedeltaArray
 
@@ -330,6 +330,19 @@ class SharedTests:
         ):
             arr.searchsorted([str(arr[1]), "baz"])
 
+    def test_getitem_near_implementation_bounds(self):
+        # We only check tz-naive for DTA bc the bounds are slightly different
+        #  for other tzs
+        i8vals = np.asarray([NaT.value + n for n in range(1, 5)], dtype="i8")
+        arr = self.array_cls(i8vals, freq="ns")
+        arr[0]  # should not raise OutOfBoundsDatetime
+
+        index = pd.Index(arr)
+        index[0]  # should not raise OutOfBoundsDatetime
+
+        ser = pd.Series(arr)
+        ser[0]  # should not raise OutOfBoundsDatetime
+
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
         expected = type(arr1d)(arr1d._data[:, np.newaxis], dtype=arr1d.dtype)
@@ -403,7 +416,7 @@ class SharedTests:
     @pytest.mark.parametrize(
         "box",
         [
-            Index,
+            pd.Index,
             pd.Series,
             np.array,
             list,

@@ -193,6 +193,7 @@ Deprecations
 - Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
 - Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
+- Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -233,6 +234,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
 - Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
+- Bug in :func:`date_range` incorrectly creating :class:`DatetimeIndex` containing ``NaT`` instead of raising ``OutOfBoundsDatetime`` in corner cases (:issue:`24124`)
 
 Timedelta
 ^^^^^^^^^
@@ -271,6 +273,7 @@ Interval
 - Bug in :meth:`IntervalIndex.intersection` and :meth:`IntervalIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38653`, :issue:`38741`)
 - Bug in :meth:`IntervalIndex.intersection` returning duplicates when at least one of both Indexes has duplicates which are present in the other (:issue:`38743`)
 - :meth:`IntervalIndex.union`, :meth:`IntervalIndex.intersection`, :meth:`IntervalIndex.difference`, and :meth:`IntervalIndex.symmetric_difference` now cast to the appropriate dtype instead of raising ``TypeError`` when operating with another :class:`IntervalIndex` with incompatible dtype (:issue:`39267`)
+- :meth:`PeriodIndex.union`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference`, :meth:`PeriodIndex.difference` now cast to object dtype instead of raising ``IncompatibleFrequency`` when opearting with another :class:`PeriodIndex` with incompatible dtype (:issue:`??`)
 
 Indexing
 ^^^^^^^^
