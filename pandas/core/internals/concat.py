@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import copy
 import itertools
@@ -36,7 +38,7 @@ if TYPE_CHECKING:
 
 
 def concatenate_block_managers(
-    mgrs_indexers, axes: List["Index"], concat_axis: int, copy: bool
+    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.

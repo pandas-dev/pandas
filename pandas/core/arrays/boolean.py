@@ -72,7 +72,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> Type["BooleanArray"]:
+    def construct_array_type(cls) -> Type[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -94,7 +94,7 @@ class BooleanDtype(BaseMaskedDtype):
         return True
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
     ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.

@@ -936,7 +936,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return taken
 
-    def _intersection_unique(self, other: "IntervalIndex") -> IntervalIndex:
+    def _intersection_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does not have any common endpoint,
         no matter left or right.
@@ -959,7 +959,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return self.take(indexer)
 
-    def _intersection_non_unique(self, other: "IntervalIndex") -> IntervalIndex:
+    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does have some common endpoints,
         on either sides.

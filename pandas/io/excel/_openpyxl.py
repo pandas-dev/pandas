@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
@@ -51,7 +53,7 @@ class OpenpyxlWriter(ExcelWriter):
         self.book.save(self.handles.handle)
 
     @classmethod
-    def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, "Serialisable"]:
+    def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, Serialisable]:
         """
         Convert a style_dict to a set of kwargs suitable for initializing
         or updating-on-copy an openpyxl v2 style object.

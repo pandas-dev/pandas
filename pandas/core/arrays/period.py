@@ -201,7 +201,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls: Type["PeriodArray"],
+        cls: Type[PeriodArray],
         scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
         *,
         dtype: Optional[Dtype] = None,

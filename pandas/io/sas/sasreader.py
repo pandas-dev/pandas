@@ -1,6 +1,8 @@
 """
 Read SAS sas7bdat or xport files.
 """
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Hashable, Optional, Union, overload
 
@@ -53,7 +55,7 @@ def read_sas(
     encoding: Optional[str] = ...,
     chunksize: None = ...,
     iterator: bool = ...,
-) -> Union["DataFrame", ReaderBase]:
+) -> Union[DataFrame, ReaderBase]:
     ...
 
 
@@ -64,7 +66,7 @@ def read_sas(
     encoding: Optional[str] = None,
     chunksize: Optional[int] = None,
     iterator: bool = False,
-) -> Union["DataFrame", ReaderBase]:
+) -> Union[DataFrame, ReaderBase]:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from typing import TYPE_CHECKING
 import warnings
@@ -155,7 +157,7 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax: "Axes", labels):
+    def _set_ticklabels(self, ax: Axes, labels):
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
@@ -297,7 +299,7 @@ def boxplot(
         if not kwds.get("capprops"):
             setp(bp["caps"], color=colors[3], alpha=1)
 
-    def plot_group(keys, values, ax: "Axes"):
+    def plot_group(keys, values, ax: Axes):
         keys = [pprint_thing(x) for x in keys]
         values = [np.asarray(remove_na_arraylike(v), dtype=object) for v in values]
         bp = ax.boxplot(values, **kwds)

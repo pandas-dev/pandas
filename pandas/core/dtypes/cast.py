@@ -321,7 +321,7 @@ def maybe_downcast_numeric(result, dtype: DtypeObj, do_round: bool = False):
 
 
 def maybe_cast_result(
-    result: ArrayLike, obj: "Series", numeric_only: bool = False, how: str = ""
+    result: ArrayLike, obj: Series, numeric_only: bool = False, how: str = ""
 ) -> ArrayLike:
     """
     Try casting result to a different type if appropriate
@@ -397,7 +397,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
 
 
 def maybe_cast_to_extension_array(
-    cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
+    cls: Type[ExtensionArray], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
 ) -> ArrayLike:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.

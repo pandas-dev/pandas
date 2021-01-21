@@ -173,7 +173,7 @@ class SparseDtype(ExtensionDtype):
         return self.name
 
     @classmethod
-    def construct_array_type(cls) -> Type["SparseArray"]:
+    def construct_array_type(cls) -> Type[SparseArray]:
         """
         Return the array type associated with this dtype.
 

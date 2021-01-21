@@ -1941,7 +1941,7 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = column_indexer
         return ilocs
 
-    def _align_series(self, indexer, ser: "Series", multiindex_indexer: bool = False):
+    def _align_series(self, indexer, ser: Series, multiindex_indexer: bool = False):
         """
         Parameters
         ----------

@@ -559,7 +559,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
     """
     Encode the object as an enumerated type or categorical variable.
 

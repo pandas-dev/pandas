@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import datetime
 from distutils.version import LooseVersion
@@ -789,7 +791,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, "ExcelWriter"],
+        path: Union[FilePathOrBuffer, ExcelWriter],
         engine=None,
         date_format=None,
         datetime_format=None,

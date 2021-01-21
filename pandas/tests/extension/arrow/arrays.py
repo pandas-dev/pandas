@@ -6,6 +6,8 @@ Eventually, we'll want to parametrize the type and support
 multiple dtypes. Not all methods are implemented yet, and the
 current implementation is not efficient.
 """
+from __future__ import annotations
+
 import copy
 import itertools
 import operator
@@ -33,7 +35,7 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
+    def construct_array_type(cls) -> Type[ArrowBoolArray]:
         """
         Return the array type associated with this dtype.
 
@@ -57,7 +59,7 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+    def construct_array_type(cls) -> Type[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 

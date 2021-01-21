@@ -3,6 +3,8 @@ aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import partial
 from typing import (
@@ -296,7 +298,7 @@ def relabel_result(
     func: Dict[str, List[Union[Callable, str]]],
     columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Hashable, "Series"]:
+) -> Dict[Hashable, Series]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -323,7 +325,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Hashable, "Series"] = {}
+    reordered_result_in_dict: Dict[Hashable, Series] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1

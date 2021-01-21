@@ -371,7 +371,7 @@ class BlockManager(DataManager):
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
 
-    def operate_blockwise(self, other: "BlockManager", array_op) -> BlockManager:
+    def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """

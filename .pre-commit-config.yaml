@@ -150,7 +150,6 @@ repos:
             (?x)
             \#\ type:\ (?!ignore)
             |\#\ type:\s?ignore(?!\[)
-            |\)\ ->\ \"
         language: pygrep
         types: [python]
     -   id: np-bool
@@ -185,3 +184,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown]
         files: ^pandas/core/
+-   repo: https://github.com/MarcoGorelli/no-string-hints
+    rev: v0.1.5
+    hooks:
+    -   id: no-string-hints
