@@ -7,7 +7,13 @@ from typing import Union
 
 import numpy as np
 
-from pandas._libs.tslibs import BaseOffset, OutOfBoundsDatetime, Timedelta, Timestamp
+from pandas._libs.tslibs import (
+    BaseOffset,
+    OutOfBoundsDatetime,
+    Timedelta,
+    Timestamp,
+    iNaT,
+)
 
 
 def generate_regular_range(
@@ -150,7 +156,12 @@ def _generate_range_overflow_safe_signed(
         addend = np.int64(periods) * np.int64(stride)
         try:
             # easy case with no overflows
-            return np.int64(endpoint) + addend
+            result = np.int64(endpoint) + addend
+            if result == iNaT:
+                # Putting this into a DatetimeArray/TimedeltaArray
+                #  would incorrectly be interpreted as NaT
+                raise OverflowError
+            return result
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
             #  FloatingPointError; with reversed signed we risk OverflowError
