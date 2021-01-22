@@ -2882,15 +2882,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = lvals
 
-            if sort is None:
-                try:
-                    result = algos.safe_sort(result)
-                except TypeError as err:
-                    warnings.warn(
-                        f"{err}, sort order is undefined for incomparable objects",
-                        RuntimeWarning,
-                        stacklevel=3,
-                    )
+            result = _maybe_try_sort(result, sort)
 
         return result
 
@@ -2998,9 +2990,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = indexer.take(mask.nonzero()[0])
 
         result = other.take(indexer).unique()._values
-
-        if sort is None:
-            result = algos.safe_sort(result)
+        result = _maybe_try_sort(result, sort)
 
         # Intersection has to be unique
         assert Index(result).is_unique
@@ -3070,11 +3060,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
         the_diff = this._values.take(label_diff)
-        if sort is None:
-            try:
-                the_diff = algos.safe_sort(the_diff)
-            except TypeError:
-                pass
+        the_diff = _maybe_try_sort(the_diff, sort)
 
         return the_diff
 
@@ -3155,11 +3141,7 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other._values.take(right_indexer)
 
         the_diff = concat_compat([left_diff, right_diff])
-        if sort is None:
-            try:
-                the_diff = algos.safe_sort(the_diff)
-            except TypeError:
-                pass
+        the_diff = _maybe_try_sort(the_diff, sort)
 
         return Index(the_diff, name=result_name)
 
@@ -6354,3 +6336,16 @@ def unpack_nested_dtype(other: Index) -> Index:
         #  here too.
         return dtype.categories
     return other
+
+
+def _maybe_try_sort(result, sort):
+    if sort is None:
+        try:
+            result = algos.safe_sort(result)
+        except TypeError as err:
+            warnings.warn(
+                f"{err}, sort order is undefined for incomparable objects",
+                RuntimeWarning,
+                stacklevel=4,
+            )
+    return result
