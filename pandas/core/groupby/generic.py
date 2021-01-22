@@ -57,11 +57,11 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import algorithms, nanops
 from pandas.core.aggregation import (
     agg_list_like,
-    aggregate,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
+from pandas.core.apply import GroupByApply
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
@@ -952,7 +952,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        result, how = aggregate(self, func, *args, **kwargs)
+        op = GroupByApply(self, func, args, kwargs)
+        result, how = op.agg()
         if how is None:
             return result
 

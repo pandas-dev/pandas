@@ -135,7 +135,7 @@ repos:
         files: ^pandas/tests/
     -   id: FrameOrSeriesUnion
         name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
-        entry: Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]
+        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
         language: pygrep
         types: [python]
         exclude: ^pandas/_typing\.py$
