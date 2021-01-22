@@ -9,8 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import IS64, np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -926,8 +925,9 @@ class TestIndex(Base):
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
-        # sort=None, the default
-        result = op(a)
+        with tm.assert_produces_warning(RuntimeWarning):
+            # sort=None, the default
+            result = op(a)
         expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
         if opname == "difference":
             expected = expected[:2]
