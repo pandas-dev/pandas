@@ -919,7 +919,7 @@ class DataFrameRenderer:
     Parameters
     ----------
     fmt : DataFrameFormatter
-        Formatter with the formating options.
+        Formatter with the formatting options.
     """
 
     def __init__(self, fmt: DataFrameFormatter):
