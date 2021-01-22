@@ -6337,7 +6337,7 @@ def unpack_nested_dtype(other: Index) -> Index:
     return other
 
 
-def _maybe_try_sort(result: ArrayLike, sort) -> ArrayLike:
+def _maybe_try_sort(result, sort):
     if sort is None:
         try:
             result = algos.safe_sort(result)
