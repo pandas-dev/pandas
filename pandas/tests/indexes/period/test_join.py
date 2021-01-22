@@ -12,7 +12,10 @@ class TestJoin:
         # smoke check that PeriodIgit standex._outer_indexer works
         pi = period_range("1/1/2000", "1/20/2000", freq="D")
 
-        pi._outer_indexer(pi._values, pi._values)
+        result = pi._outer_indexer(pi._values, pi._values)
+        tm.assert_numpy_array_equal(result[0], pi.asi8)
+        tm.assert_numpy_array_equal(result[1], np.arange(len(pi), dtype=np.intp))
+        tm.assert_numpy_array_equal(result[2], np.arange(len(pi), dtype=np.intp))
 
     def test_joins(self, join_type):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
