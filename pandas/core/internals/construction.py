@@ -60,8 +60,8 @@ from pandas.core.indexes.api import (
     union_indexes,
 )
 from pandas.core.internals.managers import (
+    create_block_manager_from_array,
     create_block_manager_from_arrays,
-    create_block_manager_from_blocks,
 )
 
 if TYPE_CHECKING:
@@ -230,36 +230,29 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
-    values = values.T
+
+    array = values.T
 
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
-    if dtype is None and is_object_dtype(values.dtype):
-
-        if values.ndim == 2 and values.shape[0] != 1:
-            # transpose and separate blocks
-
-            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
-            for n in range(len(dvals_list)):
-                if isinstance(dvals_list[n], np.ndarray):
-                    dvals_list[n] = dvals_list[n].reshape(1, -1)
-
-            from pandas.core.internals.blocks import make_block
-
-            # TODO: What about re-joining object columns?
-            block_values = [
-                make_block(dvals_list[n], placement=[n], ndim=2)
-                for n in range(len(dvals_list))
+    if dtype is None and is_object_dtype(array.dtype):
+        if array.ndim == 2 and array.shape[0] != 1:
+            maybe_datetime = [
+                maybe_infer_to_datetimelike(instance) for instance in array
             ]
-
+            # don't convert (and copy) the objects if no type inference occurs
+            if any(
+                not is_dtype_equal(instance.dtype, array.dtype)
+                for instance in maybe_datetime
+            ):
+                return create_block_manager_from_arrays(
+                    maybe_datetime, columns, [columns, index]
+                )
         else:
-            datelike_vals = maybe_infer_to_datetimelike(values)
-            block_values = [datelike_vals]
-    else:
-        block_values = [values]
+            array = maybe_infer_to_datetimelike(array)
 
-    return create_block_manager_from_blocks(block_values, [columns, index])
+    return create_block_manager_from_array(array, [columns, index])
 
 
 def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
