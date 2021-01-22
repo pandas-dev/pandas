@@ -21,6 +21,7 @@ import numpy as np
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import (
     BaseOffset,
+    IncompatibleFrequency,
     NaT,
     NaTType,
     Period,
@@ -441,7 +442,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             try:
                 # GH#18435 strings get a pass from tzawareness compat
                 other = self._scalar_from_string(other)
-            except ValueError:
+            except (ValueError, IncompatibleFrequency):
                 # failed to parse as Timestamp/Timedelta/Period
                 raise InvalidComparison(other)
 
@@ -451,7 +452,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
-            except TypeError as err:
+            except (TypeError, IncompatibleFrequency) as err:
                 # e.g. tzawareness mismatch
                 raise InvalidComparison(other) from err
 
@@ -465,7 +466,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             try:
                 other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
-            except TypeError as err:
+            except (TypeError, IncompatibleFrequency) as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
                     # We will have to operate element-wise
                     pass

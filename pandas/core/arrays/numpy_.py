@@ -89,7 +89,7 @@ class PandasDtype(ExtensionDtype):
         return cls(dtype)
 
     @classmethod
-    def construct_array_type(cls) -> Type["PandasArray"]:
+    def construct_array_type(cls) -> Type[PandasArray]:
         """
         Return the array type associated with this dtype.
 
@@ -155,7 +155,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: Union[np.ndarray, "PandasArray"], copy: bool = False):
+    def __init__(self, values: Union[np.ndarray, PandasArray], copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):

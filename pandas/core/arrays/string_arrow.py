@@ -87,7 +87,7 @@ class ArrowStringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+    def construct_array_type(cls) -> Type[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -104,7 +104,7 @@ class ArrowStringDtype(ExtensionDtype):
         return "ArrowStringDtype"
 
     def __from_arrow__(
-        self, array: Union["pa.Array", "pa.ChunkedArray"]
+        self, array: Union[pa.Array, pa.ChunkedArray]
     ) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
