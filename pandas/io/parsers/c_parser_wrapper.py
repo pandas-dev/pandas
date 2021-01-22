@@ -1,3 +1,5 @@
+from typing import List, Optional, Union
+
 import pandas._libs.parsers as parsers
 from pandas._typing import FilePathOrBuffer
 
@@ -134,12 +136,8 @@ class CParserWrapper(ParserBase):
                     self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
-                # pandas\io\parsers.py:1997: error: Argument 1 to "len" has
-                # incompatible type "Optional[Any]"; expected "Sized"
-                # [arg-type]
-                self.index_names = [None] * len(
-                    self.index_names  # type: ignore[arg-type]
-                )
+                assert self.index_names is not None
+                self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 
@@ -159,6 +157,7 @@ class CParserWrapper(ParserBase):
         Currently, any column that is involved with date parsing will not
         undergo such conversions.
         """
+        usecols: Optional[List[Union[int, str]]] = None
         names = self.orig_names
         if self.usecols_dtype == "integer":
             # A set of integers will be converted to a list in
@@ -169,13 +168,6 @@ class CParserWrapper(ParserBase):
             # The names attribute should have the correct columns
             # in the proper order for indexing with parse_dates.
             usecols = self.names[:]
-        else:
-            # Usecols is empty.
-
-            # pandas\io\parsers.py:2030: error: Incompatible types in
-            # assignment (expression has type "None", variable has type
-            # "List[Any]")  [assignment]
-            usecols = None  # type: ignore[assignment]
 
         def _set(x):
             if usecols is not None and is_integer(x):
