@@ -112,9 +112,10 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     for i in range(n):
         val = values[i]
         is_null = checknull(val)
-        if is_null:
-            val = navalue
         if not is_null or not dropna:
+            # all nas become the same representative:
+            if is_null:
+                val = navalue
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
                 unique_key_index = table.vals[k]
