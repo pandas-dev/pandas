@@ -288,7 +288,7 @@ class TestDatetimeArray:
 
         arr[-2] = pd.NaT
         result = arr.value_counts()
-        expected = pd.Series([1, 4, 2], index=[pd.NaT, dti[0], dti[1]])
+        expected = pd.Series([4, 2, 1], index=[dti[0], dti[1], pd.NaT])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["pad", "backfill"])

@@ -497,7 +497,7 @@ def test_value_counts_na(dtype, request):
 
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", pd.NA, "b"], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)

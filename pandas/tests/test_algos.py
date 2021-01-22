@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import algos as libalgos, hashtable as ht
-from pandas.compat import IS64, np_array_datetime64_compat
+from pandas.compat import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1272,12 +1272,10 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[2 ** 63, -1])
+        expected = Series([1, 1], index=[-1, 2 ** 63])
         result = algos.value_counts(arr)
 
-        # 32-bit linux has a different ordering
-        if IS64:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 class TestDuplicated:
