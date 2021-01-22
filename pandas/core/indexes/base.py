@@ -822,6 +822,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return self._shallow_copy(taken)
 
+    @final
     def _maybe_disallow_fill(self, allow_fill: bool, fill_value, indices) -> bool:
         """
         We only use pandas-style take when allow_fill is True _and_
@@ -960,6 +961,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Rendering Methods
 
+    @final
     def __repr__(self) -> str_t:
         """
         Return a string representation for this object.
@@ -1710,6 +1712,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._drop_level_numbers(levnums)
 
+    @final
     def _drop_level_numbers(self, levnums: List[int]):
         """
         Drop MultiIndex levels by level _number_, not name.
@@ -1827,6 +1830,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._engine.is_monotonic_decreasing
 
+    @final
     @property
     def _is_strictly_monotonic_increasing(self) -> bool:
         """
@@ -1844,6 +1848,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_unique and self.is_monotonic_increasing
 
+    @final
     @property
     def _is_strictly_monotonic_decreasing(self) -> bool:
         """
@@ -1868,6 +1873,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._engine.is_unique
 
+    @final
     @property
     def has_duplicates(self) -> bool:
         """
@@ -2239,6 +2245,7 @@ class Index(IndexOpsMixin, PandasObject):
         return is_datetime_array(ensure_object(self._values))
 
     @cache_readonly
+    @final
     def is_all_dates(self):
         """
         Whether or not the index values only consist of dates.
@@ -3269,6 +3276,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
+    @final
     def get_indexer(
         self, target, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
@@ -3328,6 +3336,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return ensure_platform_int(indexer)
 
+    @final
     def _check_indexing_method(self, method):
         """
         Raise if we have a get_indexer `method` that is not supported or valid.
@@ -4542,7 +4551,7 @@ class Index(IndexOpsMixin, PandasObject):
         np.putmask(values, mask, converted)
         return self._shallow_copy(values)
 
-    def equals(self, other: object) -> bool:
+    def equals(self, other: Any) -> bool:
         """
         Determine if two Index object are equal.
 
@@ -5104,6 +5113,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    @final
     def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
         """
         Called from get_indexer or get_indexer_non_unique when the target
@@ -5142,7 +5152,7 @@ class Index(IndexOpsMixin, PandasObject):
             return no_matches, missing
 
     @property
-    def _index_as_unique(self):
+    def _index_as_unique(self) -> bool:
         """
         Whether we should treat this as unique for the sake of
         get_indexer vs get_indexer_non_unique.
@@ -5178,6 +5188,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self, other
 
+    @final
     def _should_compare(self, other: Index) -> bool:
         """
         Check if `self == other` can ever have non-False entries.
@@ -5786,10 +5797,6 @@ class Index(IndexOpsMixin, PandasObject):
             with np.errstate(all="ignore"):
                 result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
-        elif is_interval_dtype(self.dtype):
-            with np.errstate(all="ignore"):
-                result = op(self._values, np.asarray(other))
-
         else:
             with np.errstate(all="ignore"):
                 result = ops.comparison_op(self._values, other, op)
@@ -5808,6 +5815,7 @@ class Index(IndexOpsMixin, PandasObject):
             return (Index(result[0]), Index(result[1]))
         return Index(result)
 
+    @final
     def _unary_method(self, op):
         result = op(self._values)
         return Index(result, name=self.name)
