@@ -244,7 +244,7 @@ class IntervalIndexing:
 
 
 class DatetimeIndexIndexing:
-    def setup_cache(self):
+    def setup(self):
         dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
         dti2 = dti.tz_convert("UTC")
         self.dti = dti
