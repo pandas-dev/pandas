@@ -65,6 +65,50 @@ class TestiLoc(Base):
 class TestiLocBaseIndependent:
     """Tests Independent Of Base Class"""
 
+    @pytest.mark.parametrize(
+        "key",
+        [
+            slice(None),
+            slice(3),
+            range(3),
+            [0, 1, 2],
+            Index(range(3)),
+            np.asarray([0, 1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_iloc_setitem_fullcol_categorical(self, indexer, key):
+        frame = DataFrame({0: range(3)}, dtype=object)
+
+        cat = Categorical(["alpha", "beta", "gamma"])
+        expected = DataFrame({0: cat})
+        # NB: pending GH#38896, the expected likely should become
+        #  expected= DataFrame({"A": cat.astype(object)})
+        # and should remain a view on the original values
+
+        assert frame._mgr.blocks[0]._can_hold_element(cat)
+
+        df = frame.copy()
+        orig_vals = df.values
+        indexer(df)[key, 0] = cat
+
+        overwrite = not isinstance(key, slice)
+
+        tm.assert_frame_equal(df, expected)
+
+        # TODO: this inconsistency is likely undesired GH#39986
+        if overwrite:
+            # check that we overwrote underlying
+            tm.assert_numpy_array_equal(orig_vals, df.values)
+
+        # but we don't have a view on orig_vals
+        orig_vals[0, 0] = 19
+        assert df.iloc[0, 0] != 19
+
+        # check we dont have a view on cat (may be undesired GH#39986)
+        df.iloc[0, 0] = "gamma"
+        assert cat[0] != "gamma"
+
     @pytest.mark.parametrize("box", [pd_array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
         # GH#38952 Case with not setting a full column

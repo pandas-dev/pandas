@@ -2,13 +2,24 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick
-from pandas._typing import Callable, Label
+from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -108,7 +119,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _simple_new(
         cls,
         values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
-        name: Label = None,
+        name: Optional[Hashable] = None,
     ):
         assert isinstance(values, cls._data_cls), type(values)
 
@@ -151,7 +162,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other: object) -> bool:
+    def equals(self, other: Any) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -497,7 +508,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     __truediv__ = make_wrapped_arith_op("__truediv__")
     __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
 
-    def shift(self, periods=1, freq=None):
+    def shift(self: _T, periods: int = 1, freq=None) -> _T:
         """
         Shift index by desired number of time frequency increments.
 
@@ -556,7 +567,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                         freq = self.freq
         return freq
 
-    def _get_insert_freq(self, loc, item):
+    def _get_insert_freq(self, loc: int, item):
         """
         Find the `freq` for self.insert(loc, item).
         """
@@ -582,14 +593,18 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return freq
 
     @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self, loc):
+    def delete(self: _T, loc) -> _T:
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result
 
     @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
-        result = super().insert(loc, item)
+        try:
+            result = super().insert(loc, item)
+        except (ValueError, TypeError):
+            # i.e. self._data._validate_scalar raised
+            return self.astype(object).insert(loc, item)
 
         result._data._freq = self._get_insert_freq(loc, item)
         return result
@@ -649,9 +664,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    @Appender(Index.difference.__doc__)
-    def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)._with_freq(None)
+    def _difference(self, other, sort=None):
+        new_idx = super()._difference(other, sort=sort)._with_freq(None)
         return new_idx
 
     def _intersection(self, other: Index, sort=False) -> Index:
@@ -696,6 +710,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return self._wrap_setop_result(other, result)
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
+        # Note: we only get here with len(self) > 0 and len(other) > 0
         if self.freq is None:
             return False
 
@@ -711,9 +726,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  so intersection will preserve freq
             return True
 
-        elif not len(self) or not len(other):
-            return False
-
         elif isinstance(self.freq, Tick):
             # We "line up" if and only if the difference between two of our points
             #  is a multiple of our freq
@@ -727,9 +739,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # Assumes that type(self) == type(other), as per the annotation
         # The ability to fast_union also implies that `freq` should be
         #  retained on union.
-        if not isinstance(other, type(self)):
-            return False
-
         freq = self.freq
 
         if freq is None or freq != other.freq:
@@ -755,7 +764,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self, other, sort=None):
+    def _fast_union(self: _T, other: _T, sort=None) -> _T:
         if len(other) == 0:
             return self.view(type(self))
 
@@ -855,15 +864,3 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def _maybe_utc_convert(self: _T, other: Index) -> Tuple[_T, Index]:
         # Overridden by DatetimeIndex
         return self, other
-
-    # --------------------------------------------------------------------
-    # List-Like Methods
-
-    @Appender(DatetimeIndexOpsMixin.insert.__doc__)
-    def insert(self, loc, item):
-        if isinstance(item, str):
-            # TODO: Why are strings special?
-            # TODO: Should we attempt _scalar_from_string?
-            return self.astype(object).insert(loc, item)
-
-        return DatetimeIndexOpsMixin.insert(self, loc, item)

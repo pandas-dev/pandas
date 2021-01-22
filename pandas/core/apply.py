@@ -2,7 +2,18 @@ from __future__ import annotations
 
 import abc
 import inspect
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Type, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 
@@ -13,6 +24,7 @@ from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
     AggFuncTypeDict,
+    AggObjType,
     Axis,
     FrameOrSeriesUnion,
 )
@@ -34,13 +46,13 @@ from pandas.core.construction import (
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Index, Series
+    from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
 
 ResType = Dict[int, Any]
 
 
 def frame_apply(
     obj: DataFrame,
-    how: str,
     func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
@@ -58,7 +70,6 @@ def frame_apply(
 
     return klass(
         obj,
-        how,
         func,
         raw=raw,
         result_type=result_type,
@@ -69,7 +80,6 @@ def frame_apply(
 
 def series_apply(
     obj: Series,
-    how: str,
     func: AggFuncType,
     convert_dtype: bool = True,
     args=None,
@@ -77,7 +87,6 @@ def series_apply(
 ) -> SeriesApply:
     return SeriesApply(
         obj,
-        how,
         func,
         convert_dtype,
         args,
@@ -90,17 +99,14 @@ class Apply(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        obj: FrameOrSeriesUnion,
-        how: str,
+        obj: AggObjType,
         func,
         raw: bool,
         result_type: Optional[str],
         args,
         kwds,
     ):
-        assert how in ("apply", "agg")
         self.obj = obj
-        self.how = how
         self.raw = raw
         self.args = args or ()
         self.kwds = kwds or {}
@@ -132,12 +138,6 @@ class Apply(metaclass=abc.ABCMeta):
     def index(self) -> Index:
         return self.obj.index
 
-    def get_result(self):
-        if self.how == "apply":
-            return self.apply()
-        else:
-            return self.agg()
-
     @abc.abstractmethod
     def apply(self) -> FrameOrSeriesUnion:
         pass
@@ -164,9 +164,11 @@ class Apply(metaclass=abc.ABCMeta):
         if _axis is None:
             _axis = getattr(obj, "axis", 0)
 
-        if isinstance(arg, str):
-            return obj._try_aggregate_string_function(arg, *args, **kwargs), None
-        elif is_dict_like(arg):
+        result = self.maybe_apply_str()
+        if result is not None:
+            return result, None
+
+        if is_dict_like(arg):
             arg = cast(AggFuncTypeDict, arg)
             return agg_dict_like(obj, arg, _axis), True
         elif is_list_like(arg):
@@ -183,6 +185,44 @@ class Apply(metaclass=abc.ABCMeta):
 
         # caller can react
         return result, True
+
+    def maybe_apply_str(self) -> Optional[FrameOrSeriesUnion]:
+        """
+        Compute apply in case of a string.
+
+        Returns
+        -------
+        result: Series, DataFrame, or None
+            Result when self.f is a string, None otherwise.
+        """
+        f = self.f
+        if not isinstance(f, str):
+            return None
+        # Support for `frame.transform('method')`
+        # Some methods (shift, etc.) require the axis argument, others
+        # don't, so inspect and insert if necessary.
+        func = getattr(self.obj, f, None)
+        if callable(func):
+            sig = inspect.getfullargspec(func)
+            if "axis" in sig.args:
+                self.kwds["axis"] = self.axis
+            elif self.axis != 0:
+                raise ValueError(f"Operation {f} does not support axis=1")
+        return self.obj._try_aggregate_string_function(f, *self.args, **self.kwds)
+
+    def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
+        """
+        Compute apply in case of a list-like or dict-like.
+
+        Returns
+        -------
+        result: Series, DataFrame, or None
+            Result when self.f is a list-like or dict-like, None otherwise.
+        """
+        # Note: dict-likes are list-like
+        if not is_list_like(self.f):
+            return None
+        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwds)
 
 
 class FrameApply(Apply):
@@ -234,36 +274,21 @@ class FrameApply(Apply):
     def agg_axis(self) -> Index:
         return self.obj._get_agg_axis(self.axis)
 
-    def get_result(self):
-        if self.how == "apply":
-            return self.apply()
-        else:
-            return self.agg()
-
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
         # dispatch to agg
-        if is_list_like(self.f) or is_dict_like(self.f):
-            # pandas\core\apply.py:144: error: "aggregate" of "DataFrame" gets
-            # multiple values for keyword argument "axis"
-            return self.obj.aggregate(  # type: ignore[misc]
-                self.f, axis=self.axis, *self.args, **self.kwds
-            )
+        result = self.maybe_apply_multiple()
+        if result is not None:
+            return result
 
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
             return self.apply_empty_result()
 
         # string dispatch
-        if isinstance(self.f, str):
-            # Support for `frame.transform('method')`
-            # Some methods (shift, etc.) require the axis argument, others
-            # don't, so inspect and insert if necessary.
-            func = getattr(self.obj, self.f)
-            sig = inspect.getfullargspec(func)
-            if "axis" in sig.args:
-                self.kwds["axis"] = self.axis
-            return func(*self.args, **self.kwds)
+        result = self.maybe_apply_str()
+        if result is not None:
+            return result
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
@@ -570,7 +595,6 @@ class SeriesApply(Apply):
     def __init__(
         self,
         obj: Series,
-        how: str,
         func: AggFuncType,
         convert_dtype: bool,
         args,
@@ -580,7 +604,6 @@ class SeriesApply(Apply):
 
         super().__init__(
             obj,
-            how,
             func,
             raw=False,
             result_type=None,
@@ -590,20 +613,19 @@ class SeriesApply(Apply):
 
     def apply(self) -> FrameOrSeriesUnion:
         obj = self.obj
-        func = self.f
-        args = self.args
-        kwds = self.kwds
 
         if len(obj) == 0:
             return self.apply_empty_result()
 
         # dispatch to agg
-        if isinstance(func, (list, dict)):
-            return obj.aggregate(func, *args, **kwds)
+        result = self.maybe_apply_multiple()
+        if result is not None:
+            return result
 
         # if we are a string, try to dispatch
-        if isinstance(func, str):
-            return obj._try_aggregate_string_function(func, *args, **kwds)
+        result = self.maybe_apply_str()
+        if result is not None:
+            return result
 
         return self.apply_standard()
 
@@ -637,3 +659,28 @@ class SeriesApply(Apply):
             return obj._constructor(mapped, index=obj.index).__finalize__(
                 obj, method="apply"
             )
+
+
+class GroupByApply(Apply):
+    obj: Union[SeriesGroupBy, DataFrameGroupBy]
+
+    def __init__(
+        self,
+        obj: Union[SeriesGroupBy, DataFrameGroupBy],
+        func: AggFuncType,
+        args,
+        kwds,
+    ):
+        kwds = kwds.copy()
+        self.axis = obj.obj._get_axis_number(kwds.get("axis", 0))
+        super().__init__(
+            obj,
+            func,
+            raw=False,
+            result_type=None,
+            args=args,
+            kwds=kwds,
+        )
+
+    def apply(self):
+        raise NotImplementedError

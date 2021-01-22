@@ -18,6 +18,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -47,7 +48,6 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     IndexLabel,
-    Label,
     StorageOptions,
 )
 
@@ -173,7 +173,7 @@ return_docstring = """
 class CategoricalFormatter:
     def __init__(
         self,
-        categorical: "Categorical",
+        categorical: Categorical,
         buf: Optional[IO[str]] = None,
         length: bool = True,
         na_rep: str = "NaN",
@@ -237,7 +237,7 @@ class CategoricalFormatter:
 class SeriesFormatter:
     def __init__(
         self,
-        series: "Series",
+        series: Series,
         buf: Optional[IO[str]] = None,
         length: Union[bool, str] = True,
         header: bool = True,
@@ -919,7 +919,7 @@ class DataFrameRenderer:
     Parameters
     ----------
     fmt : DataFrameFormatter
-        Formatter with the formating options.
+        Formatter with the formatting options.
     """
 
     def __init__(self, fmt: DataFrameFormatter):
@@ -1032,7 +1032,7 @@ class DataFrameRenderer:
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         encoding: Optional[str] = None,
         sep: str = ",",
-        columns: Optional[Sequence[Label]] = None,
+        columns: Optional[Sequence[Hashable]] = None,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",
@@ -1502,7 +1502,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
     def __init__(
         self,
-        values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
+        values: Union[np.ndarray, Series, DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,

@@ -21,6 +21,7 @@ import numpy as np
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import (
     BaseOffset,
+    IncompatibleFrequency,
     NaT,
     NaTType,
     Period,
@@ -441,7 +442,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             try:
                 # GH#18435 strings get a pass from tzawareness compat
                 other = self._scalar_from_string(other)
-            except ValueError:
+            except (ValueError, IncompatibleFrequency):
                 # failed to parse as Timestamp/Timedelta/Period
                 raise InvalidComparison(other)
 
@@ -451,7 +452,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
-            except TypeError as err:
+            except (TypeError, IncompatibleFrequency) as err:
                 # e.g. tzawareness mismatch
                 raise InvalidComparison(other) from err
 
@@ -465,7 +466,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             try:
                 other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
-            except TypeError as err:
+            except (TypeError, IncompatibleFrequency) as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
                     # We will have to operate element-wise
                     pass
@@ -612,6 +613,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isinstance(value, list) and len(value) == 0:
             # We treat empty list as our own dtype.
             return type(self)._from_sequence([], dtype=self.dtype)
+
+        if hasattr(value, "dtype") and value.dtype == object:
+            # `array` below won't do inference if value is an Index or Series.
+            #  so do so here.  in the Index case, inferred_type may be cached.
+            if lib.infer_dtype(value) in self._infer_matches:
+                try:
+                    value = type(self)._from_sequence(value)
+                except (ValueError, TypeError):
+                    if allow_object:
+                        return value
+                    msg = self._validation_error_message(value, True)
+                    raise TypeError(msg)
 
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods

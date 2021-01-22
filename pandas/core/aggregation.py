@@ -3,6 +3,8 @@ aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import partial
 from typing import (
@@ -11,6 +13,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     Iterable,
     List,
     Optional,
@@ -28,7 +31,6 @@ from pandas._typing import (
     Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Label,
 )
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -294,9 +296,9 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 def relabel_result(
     result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Iterable[Label],
+    columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Label, "Series"]:
+) -> Dict[Hashable, Series]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -323,7 +325,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, "Series"] = {}
+    reordered_result_in_dict: Dict[Hashable, Series] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -388,7 +390,6 @@ def validate_func_kwargs(
     >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
     (['one', 'two'], ['min', 'max'])
     """
-    no_arg_message = "Must provide 'func' or named aggregation **kwargs."
     tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
@@ -397,6 +398,7 @@ def validate_func_kwargs(
             raise TypeError(tuple_given_message.format(type(col_func).__name__))
         func.append(col_func)
     if not columns:
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
 
@@ -493,20 +495,20 @@ def transform_dict_like(
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
 
-    results: Dict[Label, FrameOrSeriesUnion] = {}
+    results: Dict[Hashable, FrameOrSeriesUnion] = {}
     for name, how in func.items():
         colg = obj._gotitem(name, ndim=1)
         try:
             results[name] = transform(colg, how, 0, *args, **kwargs)
         except Exception as err:
-            if (
-                str(err) == "Function did not transform"
-                or str(err) == "No transform functions were provided"
-            ):
+            if str(err) in {
+                "Function did not transform",
+                "No transform functions were provided",
+            }:
                 raise err
 
     # combine results
-    if len(results) == 0:
+    if not results:
         raise ValueError("Transform function failed")
     return concat(results, axis=1)
 
@@ -704,7 +706,8 @@ def agg_dict_like(
     # if we have a dict of any non-scalars
     # eg. {'A' : ['mean']}, normalize all to
     # be list-likes
-    if any(is_aggregator(x) for x in arg.values()):
+    # Cannot use arg.values() because arg may be a Series
+    if any(is_aggregator(x) for _, x in arg.items()):
         new_arg: AggFuncTypeDict = {}
         for k, v in arg.items():
             if not isinstance(v, (tuple, list, dict)):

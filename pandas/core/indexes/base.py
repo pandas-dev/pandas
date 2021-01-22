@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from copy import copy as copy_func
 from datetime import datetime
 from itertools import zip_longest
@@ -26,9 +28,13 @@ import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
-from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Label, Shape, final
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    OutOfBoundsDatetime,
+    Timestamp,
+    tz_compare,
+)
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -235,7 +241,7 @@ class Index(IndexOpsMixin, PandasObject):
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
     _id: Optional[_Identity] = None
-    _name: Label = None
+    _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
@@ -263,7 +269,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __new__(
         cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
-    ) -> "Index":
+    ) -> Index:
 
         if kwargs:
             warnings.warn(
@@ -486,7 +492,7 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @classmethod
-    def _simple_new(cls, values, name: Label = None):
+    def _simple_new(cls, values, name: Hashable = None):
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -570,7 +576,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    def _shallow_copy(self, values=None, name: Label = no_default):
+    def _shallow_copy(self, values=None, name: Hashable = no_default):
         """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -816,6 +822,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return self._shallow_copy(taken)
 
+    @final
     def _maybe_disallow_fill(self, allow_fill: bool, fill_value, indices) -> bool:
         """
         We only use pandas-style take when allow_fill is True _and_
@@ -888,10 +895,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(
         self: _IndexT,
-        name: Optional[Label] = None,
+        name: Optional[Hashable] = None,
         deep: bool = False,
         dtype: Optional[Dtype] = None,
-        names: Optional[Sequence[Label]] = None,
+        names: Optional[Sequence[Hashable]] = None,
     ) -> _IndexT:
         """
         Make a copy of this object.
@@ -954,6 +961,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Rendering Methods
 
+    @final
     def __repr__(self) -> str_t:
         """
         Return a string representation for this object.
@@ -1308,7 +1316,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._name = value
 
     @final
-    def _validate_names(self, name=None, names=None, deep: bool = False) -> List[Label]:
+    def _validate_names(
+        self, name=None, names=None, deep: bool = False
+    ) -> List[Hashable]:
         """
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
@@ -1702,6 +1712,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._drop_level_numbers(levnums)
 
+    @final
     def _drop_level_numbers(self, levnums: List[int]):
         """
         Drop MultiIndex levels by level _number_, not name.
@@ -1819,6 +1830,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._engine.is_monotonic_decreasing
 
+    @final
     @property
     def _is_strictly_monotonic_increasing(self) -> bool:
         """
@@ -1836,6 +1848,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_unique and self.is_monotonic_increasing
 
+    @final
     @property
     def _is_strictly_monotonic_decreasing(self) -> bool:
         """
@@ -1860,6 +1873,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._engine.is_unique
 
+    @final
     @property
     def has_duplicates(self) -> bool:
         """
@@ -2231,6 +2245,7 @@ class Index(IndexOpsMixin, PandasObject):
         return is_datetime_array(ensure_object(self._values))
 
     @cache_readonly
+    @final
     def is_all_dates(self):
         """
         Whether or not the index values only consist of dates.
@@ -2856,7 +2871,7 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
-            except TypeError:
+            except (TypeError, IncompatibleFrequency):
                 # incomparable objects
                 result = list(lvals)
 
@@ -2881,15 +2896,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = algos.union_with_duplicates(lvals, rvals)
 
-            if sort is None and (not self.is_monotonic or not other.is_monotonic):
-                try:
-                    result = algos.safe_sort(result)
-                except TypeError as err:
-                    warnings.warn(
-                        f"{err}, sort order is undefined for incomparable objects",
-                        RuntimeWarning,
-                        stacklevel=3,
-                    )
+            result = _maybe_try_sort(result, sort)
 
         return result
 
@@ -2997,15 +3004,14 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = indexer.take(mask.nonzero()[0])
 
         result = other.take(indexer).unique()._values
-
-        if sort is None:
-            result = algos.safe_sort(result)
+        result = _maybe_try_sort(result, sort)
 
         # Intersection has to be unique
         assert Index(result).is_unique
 
         return result
 
+    @final
     def difference(self, other, sort=None):
         """
         Return a new Index with elements of index not in `other`.
@@ -3068,11 +3074,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
         the_diff = this._values.take(label_diff)
-        if sort is None:
-            try:
-                the_diff = algos.safe_sort(the_diff)
-            except TypeError:
-                pass
+        the_diff = _maybe_try_sort(the_diff, sort)
 
         return the_diff
 
@@ -3130,7 +3132,7 @@ class Index(IndexOpsMixin, PandasObject):
             result_name = result_name_update
 
         if not self._should_compare(other):
-            return self.union(other).rename(result_name)
+            return self.union(other, sort=sort).rename(result_name)
         elif not is_dtype_equal(self.dtype, other.dtype):
             dtype = find_common_type([self.dtype, other.dtype])
             this = self.astype(dtype, copy=False)
@@ -3153,14 +3155,11 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other._values.take(right_indexer)
 
         the_diff = concat_compat([left_diff, right_diff])
-        if sort is None:
-            try:
-                the_diff = algos.safe_sort(the_diff)
-            except TypeError:
-                pass
+        the_diff = _maybe_try_sort(the_diff, sort)
 
         return Index(the_diff, name=result_name)
 
+    @final
     def _assert_can_do_setop(self, other):
         if not is_list_like(other):
             raise TypeError("Input must be Index or array-like")
@@ -3284,6 +3283,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
+    @final
     def get_indexer(
         self, target, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
@@ -3311,7 +3311,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
-        self, target: "Index", method=None, limit=None, tolerance=None
+        self, target: Index, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
@@ -3343,6 +3343,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return ensure_platform_int(indexer)
 
+    @final
     def _check_indexing_method(self, method):
         """
         Raise if we have a get_indexer `method` that is not supported or valid.
@@ -3370,7 +3371,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _get_fill_indexer(
-        self, target: "Index", method: str_t, limit=None, tolerance=None
+        self, target: Index, method: str_t, limit=None, tolerance=None
     ) -> np.ndarray:
 
         target_values = target._get_engine_target()
@@ -3385,12 +3386,12 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
-            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target._values, indexer, tolerance)
         return indexer
 
     @final
     def _get_fill_indexer_searchsorted(
-        self, target: "Index", method: str_t, limit=None
+        self, target: Index, method: str_t, limit=None
     ) -> np.ndarray:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
@@ -3423,7 +3424,7 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _get_nearest_indexer(self, target: "Index", limit, tolerance) -> np.ndarray:
+    def _get_nearest_indexer(self, target: Index, limit, tolerance) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -3458,7 +3459,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _filter_indexer_tolerance(
         self,
-        target: Union["Index", np.ndarray, ExtensionArray],
+        target: Union[Index, np.ndarray, ExtensionArray],
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
@@ -3737,8 +3738,13 @@ class Index(IndexOpsMixin, PandasObject):
             new_labels[cur_indexer] = cur_labels
             new_labels[missing_indexer] = missing_labels
 
+            # GH#38906
+            if not len(self):
+
+                new_indexer = np.arange(0)
+
             # a unique indexer
-            if target.is_unique:
+            elif target.is_unique:
 
                 # see GH5553, make sure we use the right indexer
                 new_indexer = np.arange(len(indexer))
@@ -3850,7 +3856,16 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._join_non_unique(
                     other, how=how, return_indexers=return_indexers
                 )
-        elif self.is_monotonic and other.is_monotonic:
+        elif (
+            self.is_monotonic
+            and other.is_monotonic
+            and (
+                not isinstance(self, ABCMultiIndex)
+                or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
+            )
+        ):
+            # Categorical is monotonic if data are ordered as categories, but join can
+            #  not handle this in case of not lexicographically monotonic GH#38502
             try:
                 return self._join_monotonic(
                     other, how=how, return_indexers=return_indexers
@@ -4508,7 +4523,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat: List["Index"], name: Label) -> "Index":
+    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
         """
         Concatenate multiple Index objects.
         """
@@ -4543,7 +4558,7 @@ class Index(IndexOpsMixin, PandasObject):
         np.putmask(values, mask, converted)
         return self._shallow_copy(values)
 
-    def equals(self, other: object) -> bool:
+    def equals(self, other: Any) -> bool:
         """
         Determine if two Index object are equal.
 
@@ -4708,7 +4723,7 @@ class Index(IndexOpsMixin, PandasObject):
                 loc = loc.indices(len(self))[-1]
             return self[loc]
 
-    def asof_locs(self, where: "Index", mask) -> np.ndarray:
+    def asof_locs(self, where: Index, mask) -> np.ndarray:
         """
         Return the locations (indices) of labels in the index.
 
@@ -4939,7 +4954,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.argsort(*args, **kwargs)
 
     @final
-    def get_value(self, series: "Series", key):
+    def get_value(self, series: Series, key):
         """
         Fast lookup of value from 1-dimensional ndarray.
 
@@ -4989,7 +5004,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return not self.holds_integer() and not self.is_boolean()
 
-    def _get_values_for_loc(self, series: "Series", loc, key):
+    def _get_values_for_loc(self, series: Series, loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
@@ -5105,7 +5120,8 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
-    def _get_indexer_non_comparable(self, target: "Index", method, unique: bool = True):
+    @final
+    def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
         """
         Called from get_indexer or get_indexer_non_unique when the target
         is of a non-comparable dtype.
@@ -5143,7 +5159,7 @@ class Index(IndexOpsMixin, PandasObject):
             return no_matches, missing
 
     @property
-    def _index_as_unique(self):
+    def _index_as_unique(self) -> bool:
         """
         Whether we should treat this as unique for the sake of
         get_indexer vs get_indexer_non_unique.
@@ -5155,7 +5171,7 @@ class Index(IndexOpsMixin, PandasObject):
     _requires_unique_msg = "Reindexing only valid with uniquely valued Index objects"
 
     @final
-    def _maybe_promote(self, other: "Index"):
+    def _maybe_promote(self, other: Index):
         """
         When dealing with an object-dtype Index and a non-object Index, see
         if we can upcast the object-dtype one to improve performance.
@@ -5179,7 +5195,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self, other
 
-    def _should_compare(self, other: "Index") -> bool:
+    @final
+    def _should_compare(self, other: Index) -> bool:
         """
         Check if `self == other` can ever have non-False entries.
         """
@@ -5264,7 +5281,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
-    def _transform_index(self, func, level=None) -> "Index":
+    def _transform_index(self, func, level=None) -> Index:
         """
         Apply function to all values found in index.
 
@@ -5376,8 +5393,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(
         self,
-        start: Optional[Label] = None,
-        end: Optional[Label] = None,
+        start: Optional[Hashable] = None,
+        end: Optional[Hashable] = None,
         step: Optional[int] = None,
         kind: Optional[str_t] = None,
     ) -> slice:
@@ -5700,6 +5717,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
+        item = lib.item_from_zerodim(item)
 
         try:
             item = self._validate_fill_value(item)
@@ -5786,10 +5804,6 @@ class Index(IndexOpsMixin, PandasObject):
             with np.errstate(all="ignore"):
                 result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
-        elif is_interval_dtype(self.dtype):
-            with np.errstate(all="ignore"):
-                result = op(self._values, np.asarray(other))
-
         else:
             with np.errstate(all="ignore"):
                 result = ops.comparison_op(self._values, other, op)
@@ -5808,6 +5822,7 @@ class Index(IndexOpsMixin, PandasObject):
             return (Index(result[0]), Index(result[1]))
         return Index(result)
 
+    @final
     def _unary_method(self, op):
         result = op(self._values)
         return Index(result, name=self.name)
@@ -6110,13 +6125,13 @@ def _validate_join_method(method: str):
         raise ValueError(f"do not recognize join method {method}")
 
 
-def default_index(n: int) -> "RangeIndex":
+def default_index(n: int) -> RangeIndex:
     from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)
 
 
-def maybe_extract_name(name, obj, cls) -> Label:
+def maybe_extract_name(name, obj, cls) -> Hashable:
     """
     If no name is passed, then extract it from data, validating hashability.
     """
@@ -6225,7 +6240,7 @@ def _maybe_cast_data_without_dtype(subarr):
         try:
             data = IntervalArray._from_sequence(subarr, copy=False)
             return data
-        except ValueError:
+        except (ValueError, TypeError):
             # GH27172: mixed closed Intervals --> object dtype
             pass
     elif inferred == "boolean":
@@ -6298,7 +6313,7 @@ def _try_convert_to_int_array(
     raise ValueError
 
 
-def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
+def get_unanimous_names(*indexes: Index) -> Tuple[Hashable, ...]:
     """
     Return common name if all indices agree, otherwise None (level-by-level).
 
@@ -6336,3 +6351,16 @@ def unpack_nested_dtype(other: Index) -> Index:
         #  here too.
         return dtype.categories
     return other
+
+
+def _maybe_try_sort(result, sort):
+    if sort is None:
+        try:
+            result = algos.safe_sort(result)
+        except TypeError as err:
+            warnings.warn(
+                f"{err}, sort order is undefined for incomparable objects",
+                RuntimeWarning,
+                stacklevel=4,
+            )
+    return result

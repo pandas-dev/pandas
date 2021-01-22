@@ -1,10 +1,12 @@
 """
 Read SAS sas7bdat or xport files.
 """
-from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Optional, Union, overload
+from __future__ import annotations
 
-from pandas._typing import FilePathOrBuffer, Label
+from abc import ABCMeta, abstractmethod
+from typing import TYPE_CHECKING, Hashable, Optional, Union, overload
+
+from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import stringify_path
 
@@ -37,7 +39,7 @@ class ReaderBase(metaclass=ABCMeta):
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
     format: Optional[str] = ...,
-    index: Optional[Label] = ...,
+    index: Optional[Hashable] = ...,
     encoding: Optional[str] = ...,
     chunksize: int = ...,
     iterator: bool = ...,
@@ -49,22 +51,22 @@ def read_sas(
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
     format: Optional[str] = ...,
-    index: Optional[Label] = ...,
+    index: Optional[Hashable] = ...,
     encoding: Optional[str] = ...,
     chunksize: None = ...,
     iterator: bool = ...,
-) -> Union["DataFrame", ReaderBase]:
+) -> Union[DataFrame, ReaderBase]:
     ...
 
 
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
     format: Optional[str] = None,
-    index: Optional[Label] = None,
+    index: Optional[Hashable] = None,
     encoding: Optional[str] = None,
     chunksize: Optional[int] = None,
     iterator: bool = False,
-) -> Union["DataFrame", ReaderBase]:
+) -> Union[DataFrame, ReaderBase]:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
