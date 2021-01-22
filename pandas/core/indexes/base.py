@@ -2896,7 +2896,8 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = algos.union_with_duplicates(lvals, rvals)
 
-            result = _maybe_try_sort(result, sort)
+            if not self.is_monotonic or not other.is_monotonic:
+                result = _maybe_try_sort(result, sort)
 
         return result
 
