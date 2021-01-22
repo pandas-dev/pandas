@@ -2,8 +2,6 @@ from typing import Callable
 
 import numpy as np
 
-from pandas.core import nanops as no
-
 """
 masked_accumulations.py is for accumulation algorithms using a mask-based approach
 for missing values.
@@ -42,9 +40,7 @@ def _cum_func(
     except KeyError:
         raise ValueError(f"No accumulation for {func} implemented on BaseMaskedArray")
 
-    values, mask, dtype, dtype_max, fill_value = no._get_values(
-        values, skipna=skipna, fill_value=fill_value, mask=mask
-    )
+    values[mask] = fill_value
 
     if not skipna:
         mask = np.maximum.accumulate(mask)
