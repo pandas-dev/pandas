@@ -162,6 +162,7 @@ class TestIntervalIndex:
         expected = empty_index(dtype="float64", closed=closed)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:'<' not supported between:RuntimeWarning")
     @pytest.mark.parametrize(
         "op_name", ["union", "intersection", "difference", "symmetric_difference"]
     )

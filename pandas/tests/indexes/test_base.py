@@ -925,8 +925,9 @@ class TestIndex(Base):
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
-        # sort=None, the default
-        result = op(a)
+        with tm.assert_produces_warning(RuntimeWarning):
+            # sort=None, the default
+            result = op(a)
         expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
         if opname == "difference":
             expected = expected[:2]
