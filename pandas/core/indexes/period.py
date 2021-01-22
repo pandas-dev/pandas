@@ -422,33 +422,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         # indexing
         return "period"
 
-    def insert(self, loc: int, item):
-        if not isinstance(item, Period) or self.freq != item.freq:
-            return self.astype(object).insert(loc, item)
-
-        return DatetimeIndexOpsMixin.insert(self, loc, item)
-
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        """
-        See Index.join
-        """
-        self._assert_can_do_setop(other)
-
-        if not isinstance(other, PeriodIndex):
-            return self.astype(object).join(
-                other, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
-
-        # _assert_can_do_setop ensures we have matching dtype
-        result = super().join(
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-        return result
-
     # ------------------------------------------------------------------------
     # Indexing Methods
 
@@ -609,14 +582,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     # ------------------------------------------------------------------------
     # Set Operation Methods
-
-    def _assert_can_do_setop(self, other):
-        super()._assert_can_do_setop(other)
-
-        # *Can't* use PeriodIndexes of different freqs
-        # *Can* use PeriodIndex/DatetimeIndex
-        if isinstance(other, PeriodIndex) and self.freq != other.freq:
-            raise raise_on_incompatible(self, other)
 
     def _setop(self, other, sort, opname: str):
         """

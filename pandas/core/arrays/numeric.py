@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import numbers
 from typing import TYPE_CHECKING, Any, List, Union
@@ -25,7 +27,7 @@ if TYPE_CHECKING:
 
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
     ) -> BaseMaskedArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
