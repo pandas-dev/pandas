@@ -449,7 +449,7 @@ def read_hdf(
         raise
 
 
-def _is_metadata_of(group: "Node", parent_group: "Node") -> bool:
+def _is_metadata_of(group: Node, parent_group: Node) -> bool:
     """Check if a given group is a metadata group for a given parent_group."""
     if group._v_depth <= parent_group._v_depth:
         return False
@@ -529,7 +529,7 @@ class HDFStore:
     >>> store.close()   # only now, data is written to disk
     """
 
-    _handle: Optional["File"]
+    _handle: Optional[File]
     _mode: str
     _complevel: int
     _fletcher32: bool
@@ -1471,7 +1471,7 @@ class HDFStore:
 
             yield (g._v_pathname.rstrip("/"), groups, leaves)
 
-    def get_node(self, key: str) -> Optional["Node"]:
+    def get_node(self, key: str) -> Optional[Node]:
         """ return the node with the key or None if it does not exist """
         self._check_if_open()
         if not key.startswith("/"):
@@ -1487,7 +1487,7 @@ class HDFStore:
         assert isinstance(node, _table_mod.Node), type(node)
         return node
 
-    def get_storer(self, key: str) -> Union["GenericFixed", "Table"]:
+    def get_storer(self, key: str) -> Union[GenericFixed, Table]:
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
@@ -1621,9 +1621,9 @@ class HDFStore:
         value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
-    ) -> Union["GenericFixed", "Table"]:
+    ) -> Union[GenericFixed, Table]:
         """ return a suitable class to operate """
-        cls: Union[Type["GenericFixed"], Type["Table"]]
+        cls: Union[Type[GenericFixed], Type[Table]]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
@@ -1768,7 +1768,7 @@ class HDFStore:
         if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
-    def _read_group(self, group: "Node"):
+    def _read_group(self, group: Node):
         s = self._create_storer(group)
         s.infer_axes()
         return s.read()
@@ -1835,12 +1835,12 @@ class TableIterator:
 
     chunksize: Optional[int]
     store: HDFStore
-    s: Union["GenericFixed", "Table"]
+    s: Union[GenericFixed, Table]
 
     def __init__(
         self,
         store: HDFStore,
-        s: Union["GenericFixed", "Table"],
+        s: Union[GenericFixed, Table],
         func,
         where,
         nrows,
@@ -2111,7 +2111,7 @@ class IndexCol:
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler: "AppendableTable", append: bool):
+    def validate_and_set(self, handler: AppendableTable, append: bool):
         self.table = handler.table
         self.validate_col()
         self.validate_attr(append)
@@ -2188,7 +2188,7 @@ class IndexCol:
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
-    def validate_metadata(self, handler: "AppendableTable"):
+    def validate_metadata(self, handler: AppendableTable):
         """ validate that kind=category does not change the categories """
         if self.meta == "category":
             new_metadata = self.metadata
@@ -2203,7 +2203,7 @@ class IndexCol:
                     "different categories to the existing"
                 )
 
-    def write_metadata(self, handler: "AppendableTable"):
+    def write_metadata(self, handler: AppendableTable):
         """ set the meta data """
         if self.metadata is not None:
             handler.write_metadata(self.cname, self.metadata)
@@ -2363,7 +2363,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     @classmethod
-    def get_atom_coltype(cls, kind: str) -> Type["Col"]:
+    def get_atom_coltype(cls, kind: str) -> Type[Col]:
         """ return the PyTables column class for this column """
         if kind.startswith("uint"):
             k4 = kind[4:]
@@ -2572,14 +2572,14 @@ class Fixed:
     ndim: int
     encoding: str
     parent: HDFStore
-    group: "Node"
+    group: Node
     errors: str
     is_table = False
 
     def __init__(
         self,
         parent: HDFStore,
-        group: "Node",
+        group: Node,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ):
@@ -2950,7 +2950,7 @@ class GenericFixed(Fixed):
         )
 
     def read_index_node(
-        self, node: "Node", start: Optional[int] = None, stop: Optional[int] = None
+        self, node: Node, start: Optional[int] = None, stop: Optional[int] = None
     ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
@@ -3246,7 +3246,7 @@ class Table(Fixed):
     def __init__(
         self,
         parent: HDFStore,
-        group: "Node",
+        group: Node,
         encoding=None,
         errors: str = "strict",
         index_axes=None,
@@ -3989,7 +3989,7 @@ class Table(Fixed):
 
         mgr = frame._mgr
         mgr = cast(BlockManager, mgr)
-        blocks: List["Block"] = list(mgr.blocks)
+        blocks: List[Block] = list(mgr.blocks)
         blk_items: List[Index] = get_blk_items(mgr)
 
         if len(data_columns):
@@ -4029,7 +4029,7 @@ class Table(Fixed):
 
         return blocks, blk_items
 
-    def process_axes(self, obj, selection: "Selection", columns=None):
+    def process_axes(self, obj, selection: Selection, columns=None):
         """ process axes filters """
         # make a copy to avoid side effects
         if columns is not None:
@@ -4880,7 +4880,7 @@ def _unconvert_index(
 
 def _maybe_convert_for_string_atom(
     name: str,
-    block: "Block",
+    block: Block,
     existing_col,
     min_itemsize,
     nan_rep,
@@ -4906,7 +4906,7 @@ def _maybe_convert_for_string_atom(
     elif not (inferred_type == "string" or dtype_name == "object"):
         return block.values
 
-    blocks: List["Block"] = block.fillna(nan_rep, downcast=False)
+    blocks: List[Block] = block.fillna(nan_rep, downcast=False)
     # Note: because block is always object dtype, fillna goes
     #  through a path such that the result is always a 1-element list
     assert len(blocks) == 1
