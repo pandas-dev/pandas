@@ -115,6 +115,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas import MultiIndex, RangeIndex, Series
+    from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 __all__ = ["Index"]
@@ -2895,9 +2896,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _wrap_setop_result(self, other, result):
-        if isinstance(self, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
-            result, np.ndarray
-        ):
+        if needs_i8_conversion(self.dtype) and isinstance(result, np.ndarray):
+            self = cast("DatetimeIndexOpsMixin", self)
             result = type(self._data)._simple_new(result, dtype=self.dtype)
         elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
             result = Categorical(result, dtype=self.dtype)
