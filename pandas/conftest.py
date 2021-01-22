@@ -75,6 +75,19 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
+    parser.addoption(
+        "--array-manager",
+        "--am",
+        action="store_true",
+        help="Use the experimental ArrayManager as default data manager.",
+    )
+
+
+def pytest_sessionstart(session):
+    # Note: we need to set the option here and not in pytest_runtest_setup below
+    # to ensure this is run before creating fixture data
+    if session.config.getoption("--array-manager"):
+        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
@@ -698,6 +711,24 @@ def float_frame():
     return DataFrame(tm.getSeriesData())
 
 
+@pytest.fixture
+def mixed_type_frame():
+    """
+    Fixture for DataFrame of float/int/string columns with RangeIndex
+    Columns are ['a', 'b', 'c', 'float32', 'int32'].
+    """
+    return DataFrame(
+        {
+            "a": 1.0,
+            "b": 2,
+            "c": "foo",
+            "float32": np.array([1.0] * 10, dtype="float32"),
+            "int32": np.array([1] * 10, dtype="int32"),
+        },
+        index=np.arange(10),
+    )
+
+
 # ----------------------------------------------------------------
 # Scalars
 # ----------------------------------------------------------------
@@ -1019,6 +1050,9 @@ def utc_fixture(request):
     Fixture to provide variants of UTC timezone strings and tzinfo objects.
     """
     return request.param
+
+
+utc_fixture2 = utc_fixture
 
 
 # ----------------------------------------------------------------
@@ -1465,3 +1499,11 @@ def indexer_si(request):
     Parametrize over __setitem__, iloc.__setitem__
     """
     return request.param
+
+
+@pytest.fixture
+def using_array_manager(request):
+    """
+    Fixture to check if the array manager is being used.
+    """
+    return pd.options.mode.data_manager == "array"

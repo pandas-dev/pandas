@@ -77,7 +77,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate: Optional[str] = None,
-) -> "DataFrame":
+) -> DataFrame:
     op = _MergeOperation(
         left,
         right,
@@ -168,7 +168,7 @@ def merge_ordered(
     fill_method: Optional[str] = None,
     suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform merge with optional filling/interpolation.
 
@@ -315,7 +315,7 @@ def merge_asof(
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform an asof merge.
 
@@ -724,7 +724,7 @@ class _MergeOperation:
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame"]:
+    ) -> Tuple[DataFrame, DataFrame]:
 
         columns = left.columns.union(right.columns)
 
@@ -1232,7 +1232,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+    ) -> Tuple[DataFrame, DataFrame, str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added
@@ -2160,7 +2160,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
+def _validate_operand(obj: FrameOrSeries) -> DataFrame:
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):

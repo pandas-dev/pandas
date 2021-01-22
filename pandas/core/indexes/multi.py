@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import wraps
 from sys import getsizeof
 from typing import (
@@ -404,7 +406,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> MultiIndex:
         """
         Convert arrays to MultiIndex.
 
@@ -700,7 +702,7 @@ class MultiIndex(Index):
         )
 
     @cache_readonly
-    def dtypes(self) -> "Series":
+    def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex
         """
@@ -2546,7 +2548,7 @@ class MultiIndex(Index):
         # GH#33355
         return self.levels[0]._should_fallback_to_positional()
 
-    def _get_values_for_loc(self, series: "Series", loc, key):
+    def _get_values_for_loc(self, series: Series, loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.

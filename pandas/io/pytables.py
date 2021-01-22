@@ -2,6 +2,8 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
+from __future__ import annotations
+
 from contextlib import suppress
 import copy
 from datetime import date, tzinfo
@@ -21,6 +23,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -67,6 +70,7 @@ import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
+from pandas.core.internals import BlockManager
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
@@ -445,7 +449,7 @@ def read_hdf(
         raise
 
 
-def _is_metadata_of(group: "Node", parent_group: "Node") -> bool:
+def _is_metadata_of(group: Node, parent_group: Node) -> bool:
     """Check if a given group is a metadata group for a given parent_group."""
     if group._v_depth <= parent_group._v_depth:
         return False
@@ -525,7 +529,7 @@ class HDFStore:
     >>> store.close()   # only now, data is written to disk
     """
 
-    _handle: Optional["File"]
+    _handle: Optional[File]
     _mode: str
     _complevel: int
     _fletcher32: bool
@@ -1467,7 +1471,7 @@ class HDFStore:
 
             yield (g._v_pathname.rstrip("/"), groups, leaves)
 
-    def get_node(self, key: str) -> Optional["Node"]:
+    def get_node(self, key: str) -> Optional[Node]:
         """ return the node with the key or None if it does not exist """
         self._check_if_open()
         if not key.startswith("/"):
@@ -1483,7 +1487,7 @@ class HDFStore:
         assert isinstance(node, _table_mod.Node), type(node)
         return node
 
-    def get_storer(self, key: str) -> Union["GenericFixed", "Table"]:
+    def get_storer(self, key: str) -> Union[GenericFixed, Table]:
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
@@ -1617,9 +1621,9 @@ class HDFStore:
         value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
-    ) -> Union["GenericFixed", "Table"]:
+    ) -> Union[GenericFixed, Table]:
         """ return a suitable class to operate """
-        cls: Union[Type["GenericFixed"], Type["Table"]]
+        cls: Union[Type[GenericFixed], Type[Table]]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
@@ -1764,12 +1768,12 @@ class HDFStore:
         if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
-    def _read_group(self, group: "Node"):
+    def _read_group(self, group: Node):
         s = self._create_storer(group)
         s.infer_axes()
         return s.read()
 
-    def _identify_group(self, key: str, append: bool) -> "Node":
+    def _identify_group(self, key: str, append: bool) -> Node:
         """Identify HDF5 group based on key, delete/create group if needed."""
         group = self.get_node(key)
 
@@ -1787,7 +1791,7 @@ class HDFStore:
 
         return group
 
-    def _create_nodes_and_group(self, key: str) -> "Node":
+    def _create_nodes_and_group(self, key: str) -> Node:
         """Create nodes from key and return group name."""
         # assertion for mypy
         assert self._handle is not None
@@ -1831,12 +1835,12 @@ class TableIterator:
 
     chunksize: Optional[int]
     store: HDFStore
-    s: Union["GenericFixed", "Table"]
+    s: Union[GenericFixed, Table]
 
     def __init__(
         self,
         store: HDFStore,
-        s: Union["GenericFixed", "Table"],
+        s: Union[GenericFixed, Table],
         func,
         where,
         nrows,
@@ -2107,7 +2111,7 @@ class IndexCol:
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler: "AppendableTable", append: bool):
+    def validate_and_set(self, handler: AppendableTable, append: bool):
         self.table = handler.table
         self.validate_col()
         self.validate_attr(append)
@@ -2184,7 +2188,7 @@ class IndexCol:
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
-    def validate_metadata(self, handler: "AppendableTable"):
+    def validate_metadata(self, handler: AppendableTable):
         """ validate that kind=category does not change the categories """
         if self.meta == "category":
             new_metadata = self.metadata
@@ -2199,7 +2203,7 @@ class IndexCol:
                     "different categories to the existing"
                 )
 
-    def write_metadata(self, handler: "AppendableTable"):
+    def write_metadata(self, handler: AppendableTable):
         """ set the meta data """
         if self.metadata is not None:
             handler.write_metadata(self.cname, self.metadata)
@@ -2324,7 +2328,7 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: ArrayLike) -> "Col":
+    def _get_atom(cls, values: ArrayLike) -> Col:
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
@@ -2359,7 +2363,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     @classmethod
-    def get_atom_coltype(cls, kind: str) -> Type["Col"]:
+    def get_atom_coltype(cls, kind: str) -> Type[Col]:
         """ return the PyTables column class for this column """
         if kind.startswith("uint"):
             k4 = kind[4:]
@@ -2374,7 +2378,7 @@ class DataCol(IndexCol):
         return getattr(_tables(), col_name)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
     @classmethod
@@ -2531,7 +2535,7 @@ class DataIndexableCol(DataCol):
         return _tables().StringCol(itemsize=itemsize)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)()
 
     @classmethod
@@ -2568,14 +2572,14 @@ class Fixed:
     ndim: int
     encoding: str
     parent: HDFStore
-    group: "Node"
+    group: Node
     errors: str
     is_table = False
 
     def __init__(
         self,
         parent: HDFStore,
-        group: "Node",
+        group: Node,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ):
@@ -2946,7 +2950,7 @@ class GenericFixed(Fixed):
         )
 
     def read_index_node(
-        self, node: "Node", start: Optional[int] = None, stop: Optional[int] = None
+        self, node: Node, start: Optional[int] = None, stop: Optional[int] = None
     ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
@@ -3242,7 +3246,7 @@ class Table(Fixed):
     def __init__(
         self,
         parent: HDFStore,
-        group: "Node",
+        group: Node,
         encoding=None,
         errors: str = "strict",
         index_axes=None,
@@ -3983,19 +3987,21 @@ class Table(Fixed):
         def get_blk_items(mgr):
             return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
-        blocks: List["Block"] = list(frame._mgr.blocks)
-        blk_items: List[Index] = get_blk_items(frame._mgr)
+        mgr = frame._mgr
+        mgr = cast(BlockManager, mgr)
+        blocks: List[Block] = list(mgr.blocks)
+        blk_items: List[Index] = get_blk_items(mgr)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
 
-            blocks = list(mgr.blocks)
+            blocks = list(mgr.blocks)  # type: ignore[union-attr]
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
-                blocks.extend(mgr.blocks)
+                blocks.extend(mgr.blocks)  # type: ignore[union-attr]
                 blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
@@ -4023,7 +4029,7 @@ class Table(Fixed):
 
         return blocks, blk_items
 
-    def process_axes(self, obj, selection: "Selection", columns=None):
+    def process_axes(self, obj, selection: Selection, columns=None):
         """ process axes filters """
         # make a copy to avoid side effects
         if columns is not None:
@@ -4874,7 +4880,7 @@ def _unconvert_index(
 
 def _maybe_convert_for_string_atom(
     name: str,
-    block: "Block",
+    block: Block,
     existing_col,
     min_itemsize,
     nan_rep,
@@ -4900,7 +4906,7 @@ def _maybe_convert_for_string_atom(
     elif not (inferred_type == "string" or dtype_name == "object"):
         return block.values
 
-    blocks: List["Block"] = block.fillna(nan_rep, downcast=False)
+    blocks: List[Block] = block.fillna(nan_rep, downcast=False)
     # Note: because block is always object dtype, fillna goes
     #  through a path such that the result is always a 1-element list
     assert len(blocks) == 1

@@ -21,9 +21,11 @@ class TestInsert:
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_invalid_na(self, tz):
         idx = DatetimeIndex(["2017-01-01"], tz=tz)
-        msg = "value should be a 'Timestamp' or 'NaT'. Got 'timedelta64' instead."
-        with pytest.raises(TypeError, match=msg):
-            idx.insert(0, np.timedelta64("NaT"))
+
+        item = np.timedelta64("NaT")
+        result = idx.insert(0, item)
+        expected = Index([item] + list(idx), dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_insert_empty_preserves_freq(self, tz_naive_fixture):
         # GH#33573
@@ -114,17 +116,6 @@ class TestInsert:
         assert result.name == expected.name
         assert result.freq is None
 
-        # see gh-7299
-        idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
-        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
-            idx.insert(3, Timestamp("2000-01-04"))
-        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
-            idx.insert(3, datetime(2000, 1, 4))
-        with pytest.raises(ValueError, match="Timezones don't match"):
-            idx.insert(3, Timestamp("2000-01-04", tz="US/Eastern"))
-        with pytest.raises(ValueError, match="Timezones don't match"):
-            idx.insert(3, datetime(2000, 1, 4, tzinfo=pytz.timezone("US/Eastern")))
-
         for tz in ["US/Pacific", "Asia/Singapore"]:
             idx = date_range("1/1/2000 09:00", periods=6, freq="H", tz=tz, name="idx")
             # preserve freq
@@ -167,6 +158,48 @@ class TestInsert:
                 assert result.tz == expected.tz
                 assert result.freq is None
 
+    # TODO: also changes DataFrame.__setitem__ with expansion
+    def test_insert_mismatched_tzawareness(self):
+        # see GH#7299
+        idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
+
+        # mismatched tz-awareness
+        item = Timestamp("2000-01-04")
+        result = idx.insert(3, item)
+        expected = Index(
+            list(idx[:3]) + [item] + list(idx[3:]), dtype=object, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+
+        # mismatched tz-awareness
+        item = datetime(2000, 1, 4)
+        result = idx.insert(3, item)
+        expected = Index(
+            list(idx[:3]) + [item] + list(idx[3:]), dtype=object, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+
+    # TODO: also changes DataFrame.__setitem__ with expansion
+    def test_insert_mismatched_tz(self):
+        # see GH#7299
+        idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
+
+        # mismatched tz -> cast to object (could reasonably cast to same tz or UTC)
+        item = Timestamp("2000-01-04", tz="US/Eastern")
+        result = idx.insert(3, item)
+        expected = Index(
+            list(idx[:3]) + [item] + list(idx[3:]), dtype=object, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+
+        # mismatched tz -> cast to object (could reasonably cast to same tz)
+        item = datetime(2000, 1, 4, tzinfo=pytz.timezone("US/Eastern"))
+        result = idx.insert(3, item)
+        expected = Index(
+            list(idx[:3]) + [item] + list(idx[3:]), dtype=object, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "item", [0, np.int64(0), np.float64(0), np.array(0), np.timedelta64(456)]
     )
@@ -175,17 +208,36 @@ class TestInsert:
         tz = tz_aware_fixture
         dti = date_range("2019-11-04", periods=9, freq="-1D", name=9, tz=tz)
 
-        msg = "value should be a 'Timestamp' or 'NaT'. Got '.*' instead"
-        with pytest.raises(TypeError, match=msg):
-            dti.insert(1, item)
+        result = dti.insert(1, item)
 
-    def test_insert_object_casting(self, tz_aware_fixture):
+        if isinstance(item, np.ndarray):
+            # FIXME: without doing .item() here this segfaults
+            assert item.item() == 0
+            expected = Index([dti[0], 0] + list(dti[1:]), dtype=object, name=9)
+        else:
+            expected = Index([dti[0], item] + list(dti[1:]), dtype=object, name=9)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_insert_castable_str(self, tz_aware_fixture):
         # GH#33703
         tz = tz_aware_fixture
         dti = date_range("2019-11-04", periods=3, freq="-1D", name=9, tz=tz)
 
-        # ATM we treat this as a string, but we could plausibly wrap it in Timestamp
         value = "2019-11-05"
         result = dti.insert(0, value)
-        expected = Index(["2019-11-05"] + list(dti), dtype=object, name=9)
+
+        ts = Timestamp(value).tz_localize(tz)
+        expected = DatetimeIndex([ts] + list(dti), dtype=dti.dtype, name=9)
+        tm.assert_index_equal(result, expected)
+
+    def test_insert_non_castable_str(self, tz_aware_fixture):
+        # GH#33703
+        tz = tz_aware_fixture
+        dti = date_range("2019-11-04", periods=3, freq="-1D", name=9, tz=tz)
+
+        value = "foo"
+        result = dti.insert(0, value)
+
+        expected = Index(["foo"] + list(dti), dtype=object, name=9)
         tm.assert_index_equal(result, expected)
