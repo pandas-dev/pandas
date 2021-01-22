@@ -3,6 +3,8 @@ aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import partial
 from typing import (
@@ -296,7 +298,7 @@ def relabel_result(
     func: Dict[str, List[Union[Callable, str]]],
     columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Hashable, "Series"]:
+) -> Dict[Hashable, Series]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -323,7 +325,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Hashable, "Series"] = {}
+    reordered_result_in_dict: Dict[Hashable, Series] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -388,7 +390,6 @@ def validate_func_kwargs(
     >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
     (['one', 'two'], ['min', 'max'])
     """
-    no_arg_message = "Must provide 'func' or named aggregation **kwargs."
     tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
@@ -397,6 +398,7 @@ def validate_func_kwargs(
             raise TypeError(tuple_given_message.format(type(col_func).__name__))
         func.append(col_func)
     if not columns:
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
 
@@ -499,14 +501,14 @@ def transform_dict_like(
         try:
             results[name] = transform(colg, how, 0, *args, **kwargs)
         except Exception as err:
-            if (
-                str(err) == "Function did not transform"
-                or str(err) == "No transform functions were provided"
-            ):
+            if str(err) in {
+                "Function did not transform",
+                "No transform functions were provided",
+            }:
                 raise err
 
     # combine results
-    if len(results) == 0:
+    if not results:
         raise ValueError("Transform function failed")
     return concat(results, axis=1)
 

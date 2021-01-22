@@ -2,6 +2,8 @@
 Operator classes for eval.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial
@@ -203,7 +205,7 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands: Iterable[Union[Term, "Op"]], encoding=None):
+    def __init__(self, op: str, operands: Iterable[Union[Term, Op]], encoding=None):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = encoding

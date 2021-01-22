@@ -600,7 +600,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
-        result = super().insert(loc, item)
+        try:
+            result = super().insert(loc, item)
+        except (ValueError, TypeError):
+            # i.e. self._data._validate_scalar raised
+            return self.astype(object).insert(loc, item)
 
         result._data._freq = self._get_insert_freq(loc, item)
         return result
@@ -660,9 +664,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    @Appender(Index.difference.__doc__)
-    def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)._with_freq(None)
+    def _difference(self, other, sort=None):
+        new_idx = super()._difference(other, sort=sort)._with_freq(None)
         return new_idx
 
     def _intersection(self, other: Index, sort=False) -> Index:
@@ -866,15 +869,3 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def _maybe_utc_convert(self: _T, other: Index) -> Tuple[_T, Index]:
         # Overridden by DatetimeIndex
         return self, other
-
-    # --------------------------------------------------------------------
-    # List-Like Methods
-
-    @Appender(DatetimeIndexOpsMixin.insert.__doc__)
-    def insert(self, loc, item):
-        if isinstance(item, str):
-            # TODO: Why are strings special?
-            # TODO: Should we attempt _scalar_from_string?
-            return self.astype(object).insert(loc, item)
-
-        return DatetimeIndexOpsMixin.insert(self, loc, item)

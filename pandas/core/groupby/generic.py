@@ -5,6 +5,8 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
+from __future__ import annotations
+
 from collections import abc, namedtuple
 import copy
 from functools import partial
@@ -1688,7 +1690,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: Sequence["Block"], items: Index) -> DataFrame:
+    def _wrap_agged_blocks(self, blocks: Sequence[Block], items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
