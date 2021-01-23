@@ -1056,7 +1056,7 @@ class ExcelFile:
         else:
             import xlrd
 
-            xlrd_version = LooseVersion(xlrd.__version__)
+            xlrd_version = LooseVersion(xlrd.__VERSION__)
 
         if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
