@@ -3044,7 +3044,7 @@ class DataFrame(NDFrame, OpsMixin):
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
             if not (key.index.equals(self.index) and key.columns.equals(self.columns)):
-                warnings.warn("DataFrame indexer alignment for getitem is deprecated"
+                warnings.warn("Dataframe indexer that has to be aligned is deprecated"
                               " and will be removed in future. Use where instead.",
                               FutureWarning,
                               stacklevel=2)
