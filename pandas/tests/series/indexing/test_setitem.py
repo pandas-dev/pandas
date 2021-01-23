@@ -93,6 +93,13 @@ class TestSetitemScalarIndexer:
         with pytest.raises(IndexError, match=msg):
             ser[-11] = "foo"
 
+    def test_setitem_series(self):
+        # GH#38303
+        ser = Series(0, index=[0, 1, 2])
+        ser[0] = Series([42])
+        expected = Series([42, 0, 0])
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSetitemSlices:
     def test_setitem_slice_float_raises(self, datetime_series):
