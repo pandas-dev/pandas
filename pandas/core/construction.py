@@ -531,7 +531,7 @@ def _sanitize_ndim(
     elif result.ndim > 1:
         if isinstance(data, np.ndarray):
             raise ValueError("Data must be 1-dimensional")
-        if is_object_dtype(dtype) and not isinstance(dtype, np.dtype):
+        if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
             result = com.asarray_tuplesafe(data, dtype=object)
             cls = dtype.construct_array_type()
