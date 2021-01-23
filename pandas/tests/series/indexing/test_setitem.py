@@ -93,11 +93,20 @@ class TestSetitemScalarIndexer:
         with pytest.raises(IndexError, match=msg):
             ser[-11] = "foo"
 
-    def test_setitem_series(self):
+    @pytest.mark.parametrize("ser_index", [0, 1])
+    def test_setitem_series_object_dtype(self, ser_index):
         # GH#38303
-        ser = Series(0, index=[0, 1, 2])
-        ser[0] = Series([42])
-        expected = Series([42, 0, 0])
+        ser = Series([0, 0], dtype="object")
+        ser.loc[0] = Series([42], index=[ser_index])
+        expected = Series([Series([42], index=[ser_index]), 0], dtype="object")
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("index, exp_value", [(0, 42.0), (1, np.nan)])
+    def test_setitem_series(self, index, exp_value):
+        # GH#38303
+        ser = Series([0, 0])
+        ser.loc[0] = Series([42], index=[index])
+        expected = Series([exp_value, 0])
         tm.assert_series_equal(ser, expected)
 
 
