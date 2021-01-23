@@ -595,6 +595,9 @@ reducing the turn-around time for checking your changes.
     python make.py clean
     python make.py --no-api
 
+    # skip executing the code blocks
+    python make.py --no-ipython
+
     # compile the docs with only a single section, relative to the "source" folder.
     # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean

@@ -41,6 +41,7 @@ class DocBuilder:
         self,
         num_jobs=0,
         include_api=True,
+        no_ipython=False,
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
@@ -56,6 +57,9 @@ class DocBuilder:
             os.environ["SPHINX_PATTERN"] = single_doc
         elif not include_api:
             os.environ["SPHINX_PATTERN"] = "-api"
+
+        if no_ipython:
+            os.environ["SPHINX_SKIP_IPYTHON"] = "TRUE"
 
         self.single_doc_html = None
         if single_doc and single_doc.endswith(".rst"):
@@ -303,6 +307,12 @@ def main():
         "--no-api", default=False, help="omit api and autosummary", action="store_true"
     )
     argparser.add_argument(
+        "--no-ipython",
+        default=False,
+        help="skip execution of code blocks",
+        action="store_true",
+    )
+    argparser.add_argument(
         "--single",
         metavar="FILENAME",
         type=str,
@@ -353,6 +363,7 @@ def main():
     builder = DocBuilder(
         args.num_jobs,
         not args.no_api,
+        args.no_ipython,
         args.single,
         args.verbosity,
         args.warnings_are_errors,

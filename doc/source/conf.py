@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 
+from IPython.sphinxext.ipython_directive import IPythonDirective
 import jinja2
 from numpydoc.docscrape import NumpyDocString
 from sphinx.ext.autosummary import _import_by_name
@@ -744,6 +745,16 @@ def rstjinja(app, docname, source):
     source[0] = rendered
 
 
+class SkipIPython(IPythonDirective):
+    """
+    Treats all ipython directives as :verbatim:, to speed up build time.
+    """
+
+    def run(self):
+        self.options["verbatim"] = True
+        return super().run()
+
+
 def setup(app):
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
@@ -754,3 +765,7 @@ def setup(app):
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
     app.add_directive("autosummary", PandasAutosummary)
+
+    if os.environ.get("SPHINX_SKIP_IPYTHON"):
+        # override the directive
+        app.add_directive("ipython", SkipIPython)
