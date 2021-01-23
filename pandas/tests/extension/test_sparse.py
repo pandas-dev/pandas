@@ -16,6 +16,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -414,6 +415,9 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             "rmod",
         ]:
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
+            request.node.add_marker(mark)
+        elif not IS64:
+            mark = pytest.mark.xfail(reason="results are int32, expected int64")
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
