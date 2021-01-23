@@ -1707,7 +1707,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     @pytest.mark.xfail(
         is_platform_windows() and PY38,
         reason="localhost connection rejected",
-        strict=False,
     )
     def test_to_s3(self, s3_resource, s3so):
         import time

@@ -124,7 +124,7 @@ class TestSparseArrayArithmetics:
 
         if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv]:
-                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
+                mark = pytest.mark.xfail(reason="GH#38172")
                 request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -171,7 +171,7 @@ class TestSparseArrayArithmetics:
 
         if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv]:
-                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
+                mark = pytest.mark.xfail(reason="GH#38172")
                 request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])

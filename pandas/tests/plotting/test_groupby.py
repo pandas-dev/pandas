@@ -19,7 +19,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.xfail(
         is_platform_windows(),
         reason="Looks like LinePlot._is_ts_plot is wrong",
-        strict=False,
     )
     def test_series_groupby_plotting_nominally_works(self):
         n = 10

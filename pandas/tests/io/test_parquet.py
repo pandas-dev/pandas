@@ -656,7 +656,6 @@ class TestParquetPyArrow(Base):
     @pytest.mark.xfail(
         is_platform_windows() and PY38,
         reason="localhost connection rejected",
-        strict=False,
     )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")

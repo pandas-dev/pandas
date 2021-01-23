@@ -78,7 +78,6 @@ class TestRegistration:
     @pytest.mark.xfail(
         is_platform_windows(),
         reason="Getting two warnings intermittently, see GH#37746",
-        strict=False,
     )
     def test_pandas_plots_register(self):
         plt = pytest.importorskip("matplotlib.pyplot")
