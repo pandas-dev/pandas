@@ -139,7 +139,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
