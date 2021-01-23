@@ -337,10 +337,6 @@ class RangeIndex(Int64Index):
     def is_monotonic_decreasing(self) -> bool:
         return self._range.step < 0 or len(self) <= 1
 
-    @property
-    def has_duplicates(self) -> bool:
-        return False
-
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
@@ -688,14 +684,6 @@ class RangeIndex(Int64Index):
         return result
 
     # --------------------------------------------------------------------
-
-    @doc(Int64Index.join)
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        if how == "outer" and self is not other:
-            # note: could return RangeIndex in more circumstances
-            return self._int64index.join(other, how, level, return_indexers, sort)
-
-        return super().join(other, how, level, return_indexers, sort)
 
     def _concat(self, indexes, name):
         """

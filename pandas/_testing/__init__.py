@@ -679,7 +679,7 @@ def makeCustomDataframe(
     # 4-level multindex on rows with names provided, 2-level multindex
     # on columns with default labels and default names.
     >> a=makeCustomDataframe(5,3,r_idx_nlevels=4,
-                             r_idx_names=["FEE","FI","FO","FAM"],
+                             r_idx_names=["FEE","FIH","FOH","FUM"],
                              c_idx_nlevels=2)
 
     >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
