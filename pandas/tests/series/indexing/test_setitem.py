@@ -370,8 +370,7 @@ class TestSetitemWithExpansion:
     def test_setitem_empty_series_timestamp_preserves_dtype(self):
         # GH 21881
         timestamp = Timestamp(1412526600000000000)
-        expected = Series([], dtype=object)
-        expected["timestamp"] = timestamp
+        expected = Series([timestamp], index=["timestamp"], dtype=object)
 
         result = Series([], dtype=object)
         result["anything"] = 300.0
