@@ -82,6 +82,37 @@ class TestGetLoc:
 
 
 class TestGetIndexer:
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_with_method_numeric_vs_bool(self, method):
+        left = Index([1, 2, 3])
+        right = Index([True, False])
+
+        with pytest.raises(TypeError, match="Cannot compare"):
+            left.get_indexer(right, method=method)
+
+        with pytest.raises(TypeError, match="Cannot compare"):
+            right.get_indexer(left, method=method)
+
+    def test_get_indexer_numeric_vs_bool(self):
+        left = Index([1, 2, 3])
+        right = Index([True, False])
+
+        res = left.get_indexer(right)
+        expected = -1 * np.ones(len(right), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = right.get_indexer(left)
+        expected = -1 * np.ones(len(left), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = left.get_indexer_non_unique(right)[0]
+        expected = -1 * np.ones(len(right), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = right.get_indexer_non_unique(left)[0]
+        expected = -1 * np.ones(len(left), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
     def test_get_indexer_float64(self):
         idx = Float64Index([0.0, 1.0, 2.0])
         tm.assert_numpy_array_equal(
