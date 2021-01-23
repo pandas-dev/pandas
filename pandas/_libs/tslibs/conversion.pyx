@@ -497,7 +497,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
         obj.value -= int(offset.total_seconds() * 1e9)
 
     if isinstance(ts, ABCTimestamp):
-        obj.value += ts.nanosecond
+        obj.value += <int64_t>ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
     if nanos:

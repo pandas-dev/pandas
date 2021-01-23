@@ -1,6 +1,7 @@
 """
 Concat routines.
 """
+from __future__ import annotations
 
 from collections import abc
 from typing import (
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Union[Iterable["DataFrame"], Mapping[Hashable, "DataFrame"]],
+    objs: Union[Iterable[DataFrame], Mapping[Hashable, DataFrame]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -61,13 +62,13 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> "DataFrame":
+) -> DataFrame:
     ...
 
 
 @overload
 def concat(
-    objs: Union[Iterable["NDFrame"], Mapping[Hashable, "NDFrame"]],
+    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -82,7 +83,7 @@ def concat(
 
 
 def concat(
-    objs: Union[Iterable["NDFrame"], Mapping[Hashable, "NDFrame"]],
+    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -307,7 +308,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Union[Iterable["NDFrame"], Mapping[Hashable, "NDFrame"]],
+        objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -376,7 +377,7 @@ class _Concatenator:
         # get the sample
         # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
-        sample: Optional["NDFrame"] = None
+        sample: Optional[NDFrame] = None
         if len(ndims) > 1:
             max_ndim = max(ndims)
             for obj in objs:
