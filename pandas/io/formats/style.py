@@ -848,10 +848,17 @@ class Styler:
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):
-                raise TypeError(
-                    f"Function {repr(func)} must return a DataFrame when "
-                    f"passed to `Styler.apply` with axis=None"
-                )
+                if not isinstance(result, np.ndarray):
+                    raise TypeError(
+                        f"Function {repr(func)} must return a DataFrame or ndarray when"
+                        f" passed to `Styler.apply` with axis=None"
+                    )
+                if not (data.shape == result.shape):
+                    raise TypeError(
+                        f"Function {repr(func)} returned ndarray with shape "
+                        f"{result.shape} but {data.shape} was expected"
+                    )
+                result = DataFrame(result, index=data.index, columns=data.columns)
             if not (
                 result.index.equals(data.index) and result.columns.equals(data.columns)
             ):

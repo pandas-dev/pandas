@@ -1357,7 +1357,10 @@ class TestStyler:
             return ""
 
         df = DataFrame([[1, 2], [3, 4]])
-        msg = "must return a DataFrame when passed to `Styler.apply` with axis=None"
+        msg = (
+            "must return a DataFrame or ndarray when passed to `Styler.apply` "
+            "with axis=None"
+        )
         with pytest.raises(TypeError, match=msg):
             df.style._apply(f, axis=None)
 
