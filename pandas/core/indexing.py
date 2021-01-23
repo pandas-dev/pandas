@@ -2031,7 +2031,7 @@ class _iLocIndexer(_LocationIndexer):
             if ser.index.equals(ax):
                 return ser._values.copy()
 
-            return ser.reindex(ax)._values[[indexer]]
+            return ser.reindex(ax)._values[indexer]
 
         elif is_scalar(indexer):
             ax = self.obj._get_axis(1)
