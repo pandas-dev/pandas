@@ -403,6 +403,20 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if data.dtype.fill_value == 0 and all_arithmetic_operators.strip("_") not in [
+            "mul",
+            "rmul",
+            "floordiv",
+            "rfloordiv",
+            "pow",
+            "mod",
+            "rmod",
+        ]:
+            mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
