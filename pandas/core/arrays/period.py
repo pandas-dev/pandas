@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
+    is_integer_dtype,
     is_period_dtype,
     pandas_dtype,
 )
@@ -907,6 +908,11 @@ def period_array(
 
     if is_float_dtype(data) and len(data) > 0:
         raise TypeError("PeriodIndex does not allow floating point in construction")
+
+    if is_integer_dtype(data.dtype):
+        data = data.astype(np.int64, copy=False)
+        ordinals = libperiod.from_ordinals(data, freq)
+        return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(data)
 
