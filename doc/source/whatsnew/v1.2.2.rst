@@ -24,7 +24,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
-- Fixed bug in ``read_excel()`` that caused it to fail when checking version of older xlrd versions(:issue:`38955`)
+- Fixed bug in :meth:``read_excel`` that caused it to fail when checking version of older xlrd versions(:issue:`38955`)
 -
 
 .. ---------------------------------------------------------------------------
