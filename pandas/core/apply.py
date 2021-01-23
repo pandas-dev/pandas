@@ -2,7 +2,18 @@ from __future__ import annotations
 
 import abc
 import inspect
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Type, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 
@@ -13,6 +24,7 @@ from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
     AggFuncTypeDict,
+    AggObjType,
     Axis,
     FrameOrSeriesUnion,
 )
@@ -34,6 +46,7 @@ from pandas.core.construction import (
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Index, Series
+    from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
 
 ResType = Dict[int, Any]
 
@@ -86,7 +99,7 @@ class Apply(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        obj: FrameOrSeriesUnion,
+        obj: AggObjType,
         func,
         raw: bool,
         result_type: Optional[str],
@@ -646,3 +659,28 @@ class SeriesApply(Apply):
             return obj._constructor(mapped, index=obj.index).__finalize__(
                 obj, method="apply"
             )
+
+
+class GroupByApply(Apply):
+    obj: Union[SeriesGroupBy, DataFrameGroupBy]
+
+    def __init__(
+        self,
+        obj: Union[SeriesGroupBy, DataFrameGroupBy],
+        func: AggFuncType,
+        args,
+        kwds,
+    ):
+        kwds = kwds.copy()
+        self.axis = obj.obj._get_axis_number(kwds.get("axis", 0))
+        super().__init__(
+            obj,
+            func,
+            raw=False,
+            result_type=None,
+            args=args,
+            kwds=kwds,
+        )
+
+    def apply(self):
+        raise NotImplementedError

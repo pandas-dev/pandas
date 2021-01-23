@@ -8,6 +8,14 @@ import pandas._testing as tm
 
 
 class TestJoin:
+    def test_join_outer_indexer(self):
+        pi = period_range("1/1/2000", "1/20/2000", freq="D")
+
+        result = pi._outer_indexer(pi._values, pi._values)
+        tm.assert_numpy_array_equal(result[0], pi.asi8)
+        tm.assert_numpy_array_equal(result[1], np.arange(len(pi), dtype=np.int64))
+        tm.assert_numpy_array_equal(result[2], np.arange(len(pi), dtype=np.int64))
+
     def test_joins(self, join_type):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
 
