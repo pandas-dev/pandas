@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
+    Iterator,
+    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -48,6 +51,13 @@ from pandas.core import ops
 from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
+
+if TYPE_CHECKING:
+
+    class _dummy:
+        ...
+
+    np.ndarray = _dummy
 
 _extension_array_shared_docs: Dict[str, str] = {}
 
@@ -347,7 +357,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """
         Iterate over elements of the array.
         """
@@ -357,7 +367,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item: Any) -> bool:
         """
         Return for `item in self`.
         """
@@ -396,7 +406,7 @@ class ExtensionArray:
         self,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: Optional[Any] = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
@@ -475,7 +485,7 @@ class ExtensionArray:
     # Additional Methods
     # ------------------------------------------------------------------------
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype: Dtype, copy: bool = True) -> np.ndarray:
         """
         Cast to a NumPy array with 'dtype'.
 
@@ -555,8 +565,8 @@ class ExtensionArray:
         ascending: bool = True,
         kind: str = "quicksort",
         na_position: str = "last",
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> np.ndarray:
         """
         Return the indices that would sort this array.
@@ -596,7 +606,7 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
-    def argmin(self):
+    def argmin(self) -> int:
         """
         Return the index of minimum value.
 
@@ -613,7 +623,7 @@ class ExtensionArray:
         """
         return nargminmax(self, "argmin")
 
-    def argmax(self):
+    def argmax(self) -> int:
         """
         Return the index of maximum value.
 
@@ -630,7 +640,12 @@ class ExtensionArray:
         """
         return nargminmax(self, "argmax")
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(
+        self,
+        value: Optional[Union[Any, ArrayLike]] = None,
+        method: Optional[Literal["backfill", "bfill", "ffill", "pad"]] = None,
+        limit: Optional[int] = None,
+    ) -> ExtensionArray:
         """
         Fill NA/NaN values using the specified method.
 
@@ -682,7 +697,7 @@ class ExtensionArray:
             new_values = self.copy()
         return new_values
 
-    def dropna(self):
+    def dropna(self) -> ExtensionArray:
         """
         Return ExtensionArray without NA values.
 
@@ -746,7 +761,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self):
+    def unique(self) -> "ExtensionArray":
         """
         Compute the ExtensionArray of unique values.
 
@@ -757,7 +772,12 @@ class ExtensionArray:
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(
+        self,
+        value: ArrayLike,
+        side: Optional[Literal["left", "right"]] = "left",
+        sorter: Optional[ArrayLike] = None,
+    ) -> np.ndarray:
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -956,7 +976,9 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(self, repeats, axis=None):
+    def repeat(
+        self, repeats: Union[int, Sequence[int]], axis: Literal[None] = None
+    ) -> ExtensionArray:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
@@ -1140,7 +1162,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes) -> ExtensionArray:
+    def transpose(self, *axes: int) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
@@ -1153,7 +1175,9 @@ class ExtensionArray:
     def T(self) -> ExtensionArray:
         return self.transpose()
 
-    def ravel(self, order="C") -> ExtensionArray:
+    def ravel(
+        self, order: Optional[Literal["C", "F", "A", "K"]] = "C"
+    ) -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1227,7 +1251,7 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
 

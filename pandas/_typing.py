@@ -94,6 +94,13 @@ JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection[Any]
 
 # dtypes
+if TYPE_CHECKING:
+
+    class _dummy:
+        ...
+
+    np.dtype = _dummy
+
 NpDtype = Union[str, np.dtype]
 Dtype = Union[
     "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]

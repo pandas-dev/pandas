@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Union, cast
 import warnings
 
 import numpy as np
@@ -1172,7 +1172,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if skipna:
             arr = self
         else:
-            arr = self.dropna()
+            arr = cast(SparseArray, self.dropna())
 
         # we don't support these kwargs.
         # They should only be present when called via pandas, so do it here.

@@ -2,7 +2,7 @@
 Extend pandas with custom array types.
 """
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, Union, cast
 
 import numpy as np
 
@@ -197,7 +197,7 @@ class ExtensionDtype:
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(cls, string: str) -> "ExtensionDtype":
         r"""
         Construct this type from a string.
 
@@ -408,9 +408,7 @@ class Registry:
 
         self.dtypes.append(dtype)
 
-    def find(
-        self, dtype: Union[Type[ExtensionDtype], str]
-    ) -> Optional[Type[ExtensionDtype]]:
+    def find(self, dtype: Union[Type[ExtensionDtype], str]) -> Optional[ExtensionDtype]:
         """
         Parameters
         ----------
@@ -425,7 +423,7 @@ class Registry:
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
             if issubclass(dtype_type, ExtensionDtype):
-                return dtype
+                return cast(ExtensionDtype, dtype)
 
             return None
 
@@ -438,4 +436,4 @@ class Registry:
         return None
 
 
-registry = Registry()
+registry: Registry = Registry()
