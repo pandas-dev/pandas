@@ -381,7 +381,7 @@ class Float64Index(NumericIndex):
             # Catch this to avoid accidentally casting to 1.0
             raise KeyError(key)
 
-        if is_float(key) and np.isnan(key):
+        if is_float(key) and np.isnan(key) and method is None:
             nan_idxs = self._nan_idxs
             if not len(nan_idxs):
                 raise KeyError(key)
