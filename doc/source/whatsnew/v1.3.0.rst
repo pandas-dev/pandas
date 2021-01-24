@@ -343,7 +343,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-
+- Bug in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` with :class:`PeriodDtype` columns incorrectly casting results too aggressively (:issue:`38254`)
 - Bug in :meth:`SeriesGroupBy.value_counts` where unobserved categories in a grouped categorical series were not tallied (:issue:`38672`)
 - Bug in :meth:`SeriesGroupBy.value_counts` where error was raised on an empty series (:issue:`39172`)
 - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)

@@ -432,10 +432,14 @@ def test_agg_over_numpy_arrays():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_tzaware_non_datetime_result():
+@pytest.mark.parametrize("as_period", [True, False])
+def test_agg_tzaware_non_datetime_result(as_period):
     # discussed in GH#29589, fixed in GH#29641, operating on tzaware values
     #  with function that is not dtype-preserving
     dti = pd.date_range("2012-01-01", periods=4, tz="UTC")
+    if as_period:
+        dti = dti.tz_localize(None).to_period("D")
+
     df = DataFrame({"a": [0, 0, 1, 1], "b": dti})
     gb = df.groupby("a")
 
@@ -454,6 +458,9 @@ def test_agg_tzaware_non_datetime_result():
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
     expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
     expected.index.name = "a"
+    if as_period:
+        expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
+        expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
 
