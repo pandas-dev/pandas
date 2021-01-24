@@ -649,6 +649,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
 
+        if type(key) == date:
+            # GH35830
+            key = datetime.combine(key, time.min)
+
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
             self._deprecate_mismatched_indexing(key)

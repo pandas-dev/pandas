@@ -1,5 +1,5 @@
 """ test label based indexing with loc """
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from io import StringIO
 import re
 
@@ -2090,3 +2090,13 @@ class TestLocSeries:
         ser = Series(0, index=list("abcde"), dtype=object)
         ser.iloc[0] = arr
         tm.assert_series_equal(ser, expected)
+
+    def test_loc_getitem_date_objs_with_datetimeindex(self):
+        # GH35830
+        dates = [date(2000, 1, i) for i in (1, 2, 5)]
+        values = [1, 2, 3]
+        s = Series(values, pd.DatetimeIndex(dates))
+        i = 1
+        expected = values[i]
+        result = s.loc[dates[i]]
+        assert result == expected

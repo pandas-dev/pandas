@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -543,6 +543,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         self._scalar_type or NaT
         """
+
+        if type(value) == date:
+            # GH35830
+            value = datetime.combine(value, time.min)
+
         if isinstance(value, str):
             # NB: Careful about tzawareness
             try:
