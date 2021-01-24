@@ -2142,3 +2142,6 @@ class TestLocSeries:
         msg = "Too many indices"
         with pytest.raises(ValueError, match=msg):
             ser.loc[indexer, :]
+
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[indexer, :] = 1
