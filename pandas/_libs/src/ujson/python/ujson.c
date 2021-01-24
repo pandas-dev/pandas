@@ -75,5 +75,4 @@ static PyModuleDef moduledef = {
 PyMODINIT_FUNC PyInit_json(void) {
   initObjToJSON();  // TODO: clean up, maybe via tp_free?
   return PyModuleDef_Init(&moduledef);
-
 }
