@@ -3044,8 +3044,8 @@ class DataFrame(NDFrame, OpsMixin):
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
             if not (key.index.equals(self.index) and key.columns.equals(self.columns)):
-                warnings.warn("Dataframe indexer that has to be aligned is deprecated"
-                              " and will be removed in future. Use where instead.",
+                warnings.warn("Unaligned DataFrame indexer is deprecated"
+                              " and will be disallowed in future. Use where instead.",
                               FutureWarning,
                               stacklevel=2)
             return self.where(key)
