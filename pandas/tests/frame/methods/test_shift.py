@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, Index, Series, date_range, offsets
+from pandas import CategoricalIndex, DataFrame, Index, Series, date_range, offsets
 import pandas._testing as tm
 
 
@@ -145,12 +147,13 @@ class TestDataFrameShift:
         tm.assert_frame_equal(shifted[0], shifted[1])
         tm.assert_frame_equal(shifted[0], shifted[2])
 
-    def test_shift_axis1_multiple_blocks(self):
+    def test_shift_axis1_multiple_blocks(self, using_array_manager):
         # GH#35488
         df1 = DataFrame(np.random.randint(1000, size=(5, 3)))
         df2 = DataFrame(np.random.randint(1000, size=(5, 2)))
         df3 = pd.concat([df1, df2], axis=1)
-        assert len(df3._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df3._mgr.blocks) == 2
 
         result = df3.shift(2, axis=1)
 
@@ -163,7 +166,8 @@ class TestDataFrameShift:
         # Case with periods < 0
         # rebuild df3 because `take` call above consolidated
         df3 = pd.concat([df1, df2], axis=1)
-        assert len(df3._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df3._mgr.blocks) == 2
         result = df3.shift(-2, axis=1)
 
         expected = df3.take([2, 3, 4, -1, -1], axis=1)
@@ -272,6 +276,7 @@ class TestDataFrameShift:
         with pytest.raises(ValueError, match=msg):
             no_freq.shift(freq="infer")
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
         ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
@@ -291,4 +296,26 @@ class TestDataFrameShift:
             result = df2.shift(1, axis=1, fill_value=0)
 
         expected = DataFrame({"A": [pd.Timestamp(0), pd.Timestamp(0)], "B": df2["A"]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_shift_axis1_categorical_columns(self):
+        # GH#38434
+        ci = CategoricalIndex(["a", "b", "c"])
+        df = DataFrame(
+            {"a": [1, 3], "b": [2, 4], "c": [5, 6]}, index=ci[:-1], columns=ci
+        )
+        result = df.shift(axis=1)
+
+        expected = DataFrame(
+            {"a": [np.nan, np.nan], "b": [1, 3], "c": [2, 4]}, index=ci[:-1], columns=ci
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # periods != 1
+        result = df.shift(2, axis=1)
+        expected = DataFrame(
+            {"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [1, 3]},
+            index=ci[:-1],
+            columns=ci,
+        )
         tm.assert_frame_equal(result, expected)

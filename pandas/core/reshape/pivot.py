@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from typing import (
     TYPE_CHECKING,
     Callable,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -13,7 +16,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, Label
+from pandas._typing import FrameOrSeriesUnion, IndexLabel
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -47,7 +50,7 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-) -> "DataFrame":
+) -> DataFrame:
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -367,7 +370,7 @@ def _generate_marginal_results(
 
 
 def _generate_marginal_results_without_values(
-    table: "DataFrame", data, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table: DataFrame, data, rows, cols, aggfunc, observed, margins_name: str = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -421,11 +424,11 @@ def _convert_by(by):
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
-    data: "DataFrame",
-    index: Optional[Union[Label, Sequence[Label]]] = None,
-    columns: Optional[Union[Label, Sequence[Label]]] = None,
-    values: Optional[Union[Label, Sequence[Label]]] = None,
-) -> "DataFrame":
+    data: DataFrame,
+    index: Optional[IndexLabel] = None,
+    columns: Optional[IndexLabel] = None,
+    values: Optional[IndexLabel] = None,
+) -> DataFrame:
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
@@ -452,7 +455,7 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Label], values)
+            values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
                 data[values]._values, index=index, columns=values
             )
@@ -472,7 +475,7 @@ def crosstab(
     margins_name: str = "All",
     dropna: bool = True,
     normalize=False,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
@@ -740,8 +743,8 @@ def _build_names_mapper(
     A row or column name is replaced if it is duplicate among the rows of the inputs,
     among the columns of the inputs or between the rows and the columns.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     rownames: list[str]
     colnames: list[str]
 

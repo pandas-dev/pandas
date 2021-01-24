@@ -87,7 +87,7 @@ class TestInterface(base.BaseInterfaceTests):
         # Is this deliberate?
         super().test_memory_usage(data)
 
-    def test_contains(self, data, data_missing, nulls_fixture):
+    def test_contains(self, data, data_missing):
         # GH-37867
         # na value handling in Categorical.__contains__ is deprecated.
         # See base.BaseInterFaceTests.test_contains for more details.
@@ -105,9 +105,11 @@ class TestInterface(base.BaseInterfaceTests):
         assert na_value not in data
 
         # Categoricals can contain other nan-likes than na_value
-        if nulls_fixture is not na_value:
-            assert nulls_fixture not in data
-            assert nulls_fixture in data_missing  # this line differs from super method
+        for na_value_obj in tm.NULL_OBJECTS:
+            if na_value_obj is na_value:
+                continue
+            assert na_value_obj not in data
+            assert na_value_obj in data_missing  # this line differs from super method
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -115,8 +117,9 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
+    @pytest.mark.xfail(reason="Deliberately upcast to object?")
     def test_concat_with_reindex(self, data):
-        pytest.xfail(reason="Deliberately upcast to object?")
+        super().test_concat_with_reindex(data)
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -172,10 +175,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    def test_searchsorted(self, data_for_sorting):
-        if not data_for_sorting.ordered:
-            raise pytest.skip(reason="searchsorted requires ordered data.")
-
 
 class TestCasting(base.BaseCastingTests):
     @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
@@ -221,26 +220,31 @@ class TestCasting(base.BaseCastingTests):
     )
     def test_consistent_casting(self, dtype, expected):
         # GH 28448
-        result = Categorical("2015-01-01").astype(dtype)
+        result = Categorical(["2015-01-01"]).astype(dtype)
         assert result == expected
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         # frame & scalar
         op_name = all_arithmetic_operators
-        if op_name != "__rmod__":
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-        else:
-            pytest.skip("rmod never called when string is first argument")
+        if op_name == "__rmod__":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="rmod never called when string is first argument"
+                )
+            )
+        super().test_arith_frame_with_scalar(data, op_name)
 
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
-        if op_name != "__rmod__":
-            super().test_arith_series_with_scalar(data, op_name)
-        else:
-            pytest.skip("rmod never called when string is first argument")
+        if op_name == "__rmod__":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="rmod never called when string is first argument"
+                )
+            )
+        super().test_arith_series_with_scalar(data, op_name)
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)

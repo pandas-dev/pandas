@@ -141,7 +141,7 @@ test_cases = [
     (
         pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
         None,
-        pd.IntervalDtype("int64"),
+        pd.IntervalDtype("int64", "right"),
         {},
     ),
 ]
@@ -156,8 +156,18 @@ class TestSeriesConvertDtypes:
     def test_convert_dtypes(
         self, data, maindtype, params, expected_default, expected_other
     ):
+        warn = None
+        if (
+            hasattr(data, "dtype")
+            and data.dtype == "M8[ns]"
+            and isinstance(maindtype, pd.DatetimeTZDtype)
+        ):
+            # this astype is deprecated in favor of tz_localize
+            warn = FutureWarning
+
         if maindtype is not None:
-            series = pd.Series(data, dtype=maindtype)
+            with tm.assert_produces_warning(warn):
+                series = pd.Series(data, dtype=maindtype)
         else:
             series = pd.Series(data)
 
@@ -177,7 +187,17 @@ class TestSeriesConvertDtypes:
             if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
                 expected_dtype = dtype
 
-        expected = pd.Series(data, dtype=expected_dtype)
+        warn2 = None
+        if (
+            hasattr(data, "dtype")
+            and data.dtype == "M8[ns]"
+            and isinstance(expected_dtype, pd.DatetimeTZDtype)
+        ):
+            # this astype is deprecated in favor of tz_localize
+            warn2 = FutureWarning
+
+        with tm.assert_produces_warning(warn2):
+            expected = pd.Series(data, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
         # Test that it is a copy

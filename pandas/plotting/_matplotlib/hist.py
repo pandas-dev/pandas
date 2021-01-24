@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.io.formats.printing import pprint_thing
@@ -99,7 +101,7 @@ class HistPlot(LinePlot):
         kwds["bins"] = self.bins
         return kwds
 
-    def _post_plot_logic(self, ax: "Axes", data):
+    def _post_plot_logic(self, ax: Axes, data):
         if self.orientation == "horizontal":
             ax.set_xlabel("Frequency")
         else:
@@ -414,7 +416,7 @@ def hist_frame(
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
+        if not isinstance(column, (list, np.ndarray, ABCIndex)):
             column = [column]
         data = data[column]
     # GH32590

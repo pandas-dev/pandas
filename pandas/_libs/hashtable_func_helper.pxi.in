@@ -6,22 +6,26 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# dtype, ttype, c_type
-dtypes = [('float64', 'float64', 'float64_t'),
-          ('float32', 'float32', 'float32_t'),
-          ('uint64', 'uint64', 'uint64_t'),
-          ('uint32', 'uint32', 'uint32_t'),
-          ('uint16', 'uint16', 'uint16_t'),
-          ('uint8', 'uint8', 'uint8_t'),
-          ('object', 'pymap', 'object'),
-          ('int64', 'int64', 'int64_t'),
-          ('int32', 'int32', 'int32_t'),
-          ('int16', 'int16', 'int16_t'),
-          ('int8', 'int8', 'int8_t')]
+# name, dtype, ttype, c_type, to_c_type
+dtypes = [('Complex128', 'complex128', 'complex128',
+                         'khcomplex128_t', 'to_khcomplex128_t'),
+          ('Complex64', 'complex64', 'complex64',
+                        'khcomplex64_t', 'to_khcomplex64_t'),
+          ('Float64', 'float64', 'float64', 'float64_t', ''),
+          ('Float32', 'float32', 'float32', 'float32_t', ''),
+          ('UInt64', 'uint64', 'uint64', 'uint64_t', ''),
+          ('UInt32', 'uint32', 'uint32', 'uint32_t', ''),
+          ('UInt16', 'uint16', 'uint16', 'uint16_t', ''),
+          ('UInt8', 'uint8', 'uint8', 'uint8_t', ''),
+          ('Object', 'object', 'pymap', 'object', ''),
+          ('Int64', 'int64', 'int64', 'int64_t', ''),
+          ('Int32', 'int32', 'int32', 'int32_t', ''),
+          ('Int16', 'int16', 'int16', 'int16_t', ''),
+          ('Int8', 'int8', 'int8', 'int8_t', '')]
 
 }}
 
-{{for dtype, ttype, c_type in dtypes}}
+{{for name, dtype, ttype, c_type, to_c_type in dtypes}}
 
 
 @cython.wraparound(False)
@@ -30,7 +34,7 @@ dtypes = [('float64', 'float64', 'float64_t'),
 cdef build_count_table_{{dtype}}(ndarray[{{dtype}}] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{else}}
-cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
+cdef build_count_table_{{dtype}}(const {{dtype}}_t[:] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{endif}}
     cdef:
@@ -46,7 +50,6 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
 
     for i in range(n):
         val = values[i]
-
         if not checknull(val) or not dropna:
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
@@ -59,13 +62,9 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         kh_resize_{{ttype}}(table, n)
 
         for i in range(n):
-            val = values[i]
+            val = {{to_c_type}}(values[i])
 
-            {{if dtype == 'float64' or dtype == 'float32'}}
-            if val == val or not dropna:
-            {{else}}
-            if True:
-            {{endif}}
+            if not is_nan_{{c_type}}(val) or not dropna:
                 k = kh_get_{{ttype}}(table, val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
@@ -78,54 +77,77 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
+cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, navalue=np.NaN):
 {{else}}
-cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
+cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
+        Py_ssize_t n = len(values)
+        size_t unique_key_index = 0
+        size_t unique_key_count = 0
         kh_{{ttype}}_t *table
-
-        {{if dtype != 'object'}}
-        {{dtype}}_t[:] result_keys
-        int64_t[:] result_counts
-        {{endif}}
 
         # Don't use Py_ssize_t, since table.n_buckets is unsigned
         khiter_t k
+        bint is_null
 
+        {{c_type}} val
+
+        int ret = 0
+
+    # we track the order in which keys are first seen (GH39009),
+    # khash-map isn't insertion-ordered, thus:
+    #    table maps key to index_of_appearence
+    #    result_keys maps index_of_appearence to key
+    #    result_counts maps index_of_appearence to number of elements
+
+    result_keys = {{name}}Vector()
+    result_counts = Int64Vector()
     table = kh_init_{{ttype}}()
-    {{if dtype == 'object'}}
-    build_count_table_{{dtype}}(values, table, 1)
-    {{else}}
-    build_count_table_{{dtype}}(values, table, dropna)
-    {{endif}}
-
-    result_keys = np.empty(table.n_occupied, '{{dtype}}')
-    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
 
     {{if dtype == 'object'}}
-    for k in range(table.n_buckets):
-        if kh_exist_{{ttype}}(table, k):
-            result_keys[i] = <{{dtype}}>table.keys[k]
-            result_counts[i] = table.vals[k]
-            i += 1
+    kh_resize_{{ttype}}(table, n // 10)
+
+    for i in range(n):
+        val = values[i]
+        is_null = checknull(val)
+        if not is_null or not dropna:
+            # all nas become the same representative:
+            if is_null:
+                val = navalue
+            k = kh_get_{{ttype}}(table, <PyObject*>val)
+            if k != table.n_buckets:
+                unique_key_index = table.vals[k]
+                result_counts.data.data[unique_key_index] += 1
+            else:
+                k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
+                table.vals[k] = unique_key_count
+                result_keys.append(val)
+                result_counts.append(1)
+                unique_key_count+=1
     {{else}}
-    with nogil:
-        for k in range(table.n_buckets):
-            if kh_exist_{{ttype}}(table, k):
-                result_keys[i] = table.keys[k]
-                result_counts[i] = table.vals[k]
-                i += 1
+    kh_resize_{{ttype}}(table, n)
+
+    for i in range(n):
+        val = {{to_c_type}}(values[i])
+
+        if not is_nan_{{c_type}}(val) or not dropna:
+            k = kh_get_{{ttype}}(table, val)
+            if k != table.n_buckets:
+                unique_key_index = table.vals[k]
+                result_counts.data.data[unique_key_index] += 1
+            else:
+                k = kh_put_{{ttype}}(table, val, &ret)
+                table.vals[k] = unique_key_count
+                result_keys.append(val)
+                result_counts.append(1)
+                unique_key_count+=1
     {{endif}}
 
     kh_destroy_{{ttype}}(table)
 
-    {{if dtype == 'object'}}
-    return result_keys, result_counts
-    {{else}}
-    return np.asarray(result_keys), np.asarray(result_counts)
-    {{endif}}
+    return result_keys.to_array(), result_counts.to_array()
 
 
 @cython.wraparound(False)
@@ -133,12 +155,12 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
 {{if dtype == 'object'}}
 def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 {{else}}
-def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
+def duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
 {{endif}}
     cdef:
         int ret = 0
         {{if dtype != 'object'}}
-        {{dtype}}_t value
+        {{c_type}} value
         {{endif}}
         Py_ssize_t i, n = len(values)
         khiter_t k
@@ -160,7 +182,8 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         with nogil:
             for i in range(n - 1, -1, -1):
                 # equivalent: range(n)[::-1], which cython doesn't like in nogil
-                kh_put_{{ttype}}(table, values[i], &ret)
+                value = {{to_c_type}}(values[i])
+                kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
         {{endif}}
     elif keep == 'first':
@@ -171,7 +194,8 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         {{else}}
         with nogil:
             for i in range(n):
-                kh_put_{{ttype}}(table, values[i], &ret)
+                value = {{to_c_type}}(values[i])
+                kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
         {{endif}}
     else:
@@ -184,20 +208,18 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
                 out[i] = 1
             else:
                 k = kh_put_{{ttype}}(table, <PyObject*>value, &ret)
-                table.keys[k] = <PyObject*>value
                 table.vals[k] = i
                 out[i] = 0
         {{else}}
         with nogil:
             for i in range(n):
-                value = values[i]
+                value = {{to_c_type}}(values[i])
                 k = kh_get_{{ttype}}(table, value)
                 if k != table.n_buckets:
                     out[table.vals[k]] = 1
                     out[i] = 1
                 else:
                     k = kh_put_{{ttype}}(table, value, &ret)
-                    table.keys[k] = value
                     table.vals[k] = i
                     out[i] = 0
         {{endif}}
@@ -215,7 +237,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
 {{if dtype == 'object'}}
 def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
+def ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 {{endif}}
     """
     Return boolean of values in arr on an
@@ -248,7 +270,8 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
     {{else}}
     with nogil:
         for i in range(n):
-            kh_put_{{ttype}}(table, values[i], &ret)
+            val = {{to_c_type}}(values[i])
+            kh_put_{{ttype}}(table, val, &ret)
     {{endif}}
 
     # test membership
@@ -263,7 +286,7 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
     {{else}}
     with nogil:
         for i in range(n):
-            val = arr[i]
+            val = {{to_c_type}}(arr[i])
             k = kh_get_{{ttype}}(table, val)
             result[i] = (k != table.n_buckets)
     {{endif}}
@@ -281,7 +304,9 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
 {{py:
 
 # dtype, ctype, table_type, npy_dtype
-dtypes = [('float64', 'float64_t', 'float64', 'float64'),
+dtypes = [('complex128', 'khcomplex128_t', 'complex128', 'complex128'),
+          ('complex64', 'khcomplex64_t', 'complex64', 'complex64'),
+          ('float64', 'float64_t', 'float64', 'float64'),
           ('float32', 'float32_t', 'float32', 'float32'),
           ('int64', 'int64_t', 'int64', 'int64'),
           ('int32', 'int32_t', 'int32', 'int32'),
@@ -307,7 +332,7 @@ def mode_{{dtype}}(ndarray[{{ctype}}] values, bint dropna):
 {{else}}
 
 
-def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
+def mode_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         int count, max_count = 1

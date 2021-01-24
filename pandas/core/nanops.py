@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core.construction import extract_array
 
-bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
+bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
 
@@ -149,10 +149,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        if name in ["nansum", "nanprod"]:
-            return False
-
-        return True
+        return name not in ["nansum", "nanprod"]
     return False
 
 
@@ -184,14 +181,11 @@ def _get_fill_value(
             else:
                 return -np.inf
     else:
-        if fill_value_typ is None:
-            return iNaT
+        if fill_value_typ == "+inf":
+            # need the max int here
+            return np.iinfo(np.int64).max
         else:
-            if fill_value_typ == "+inf":
-                # need the max int here
-                return np.iinfo(np.int64).max
-            else:
-                return iNaT
+            return iNaT
 
 
 def _maybe_get_mask(
@@ -433,8 +427,7 @@ def _na_for_min_count(
     else:
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
 
-        result = np.full(result_shape, fill_value, dtype=values.dtype)
-        return result
+        return np.full(result_shape, fill_value, dtype=values.dtype)
 
 
 def nanany(
@@ -685,7 +678,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
             values = values.astype("f8")
         except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
-            raise TypeError from err
+            raise TypeError(str(err)) from err
         if mask is not None:
             values[mask] = np.nan
 
@@ -1151,12 +1144,12 @@ def nanskew(
     if isinstance(result, np.ndarray):
         result = np.where(m2 == 0, 0, result)
         result[count < 3] = np.nan
-        return result
     else:
         result = 0 if m2 == 0 else result
         if count < 3:
             return np.nan
-        return result
+
+    return result
 
 
 @disallow("M8", "m8")
@@ -1221,33 +1214,33 @@ def nankurt(
 
     with np.errstate(invalid="ignore", divide="ignore"):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
-        numer = count * (count + 1) * (count - 1) * m4
-        denom = (count - 2) * (count - 3) * m2 ** 2
+        numerator = count * (count + 1) * (count - 1) * m4
+        denominator = (count - 2) * (count - 3) * m2 ** 2
 
     # floating point error
     #
     # #18044 in _libs/windows.pyx calc_kurt follow this behavior
     # to fix the fperr to treat denom <1e-14 as zero
-    numer = _zero_out_fperr(numer)
-    denom = _zero_out_fperr(denom)
+    numerator = _zero_out_fperr(numerator)
+    denominator = _zero_out_fperr(denominator)
 
-    if not isinstance(denom, np.ndarray):
+    if not isinstance(denominator, np.ndarray):
         # if ``denom`` is a scalar, check these corner cases first before
         # doing division
         if count < 4:
             return np.nan
-        if denom == 0:
+        if denominator == 0:
             return 0
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        result = numer / denom - adj
+        result = numerator / denominator - adj
 
     dtype = values.dtype
     if is_float_dtype(dtype):
         result = result.astype(dtype)
 
     if isinstance(result, np.ndarray):
-        result = np.where(denom == 0, 0, result)
+        result = np.where(denominator == 0, 0, result)
         result[count < 4] = np.nan
 
     return result

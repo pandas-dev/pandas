@@ -1,3 +1,18 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import numpy as np
 import pytest
 
@@ -336,11 +351,16 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
 
-    @pytest.mark.skip("Invalid test")
-    def test_fillna_fill_other(self, data):
-        # inplace update doesn't work correctly with patched extension arrays
-        # extract_array returns PandasArray, while dtype is a numpy dtype
-        super().test_fillna_fill_other(data_missing)
+    def test_fillna_fill_other(self, data_missing):
+        # Same as the parent class test, but with PandasDtype for expected["B"]
+        #  instead of equivalent numpy dtype
+        data = data_missing
+        result = pd.DataFrame({"A": data, "B": [np.nan] * len(data)}).fillna({"B": 0.0})
+
+        expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
+        expected["B"] = expected["B"].astype(PandasDtype(expected["B"].dtype))
+
+        self.assert_frame_equal(result, expected)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
@@ -348,18 +368,6 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
     # not actually a mixed concat, since we concat int and int.
     def test_concat_mixed_dtypes(self, data):
         super().test_concat_mixed_dtypes(data)
-
-    @pytest.mark.xfail(
-        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
-    )
-    def test_concat(self, data, in_frame):
-        super().test_concat(data, in_frame)
-
-    @pytest.mark.xfail(
-        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
-    )
-    def test_concat_all_na_block(self, data_missing, in_frame):
-        super().test_concat_all_na_block(data_missing, in_frame)
 
     @skip_nested
     def test_merge(self, data, na_value):

@@ -203,6 +203,18 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
+    gb = df.groupby(level=0)
+    if reduction_func in ("idxmax", "idxmin"):
+        error = TypeError
+        msg = "reduction operation '.*' not allowed for this dtype"
+    else:
+        error = ValueError
+        msg = f"Operation {reduction_func} does not support axis=1"
+    with pytest.raises(error, match=msg):
+        gb.agg(reduction_func, axis=1)
+
+
 def test_aggregate_item_by_item(df):
     grouped = df.groupby("A")
 
@@ -1049,7 +1061,7 @@ def test_groupby_get_by_index():
     df = DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
     expected = DataFrame({"A": ["S", "W"], "B": [1.0, 2.0]}).set_index("A")
-    pd.testing.assert_frame_equal(res, expected)
+    tm.assert_frame_equal(res, expected)
 
 
 @pytest.mark.parametrize(
