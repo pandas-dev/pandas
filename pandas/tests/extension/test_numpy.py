@@ -351,11 +351,16 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
 
-    @pytest.mark.skip("Invalid test")
-    def test_fillna_fill_other(self, data):
-        # inplace update doesn't work correctly with patched extension arrays
-        # extract_array returns PandasArray, while dtype is a numpy dtype
-        super().test_fillna_fill_other(data_missing)
+    def test_fillna_fill_other(self, data_missing):
+        # Same as the parent class test, but with PandasDtype for expected["B"]
+        #  instead of equivalent numpy dtype
+        data = data_missing
+        result = pd.DataFrame({"A": data, "B": [np.nan] * len(data)}).fillna({"B": 0.0})
+
+        expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
+        expected["B"] = expected["B"].astype(PandasDtype(expected["B"].dtype))
+
+        self.assert_frame_equal(result, expected)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
