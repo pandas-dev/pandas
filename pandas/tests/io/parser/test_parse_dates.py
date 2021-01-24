@@ -1606,7 +1606,7 @@ def test_date_parser_and_names(all_parsers):
 
 
 def test_date_parser_usecols_thousands(all_parsers):
-    # GH#
+    # GH#39365
     data = """A,B,C
     1,3,20-09-01-01
     2,4,20-09-01-01
