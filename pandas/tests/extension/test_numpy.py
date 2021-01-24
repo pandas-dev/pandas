@@ -364,18 +364,6 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
     def test_concat_mixed_dtypes(self, data):
         super().test_concat_mixed_dtypes(data)
 
-    @pytest.mark.xfail(
-        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
-    )
-    def test_concat(self, data, in_frame):
-        super().test_concat(data, in_frame)
-
-    @pytest.mark.xfail(
-        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
-    )
-    def test_concat_all_na_block(self, data_missing, in_frame):
-        super().test_concat_all_na_block(data_missing, in_frame)
-
     @skip_nested
     def test_merge(self, data, na_value):
         # Fails creating expected
