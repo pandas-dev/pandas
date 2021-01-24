@@ -172,6 +172,8 @@ class ParserBase:
 
         self._first_chunk = True
 
+        self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
+
         self.handles: Optional[IOHandles] = None
 
     def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
@@ -545,6 +547,65 @@ class ParserBase:
             if verbose and na_count:
                 print(f"Filled {na_count} NA values in column {c!s}")
         return result
+
+    def _set_noconvert_dtype_columns(self, col_indices, names):
+        """
+        Set the columns that should not undergo dtype conversions.
+
+        Currently, any column that is involved with date parsing will not
+        undergo such conversions.
+        """
+        noconvert_columns = set()
+        if self.usecols_dtype == "integer":
+            # A set of integers will be converted to a list in
+            # the correct order every single time.
+            usecols = list(self.usecols)
+            usecols.sort()
+        elif callable(self.usecols) or self.usecols_dtype not in ("empty", None):
+            # The names attribute should have the correct columns
+            # in the proper order for indexing with parse_dates.
+            usecols = col_indices
+        else:
+            # Usecols is empty.
+
+            # pandas\io\parsers.py:2030: error: Incompatible types in
+            # assignment (expression has type "None", variable has type
+            # "List[Any]")  [assignment]
+            usecols = None  # type: ignore[assignment]
+
+        def _set(x):
+            if usecols is not None and is_integer(x):
+                x = usecols[x]
+
+            if not is_integer(x):
+                x = col_indices[names.index(x)]
+
+            noconvert_columns.add(x)
+
+        if isinstance(self.parse_dates, list):
+            for val in self.parse_dates:
+                if isinstance(val, list):
+                    for k in val:
+                        _set(k)
+                else:
+                    _set(val)
+
+        elif isinstance(self.parse_dates, dict):
+            for val in self.parse_dates.values():
+                if isinstance(val, list):
+                    for k in val:
+                        _set(k)
+                else:
+                    _set(val)
+
+        elif self.parse_dates:
+            if isinstance(self.index_col, list):
+                for k in self.index_col:
+                    _set(k)
+            elif self.index_col is not None:
+                _set(self.index_col)
+
+        return noconvert_columns
 
     def _infer_types(self, values, na_values, try_num_bool=True):
         """
