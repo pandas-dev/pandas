@@ -1,5 +1,5 @@
-#ifndef PANDAS__LIBS_SRC_UJSON_DATE_CONVERSIONS
-#define PANDAS__LIBS_SRC_UJSON_DATE_CONVERSIONS
+#ifndef PANDAS__LIBS_SRC_UJSON_PYTHON_DATE_CONVERSIONS_H_
+#define PANDAS__LIBS_SRC_UJSON_PYTHON_DATE_CONVERSIONS_H_
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -29,4 +29,4 @@ npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base);
 
 char *int64ToIsoDuration(int64_t value, size_t *len);
 
-#endif
+#endif  // PANDAS__LIBS_SRC_UJSON_PYTHON_DATE_CONVERSIONS_H_
