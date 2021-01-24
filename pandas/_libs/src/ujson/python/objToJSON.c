@@ -1606,7 +1606,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (PyObject_HasAttrString(obj, "value")) {
             value = get_long_attr(obj, "value");
         } else {
-            value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
+            value = total_seconds(obj) * 1000000000LL;  // nanoseconds per sec
         }
 
         if (value == get_nat()) {
