@@ -898,7 +898,7 @@ def period_array(
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
         data = list(data)
 
-    data = np.asarray(data)
+    arrdata = np.asarray(data)
 
     dtype: Optional[PeriodDtype]
     if freq:
@@ -906,15 +906,15 @@ def period_array(
     else:
         dtype = None
 
-    if is_float_dtype(data) and len(data) > 0:
+    if is_float_dtype(arrdata) and len(arrdata) > 0:
         raise TypeError("PeriodIndex does not allow floating point in construction")
 
-    if is_integer_dtype(data.dtype):
-        arr = data.astype(np.int64, copy=False)
+    if is_integer_dtype(arrdata.dtype):
+        arr = arrdata.astype(np.int64, copy=False)
         ordinals = libperiod.from_ordinals(arr, freq)
         return PeriodArray(ordinals, dtype=dtype)
 
-    data = ensure_object(data)
+    data = ensure_object(arrdata)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
 
