@@ -366,6 +366,23 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
+    def test_setitem_df_wrong_column_number(self, cols):
+        # GH#38604
+        df = DataFrame([[1, 2, 3]], columns=cols)
+        rhs = DataFrame([[10, 11]], columns=["d", "e"])
+        msg = "Columns must be same length as key"
+        with pytest.raises(ValueError, match=msg):
+            df["a"] = rhs
+
+    def test_setitem_listlike_indexer_duplicate_columns(self):
+        # GH#38604
+        df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
+        rhs = DataFrame([[10, 11, 12]], columns=["d", "e", "c"])
+        df[["a", "b"]] = rhs
+        expected = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemWithExpansion:
     def test_setitem_listlike_views(self):
