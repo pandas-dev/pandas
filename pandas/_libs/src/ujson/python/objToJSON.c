@@ -1519,7 +1519,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             }
         }
 
-        // TODO: this prevents infinite loop with mixed-type DataFrames;
+        // TODO(username): this prevents infinite loop with
+        // mixed-type DataFrames;
         // refactor
         enc->npyCtxtPassthru = NULL;
         enc->npyType = -1;
@@ -1618,7 +1619,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         } else {
             unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
             if (scaleNanosecToUnit(&value, unit) != 0) {
-                // TODO: Add some kind of error handling here
+                // TODO(username): Add some kind of error handling here
             }
 
             exc = PyErr_Occurred();
