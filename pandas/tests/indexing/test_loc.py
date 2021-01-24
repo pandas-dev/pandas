@@ -2095,7 +2095,7 @@ class TestLocSeries:
         # GH35830
         dates = [date(2000, 1, i) for i in (1, 2, 5)]
         values = [1, 2, 3]
-        s = Series(values, pd.DatetimeIndex(dates))
+        s = Series(values, dates)
         i = 1
         expected = values[i]
         result = s.loc[dates[i]]
