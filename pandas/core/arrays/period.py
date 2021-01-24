@@ -910,8 +910,8 @@ def period_array(
         raise TypeError("PeriodIndex does not allow floating point in construction")
 
     if is_integer_dtype(data.dtype):
-        data = data.astype(np.int64, copy=False)
-        ordinals = libperiod.from_ordinals(data, freq)
+        arr = data.astype(np.int64, copy=False)
+        ordinals = libperiod.from_ordinals(arr, freq)
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(data)
