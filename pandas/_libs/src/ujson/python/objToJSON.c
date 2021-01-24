@@ -1395,7 +1395,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                     }
                 } else {
                     cLabel = PyObject_Malloc(21);  // 21 chars for int64
-                    sprintf(cLabel, "%" NPY_DATETIME_FMT,
+                    snprintf(cLabel, "%" NPY_DATETIME_FMT,
                             NpyDateTimeToEpoch(nanosecVal, base));
                     len = strlen(cLabel);
                 }
