@@ -272,38 +272,38 @@ class TestPeriodIndexComparisons:
         tm.assert_equal(base <= idx, exp)
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
-    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box_with_array):
+    def test_parr_cmp_pi_mismatched_freq(self, freq, box_with_array):
         # GH#13200
         # different base freq
         base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
         base = tm.box_expected(base, box_with_array)
 
-        msg = "Input has different freq=A-DEC from "
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        msg = rf"Invalid comparison between dtype=period\[{freq}\] and Period"
+        with pytest.raises(TypeError, match=msg):
             base <= Period("2011", freq="A")
 
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        with pytest.raises(TypeError, match=msg):
             Period("2011", freq="A") >= base
 
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="A")
-        rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=A-DEC\)"
+        rev_msg = r"Invalid comparison between dtype=period\[A-DEC\] and PeriodArray"
         idx_msg = rev_msg if box_with_array in [tm.to_array, pd.array] else msg
-        with pytest.raises(IncompatibleFrequency, match=idx_msg):
+        with pytest.raises(TypeError, match=idx_msg):
             base <= idx
 
         # Different frequency
-        msg = "Input has different freq=4M from "
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        msg = rf"Invalid comparison between dtype=period\[{freq}\] and Period"
+        with pytest.raises(TypeError, match=msg):
             base <= Period("2011", freq="4M")
 
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        with pytest.raises(TypeError, match=msg):
             Period("2011", freq="4M") >= base
 
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="4M")
-        rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=4M\)"
+        rev_msg = r"Invalid comparison between dtype=period\[4M\] and PeriodArray"
         idx_msg = rev_msg if box_with_array in [tm.to_array, pd.array] else msg
-        with pytest.raises(IncompatibleFrequency, match=idx_msg):
+        with pytest.raises(TypeError, match=idx_msg):
             base <= idx
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
@@ -354,12 +354,13 @@ class TestPeriodIndexComparisons:
         idx1 = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-05"], freq=freq)
 
         diff = PeriodIndex(["2011-02", "2011-01", "2011-04", "NaT"], freq="4M")
-        msg = "Input has different freq=4M from Period(Array|Index)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
+        msg = rf"Invalid comparison between dtype=period\[{freq}\] and PeriodArray"
+        with pytest.raises(TypeError, match=msg):
             idx1 > diff
 
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            idx1 == diff
+        result = idx1 == diff
+        expected = np.array([False, False, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
 
     # TODO: De-duplicate with test_pi_cmp_nat
     @pytest.mark.parametrize("dtype", [object, None])

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from matplotlib.table import Table
 
 
-def format_date_labels(ax: "Axes", rot):
+def format_date_labels(ax: Axes, rot):
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")
@@ -284,7 +284,7 @@ def create_subplots(
     return fig, axes
 
 
-def _remove_labels_from_axis(axis: "Axis"):
+def _remove_labels_from_axis(axis: Axis):
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
@@ -300,7 +300,7 @@ def _remove_labels_from_axis(axis: "Axis"):
     axis.get_label().set_visible(False)
 
 
-def _has_externally_shared_axis(ax1: "matplotlib.axes", compare_axis: "str") -> bool:
+def _has_externally_shared_axis(ax1: matplotlib.axes, compare_axis: str) -> bool:
     """
     Return whether an axis is externally shared.
 
@@ -351,7 +351,7 @@ def _has_externally_shared_axis(ax1: "matplotlib.axes", compare_axis: "str") -> 
 
 
 def handle_shared_axes(
-    axarr: Iterable["Axes"],
+    axarr: Iterable[Axes],
     nplots: int,
     naxes: int,
     nrows: int,
@@ -404,7 +404,7 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> np.ndarray:
+def flatten_axes(axes: Union[Axes, Sequence[Axes]]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
@@ -413,7 +413,7 @@ def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> np.ndarray:
 
 
 def set_ticks_props(
-    axes: Union["Axes", Sequence["Axes"]],
+    axes: Union[Axes, Sequence[Axes]],
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
@@ -433,7 +433,7 @@ def set_ticks_props(
     return axes
 
 
-def get_all_lines(ax: "Axes") -> List["Line2D"]:
+def get_all_lines(ax: Axes) -> List[Line2D]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -445,7 +445,7 @@ def get_all_lines(ax: "Axes") -> List["Line2D"]:
     return lines
 
 
-def get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
+def get_xlim(lines: Iterable[Line2D]) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
     for line in lines:
         x = line.get_xdata(orig=False)

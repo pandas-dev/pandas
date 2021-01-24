@@ -31,12 +31,11 @@ from pandas.core.arrays.period import (
 )
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import ensure_index, maybe_extract_name
+from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
-from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
@@ -422,33 +421,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         # indexing
         return "period"
 
-    def insert(self, loc: int, item):
-        if not isinstance(item, Period) or self.freq != item.freq:
-            return self.astype(object).insert(loc, item)
-
-        return DatetimeIndexOpsMixin.insert(self, loc, item)
-
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        """
-        See Index.join
-        """
-        self._assert_can_do_setop(other)
-
-        if not isinstance(other, PeriodIndex):
-            return self.astype(object).join(
-                other, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
-
-        # _assert_can_do_setop ensures we have matching dtype
-        result = super().join(
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-        return result
-
     # ------------------------------------------------------------------------
     # Indexing Methods
 
@@ -606,40 +578,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             return self._partial_date_slice(reso, parsed)
         except KeyError as err:
             raise KeyError(key) from err
-
-    # ------------------------------------------------------------------------
-    # Set Operation Methods
-
-    def _assert_can_do_setop(self, other):
-        super()._assert_can_do_setop(other)
-
-        # *Can't* use PeriodIndexes of different freqs
-        # *Can* use PeriodIndex/DatetimeIndex
-        if isinstance(other, PeriodIndex) and self.freq != other.freq:
-            raise raise_on_incompatible(self, other)
-
-    def _setop(self, other, sort, opname: str):
-        """
-        Perform a set operation by dispatching to the Int64Index implementation.
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        res_name = get_op_result_name(self, other)
-        other = ensure_index(other)
-
-        i8self = Int64Index._simple_new(self.asi8)
-        i8other = Int64Index._simple_new(other.asi8)
-        i8result = getattr(i8self, opname)(i8other, sort=sort)
-
-        parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
-        result = type(self)._simple_new(parr, name=res_name)
-        return result
-
-    def _intersection(self, other, sort=False):
-        return self._setop(other, sort, opname="intersection")
-
-    def _union(self, other, sort):
-        return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------
 

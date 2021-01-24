@@ -50,19 +50,20 @@ def is_number(obj) -> bool:
 
     Examples
     --------
-    >>> pd.api.types.is_number(1)
+    >>> from pandas.api.types import is_number
+    >>> is_number(1)
     True
-    >>> pd.api.types.is_number(7.15)
+    >>> is_number(7.15)
     True
 
     Booleans are valid because they are int subclass.
 
-    >>> pd.api.types.is_number(False)
+    >>> is_number(False)
     True
 
-    >>> pd.api.types.is_number("foo")
+    >>> is_number("foo")
     False
-    >>> pd.api.types.is_number("5")
+    >>> is_number("5")
     False
     """
     return isinstance(obj, (Number, np.number))
