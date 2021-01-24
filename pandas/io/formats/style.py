@@ -886,7 +886,7 @@ class Styler:
         **kwargs,
     ) -> Styler:
         """
-        Apply a function column-wise, row-wise, or table-wise.
+        Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Updates the HTML representation with the result.
 
@@ -896,7 +896,7 @@ class Styler:
             ``func`` should take a Series or DataFrame (depending
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
-            column labels when ``axis=None``.
+            column labels or an ndarray of appropriate shape when ``axis=None``.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -913,9 +913,11 @@ class Styler:
 
         Notes
         -----
-        The output shape of ``func`` should match the input, i.e. if
+        The output of ``func`` should be elements having CSS style as string or,
+        if nothing is to be applied to that element, an empty string or ``None``.
+        The output shape must match the input, i.e. if
         ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x).shape == x.shape`` should be true.
+        then ``func(x).shape == x.shape`` should be ``True``.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
@@ -923,12 +925,12 @@ class Styler:
 
         Examples
         --------
-        >>> def highlight_max(x):
-        ...     return ['background-color: yellow' if v == x.max() else ''
-                        for v in x]
-        ...
+        >>> def highlight_max(x, color):
+        ...     return np.where(x == np.nanmax(x.values), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2))
-        >>> df.style.apply(highlight_max)
+        >>> df.style.apply(highlight_max, color='red')
+        >>> df.style.apply(highlight_max, color='blue', axis=1)
+        >>> df.style.apply(highlight_max, color='green', axis=None)
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
@@ -946,7 +948,7 @@ class Styler:
 
     def applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         """
-        Apply a function elementwise.
+        Apply a CSS-styling function elementwise.
 
         Updates the HTML representation with the result.
 
@@ -964,10 +966,22 @@ class Styler:
         -------
         self : Styler
 
+        Notes
+        -----
+        The output of ``func`` should be a CSS style as string or, if nothing is to be
+        applied, an empty string or ``None``.
+
         See Also
         --------
         Styler.where: Updates the HTML representation with a style which is
             selected in accordance with the return value of a function.
+
+        Examples
+        --------
+        >>> def color_negative(v, color):
+        ...     return f"color: {color};" if v < 0 else None
+        >>> df = pd.DataFrame(np.random.randn(5, 2))
+        >>> df.style.applymap(color_negative, color='red')
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
