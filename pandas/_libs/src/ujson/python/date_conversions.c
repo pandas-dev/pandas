@@ -109,7 +109,7 @@ npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
                             "Could not convert PyDateTime to numpy datetime");
         }
         // TODO: is setting errMsg required?
-        //((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+        // ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
         // return NULL;
     }
 
