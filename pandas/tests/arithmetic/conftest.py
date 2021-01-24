@@ -18,18 +18,6 @@ def id_func(x):
 
 
 # ------------------------------------------------------------------
-@pytest.fixture(
-    params=[
-        ("foo", None, None),
-        ("Egon", "Venkman", None),
-        ("NCC1701D", "NCC1701D", "NCC1701D"),
-    ]
-)
-def names(request):
-    """
-    A 3-tuple of names, the first two for operands, the last for a result.
-    """
-    return request.param
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -81,7 +69,7 @@ def zero(request):
 
     Examples
     --------
-    >>> arr = pd.RangeIndex(5)
+    >>> arr = RangeIndex(5)
     >>> arr / zeros
     Float64Index([nan, inf, inf, inf, inf], dtype='float64')
     """

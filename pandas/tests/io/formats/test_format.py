@@ -177,9 +177,9 @@ class TestDataFrameFormatting:
         df = DataFrame(1, columns=range(10), index=range(10))
         df.iloc[1, 1] = np.nan
 
-        def check(null_counts, result):
+        def check(show_counts, result):
             buf = StringIO()
-            df.info(buf=buf, null_counts=null_counts)
+            df.info(buf=buf, show_counts=show_counts)
             assert ("non-null" in buf.getvalue()) is result
 
         with option_context(
@@ -193,6 +193,18 @@ class TestDataFrameFormatting:
             check(None, False)
             check(True, False)
             check(False, False)
+
+        # GH37999
+        with tm.assert_produces_warning(
+            FutureWarning, match="null_counts is deprecated.+"
+        ):
+            buf = StringIO()
+            df.info(buf=buf, null_counts=True)
+            assert "non-null" in buf.getvalue()
+
+        # GH37999
+        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
+            df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
         max_len = 20
@@ -284,6 +296,9 @@ class TestDataFrameFormatting:
 
         with option_context("display.max_seq_items", 5):
             assert len(printing.pprint_thing(list(range(1000)))) < 100
+
+        with option_context("display.max_seq_items", 1):
+            assert len(printing.pprint_thing(list(range(1000)))) < 9
 
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == "{1}"
@@ -1681,7 +1696,7 @@ c  10  11  12  13  14\
     def test_to_string_line_width(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
-        assert max(len(l) for l in s.split("\n")) == 80
+        assert max(len(line) for line in s.split("\n")) == 80
 
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
@@ -1989,6 +2004,25 @@ c  10  11  12  13  14\
             else:
                 assert ("+10" in line) or skip
             skip = False
+
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
+            (["3.50"], "0    3.50\ndtype: object"),
+            ([1.20, "1.00"], "0     1.2\n1    1.00\ndtype: object"),
+            ([np.nan], "0   NaN\ndtype: float64"),
+            ([None], "0    None\ndtype: object"),
+            (["3.50", np.nan], "0    3.50\n1     NaN\ndtype: object"),
+            ([3.50, np.nan], "0    3.5\n1    NaN\ndtype: float64"),
+            ([3.50, np.nan, "3.50"], "0     3.5\n1     NaN\n2    3.50\ndtype: object"),
+            ([3.50, None, "3.50"], "0     3.5\n1    None\n2    3.50\ndtype: object"),
+        ],
+    )
+    def test_repr_str_float_truncation(self, data, expected):
+        # GH#38708
+        series = Series(data)
+        result = repr(series)
+        assert result == expected
 
     def test_dict_entries(self):
         df = DataFrame({"A": [{"a": 1, "b": 2}]})
@@ -2896,11 +2930,11 @@ class TestFloatArrayFormatter:
         with pd.option_context("display.precision", 4):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
-            df = DataFrame(dict(x=[12345.6789]))
+            df = DataFrame({"x": [12345.6789]})
             assert str(df) == "            x\n0  12345.6789"
-            df = DataFrame(dict(x=[2e6]))
+            df = DataFrame({"x": [2e6]})
             assert str(df) == "           x\n0  2000000.0"
-            df = DataFrame(dict(x=[12345.6789, 2e6]))
+            df = DataFrame({"x": [12345.6789, 2e6]})
             assert str(df) == "            x\n0  1.2346e+04\n1  2.0000e+06"
 
 

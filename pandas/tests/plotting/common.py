@@ -1,3 +1,12 @@
+"""
+Module consolidating common testing functions for checking plotting.
+
+Currently all plotting tests are marked as slow via
+``pytestmark = pytest.mark.slow`` at the module level.
+"""
+
+from __future__ import annotations
+
 import os
 from typing import TYPE_CHECKING, Sequence, Union
 import warnings
@@ -177,7 +186,7 @@ class TestPlotBase:
             assert patch.get_visible() == visible
 
     def _check_patches_all_filled(
-        self, axes: Union["Axes", Sequence["Axes"]], filled: bool = True
+        self, axes: Union[Axes, Sequence[Axes]], filled: bool = True
     ) -> None:
         """
         Check for each artist whether it is filled or not
@@ -619,7 +628,8 @@ def _gen_two_subplots(f, fig, **kwargs):
     """
     Create plot on two subplots forcefully created.
     """
-    kwargs.get("ax", fig.add_subplot(211))
+    if "ax" not in kwargs:
+        fig.add_subplot(211)
     yield f(**kwargs)
 
     if f is pd.plotting.bootstrap_plot:

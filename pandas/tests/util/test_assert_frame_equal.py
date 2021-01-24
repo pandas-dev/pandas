@@ -120,7 +120,7 @@ def test_frame_equal_shape_mismatch(df1, df2, obj_fixture):
     ],
 )
 def test_frame_equal_index_dtype_mismatch(df1, df2, msg, check_index_type):
-    kwargs = dict(check_index_type=check_index_type)
+    kwargs = {"check_index_type": check_index_type}
 
     if check_index_type:
         with pytest.raises(AssertionError, match=msg):
@@ -134,7 +134,7 @@ def test_empty_dtypes(check_dtype):
     df1 = DataFrame(columns=columns)
     df2 = DataFrame(columns=columns)
 
-    kwargs = dict(check_dtype=check_dtype)
+    kwargs = {"check_dtype": check_dtype}
     df1["col1"] = df1["col1"].astype("int64")
 
     if check_dtype:
@@ -254,7 +254,7 @@ def test_assert_frame_equal_interval_dtype_mismatch():
         "Attributes of DataFrame\\.iloc\\[:, 0\\] "
         '\\(column name="a"\\) are different\n\n'
         'Attribute "dtype" are different\n'
-        "\\[left\\]:  interval\\[int64\\]\n"
+        "\\[left\\]:  interval\\[int64, right\\]\n"
         "\\[right\\]: object"
     )
 
@@ -272,6 +272,20 @@ def test_assert_frame_equal_ignore_extension_dtype_mismatch(right_dtype):
     tm.assert_frame_equal(left, right, check_dtype=False)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ("timedelta64[ns]"),
+        ("datetime64[ns, UTC]"),
+        ("Period[D]"),
+    ],
+)
+def test_assert_frame_equal_datetime_like_dtype_mismatch(dtype):
+    df1 = DataFrame({"a": []}, dtype=dtype)
+    df2 = DataFrame({"a": []})
+    tm.assert_frame_equal(df1, df2, check_dtype=False)
+
+
 def test_allows_duplicate_labels():
     left = DataFrame()
     right = DataFrame().set_flags(allows_duplicate_labels=False)
@@ -285,3 +299,9 @@ def test_allows_duplicate_labels():
 
     with pytest.raises(AssertionError, match="<Flags"):
         tm.assert_frame_equal(left, right)
+
+
+def test_assert_frame_equal_columns_mixed_dtype():
+    # GH#39168
+    df = DataFrame([[0, 1, 2]], columns=["foo", "bar", 42], index=[1, "test", 2])
+    tm.assert_frame_equal(df, df, check_like=True)

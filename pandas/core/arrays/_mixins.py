@@ -1,4 +1,7 @@
-from typing import Any, Optional, Sequence, Type, TypeVar
+from __future__ import annotations
+
+from functools import wraps
+from typing import Any, Optional, Sequence, Type, TypeVar, Union
 
 import numpy as np
 
@@ -23,6 +26,26 @@ from pandas.core.indexers import check_array_indexer
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
+
+
+def ravel_compat(meth):
+    """
+    Decorator to ravel a 2D array before passing it to a cython operation,
+    then reshape the result to our own shape.
+    """
+
+    @wraps(meth)
+    def method(self, *args, **kwargs):
+        if self.ndim == 1:
+            return meth(self, *args, **kwargs)
+
+        flags = self._ndarray.flags
+        flat = self.ravel("K")
+        result = meth(flat, *args, **kwargs)
+        order = "F" if flags.f_contiguous else "C"
+        return result.reshape(self.shape, order=order)
+
+    return method
 
 
 class NDArrayBackedExtensionArray(ExtensionArray):
@@ -160,7 +183,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         --------
         numpy.ndarray.repeat
         """
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         new_data = self._ndarray.repeat(repeats, axis=axis)
         return self._from_backing_data(new_data)
 
@@ -212,7 +235,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_setitem_value(self, value):
         return value
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
+    ) -> Union[NDArrayBackedExtensionArrayT, Any]:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]
@@ -250,7 +275,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
-                # TODO: PandasArray didnt used to copy, need tests for this
+                # TODO: PandasArray didn't used to copy, need tests for this
                 new_values = self._from_backing_data(new_values)
             else:
                 # fill with value
@@ -296,3 +321,49 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         data = ",\n".join(lines)
         class_name = f"<{type(self).__name__}>"
         return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
+
+    # ------------------------------------------------------------------------
+    # __array_function__ methods
+
+    def putmask(self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value) -> None:
+        """
+        Analogue to np.putmask(self, mask, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Raises
+        ------
+        TypeError
+            If value cannot be cast to self.dtype.
+        """
+        value = self._validate_setitem_value(value)
+
+        np.putmask(self._ndarray, mask, value)
+
+    def where(
+        self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
+    ) -> NDArrayBackedExtensionArrayT:
+        """
+        Analogue to np.where(mask, self, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Raises
+        ------
+        TypeError
+            If value cannot be cast to self.dtype.
+        """
+        value = self._validate_setitem_value(value)
+
+        res_values = np.where(mask, self._ndarray, value)
+        return self._from_backing_data(res_values)
+
+    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc)
+        return self._from_backing_data(res_values)

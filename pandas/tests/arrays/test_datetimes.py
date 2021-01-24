@@ -175,22 +175,34 @@ class TestDatetimeArray:
     )
     def test_astype_copies(self, dtype, other):
         # https://github.com/pandas-dev/pandas/pull/32490
-        s = pd.Series([1, 2], dtype=dtype)
-        orig = s.copy()
-        t = s.astype(other)
+        ser = pd.Series([1, 2], dtype=dtype)
+        orig = ser.copy()
+
+        warn = None
+        if (dtype == "datetime64[ns]") ^ (other == "datetime64[ns]"):
+            # deprecated in favor of tz_localize
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            t = ser.astype(other)
         t[:] = pd.NaT
-        tm.assert_series_equal(s, orig)
+        tm.assert_series_equal(ser, orig)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
         arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
-        result = arr.astype(dtype)
+        with tm.assert_produces_warning(FutureWarning):
+            # astype(int..) deprecated
+            result = arr.astype(dtype)
 
         if np.dtype(dtype).kind == "u":
             expected_dtype = np.dtype("uint64")
         else:
             expected_dtype = np.dtype("int64")
-        expected = arr.astype(expected_dtype)
+
+        with tm.assert_produces_warning(FutureWarning):
+            # astype(int..) deprecated
+            expected = arr.astype(expected_dtype)
 
         assert result.dtype == expected_dtype
         tm.assert_numpy_array_equal(result, expected)
@@ -276,7 +288,7 @@ class TestDatetimeArray:
 
         arr[-2] = pd.NaT
         result = arr.value_counts()
-        expected = pd.Series([1, 4, 2], index=[pd.NaT, dti[0], dti[1]])
+        expected = pd.Series([4, 2, 1], index=[dti[0], dti[1], pd.NaT])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["pad", "backfill"])
@@ -449,6 +461,17 @@ class TestDatetimeArray:
         with pytest.raises(ValueError, match=msg):
             dta.shift(1, fill_value=fill_value)
 
+    def test_tz_localize_t2d(self):
+        dti = pd.date_range("1994-05-12", periods=12, tz="US/Pacific")
+        dta = dti._data.reshape(3, 4)
+        result = dta.tz_localize(None)
+
+        expected = dta.ravel().tz_localize(None).reshape(dta.shape)
+        tm.assert_datetime_array_equal(result, expected)
+
+        roundtrip = expected.tz_localize("US/Pacific")
+        tm.assert_datetime_array_equal(roundtrip, dta)
+
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
@@ -464,6 +487,24 @@ class TestSequenceToDT64NS:
         )
         result, _, _ = sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
         tm.assert_numpy_array_equal(arr._data, result)
+
+    @pytest.mark.parametrize("order", ["F", "C"])
+    def test_2d(self, order):
+        dti = pd.date_range("2016-01-01", periods=6, tz="US/Pacific")
+        arr = np.array(dti, dtype=object).reshape(3, 2)
+        if order == "F":
+            arr = arr.T
+
+        res = sequence_to_dt64ns(arr)
+        expected = sequence_to_dt64ns(arr.ravel())
+
+        tm.assert_numpy_array_equal(res[0].ravel(), expected[0])
+        assert res[1] == expected[1]
+        assert res[2] == expected[2]
+
+        res = DatetimeArray._from_sequence(arr)
+        expected = DatetimeArray._from_sequence(arr.ravel()).reshape(arr.shape)
+        tm.assert_datetime_array_equal(res, expected)
 
 
 class TestReductions:

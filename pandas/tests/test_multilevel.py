@@ -135,7 +135,9 @@ class TestMultiLevel:
         result = grouped.sum()
         assert (result.columns == ["f2", "f3"]).all()
 
-    def test_insert_index(self, multiindex_year_month_day_dataframe_random_data):
+    def test_setitem_with_expansion_multiindex_columns(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
         df = ymd[:5].T
@@ -242,12 +244,11 @@ class TestMultiLevel:
             expected = df.groupby(level=0).agg(alt)
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
     def test_agg_multiple_levels(
-        self, multiindex_year_month_day_dataframe_random_data, klass
+        self, multiindex_year_month_day_dataframe_random_data, frame_or_series
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
-        if klass is Series:
+        if frame_or_series is Series:
             ymd = ymd["A"]
 
         result = ymd.sum(level=["year", "month"])
@@ -349,14 +350,6 @@ class TestMultiLevel:
         result = frame.T.loc[:, ["foo", "qux"]]
         tm.assert_frame_equal(result, expected.T)
 
-    def test_unicode_repr_level_names(self):
-        index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
-
-        s = Series(range(2), index=index)
-        df = DataFrame(np.random.randn(2, 4), index=index)
-        repr(s)
-        repr(df)
-
     @pytest.mark.parametrize("d", [4, "d"])
     def test_empty_frame_groupby_dtypes_consistency(self, d):
         # GH 20888
@@ -386,28 +379,6 @@ class TestMultiLevel:
         result = s.groupby(s.index).first()
         assert len(result) == 3
 
-    def test_duplicate_mi(self):
-        # GH 4516
-        df = DataFrame(
-            [
-                ["foo", "bar", 1.0, 1],
-                ["foo", "bar", 2.0, 2],
-                ["bah", "bam", 3.0, 3],
-                ["bah", "bam", 4.0, 4],
-                ["foo", "bar", 5.0, 5],
-                ["bah", "bam", 6.0, 6],
-            ],
-            columns=list("ABCD"),
-        )
-        df = df.set_index(["A", "B"])
-        df = df.sort_index(level=0)
-        expected = DataFrame(
-            [["foo", "bar", 1.0, 1], ["foo", "bar", 2.0, 2], ["foo", "bar", 5.0, 5]],
-            columns=list("ABCD"),
-        ).set_index(["A", "B"])
-        result = df.loc[("foo", "bar")]
-        tm.assert_frame_equal(result, expected)
-
     def test_subsets_multiindex_dtype(self):
         # GH 20757
         data = [["x", 1]]
@@ -430,11 +401,9 @@ class TestSorted:
         )
 
         df = DataFrame({"col": range(len(idx))}, index=idx, dtype="int64")
-        assert df.index.is_lexsorted() is False
         assert df.index.is_monotonic is False
 
         sorted = df.sort_index()
-        assert sorted.index.is_lexsorted() is True
         assert sorted.index.is_monotonic is True
 
         expected = DataFrame(

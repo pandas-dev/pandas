@@ -73,7 +73,10 @@ class Base:
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        msg = f"Not supported for type {type(idx).__name__}"
+        msg = (
+            f"This method is only implemented for DatetimeIndex, PeriodIndex and "
+            f"TimedeltaIndex; Got type {type(idx).__name__}"
+        )
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
@@ -202,9 +205,10 @@ class Base:
     def test_get_indexer_consistency(self, index):
         # See GH 16819
         if isinstance(index, IntervalIndex):
+            # requires index.is_non_overlapping
             return
 
-        if index.is_unique or isinstance(index, CategoricalIndex):
+        if index.is_unique:
             indexer = index.get_indexer(index[0:2])
             assert isinstance(indexer, np.ndarray)
             assert indexer.dtype == np.intp
@@ -529,6 +533,7 @@ class Base:
             # assuming the 2nd to last item is unique in the data
             item = index_a[-2]
             tm.assert_numpy_array_equal(index_a == item, expected3)
+            # For RangeIndex we can convert to Int64Index
             tm.assert_series_equal(series_a == item, Series(expected3))
 
     def test_format(self):
@@ -656,6 +661,7 @@ class Base:
             expected = index
 
         result = index.map(lambda x: x)
+        # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -680,6 +686,7 @@ class Base:
             expected = index
 
         result = index.map(identity)
+        # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
         # empty mappable

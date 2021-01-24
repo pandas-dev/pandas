@@ -197,6 +197,10 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
     def test_groupby_apply_identity(self, data_for_grouping):
         super().test_groupby_apply_identity(data_for_grouping)
 
+    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
+    def test_groupby_agg_extension(self, data_for_grouping):
+        super().test_groupby_agg_extension(data_for_grouping)
+
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
     pass

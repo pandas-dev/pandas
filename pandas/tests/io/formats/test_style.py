@@ -1411,7 +1411,7 @@ class TestStyler:
             "display_value": "a",
             "is_visible": True,
             "type": "th",
-            "attributes": ["rowspan=2"],
+            "attributes": ['rowspan="2"'],
             "class": "row_heading level0 row0",
             "id": "level0_row0",
         }
@@ -1712,11 +1712,42 @@ class TestStyler:
         assert '<td  class="data row1 col0" >2</td>' in s
         assert '<td  class="data row1 col1" >3</td>' in s
 
+    def test_chaining_table_styles(self):
+        # GH 35607
+        df = DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
+        styler = df.style.set_table_styles(
+            [{"selector": "", "props": [("background-color", "yellow")]}]
+        ).set_table_styles(
+            [{"selector": ".col0", "props": [("background-color", "blue")]}],
+            overwrite=False,
+        )
+        assert len(styler.table_styles) == 2
+
+    def test_column_and_row_styling(self):
+        # GH 35607
+        df = DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
+        s = Styler(df, uuid_len=0)
+        s = s.set_table_styles({"A": [{"selector": "", "props": [("color", "blue")]}]})
+        assert "#T__ .col0 {\n          color: blue;\n    }" in s.render()
+        s = s.set_table_styles(
+            {0: [{"selector": "", "props": [("color", "blue")]}]}, axis=1
+        )
+        assert "#T__ .row0 {\n          color: blue;\n    }" in s.render()
+
     def test_colspan_w3(self):
         # GH 36223
         df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
         s = Styler(df, uuid="_", cell_ids=False)
         assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
+
+    def test_rowspan_w3(self):
+        # GH 38533
+        df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
+        s = Styler(df, uuid="_", cell_ids=False)
+        assert (
+            '<th id="T___level0_row0" class="row_heading '
+            'level0 row0" rowspan="2">l0</th>' in s.render()
+        )
 
     @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
     def test_uuid_len(self, len_):
@@ -1737,6 +1768,74 @@ class TestStyler:
         msg = "``uuid_len`` must be an integer in range \\[0, 32\\]."
         with pytest.raises(TypeError, match=msg):
             Styler(df, uuid_len=len_, cell_ids=False).render()
+
+    @pytest.mark.parametrize(
+        "ttips",
+        [
+            DataFrame(
+                data=[["Min", "Max"], [np.nan, ""]],
+                columns=["A", "B"],
+                index=["a", "b"],
+            ),
+            DataFrame(data=[["Max", "Min"]], columns=["B", "A"], index=["a"]),
+            DataFrame(
+                data=[["Min", "Max", None]], columns=["A", "B", "C"], index=["a"]
+            ),
+        ],
+    )
+    def test_tooltip_render(self, ttips):
+        # GH 21266
+        df = DataFrame(data=[[0, 3], [1, 2]], columns=["A", "B"], index=["a", "b"])
+        s = Styler(df, uuid_len=0).set_tooltips(ttips).render()
+
+        # test tooltip table level class
+        assert "#T__ .pd-t {\n          visibility: hidden;\n" in s
+
+        # test 'Min' tooltip added
+        assert (
+            "#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }  "
+            + '  #T__ #T__row0_col0 .pd-t::after {\n          content: "Min";\n    }'
+            in s
+        )
+        assert (
+            '<td id="T__row0_col0" class="data row0 col0" >0<span class="pd-t">'
+            + "</span></td>"
+            in s
+        )
+
+        # test 'Max' tooltip added
+        assert (
+            "#T__ #T__row0_col1:hover .pd-t {\n          visibility: visible;\n    }  "
+            + '  #T__ #T__row0_col1 .pd-t::after {\n          content: "Max";\n    }'
+            in s
+        )
+        assert (
+            '<td id="T__row0_col1" class="data row0 col1" >3<span class="pd-t">'
+            + "</span></td>"
+            in s
+        )
+
+    def test_tooltip_ignored(self):
+        # GH 21266
+        df = DataFrame(data=[[0, 1], [2, 3]])
+        s = Styler(df).set_tooltips_class("pd-t").render()  # no set_tooltips()
+        assert '<style  type="text/css" >\n</style>' in s
+        assert '<span class="pd-t"></span>' not in s
+
+    def test_tooltip_class(self):
+        # GH 21266
+        df = DataFrame(data=[[0, 1], [2, 3]])
+        s = (
+            Styler(df, uuid_len=0)
+            .set_tooltips(DataFrame([["tooltip"]]))
+            .set_tooltips_class(name="other-class", properties=[("color", "green")])
+            .render()
+        )
+        assert "#T__ .other-class {\n          color: green;\n" in s
+        assert (
+            '#T__ #T__row0_col0 .other-class::after {\n          content: "tooltip";\n'
+            in s
+        )
 
 
 @td.skip_if_no_mpl

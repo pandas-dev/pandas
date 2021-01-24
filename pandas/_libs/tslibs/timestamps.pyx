@@ -8,6 +8,8 @@ shadows the python class, where we do any heavy lifting.
 """
 import warnings
 
+cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
@@ -16,6 +18,7 @@ from numpy cimport int8_t, int64_t, ndarray, uint8_t
 cnp.import_array()
 
 from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+    PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
@@ -24,7 +27,16 @@ from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     time,
     tzinfo as tzinfo_type,
 )
-from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+    PyObject_RichCompareBool,
+)
 
 PyDateTime_IMPORT
 
@@ -152,32 +164,69 @@ class RoundTo:
         return 4
 
 
-cdef inline _floor_int64(values, unit):
-    return values - np.remainder(values, unit)
+cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
 
-cdef inline _ceil_int64(values, unit):
-    return values + np.remainder(-values, unit)
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                res = value - value % unit
+            result[i] = res
 
-cdef inline _rounddown_int64(values, unit):
+    return result
+
+
+cdef inline ndarray[int64_t] _ceil_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                remainder = value % unit
+                if remainder == 0:
+                    res = value
+                else:
+                    res = value + (unit - remainder)
+
+            result[i] = res
+
+    return result
+
+
+cdef inline ndarray[int64_t] _rounddown_int64(values, int64_t unit):
     return _ceil_int64(values - unit//2, unit)
 
-cdef inline _roundup_int64(values, unit):
+
+cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit//2, unit)
 
 
-def round_nsint64(values, mode, freq):
+def round_nsint64(values: np.ndarray, mode: RoundTo, freq) -> np.ndarray:
     """
     Applies rounding mode at given frequency
 
     Parameters
     ----------
-    values : :obj:`ndarray`
+    values : np.ndarray[int64_t]`
     mode : instance of `RoundTo` enumeration
     freq : str, obj
 
     Returns
     -------
-    :obj:`ndarray`
+    np.ndarray[int64_t]
     """
 
     unit = to_offset(freq).nanos
@@ -255,6 +304,9 @@ cdef class _Timestamp(ABCTimestamp):
             try:
                 ots = type(self)(other)
             except ValueError:
+                if is_datetime64_object(other):
+                    # cast non-nano dt64 to pydatetime
+                    other = other.astype(object)
                 return self._compare_outside_nanorange(other, op)
 
         elif is_array(other):
@@ -281,6 +333,20 @@ cdef class _Timestamp(ABCTimestamp):
                 return np.zeros(other.shape, dtype=np.bool_)
             return NotImplemented
 
+        elif PyDate_Check(other):
+            # returning NotImplemented defers to the `date` implementation
+            #  which incorrectly drops tz and normalizes to midnight
+            #  before comparing
+            # We follow the stdlib datetime behavior of never being equal
+            warnings.warn(
+                "Comparison of Timestamp with datetime.date is deprecated in "
+                "order to match the standard library behavior.  "
+                "In a future version these will be considered non-comparable."
+                "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
+                FutureWarning,
+                stacklevel=1,
+            )
+            return NotImplemented
         else:
             return NotImplemented
 
@@ -295,12 +361,23 @@ cdef class _Timestamp(ABCTimestamp):
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
         cdef:
-            datetime dtval = self.to_pydatetime()
+            datetime dtval = self.to_pydatetime(warn=False)
 
         if not self._can_compare(other):
             return NotImplemented
 
-        return PyObject_RichCompareBool(dtval, other, op)
+        if self.nanosecond == 0:
+            return PyObject_RichCompareBool(dtval, other, op)
+
+        # otherwise we have dtval < self
+        if op == Py_NE:
+            return True
+        if op == Py_EQ:
+            return False
+        if op == Py_LE or op == Py_LT:
+            return other.year <= self.year
+        if op == Py_GE or op == Py_GT:
+            return other.year >= self.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
@@ -632,14 +709,12 @@ cdef class _Timestamp(ABCTimestamp):
 
         try:
             stamp += self.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
         except ValueError:
             year2000 = self.replace(year=2000)
             stamp += year2000.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
 
+        if self.tzinfo:
+            zone = get_timezone(self.tzinfo)
         try:
             stamp += zone.strftime(' %%Z')
         except AttributeError:
@@ -1518,11 +1593,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
-# the smallest value we could actually represent is
-#   INT64_MIN + 1 == -9223372036854775807
-# but to allow overflow free conversion with a microsecond resolution
-# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9_223_372_036_854_775_000
+cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
 
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
