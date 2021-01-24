@@ -322,6 +322,12 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         pass
 
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if len(data[0]) != 1:
+            mark = pytest.mark.xfail(reason="raises in coercing to Series")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
         with pytest.raises(TypeError, match="unsupported"):
