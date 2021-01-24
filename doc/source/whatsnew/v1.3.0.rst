@@ -53,6 +53,7 @@ Other enhancements
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes.
+- :meth:`Series.loc.__getitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 
 .. ---------------------------------------------------------------------------
 

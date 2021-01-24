@@ -846,6 +846,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
+            if isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in tup
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                raise ValueError("Too many indices")
             if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
