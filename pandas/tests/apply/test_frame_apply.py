@@ -131,6 +131,14 @@ class TestDataFrameApply:
         expected = getattr(df, func)()
         tm.assert_series_equal(result, expected)
 
+    def test_apply_return_type_none(self):
+        # GH 35518
+        df = DataFrame([["orig1", "orig2"], ["orig3", "orig4"]])
+        result = df.apply(func=lambda col: ("new1", "new2"))
+
+        expected = Series(data=[("new1", "new2"), ("new1", "new2")])
+        tm.assert_series_equal(result, expected)
+
     def test_nunique_empty(self):
         # GH 28213
         df = DataFrame(columns=["a", "b", "c"])

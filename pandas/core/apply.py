@@ -482,7 +482,7 @@ class FrameRowApply(FrameApply):
             return res
 
         elif self.result_type is None and all(
-            isinstance(x, dict) for x in results.values()
+            isinstance(x, (dict, tuple)) for x in results.values()
         ):
             # Our operation was a to_dict op e.g.
             #  test_apply_dict GH#8735, test_apply_reduce_to_dict GH#25196 #37544
