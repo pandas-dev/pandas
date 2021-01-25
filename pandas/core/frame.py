@@ -3223,7 +3223,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
             self.iloc[indexer] = value
         else:
-            if isinstance(value, DataFrame):
+            if isinstance(value, DataFrame) and self.columns.is_unique:
                 if len(value.columns) != len(key):
                     raise ValueError("Columns must be same length as key")
                 for k1, k2 in zip(key, value.columns):
@@ -3256,12 +3256,20 @@ class DataFrame(NDFrame, OpsMixin):
     def _set_item_frame_value(self, key, value: DataFrame) -> None:
         self._ensure_valid_index(value)
 
-        # align right-hand-side columns if self.columns
-        # is multi-index and self[key] is a sub-frame
-        if isinstance(self.columns, MultiIndex) and key in self.columns:
+        # align columns
+        if key in self.columns:
             loc = self.columns.get_loc(key)
-            if isinstance(loc, (slice, Series, np.ndarray, Index)):
-                cols = maybe_droplevels(self.columns[loc], key)
+            cols = self.columns[loc]
+            len_cols = 1 if is_scalar(cols) else len(cols)
+            if len_cols != len(value.columns):
+                raise ValueError("Columns must be same length as key")
+
+            # align right-hand-side columns if self.columns
+            # is multi-index and self[key] is a sub-frame
+            if isinstance(self.columns, MultiIndex) and isinstance(
+                loc, (slice, Series, np.ndarray, Index)
+            ):
+                cols = maybe_droplevels(cols, key)
                 if len(cols) and not cols.equals(value.columns):
                     value = value.reindex(cols, axis=1)
 

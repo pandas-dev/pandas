@@ -556,6 +556,17 @@ class TestIndex(Base):
         d = index[0].to_pydatetime()
         assert isinstance(index.asof(d), Timestamp)
 
+    def test_asof_numeric_vs_bool_raises(self):
+        left = Index([1, 2, 3])
+        right = Index([True, False])
+
+        msg = "'<' not supported between instances"
+        with pytest.raises(TypeError, match=msg):
+            left.asof(right)
+
+        with pytest.raises(TypeError, match=msg):
+            right.asof(left)
+
     def test_asof_datetime_partial(self):
         index = date_range("2010-01-01", periods=2, freq="m")
         expected = Timestamp("2010-02-28")
