@@ -5,10 +5,11 @@ the interface tests.
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import PandasDtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import PandasArray
-from pandas.core.arrays.numpy_ import PandasDtype
 
 
 @pytest.fixture(
@@ -84,6 +85,13 @@ def test_constructor_from_string():
     result = PandasDtype.construct_from_string("int64")
     expected = PandasDtype(np.dtype("int64"))
     assert result == expected
+
+
+def test_dtype_univalent(any_numpy_dtype):
+    dtype = PandasDtype(any_numpy_dtype)
+
+    result = PandasDtype(dtype)
+    assert result == dtype
 
 
 # ----------------------------------------------------------------------------
