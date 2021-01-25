@@ -292,7 +292,7 @@ def _get_filepath_or_buffer(
         # urlopen function defined elsewhere in this module
         import urllib.request
 
-        # assuming storage_options is to be interpretted as headers
+        # assuming storage_options is to be interpreted as headers
         req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
         with urlopen(req_info) as req:
             content_encoding = req.headers.get("Content-Encoding", None)

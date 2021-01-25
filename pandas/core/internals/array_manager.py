@@ -187,7 +187,7 @@ class ArrayManager(DataManager):
         indexer = np.arange(self.shape[0])
         return new_mgr, indexer
 
-    def operate_blockwise(self, other: "ArrayManager", array_op) -> ArrayManager:
+    def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """

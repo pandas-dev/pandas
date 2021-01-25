@@ -559,7 +559,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -865,11 +865,6 @@ def value_counts_arraylike(values, dropna: bool):
         # TODO: handle uint8
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
-
-        mask = isna(values)
-        if not dropna and mask.any() and not isna(keys).any():
-            keys = np.insert(keys, 0, np.NaN)
-            counts = np.insert(counts, 0, mask.sum())
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
