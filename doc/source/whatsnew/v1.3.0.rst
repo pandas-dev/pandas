@@ -207,6 +207,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
 - Performance improvement in :meth:`DataFrame.corr` for method=kendall (:issue:`28329`)
+- Performance improvement in :meth:`core.window.Rolling.corr` and :meth:`core.window.Rolling.cov` (:issue:`39388`)
 
 .. ---------------------------------------------------------------------------
 
@@ -287,6 +288,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` with empty :class:`DataFrame` and specified columns for string indexer and non empty :class:`DataFrame` to set (:issue:`38831`)
 - Bug in :meth:`DataFrame.loc.__setitem__` raising ValueError when expanding unique column for :class:`DataFrame` with duplicate columns (:issue:`38521`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
+- Bug in :meth:`DataFrame.__setitem__` not raising ``ValueError`` when right hand side is a :class:`DataFrame` with wrong number of columns (:issue:`38604`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
 - Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
@@ -343,7 +345,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-
+- Bug in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` with :class:`PeriodDtype` columns incorrectly casting results too aggressively (:issue:`38254`)
 - Bug in :meth:`SeriesGroupBy.value_counts` where unobserved categories in a grouped categorical series were not tallied (:issue:`38672`)
 - Bug in :meth:`SeriesGroupBy.value_counts` where error was raised on an empty series (:issue:`39172`)
 - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
