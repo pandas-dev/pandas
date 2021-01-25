@@ -1261,6 +1261,13 @@ class ExtensionArray:
     def __hash__(self):
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
+    # ------------------------------------------------------------------------
+    # Non-Optimized Default Methods
+
+    def delete(self: ExtensionArrayT, loc) -> ExtensionArrayT:
+        indexer = np.delete(np.arange(len(self)), loc)
+        return self.take(indexer)
+
 
 class ExtensionOpsMixin:
     """
