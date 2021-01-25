@@ -815,11 +815,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def _union(self, other, sort):
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
+        assert self.dtype == other.dtype
 
-        this, other = self._maybe_utc_convert(other)
-
-        if this._can_fast_union(other):
-            result = this._fast_union(other, sort=sort)
+        if self._can_fast_union(other):
+            result = self._fast_union(other, sort=sort)
             if sort is None:
                 # In the case where sort is None, _can_fast_union
                 #  implies that result.freq should match self.freq
@@ -851,9 +850,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
                 pother, how=how, level=level, return_indexers=return_indexers, sort=sort
             )
 
-        this, other = self._maybe_utc_convert(other)
+        self._maybe_utc_convert(other)  # raises if we dont have tzawareness compat
         return Index.join(
-            this,
+            self,
             other,
             how=how,
             level=level,

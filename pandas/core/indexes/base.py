@@ -76,12 +76,12 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
-    ABCPandasArray,
     ABCPeriodIndex,
     ABCSeries,
     ABCTimedeltaIndex,
@@ -281,6 +281,7 @@ class Index(IndexOpsMixin, PandasObject):
                 stacklevel=2,
             )
 
+        from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -292,9 +293,11 @@ class Index(IndexOpsMixin, PandasObject):
             validate_tz_from_dtype(dtype, tz)
             dtype = tz_to_dtype(tz)
 
-        if isinstance(data, ABCPandasArray):
+        if isinstance(data, PandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
+        if isinstance(dtype, PandasDtype):
+            dtype = dtype.numpy_dtype
 
         data_dtype = getattr(data, "dtype", None)
 
@@ -3289,11 +3292,10 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._index_as_unique:
             raise InvalidIndexError(self._requires_unique_msg)
 
-        # Treat boolean labels passed to a numeric index as not found. Without
-        # this fix False and True would be treated as 0 and 1 respectively.
-        # (GH #16877)
-        if target.is_boolean() and self.is_numeric():
-            return ensure_platform_int(np.repeat(-1, target.size))
+        if not self._should_compare(target) and not is_interval_dtype(self.dtype):
+            # IntervalIndex get special treatment bc numeric scalars can be
+            #  matched to Interval scalars
+            return self._get_indexer_non_comparable(target, method=method, unique=True)
 
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
@@ -3310,8 +3312,9 @@ class Index(IndexOpsMixin, PandasObject):
             tolerance = self._convert_tolerance(tolerance, target)
 
         if not is_dtype_equal(self.dtype, target.dtype):
-            this = self.astype(object)
-            target = target.astype(object)
+            dtype = find_common_type([self.dtype, target.dtype])
+            this = self.astype(dtype, copy=False)
+            target = target.astype(dtype, copy=False)
             return this.get_indexer(
                 target, method=method, limit=limit, tolerance=tolerance
             )
@@ -5060,18 +5063,14 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
 
-        if target.is_boolean() and self.is_numeric():
-            # Treat boolean labels passed to a numeric index as not found. Without
-            # this fix False and True would be treated as 0 and 1 respectively.
-            # (GH #16877)
+        if not self._should_compare(target) and not is_interval_dtype(self.dtype):
+            # IntervalIndex get special treatment bc numeric scalars can be
+            #  matched to Interval scalars
             return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
-
-        if not self._should_compare(target):
-            return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         if not is_dtype_equal(self.dtype, target.dtype):
             # TODO: if object, could use infer_dtype to preempt costly
@@ -5170,7 +5169,16 @@ class Index(IndexOpsMixin, PandasObject):
         if we can upcast the object-dtype one to improve performance.
         """
 
-        if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
+        if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
+            if (
+                self.tz is not None
+                and other.tz is not None
+                and not tz_compare(self.tz, other.tz)
+            ):
+                # standardize on UTC
+                return self.tz_convert("UTC"), other.tz_convert("UTC")
+
+        elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
                 return type(other)(self), other
             except OutOfBoundsDatetime:
@@ -5193,6 +5201,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if `self == other` can ever have non-False entries.
         """
+
+        if (other.is_boolean() and self.is_numeric()) or (
+            self.is_boolean() and other.is_numeric()
+        ):
+            # GH#16877 Treat boolean labels passed to a numeric index as not
+            #  found. Without this fix False and True would be treated as 0 and 1
+            #  respectively.
+            return False
+
         other = unpack_nested_dtype(other)
         dtype = other.dtype
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
