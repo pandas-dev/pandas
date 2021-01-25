@@ -860,7 +860,7 @@ class Styler:
                         f"Expected shape: {data.shape}"
                     )
                 result = DataFrame(result, index=data.index, columns=data.columns)
-            if not (
+            elif not (
                 result.index.equals(data.index) and result.columns.equals(data.columns)
             ):
                 raise ValueError(
