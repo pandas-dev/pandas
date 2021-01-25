@@ -192,16 +192,6 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_take_series(data)
 
-    def test_loc_iloc_frame_single_dtype(self, data, request):
-        npdtype = data.dtype.numpy_dtype
-        if npdtype == object:
-            # GH#33125
-            mark = pytest.mark.xfail(
-                reason="GH#33125 astype doesn't recognize data.dtype"
-            )
-            request.node.add_marker(mark)
-        super().test_loc_iloc_frame_single_dtype(data)
-
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     def test_groupby_extension_apply(
