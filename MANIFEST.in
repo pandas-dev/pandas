@@ -38,6 +38,8 @@ global-exclude .git*
 global-exclude \#*
 
 # GH 39321
+# csv_dir_path fixture checks the existence of the directory
+# exclude the whole directory to avoid running related tests in sdist
 prune pandas/tests/io/parser/data
 
 include versioneer.py
