@@ -102,12 +102,21 @@ class TestStyler:
         assert self.styler._todo != s2._todo
 
     def test_clear(self):
-        s = self.df.style.highlight_max()._compute()
-        assert len(s.ctx) > 0
+        tt = DataFrame({"A": [None, "tt"]})
+        css = DataFrame({"A": [None, "cls-a"]})
+        s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
         assert len(s._todo) > 0
+        assert s.tooltips
+        assert len(s.cell_context) > 0
+        s = s._compute()
+        assert len(s.ctx) > 0
+        assert len(s._todo) == 0
+        s._todo = [1]
         s.clear()
         assert len(s.ctx) == 0
         assert len(s._todo) == 0
+        assert not s.tooltips
+        assert len(s.cell_context) == 0
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
