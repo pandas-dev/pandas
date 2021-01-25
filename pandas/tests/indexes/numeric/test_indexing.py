@@ -82,7 +82,7 @@ class TestGetLoc:
 
     @pytest.mark.parametrize("method", ["nearest", "pad"])
     def test_get_loc_float_index_nan_with_method(self, method):
-        # GH#
+        # GH#39382
         idx = Index([1.0, 2.0, 3.0])
         result = idx.get_loc(np.nan, method=method)
         assert result == 2
