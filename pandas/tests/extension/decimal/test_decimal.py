@@ -122,10 +122,7 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
-    @pytest.mark.skip(reason="not implemented constructor from dtype")
-    def test_from_dtype(self, data):
-        # construct from our dtype & string dtype
-        pass
+    pass
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
@@ -168,20 +165,32 @@ class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
 
 class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
-    @pytest.mark.xfail(reason="value_counts not implemented yet.")
-    def test_value_counts(self, all_data, dropna):
+    def test_value_counts(self, all_data, dropna, request):
+        if any(x != x for x in all_data):
+            mark = pytest.mark.xfail(
+                reason="tm.assert_series_equal incorrectly raises",
+                raises=AssertionError,
+            )
+            request.node.add_marker(mark)
+
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])
         else:
             other = all_data
 
-        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        vcs = pd.Series(all_data).value_counts(dropna=dropna)
+        vcs_ex = pd.Series(other).value_counts(dropna=dropna)
+
+        with decimal.localcontext() as ctx:
+            # avoid raising when comparing Decimal("NAN") < Decimal(2)
+            ctx.traps[decimal.InvalidOperation] = False
+
+            result = vcs.sort_index()
+            expected = vcs_ex.sort_index()
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="value_counts not implemented yet.")
     def test_value_counts_with_normalize(self, data):
         return super().test_value_counts_with_normalize(data)
 
@@ -191,13 +200,12 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    @pytest.mark.xfail(
-        reason="needs to correctly define __eq__ to handle nans, xref #27081."
-    )
-    def test_groupby_apply_identity(self, data_for_grouping):
+    def test_groupby_apply_identity(self, data_for_grouping, request):
+        if any(x != x for x in data_for_grouping):
+            mark = pytest.mark.xfail(reason="tm.assert_series_equal raises incorrectly")
+            request.node.add_marker(mark)
         super().test_groupby_apply_identity(data_for_grouping)
 
-    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
     def test_groupby_agg_extension(self, data_for_grouping):
         super().test_groupby_agg_extension(data_for_grouping)
 
