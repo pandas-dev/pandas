@@ -41,15 +41,8 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
-    - name: Environment Detail
-      run: |
-        conda info
-        conda list
-
     - name: Build Pandas
-      run: |
-        python setup.py build_ext -j 2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+      uses: ./.github/actions/build_pandas
 
     - name: Linting
       run: ci/code_checks.sh lint
@@ -100,14 +93,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Setting conda path
-      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
+    - name: Set up pandas
+      uses: ./.github/actions/setup
 
     - name: Build website
       run: |
@@ -144,14 +134,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Setting conda path
-      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
+    - name: Set up pandas
+      uses: ./.github/actions/setup
 
     - name: Run tests
       run: |
