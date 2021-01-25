@@ -294,6 +294,19 @@ class ValueCounts:
         self.s.value_counts()
 
 
+class Mode:
+
+    params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
+    param_names = ["N", "dtype"]
+
+    def setup(self, N, dtype):
+        np.random.seed(42)
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
+
+    def time_mode(self, N, dtype):
+        self.s.mode()
+
+
 class Dir:
     def setup(self):
         self.s = Series(index=tm.makeStringIndex(10000))
