@@ -99,6 +99,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
+            sdtype = tm.get_dtype(s)
             if (
                 hasattr(other, "dtype")
                 and not is_extension_array_dtype(other.dtype)
@@ -106,15 +107,15 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             ):
                 # other is np.float64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype
-                other = other.astype(s.dtype.numpy_dtype)
+                other = other.astype(sdtype.numpy_dtype)
 
             result = op(s, other)
-            expected = s.combine(other, op)
+            expected = self._combine(s, other, op)
 
             # combine method result in 'biggest' (float64) dtype
-            expected = expected.astype(s.dtype)
+            expected = expected.astype(sdtype)
 
-            self.assert_series_equal(result, expected)
+            self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)

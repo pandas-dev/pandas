@@ -7,7 +7,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
 import pandas.util._test_decorators as td
 
 import pandas as pd

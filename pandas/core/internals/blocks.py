@@ -50,7 +50,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -69,7 +69,6 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
     PandasArray,
-    PandasDtype,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
