@@ -854,9 +854,10 @@ class Styler:
                         f" passed to `Styler.apply` with axis=None"
                     )
                 if not (data.shape == result.shape):
-                    raise TypeError(
-                        f"Function {repr(func)} returned ndarray with shape "
-                        f"{result.shape} but {data.shape} was expected"
+                    raise ValueError(
+                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                        f"Result has shape: {result.shape}\n"
+                        f"Expected shape: {data.shape}"
                     )
                 result = DataFrame(result, index=data.index, columns=data.columns)
             if not (
@@ -867,13 +868,11 @@ class Styler:
                     f"index and columns as the input"
                 )
 
-        result_shape = result.shape
-        expected_shape = self.data.loc[subset].shape
-        if result_shape != expected_shape:
+        if result.shape != data.shape:
             raise ValueError(
                 f"Function {repr(func)} returned the wrong shape.\n"
                 f"Result has shape: {result.shape}\n"
-                f"Expected shape:   {expected_shape}"
+                f"Expected shape:   {data.shape}"
             )
         self._update_ctx(result)
         return self

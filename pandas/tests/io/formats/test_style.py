@@ -1352,6 +1352,10 @@ class TestStyler:
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", ""], axis=1)
 
+        msg = "returned ndarray with wrong shape"
+        with pytest.raises(ValueError, match=msg):
+            df.style._apply(lambda x: np.array([[""], [""]]), axis=None)
+
     def test_apply_bad_return(self):
         def f(x):
             return ""
