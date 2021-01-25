@@ -225,14 +225,6 @@ class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
 
 
 class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
-    @pytest.mark.skip(reason="TODO: remove?")
-    def test_value_counts(self, all_data, dropna):
-        pass
-
-    @pytest.mark.xfail(reason="not working. will be covered by #32028")
-    def test_value_counts_with_normalize(self, data):
-        return super().test_value_counts_with_normalize(data)
-
     @skip_nested
     def test_shift_fill_value(self, data):
         # np.array shape inference. Shift implementation fails.
