@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import hashtable as ht
-from pandas._libs.missing import checknull
 
 import pandas as pd
 import pandas._testing as tm
@@ -340,7 +339,7 @@ def test_modes_with_nans():
     # thus we have 2 nans and 1 True
     modes = ht.mode_object(values, False)
     assert modes.size == 1
-    assert checknull(modes[0])
+    assert np.isnan(modes[0])
 
 
 @pytest.mark.parametrize(
