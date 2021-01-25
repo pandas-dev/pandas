@@ -76,12 +76,12 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
-    ABCPandasArray,
     ABCPeriodIndex,
     ABCSeries,
     ABCTimedeltaIndex,
@@ -281,6 +281,7 @@ class Index(IndexOpsMixin, PandasObject):
                 stacklevel=2,
             )
 
+        from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -292,9 +293,11 @@ class Index(IndexOpsMixin, PandasObject):
             validate_tz_from_dtype(dtype, tz)
             dtype = tz_to_dtype(tz)
 
-        if isinstance(data, ABCPandasArray):
+        if isinstance(data, PandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
+        if isinstance(dtype, PandasDtype):
+            dtype = dtype.numpy_dtype
 
         data_dtype = getattr(data, "dtype", None)
 
@@ -5166,7 +5169,16 @@ class Index(IndexOpsMixin, PandasObject):
         if we can upcast the object-dtype one to improve performance.
         """
 
-        if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
+        if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
+            if (
+                self.tz is not None
+                and other.tz is not None
+                and not tz_compare(self.tz, other.tz)
+            ):
+                # standardize on UTC
+                return self.tz_convert("UTC"), other.tz_convert("UTC")
+
+        elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
                 return type(other)(self), other
             except OutOfBoundsDatetime:

@@ -120,7 +120,7 @@ If installed, we now require:
 | mypy (dev)      | 0.790           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
-For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
@@ -207,6 +207,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
 - Performance improvement in :meth:`DataFrame.corr` for method=kendall (:issue:`28329`)
+- Performance improvement in :meth:`core.window.Rolling.corr` and :meth:`core.window.Rolling.cov` (:issue:`39388`)
 
 .. ---------------------------------------------------------------------------
 
@@ -289,6 +290,7 @@ Indexing
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
 - Bug in :meth:`DataFrame.__setitem__` not raising ``ValueError`` when right hand side is a :class:`DataFrame` with wrong number of columns (:issue:`38604`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
+- Bug in :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` always raising ``KeyError`` when slicing with existing strings an :class:`Index` with milliseconds (:issue:`33589`)
 - Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
 - Bug in incorrectly raising in :meth:`Index.insert`, when setting a new column that cannot be held in the existing ``frame.columns``, or in :meth:`Series.reset_index` or :meth:`DataFrame.reset_index` instead of casting to a compatible dtype (:issue:`39068`)
@@ -331,7 +333,7 @@ I/O
 
 Period
 ^^^^^^
-- Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`??`)
+- Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`39274`)
 -
 -
 
@@ -381,7 +383,7 @@ ExtensionArray
 Other
 ^^^^^
 - Bug in :class:`Index` constructor sometimes silently ignorning a specified ``dtype`` (:issue:`38879`)
--
+- Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
 -
 
 .. ---------------------------------------------------------------------------

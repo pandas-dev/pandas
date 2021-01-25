@@ -93,29 +93,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         return ExpandingIndexer()
 
-    def _get_cov_corr_window(
-        self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
-    ) -> int:
-        """
-        Get the window length over which to perform cov and corr operations.
-
-        Parameters
-        ----------
-        other : object, default None
-            The other object that is involved in the operation.
-            Such an object is involved for operations like covariance.
-
-        Returns
-        -------
-        window : int
-            The window length.
-        """
-        axis = self.obj._get_axis(self.axis)
-        length = len(axis) + (other is not None) * len(axis)
-
-        other = self.min_periods or -1
-        return max(length, other)
-
     @doc(
         _shared_docs["aggregate"],
         see_also=dedent(
@@ -627,9 +604,10 @@ class Expanding(RollingAndExpandingMixin):
         self,
         other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
         pairwise: Optional[bool] = None,
+        ddof: int = 1,
         **kwargs,
     ):
-        return super().corr(other=other, pairwise=pairwise, **kwargs)
+        return super().corr(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
 
 class ExpandingGroupby(BaseWindowGroupby, Expanding):
