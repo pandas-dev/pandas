@@ -3,14 +3,16 @@ Module responsible for execution of NDFrame.describe() method.
 
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
+from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Sequence, Union, cast
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Callable, List, Optional, Sequence, Union, cast
 import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import FrameOrSeries, Hashable
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Hashable
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -61,109 +63,135 @@ def describe_ndframe(
     """
     percentiles = refine_percentiles(percentiles)
 
+    describer: NDFrameDescriberAbstract
     if obj.ndim == 1:
-        result_series = describe_series(
-            cast("Series", obj),
-            percentiles,
-            datetime_is_numeric,
+        describer = SeriesDescriber(
+            obj=cast("Series", obj),
+            datetime_is_numeric=datetime_is_numeric,
         )
-        return cast(FrameOrSeries, result_series)
+    else:
+        describer = DataFrameDescriber(
+            obj=cast("DataFrame", obj),
+            include=include,
+            exclude=exclude,
+            datetime_is_numeric=datetime_is_numeric,
+        )
 
-    frame = cast("DataFrame", obj)
-
-    if frame.ndim == 2 and frame.columns.size == 0:
-        raise ValueError("Cannot describe a DataFrame without columns")
-
-    result_frame = describe_frame(
-        frame=frame,
-        include=include,
-        exclude=exclude,
-        percentiles=percentiles,
-        datetime_is_numeric=datetime_is_numeric,
-    )
-    return cast(FrameOrSeries, result_frame)
+    result = describer.describe(percentiles=percentiles)
+    return cast(FrameOrSeries, result)
 
 
-def describe_series(
-    series: "Series",
-    percentiles: Sequence[float],
-    datetime_is_numeric: bool,
-) -> "Series":
-    """Describe series.
-
-    The reason for the delegation to ``describe_1d`` only:
-    to allow for a proper stacklevel of the FutureWarning.
+class NDFrameDescriberAbstract(ABC):
+    """Abstract class for describing dataframe or series.
 
     Parameters
     ----------
-    series : Series
-        Series to be described.
-    percentiles : list-like of numbers
-        The percentiles to include in the output.
-    datetime_is_numeric : bool, default False
+    obj : Series or DataFrame
+        Object to be described.
+    datetime_is_numeric : bool
         Whether to treat datetime dtypes as numeric.
-
-    Returns
-    -------
-    Series
     """
-    return describe_1d(
-        series,
-        percentiles,
-        datetime_is_numeric,
-        is_series=True,
-    )
+
+    def __init__(self, obj: FrameOrSeriesUnion, datetime_is_numeric: bool):
+        self.obj = obj
+        self.datetime_is_numeric = datetime_is_numeric
+
+    @abstractmethod
+    def describe(self, percentiles: Sequence[float]) -> FrameOrSeriesUnion:
+        """Do describe either series or dataframe.
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers
+            The percentiles to include in the output.
+        """
 
 
-def describe_frame(
-    frame: "DataFrame",
-    include: Optional[Union[str, Sequence[str]]],
-    exclude: Optional[Union[str, Sequence[str]]],
-    percentiles: Sequence[float],
-    datetime_is_numeric: bool,
-) -> "DataFrame":
-    """Describe DataFrame.
+class SeriesDescriber(NDFrameDescriberAbstract):
+    """Class responsible for creating series description."""
+
+    obj: Series
+
+    def describe(self, percentiles: Sequence[float]) -> Series:
+        describe_func = select_describe_func(
+            self.obj,
+            self.datetime_is_numeric,
+        )
+        return describe_func(self.obj, percentiles)
+
+
+class DataFrameDescriber(NDFrameDescriberAbstract):
+    """Class responsible for creating dataobj description.
 
     Parameters
     ----------
-    frame : DataFrame
+    obj : DataFrame
         DataFrame to be described.
-    include : 'all', list-like of dtypes or None (default), optional
+    include : 'all', list-like of dtypes or None
         A white list of data types to include in the result.
-    exclude : list-like of dtypes or None (default), optional,
+    exclude : list-like of dtypes or None
         A black list of data types to omit from the result.
-    percentiles : list-like of numbers
-        The percentiles to include in the output.
-    datetime_is_numeric : bool, default False
+    datetime_is_numeric : bool
         Whether to treat datetime dtypes as numeric.
-
-    Returns
-    -------
-    DataFrame
     """
-    data = select_columns(
-        frame=frame,
-        include=include,
-        exclude=exclude,
-        datetime_is_numeric=datetime_is_numeric,
-    )
 
-    ldesc = [
-        describe_1d(s, percentiles, datetime_is_numeric, is_series=False)
-        for _, s in data.items()
-    ]
+    def __init__(
+        self,
+        obj: DataFrame,
+        *,
+        include: Optional[Union[str, Sequence[str]]],
+        exclude: Optional[Union[str, Sequence[str]]],
+        datetime_is_numeric: bool,
+    ):
+        self.include = include
+        self.exclude = exclude
 
-    col_names = reorder_columns(ldesc)
-    d = concat(
-        [x.reindex(col_names, copy=False) for x in ldesc],
-        axis=1,
-        sort=False,
-    )
-    d.columns = data.columns.copy()
-    return d
+        if obj.ndim == 2 and obj.columns.size == 0:
+            raise ValueError("Cannot describe a DataFrame without columns")
+
+        super().__init__(obj, datetime_is_numeric=datetime_is_numeric)
+
+    def describe(self, percentiles: Sequence[float]) -> DataFrame:
+        data = self._select_data()
+
+        ldesc: List[Series] = []
+        for _, series in data.items():
+            describe_func = select_describe_func(series, self.datetime_is_numeric)
+            ldesc.append(describe_func(series, percentiles))
+
+        col_names = reorder_columns(ldesc)
+        d = concat(
+            [x.reindex(col_names, copy=False) for x in ldesc],
+            axis=1,
+            sort=False,
+        )
+        d.columns = data.columns.copy()
+        return d
+
+    def _select_data(self):
+        """Select columns to be described."""
+        if (self.include is None) and (self.exclude is None):
+            # when some numerics are found, keep only numerics
+            default_include = [np.number]
+            if self.datetime_is_numeric:
+                default_include.append("datetime")
+            data = self.obj.select_dtypes(include=default_include)
+            if len(data.columns) == 0:
+                data = self.obj
+        elif self.include == "all":
+            if self.exclude is not None:
+                msg = "exclude must be None when include is 'all'"
+                raise ValueError(msg)
+            data = self.obj
+        else:
+            data = self.obj.select_dtypes(
+                include=self.include,
+                exclude=self.exclude,
+            )
+        return data
 
 
-def reorder_columns(ldesc: Sequence["Series"]) -> List[Hashable]:
+def reorder_columns(ldesc: Sequence[Series]) -> List[Hashable]:
     """Set a convenient order for rows for display."""
     names: List[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
@@ -174,33 +202,7 @@ def reorder_columns(ldesc: Sequence["Series"]) -> List[Hashable]:
     return names
 
 
-def select_columns(
-    frame: "DataFrame",
-    include: Optional[Union[str, Sequence[str]]],
-    exclude: Optional[Union[str, Sequence[str]]],
-    datetime_is_numeric: bool,
-) -> "DataFrame":
-    """Select columns to be described."""
-    if (include is None) and (exclude is None):
-        # when some numerics are found, keep only numerics
-        default_include = [np.number]
-        if datetime_is_numeric:
-            default_include.append("datetime")
-        data = frame.select_dtypes(include=default_include)
-        if len(data.columns) == 0:
-            data = frame
-    elif include == "all":
-        if exclude is not None:
-            msg = "exclude must be None when include is 'all'"
-            raise ValueError(msg)
-        data = frame
-    else:
-        data = frame.select_dtypes(include=include, exclude=exclude)
-
-    return data
-
-
-def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> "Series":
+def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """Describe series containing numerical data.
 
     Parameters
@@ -223,55 +225,73 @@ def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> "Seri
     return Series(d, index=stat_index, name=series.name)
 
 
-def describe_categorical_1d(data: "Series", is_series: bool) -> "Series":
+def describe_categorical_1d(
+    data: Series,
+    percentiles_ignored: Sequence[float],
+) -> Series:
     """Describe series containing categorical data.
 
     Parameters
     ----------
     data : Series
         Series to be described.
-    is_series : bool
-        True if the original object is a Series.
-        False if the one column of the DataFrame is described.
+    percentiles_ignored : list-like of numbers
+        Ignored, but in place to unify interface.
+    """
+    names = ["count", "unique", "top", "freq"]
+    objcounts = data.value_counts()
+    count_unique = len(objcounts[objcounts != 0])
+    if count_unique > 0:
+        top, freq = objcounts.index[0], objcounts.iloc[0]
+        dtype = None
+    else:
+        # If the DataFrame is empty, set 'top' and 'freq' to None
+        # to maintain output shape consistency
+        top, freq = np.nan, np.nan
+        dtype = "object"
+
+    result = [data.count(), count_unique, top, freq]
+
+    from pandas import Series
+
+    return Series(result, index=names, name=data.name, dtype=dtype)
+
+
+def describe_timestamp_as_categorical_1d(
+    data: Series,
+    percentiles_ignored: Sequence[float],
+) -> Series:
+    """Describe series containing timestamp data treated as categorical.
+
+    Parameters
+    ----------
+    data : Series
+        Series to be described.
+    percentiles_ignored : list-like of numbers
+        Ignored, but in place to unify interface.
     """
     names = ["count", "unique"]
     objcounts = data.value_counts()
     count_unique = len(objcounts[objcounts != 0])
     result = [data.count(), count_unique]
     dtype = None
-    if result[1] > 0:
+    if count_unique > 0:
         top, freq = objcounts.index[0], objcounts.iloc[0]
-        if is_datetime64_any_dtype(data.dtype):
-            if is_series:
-                stacklevel = 6
-            else:
-                stacklevel = 7
-            warnings.warn(
-                "Treating datetime data as categorical rather than numeric in "
-                "`.describe` is deprecated and will be removed in a future "
-                "version of pandas. Specify `datetime_is_numeric=True` to "
-                "silence this warning and adopt the future behavior now.",
-                FutureWarning,
-                stacklevel=stacklevel,
-            )
-            tz = data.dt.tz
-            asint = data.dropna().values.view("i8")
-            top = Timestamp(top)
-            if top.tzinfo is not None and tz is not None:
-                # Don't tz_localize(None) if key is already tz-aware
-                top = top.tz_convert(tz)
-            else:
-                top = top.tz_localize(tz)
-            names += ["top", "freq", "first", "last"]
-            result += [
-                top,
-                freq,
-                Timestamp(asint.min(), tz=tz),
-                Timestamp(asint.max(), tz=tz),
-            ]
+        tz = data.dt.tz
+        asint = data.dropna().values.view("i8")
+        top = Timestamp(top)
+        if top.tzinfo is not None and tz is not None:
+            # Don't tz_localize(None) if key is already tz-aware
+            top = top.tz_convert(tz)
         else:
-            names += ["top", "freq"]
-            result += [top, freq]
+            top = top.tz_localize(tz)
+        names += ["top", "freq", "first", "last"]
+        result += [
+            top,
+            freq,
+            Timestamp(asint.min(), tz=tz),
+            Timestamp(asint.max(), tz=tz),
+        ]
 
     # If the DataFrame is empty, set 'top' and 'freq' to None
     # to maintain output shape consistency
@@ -285,7 +305,7 @@ def describe_categorical_1d(data: "Series", is_series: bool) -> "Series":
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> "Series":
+def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
     """Describe series containing datetime64 dtype.
 
     Parameters
@@ -309,41 +329,40 @@ def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> "Seri
     return Series(d, index=stat_index, name=data.name)
 
 
-def describe_1d(
-    data: "Series",
-    percentiles: Sequence[float],
+def select_describe_func(
+    data: Series,
     datetime_is_numeric: bool,
-    *,
-    is_series: bool,
-) -> "Series":
-    """Describe series.
+) -> Callable:
+    """Select proper function for describing series based on data type.
 
     Parameters
     ----------
     data : Series
         Series to be described.
-    percentiles : list-like of numbers
-        The percentiles to include in the output.
-    datetime_is_numeric : bool, default False
+    datetime_is_numeric : bool
         Whether to treat datetime dtypes as numeric.
-    is_series : bool
-        True if the original object is a Series.
-        False if the one column of the DataFrame is described.
-
-    Returns
-    -------
-    Series
     """
     if is_bool_dtype(data.dtype):
-        return describe_categorical_1d(data, is_series)
+        return describe_categorical_1d
     elif is_numeric_dtype(data):
-        return describe_numeric_1d(data, percentiles)
-    elif is_datetime64_any_dtype(data.dtype) and datetime_is_numeric:
-        return describe_timestamp_1d(data, percentiles)
+        return describe_numeric_1d
+    elif is_datetime64_any_dtype(data.dtype):
+        if datetime_is_numeric:
+            return describe_timestamp_1d
+        else:
+            warnings.warn(
+                "Treating datetime data as categorical rather than numeric in "
+                "`.describe` is deprecated and will be removed in a future "
+                "version of pandas. Specify `datetime_is_numeric=True` to "
+                "silence this warning and adopt the future behavior now.",
+                FutureWarning,
+                stacklevel=5,
+            )
+            return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):
-        return describe_numeric_1d(data, percentiles)
+        return describe_numeric_1d
     else:
-        return describe_categorical_1d(data, is_series)
+        return describe_categorical_1d
 
 
 def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:

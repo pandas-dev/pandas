@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.api.types import is_object_dtype, is_string_dtype
 
 from .base import BaseExtensionTests
 
@@ -41,10 +42,10 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype.is_dtype([1, 2, 3]) is False
 
     def test_is_not_string_type(self, dtype):
-        return not pd.api.types.is_string_dtype(dtype)
+        return not is_string_dtype(dtype)
 
     def test_is_not_object_type(self, dtype):
-        return not pd.api.types.is_object_dtype(dtype)
+        return not is_object_dtype(dtype)
 
     def test_eq_with_str(self, dtype):
         assert dtype == dtype.name

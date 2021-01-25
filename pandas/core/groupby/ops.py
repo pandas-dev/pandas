@@ -5,6 +5,7 @@ These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
+from __future__ import annotations
 
 import collections
 from typing import (
@@ -99,7 +100,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: Sequence["grouper.Grouping"],
+        groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -118,7 +119,7 @@ class BaseGrouper:
         self.dropna = dropna
 
     @property
-    def groupings(self) -> List["grouper.Grouping"]:
+    def groupings(self) -> List[grouper.Grouping]:
         return self._groupings
 
     @property
@@ -149,7 +150,7 @@ class BaseGrouper:
             yield key, group.__finalize__(data, method="groupby")
 
     @final
-    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
+    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> DataSplitter:
         """
         Returns
         -------
@@ -909,7 +910,7 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels.name]
 
     @property
-    def groupings(self) -> "List[grouper.Grouping]":
+    def groupings(self) -> List[grouper.Grouping]:
         return [
             grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)

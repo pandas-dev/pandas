@@ -1,7 +1,11 @@
 from contextlib import contextmanager
 import os
+from pathlib import Path
+import random
 from shutil import rmtree
+import string
 import tempfile
+from typing import IO, Any, Union
 
 import numpy as np
 
@@ -73,66 +77,48 @@ def set_timezone(tz: str):
 
 
 @contextmanager
-def ensure_clean(filename=None, return_filelike=False, **kwargs):
+def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
     """
     Gets a temporary path and agrees to remove on close.
+
+    This implementation does not use tempfile.mkstemp to avoid having a file handle.
+    If the code using the returned path wants to delete the file itself, windows
+    requires that no program has a file handle to it.
 
     Parameters
     ----------
     filename : str (optional)
-        if None, creates a temporary file which is then removed when out of
-        scope. if passed, creates temporary file with filename as ending.
+        suffix of the created file.
     return_filelike : bool (default False)
         if True, returns a file-like which is *always* cleaned. Necessary for
         savefig and other functions which want to append extensions.
     **kwargs
-        Additional keywords passed in for creating a temporary file.
-        :meth:`tempFile.TemporaryFile` is used when `return_filelike` is ``True``.
-        :meth:`tempfile.mkstemp` is used when `return_filelike` is ``False``.
-        Note that the `filename` parameter will be passed in as the `suffix`
-        argument to either function.
+        Additional keywords are passed to open().
 
-    See Also
-    --------
-    tempfile.TemporaryFile
-    tempfile.mkstemp
     """
-    filename = filename or ""
-    fd = None
+    folder = Path(tempfile.gettempdir())
 
-    kwargs["suffix"] = filename
+    if filename is None:
+        filename = ""
+    filename = (
+        "".join(random.choices(string.ascii_letters + string.digits, k=30)) + filename
+    )
+    path = folder / filename
 
+    path.touch()
+
+    handle_or_str: Union[str, IO] = str(path)
     if return_filelike:
-        f = tempfile.TemporaryFile(**kwargs)
+        kwargs.setdefault("mode", "w+b")
+        handle_or_str = open(path, **kwargs)
 
-        try:
-            yield f
-        finally:
-            f.close()
-    else:
-        # Don't generate tempfile if using a path with directory specified.
-        if len(os.path.dirname(filename)):
-            raise ValueError("Can't pass a qualified name to ensure_clean()")
-
-        try:
-            fd, filename = tempfile.mkstemp(**kwargs)
-        except UnicodeEncodeError:
-            import pytest
-
-            pytest.skip("no unicode file names on this system")
-
-        try:
-            yield filename
-        finally:
-            try:
-                os.close(fd)
-            except OSError:
-                print(f"Couldn't close file descriptor: {fd} (file: {filename})")
-            try:
-                if os.path.exists(filename):
-                    os.remove(filename)
-            except OSError as e:
-                print(f"Exception on removing file: {e}")
+    try:
+        yield handle_or_str
+    finally:
+        if not isinstance(handle_or_str, str):
+            handle_or_str.close()
+        if path.is_file():
+            path.unlink()
 
 
 @contextmanager
