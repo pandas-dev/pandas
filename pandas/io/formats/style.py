@@ -965,15 +965,15 @@ class Styler:
         -------
         self : Styler
 
-        Notes
-        -----
-        The output of ``func`` should be a CSS style as string or, if nothing is to be
-        applied, an empty string or ``None``.
-
         See Also
         --------
         Styler.where: Updates the HTML representation with a style which is
             selected in accordance with the return value of a function.
+
+        Notes
+        -----
+        The output of ``func`` should be a CSS style as string or, if nothing is to be
+        applied, an empty string or ``None``.
 
         Examples
         --------
