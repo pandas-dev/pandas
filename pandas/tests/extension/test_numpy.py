@@ -16,13 +16,12 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.missing import infer_fill_value as infer_fill_value_orig
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import StringArray
-from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
+from pandas.core.arrays import PandasArray, StringArray
 from pandas.core.construction import extract_array
 
 from . import base
@@ -342,6 +341,10 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     @skip_nested
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         super().test_arith_series_with_array(data, all_arithmetic_operators)
+
+    @skip_nested
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
