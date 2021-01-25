@@ -406,7 +406,10 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestNumericAccumulation(base.BaseNumericAccumulateTests):
-    pass
+    def check_accumulate(self, s, op_name, skipna):
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = getattr(pd.Series(s.astype("float64")), op_name)(skipna=skipna)
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 # TODO parsing not yet supported

@@ -250,47 +250,50 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
 
 class TestNumericAccumulation(base.BaseNumericAccumulateTests):
     def check_accumulate(self, s, op_name, skipna):
-        # overwrite to ensure pd.NA is tested instead of np.nan
-        # https://github.com/pandas-dev/pandas/issues/30958
-        if op_name == "cumsum":
-            if s.dtype.name.startswith("U"):
-                expected_dtype = "uint64"
-            else:
-                expected_dtype = "int64"
-            result = getattr(s, op_name)(skipna=skipna)
-            expected = pd.Series(
-                integer_array(
-                    getattr(s.astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
-        elif op_name in ["cummax", "cummin"]:
-            expected_dtype = s.dtype
-            result = getattr(s, op_name)(skipna=skipna)
-            expected = pd.Series(
-                integer_array(
-                    getattr(s.astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
-        elif op_name == "cumprod":
-            if s.dtype.name.startswith("U"):
-                expected_dtype = "uint64"
-            else:
-                expected_dtype = "int64"
-            result = getattr(s[:20], op_name)(skipna=skipna)
-            expected = pd.Series(
-                integer_array(
-                    getattr(s[:20].astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = getattr(pd.Series(s.astype("float64")), op_name)(skipna=skipna)
+        tm.assert_series_equal(result, expected, check_dtype=False)
+        # # overwrite to ensure pd.NA is tested instead of np.nan
+        # # https://github.com/pandas-dev/pandas/issues/30958
+        # if op_name == "cumsum":
+        #     if s.dtype.name.startswith("U"):
+        #         expected_dtype = "uint64"
+        #     else:
+        #         expected_dtype = "int64"
+        #     result = getattr(s, op_name)(skipna=skipna)
+        #     expected = pd.Series(
+        #         integer_array(
+        #             getattr(s.astype("float64"), op_name)(skipna=skipna),
+        #             dtype=expected_dtype,
+        #         )
+        #     )
+        #     tm.assert_series_equal(result, expected)
+        # elif op_name in ["cummax", "cummin"]:
+        #     expected_dtype = s.dtype
+        #     result = getattr(s, op_name)(skipna=skipna)
+        #     expected = pd.Series(
+        #         integer_array(
+        #             getattr(s.astype("float64"), op_name)(skipna=skipna),
+        #             dtype=expected_dtype,
+        #         )
+        #     )
+        #     tm.assert_series_equal(result, expected)
+        # elif op_name == "cumprod":
+        #     if s.dtype.name.startswith("U"):
+        #         expected_dtype = "uint64"
+        #     else:
+        #         expected_dtype = "int64"
+        #     result = getattr(s[:20], op_name)(skipna=skipna)
+        #     expected = pd.Series(
+        #         integer_array(
+        #             getattr(s[:20].astype("float64"), op_name)(skipna=skipna),
+        #             dtype=expected_dtype,
+        #         )
+        #     )
+        #     tm.assert_series_equal(result, expected)
 
-        else:
-            raise
+        # else:
+        #     raise
 
 
 class TestPrinting(base.BasePrintingTests):
