@@ -333,7 +333,7 @@ I/O
 
 Period
 ^^^^^^
-- Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`??`)
+- Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`39274`)
 -
 -
 
@@ -383,7 +383,7 @@ ExtensionArray
 Other
 ^^^^^
 - Bug in :class:`Index` constructor sometimes silently ignorning a specified ``dtype`` (:issue:`38879`)
--
+- Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
 -
 
 .. ---------------------------------------------------------------------------
