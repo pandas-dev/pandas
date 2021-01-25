@@ -3,7 +3,7 @@ import csv
 from io import StringIO
 import re
 import sys
-from typing import Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, Set, cast
 
 import numpy as np
 
@@ -135,12 +135,12 @@ class PythonParser(ParserBase):
             self._col_indices = list(range(len(self.columns)))
 
         self._validate_parse_dates_presence(self.columns)
+        no_thousands_columns: Optional[Set[int]] = None
         if self.parse_dates:
-            self._no_thousands_columns = self._set_noconvert_dtype_columns(
+            no_thousands_columns = self._set_noconvert_dtype_columns(
                 self._col_indices, self.columns
             )
-        else:
-            self._no_thousands_columns = None
+        self._no_thousands_columns = no_thousands_columns
 
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
