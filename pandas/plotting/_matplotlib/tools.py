@@ -29,7 +29,8 @@ def format_date_labels(ax: "Axes", rot):
         label.set_ha("right")
         label.set_rotation(rot)
     fig = ax.get_figure()
-    fig.subplots_adjust(bottom=0.2)
+    if not hasattr(fig, "get_constrained_layout") or not fig.get_constrained_layout():
+        fig.subplots_adjust(bottom=0.2)
 
 
 def table(

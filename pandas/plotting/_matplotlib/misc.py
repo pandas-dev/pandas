@@ -39,7 +39,8 @@ def scatter_matrix(
     fig, axes = create_subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
 
     # no gaps between subplots
-    fig.subplots_adjust(wspace=0, hspace=0)
+    if not hasattr(fig, "get_constrained_layout") or not fig.get_constrained_layout():
+        fig.subplots_adjust(wspace=0, hspace=0)
 
     mask = notna(df)
 
@@ -329,7 +330,8 @@ def bootstrap_plot(
     for axis in axes:
         plt.setp(axis.get_xticklabels(), fontsize=8)
         plt.setp(axis.get_yticklabels(), fontsize=8)
-    plt.tight_layout()
+    if not hasattr(fig, "get_constrained_layout") or not fig.get_constrained_layout():
+        plt.tight_layout()
     return fig
 
 
