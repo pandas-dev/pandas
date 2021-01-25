@@ -257,7 +257,7 @@ class ExtensionIndex(Index):
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
 
-    def delete(self: _T, loc) -> _T:
+    def delete(self, loc):
         """
         Make new Index with passed location(-s) deleted
 

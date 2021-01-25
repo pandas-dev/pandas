@@ -997,12 +997,12 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def take(
-        self,
+        self: ExtensionArrayT,
         indices: Sequence[int],
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ) -> ExtensionArray:
+    ) -> ExtensionArrayT:
         """
         Take elements from an array.
 
