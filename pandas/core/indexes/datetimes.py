@@ -565,6 +565,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "second",
             "minute",
             "second",
+            "millisecond",
             "microsecond",
         }
         if reso.attrname not in valid_resos:
