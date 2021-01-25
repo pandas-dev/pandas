@@ -19,13 +19,6 @@ cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
     res.imag = val.imag
     return res
 
-
-cdef {{name}}_t to_{{name}}(kh{{name}}_t val) nogil:
-    cdef {{name}}_t res
-    res.real = val.real
-    res.imag = val.imag
-    return res
-
 {{endfor}}
 
 

@@ -214,7 +214,7 @@ def _box_as_indexlike(
 
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
-    cache_array: "Series",
+    cache_array: Series,
     name: Optional[str] = None,
 ) -> Index:
     """
@@ -571,13 +571,13 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Union[DatetimeScalar, "NaTType"]:
+) -> Union[DatetimeScalar, NaTType]:
     ...
 
 
 @overload
 def to_datetime(
-    arg: "Series",
+    arg: Series,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -621,7 +621,7 @@ def to_datetime(
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> Union[DatetimeIndex, "Series", DatetimeScalar, "NaTType"]:
+) -> Union[DatetimeIndex, Series, DatetimeScalar, NaTType]:
     """
     Convert argument to datetime.
 

@@ -371,7 +371,7 @@ class BlockManager(DataManager):
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
 
-    def operate_blockwise(self, other: "BlockManager", array_op) -> BlockManager:
+    def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
@@ -564,7 +564,7 @@ class BlockManager(DataManager):
     def setitem(self, indexer, value) -> BlockManager:
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True, axis: int = 0):
+    def putmask(self, mask, new, align: bool = True):
 
         if align:
             align_keys = ["new", "mask"]
@@ -577,7 +577,6 @@ class BlockManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            axis=axis,
         )
 
     def diff(self, n: int, axis: int) -> BlockManager:
@@ -1732,17 +1731,13 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
         float_blocks = _multi_blockify(items_dict["FloatBlock"])
         blocks.extend(float_blocks)
 
-    if len(items_dict["ComplexBlock"]):
-        complex_blocks = _multi_blockify(items_dict["ComplexBlock"])
+    if len(items_dict["NumericBlock"]):
+        complex_blocks = _multi_blockify(items_dict["NumericBlock"])
         blocks.extend(complex_blocks)
 
     if len(items_dict["TimeDeltaBlock"]):
         timedelta_blocks = _multi_blockify(items_dict["TimeDeltaBlock"])
         blocks.extend(timedelta_blocks)
-
-    if len(items_dict["IntBlock"]):
-        int_blocks = _multi_blockify(items_dict["IntBlock"])
-        blocks.extend(int_blocks)
 
     if len(items_dict["DatetimeBlock"]):
         datetime_blocks = _simple_blockify(items_dict["DatetimeBlock"], DT64NS_DTYPE)
@@ -1754,10 +1749,6 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
             for i, _, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
-
-    if len(items_dict["BoolBlock"]):
-        bool_blocks = _simple_blockify(items_dict["BoolBlock"], np.bool_)
-        blocks.extend(bool_blocks)
 
     if len(items_dict["ObjectBlock"]) > 0:
         object_blocks = _simple_blockify(items_dict["ObjectBlock"], np.object_)
