@@ -54,13 +54,10 @@ class TestGetLoc:
         idx = Float64Index([np.nan, 1, np.nan])
         assert idx.get_loc(1) == 1
 
-        # FIXME: dont leave commented-out
         # representable by slice [0:2:2]
-        # pytest.raises(KeyError, idx.slice_locs, np.nan)
-        sliced = idx.slice_locs(np.nan)
-        assert isinstance(sliced, tuple)
-        assert sliced == (0, 3)
-
+        msg = "'Cannot get left slice bound for non-unique label: nan'"
+        with pytest.raises(KeyError, match=msg):
+            idx.slice_locs(np.nan)
         # not representable by slice
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
         assert idx.get_loc(1) == 1
