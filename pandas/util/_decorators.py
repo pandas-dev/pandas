@@ -79,7 +79,7 @@ def deprecate(
         {dedent(doc)}"""
         )
 
-    return wrapper
+    return wrapper  # type: ignore[return-value]
 
 
 def deprecate_kwarg(

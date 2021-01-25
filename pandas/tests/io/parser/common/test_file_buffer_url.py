@@ -5,6 +5,7 @@ specific classification into the other test modules.
 from io import BytesIO, StringIO
 import os
 import platform
+from typing import Union
 from urllib.error import URLError
 
 import pytest
@@ -330,8 +331,9 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     parser = all_parsers
     expected = DataFrame({"a": [1], "b": [2]})
 
-    content = "a,b\n1,2"
+    content: Union[str, bytes] = "a,b\n1,2"
     if io_class == BytesIO:
+        assert not isinstance(content, bytes)
         content = content.encode("utf-8")
     handle = io_class(content)
 
