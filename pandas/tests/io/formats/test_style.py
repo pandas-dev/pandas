@@ -102,6 +102,7 @@ class TestStyler:
         assert self.styler._todo != s2._todo
 
     def test_clear(self):
+        # updated in GH 39396
         tt = DataFrame({"A": [None, "tt"]})
         css = DataFrame({"A": [None, "cls-a"]})
         s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
@@ -127,6 +128,15 @@ class TestStyler:
         s = Styler(df, uuid="AB").apply(style)
         s.render()
         # it worked?
+
+    def test_multiple_render(self):
+        # GH 39396
+        s = Styler(self.df, uuid_len=0).applymap(lambda x: "color: red;", subset=["A"])
+        s.render()  # do 2 renders to ensure css styles not duplicated
+        assert (
+            '<style  type="text/css" >\n#T__row0_col0,#T__row1_col0{\n            '
+            "color:  red;\n        }</style>" in s.render()
+        )
 
     def test_render_empty_dfs(self):
         empty_df = DataFrame()
