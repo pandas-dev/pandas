@@ -384,7 +384,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_listlike_indexer_duplicate_columns_not_equal_length(self):
-        # GH#
+        # GH#39403
         df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
         rhs = DataFrame([[10, 11]], columns=["a", "b"])
         msg = "Columns must be same length as key"
