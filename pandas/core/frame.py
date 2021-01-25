@@ -3211,6 +3211,14 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self.iloc[key] = value
 
+    def _check_key_length(self, key, value: DataFrame):
+        if self.columns.is_unique:
+            if len(value.columns) != len(key):
+                raise ValueError("Columns must be same length as key")
+        else:
+            if len(self.columns.get_indexer_non_unique(key)[0]) != len(value.columns):
+                raise ValueError("Columns must be same length as key")
+
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
@@ -3223,9 +3231,8 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
             self.iloc[indexer] = value
         else:
-            if isinstance(value, DataFrame) and self.columns.is_unique:
-                if len(value.columns) != len(key):
-                    raise ValueError("Columns must be same length as key")
+            if isinstance(value, DataFrame):
+                self._check_key_length(key, value)
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:

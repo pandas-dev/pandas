@@ -378,10 +378,18 @@ class TestDataFrameSetItem:
     def test_setitem_listlike_indexer_duplicate_columns(self):
         # GH#38604
         df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
-        rhs = DataFrame([[10, 11, 12]], columns=["d", "e", "c"])
+        rhs = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
         df[["a", "b"]] = rhs
         expected = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_listlike_indexer_duplicate_columns_not_equal_length(self):
+        # GH#
+        df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
+        rhs = DataFrame([[10, 11]], columns=["a", "b"])
+        msg = "Columns must be same length as key"
+        with pytest.raises(ValueError, match=msg):
+            df[["a", "b"]] = rhs
 
 
 class TestDataFrameSetItemWithExpansion:
