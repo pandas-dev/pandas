@@ -1054,7 +1054,6 @@ class ExcelFile:
         if import_optional_dependency("xlrd", errors="ignore") is None:
             xlrd_version = None
         else:
-            
             import xlrd
 
             xlrd_version = _get_version(xlrd)
