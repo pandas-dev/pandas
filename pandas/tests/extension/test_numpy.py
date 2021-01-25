@@ -313,6 +313,10 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
+    @skip_nested
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
     pass
