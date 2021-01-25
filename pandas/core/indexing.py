@@ -2023,7 +2023,7 @@ class _iLocIndexer(_LocationIndexer):
                         return ser._values.copy()
                     return ser.reindex(ax)._values
 
-        elif is_scalar(indexer) and isinstance(self.obj, ABCSeries):
+        elif is_scalar(indexer) and self.ndim == 1:
             if is_object_dtype(self.obj):
                 return ser
             ax = self.obj._get_axis(0)
