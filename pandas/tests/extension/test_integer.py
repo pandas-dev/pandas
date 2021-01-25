@@ -111,7 +111,8 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
-            if s.dtype.is_unsigned_integer and (op_name == "__rsub__"):
+            sdtype = tm.get_dtype(s)
+            if sdtype.is_unsigned_integer and (op_name == "__rsub__"):
                 # TODO see https://github.com/pandas-dev/pandas/issues/22023
                 pytest.skip("unsigned subtraction gives negative values")
 
@@ -122,21 +123,21 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             ):
                 # other is np.int64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype
-                other = other.astype(s.dtype.numpy_dtype)
+                other = other.astype(sdtype.numpy_dtype)
 
             result = op(s, other)
-            expected = s.combine(other, op)
+            expected = self._combine(s, other, op)
 
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
                 expected = expected.fillna(np.nan).astype("Float64")
             elif op_name.startswith("__r"):
                 # TODO reverse operators result in object dtype
                 # see https://github.com/pandas-dev/pandas/issues/22024
-                expected = expected.astype(s.dtype)
-                result = result.astype(s.dtype)
+                expected = expected.astype(sdtype)
+                result = result.astype(sdtype)
             else:
                 # combine method result in 'biggest' (int64) dtype
-                expected = expected.astype(s.dtype)
+                expected = expected.astype(sdtype)
                 pass
 
             if (op_name == "__rpow__") and isinstance(other, pd.Series):
@@ -144,7 +145,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # see https://github.com/pandas-dev/pandas/issues/22022
                 result = result.fillna(1)
 
-            self.assert_series_equal(result, expected)
+            self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)
