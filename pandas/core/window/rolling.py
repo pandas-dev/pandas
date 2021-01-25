@@ -1836,7 +1836,6 @@ class RollingAndExpandingMixin(BaseWindow):
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
 
         from pandas import Series
 
@@ -1868,7 +1867,7 @@ class RollingAndExpandingMixin(BaseWindow):
             return Series(result, index=x.index, name=x.name)
 
         return flex_binary_moment(
-            self._selected_obj, other._selected_obj, cov_func, pairwise=bool(pairwise)
+            self._selected_obj, other, cov_func, pairwise=bool(pairwise)
         )
 
     _shared_docs["corr"] = dedent(
@@ -1986,7 +1985,6 @@ class RollingAndExpandingMixin(BaseWindow):
             other = self._selected_obj
             # only default unset
             pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
 
         from pandas import Series
 
@@ -2028,7 +2026,7 @@ class RollingAndExpandingMixin(BaseWindow):
             return Series(result, index=x.index, name=x.name)
 
         return flex_binary_moment(
-            self._selected_obj, other._selected_obj, corr_func, pairwise=bool(pairwise)
+            self._selected_obj, other, corr_func, pairwise=bool(pairwise)
         )
 
 
