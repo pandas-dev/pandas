@@ -691,6 +691,15 @@ class BooleanArray(BaseMaskedArray):
 
         return super()._reduce(name, skipna=skipna, **kwargs)
 
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> BaseMaskedArray:
+        from pandas.core.arrays import IntegerArray
+
+        data = self._data.astype(int)
+        mask = self._mask
+        return IntegerArray(data, mask)._accumulate(name, skipna=skipna, **kwargs)
+
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters

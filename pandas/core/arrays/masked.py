@@ -438,11 +438,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             op = getattr(masked_accumulations, name)
             data, mask = op(data, mask, skipna=skipna, **kwargs)
 
-        from pandas.core.arrays import BooleanArray, IntegerArray
-
-        if isinstance(self, BooleanArray):
-            return IntegerArray(data, mask, copy=False)
-
         return type(self)(data, mask, copy=False)
 
         raise NotImplementedError(
