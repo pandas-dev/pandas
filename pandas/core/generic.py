@@ -6324,7 +6324,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...                    [3, 4, np.nan, 1],
         ...                    [np.nan, np.nan, np.nan, 5],
         ...                    [np.nan, 3, np.nan, 4]],
-        ...                   columns=list('ABCD'))
+        ...                   columns=list("ABCD"))
         >>> df
              A    B   C  D
         0  NaN  2.0 NaN  0
@@ -6343,7 +6343,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         We can also propagate non-null values forward or backward.
 
-        >>> df.fillna(method='ffill')
+        >>> df.fillna(method="ffill")
             A   B   C   D
         0   NaN 2.0 NaN 0
         1   3.0 4.0 NaN 1
@@ -6353,7 +6353,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
         2, and 3 respectively.
 
-        >>> values = {{'A': 0, 'B': 1, 'C': 2, 'D': 3}}
+        >>> values = {{"A": 0, "B": 1, "C": 2, "D": 3}}
         >>> df.fillna(value=values)
             A   B   C   D
         0   0.0 2.0 2.0 0
@@ -6369,6 +6369,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1   3.0 4.0 NaN 1
         2   NaN 1.0 NaN 5
         3   NaN 3.0 NaN 4
+
+        When filling using a DataFrame, replacement happens along
+        the same column names and same indices
+
+        >>> df2 = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCE"))
+        >>> df.fillna(df2)
+            A   B   C   D
+        0   0.0 2.0 0.0 0
+        1   3.0 4.0 0.0 1
+        2   0.0 0.0 0.0 5
+        3   0.0 3.0 0.0 4
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
