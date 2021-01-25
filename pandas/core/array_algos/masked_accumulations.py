@@ -54,7 +54,7 @@ def cumsum(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
 
 
 def cumprod(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
-    return _cum_func(np.cumsum, values, mask, skipna=skipna)
+    return _cum_func(np.cumprod, values, mask, skipna=skipna)
 
 
 def cummin(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
