@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from typing import final
 
     from pandas._libs import Period, Timedelta, Timestamp
+    from pandas._libs.tslibs.offsets import DateOffset
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -92,6 +93,7 @@ Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
+Frequency = Union[str, DateOffset]
 
 # dtypes
 NpDtype = Union[str, np.dtype]
