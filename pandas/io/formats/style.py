@@ -850,8 +850,8 @@ class Styler:
             if not isinstance(result, pd.DataFrame):
                 if not isinstance(result, np.ndarray):
                     raise TypeError(
-                        f"Function {repr(func)} must return a DataFrame or ndarray when"
-                        f" passed to `Styler.apply` with axis=None"
+                        f"Function {repr(func)} must return a DataFrame or ndarray "
+                        f"when passed to `Styler.apply` with axis=None"
                     )
                 if not (data.shape == result.shape):
                     raise ValueError(
