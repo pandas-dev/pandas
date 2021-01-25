@@ -76,6 +76,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -280,7 +281,7 @@ class Index(IndexOpsMixin, PandasObject):
                 stacklevel=2,
             )
 
-        from pandas.core.arrays import PandasArray, PandasDtype
+        from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
