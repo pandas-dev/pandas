@@ -284,13 +284,13 @@ class Clip:
 
 class ValueCounts:
 
-    params = ["int", "uint", "float", "object"]
-    param_names = ["dtype"]
+    params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
+    param_names = ["N", "dtype"]
 
-    def setup(self, dtype):
-        self.s = Series(np.random.randint(0, 1000, size=100000)).astype(dtype)
+    def setup(self, N, dtype):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
 
-    def time_value_counts(self, dtype):
+    def time_value_counts(self, N, dtype):
         self.s.value_counts()
 
 
