@@ -57,8 +57,8 @@ cdef class {{name}}Engine(IndexEngine):
             with warnings.catch_warnings():
                 # e.g. if values is float64 and `val` is a str, suppress warning
                 warnings.filterwarnings("ignore", category=FutureWarning)
-                if cmath.isnan(val):
-                    indexer = np.isnan(values)
+                if val != val:
+                    indexer = values != values
                 else:
                     indexer = values == val
         except TypeError:
