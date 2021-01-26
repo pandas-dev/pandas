@@ -181,8 +181,7 @@ def stringify_path(
         # this function with convert_file_like=True to infer the compression.
         return cast(FileOrBuffer[AnyStr], filepath_or_buffer)
 
-    # Only @runtime_checkable protocols can be used with instance and class checks
-    if isinstance(filepath_or_buffer, os.PathLike):  # type: ignore[misc]
+    if isinstance(filepath_or_buffer, os.PathLike):
         filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
 

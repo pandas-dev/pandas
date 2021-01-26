@@ -181,7 +181,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         parser.read_csv(StringIO(data), header=[0, 1, 2, 3], **kwargs)
 
 
-_TestTuple = namedtuple("names", ["first", "second"])
+_TestTuple = namedtuple("_TestTuple", ["first", "second"])
 
 
 @pytest.mark.parametrize(

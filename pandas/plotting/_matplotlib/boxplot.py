@@ -28,7 +28,7 @@ class BoxPlot(LinePlot):
 
     _valid_return_types = (None, "axes", "dict", "both")
     # namedtuple to hold results
-    BP = namedtuple("Boxplot", ["ax", "lines"])
+    BP = namedtuple("BP", ["ax", "lines"])
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan

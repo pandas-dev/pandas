@@ -78,8 +78,9 @@ def deprecate(
 
         {dedent(doc)}"""
         )
-
-    return wrapper
+    # error: Incompatible return value type (got "Callable[[VarArg(Any),
+    # KwArg(Any)], Callable[...,Any]]", expected "Callable[[F], F]")
+    return wrapper  # type: ignore[return-value]
 
 
 def deprecate_kwarg(
