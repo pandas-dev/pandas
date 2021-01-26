@@ -13,6 +13,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 import bz2
 import datetime
 import functools
+from functools import partial
 import glob
 import gzip
 import io
@@ -588,3 +589,14 @@ def test_pickle_preserves_block_ndim():
 
     # GH#37631 OP issue was about indexing, underlying problem was pickle
     tm.assert_series_equal(res[[True]], ser)
+
+
+@pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
+def test_pickle_big_dataframe_compression(protocol, compression):
+    # GH#39002
+    df = pd.DataFrame(range(100000))
+    result = tm.round_trip_pathlib(
+        partial(df.to_pickle, protocol=protocol, compression=compression),
+        partial(pd.read_pickle, compression=compression),
+    )
+    tm.assert_frame_equal(df, result)
