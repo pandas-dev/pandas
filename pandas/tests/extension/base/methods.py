@@ -491,6 +491,15 @@ class BaseMethodsTests(BaseExtensionTests):
             else:
                 data.repeat(repeats, **kwargs)
 
+    def test_delete(self, data):
+        result = data.delete(0)
+        expected = data[1:]
+        self.assert_extension_array_equal(result, expected)
+
+        result = data.delete([1, 3])
+        expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
