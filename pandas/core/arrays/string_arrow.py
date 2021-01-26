@@ -507,7 +507,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     def take(
         self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ) -> ExtensionArray:
+    ):
         """
         Take elements from an array.
 
