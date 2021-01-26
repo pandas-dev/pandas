@@ -2,6 +2,8 @@
 Module for formatting output data into CSV files.
 """
 
+from __future__ import annotations
+
 import csv as csvlib
 import os
 from typing import (
@@ -46,7 +48,7 @@ if TYPE_CHECKING:
 class CSVFormatter:
     def __init__(
         self,
-        formatter: "DataFrameFormatter",
+        formatter: DataFrameFormatter,
         path_or_buf: FilePathOrBuffer[str] = "",
         sep: str = ",",
         cols: Optional[Sequence[Hashable]] = None,
@@ -91,7 +93,7 @@ class CSVFormatter:
         return self.fmt.na_rep
 
     @property
-    def float_format(self) -> Optional["FloatFormatType"]:
+    def float_format(self) -> Optional[FloatFormatType]:
         return self.fmt.float_format
 
     @property
