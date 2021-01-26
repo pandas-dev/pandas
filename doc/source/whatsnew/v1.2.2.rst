@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` always raising ``AssertionError`` when comparing extension dtypes (:issue:`39410`)
 -
 
 .. ---------------------------------------------------------------------------
