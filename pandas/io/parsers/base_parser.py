@@ -568,6 +568,7 @@ class ParserBase:
         -------
         A set of integers containing the positions of the columns not to convert.
         """
+        usecols: Optional[Union[List[int], List[str]]]
         noconvert_columns = set()
         if self.usecols_dtype == "integer":
             # A set of integers will be converted to a list in
@@ -579,11 +580,7 @@ class ParserBase:
             usecols = col_indices
         else:
             # Usecols is empty.
-
-            # pandas\io\parsers.py:2030: error: Incompatible types in
-            # assignment (expression has type "None", variable has type
-            # "List[Any]")  [assignment]
-            usecols = None  # type: ignore[assignment]
+            usecols = None
 
         def _set(x) -> int:
             if usecols is not None and is_integer(x):
