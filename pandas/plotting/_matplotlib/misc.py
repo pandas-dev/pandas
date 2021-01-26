@@ -131,7 +131,7 @@ def _get_marker_compat(marker):
 def radviz(
     frame: DataFrame,
     class_column,
-    ax: Optional["Axes"] = None,
+    ax: Optional[Axes] = None,
     color=None,
     colormap=None,
     **kwds,
@@ -219,7 +219,7 @@ def radviz(
 def andrews_curves(
     frame: DataFrame,
     class_column,
-    ax: Optional["Axes"] = None,
+    ax: Optional[Axes] = None,
     samples: int = 200,
     color=None,
     colormap=None,
@@ -284,8 +284,8 @@ def andrews_curves(
 
 
 def bootstrap_plot(
-    series: "Series",
-    fig: Optional["Figure"] = None,
+    series: Series,
+    fig: Optional[Figure] = None,
     size: int = 50,
     samples: int = 500,
     **kwds,
@@ -343,7 +343,7 @@ def parallel_coordinates(
     frame: DataFrame,
     class_column,
     cols=None,
-    ax: Optional["Axes"] = None,
+    ax: Optional[Axes] = None,
     color=None,
     use_columns=False,
     xticks=None,
@@ -419,9 +419,7 @@ def parallel_coordinates(
     return ax
 
 
-def lag_plot(
-    series: "Series", lag: int = 1, ax: Optional["Axes"] = None, **kwds
-) -> Axes:
+def lag_plot(series: Series, lag: int = 1, ax: Optional[Axes] = None, **kwds) -> Axes:
     # workaround because `c='b'` is hardcoded in matplotlib's scatter method
     import matplotlib.pyplot as plt
 
@@ -438,7 +436,7 @@ def lag_plot(
     return ax
 
 
-def autocorrelation_plot(series: "Series", ax: Optional["Axes"] = None, **kwds) -> Axes:
+def autocorrelation_plot(series: Series, ax: Optional[Axes] = None, **kwds) -> Axes:
     import matplotlib.pyplot as plt
 
     n = len(series)
