@@ -2489,8 +2489,6 @@ supported types."""
                 self._close()
             except Exception as exc:
                 self.handles.close()
-                # Only @runtime_checkable protocols can be used with instance and class
-                # checks
                 if isinstance(self._fname, (str, os.PathLike)) and os.path.isfile(
                     self._fname
                 ):
