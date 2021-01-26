@@ -149,13 +149,10 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
-    pytest.param(
-        (
-            pd.DataFrame,
-            {"A": [1], "B": [1]},
-            operator.methodcaller("pivot_table", columns="A"),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        ({"A": [1], "B": [1]},),
+        operator.methodcaller("pivot_table", columns="A"),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     pytest.param(
