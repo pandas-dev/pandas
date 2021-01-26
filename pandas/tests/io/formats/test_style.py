@@ -387,14 +387,16 @@ class TestStyler:
         slices = [
             pd.IndexSlice[:, pd.IndexSlice["x", "A"]],
             pd.IndexSlice[:, pd.IndexSlice[:, "A"]],
+            pd.IndexSlice[:, pd.IndexSlice[:, ["A", "C"]]],  # missing col element
             pd.IndexSlice[pd.IndexSlice["a", 1], :],
             pd.IndexSlice[pd.IndexSlice[:, 1], :],
+            pd.IndexSlice[pd.IndexSlice[:, [1, 3]], :],  # missing row element
             pd.IndexSlice[:, ("x", "A")],
             pd.IndexSlice[("a", 1), :],
         ]
 
         for slice in slices:
-            df.style.applymap(lambda x: "color: red;", subset=slice)
+            df.style.applymap(lambda x: "color: red;", subset=slice).render()
 
     def test_applymap_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
