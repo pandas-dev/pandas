@@ -5196,8 +5196,7 @@ class Index(IndexOpsMixin, PandasObject):
         if is_interval_dtype(self.dtype) and is_valid_nat_for_dtype(target, self.dtype):
             # e.g. setting NA value into IntervalArray[int64]
             self = cast("IntervalIndex", self)
-            dtype = IntervalDtype(np.float64, closed=self.closed)
-            return dtype
+            return IntervalDtype(np.float64, closed=self.closed)
 
         target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
         dtype = find_common_type([self.dtype, target_dtype])
