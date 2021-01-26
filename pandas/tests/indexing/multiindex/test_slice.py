@@ -807,6 +807,7 @@ class TestMultiIndexSlicers:
         ],
     )
     def test_non_reducing_multi_slice_on_multiindex(self, slice_):
+        # GH 33562
         cols = pd.MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
         idxs = pd.MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
