@@ -370,12 +370,14 @@ class TestSetitemWithExpansion:
     def test_setitem_empty_series_timestamp_preserves_dtype(self):
         # GH 21881
         timestamp = Timestamp(1412526600000000000)
-        expected = Series([timestamp], index=["timestamp"], dtype=object)
+        series = Series([timestamp], index=["timestamp"], dtype=object)
+        expected = series["timestamp"]
 
-        result = Series([], dtype=object)
-        result["anything"] = 300.0
-        result["timestamp"] = timestamp
-        tm.assert_series_equal(result["timestamp"], expected["timestamp"])
+        series = Series([], dtype=object)
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
+        result = series["timestamp"]
+        assert isinstance(result, Timestamp) and isinstance(expected, Timestamp)
 
 
 def test_setitem_scalar_into_readonly_backing_data():
