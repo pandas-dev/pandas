@@ -106,14 +106,16 @@ class TestStyler:
         tt = DataFrame({"A": [None, "tt"]})
         css = DataFrame({"A": [None, "cls-a"]})
         s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
-        # _todo, tooltips and cell_context items all affected..
+        # _todo, tooltips and cell_context items added to..
         assert len(s._todo) > 0
         assert s.tooltips
         assert len(s.cell_context) > 0
+
         s = s._compute()
-        # ctx and _todo items affected
+        # ctx and _todo items affected when a render takes place
         assert len(s.ctx) > 0
         assert len(s._todo) == 0  # _todo is emptied after compute.
+
         s._todo = [1]
         s.clear()
         # ctx, _todo, tooltips and cell_context items all revert to null state.
