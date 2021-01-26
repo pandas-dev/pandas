@@ -128,6 +128,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -3211,14 +3212,6 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self.iloc[key] = value
 
-    def _check_key_length(self, key, value: DataFrame):
-        if self.columns.is_unique:
-            if len(value.columns) != len(key):
-                raise ValueError("Columns must be same length as key")
-        else:
-            if len(self.columns.get_indexer_non_unique(key)[0]) != len(value.columns):
-                raise ValueError("Columns must be same length as key")
-
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
@@ -3232,7 +3225,7 @@ class DataFrame(NDFrame, OpsMixin):
             self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
-                self._check_key_length(key, value)
+                check_key_length(self.columns, key, value)
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
