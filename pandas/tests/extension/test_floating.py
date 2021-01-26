@@ -222,3 +222,7 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class TestNumericAccumulation(base.BaseNumericAccumulateTests):
+    pass
