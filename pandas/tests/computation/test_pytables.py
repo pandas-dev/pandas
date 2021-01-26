@@ -11,7 +11,7 @@ from pandas import Series
     [("q", TermValue(-1, -1, "integer")), ("a", TermValue(0, 0, "integer"))],
 )
 def test__convert_value(value: Any, expected_results: TermValue):
-    metadata = Series(np.array(['a', 'b', 's']))
+    metadata = Series(np.array(["a", "b", "s"]))
 
     result = BinOp._convert_category_value(metadata, value)
 
