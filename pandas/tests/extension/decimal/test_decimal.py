@@ -313,9 +313,6 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
         # We implement divmod
         super()._check_divmod_op(s, op, other, exc=None)
 
-    def test_error(self):
-        pass
-
 
 class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):

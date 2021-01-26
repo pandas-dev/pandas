@@ -158,9 +158,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
             # ... but not the rest.
             super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     def test_divmod_series_array(self):
         # GH 23287
         # skipping because it is not implemented

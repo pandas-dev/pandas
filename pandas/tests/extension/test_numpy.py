@@ -283,10 +283,6 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         self._check_divmod_op(ser, divmod, data, exc=None)
 
-    @pytest.mark.skip("We implement ops")
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     @skip_nested
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
