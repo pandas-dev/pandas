@@ -432,4 +432,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(lambda x: x.rstrip(to_strip))
 
     def _str_removeprefix(self, prefix=None):
-        return self._str_map(lambda x: x.removeprefix(prefix))
+        f_startswith = lambda x: x.startswith(prefix)
+        f_slice = lambda x: x[len(prefix):]
+
+        has_prefix = self._str_map(f_startswith)
+
+        return np.where(has_prefix, self._str_map(f_slice), self)

@@ -3692,15 +3692,15 @@ def test_str_accessor_in_apply_func():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    sys.version_info[0] <= 3 and sys.version_info[1] < 9,
-    reason="Requires python 3.9 or greater",
-)
+# @pytest.mark.skipif(
+#     sys.version_info[0] <= 3 and sys.version_info[1] < 9,
+#     reason="Requires python 3.9 or greater",
+# )
 def test_str_removeprefix():
     # https://github.com/pandas-dev/pandas/issues/36944
 
-    df = DataFrame({"A": ["str_string1", "str_string2", "str_string3"]})
+    df = DataFrame({"A": ["str_string1", "str_string2", "str_string3", "string_no_prefix"]})
     df["A"] = df["A"].str.removeprefix("str_")
-    result = DataFrame({"A": ["string1", "string2", "string3"]})
+    result = DataFrame({"A": ["string1", "string2", "string3", "string_no_prefix"]})
 
     tm.assert_frame_equal(df, result)
