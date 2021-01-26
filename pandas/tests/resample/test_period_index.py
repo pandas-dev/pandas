@@ -790,7 +790,7 @@ class TestPeriodIndex:
         frame = DataFrame([2, 3, 5], index=pi, columns=["a"])
         expected_index = PeriodIndex(data=[], freq=pi.freq)
         expected = DataFrame(index=expected_index, columns=["a"], dtype="int64")
-        result = frame.resample("1s", group_keys=False).mean()
+        result = frame.resample("1s").mean()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
