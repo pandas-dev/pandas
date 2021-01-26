@@ -76,12 +76,12 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
-    ABCPandasArray,
     ABCPeriodIndex,
     ABCSeries,
     ABCTimedeltaIndex,
@@ -281,6 +281,7 @@ class Index(IndexOpsMixin, PandasObject):
                 stacklevel=2,
             )
 
+        from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -292,9 +293,11 @@ class Index(IndexOpsMixin, PandasObject):
             validate_tz_from_dtype(dtype, tz)
             dtype = tz_to_dtype(tz)
 
-        if isinstance(data, ABCPandasArray):
+        if isinstance(data, PandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
             data = data.to_numpy()
+        if isinstance(dtype, PandasDtype):
+            dtype = dtype.numpy_dtype
 
         data_dtype = getattr(data, "dtype", None)
 
@@ -3309,7 +3312,8 @@ class Index(IndexOpsMixin, PandasObject):
             tolerance = self._convert_tolerance(tolerance, target)
 
         if not is_dtype_equal(self.dtype, target.dtype):
-            dtype = find_common_type([self.dtype, target.dtype])
+            dtype = self._find_common_type_compat(target)
+
             this = self.astype(dtype, copy=False)
             target = target.astype(dtype, copy=False)
             return this.get_indexer(
@@ -5072,15 +5076,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_equal(self.dtype, target.dtype):
             # TODO: if object, could use infer_dtype to preempt costly
             #  conversion if still non-comparable?
-            dtype = find_common_type([self.dtype, target.dtype])
-            if (
-                dtype.kind in ["i", "u"]
-                and is_categorical_dtype(target.dtype)
-                and target.hasnans
-            ):
-                # FIXME: find_common_type incorrect with Categorical GH#38240
-                # FIXME: some cases where float64 cast can be lossy?
-                dtype = np.dtype(np.float64)
+            dtype = self._find_common_type_compat(target)
 
             this = self.astype(dtype, copy=False)
             that = target.astype(dtype, copy=False)
@@ -5166,7 +5162,16 @@ class Index(IndexOpsMixin, PandasObject):
         if we can upcast the object-dtype one to improve performance.
         """
 
-        if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
+        if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
+            if (
+                self.tz is not None
+                and other.tz is not None
+                and not tz_compare(self.tz, other.tz)
+            ):
+                # standardize on UTC
+                return self.tz_convert("UTC"), other.tz_convert("UTC")
+
+        elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
                 return type(other)(self), other
             except OutOfBoundsDatetime:
@@ -5183,6 +5188,20 @@ class Index(IndexOpsMixin, PandasObject):
             other, self = other._maybe_promote(self)
 
         return self, other
+
+    def _find_common_type_compat(self, target: Index) -> DtypeObj:
+        """
+        Implementation of find_common_type that adjusts for Index-specific
+        special cases.
+        """
+        dtype = find_common_type([self.dtype, target.dtype])
+        if dtype.kind in ["i", "u"]:
+            # TODO: what about reversed with self being categorical?
+            if is_categorical_dtype(target.dtype) and target.hasnans:
+                # FIXME: find_common_type incorrect with Categorical GH#38240
+                # FIXME: some cases where float64 cast can be lossy?
+                dtype = np.dtype(np.float64)
+        return dtype
 
     @final
     def _should_compare(self, other: Index) -> bool:
