@@ -2887,11 +2887,8 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes"])
     def removeprefix(self, prefix=None):
-        if not prefix:
-            return self._data
-        else:
-            result = self._data.array._str_removeprefix(prefix)
-            return self._wrap_result(result)
+        result = self._data.array._str_removeprefix(prefix)
+        return self._wrap_result(result)
 
 
 def cat_safe(list_of_columns: List, sep: str):
