@@ -1676,7 +1676,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        "numpy.std : Equivalent method for Numpy array.\n",
+        "numpy.std : Equivalent method for NumPy array.\n",
         template_see_also,
         create_section_header("Notes"),
         dedent(
@@ -1725,7 +1725,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        "numpy.var : Equivalent method for Numpy array.\n",
+        "numpy.var : Equivalent method for NumPy array.\n",
         template_see_also,
         create_section_header("Notes"),
         dedent(

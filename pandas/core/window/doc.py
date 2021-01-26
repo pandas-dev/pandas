@@ -32,21 +32,21 @@ template_see_also = dedent(
 args_compat = dedent(
     """
     *args
-        For Numpy compatibility and will not have an effect on the result.\n
+        For NumPy compatibility and will not have an effect on the result.\n
     """
 ).replace("\n", "", 1)
 
 kwargs_compat = dedent(
     """
     **kwargs
-        For Numpy compatibility and will not have an effect on the result.\n
+        For NumPy compatibility and will not have an effect on the result.\n
     """
 ).replace("\n", "", 1)
 
 kwargs_scipy = dedent(
     """
     **kwargs
-        Keyword arguments to configure the ``Scipy`` weighted window type.\n
+        Keyword arguments to configure the ``SciPy`` weighted window type.\n
     """
 ).replace("\n", "", 1)
 
