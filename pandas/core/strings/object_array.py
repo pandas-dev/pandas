@@ -433,7 +433,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_removeprefix(self, prefix=None):
         f_startswith = lambda x: x.startswith(prefix)
-        f_slice = lambda x: x[len(prefix):]
+        f_slice = lambda x: x[len(prefix) :]
 
         has_prefix = self._str_map(f_startswith)
 

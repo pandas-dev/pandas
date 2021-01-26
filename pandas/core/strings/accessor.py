@@ -2886,7 +2886,40 @@ class StringMethods(NoNewAttributesMixin):
     )
 
     @forbid_nonstring_types(["bytes"])
-    def removeprefix(self, prefix=None):
+    def removeprefix(self, prefix: str = None):
+        """
+        Remove a defined prefix from an object series. If the prefix is not present,
+        the original string will be returned.
+
+        Parameters
+        ----------
+        prefix: str, default None
+            Prefix to remove.
+
+        Returns
+        -------
+        Series/Index: object
+            The Series or Index with given prefix removed.
+
+        See also
+        --------
+        Series.str.strip : Remove leading and trailing characters.
+
+        Examples
+        --------
+        >>> s = pd.Series(["str_string1", "str_string2", "no_prefix"])
+        >>> s
+        0    str_string1
+        1    str_string2
+        2      no_prefix
+        dtype: object
+
+        >>> s.str.removeprefix("str_")
+        0      string1
+        1      string2
+        2    no_prefix
+        dtype: object
+        """
         result = self._data.array._str_removeprefix(prefix)
         return self._wrap_result(result)
 
