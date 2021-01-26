@@ -453,7 +453,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
-            result.index = _asfreq_compat(obj.index, freq=self.freq)
+            # When index is all NaT, result is empty but index is not
+            result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
         return result
@@ -1651,10 +1652,14 @@ class TimeGrouper(Grouper):
             nat_count = np.sum(memb._isnan)
             memb = memb[~memb._isnan]
 
-        # if index contains no valid (non-NaT) values, return empty index
         if not len(memb):
+            # index contains no valid (non-NaT) values
+            bins = np.array([], dtype=np.int64)
             binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)
-            return binner, [], labels
+            if len(ax) > 0:
+                # index is all NaT
+                binner, bins, labels = _insert_nat_bin(binner, bins, labels, len(ax))
+            return binner, bins, labels
 
         freq_mult = self.freq.n
 
@@ -1700,12 +1705,7 @@ class TimeGrouper(Grouper):
         bins = memb.searchsorted(prng, side="left")
 
         if nat_count > 0:
-            # NaT handling as in pandas._lib.lib.generate_bins_dt64()
-            # shift bins by the number of NaT
-            bins += nat_count
-            bins = np.insert(bins, 0, nat_count)
-            binner = binner.insert(0, NaT)
-            labels = labels.insert(0, NaT)
+            binner, bins, labels = _insert_nat_bin(binner, bins, labels, nat_count)
 
         return binner, bins, labels
 
@@ -1847,6 +1847,19 @@ def _get_period_range_edges(
     first = (first + int(adjust_first) * freq).to_period(freq)
     last = (last - int(adjust_last) * freq).to_period(freq)
     return first, last
+
+
+def _insert_nat_bin(
+    binner: PeriodIndex, bins: np.ndarray, labels: PeriodIndex, nat_count: int
+) -> Tuple[PeriodIndex, np.ndarray, PeriodIndex]:
+    # NaT handling as in pandas._lib.lib.generate_bins_dt64()
+    # shift bins by the number of NaT
+    assert nat_count > 0
+    bins += nat_count
+    bins = np.insert(bins, 0, nat_count)
+    binner = binner.insert(0, NaT)
+    labels = labels.insert(0, NaT)
+    return binner, bins, labels
 
 
 def _adjust_dates_anchored(
