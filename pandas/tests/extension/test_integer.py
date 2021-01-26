@@ -153,11 +153,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def _check_divmod_op(self, s, op, other, exc=None):
         super()._check_divmod_op(s, op, other, None)
 
-    @pytest.mark.skip(reason="intNA does not error on ops")
-    def test_error(self, data, all_arithmetic_operators):
-        # other specific errors tested in the integer array specific tests
-        pass
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
