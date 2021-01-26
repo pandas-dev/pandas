@@ -355,27 +355,22 @@ class TestStyler:
 
     def test_applymap_subset_multiindex(self):
         # GH 19861
-        # Smoke test for applymap
-        def color_negative_red(val):
-            """
-            Takes a scalar and returns a string with
-            the css property `'color: red'` for negative
-            strings, black otherwise.
-            """
-            color = "red" if val < 0 else "black"
-            return f"color: {color}"
+        # edited for GH 33562
+        idx = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
+        col = pd.MultiIndex.from_product([["x", "y"], ["A", "B"]])
+        df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
 
-        dic = {
-            ("a", "d"): [-1.12, 2.11],
-            ("a", "c"): [2.78, -2.88],
-            ("b", "c"): [-3.99, 3.77],
-            ("b", "d"): [4.21, -1.22],
-        }
+        slices = [
+            pd.IndexSlice[:, pd.IndexSlice["x", "A"]],
+            pd.IndexSlice[:, pd.IndexSlice[:, "A"]],
+            pd.IndexSlice[pd.IndexSlice["a", 1], :],
+            pd.IndexSlice[pd.IndexSlice[:, 1], :],
+            pd.IndexSlice[:, ("x", "A")],
+            pd.IndexSlice[("a", 1), :],
+        ]
 
-        idx = pd.IndexSlice
-        df = DataFrame(dic, index=[0, 1])
-
-        (df.style.applymap(color_negative_red, subset=idx[:, idx["b", "d"]]).render())
+        for slice in slices:
+            df.style.applymap(lambda x: "color: red;", subset=slice)
 
     def test_applymap_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
