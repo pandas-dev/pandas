@@ -62,6 +62,7 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
+    Manager,
     PythonFuncType,
     Renamer,
     StorageOptions,
@@ -137,13 +138,14 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
-from pandas.core.internals import BlockManager
+from pandas.core.internals import ArrayManager, BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
     init_dict,
     init_ndarray,
     masked_rec_array_to_mgr,
+    mgr_to_mgr,
     nested_data_to_arrays,
     reorder_arrays,
     sanitize_index,
@@ -523,7 +525,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        if isinstance(data, BlockManager):
+        if isinstance(data, (BlockManager, ArrayManager)):
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
@@ -601,7 +603,30 @@ class DataFrame(NDFrame, OpsMixin):
                     values, index, columns, dtype=values.dtype, copy=False
                 )
 
+        # ensure correct Manager type according to settings
+        manager = get_option("mode.data_manager")
+        mgr = mgr_to_mgr(mgr, typ=manager)
+
         NDFrame.__init__(self, mgr)
+
+    def _as_manager(self, typ: str) -> DataFrame:
+        """
+        Private helper function to create a DataFrame with specific manager.
+
+        Parameters
+        ----------
+        typ : {"block", "array"}
+
+        Returns
+        -------
+        DataFrame
+            New DataFrame using specified manager type. Is not guaranteed
+            to be a copy or not.
+        """
+        new_mgr: Manager
+        new_mgr = mgr_to_mgr(self._mgr, typ=typ)
+        # fastpath of passing a manager doesn't check the option/manager class
+        return DataFrame(new_mgr)
 
     # ----------------------------------------------------------------------
 
@@ -675,6 +700,8 @@ class DataFrame(NDFrame, OpsMixin):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
+        if isinstance(self._mgr, ArrayManager):
+            return len({arr.dtype for arr in self._mgr.arrays}) == 1
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
@@ -685,6 +712,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
+        if isinstance(self._mgr, ArrayManager):
+            return False
         if self._mgr.any_extension_types:
             # TODO(EA2D) special case would be unnecessary with 2D EAs
             return False
@@ -741,7 +770,7 @@ class DataFrame(NDFrame, OpsMixin):
         # and to_string on entire frame may be expensive
         d = self
 
-        if not (max_rows is None):  # unlimited rows
+        if max_rows is not None:  # unlimited rows
             # min of two, where one may be None
             d = d.iloc[: min(max_rows, len(d))]
         else:
@@ -2000,10 +2029,10 @@ class DataFrame(NDFrame, OpsMixin):
                 np.asarray(self.iloc[:, i]) for i in range(len(self.columns))
             ]
 
-            count = 0
             index_names = list(self.index.names)
 
             if isinstance(self.index, MultiIndex):
+                count = 0
                 for i, n in enumerate(index_names):
                     if n is None:
                         index_names[i] = f"level_{count}"
@@ -3166,6 +3195,11 @@ class DataFrame(NDFrame, OpsMixin):
             self._setitem_array(key, value)
         elif isinstance(value, DataFrame):
             self._set_item_frame_value(key, value)
+        elif is_list_like(value) and 1 < len(
+            self.columns.get_indexer_for([key])
+        ) == len(value):
+            # Column to set is duplicated
+            self._setitem_array([key], value)
         else:
             # set column
             self._set_item(key, value)
@@ -3189,7 +3223,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
             self.iloc[indexer] = value
         else:
-            if isinstance(value, DataFrame):
+            if isinstance(value, DataFrame) and self.columns.is_unique:
                 if len(value.columns) != len(key):
                     raise ValueError("Columns must be same length as key")
                 for k1, k2 in zip(key, value.columns):
@@ -3222,12 +3256,20 @@ class DataFrame(NDFrame, OpsMixin):
     def _set_item_frame_value(self, key, value: DataFrame) -> None:
         self._ensure_valid_index(value)
 
-        # align right-hand-side columns if self.columns
-        # is multi-index and self[key] is a sub-frame
-        if isinstance(self.columns, MultiIndex) and key in self.columns:
+        # align columns
+        if key in self.columns:
             loc = self.columns.get_loc(key)
-            if isinstance(loc, (slice, Series, np.ndarray, Index)):
-                cols = maybe_droplevels(self.columns[loc], key)
+            cols = self.columns[loc]
+            len_cols = 1 if is_scalar(cols) else len(cols)
+            if len_cols != len(value.columns):
+                raise ValueError("Columns must be same length as key")
+
+            # align right-hand-side columns if self.columns
+            # is multi-index and self[key] is a sub-frame
+            if isinstance(self.columns, MultiIndex) and isinstance(
+                loc, (slice, Series, np.ndarray, Index)
+            ):
+                cols = maybe_droplevels(cols, key)
                 if len(cols) and not cols.equals(value.columns):
                     value = value.reindex(cols, axis=1)
 
@@ -3305,7 +3347,7 @@ class DataFrame(NDFrame, OpsMixin):
         takeable : interpret the index/col as indexers, default False
         """
         try:
-            if takeable is True:
+            if takeable:
                 series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
@@ -5012,7 +5054,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             multi_col = isinstance(self.columns, MultiIndex)
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
-                if not (level is None or i in level):
+                if level is not None and i not in level:
                     continue
                 name = names[i]
                 if multi_col:
@@ -5506,7 +5548,7 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if ignore_index:
-            new_data.axes[1] = ibase.default_index(len(indexer))
+            new_data.set_axis(1, ibase.default_index(len(indexer)))
 
         result = self._constructor(new_data)
         if inplace:
@@ -6051,7 +6093,10 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            bm = self._mgr.operate_blockwise(right._mgr, array_op)
+            # TODO operate_blockwise expects a manager of the same type
+            bm = self._mgr.operate_blockwise(
+                right._mgr, array_op  # type: ignore[arg-type]
+            )
             return type(self)(bm)
 
         elif isinstance(right, Series) and axis == 1:
@@ -6481,7 +6526,18 @@ Keep all original rows and columns and also all original values
 
             return expressions.where(mask, y_values, x_values)
 
-        return self.combine(other, combiner, overwrite=False)
+        combined = self.combine(other, combiner, overwrite=False)
+
+        dtypes = {
+            col: find_common_type([self.dtypes[col], other.dtypes[col]])
+            for col in self.columns.intersection(other.columns)
+            if not is_dtype_equal(combined.dtypes[col], self.dtypes[col])
+        }
+
+        if dtypes:
+            combined = combined.astype(dtypes)
+
+        return combined
 
     def update(
         self,
@@ -8441,8 +8497,7 @@ Parrot 2  Parrot       24.0
 
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for Pearson
-            and Spearman correlation.
+            to have a valid result.
 
         Returns
         -------
@@ -8476,7 +8531,9 @@ Parrot 2  Parrot       24.0
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall" or callable(method):
+        elif method == "kendall":
+            correl = libalgos.nancorr_kendall(mat, minp=min_periods)
+        elif callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = mat.T
@@ -8915,11 +8972,11 @@ Parrot 2  Parrot       24.0
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def blk_func(values):
+        def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
-                return op(values, axis=1, skipna=skipna, **kwds)
+                return op(values, axis=axis, skipna=skipna, **kwds)
 
         def _get_data() -> DataFrame:
             if filter_type is None:
@@ -9396,7 +9453,7 @@ Parrot 2  Parrot       24.0
         how: Optional[str] = None,
         normalize: bool = False,
         fill_value=None,
-    ) -> "DataFrame":
+    ) -> DataFrame:
         return super().asfreq(
             freq=freq,
             method=method,
@@ -9418,10 +9475,10 @@ Parrot 2  Parrot       24.0
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
-        offset: Optional["TimedeltaConvertibleTypes"] = None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
         group_keys: bool = no_default,
-    ) -> "Resampler":
+    ) -> Resampler:
         return super().resample(
             rule=rule,
             axis=axis,

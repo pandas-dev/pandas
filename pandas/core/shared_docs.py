@@ -118,7 +118,6 @@ group_keys : bool, optional
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
-
 squeeze : bool, default False
     Reduce the dimensionality of the return type if possible,
     otherwise return a consistent type.

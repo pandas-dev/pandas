@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Any, AnyArrayLike
+from pandas._typing import Any, AnyArrayLike, ArrayLike
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -82,12 +82,11 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     if ndim == 1 and is_integer(indexer):
         # GH37748: allow indexer to be an integer for Series
         return True
-    if isinstance(indexer, tuple):
-        if len(indexer) == ndim:
-            return all(
-                is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
-                for x in indexer
-            )
+    if isinstance(indexer, tuple) and len(indexer) == ndim:
+        return all(
+            is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
+            for x in indexer
+        )
     return False
 
 
@@ -268,6 +267,27 @@ def maybe_convert_indices(indices, n: int):
 
 # -----------------------------------------------------------
 # Unsorted
+
+
+def is_exact_shape_match(target: ArrayLike, value: ArrayLike) -> bool:
+    """
+    Is setting this value into this target overwriting the entire column?
+
+    Parameters
+    ----------
+    target : np.ndarray or ExtensionArray
+    value : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    bool
+    """
+    return (
+        len(value.shape) > 0
+        and len(target.shape) > 0
+        and value.shape[0] == target.shape[0]
+        and value.size == target.size
+    )
 
 
 def length_of_indexer(indexer, target=None) -> int:

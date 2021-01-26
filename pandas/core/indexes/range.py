@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -121,7 +123,7 @@ class RangeIndex(Int64Index):
     @classmethod
     def from_range(
         cls, data: range, name=None, dtype: Optional[Dtype] = None
-    ) -> "RangeIndex":
+    ) -> RangeIndex:
         """
         Create RangeIndex from a range object.
 
@@ -139,7 +141,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: range, name: Hashable = None) -> "RangeIndex":
+    def _simple_new(cls, values: range, name: Hashable = None) -> RangeIndex:
         result = object.__new__(cls)
 
         assert isinstance(values, range)
@@ -335,10 +337,6 @@ class RangeIndex(Int64Index):
     def is_monotonic_decreasing(self) -> bool:
         return self._range.step < 0 or len(self) <= 1
 
-    @property
-    def has_duplicates(self) -> bool:
-        return False
-
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
@@ -470,7 +468,7 @@ class RangeIndex(Int64Index):
 
     def factorize(
         self, sort: bool = False, na_sentinel: Optional[int] = -1
-    ) -> Tuple[np.ndarray, "RangeIndex"]:
+    ) -> Tuple[np.ndarray, RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -630,14 +628,14 @@ class RangeIndex(Int64Index):
                     return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
-    def difference(self, other, sort=None):
+    def _difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
         if not isinstance(other, RangeIndex):
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
 
         res_name = ops.get_op_result_name(self, other)
 
@@ -652,11 +650,11 @@ class RangeIndex(Int64Index):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
             # We won't end up with RangeIndex, so fall back
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
         if overlap.step != first.step:
             # In some cases we might be able to get a RangeIndex back,
             #  but not worth the effort.
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
 
         if overlap[0] == first.start:
             # The difference is everything after the intersection
@@ -666,7 +664,7 @@ class RangeIndex(Int64Index):
             new_rng = range(first.start, overlap[0], first.step)
         else:
             # The difference is not range-like
-            return super().difference(other, sort=sort)
+            return super()._difference(other, sort=sort)
 
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
@@ -686,14 +684,6 @@ class RangeIndex(Int64Index):
         return result
 
     # --------------------------------------------------------------------
-
-    @doc(Int64Index.join)
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        if how == "outer" and self is not other:
-            # note: could return RangeIndex in more circumstances
-            return self._int64index.join(other, how, level, return_indexers, sort)
-
-        return super().join(other, how, level, return_indexers, sort)
 
     def _concat(self, indexes, name):
         """

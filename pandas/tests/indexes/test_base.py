@@ -9,8 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64, is_numpy_dev
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import IS64, np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -349,6 +348,9 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
+        warn = None if tz_naive_fixture is None else FutureWarning
+        # astype dt64 -> dt64tz deprecated
+
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
@@ -356,7 +358,8 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = DatetimeIndex(arg).astype(dtype)
+            with tm.assert_produces_warning(warn):
+                result = DatetimeIndex(arg).astype(dtype)
         else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
@@ -368,7 +371,8 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = DatetimeIndex(list(arg)).astype(dtype)
+            with tm.assert_produces_warning(warn):
+                result = DatetimeIndex(list(arg)).astype(dtype)
         else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
@@ -551,6 +555,17 @@ class TestIndex(Base):
 
         d = index[0].to_pydatetime()
         assert isinstance(index.asof(d), Timestamp)
+
+    def test_asof_numeric_vs_bool_raises(self):
+        left = Index([1, 2, 3])
+        right = Index([True, False])
+
+        msg = "'<' not supported between instances"
+        with pytest.raises(TypeError, match=msg):
+            left.asof(right)
+
+        with pytest.raises(TypeError, match=msg):
+            right.asof(left)
 
     def test_asof_datetime_partial(self):
         index = date_range("2010-01-01", periods=2, freq="m")
@@ -921,8 +936,9 @@ class TestIndex(Base):
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
-        # sort=None, the default
-        result = op(a)
+        with tm.assert_produces_warning(RuntimeWarning):
+            # sort=None, the default
+            result = op(a)
         expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
         if opname == "difference":
             expected = expected[:2]
@@ -1358,7 +1374,6 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_slice_locs_dup(self):
         index = Index(["a", "a", "b", "c", "d", "d"])
         assert index.slice_locs("a", "d") == (0, 6)
@@ -1398,9 +1413,6 @@ class TestIndex(Base):
         with pytest.raises(KeyError, match=""):
             index.slice_locs(end=1.5)
 
-    @pytest.mark.xfail(
-        is_numpy_dev, reason="GH#39089 Numpy changed dtype inference", strict=False
-    )
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
