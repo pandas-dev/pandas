@@ -38,8 +38,6 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     cdef:
         Py_ssize_t i = 0
         Py_ssize_t n = len(values)
-        size_t unique_key_index = 0
-        size_t unique_key_count = 0
         kh_{{ttype}}_t *table
 
         # Don't use Py_ssize_t, since table.n_buckets is unsigned
@@ -52,12 +50,10 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 
     # we track the order in which keys are first seen (GH39009),
     # khash-map isn't insertion-ordered, thus:
-    #    table maps key to index_of_appearence
-    #    result_keys maps index_of_appearence to key
-    #    result_counts maps index_of_appearence to number of elements
+    #    table maps keys to counts
+    #    result_keys remembers the original order of keys
 
     result_keys = {{name}}Vector()
-    result_counts = Int64Vector()
     table = kh_init_{{ttype}}()
 
     {{if dtype == 'object'}}
@@ -72,14 +68,11 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
                 val = navalue
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
-                unique_key_index = table.vals[k]
-                result_counts.data.data[unique_key_index] += 1
+                table.vals[k] += 1
             else:
                 k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
-                table.vals[k] = unique_key_count
+                table.vals[k] = 1
                 result_keys.append(val)
-                result_counts.append(1)
-                unique_key_count+=1
     {{else}}
     kh_resize_{{ttype}}(table, n)
 
@@ -89,19 +82,26 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
         if not is_nan_{{c_type}}(val) or not dropna:
             k = kh_get_{{ttype}}(table, val)
             if k != table.n_buckets:
-                unique_key_index = table.vals[k]
-                result_counts.data.data[unique_key_index] += 1
+                table.vals[k] += 1
             else:
                 k = kh_put_{{ttype}}(table, val, &ret)
-                table.vals[k] = unique_key_count
+                table.vals[k] = 1
                 result_keys.append(val)
-                result_counts.append(1)
-                unique_key_count+=1
     {{endif}}
+
+    # collect counts in the order corresponding to result_keys:
+    cdef int64_t[:] result_counts = np.empty(table.size, dtype=np.int64)
+    for i in range(table.size):
+        {{if dtype == 'object'}}
+        k = kh_get_{{ttype}}(table, result_keys.data[i])
+        {{else}}
+        k = kh_get_{{ttype}}(table, result_keys.data.data[i])
+        {{endif}}
+        result_counts[i] = table.vals[k]
 
     kh_destroy_{{ttype}}(table)
 
-    return result_keys.to_array(), result_counts.to_array()
+    return result_keys.to_array(), result_counts.base
 
 
 @cython.wraparound(False)
