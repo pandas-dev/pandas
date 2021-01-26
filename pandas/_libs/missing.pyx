@@ -1,3 +1,4 @@
+from decimal import Decimal
 import numbers
 
 import cython
@@ -28,6 +29,8 @@ cdef:
 
     bint is_32bit = not IS64
 
+    type cDecimal = Decimal  # for faster isinstance checks
+
 
 cpdef bint checknull(object val):
     """
@@ -53,7 +56,18 @@ cpdef bint checknull(object val):
     The difference between `checknull` and `checknull_old` is that `checknull`
     does *not* consider INF or NEGINF to be NA.
     """
-    return val is C_NA or is_null_datetimelike(val, inat_is_null=False)
+    return (
+        val is C_NA
+        or is_null_datetimelike(val, inat_is_null=False)
+        or is_decimal_na(val)
+    )
+
+
+cdef inline bint is_decimal_na(object val):
+    """
+    Is this a decimal.Decimal object Decimal("NAN").
+    """
+    return isinstance(val, cDecimal) and val != val
 
 
 cpdef bint checknull_old(object val):

@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -97,12 +98,17 @@ class Numeric(Base):
     def test_insert_na(self, nulls_fixture):
         # GH 18295 (test missing)
         index = self.create_index()
+        na_val = nulls_fixture
 
-        if nulls_fixture is pd.NaT:
+        if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+        elif isinstance(na_val, Decimal) and not isinstance(index, Float64Index):
+            # TODO: decide if this is the desired behavior
+            expected = Index([index[0], na_val] + list(index[1:]), dtype=object)
         else:
             expected = Float64Index([index[0], np.nan] + list(index[1:]))
-        result = index.insert(1, nulls_fixture)
+
+        result = index.insert(1, na_val)
         tm.assert_index_equal(result, expected)
 
 
