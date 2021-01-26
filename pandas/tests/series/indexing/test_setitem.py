@@ -331,8 +331,7 @@ class TestSetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if obj.dtype == bool and not mask.all():
-            # When mask is all True, casting behavior does not apply
+        if obj.dtype == bool:
             msg = "Index/Series casting behavior inconsistent GH#38692"
             mark = pytest.mark.xfail(reason=msg)
             request.node.add_marker(mark)
@@ -340,10 +339,14 @@ class TestSetitemCastingEquivalents:
         res = Index(obj).where(~mask, np.nan)
         tm.assert_index_equal(res, Index(expected))
 
-    @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
-    def test_index_putmask(self, obj, key, expected):
+    def test_index_putmask(self, obj, key, expected, request):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
+
+        if obj.dtype == bool:
+            msg = "Index/Series casting behavior inconsistent GH#38692"
+            mark = pytest.mark.xfail(reason=msg)
+            request.node.add_marker(mark)
 
         res = Index(obj).putmask(mask, np.nan)
         tm.assert_index_equal(res, Index(expected))

@@ -41,6 +41,7 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
     find_common_type,
+    infer_dtype_from,
     maybe_cast_to_integer_array,
     maybe_promote,
     validate_numeric_casting,
@@ -87,7 +88,7 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import array_equivalent, is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
@@ -4317,19 +4318,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.where(idx.isin(['car', 'train']), 'other')
         Index(['car', 'other', 'train', 'other'], dtype='object')
         """
-        if other is None:
-            other = self._na_value
-
-        values = self.values
-
-        try:
-            self._validate_fill_value(other)
-        except (ValueError, TypeError):
-            return self.astype(object).where(cond, other)
-
-        values = np.where(cond, values, other)
-
-        return Index(values, name=self.name)
+        cond = np.asarray(cond, dtype=bool)
+        return self.putmask(~cond, other)
 
     # construction helpers
     @final
@@ -4542,16 +4532,24 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        values = self._values.copy()
+        mask = np.asarray(mask, dtype=bool)
+        if mask.shape != self.shape:
+            raise ValueError("putmask: mask and data must be the same size")
+        if not mask.any():
+            return self.copy()
+
+        if value is None:
+            value = self._na_value
         try:
             converted = self._validate_fill_value(value)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
                 raise err
 
-            # coerces to object
-            return self.astype(object).putmask(mask, value)
+            dtype = self._find_common_type_compat(value)
+            return self.astype(dtype).putmask(mask, value)
 
+        values = self._values.copy()
         np.putmask(values, mask, converted)
         return self._shallow_copy(values)
 
@@ -5189,18 +5187,31 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self, other
 
-    def _find_common_type_compat(self, target: Index) -> DtypeObj:
+    @final
+    def _find_common_type_compat(self, target) -> DtypeObj:
         """
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        dtype = find_common_type([self.dtype, target.dtype])
+        if is_interval_dtype(self.dtype) and is_valid_nat_for_dtype(target, self.dtype):
+            # e.g. setting NA value into IntervalArray[int64]
+            dtype = IntervalDtype(np.float64, closed=self.closed)
+            return dtype
+
+        target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
+        dtype = find_common_type([self.dtype, target_dtype])
         if dtype.kind in ["i", "u"]:
             # TODO: what about reversed with self being categorical?
-            if is_categorical_dtype(target.dtype) and target.hasnans:
+            if (
+                isinstance(target, Index)
+                and is_categorical_dtype(target.dtype)
+                and target.hasnans
+            ):
                 # FIXME: find_common_type incorrect with Categorical GH#38240
                 # FIXME: some cases where float64 cast can be lossy?
                 dtype = np.dtype(np.float64)
+        if dtype.kind == "c":
+            dtype = np.dtype(object)
         return dtype
 
     @final

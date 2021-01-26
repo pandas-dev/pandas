@@ -152,9 +152,12 @@ class NumericIndex(Index):
                     raise TypeError
                 value = int(value)
 
-        elif hasattr(value, "dtype") and value.dtype.kind in ["m", "M"]:
-            # TODO: if we're checking arraylike here, do so systematically
-            raise TypeError
+        elif hasattr(value, "dtype"):
+            if value.dtype.kind in ["m", "M"]:
+                raise TypeError
+            if value.dtype.kind == "f" and self.dtype.kind in ["i", "u"]:
+                # TODO: maybe OK if value is castable?
+                raise TypeError
 
         return value
 
