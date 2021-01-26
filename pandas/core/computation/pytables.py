@@ -11,6 +11,7 @@ from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.series import Series
 
 import pandas.core.common as com
 from pandas.core.computation import expr, ops, scope as _scope
@@ -209,12 +210,8 @@ class BinOp(ops.BinOp):
                 v = Timedelta(v, unit="s").value
             return TermValue(int(v), v, kind)
         elif meta == "category":
-            metadata = extract_array(self.metadata, extract_numpy=True)
-            if v not in metadata:
-                result = -1
-            else:
-                result = metadata.searchsorted(v, side="left")
-            return TermValue(result, result, "integer")
+            term_value = self._convert_category_value(self.metadata, v)
+            return term_value
         elif kind == "integer":
             v = int(float(v))
             return TermValue(v, v, kind)
@@ -242,6 +239,15 @@ class BinOp(ops.BinOp):
             return TermValue(v, stringify(v), "string")
         else:
             raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
+
+    @staticmethod
+    def _convert_category_value(metadata: Series, value: Any) -> TermValue:
+        metadata = extract_array(metadata, extract_numpy=True)
+        if value not in metadata:
+            result = -1
+        else:
+            result = metadata.searchsorted(value, side="left")
+        return TermValue(result, result, "integer")
 
     def convert_values(self):
         pass
