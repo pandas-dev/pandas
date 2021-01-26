@@ -1,9 +1,10 @@
 from typing import Any
-import pytest
-import numpy as np
 
-from pandas.core.computation.pytables import TermValue, BinOp
+import numpy as np
+import pytest
+
 from pandas import Series
+from pandas.core.computation.pytables import BinOp, TermValue
 
 
 @pytest.mark.parametrize(

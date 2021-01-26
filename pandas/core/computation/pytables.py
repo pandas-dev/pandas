@@ -11,7 +11,6 @@ from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.series import Series
 
 import pandas.core.common as com
 from pandas.core.computation import expr, ops, scope as _scope
@@ -20,6 +19,7 @@ from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
+from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
