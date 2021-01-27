@@ -222,7 +222,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
-    ivalues = arr.view(np.int64).ravel("K")
+    ivalues = arr.view(np.int64).ravel("C")
 
     result = np.empty(shape, dtype=DT64NS_DTYPE)
     iresult = result.ravel("K").view(np.int64)

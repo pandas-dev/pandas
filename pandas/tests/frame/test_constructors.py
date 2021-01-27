@@ -1762,6 +1762,37 @@ class TestDataFrameConstructors:
         expected = Series([np.dtype("datetime64[ns]")])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[M]",
+            "datetime64[D]",
+            "datetime64[h]",
+            "datetime64[m]",
+            "datetime64[s]",
+            "datetime64[ms]",
+            "datetime64[us]",
+            "datetime64[ns]",
+        ],
+    )
+    def test_constructor_datetimes_non_ns(self, dtype):
+        na = np.array(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ],
+            dtype=dtype,
+        )
+        df = DataFrame(na)
+        expected = DataFrame(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ]
+        )
+        expected = expected.astype(dtype=dtype)
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
