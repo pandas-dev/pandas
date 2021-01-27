@@ -155,6 +155,14 @@ class TestHashTable:
             del table
             assert get_allocated_khash_memory() == 0
 
+    def test_get_state(self, table_type, dtype):
+        table = table_type(1000)
+        state = table.get_state()
+        assert state["size"] == 0
+        assert state["n_occupied"] == 0
+        assert "n_buckets" in state
+        assert "upper_bound" in state
+
 
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()

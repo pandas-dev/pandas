@@ -420,6 +420,15 @@ cdef class {{name}}HashTable(HashTable):
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
 
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
+
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
             khiter_t k
@@ -747,6 +756,15 @@ cdef class StringHashTable(HashTable):
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
 
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
+
     cpdef get_item(self, str val):
         cdef:
             khiter_t k
@@ -1071,6 +1089,18 @@ cdef class PyObjectHashTable(HashTable):
         for_pairs =  self.table.n_buckets * (sizeof(PyObject *) +  # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """
+        returns infos about the current state of the hashtable like size,
+        number of buckets and so on.
+        """
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, object val):
         cdef:
