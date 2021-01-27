@@ -1,5 +1,3 @@
-.. _contributing.code:
-
 Contributing to the code base
 =============================
 
