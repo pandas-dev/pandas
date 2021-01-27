@@ -117,7 +117,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 5.0.1           |          |         |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.790           |          |    X    |
+| mypy (dev)      | 0.800           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
@@ -385,6 +385,7 @@ Other
 ^^^^^
 - Bug in :class:`Index` constructor sometimes silently ignorning a specified ``dtype`` (:issue:`38879`)
 - Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
+- Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`)
 -
 
 .. ---------------------------------------------------------------------------
