@@ -2033,7 +2033,7 @@ class _iLocIndexer(_LocationIndexer):
 
             return ser.reindex(ax)._values[indexer]
 
-        elif is_scalar(indexer):
+        elif is_integer(indexer):
             ax = self.obj._get_axis(1)
 
             if ser.index.equals(ax):
