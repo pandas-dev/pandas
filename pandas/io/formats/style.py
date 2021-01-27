@@ -511,16 +511,15 @@ class Styler:
 
             for c, col in enumerate(self.data.columns):
                 cs = [DATA_CLASS, f"row{r}", f"col{c}"]
-                cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
                 row_dict = {
                     "type": "td",
                     "value": value,
-                    "class": " ".join(cs),
                     "display_value": formatter(value),
                     "is_visible": (c not in hidden_columns),
                 }
+
                 # only add an id if the cell has a style
                 props = []
                 if self.cell_ids or (r, c) in ctx:
@@ -531,6 +530,11 @@ class Styler:
                             props.append(tuple(x.split(":")))
                         else:
                             props.append(("", ""))
+
+                # add custom classes from cell context
+                cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
+                row_dict["class"] = " ".join(cs)
+
                 row_es.append(row_dict)
                 cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
@@ -690,10 +694,12 @@ class Styler:
 
         mask = (classes.isna()) | (classes.eq(""))
         self.cell_context["data"] = {
-            r: {c: [str(classes.iloc[r, c])]}
+            r: {
+                c: [str(classes.iloc[r, c])]
+                for c, cn in enumerate(classes.columns)
+                if not mask.iloc[r, c]
+            }
             for r, rn in enumerate(classes.index)
-            for c, cn in enumerate(classes.columns)
-            if not mask.iloc[r, c]
         }
 
         return self
@@ -824,6 +830,7 @@ class Styler:
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
+        self._todo = []
         return r
 
     def _apply(
@@ -1448,9 +1455,8 @@ class Styler:
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = ";".join(f"{p}: {v}" for p, v in kwargs.items())
-        f = lambda x: values
-        return self.applymap(f, subset=subset)
+        values = "".join(f"{p}: {v};" for p, v in kwargs.items())
+        return self.applymap(lambda x: values, subset=subset)
 
     @staticmethod
     def _bar(
@@ -1914,11 +1920,8 @@ class _Tooltips:
         -------
         render_dict : Dict
         """
-        self.tt_data = (
-            self.tt_data.reindex_like(styler_data)
-            .dropna(how="all", axis=0)
-            .dropna(how="all", axis=1)
-        )
+        self.tt_data = self.tt_data.reindex_like(styler_data)
+
         if self.tt_data.empty:
             return d
 
