@@ -1762,6 +1762,7 @@ class TestDataFrameConstructors:
         expected = Series([np.dtype("datetime64[ns]")])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("func", [np.asfortranarray, np.ascontiguousarray])
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -1775,8 +1776,8 @@ class TestDataFrameConstructors:
             "datetime64[ns]",
         ],
     )
-    def test_constructor_datetimes_non_ns(self, dtype):
-        na = np.array(
+    def test_constructor_datetimes_non_ns(self, func, dtype):
+        na = func(
             [
                 ["2015-01-01", "2015-01-02", "2015-01-03"],
                 ["2017-01-01", "2017-01-02", "2017-02-03"],
