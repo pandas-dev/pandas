@@ -361,9 +361,11 @@ class TestDataFrameSetItem:
                 [np.nan, 1, 2, np.nan, 4, 5],
                 [np.nan, 1, 2, np.nan, 4, 5],
             ],
-            columns=cols,
             dtype="object",
         )
+        expected[2] = expected[2].astype(np.int64)
+        expected[5] = expected[5].astype(np.int64)
+        expected.columns = cols
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])

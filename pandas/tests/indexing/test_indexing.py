@@ -99,7 +99,13 @@ class TestFancy:
             )
         else:
             err = ValueError
-            msg = r"Buffer has wrong number of dimensions \(expected 1, got 3\)|"
+            msg = "|".join(
+                [
+                    r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
+                    "Cannot set values with ndim > 1",
+                    "Index data must be 1-dimensional",
+                ]
+            )
 
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0

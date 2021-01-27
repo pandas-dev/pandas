@@ -3211,9 +3211,10 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self.iloc[key] = value
 
-    def _setitem_array(self, key, value):
+    def _setitem_array(self, key: Sequence[Hashable], value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
+            # bool indexer is indexing along rows
             if len(key) != len(self.index):
                 raise ValueError(
                     f"Item wrong length {len(key)} instead of {len(self.index)}!"
@@ -3222,19 +3223,67 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
             self.iloc[indexer] = value
+
+        elif isinstance(key, np.ndarray) and key.ndim != 1:
+            # FIXME: kludge just to get the right exception message
+            #  in test_setitem_ndarray_3d
+            raise ValueError(
+                f"Buffer has wrong number of dimensions (expected 1, got {key.ndim})"
+            )
+
+        elif not isinstance(value, (np.ndarray, DataFrame)) and np.ndim(value) > 1:
+            # list of lists
+            value = DataFrame(value)
+            return self._setitem_array(key, value)
+
+        elif not self.columns.is_unique and not all(
+            is_hashable(x) and x in self.columns for x in key
+        ):
+            raise NotImplementedError
+
         else:
-            if isinstance(value, DataFrame) and self.columns.is_unique:
-                if len(value.columns) != len(key):
-                    raise ValueError("Columns must be same length as key")
-                for k1, k2 in zip(key, value.columns):
-                    self[k1] = value[k2]
+            # Note: unlike self.iloc[:, indexer] = value, this will
+            #  never try to overwrite values inplace
+
+            def igetitem(val, i: int):
+                if isinstance(val, np.ndarray) and val.ndim == 2:
+                    return val[:, i]
+                elif isinstance(val, DataFrame):
+                    return val.iloc[:, i]
+                elif not is_list_like(val):
+                    return val
+                else:
+                    return val[i]
+
+            if self.columns.is_unique:
+                key_len = len(key)
             else:
-                self.loc._ensure_listlike_indexer(key, axis=1, value=value)
-                indexer = self.loc._get_listlike_indexer(
-                    key, axis=1, raise_missing=False
-                )[1]
-                self._check_setitem_copy()
-                self.iloc[:, indexer] = value
+                indexer, missing = self.columns.get_indexer_non_unique(key)
+                if len(missing) == 0:
+                    key_len = len(indexer)
+                else:
+                    key_len = np.shape(value)[-1]
+
+            if not is_list_like(value):
+                vlen = key_len
+            else:
+                vlen = np.shape(value)[-1]
+
+            if vlen != key_len:
+                # TODO: is this only if all are contained?
+                raise ValueError("Columns must be same length as key")
+
+            if self.columns.is_unique:
+                # easy case
+                for i, col in enumerate(key):
+                    self[col] = igetitem(value, i)
+
+            else:
+                mask = self.columns.isin(key)
+                ilocs = mask.nonzero()[0]
+                for i, iloc in enumerate(ilocs):
+                    # TODO: sure this is never-inplace?
+                    self._iset_item(iloc, igetitem(value, i))
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
