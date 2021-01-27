@@ -1,4 +1,5 @@
-.. _contributing.dev_c:
+Setting up an environment outside of Docker
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
