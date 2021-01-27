@@ -3,7 +3,7 @@
 Contributing to the code base
 =============================
 
-.. contents:: Code Base:
+.. contents:: Table of Contents:
    :local:
 
 Code standards
