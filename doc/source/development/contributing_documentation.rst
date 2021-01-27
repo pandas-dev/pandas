@@ -185,6 +185,36 @@ See https://www.jetbrains.com/help/pycharm/docker.html for details.
 Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
 
     python setup.py build_ext -j 4
+    
+Creating a branch
+-----------------
+
+You want your master branch to reflect only production-ready code, so create a
+feature branch for making your changes. For example::
+
+    git branch shiny-new-feature
+    git checkout shiny-new-feature
+
+The above can be simplified to::
+
+    git checkout -b shiny-new-feature
+
+This changes your working directory to the shiny-new-feature branch.  Keep any
+changes in this branch specific to one bug or feature so it is clear
+what the branch brings to pandas. You can have many shiny-new-features
+and switch in between them using the git checkout command.
+
+When creating this branch, make sure your master branch is up to date with
+the latest upstream master version. To update your local master branch, you
+can do::
+
+    git checkout master
+    git pull upstream master --ff-only
+
+When you want to update the feature branch with changes in master after
+you created the branch, check the section on
+:ref:`updating a PR <contributing.update-pr>`.
+
 
 .. _contributing.documentation:
 
