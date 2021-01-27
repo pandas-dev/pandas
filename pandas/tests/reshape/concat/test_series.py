@@ -143,3 +143,9 @@ class TestSeriesConcat:
         result = concat([foo, bar, baz], axis=1, ignore_index=True)
         expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_series_length_one_reversed(self):
+        # GH39401
+        s = Series([100])
+        result = pd.concat([s.iloc[::-1]])
+        tm.assert_series_equal(result, s)

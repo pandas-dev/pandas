@@ -167,3 +167,9 @@ class TestDataFrameConcat:
         # it works
         result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=sort)
         assert list(result.columns) == [("t1", "value"), ("t2", "value")]
+
+    def test_concat_dataframe_one_element_reversed(self):
+        # GH39401
+        df = DataFrame([100])
+        result = pd.concat([df.iloc[::-1]])
+        tm.assert_frame_equal(result, df)
