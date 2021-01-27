@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import wraps
 from sys import getsizeof
 from typing import (
@@ -20,7 +22,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
-from pandas._typing import AnyArrayLike, DtypeObj, Label, Scalar, Shape
+from pandas._typing import AnyArrayLike, DtypeObj, Scalar, Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -404,7 +406,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> MultiIndex:
         """
         Convert arrays to MultiIndex.
 
@@ -475,7 +477,7 @@ class MultiIndex(Index):
         cls,
         tuples,
         sortorder: Optional[int] = None,
-        names: Optional[Sequence[Label]] = None,
+        names: Optional[Sequence[Hashable]] = None,
     ):
         """
         Convert list of tuples to MultiIndex.
@@ -517,7 +519,7 @@ class MultiIndex(Index):
         elif is_iterator(tuples):
             tuples = list(tuples)
 
-        arrays: List[Sequence[Label]]
+        arrays: List[Sequence[Hashable]]
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
@@ -700,7 +702,7 @@ class MultiIndex(Index):
         )
 
     @cache_readonly
-    def dtypes(self) -> "Series":
+    def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex
         """
@@ -2546,7 +2548,7 @@ class MultiIndex(Index):
         # GH#33355
         return self.levels[0]._should_fallback_to_positional()
 
-    def _get_values_for_loc(self, series: "Series", loc, key):
+    def _get_values_for_loc(self, series: Series, loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
