@@ -377,12 +377,13 @@ def unpack_1tuple(tup):
 
 
 def check_key_length(columns, key, value):
-    """Checks if a key used as indexer has the same length as the columns it is
+    """
+    Checks if a key used as indexer has the same length as the columns it is
     associated with.
 
     Parameters
     ----------
-    columns: The columns of the DataFrame to index.
+    columns: Index The columns of the DataFrame to index.
     key: A list-like of keys to index with.
     value: The value to set for the keys.
 
@@ -391,6 +392,7 @@ def check_key_length(columns, key, value):
         if len(value.columns) != len(key):
             raise ValueError("Columns must be same length as key")
     else:
+        # Missing keys in columns are represented as -1
         if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
             raise ValueError("Columns must be same length as key")
 
