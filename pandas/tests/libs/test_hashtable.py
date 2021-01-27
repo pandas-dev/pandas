@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs import hashtable as ht
 
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -322,6 +323,23 @@ class TestHelpFunctions:
         values.flags.writeable = writable
         result = mode(values, False)
         assert result == 42
+
+    def test_mode_stable(self, dtype, type_suffix, writable):
+        mode = get_ht_function("mode", type_suffix)
+        values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
+        values.flags.writeable = writable
+        keys = mode(values, False)
+        tm.assert_numpy_array_equal(keys, values)
+
+
+def test_modes_with_nans():
+    # GH39007
+    values = np.array([True, pd.NA, np.nan], dtype=np.object_)
+    # pd.Na and np.nan will have the same representative: np.nan
+    # thus we have 2 nans and 1 True
+    modes = ht.mode_object(values, False)
+    assert modes.size == 1
+    assert np.isnan(modes[0])
 
 
 @pytest.mark.parametrize(
