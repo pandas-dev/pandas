@@ -518,7 +518,7 @@ Deprecations
 - Deprecated parameter ``dtype`` of method :meth:`~Index.copy` for all :class:`Index` subclasses. Use the :meth:`~Index.astype` method instead for changing dtype (:issue:`35853`)
 - Deprecated parameters ``levels`` and ``codes`` in :meth:`MultiIndex.copy`. Use the :meth:`~MultiIndex.set_levels` and :meth:`~MultiIndex.set_codes` methods instead (:issue:`36685`)
 - Date parser functions :func:`~pandas.io.date_converters.parse_date_time`, :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields` and :func:`~pandas.io.date_converters.generic_parser` from ``pandas.io.date_converters`` are deprecated and will be removed in a future version; use :func:`to_datetime` instead (:issue:`35741`)
-- :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`18682`)
+- :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`35224`)
 - The method :meth:`Index.to_native_types` is deprecated. Use ``.astype(str)`` instead (:issue:`28867`)
 - Deprecated indexing :class:`DataFrame` rows with a single datetime-like string as ``df[string]`` (given the ambiguity whether it is indexing the rows or selecting a column), use ``df.loc[string]`` instead (:issue:`36179`)
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
