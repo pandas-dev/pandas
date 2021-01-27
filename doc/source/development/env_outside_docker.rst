@@ -4,10 +4,8 @@ Setting up an environment outside of Docker
 
 .. _contributing:
 
-
 .. contents:: Table of contents:
    :local:
-
 
 Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
