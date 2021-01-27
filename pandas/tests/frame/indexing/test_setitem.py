@@ -383,6 +383,10 @@ class TestDataFrameSetItem:
         expected = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
         tm.assert_frame_equal(df, expected)
 
+        df[["c", "b"]] = rhs
+        expected = DataFrame([[10, 11, 12, 10]], columns=["a", "b", "b", "c"])
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_listlike_indexer_duplicate_columns_not_equal_length(self):
         # GH#39403
         df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
