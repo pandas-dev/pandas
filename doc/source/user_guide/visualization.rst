@@ -589,6 +589,8 @@ each point:
 
 If a categorical column is passed to ``c``, then a discrete colorbar will be produced:
 
+.. versionadded:: 1.3.0
+
 .. ipython:: python
 
    @savefig scatter_plot_categorical.png
