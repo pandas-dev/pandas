@@ -10,6 +10,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -388,6 +389,10 @@ class MPLPlot:
                 return self.axes[0]
 
     def _convert_to_ndarray(self, data):
+        # GH31357: categorical columns are processed separately
+        if is_categorical_dtype(data):
+            return data
+
         # GH32073: cast to float if values contain nulled integers
         if (
             is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
@@ -974,7 +979,7 @@ class PlanePlot(MPLPlot):
 
         if mpl_ge_3_0_0():
             # The workaround below is no longer necessary.
-            return
+            return cbar
 
         points = ax.get_position().get_points()
         cbar_points = cbar.ax.get_position().get_points()
@@ -991,6 +996,8 @@ class PlanePlot(MPLPlot):
         # the following two lines:
         # print(points[1, 1] - points[0, 1])
         # print(cbar_points[1, 1] - cbar_points[0, 1])
+
+        return cbar
 
 
 class ScatterPlot(PlanePlot):
@@ -1014,6 +1021,8 @@ class ScatterPlot(PlanePlot):
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
+        color_by_categorical = c_is_column and is_categorical_dtype(self.data[c])
+
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "Greys"
         cmap = self.plt.cm.get_cmap(cmap)
@@ -1024,11 +1033,22 @@ class ScatterPlot(PlanePlot):
             c_values = self.plt.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
+        elif color_by_categorical:
+            c_values = self.data[c].cat.codes
         elif c_is_column:
             c_values = self.data[c].values
         else:
             c_values = c
 
+        if color_by_categorical:
+            from matplotlib import colors
+
+            n_cats = len(self.data[c].cat.categories)
+            cmap = colors.ListedColormap([cmap(i) for i in range(cmap.N)])
+            bounds = np.linspace(0, n_cats, n_cats + 1)
+            norm = colors.BoundaryNorm(bounds, cmap.N)
+        else:
+            norm = None
         # plot colorbar if
         # 1. colormap is assigned, and
         # 2.`c` is a column containing only numeric values
@@ -1045,11 +1065,15 @@ class ScatterPlot(PlanePlot):
             c=c_values,
             label=label,
             cmap=cmap,
+            norm=norm,
             **self.kwds,
         )
         if cb:
             cbar_label = c if c_is_column else ""
-            self._plot_colorbar(ax, label=cbar_label)
+            cbar = self._plot_colorbar(ax, label=cbar_label)
+            if color_by_categorical:
+                cbar.set_ticks(np.linspace(0.5, n_cats - 0.5, n_cats))
+                cbar.ax.set_yticklabels(self.data[c].cat.categories)
 
         if label is not None:
             self._add_legend_handle(scatter, label)
