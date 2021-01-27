@@ -606,15 +606,15 @@ def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):
         return False
-    if dtype.kind == "M":
+    elif dtype.kind == "M":
         return not isinstance(obj, (np.timedelta64, Decimal))
-    if dtype.kind == "m":
+    elif dtype.kind == "m":
         return not isinstance(obj, (np.datetime64, Decimal))
-    if dtype.kind in ["i", "u", "f", "c"]:
+    elif dtype.kind in ["i", "u", "f", "c"]:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
-    if dtype == np.dtype(object):
+    elif dtype == np.dtype(object):
         # This is needed for Categorical, but is kind of weird
         return True
 
