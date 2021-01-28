@@ -405,6 +405,18 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(series, expected)
         assert series.index.freq == expected.index.freq
 
+    def test_setitem_empty_series_timestamp_preserves_dtype(self):
+        # GH 21881
+        timestamp = Timestamp(1412526600000000000)
+        series = Series([timestamp], index=["timestamp"], dtype=object)
+        expected = series["timestamp"]
+
+        series = Series([], dtype=object)
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
+        result = series["timestamp"]
+        assert result == expected
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
