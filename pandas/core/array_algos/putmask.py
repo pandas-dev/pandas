@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.cast import convert_scalar_for_putitemlike, maybe_promote
+from pandas.core.dtypes.cast import convert_scalar_for_putitemlike, find_common_type
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_list_like
 from pandas.core.dtypes.missing import isna_compat
 
@@ -106,9 +106,7 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
         # preserves dtype if possible
         return _putmask_preserve(values, new, mask)
 
-    # change the dtype if needed
-    dtype, _ = maybe_promote(new.dtype)
-
+    dtype = find_common_type([values.dtype, new.dtype])
     values = values.astype(dtype)
 
     return _putmask_preserve(values, new, mask)

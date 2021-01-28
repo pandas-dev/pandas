@@ -74,13 +74,13 @@ class TestDataFrameMask:
         tm.assert_frame_equal(result, exp)
         tm.assert_frame_equal(result, (df + 2).mask((df + 2) > 8, (df + 2) + 10))
 
-    def test_mask_dtype_conversion(self):
+    def test_mask_dtype_bool_conversion(self):
         # GH#3733
         df = DataFrame(data=np.random.randn(100, 50))
         df = df.where(df > 0)  # create nans
         bools = df > 0
         mask = isna(df)
-        expected = bools.astype(float).mask(mask)
+        expected = bools.astype(object).mask(mask)
         result = bools.mask(mask)
         tm.assert_frame_equal(result, expected)
 
