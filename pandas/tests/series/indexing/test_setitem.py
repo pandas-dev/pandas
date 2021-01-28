@@ -377,7 +377,7 @@ class TestSetitemWithExpansion:
         series["anything"] = 300.0
         series["timestamp"] = timestamp
         result = series["timestamp"]
-        assert isinstance(result, Timestamp) and isinstance(expected, Timestamp)
+        assert result == expected
 
 
 def test_setitem_scalar_into_readonly_backing_data():
