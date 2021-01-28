@@ -305,3 +305,19 @@ def test_assert_frame_equal_columns_mixed_dtype():
     # GH#39168
     df = DataFrame([[0, 1, 2]], columns=["foo", "bar", 42], index=[1, "test", 2])
     tm.assert_frame_equal(df, df, check_like=True)
+
+
+def test_frame_equal_extension_dtype(frame_or_series, any_numeric_dtype):
+    # GH#39410
+    obj = frame_or_series([1, 2], dtype=any_numeric_dtype)
+    tm.assert_equal(obj, obj, check_exact=True)
+
+
+@pytest.mark.parametrize("indexer", [(0, 1), (1, 0)])
+def test_frame_equal_mixed_dtypes(frame_or_series, any_numeric_dtype, indexer):
+    dtypes = (any_numeric_dtype, "int64")
+    obj1 = frame_or_series([1, 2], dtype=dtypes[indexer[0]])
+    obj2 = frame_or_series([1, 2], dtype=dtypes[indexer[1]])
+    msg = r'(Series|DataFrame.iloc\[:, 0\] \(column name="0"\) classes) are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_equal(obj1, obj2, check_exact=True, check_dtype=False)
