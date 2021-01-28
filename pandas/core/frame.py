@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     Manager,
+    NpDtype,
     PythonFuncType,
     Renamer,
     StorageOptions,
@@ -1325,7 +1326,9 @@ class DataFrame(NDFrame, OpsMixin):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient="columns", dtype=None, columns=None) -> DataFrame:
+    def from_dict(
+        cls, data, orient="columns", dtype: Optional[Dtype] = None, columns=None
+    ) -> DataFrame:
         """
         Construct DataFrame from dict of array-like or dicts.
 
@@ -1404,7 +1407,10 @@ class DataFrame(NDFrame, OpsMixin):
         return cls(data, index=index, columns=columns, dtype=dtype)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
