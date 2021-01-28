@@ -135,7 +135,7 @@ repos:
         files: ^pandas/tests/
     -   id: FrameOrSeriesUnion
         name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
-        entry: Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]
+        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
         language: pygrep
         types: [python]
         exclude: ^pandas/_typing\.py$
@@ -189,8 +189,9 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^pandas/core/
+        files: ^pandas/
+        exclude: ^pandas/tests/
 -   repo: https://github.com/MarcoGorelli/no-string-hints
-    rev: v0.1.5
+    rev: v0.1.6
     hooks:
     -   id: no-string-hints

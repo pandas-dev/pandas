@@ -1404,6 +1404,28 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def from_ordinals(const int64_t[:] values, freq):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        int64_t[:] result = np.empty(len(values), dtype="i8")
+        int64_t val
+
+    freq = to_offset(freq)
+    if not isinstance(freq, BaseOffset):
+        raise ValueError("freq not specified and cannot be inferred")
+
+    for i in range(n):
+        val = values[i]
+        if val == NPY_NAT:
+            result[i] = NPY_NAT
+        else:
+            result[i] = Period(val, freq=freq).ordinal
+
+    return result.base
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def extract_ordinals(ndarray[object] values, freq):
     # TODO: Change type to const object[:] when Cython supports that.
 
@@ -1419,6 +1441,8 @@ def extract_ordinals(ndarray[object] values, freq):
 
         if is_null_datetimelike(p):
             ordinals[i] = NPY_NAT
+        elif util.is_integer_object(p):
+            raise TypeError(p)
         else:
             try:
                 ordinals[i] = p.ordinal

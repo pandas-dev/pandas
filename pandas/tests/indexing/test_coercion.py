@@ -441,14 +441,6 @@ class TestInsertIndexCoercion(CoercionBase):
         [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
     )
     def test_insert_index_datetimes(self, request, fill_val, exp_dtype, insert_value):
-        if not hasattr(insert_value, "tz"):
-            request.node.add_marker(
-                pytest.mark.xfail(reason="ToDo: must coerce to object")
-            )
-        elif fill_val.tz != insert_value.tz:
-            request.node.add_marker(
-                pytest.mark.xfail(reason="GH 37605 - require tz equality?")
-            )
 
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
@@ -461,7 +453,36 @@ class TestInsertIndexCoercion(CoercionBase):
         )
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
-        obj.insert(1, insert_value)
+        if fill_val.tz:
+
+            # mismatched tzawareness
+            ts = pd.Timestamp("2012-01-01")
+            result = obj.insert(1, ts)
+            expected = obj.astype(object).insert(1, ts)
+            assert expected.dtype == object
+            tm.assert_index_equal(result, expected)
+
+            # mismatched tz --> cast to object (could reasonably cast to commom tz)
+            ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
+            result = obj.insert(1, ts)
+            expected = obj.astype(object).insert(1, ts)
+            assert expected.dtype == object
+            tm.assert_index_equal(result, expected)
+
+        else:
+            # mismatched tzawareness
+            ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
+            result = obj.insert(1, ts)
+            expected = obj.astype(object).insert(1, ts)
+            assert expected.dtype == object
+            tm.assert_index_equal(result, expected)
+
+        item = 1
+        result = obj.insert(1, item)
+        expected = obj.astype(object).insert(1, item)
+        assert expected[1] == item
+        assert expected.dtype == object
+        tm.assert_index_equal(result, expected)
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(["1 day", "2 day", "3 day", "4 day"])
@@ -473,15 +494,11 @@ class TestInsertIndexCoercion(CoercionBase):
             obj, pd.Timedelta("10 day"), exp, "timedelta64[ns]"
         )
 
-        # ToDo: must coerce to object
-        msg = "value should be a 'Timedelta' or 'NaT'. Got 'Timestamp' instead."
-        with pytest.raises(TypeError, match=msg):
-            obj.insert(1, pd.Timestamp("2012-01-01"))
-
-        # ToDo: must coerce to object
-        msg = "value should be a 'Timedelta' or 'NaT'. Got 'int' instead."
-        with pytest.raises(TypeError, match=msg):
-            obj.insert(1, 1)
+        for item in [pd.Timestamp("2012-01-01"), 1]:
+            result = obj.insert(1, item)
+            expected = obj.astype(object).insert(1, item)
+            assert expected.dtype == object
+            tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
@@ -506,7 +523,23 @@ class TestInsertIndexCoercion(CoercionBase):
         if isinstance(insert, pd.Period):
             exp = pd.PeriodIndex(data, freq="M")
             self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
+
+            # string that can be parsed to appropriate PeriodDtype
+            self._assert_insert_conversion(obj, str(insert), exp, coerced_dtype)
+
         else:
+            result = obj.insert(0, insert)
+            expected = obj.astype(object).insert(0, insert)
+            tm.assert_index_equal(result, expected)
+
+            # TODO: ATM inserting '2012-01-01 00:00:00' when we have obj.freq=="M"
+            #  casts that string to Period[M], not clear that is desirable
+            if not isinstance(insert, pd.Timestamp):
+                # non-castable string
+                result = obj.insert(0, str(insert))
+                expected = obj.astype(object).insert(0, str(insert))
+                tm.assert_index_equal(result, expected)
+
             msg = r"Unexpected keyword arguments {'freq'}"
             with pytest.raises(TypeError, match=msg):
                 with tm.assert_produces_warning(FutureWarning):
