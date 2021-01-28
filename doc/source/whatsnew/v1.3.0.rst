@@ -386,7 +386,7 @@ Plotting
 ^^^^^^^^
 
 - Bug in :func:`scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
--
+- Prevent warnings when matplotlib's ``constrained_layout`` is enabled (:issue:`25261`)
 -
 
 Groupby/resample/rolling
