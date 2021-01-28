@@ -508,9 +508,10 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
 
 def infer_fill_value(val, length: int):
     """
-    infer the fill value for the nan/NaT from the provided
-    scalar/ndarray/list-like if we are a NaT, return the correct dtyped
-    element to provide proper block construction
+    `val` is going to be inserted as (part of) a new column in a DataFrame
+    with the given length.  If val cannot be made to fit exactly,
+    find an appropriately-dtyped NA value to construct a complete column from,
+    which we will later set `val` into.
     """
     if not is_list_like(val):
         val = [val]
