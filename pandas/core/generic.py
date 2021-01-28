@@ -4533,6 +4533,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
+        ascending = validate_ascending(ascending)
+
         target = self._get_axis(axis)
 
         indexer = get_indexer_indexer(
@@ -11772,3 +11774,25 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
+
+
+def validate_ascending(
+    ascending: Union[bool, Sequence[bool]],
+) -> Union[bool, Sequence[bool]]:
+    """Validate ``ascending`` kwargs for ``sort_index`` method."""
+    if not isinstance(ascending, (list, tuple)):
+        _check_ascending_element(ascending)
+        return ascending
+
+    for item in ascending:
+        _check_ascending_element(item)
+    return ascending
+
+
+def _check_ascending_element(value):
+    """Ensure that each item in ``ascending`` kwarg is either bool or int."""
+    if (
+        value is None
+        or not isinstance(value, (bool, int))
+    ):
+        raise ValueError("ascending must be either a bool or a sequence of bools")
