@@ -846,6 +846,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
+            if isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in tup
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                raise ValueError("Too many indices")
             if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
@@ -1203,6 +1208,11 @@ class _LocIndexer(_LocationIndexer):
             return {"key": key}
 
         if is_nested_tuple(key, labels):
+            if isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in key
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                raise ValueError("Too many indices")
             return labels.get_locs(key)
 
         elif is_list_like_indexer(key):
@@ -2023,7 +2033,17 @@ class _iLocIndexer(_LocationIndexer):
                         return ser._values.copy()
                     return ser.reindex(ax)._values
 
-        elif is_scalar(indexer):
+        elif is_integer(indexer) and self.ndim == 1:
+            if is_object_dtype(self.obj):
+                return ser
+            ax = self.obj._get_axis(0)
+
+            if ser.index.equals(ax):
+                return ser._values.copy()
+
+            return ser.reindex(ax)._values[indexer]
+
+        elif is_integer(indexer):
             ax = self.obj._get_axis(1)
 
             if ser.index.equals(ax):
