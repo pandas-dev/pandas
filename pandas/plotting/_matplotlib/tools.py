@@ -19,17 +19,20 @@ from pandas.plotting._matplotlib import compat
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
 
-def do_adjust_figure(fig):
+def do_adjust_figure(fig: Figure):
+    """Whether fig has constrained_layout enabled."""
     if not hasattr(fig, "get_constrained_layout"):
         return False
     return not fig.get_constrained_layout()
 
 
-def maybe_adjust_figure(fig, *args, **kwargs):
+def maybe_adjust_figure(fig: Figure, *args, **kwargs):
+    """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
     if do_adjust_figure(fig):
         fig.subplots_adjust(*args, **kwargs)
 
