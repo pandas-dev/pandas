@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import csv
 import datetime
@@ -346,7 +348,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[Union[int, str], int] = defaultdict(int)
+            counts: DefaultDict[int | str, int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -556,7 +558,7 @@ class ParserBase:
         return result
 
     def _set_noconvert_dtype_columns(
-        self, col_indices: List[int], names: List[Union[int, str]]
+        self, col_indices: List[int], names: List[int | str]
     ) -> Set[int]:
         """
         Set the columns that should not undergo dtype conversions.
@@ -575,7 +577,7 @@ class ParserBase:
         -------
         A set of integers containing the positions of the columns not to convert.
         """
-        usecols: Optional[Union[List[int], List[str]]]
+        usecols: List[int] | List[str] | None
         noconvert_columns = set()
         if self.usecols_dtype == "integer":
             # A set of integers will be converted to a list in
@@ -857,7 +859,7 @@ class ParserBase:
             return [None] * len(index_col), columns, index_col
 
         cp_cols = list(columns)
-        index_names: List[Optional[Union[int, str]]] = []
+        index_names: List[int | str | None] = []
 
         # don't mutate
         index_col = list(index_col)

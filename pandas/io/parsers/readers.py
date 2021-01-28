@@ -1,6 +1,7 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+from __future__ import annotations
 
 from collections import abc
 import csv
@@ -1046,7 +1047,7 @@ def TextParser(*args, **kwds):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-    na_fvalues: Union[Set, Dict]
+    na_fvalues: Set | Dict
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
@@ -1097,7 +1098,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """ return a stringified and numeric for these values """
-    result: List[Union[int, str, float]] = []
+    result: List[int | str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)

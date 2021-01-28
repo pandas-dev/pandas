@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import abc, defaultdict
 import csv
 from io import StringIO
@@ -118,7 +120,7 @@ class PythonParser(ParserBase):
             self.columns = self.columns[0]
 
         # get popped off for index
-        self.orig_names: List[Union[int, str]] = list(self.columns)
+        self.orig_names: List[int | str] = list(self.columns)
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
@@ -332,7 +334,7 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        unnamed_cols: Set[Optional[Union[int, str]]] = set()
+        unnamed_cols: Set[int | str | None] = set()
 
         if self.header is not None:
             header = self.header
@@ -346,7 +348,7 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            columns: List[List[Optional[Union[int, str]]]] = []
+            columns: List[List[int | str | None]] = []
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -375,7 +377,7 @@ class PythonParser(ParserBase):
 
                     line = self.names[:]
 
-                this_columns: List[Optional[Union[int, str]]] = []
+                this_columns: List[int | str | None] = []
                 this_unnamed_cols = []
 
                 for i, c in enumerate(line):
