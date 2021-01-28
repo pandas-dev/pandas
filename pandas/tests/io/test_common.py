@@ -2,7 +2,7 @@
 Tests for the pandas.io.common functionalities
 """
 import codecs
-from io import StringIO, BytesIO
+from io import BytesIO, StringIO
 import mmap
 import os
 from pathlib import Path
