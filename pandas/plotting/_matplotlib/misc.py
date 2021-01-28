@@ -11,7 +11,12 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import create_subplots, set_ticks_props
+from pandas.plotting._matplotlib.tools import (
+    create_subplots,
+    do_adjust_figure,
+    maybe_adjust_figure,
+    set_ticks_props,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -39,7 +44,7 @@ def scatter_matrix(
     fig, axes = create_subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
 
     # no gaps between subplots
-    fig.subplots_adjust(wspace=0, hspace=0)
+    maybe_adjust_figure(fig, wspace=0, hspace=0)
 
     mask = notna(df)
 
@@ -329,7 +334,8 @@ def bootstrap_plot(
     for axis in axes:
         plt.setp(axis.get_xticklabels(), fontsize=8)
         plt.setp(axis.get_yticklabels(), fontsize=8)
-    plt.tight_layout()
+    if do_adjust_figure(fig):
+        plt.tight_layout()
     return fig
 
 
