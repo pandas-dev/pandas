@@ -6,12 +6,14 @@ Offer fast expression evaluation through numexpr
 
 """
 import operator
-from typing import List, Set
+from typing import List, Optional, Set
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
+
+from pandas._typing import FuncType
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -21,11 +23,11 @@ from pandas.core.ops import roperator
 if NUMEXPR_INSTALLED:
     import numexpr as ne
 
-_TEST_MODE = None
+_TEST_MODE: Optional[bool] = None
 _TEST_RESULT: List[bool] = []
 USE_NUMEXPR = NUMEXPR_INSTALLED
-_evaluate = None
-_where = None
+_evaluate: Optional[FuncType] = None
+_where: Optional[FuncType] = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
