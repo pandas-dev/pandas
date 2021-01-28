@@ -8,7 +8,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -483,15 +482,12 @@ class TestDataFramePlots(TestPlotBase):
             assert xmin <= lines[0].get_data()[0][0]
             assert xmax >= lines[0].get_data()[0][-1]
 
+    @pytest.mark.xfail(
+        reason="2020-12-01 this has been failing periodically on the "
+        "ymin==0 assertion for a week or so.",
+    )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_area_lim(self, stacked, request):
-        reason = (
-            "2020-12-01 this has been failing periodically on the "
-            "ymin==0 assertion for a week or so."
-        )
-        if is_platform_windows():
-            mark = pytest.mark.xfail(reason=reason)
-            request.node.add_marker(mark)
 
         df = DataFrame(np.random.rand(6, 4), columns=["x", "y", "z", "four"])
 
