@@ -968,8 +968,18 @@ class Block(PandasObject):
                 # TODO(EA2D): special case not needed with 2D EA
                 values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
 
-        # set
+        elif self.is_object and not is_ea_value and arr_value.dtype.kind in ["m", "M"]:
+            # https://github.com/numpy/numpy/issues/12550
+            #  numpy will incorrect cast to int if we're not careful
+            if is_list_like(value):
+                value = list(value)
+            else:
+                value = [value] * len(values[indexer])
+
+            values[indexer] = value
+
         else:
+
             values[indexer] = value
 
         if transpose:

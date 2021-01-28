@@ -257,6 +257,27 @@ class TestSetitemCallable:
         tm.assert_series_equal(ser, expected)
 
 
+class TestSetitemCasting:
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_setitem_dt64_into_int_series(self, dtype):
+        # dont cast dt64 to int when doing this setitem
+        orig = Series([1, 2, 3])
+
+        val = np.datetime64("2021-01-18 13:25:00", "ns")
+        if dtype == "m8[ns]":
+            val = val - val
+
+        ser = orig.copy()
+        ser[:-1] = val
+        expected = Series([val, val, 3], dtype=object)
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser[0], type(val))
+
+        ser = orig.copy()
+        ser[:-1] = np.array([val, val])
+        tm.assert_series_equal(ser, expected)
+
+
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
