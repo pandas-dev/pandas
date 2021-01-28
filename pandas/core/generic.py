@@ -5317,7 +5317,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError("weight vector may not include `inf` values")
 
             if (weights < 0).any():
-                raise ValueError("weight vector many not include negative values")
+                raise ValueError("weight vector may not include negative values")
 
             # If has nan, set to zero.
             weights = weights.fillna(0)
