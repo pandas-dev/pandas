@@ -63,7 +63,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
+from pandas.core.algorithms import checked_add_with_arr, isin, unique1d
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 import pandas.core.common as com
@@ -690,37 +690,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
-
-    def value_counts(self, dropna: bool = False):
-        """
-        Return a Series containing counts of unique values.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaT values.
-
-        Returns
-        -------
-        Series
-        """
-        if self.ndim != 1:
-            raise NotImplementedError
-
-        from pandas import Index, Series
-
-        if dropna:
-            values = self[~self.isna()]._ndarray
-        else:
-            values = self._ndarray
-
-        cls = type(self)
-
-        result = value_counts(values, sort=False, dropna=dropna)
-        index = Index(
-            cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
-        )
-        return Series(result._values, index=index, name=result.name)
 
     @ravel_compat
     def map(self, mapper):
