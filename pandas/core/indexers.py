@@ -383,9 +383,9 @@ def check_key_length(columns, key, value):
 
     Parameters
     ----------
-    columns: Index The columns of the DataFrame to index.
-    key: A list-like of keys to index with.
-    value: The value to set for the keys.
+    columns : Index The columns of the DataFrame to index.
+    key : A list-like of keys to index with.
+    value : The value to set for the keys.
 
     """
     if columns.is_unique:
