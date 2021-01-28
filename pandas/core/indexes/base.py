@@ -40,6 +40,7 @@ from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     find_common_type,
     infer_dtype_from,
     maybe_cast_to_integer_array,
@@ -4360,6 +4361,8 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
+        if not can_hold_element(self.dtype, value):
+            raise TypeError
         return value
 
     @final
