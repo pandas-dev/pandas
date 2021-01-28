@@ -94,7 +94,19 @@ def to_pickle(
         is_text=False,
         storage_options=storage_options,
     ) as handles:
-        pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
+        if handles.compression["method"] in ("bz2", "xz") and protocol >= 5:
+            # some weird TypeError GH#39002 with pickle 5: fallback to letting
+            # pickle create the entire object and then write it to the buffer.
+            # "zip" would also be here if pandas.io.common._BytesZipFile
+            # wouldn't buffer write calls
+            handles.handle.write(
+                pickle.dumps(obj, protocol=protocol)  # type: ignore[arg-type]
+            )
+        else:
+            # letting pickle write directly to the buffer is more memory-efficient
+            pickle.dump(
+                obj, handles.handle, protocol=protocol  # type: ignore[arg-type]
+            )
 
 
 @doc(storage_options=generic._shared_docs["storage_options"])
