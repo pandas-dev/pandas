@@ -2,7 +2,7 @@
 Tests for the pandas.io.common functionalities
 """
 import codecs
-from io import StringIO
+from io import BytesIO, StringIO
 import mmap
 import os
 from pathlib import Path
@@ -443,3 +443,33 @@ def test_codecs_encoding(encoding, format):
             else:
                 df = pd.read_json(handle)
     tm.assert_frame_equal(expected, df)
+
+
+def test_codecs_get_writer_reader():
+    # GH39247
+    expected = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        with open(path, "wb") as handle:
+            with codecs.getwriter("utf-8")(handle) as encoded:
+                expected.to_csv(encoded)
+        with open(path, "rb") as handle:
+            with codecs.getreader("utf-8")(handle) as encoded:
+                df = pd.read_csv(encoded, index_col=0)
+    tm.assert_frame_equal(expected, df)
+
+
+@pytest.mark.parametrize(
+    "io_class,mode,msg",
+    [
+        (BytesIO, "t", "a bytes-like object is required, not 'str'"),
+        (StringIO, "b", "string argument expected, got 'bytes'"),
+    ],
+)
+def test_explicit_encoding(io_class, mode, msg):
+    # GH39247; this test makes sure that if a user provides mode="*t" or "*b",
+    # it is used. In the case of this test it leads to an error as intentionally the
+    # wrong mode is requested
+    expected = tm.makeDataFrame()
+    with io_class() as buffer:
+        with pytest.raises(TypeError, match=msg):
+            expected.to_csv(buffer, mode=f"w{mode}")
