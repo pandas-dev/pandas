@@ -11791,8 +11791,5 @@ def validate_ascending(
 
 def _check_ascending_element(value):
     """Ensure that each item in ``ascending`` kwarg is either bool or int."""
-    if (
-        value is None
-        or not isinstance(value, (bool, int))
-    ):
+    if value is None or not isinstance(value, (bool, int)):
         raise ValueError("ascending must be either a bool or a sequence of bools")

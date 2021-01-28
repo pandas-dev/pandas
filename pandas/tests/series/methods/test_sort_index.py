@@ -203,7 +203,7 @@ class TestSeriesSortIndex:
         [
             None,
             (True, None),
-            (False, 'True'),
+            (False, "True"),
         ],
     )
     def test_sort_index_ascending_bad_value_raises(self, ascending):
