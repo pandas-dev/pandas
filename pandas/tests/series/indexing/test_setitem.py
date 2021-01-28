@@ -257,6 +257,27 @@ class TestSetitemCallable:
         tm.assert_series_equal(ser, expected)
 
 
+class TestSetitemCasting:
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_setitem_dt64_into_int_series(self, dtype):
+        # dont cast dt64 to int when doing this setitem
+        orig = Series([1, 2, 3])
+
+        val = np.datetime64("2021-01-18 13:25:00", "ns")
+        if dtype == "m8[ns]":
+            val = val - val
+
+        ser = orig.copy()
+        ser[:-1] = val
+        expected = Series([val, val, 3], dtype=object)
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser[0], type(val))
+
+        ser = orig.copy()
+        ser[:-1] = np.array([val, val])
+        tm.assert_series_equal(ser, expected)
+
+
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
@@ -404,6 +425,18 @@ class TestSetitemWithExpansion:
         expected = Series(47, DatetimeIndex([key], freq="D"))
         tm.assert_series_equal(series, expected)
         assert series.index.freq == expected.index.freq
+
+    def test_setitem_empty_series_timestamp_preserves_dtype(self):
+        # GH 21881
+        timestamp = Timestamp(1412526600000000000)
+        series = Series([timestamp], index=["timestamp"], dtype=object)
+        expected = series["timestamp"]
+
+        series = Series([], dtype=object)
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
+        result = series["timestamp"]
+        assert result == expected
 
 
 def test_setitem_scalar_into_readonly_backing_data():

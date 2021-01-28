@@ -482,6 +482,19 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
         tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
 
+    def test_subplots_constrained_layout(self):
+        # GH 25261
+        idx = date_range(start="now", periods=10)
+        df = DataFrame(np.random.rand(10, 3), index=idx)
+        kwargs = {}
+        if hasattr(self.plt.Figure, "get_constrained_layout"):
+            kwargs["constrained_layout"] = True
+        fig, axes = self.plt.subplots(2, **kwargs)
+        with tm.assert_produces_warning(None):
+            df.plot(ax=axes[0])
+            with tm.ensure_clean(return_filelike=True) as path:
+                self.plt.savefig(path)
+
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
         [
