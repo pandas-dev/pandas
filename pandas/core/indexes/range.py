@@ -170,13 +170,13 @@ class RangeIndex(Int64Index):
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
     @cache_readonly
-    def __int64index(self) -> Int64Index:
+    def _cached_int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
 
     @property
     def _int64index(self):
-        # wrap __int64index so we can be sure its name matches self.name
-        res = self.__int64index
+        # wrap _cached_int64index so we can be sure its name matches self.name
+        res = self._cached_int64index
         res._name = self._name
         return res
 
