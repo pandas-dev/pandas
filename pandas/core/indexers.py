@@ -1,6 +1,9 @@
 """
 Low-dependency indexing utilities.
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -16,6 +19,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+
+if TYPE_CHECKING:
+    from pandas.core.frame import DataFrame
+    from pandas.core.indexes.base import Index
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -376,7 +383,7 @@ def unpack_1tuple(tup):
     return tup
 
 
-def check_key_length(columns, key, value):
+def check_key_length(columns: Index, key, value: DataFrame):
     """
     Checks if a key used as indexer has the same length as the columns it is
     associated with.
