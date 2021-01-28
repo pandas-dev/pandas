@@ -6,14 +6,6 @@
 Contributing to the documentation
 *********************************
 
-.. contents:: Table of contents:
-   :local:
-
-.. _contributing.documentation:
-
-Contributing to the documentation
-=================================
-
 Contributing to the documentation benefits everyone who uses pandas.
 We encourage you to help us improve the documentation, and
 you don't have to be an expert on pandas to do so! In fact,
@@ -22,7 +14,8 @@ experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
 the next person.
 
-
+.. contents:: Documentation:
+   :local:
 
 About the pandas documentation
 --------------------------------
@@ -210,3 +203,4 @@ When pull requests are merged into the pandas ``master`` branch, the main parts 
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
+
