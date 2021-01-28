@@ -825,7 +825,7 @@ class Index(IndexOpsMixin, PandasObject):
         taken = algos.take(
             self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
         )
-        return self._shallow_copy(taken)
+        return type(self)._simple_new(taken, name=self.name)
 
     @final
     def _maybe_disallow_fill(self, allow_fill: bool, fill_value, indices) -> bool:
@@ -893,7 +893,9 @@ class Index(IndexOpsMixin, PandasObject):
     def repeat(self, repeats, axis=None):
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
-        return self._shallow_copy(self._values.repeat(repeats))
+        res_values = self._values.repeat(repeats)
+
+        return type(self)._simple_new(res_values, name=self.name)
 
     # --------------------------------------------------------------------
     # Copying Methods
@@ -2463,7 +2465,8 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError(f"invalid how option: {how}")
 
         if self.hasnans:
-            return self._shallow_copy(self._values[~self._isnan])
+            res_values = self._values[~self._isnan]
+            return type(self)._simple_new(res_values, name=self.name)
         return self._shallow_copy()
 
     # --------------------------------------------------------------------
@@ -4556,7 +4559,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(object).putmask(mask, value)
 
         np.putmask(values, mask, converted)
-        return self._shallow_copy(values)
+        return type(self)._simple_new(values, name=self.name)
 
     def equals(self, other: Any) -> bool:
         """
@@ -5718,7 +5721,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
-        return self._shallow_copy(np.delete(self._data, loc))
+        res_values = np.delete(self._data, loc)
+        return type(self)._simple_new(res_values, name=self.name)
 
     def insert(self, loc: int, item):
         """
