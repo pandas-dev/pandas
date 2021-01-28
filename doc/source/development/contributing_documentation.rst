@@ -2,9 +2,9 @@
 
 {{ header }}
 
-**********************
-Contributing to pandas
-**********************
+*********************************
+Contributing to the documentation
+*********************************
 
 .. contents:: Table of contents:
    :local:
@@ -22,8 +22,6 @@ experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
 the next person.
 
-.. contents:: Documentation:
-   :local:
 
 
 About the pandas documentation
