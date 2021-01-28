@@ -152,12 +152,12 @@ def check_setitem_lengths(indexer, value, values) -> bool:
         if is_list_like(value):
             if len(indexer) != len(value):
                 # boolean with truth values == len of the value is ok too
+                if isinstance(indexer, list):
+                    indexer = np.array(indexer)
                 if not (
                     isinstance(indexer, np.ndarray)
                     and indexer.dtype == np.bool_
                     and len(indexer[indexer]) == len(value)
-                    or isinstance(indexer, list)
-                    and indexer.count(True) == len(value)
                 ):
                     raise ValueError(
                         "cannot set using a list-like indexer "
