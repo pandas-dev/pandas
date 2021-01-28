@@ -460,7 +460,6 @@ class TestRangeIndex(Numeric):
             ([RI(3), F64([-1, 3.1, 15.0])], F64([0, 1, 2, -1, 3.1, 15.0])),
             ([RI(3), OI(["a", None, 14])], OI([0, 1, 2, "a", None, 14])),
             ([RI(3, 1), OI(["a", None, 14])], OI(["a", None, 14])),
-            ([RI(0, -1, -1)], RI(0, -1, -1)),  # GH39401
         ]
     )
     def appends(self, request):
@@ -507,3 +506,18 @@ class TestRangeIndex(Numeric):
         empty_idx = self._holder(0)
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
+
+    @pytest.mark.parametrize(
+        "RI",
+        [
+            RangeIndex(0, -1, -1),
+            RangeIndex(0, 1, 1),
+            RangeIndex(1, 3, 2),
+            RangeIndex(0, -1, -2),
+            RangeIndex(-3, -5, -2),
+        ],
+    )
+    def test_append_len_one(self, RI):
+        # GH39401
+        result = RI.append([])
+        tm.assert_index_equal(result, RI, exact=True)

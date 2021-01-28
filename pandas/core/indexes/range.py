@@ -697,7 +697,7 @@ class RangeIndex(Int64Index):
         if not all(isinstance(x, RangeIndex) for x in indexes):
             return super()._concat(indexes, name)
 
-        if len(indexes) == 1:
+        elif len(indexes) == 1:
             return indexes[0]
 
         start = step = next_ = None
