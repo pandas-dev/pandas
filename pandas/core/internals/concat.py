@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import copy
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Dict, List, Sequence, cast
 
 import numpy as np
 
@@ -398,7 +398,7 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     raise NotImplementedError
 
 
-def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, Any]:
+def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     """
     Return dtype and N/A values to use when concatenating specified units.
 
