@@ -97,6 +97,45 @@ Preserve dtypes in  :meth:`~pandas.DataFrame.combine_first`
    combined.dtypes
 
 
+.. _whatsnew_130.notable_bug_fixes.setitem_with_bool_casting:
+
+Consistent Casting With Setting Into Boolean Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Setting non-boolean values into a :class:`Series with ``dtype=bool`` consistently
+cast to ``dtype=object`` (:issue:`38709`)
+
+.. ipython:: python
+
+   orig = pd.Series([True, False])
+   ser = orig.copy()
+   ser.iloc[1] = np.nan
+   ser2 = orig.copy()
+   ser2.iloc[1] = 2.0
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+   In [1]: ser
+   Out [1]:
+   0    1.0
+   1    NaN
+   dtype: float64
+
+   In [2]:ser2
+   Out [2]:
+   0    True
+   1     2.0
+   dtype: object
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+   ser
+   ser2
+
 .. _whatsnew_130.api_breaking.deps:
 
 Increased minimum versions for dependencies
