@@ -385,8 +385,13 @@ def check_key_length(columns, key, value):
     ----------
     columns : Index The columns of the DataFrame to index.
     key : A list-like of keys to index with.
-    value : The value to set for the keys.
+    value : DataFrame The value to set for the keys.
 
+    Raises
+    ------
+    ValueError: If the length of key is not equal to the number of columns in value
+                or if the number of columns referenced by key is not equal to number
+                of columns.
     """
     if columns.is_unique:
         if len(value.columns) != len(key):
