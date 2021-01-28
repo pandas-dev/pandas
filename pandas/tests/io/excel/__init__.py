@@ -29,4 +29,4 @@ if import_optional_dependency("xlrd", errors="ignore") is None:
 else:
     import xlrd
 
-    xlrd_version = _get_version(xlrd)
+    xlrd_version = LooseVersion(_get_version(xlrd))
