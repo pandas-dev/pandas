@@ -13,6 +13,7 @@ from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
+    maybe_adjust_figure,
     set_ticks_props,
 )
 
@@ -296,8 +297,8 @@ def _grouped_hist(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
 
-    fig.subplots_adjust(
-        bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
+    maybe_adjust_figure(
+        fig, bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
     )
     return axes
 
@@ -456,6 +457,6 @@ def hist_frame(
     set_ticks_props(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
-    fig.subplots_adjust(wspace=0.3, hspace=0.3)
+    maybe_adjust_figure(fig, wspace=0.3, hspace=0.3)
 
     return axes

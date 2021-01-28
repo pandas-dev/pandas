@@ -27,7 +27,6 @@ from pandas.core.dtypes.cast import (
     convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
-    infer_dtype_from_scalar,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_promote,
@@ -50,7 +49,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -67,7 +66,6 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     PandasArray,
-    PandasDtype,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
@@ -905,24 +903,7 @@ class Block(PandasObject):
         values = self.values
         if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
-            # TODO: can we just use coerce_to_target_dtype for all this
-            if hasattr(value, "dtype"):
-                dtype = value.dtype
-
-            elif lib.is_scalar(value) and not isna(value):
-                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-
-            else:
-                # e.g. we are bool dtype and value is nan
-                # TODO: watch out for case with listlike value and scalar/empty indexer
-                dtype, _ = maybe_promote(np.array(value).dtype)
-                return self.astype(dtype).setitem(indexer, value)
-
-            dtype = find_common_type([values.dtype, dtype])
-            assert not is_dtype_equal(self.dtype, dtype)
-            # otherwise should have _can_hold_element
-
-            return self.astype(dtype).setitem(indexer, value)
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         if self.dtype.kind in ["m", "M"]:
             arr = self.array_values().T
@@ -987,8 +968,18 @@ class Block(PandasObject):
                 # TODO(EA2D): special case not needed with 2D EA
                 values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
 
-        # set
+        elif self.is_object and not is_ea_value and arr_value.dtype.kind in ["m", "M"]:
+            # https://github.com/numpy/numpy/issues/12550
+            #  numpy will incorrect cast to int if we're not careful
+            if is_list_like(value):
+                value = list(value)
+            else:
+                value = [value] * len(values[indexer])
+
+            values[indexer] = value
+
         else:
+
             values[indexer] = value
 
         if transpose:
@@ -1311,29 +1302,15 @@ class Block(PandasObject):
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
-            if (
-                (self.dtype.kind in ["b", "i", "u"])
-                and lib.is_float(other)
-                and np.isnan(other)
-            ):
-                # GH#3733 special case to avoid object-dtype casting
-                #  and go through numexpr path instead.
-                # In integer case, np.where will cast to floats
-                pass
-            elif not self._can_hold_element(other):
+            if not self._can_hold_element(other):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
-            if not (
-                (self.dtype.kind in ["b", "i", "u"])
-                and lib.is_float(other)
-                and np.isnan(other)
-            ):
-                # convert datetime to datetime64, timedelta to timedelta64
-                other = convert_scalar_for_putitemlike(other, values.dtype)
+            # convert datetime to datetime64, timedelta to timedelta64
+            other = convert_scalar_for_putitemlike(other, values.dtype)
 
             # By the time we get here, we should have all Series/Index
             #  args extracted to ndarray
