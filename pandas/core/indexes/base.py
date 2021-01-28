@@ -40,9 +40,10 @@ from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     find_common_type,
+    infer_dtype_from,
     maybe_cast_to_integer_array,
-    maybe_promote,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -87,7 +88,7 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import array_equivalent, is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
@@ -4360,6 +4361,8 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
+        if not can_hold_element(self.dtype, value):
+            raise TypeError
         return value
 
     @final
@@ -5735,16 +5738,14 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
         item = lib.item_from_zerodim(item)
+        if is_valid_nat_for_dtype(item, self.dtype) and self.dtype != object:
+            item = self._na_value
 
         try:
             item = self._validate_fill_value(item)
         except TypeError:
-            if is_scalar(item):
-                dtype, item = maybe_promote(self.dtype, item)
-            else:
-                # maybe_promote would raise ValueError
-                dtype = np.dtype(object)
-
+            inferred, _ = infer_dtype_from(item)
+            dtype = find_common_type([self.dtype, inferred])
             return self.astype(dtype).insert(loc, item)
 
         arr = np.asarray(self)
