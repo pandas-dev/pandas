@@ -1261,9 +1261,9 @@ class ExtensionArray:
 
         Raises
         ------
-        TypeError : subclass does not define accumulations
+        NotImplementedError : subclass does not define accumulations
         """
-        raise TypeError(f"cannot perform {name} with type {self.dtype}")
+        raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
