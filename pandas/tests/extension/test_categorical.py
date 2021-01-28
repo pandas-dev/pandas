@@ -117,9 +117,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    @pytest.mark.xfail(reason="Deliberately upcast to object?")
-    def test_concat_with_reindex(self, data):
-        super().test_concat_with_reindex(data)
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
