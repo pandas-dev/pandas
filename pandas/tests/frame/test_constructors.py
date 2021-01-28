@@ -1795,6 +1795,37 @@ class TestDataFrameConstructors:
         expected = expected.astype(dtype=dtype)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "timedelta64[D]",
+            "timedelta64[h]",
+            "timedelta64[m]",
+            "timedelta64[s]",
+            "timedelta64[ms]",
+            "timedelta64[us]",
+            "timedelta64[ns]",
+        ],
+    )
+    def test_constructor_timedelta_non_ns(self, order, dtype):
+        na = np.array(
+            [
+                [np.timedelta64(1, "D"), np.timedelta64(2, "D")],
+                [np.timedelta64(4, "D"), np.timedelta64(5, "D")],
+            ],
+            dtype=dtype,
+            order=order,
+        )
+        df = DataFrame(na).astype("timedelta64[ns]")
+        expected = DataFrame(
+            [
+                [Timedelta(1, "D"), Timedelta(2, "D")],
+                [Timedelta(4, "D"), Timedelta(5, "D")],
+            ],
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
