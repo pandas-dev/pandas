@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.aggregation import aggregate
+from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError, SelectionMixin
 from pandas.core.construction import extract_array
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
@@ -479,7 +480,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             return self._apply_tablewise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
-        result, how = aggregate(self, func, *args, **kwargs)
+        result, how = ResamplerWindowApply(self, func, args=args, kwds=kwargs).agg()
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
