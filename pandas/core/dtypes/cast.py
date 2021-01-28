@@ -1952,4 +1952,7 @@ def can_hold_element(dtype: np.dtype, element: Any) -> bool:
             return tipo.kind == "b"
         return lib.is_bool(element)
 
+    elif dtype == object:
+        return True
+
     raise NotImplementedError(dtype)
