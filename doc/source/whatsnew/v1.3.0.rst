@@ -274,6 +274,7 @@ Datetimelike
 - Bug in constructing a :class:`DataFrame` or :class:`Series` with mismatched ``datetime64`` data and ``timedelta64`` dtype, or vice-versa, failing to raise ``TypeError`` (:issue:`38575`, :issue:`38764`, :issue:`38792`)
 - Bug in constructing a :class:`Series` or :class:`DataFrame` with a ``datetime`` object out of bounds for ``datetime64[ns]`` dtype or a ``timedelta`` object out of bounds for ``timedelta64[ns]`` dtype (:issue:`38792`, :issue:`38965`)
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
+- Bug in :class:`DataFrame` constructor reordering element when construction from datetime ndarray with dtype not ``"datetime64[ns]"`` (:issue:`39422`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
 - Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
 - Bug in comparisons between :class:`Timestamp` object and ``datetime64`` objects just outside the implementation bounds for nanosecond ``datetime64`` (:issue:`39221`)
