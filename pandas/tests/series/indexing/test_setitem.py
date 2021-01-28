@@ -93,6 +93,24 @@ class TestSetitemScalarIndexer:
         with pytest.raises(IndexError, match=msg):
             ser[-11] = "foo"
 
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.at])
+    @pytest.mark.parametrize("ser_index", [0, 1])
+    def test_setitem_series_object_dtype(self, indexer, ser_index):
+        # GH#38303
+        ser = Series([0, 0], dtype="object")
+        idxr = indexer(ser)
+        idxr[0] = Series([42], index=[ser_index])
+        expected = Series([Series([42], index=[ser_index]), 0], dtype="object")
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("index, exp_value", [(0, 42.0), (1, np.nan)])
+    def test_setitem_series(self, index, exp_value):
+        # GH#38303
+        ser = Series([0, 0])
+        ser.loc[0] = Series([42], index=[index])
+        expected = Series([exp_value, 0])
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSetitemSlices:
     def test_setitem_slice_float_raises(self, datetime_series):
@@ -239,44 +257,71 @@ class TestSetitemCallable:
         tm.assert_series_equal(ser, expected)
 
 
+class TestSetitemCasting:
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_setitem_dt64_into_int_series(self, dtype):
+        # dont cast dt64 to int when doing this setitem
+        orig = Series([1, 2, 3])
+
+        val = np.datetime64("2021-01-18 13:25:00", "ns")
+        if dtype == "m8[ns]":
+            val = val - val
+
+        ser = orig.copy()
+        ser[:-1] = val
+        expected = Series([val, val, 3], dtype=object)
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser[0], type(val))
+
+        ser = orig.copy()
+        ser[:-1] = np.array([val, val])
+        tm.assert_series_equal(ser, expected)
+
+
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
-        (
+        pytest.param(
             # these induce dtype changes
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
             Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan]),
             slice(None, None, 2),
+            id="int_series_slice_key_step",
         ),
-        (
-            # gets coerced to float, right?
+        pytest.param(
             Series([True, True, False, False]),
-            Series([np.nan, 1, np.nan, 0]),
+            Series([np.nan, True, np.nan, False], dtype=object),
             slice(None, None, 2),
+            id="bool_series_slice_key_step",
         ),
-        (
+        pytest.param(
             # these induce dtype changes
             Series(np.arange(10)),
             Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9]),
             slice(None, 5),
+            id="int_series_slice_key",
         ),
-        (
+        pytest.param(
             # changes dtype GH#4463
             Series([1, 2, 3]),
             Series([np.nan, 2, 3]),
             0,
+            id="int_series_int_key",
         ),
-        (
+        pytest.param(
             # changes dtype GH#4463
             Series([False]),
-            Series([np.nan]),
+            Series([np.nan], dtype=object),
+            # TODO: maybe go to float64 since we are changing the _whole_ Series?
             0,
+            id="bool_series_int_key_change_all",
         ),
-        (
+        pytest.param(
             # changes dtype GH#4463
             Series([False, True]),
-            Series([np.nan, 1.0]),
+            Series([np.nan, True], dtype=object),
             0,
+            id="bool_series_int_key",
         ),
     ],
 )
@@ -289,45 +334,56 @@ class TestSetitemCastingEquivalents:
         - the setitem does not expand the obj
     """
 
-    def test_int_key(self, obj, key, expected, indexer_sli):
+    @pytest.fixture(params=[np.nan, np.float64("NaN")])
+    def val(self, request):
+        """
+        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
+        attribute.
+        """
+        return request.param
+
+    def test_int_key(self, obj, key, expected, val, indexer_sli):
         if not isinstance(key, int):
             return
 
         obj = obj.copy()
-        indexer_sli(obj)[key] = np.nan
+        indexer_sli(obj)[key] = val
         tm.assert_series_equal(obj, expected)
 
-    def test_slice_key(self, obj, key, expected, indexer_si):
+    def test_slice_key(self, obj, key, expected, val, indexer_si):
         # Note: no .loc because that handles slice edges differently
         obj = obj.copy()
-        indexer_si(obj)[key] = np.nan
+        indexer_si(obj)[key] = val
         tm.assert_series_equal(obj, expected)
 
-    def test_intlist_key(self, obj, key, expected, indexer_sli):
+    def test_intlist_key(self, obj, key, expected, val, indexer_sli):
         ilkey = list(range(len(obj)))[key]
 
         obj = obj.copy()
-        indexer_sli(obj)[ilkey] = np.nan
+        indexer_sli(obj)[ilkey] = val
         tm.assert_series_equal(obj, expected)
 
-    def test_mask_key(self, obj, key, expected, indexer_sli):
+    def test_mask_key(self, obj, key, expected, val, indexer_sli):
         # setitem with boolean mask
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
         obj = obj.copy()
-        indexer_sli(obj)[mask] = np.nan
+        indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
-    def test_series_where(self, obj, key, expected):
+    def test_series_where(self, obj, key, expected, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
         obj = obj.copy()
-        res = obj.where(~mask, np.nan)
+        res = obj.where(~mask, val)
         tm.assert_series_equal(res, expected)
 
-    def test_index_where(self, obj, key, expected, request):
+    def test_index_where(self, obj, key, expected, val, request):
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
+
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
@@ -337,15 +393,18 @@ class TestSetitemCastingEquivalents:
             mark = pytest.mark.xfail(reason=msg)
             request.node.add_marker(mark)
 
-        res = Index(obj).where(~mask, np.nan)
+        res = Index(obj).where(~mask, val)
         tm.assert_index_equal(res, Index(expected))
 
     @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
-    def test_index_putmask(self, obj, key, expected):
+    def test_index_putmask(self, obj, key, expected, val):
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
+
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        res = Index(obj).putmask(mask, np.nan)
+        res = Index(obj).putmask(mask, val)
         tm.assert_index_equal(res, Index(expected))
 
 
@@ -366,6 +425,18 @@ class TestSetitemWithExpansion:
         expected = Series(47, DatetimeIndex([key], freq="D"))
         tm.assert_series_equal(series, expected)
         assert series.index.freq == expected.index.freq
+
+    def test_setitem_empty_series_timestamp_preserves_dtype(self):
+        # GH 21881
+        timestamp = Timestamp(1412526600000000000)
+        series = Series([timestamp], index=["timestamp"], dtype=object)
+        expected = series["timestamp"]
+
+        series = Series([], dtype=object)
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
+        result = series["timestamp"]
+        assert result == expected
 
 
 def test_setitem_scalar_into_readonly_backing_data():
