@@ -62,8 +62,6 @@ def calculate_variable_window_bounds(
 
     if index[num_values - 1] < index[0]:
         index_growth_sign = -1
-    if center:
-        center_window = True
 
     start = np.empty(num_values, dtype='int64')
     start.fill(-1)
