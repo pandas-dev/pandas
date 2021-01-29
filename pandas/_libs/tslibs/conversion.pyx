@@ -224,7 +224,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     ivalues = arr.view(np.int64).ravel("K")
 
-    result = np.empty(shape, dtype=DT64NS_DTYPE)
+    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
     iresult = result.ravel("K").view(np.int64)
 
     if len(iresult) == 0:
@@ -497,7 +497,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
         obj.value -= int(offset.total_seconds() * 1e9)
 
     if isinstance(ts, ABCTimestamp):
-        obj.value += ts.nanosecond
+        obj.value += <int64_t>ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
     if nanos:

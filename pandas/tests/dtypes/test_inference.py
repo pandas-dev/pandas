@@ -131,7 +131,7 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with pytest.raises(RecursionError):
+    with tm.external_error_raised(RecursionError):
         foo()
 
 
@@ -300,7 +300,7 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+test_tuple = collections.namedtuple("test_tuple", ["a", "b", "c"])
 
 
 @pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])

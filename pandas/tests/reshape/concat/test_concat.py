@@ -31,7 +31,7 @@ class TestConcatenate:
         for b in result._mgr.blocks:
             if b.is_float:
                 assert b.values.base is df._mgr.blocks[0].values.base
-            elif b.is_integer:
+            elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
@@ -42,7 +42,7 @@ class TestConcatenate:
         for b in result._mgr.blocks:
             if b.is_float:
                 assert b.values.base is None
-            elif b.is_integer:
+            elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
@@ -429,7 +429,7 @@ class TestConcatenate:
         tm.assert_index_equal(result, expected)
 
     def test_concat_different_extension_dtypes_upcasts(self):
-        a = Series(pd.core.arrays.integer_array([1, 2]))
+        a = Series(pd.array([1, 2], dtype="Int64"))
         b = Series(to_decimal([1, 2]))
 
         result = pd.concat([a, b], ignore_index=True)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from typing import List, Optional, Union
 
@@ -22,8 +24,10 @@ from pandas._libs.tslibs.timedeltas import (
     ints_to_pytimedelta,
     parse_timedelta_unit,
 )
+from pandas._typing import NpDtype
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
@@ -35,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_string_dtype,
     is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -205,7 +208,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _simple_new(
         cls, values, freq: Optional[BaseOffset] = None, dtype=TD64NS_DTYPE
-    ) -> "TimedeltaArray":
+    ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
         if values.dtype != TD64NS_DTYPE:
@@ -221,7 +224,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _from_sequence(
         cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
-    ) -> "TimedeltaArray":
+    ) -> TimedeltaArray:
         if dtype:
             _validate_td64_dtype(dtype)
 
@@ -238,7 +241,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         copy: bool = False,
         freq=lib.no_default,
         unit=None,
-    ) -> "TimedeltaArray":
+    ) -> TimedeltaArray:
         if dtype:
             _validate_td64_dtype(dtype)
 
@@ -324,22 +327,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
-            # by pandas convention, converting to non-nano timedelta64
-            #  returns an int64-dtyped array with ints representing multiples
-            #  of the desired timedelta unit.  This is essentially division
-            if self._hasnans:
-                # avoid double-copying
-                result = self._data.astype(dtype, copy=False)
-                return self._maybe_mask_results(
-                    result, fill_value=None, convert="float64"
-                )
-            result = self._data.astype(dtype, copy=copy)
-            return result.astype("i8")
-        elif is_timedelta64_ns_dtype(dtype):
-            if copy:
-                return self.copy()
-            return self
+        if dtype.kind == "m":
+            return astype_td64_unit_conversion(self._data, dtype, copy=copy)
+
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
     def __iter__(self):
@@ -351,7 +341,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             data = self.asi8
             length = len(self)
             chunksize = 10000
-            chunks = int(length / chunksize) + 1
+            chunks = (length // chunksize) + 1
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
@@ -365,7 +355,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype=None,
+        dtype: Optional[NpDtype] = None,
         out=None,
         keepdims: bool = False,
         initial=None,
@@ -385,7 +375,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype=None,
+        dtype: Optional[NpDtype] = None,
         out=None,
         ddof: int = 1,
         keepdims: bool = False,
@@ -408,11 +398,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return get_format_timedelta64(self, box=True)
 
+    @dtl.ravel_compat
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import get_format_timedelta64
 
         formatter = get_format_timedelta64(self._data, na_rep)
-        return np.array([formatter(x) for x in self._data.ravel()]).reshape(self.shape)
+        return np.array([formatter(x) for x in self._data])
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -478,7 +469,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             ) from err
 
     @unpack_zerodim_and_defer("__mul__")
-    def __mul__(self, other) -> "TimedeltaArray":
+    def __mul__(self, other) -> TimedeltaArray:
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
             result = self._data * other
@@ -754,15 +745,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         res2 = other - res1 * self
         return res1, res2
 
-    def __neg__(self) -> "TimedeltaArray":
+    def __neg__(self) -> TimedeltaArray:
         if self.freq is not None:
             return type(self)(-self._data, freq=-self.freq)
         return type(self)(-self._data)
 
-    def __pos__(self) -> "TimedeltaArray":
+    def __pos__(self) -> TimedeltaArray:
         return type(self)(self._data, freq=self.freq)
 
-    def __abs__(self) -> "TimedeltaArray":
+    def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved
         return type(self)(np.abs(self._data))
 

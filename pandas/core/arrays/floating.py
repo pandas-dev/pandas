@@ -1,5 +1,6 @@
-import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from __future__ import annotations
+
+from typing import List, Optional, Tuple, Type
 import warnings
 
 import numpy as np
@@ -19,21 +20,16 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
-from .masked import BaseMaskedDtype
-from .numeric import NumericArray
-
-if TYPE_CHECKING:
-    import pyarrow
+from .numeric import NumericArray, NumericDtype
 
 
-class FloatingDtype(BaseMaskedDtype):
+class FloatingDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size of floating dtype.
 
@@ -51,7 +47,7 @@ class FloatingDtype(BaseMaskedDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["FloatingArray"]:
+    def construct_array_type(cls) -> Type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 
@@ -71,34 +67,6 @@ class FloatingDtype(BaseMaskedDtype):
         if np.issubdtype(np_dtype, np.floating):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
-
-    def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "FloatingArray":
-        """
-        Construct FloatingArray from pyarrow Array/ChunkedArray.
-        """
-        import pyarrow
-
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
-        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
-            array = array.cast(pyarrow_type)
-
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            # pyarrow.ChunkedArray
-            chunks = array.chunks
-
-        results = []
-        for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
-            float_arr = FloatingArray(data.copy(), ~mask, copy=False)
-            results.append(float_arr)
-
-        return FloatingArray._concat_same_type(results)
 
 
 def coerce_to_array(
@@ -207,7 +175,7 @@ class FloatingArray(NumericArray):
     .. warning::
 
        FloatingArray is currently experimental, and its API or internal
-       implementation may change without warning. Expecially the behaviour
+       implementation may change without warning. Especially the behaviour
        regarding NaN (distinct from NA missing values) is subject to change.
 
     We represent a FloatingArray with 2 numpy arrays:
@@ -283,64 +251,16 @@ class FloatingArray(NumericArray):
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
-    ) -> "FloatingArray":
+    ) -> FloatingArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return FloatingArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype=None, copy: bool = False
-    ) -> "FloatingArray":
+    ) -> FloatingArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
-
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
-        # For FloatingArray inputs, we apply the ufunc to ._data
-        # and mask the result.
-        if method == "reduce":
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
-        out = kwargs.get("out", ())
-
-        for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (FloatingArray,)):
-                return NotImplemented
-
-        # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
-
-        mask = np.zeros(len(self), dtype=bool)
-        inputs2 = []
-        for x in inputs:
-            if isinstance(x, FloatingArray):
-                mask |= x._mask
-                inputs2.append(x._data)
-            else:
-                inputs2.append(x)
-
-        def reconstruct(x):
-            # we don't worry about scalar `x` here, since we
-            # raise for reduce up above.
-
-            # TODO
-            if is_float_dtype(x.dtype):
-                m = mask.copy()
-                return FloatingArray(x, m)
-            else:
-                x[mask] = np.nan
-            return x
-
-        result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
-            tuple(reconstruct(x) for x in result)
-        else:
-            return reconstruct(result)
 
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
@@ -370,24 +290,10 @@ class FloatingArray(NumericArray):
             if incompatible type with an FloatingDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.string_ import StringArray, StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        # if the dtype is exactly the same, we can fastpath
-        if self.dtype == dtype:
-            # return the same object for copy=False
-            return self.copy() if copy else self
-        # if we are astyping to another nullable masked dtype, we can fastpath
-        if isinstance(dtype, BaseMaskedDtype):
-            # TODO deal with NaNs
-            data = self._data.astype(dtype.numpy_dtype, copy=copy)
-            # mask is copied depending on whether the data was copied, and
-            # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.copy()
-            return dtype.construct_array_type()(data, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return StringArray._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):

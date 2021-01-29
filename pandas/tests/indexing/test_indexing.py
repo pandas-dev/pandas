@@ -10,29 +10,12 @@ import pytest
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, NaT, Series
+from pandas import DataFrame, Index, NaT, Series, date_range, offsets, timedelta_range
 import pandas._testing as tm
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 from .test_floats import gen_obj
-
-
-def getitem(x):
-    return x
-
-
-def setitem(x):
-    return x
-
-
-def loc(x):
-    return x.loc
-
-
-def iloc(x):
-    return x.iloc
-
 
 # ------------------------------------------------------------------------
 # Indexing test cases
@@ -72,11 +55,10 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
-    @pytest.mark.parametrize("idxr", [getitem, loc, iloc])
-    def test_getitem_ndarray_3d(self, index, frame_or_series, idxr):
+    def test_getitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
-        idxr = idxr(obj)
+        idxr = indexer_sli(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
         msg = "|".join(
@@ -95,19 +77,18 @@ class TestFancy:
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
-    def test_setitem_ndarray_3d(self, index, frame_or_series, indexer):
+    def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
-        idxr = indexer(obj)
+        idxr = indexer_sli(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        if indexer.__name__ == "iloc":
+        if indexer_sli.__name__ == "iloc":
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
             isinstance(index, pd.IntervalIndex)
-            and indexer.__name__ == "setitem"
+            and indexer_sli.__name__ == "setitem"
             and obj.ndim == 1
         ):
             err = AttributeError
@@ -297,7 +278,7 @@ class TestFancy:
         result = df.loc[[1, 2], ["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("case", [getitem, loc])
+    @pytest.mark.parametrize("case", [tm.getitem, tm.loc])
     def test_duplicate_int_indexing(self, case):
         # GH 17347
         s = Series(range(3), index=[1, 1, 3])
@@ -535,9 +516,7 @@ class TestFancy:
             df["2011"]
 
         with pytest.raises(KeyError, match="'2011'"):
-            with tm.assert_produces_warning(FutureWarning):
-                # This does an is_all_dates check
-                df.loc["2011", 0]
+            df.loc["2011", 0]
 
         df = DataFrame()
         assert not df.index._is_all_dates
@@ -594,7 +573,7 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [getitem, loc])
+    @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
     def test_index_type_coercion(self, indexer):
 
         # GH 11836
@@ -741,11 +720,18 @@ class TestMisc:
             s.loc[::0]
 
     def test_indexing_assignment_dict_already_exists(self):
-        df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8], "z": [-5, 0, 5]}).set_index("z")
+        index = Index([-5, 0, 5], name="z")
+        df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8]}, index=index)
         expected = df.copy()
         rhs = {"x": 9, "y": 99}
         df.loc[5] = rhs
         expected.loc[5] = [9, 99]
+        tm.assert_frame_equal(df, expected)
+
+        # GH#38335 same thing, mixed dtypes
+        df = DataFrame({"x": [1, 2, 6], "y": [2.0, 2.0, 8.0]}, index=index)
+        df.loc[5] = rhs
+        expected = DataFrame({"x": [1, 2, 9], "y": [2.0, 2.0, 99.0]}, index=index)
         tm.assert_frame_equal(df, expected)
 
     def test_indexing_dtypes_on_empty(self):
@@ -959,16 +945,99 @@ class TestDataframeNoneCoercion:
         tm.assert_frame_equal(start_dataframe, exp)
 
 
+class TestDatetimelikeCoercion:
+    def test_setitem_dt64_string_scalar(self, tz_naive_fixture, indexer_sli):
+        # dispatching _can_hold_element to underling DatetimeArray
+        tz = tz_naive_fixture
+
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        ser = Series(dti)
+
+        values = ser._values
+
+        newval = "2018-01-01"
+        values._validate_setitem_value(newval)
+
+        indexer_sli(ser)[0] = newval
+
+        if tz is None:
+            # TODO(EA2D): we can make this no-copy in tz-naive case too
+            assert ser.dtype == dti.dtype
+            assert ser._values._data is values._data
+        else:
+            assert ser._values is values
+
+    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize(
+        "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
+    )
+    def test_setitem_dt64_string_values(self, tz_naive_fixture, indexer_sli, key, box):
+        # dispatching _can_hold_element to underling DatetimeArray
+        tz = tz_naive_fixture
+
+        if isinstance(key, slice) and indexer_sli is tm.loc:
+            key = slice(0, 1)
+
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        ser = Series(dti)
+
+        values = ser._values
+
+        newvals = box(["2019-01-01", "2010-01-02"])
+        values._validate_setitem_value(newvals)
+
+        indexer_sli(ser)[key] = newvals
+
+        if tz is None:
+            # TODO(EA2D): we can make this no-copy in tz-naive case too
+            assert ser.dtype == dti.dtype
+            assert ser._values._data is values._data
+        else:
+            assert ser._values is values
+
+    @pytest.mark.parametrize("scalar", ["3 Days", offsets.Hour(4)])
+    def test_setitem_td64_scalar(self, indexer_sli, scalar):
+        # dispatching _can_hold_element to underling TimedeltaArray
+        tdi = timedelta_range("1 Day", periods=3)
+        ser = Series(tdi)
+
+        values = ser._values
+        values._validate_setitem_value(scalar)
+
+        indexer_sli(ser)[0] = scalar
+        assert ser._values._data is values._data
+
+    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize(
+        "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
+    )
+    def test_setitem_td64_string_values(self, indexer_sli, key, box):
+        # dispatching _can_hold_element to underling TimedeltaArray
+        if isinstance(key, slice) and indexer_sli is tm.loc:
+            key = slice(0, 1)
+
+        tdi = timedelta_range("1 Day", periods=3)
+        ser = Series(tdi)
+
+        values = ser._values
+
+        newvals = box(["10 Days", "44 hours"])
+        values._validate_setitem_value(newvals)
+
+        indexer_sli(ser)[key] = newvals
+        assert ser._values._data is values._data
+
+
 def test_extension_array_cross_section():
     # A cross-section of a homogeneous EA should be an EA
     df = DataFrame(
         {
-            "A": pd.core.arrays.integer_array([1, 2]),
-            "B": pd.core.arrays.integer_array([3, 4]),
+            "A": pd.array([1, 2], dtype="Int64"),
+            "B": pd.array([3, 4], dtype="Int64"),
         },
         index=["a", "b"],
     )
-    expected = Series(pd.core.arrays.integer_array([1, 3]), index=["A", "B"], name="a")
+    expected = Series(pd.array([1, 3], dtype="Int64"), index=["A", "B"], name="a")
     result = df.loc["a"]
     tm.assert_series_equal(result, expected)
 

@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import datetime
+import numbers
+from typing import TYPE_CHECKING, Any, List, Union
 
 import numpy as np
 
@@ -13,7 +17,48 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from .masked import BaseMaskedArray
+from pandas.core import ops
+
+from .masked import BaseMaskedArray, BaseMaskedDtype
+
+if TYPE_CHECKING:
+    import pyarrow
+
+
+class NumericDtype(BaseMaskedDtype):
+    def __from_arrow__(
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+    ) -> BaseMaskedArray:
+        """
+        Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow
+
+        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+
+        array_class = self.construct_array_type()
+
+        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
+        if not array.type.equals(pyarrow_type):
+            array = array.cast(pyarrow_type)
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            # pyarrow.ChunkedArray
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
+            num_arr = array_class(data.copy(), ~mask, copy=False)
+            results.append(num_arr)
+
+        if len(results) == 1:
+            # avoid additional copy in _concat_same_type
+            return results[0]
+        else:
+            return array_class._concat_same_type(results)
 
 
 class NumericArray(BaseMaskedArray):
@@ -90,3 +135,57 @@ class NumericArray(BaseMaskedArray):
             )
 
         return self._maybe_mask_result(result, mask, other, op_name)
+
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+
+    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+        # For NumericArray inputs, we apply the ufunc to ._data
+        # and mask the result.
+        if method == "reduce":
+            # Not clear how to handle missing values in reductions. Raise.
+            raise NotImplementedError("The 'reduce' method is not supported.")
+        out = kwargs.get("out", ())
+
+        for x in inputs + out:
+            if not isinstance(x, self._HANDLED_TYPES + (NumericArray,)):
+                return NotImplemented
+
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        mask = np.zeros(len(self), dtype=bool)
+        inputs2: List[Any] = []
+        for x in inputs:
+            if isinstance(x, NumericArray):
+                mask |= x._mask
+                inputs2.append(x._data)
+            else:
+                inputs2.append(x)
+
+        def reconstruct(x):
+            # we don't worry about scalar `x` here, since we
+            # raise for reduce up above.
+
+            if is_integer_dtype(x.dtype):
+                from pandas.core.arrays import IntegerArray
+
+                m = mask.copy()
+                return IntegerArray(x, m)
+            elif is_float_dtype(x.dtype):
+                from pandas.core.arrays import FloatingArray
+
+                m = mask.copy()
+                return FloatingArray(x, m)
+            else:
+                x[mask] = np.nan
+            return x
+
+        result = getattr(ufunc, method)(*inputs2, **kwargs)
+        if isinstance(result, tuple):
+            return tuple(reconstruct(x) for x in result)
+        else:
+            return reconstruct(result)
