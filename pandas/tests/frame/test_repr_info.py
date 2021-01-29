@@ -23,6 +23,20 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameReprInfoEtc:
+    def test_repr_bytes_61_lines(self):
+        # GH#12857
+        lets = list("ACDEFGHIJKLMNOP")
+        slen = 50
+        nseqs = 1000
+        words = [[np.random.choice(lets) for x in range(slen)] for _ in range(nseqs)]
+        df = DataFrame(words).astype("U1")
+        assert (df.dtypes == object).all()
+
+        # smoke tests; at one point this raised with 61 but not 60
+        repr(df)
+        repr(df.iloc[:60, :])
+        repr(df.iloc[:61, :])
+
     def test_repr_unicode_level_names(self, frame_or_series):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
