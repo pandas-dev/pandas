@@ -459,13 +459,24 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     ):
         # np.nan
         return True
+    elif (
+        isinstance(left_attr, (np.datetime64, np.timedelta64))
+        and isinstance(right_attr, (np.datetime64, np.timedelta64))
+        and type(left_attr) is type(right_attr)
+        and np.isnat(left_attr)
+        and np.isnat(right_attr)
+    ):
+        # np.datetime64("nat") or np.timedelta64("nat")
+        return True
 
     try:
         result = left_attr == right_attr
     except TypeError:
         # datetimetz on rhs may raise TypeError
         result = False
-    if not isinstance(result, bool):
+    if (left_attr is pd.NA) ^ (right_attr is pd.NA):
+        result = False
+    elif not isinstance(result, bool):
         result = result.all()
 
     if result:
