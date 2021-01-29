@@ -11,6 +11,7 @@ from pandas.core.arrays.timedeltas import TimedeltaArray, sequence_to_td64ns
 
 class TestTimedeltaIndex:
     def test_array_of_dt64_nat_raises(self):
+        # GH#39462
         nat = np.datetime64("NaT", "ns")
         arr = np.array([nat], dtype=object)
 
