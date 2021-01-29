@@ -348,7 +348,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[int | str, int] = defaultdict(int)
+            counts: DefaultDict[int | str | tuple, int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -558,7 +558,7 @@ class ParserBase:
         return result
 
     def _set_noconvert_dtype_columns(
-        self, col_indices: List[int], names: List[int | str]
+        self, col_indices: List[int], names: List[int | str | tuple]
     ) -> Set[int]:
         """
         Set the columns that should not undergo dtype conversions.
