@@ -274,6 +274,10 @@ class TestSetitemCasting:
         assert isinstance(ser[0], type(val))
 
         ser = orig.copy()
+        ser[:-1] = [val, val]
+        tm.assert_series_equal(ser, expected)
+
+        ser = orig.copy()
         ser[:-1] = np.array([val, val])
         tm.assert_series_equal(ser, expected)
 
