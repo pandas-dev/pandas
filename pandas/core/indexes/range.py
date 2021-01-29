@@ -13,6 +13,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, doc
+from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -169,8 +170,15 @@ class RangeIndex(Int64Index):
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
     @cache_readonly
-    def _int64index(self) -> Int64Index:
+    def _cached_int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
+
+    @property
+    def _int64index(self):
+        # wrap _cached_int64index so we can be sure its name matches self.name
+        res = self._cached_int64index
+        res._name = self._name
+        return res
 
     def _get_data_as_items(self):
         """ return a list of tuples of start, stop, step """
@@ -389,6 +397,22 @@ class RangeIndex(Int64Index):
         return ensure_platform_int(locs)
 
     # --------------------------------------------------------------------
+
+    def repeat(self, repeats, axis=None):
+        return self._int64index.repeat(repeats, axis=axis)
+
+    def delete(self, loc):
+        return self._int64index.delete(loc)
+
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+        with rewrite_exception("Int64Index", type(self).__name__):
+            return self._int64index.take(
+                indices,
+                axis=axis,
+                allow_fill=allow_fill,
+                fill_value=fill_value,
+                **kwargs,
+            )
 
     def tolist(self):
         return list(self._range)
@@ -645,7 +669,7 @@ class RangeIndex(Int64Index):
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
-            return self._shallow_copy(name=res_name)
+            return self.rename(name=res_name)
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
@@ -696,6 +720,9 @@ class RangeIndex(Int64Index):
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
             return super()._concat(indexes, name)
+
+        elif len(indexes) == 1:
+            return indexes[0]
 
         start = step = next_ = None
 

@@ -181,8 +181,7 @@ def stringify_path(
         # this function with convert_file_like=True to infer the compression.
         return cast(FileOrBuffer[AnyStr], filepath_or_buffer)
 
-    # Only @runtime_checkable protocols can be used with instance and class checks
-    if isinstance(filepath_or_buffer, os.PathLike):  # type: ignore[misc]
+    if isinstance(filepath_or_buffer, os.PathLike):
         filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
 
@@ -858,12 +857,15 @@ def file_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
 
 def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     """Whether the handle is opened in binary mode"""
+    # specified by user
+    if "t" in mode or "b" in mode:
+        return "b" in mode
+
     # classes that expect string but have 'b' in mode
-    text_classes = (codecs.StreamReaderWriter,)
-    if isinstance(handle, text_classes):
+    text_classes = (codecs.StreamWriter, codecs.StreamReader, codecs.StreamReaderWriter)
+    if issubclass(type(handle), text_classes):
         return False
 
     # classes that expect bytes
     binary_classes = (BufferedIOBase, RawIOBase)
-
     return isinstance(handle, binary_classes) or "b" in getattr(handle, "mode", mode)
