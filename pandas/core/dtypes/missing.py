@@ -559,7 +559,7 @@ def na_value_for_dtype(dtype, compat: bool = True):
     >>> na_value_for_dtype(np.dtype('bool'))
     False
     >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
-    NaT
+    numpy.datetime64('NaT')
     """
     dtype = pandas_dtype(dtype)
 
