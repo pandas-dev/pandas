@@ -154,6 +154,11 @@ _all_methods = [
         ({"A": [1], "B": [1]},),
         operator.methodcaller("pivot_table", columns="A"),
     ),
+    (
+        pd.DataFrame,
+        ({"A": [1], "B": [1]},),
+        operator.methodcaller("pivot_table", columns="A", aggfunc=["mean", "sum"]),
+    ),
     (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
