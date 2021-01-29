@@ -756,6 +756,12 @@ def test_groupby_finalize(obj, method):
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
+        lambda x: x.agg("std"),
+        lambda x: x.agg("var"),
+        lambda x: x.agg("sem"),
+        lambda x: x.agg("size"),
+        lambda x: x.agg("ohlc"),
+        lambda x: x.agg("describe"),
     ],
 )
 @not_implemented_mark
