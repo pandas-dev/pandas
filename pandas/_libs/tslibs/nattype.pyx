@@ -286,12 +286,6 @@ cdef class _NaT(datetime):
     def __hash__(self):
         return NPY_NAT
 
-    def __int__(self):
-        return NPY_NAT
-
-    def __long__(self):
-        return NPY_NAT
-
     @property
     def is_leap_year(self) -> bool:
         return False

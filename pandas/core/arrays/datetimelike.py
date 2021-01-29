@@ -1607,7 +1607,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         result = round_nsint64(values, mode, freq)
-        result = self._maybe_mask_results(result, fill_value=NaT)
+        result = self._maybe_mask_results(result, fill_value=iNaT)
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))
