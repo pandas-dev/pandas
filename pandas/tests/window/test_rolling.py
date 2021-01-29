@@ -150,7 +150,7 @@ def test_closed_fixed(closed, arithmetic_win_operators):
         (
             True,
             DataFrame(
-                [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
+                [2 / 3, 0.5, 0.4, 0.5, 0.428571, 0.5, 0.571429, 0.5],
                 columns=["binary_col"],
                 index=date_range(start="2020-01-01", freq="min", periods=8),
             ),
