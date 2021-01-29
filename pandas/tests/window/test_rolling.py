@@ -146,32 +146,29 @@ def test_closed_fixed(closed, arithmetic_win_operators, center):
 
 
 @pytest.mark.parametrize(
-    "center, expected",
+    "center, expected_data",
     [
         (
             False,
-            DataFrame(
-                [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
-                columns=["binary_col"],
-                index=date_range(start="2020-01-01", freq="min", periods=8),
-            ),
+            [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
         ),
         (
             True,
-            DataFrame(
-                [2 / 3, 0.5, 0.4, 0.5, 0.428571, 0.5, 0.571429, 0.5],
-                columns=["binary_col"],
-                index=date_range(start="2020-01-01", freq="min", periods=8),
-            ),
+            [2 / 3, 0.5, 0.4, 0.5, 0.428571, 0.5, 0.571429, 0.5],
         ),
     ],
 )
-def test_closed_fixed_binary_col(center, expected):
+def test_closed_fixed_binary_col(center, expected_data):
     # GH 34315
     data = [0, 1, 1, 0, 0, 1, 0, 1]
     df = DataFrame(
         {"binary_col": data},
         index=date_range(start="2020-01-01", freq="min", periods=len(data)),
+    )
+    expected = DataFrame(
+        expected_data,
+        columns=["binary_col"],
+        index=date_range(start="2020-01-01", freq="min", periods=8),
     )
 
     rolling = df.rolling(window=len(df), closed="left", min_periods=1, center=center)
