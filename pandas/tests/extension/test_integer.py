@@ -199,6 +199,7 @@ class TestGetitem(base.BaseGetitemTests):
 class TestSetitem(base.BaseSetitemTests):
     def test_setitem_series(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
+        # overriden because we have a different `expected` in some cases
         ser = expected = pd.Series(data, name="data")
         result = pd.Series(index=ser.index, dtype=object, name="data")
 
