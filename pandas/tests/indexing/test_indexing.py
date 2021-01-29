@@ -832,7 +832,7 @@ class TestMisc:
         assert result2 == expected
 
 
-class TestSeriesNoneCoercion:  # TODO: frame_or_series with TestDataframeNoneCoercion
+class TestSeriesNoneCoercion:
     EXPECTED_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),
