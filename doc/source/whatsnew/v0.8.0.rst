@@ -176,7 +176,7 @@ New plotting methods
 Vytautas Jancauskas, the 2012 GSOC participant, has added many new plot
 types. For example, ``'kde'`` is a new option:
 
-.. code-block:: python
+.. ipython:: python
 
    s = pd.Series(
        np.concatenate((np.random.randn(1000), np.random.randn(1000) * 0.5 + 3))
