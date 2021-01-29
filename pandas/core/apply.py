@@ -47,6 +47,8 @@ from pandas.core.construction import (
 if TYPE_CHECKING:
     from pandas import DataFrame, Index, Series
     from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
+    from pandas.core.resample import Resampler
+    from pandas.core.window.rolling import BaseWindow
 
 ResType = Dict[int, Any]
 
@@ -673,6 +675,30 @@ class GroupByApply(Apply):
     ):
         kwds = kwds.copy()
         self.axis = obj.obj._get_axis_number(kwds.get("axis", 0))
+        super().__init__(
+            obj,
+            func,
+            raw=False,
+            result_type=None,
+            args=args,
+            kwds=kwds,
+        )
+
+    def apply(self):
+        raise NotImplementedError
+
+
+class ResamplerWindowApply(Apply):
+    axis = 0
+    obj: Union[Resampler, BaseWindow]
+
+    def __init__(
+        self,
+        obj: Union[Resampler, BaseWindow],
+        func: AggFuncType,
+        args,
+        kwds,
+    ):
         super().__init__(
             obj,
             func,
