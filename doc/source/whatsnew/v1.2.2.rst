@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`~DataFrame.to_pickle` failing to create bz2/xz compressed pickle files with ``protocol=5`` (:issue:`39002`)
 - Fixed regression in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` always raising ``AssertionError`` when comparing extension dtypes (:issue:`39410`)
+- Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamWriter`` in binary mode instead of in text mode and ignoring user-provided ``mode`` (:issue:`39247`)
 -
 
 .. ---------------------------------------------------------------------------
