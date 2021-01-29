@@ -16,7 +16,11 @@ import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import create_subplots, flatten_axes
+from pandas.plotting._matplotlib.tools import (
+    create_subplots,
+    flatten_axes,
+    maybe_adjust_figure,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -28,7 +32,7 @@ class BoxPlot(LinePlot):
 
     _valid_return_types = (None, "axes", "dict", "both")
     # namedtuple to hold results
-    BP = namedtuple("Boxplot", ["ax", "lines"])
+    BP = namedtuple("BP", ["ax", "lines"])
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
@@ -229,7 +233,7 @@ def _grouped_plot_by_column(
 
     byline = by[0] if len(by) == 1 else by
     fig.suptitle(f"Boxplot grouped by {byline}")
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
+    maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result
 
@@ -436,7 +440,7 @@ def boxplot_frame_groupby(
             )
             ax.set_title(pprint_thing(key))
             ret.loc[key] = d
-        fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
+        maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
