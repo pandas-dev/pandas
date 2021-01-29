@@ -121,6 +121,7 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
+# maybe this one too?
 def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -135,7 +136,28 @@ def test_closed_fixed(closed, arithmetic_win_operators):
     tm.assert_frame_equal(result, expected)
 
 
-def test_closed_fixed_binary_col():
+@pytest.mark.parametrize(
+    "center, expected",
+    [
+        (
+            False,
+            DataFrame(
+                [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
+                columns=["binary_col"],
+                index=date_range(start="2020-01-01", freq="min", periods=8),
+            ),
+        ),
+        (
+            True,
+            DataFrame(
+                [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
+                columns=["binary_col"],
+                index=date_range(start="2020-01-01", freq="min", periods=8),
+            ),
+        ),
+    ],
+)
+def test_closed_fixed_binary_col(center, expected):
     # GH 34315
     data = [0, 1, 1, 0, 0, 1, 0, 1]
     df = DataFrame(
@@ -143,13 +165,8 @@ def test_closed_fixed_binary_col():
         index=date_range(start="2020-01-01", freq="min", periods=len(data)),
     )
 
-    rolling = df.rolling(window=len(df), closed="left", min_periods=1)
+    rolling = df.rolling(window=len(df), closed="left", min_periods=1, center=center)
     result = rolling.mean()
-    expected = DataFrame(
-        [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
-        columns=["binary_col"],
-        index=date_range(start="2020-01-01", freq="min", periods=len(data)),
-    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -394,6 +411,7 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
+# maybe this? center true/false
 def test_rolling_window_as_string():
     # see gh-22590
     date_today = datetime.now()
