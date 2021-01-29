@@ -11776,20 +11776,10 @@ min_count : int, default 0
 """
 
 
-def validate_ascending(
-    ascending: Union[bool, Sequence[bool]],
-) -> Union[bool, Sequence[bool]]:
+def validate_ascending(ascending):
     """Validate ``ascending`` kwargs for ``sort_index`` method."""
+    kwargs = {"none_allowed": False, "int_allowed": True}
     if not isinstance(ascending, (list, tuple)):
-        _check_ascending_element(ascending)
-        return ascending
+        return validate_bool_kwarg(ascending, "ascending", **kwargs)
 
-    for item in ascending:
-        _check_ascending_element(item)
-    return ascending
-
-
-def _check_ascending_element(value):
-    """Ensure that each item in ``ascending`` kwarg is either bool or int."""
-    if value is None or not isinstance(value, (bool, int)):
-        raise ValueError("ascending must be either a bool or a sequence of bools")
+    return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]

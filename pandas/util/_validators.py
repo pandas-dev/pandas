@@ -205,9 +205,39 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     validate_kwargs(fname, kwargs, compat_args)
 
 
-def validate_bool_kwarg(value, arg_name):
-    """ Ensures that argument passed in arg_name is of type bool. """
-    if not (is_bool(value) or value is None):
+def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
+    """
+    Ensure that argument passed in arg_name can be interpreted as boolean.
+
+    Parameters
+    ----------
+    value : bool
+        Value to be validated.
+    arg_name : str
+        Name of the argument. To be reflected in the error message.
+    none_allowed : bool, optional
+        Whether to consider None to be a valid boolean.
+    int_allowed : bool, optional
+        Whether to consider integer value to be a valid boolean.
+
+    Returns
+    -------
+    value
+        The same value as input.
+
+    Raises
+    ------
+    ValueError
+        If the value is not a valid boolean.
+    """
+    good_value = is_bool(value)
+    if none_allowed:
+        good_value = good_value or value is None
+
+    if int_allowed:
+        good_value = good_value or isinstance(value, int)
+
+    if not good_value:
         raise ValueError(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."

@@ -208,7 +208,7 @@ class TestSeriesSortIndex:
     )
     def test_sort_index_ascending_bad_value_raises(self, ascending):
         ser = Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
-        match = "ascending must be either a bool or a sequence of bools"
+        match = 'For argument "ascending" expected type bool'
         with pytest.raises(ValueError, match=match):
             ser.sort_index(ascending=ascending)
 
