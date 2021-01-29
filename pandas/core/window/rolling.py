@@ -415,6 +415,14 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self._insert_on_column(out, obj)
         return out
 
+    def _apply_pairwise(self, target, other, pairwise, func):
+        if other is None:
+            other = target
+            # only default unset
+            pairwise = True if pairwise is None else pairwise
+
+        return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
+
     def _apply(
         self,
         func: Callable[..., Any],
@@ -761,8 +769,8 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    corr = dispatch("corr", other=None, pairwise=None)
-    cov = dispatch("cov", other=None, pairwise=None)
+    # corr = dispatch("corr", other=None, pairwise=None)
+    # cov = dispatch("cov", other=None, pairwise=None)
 
     def _apply(
         self,
@@ -824,6 +832,14 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         )
 
         result.index = result_index
+        return result
+
+    def _apply_pairwise(self, target, other, pairwise, func):
+        # Need to manually drop the grouping column first
+        target = target.drop(columns=self._groupby.indices.keys(), errors="ignore")
+        result = super()._apply_pairwise(target, other, pairwise, func)
+        # Modify the resulting index to include the groupby level
+
         return result
 
     def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
@@ -1832,11 +1848,6 @@ class RollingAndExpandingMixin(BaseWindow):
     """
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-
         from pandas import Series
 
         def cov_func(x, y):
@@ -1866,9 +1877,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 result = (mean_x_y - mean_x * mean_y) * (count_x_y / (count_x_y - ddof))
             return Series(result, index=x.index, name=x.name)
 
-        return flex_binary_moment(
-            self._selected_obj, other, cov_func, pairwise=bool(pairwise)
-        )
+        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
 
     _shared_docs["corr"] = dedent(
         """
@@ -1981,10 +1990,6 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def corr(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
 
         from pandas import Series
 
@@ -2025,9 +2030,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 result = numerator / denominator
             return Series(result, index=x.index, name=x.name)
 
-        return flex_binary_moment(
-            self._selected_obj, other, corr_func, pairwise=bool(pairwise)
-        )
+        return self._apply_pairwise(self._selected_obj, other, pairwise, corr_func)
 
 
 class Rolling(RollingAndExpandingMixin):
