@@ -737,6 +737,8 @@ def test_categorical_accessor(method):
     [
         operator.methodcaller("sum"),
         lambda x: x.agg("sum"),
+        lambda x: x.agg("mean"),
+        lambda x: x.agg("median"),
     ],
 )
 def test_groupby_finalize(obj, method):
