@@ -19,7 +19,7 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import DtypeObj, IndexLabel
+from pandas._typing import Dtype, DtypeObj, IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -321,10 +321,9 @@ class SelectionMixin:
             return f
 
         f = getattr(np, arg, None)
-        if f is not None:
-            if hasattr(self, "__array__"):
-                # in particular exclude Window
-                return f(self, *args, **kwargs)
+        if f is not None and hasattr(self, "__array__"):
+            # in particular exclude Window
+            return f(self, *args, **kwargs)
 
         raise AttributeError(
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
@@ -500,7 +499,13 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
+    def to_numpy(
+        self,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
+        **kwargs,
+    ):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -715,9 +720,17 @@ class IndexOpsMixin(OpsMixin):
         the minimum cereal calories is the first element,
         since series is zero-indexed.
         """
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmax(self._values, skipna=skipna)
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmax()
+        else:
+            return nanops.nanargmax(delegate, skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -765,9 +778,17 @@ class IndexOpsMixin(OpsMixin):
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmin(self._values, skipna=skipna)
+        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmin()
+        else:
+            return nanops.nanargmin(delegate, skipna=skipna)
 
     def tolist(self):
         """
@@ -983,9 +1004,9 @@ class IndexOpsMixin(OpsMixin):
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
+        1.0    1
         2.0    1
         4.0    1
-        1.0    1
         dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
@@ -994,9 +1015,9 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
+        1.0    0.2
         2.0    0.2
         4.0    0.2
-        1.0    0.2
         dtype: float64
 
         **bins**
@@ -1018,13 +1039,13 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        2.0    1
-        NaN    1
-        4.0    1
         1.0    1
+        2.0    1
+        4.0    1
+        NaN    1
         dtype: int64
         """
-        result = value_counts(
+        return value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -1032,7 +1053,6 @@ class IndexOpsMixin(OpsMixin):
             bins=bins,
             dropna=dropna,
         )
-        return result
 
     def unique(self):
         values = self._values
@@ -1295,8 +1315,7 @@ class IndexOpsMixin(OpsMixin):
         duplicated = self.duplicated(keep=keep)
         # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
         # indexable  [index]
-        result = self[np.logical_not(duplicated)]  # type: ignore[index]
-        return result
+        return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep="first"):
         return duplicated(self._values, keep=keep)

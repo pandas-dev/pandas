@@ -82,29 +82,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         return ExpandingIndexer()
 
-    def _get_cov_corr_window(
-        self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
-    ) -> int:
-        """
-        Get the window length over which to perform cov and corr operations.
-
-        Parameters
-        ----------
-        other : object, default None
-            The other object that is involved in the operation.
-            Such an object is involved for operations like covariance.
-
-        Returns
-        -------
-        window : int
-            The window length.
-        """
-        axis = self.obj._get_axis(self.axis)
-        length = len(axis) + (other is not None) * len(axis)
-
-        other = self.min_periods or -1
-        return max(length, other)
-
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -172,33 +149,33 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sum"])
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("sum", args, kwargs)
-        return super().sum(*args, **kwargs)
+        return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("max", args, kwargs)
-        return super().max(*args, **kwargs)
+        return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["min"])
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("min", args, kwargs)
-        return super().min(*args, **kwargs)
+        return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["mean"])
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("mean", args, kwargs)
-        return super().mean(*args, **kwargs)
+        return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["median"])
-    def median(self, **kwargs):
-        return super().median(**kwargs)
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
@@ -256,9 +233,16 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["quantile"])
-    def quantile(self, quantile, interpolation="linear", **kwargs):
+    def quantile(
+        self,
+        quantile,
+        interpolation="linear",
+        **kwargs,
+    ):
         return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs
+            quantile=quantile,
+            interpolation=interpolation,
+            **kwargs,
         )
 
     @Substitution(name="expanding", func_name="cov")
@@ -279,9 +263,10 @@ class Expanding(RollingAndExpandingMixin):
         self,
         other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
         pairwise: Optional[bool] = None,
+        ddof: int = 1,
         **kwargs,
     ):
-        return super().corr(other=other, pairwise=pairwise, **kwargs)
+        return super().corr(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
 
 class ExpandingGroupby(BaseWindowGroupby, Expanding):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 from typing import List, Optional, Union
 
@@ -6,6 +8,7 @@ import numpy as np
 import pandas._libs.algos as libalgos
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
+from pandas._typing import Dtype
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -617,7 +620,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = roll_columns
 
-    if not this.columns.is_lexsorted():
+    if not this.columns._is_lexsorted():
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
@@ -732,12 +735,12 @@ def get_dummies(
     data,
     prefix=None,
     prefix_sep="_",
-    dummy_na=False,
+    dummy_na: bool = False,
     columns=None,
-    sparse=False,
-    drop_first=False,
-    dtype=None,
-) -> "DataFrame":
+    sparse: bool = False,
+    drop_first: bool = False,
+    dtype: Optional[Dtype] = None,
+) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
 
@@ -921,7 +924,7 @@ def _get_dummies_1d(
     dummy_na=False,
     sparse=False,
     drop_first=False,
-    dtype=None,
+    dtype: Optional[Dtype] = None,
 ):
     from pandas.core.reshape.concat import concat
 

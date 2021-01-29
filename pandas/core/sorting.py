@@ -1,4 +1,6 @@
 """ miscellaneous sorting / groupby utilities """
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -37,7 +39,7 @@ _INT64_MAX = np.iinfo(np.int64).max
 
 
 def get_indexer_indexer(
-    target: "Index",
+    target: Index,
     level: Union[str, int, List[str], List[int]],
     ascending: bool,
     kind: str,
@@ -54,7 +56,7 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional
@@ -418,8 +420,8 @@ def nargminmax(values, method: str):
 
 
 def _ensure_key_mapped_multiindex(
-    index: "MultiIndex", key: Callable, level=None
-) -> "MultiIndex":
+    index: MultiIndex, key: Callable, level=None
+) -> MultiIndex:
     """
     Returns a new MultiIndex in which key has been applied
     to all levels specified in level (or all levels if level
@@ -463,9 +465,7 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    labels = type(index).from_arrays(mapped)
-
-    return labels
+    return type(index).from_arrays(mapped)
 
 
 def ensure_key_mapped(values, key: Optional[Callable], levels=None):
@@ -515,7 +515,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 def get_flattened_list(
     comp_ids: np.ndarray,
     ngroups: int,
-    levels: Iterable["Index"],
+    levels: Iterable[Index],
     labels: Iterable[np.ndarray],
 ) -> List[Tuple]:
     """Map compressed group id -> key tuple."""
@@ -530,7 +530,7 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List["Index"]
+    label_list: List[np.ndarray], keys: List[Index]
 ) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
@@ -542,8 +542,7 @@ def get_indexer_dict(
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
-        # When all keys are nan and dropna=True, indices_fast can't handle this
-        # and the return is empty anyway
+        # Short-circuit, lib.indices_fast will return the same
         return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)

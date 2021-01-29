@@ -8,7 +8,66 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 {{py:
 
 # name
-cimported_types = ['float32',
+complex_types = ['complex64',
+                 'complex128']
+}}
+
+{{for name in complex_types}}
+cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
+    cdef kh{{name}}_t res
+    res.real = val.real
+    res.imag = val.imag
+    return res
+
+{{endfor}}
+
+
+{{py:
+
+
+# name
+c_types = ['khcomplex128_t',
+           'khcomplex64_t',
+           'float64_t',
+           'float32_t',
+           'int64_t',
+           'int32_t',
+           'int16_t',
+           'int8_t',
+           'uint64_t',
+           'uint32_t',
+           'uint16_t',
+           'uint8_t']
+}}
+
+{{for c_type in c_types}}
+
+cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+    {{if c_type in {'khcomplex128_t', 'khcomplex64_t'} }}
+    return val.real != val.real or val.imag != val.imag
+    {{elif c_type in {'float64_t', 'float32_t'} }}
+    return val != val
+    {{else}}
+    return False
+    {{endif}}
+
+
+{{if c_type in {'khcomplex128_t', 'khcomplex64_t', 'float64_t', 'float32_t'} }}
+# are_equivalent_{{c_type}} is cimported via khash.pxd
+{{else}}
+cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) nogil:
+    return val1 == val2
+{{endif}}
+
+{{endfor}}
+
+
+{{py:
+
+# name
+cimported_types = ['complex64',
+                   'complex128',
+                   'float32',
                    'float64',
                    'int8',
                    'int16',
@@ -32,6 +91,7 @@ from pandas._libs.khash cimport (
     kh_put_{{name}},
     kh_resize_{{name}},
 )
+
 {{endfor}}
 
 # ----------------------------------------------------------------------
@@ -48,7 +108,9 @@ from pandas._libs.missing cimport C_NA
 # but is included for completeness (rather ObjectVector is used
 # for uniques in hashtables)
 
-dtypes = [('Float64', 'float64', 'float64_t'),
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
+          ('Complex64', 'complex64', 'khcomplex64_t'),
+          ('Float64', 'float64', 'float64_t'),
           ('Float32', 'float32', 'float32_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Int32', 'int32', 'int32_t'),
@@ -94,6 +156,8 @@ ctypedef fused vector_data:
     UInt8VectorData
     Float64VectorData
     Float32VectorData
+    Complex128VectorData
+    Complex64VectorData
     StringVectorData
 
 cdef inline bint needs_resize(vector_data *data) nogil:
@@ -106,7 +170,9 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 {{py:
 
 # name, dtype, c_type
-dtypes = [('Float64', 'float64', 'float64_t'),
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
+          ('Complex64', 'complex64', 'khcomplex64_t'),
+          ('Float64', 'float64', 'float64_t'),
           ('UInt64', 'uint64', 'uint64_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Float32', 'float32', 'float32_t'),
@@ -303,22 +369,24 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, float_group
-dtypes = [('Float64', 'float64', True),
-          ('UInt64', 'uint64', False),
-          ('Int64', 'int64', False),
-          ('Float32', 'float32', True),
-          ('UInt32', 'uint32', False),
-          ('Int32', 'int32', False),
-          ('UInt16', 'uint16', False),
-          ('Int16', 'int16', False),
-          ('UInt8', 'uint8', False),
-          ('Int8', 'int8', False)]
+# name, dtype, c_type, to_c_type
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t', 'to_khcomplex128_t'),
+          ('Float64', 'float64', 'float64_t', ''),
+          ('UInt64', 'uint64', 'uint64_t', ''),
+          ('Int64', 'int64', 'int64_t', ''),
+          ('Complex64', 'complex64', 'khcomplex64_t', 'to_khcomplex64_t'),
+          ('Float32', 'float32', 'float32_t', ''),
+          ('UInt32', 'uint32', 'uint32_t', ''),
+          ('Int32', 'int32', 'int32_t', ''),
+          ('UInt16', 'uint16', 'uint16_t', ''),
+          ('Int16', 'int16', 'int16_t', ''),
+          ('UInt8', 'uint8', 'uint8_t', ''),
+          ('Int8', 'int8', 'int8_t', '')]
 
 }}
 
 
-{{for name, dtype, float_group in dtypes}}
+{{for name, dtype, c_type, to_c_type in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -339,7 +407,9 @@ cdef class {{name}}HashTable(HashTable):
     def __contains__(self, object key):
         cdef:
             khiter_t k
-        k = kh_get_{{dtype}}(self.table, key)
+            {{c_type}} ckey
+        ckey = {{to_c_type}}(key)
+        k = kh_get_{{dtype}}(self.table, ckey)
         return k != self.table.n_buckets
 
     def sizeof(self, deep=False):
@@ -353,7 +423,9 @@ cdef class {{name}}HashTable(HashTable):
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
             khiter_t k
-        k = kh_get_{{dtype}}(self.table, val)
+            {{c_type}} cval
+        cval = {{to_c_type}}(val)
+        k = kh_get_{{dtype}}(self.table, cval)
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
@@ -363,9 +435,9 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-
-        k = kh_put_{{dtype}}(self.table, key, &ret)
-        self.table.keys[k] = key
+            {{c_type}} ckey
+        ckey = {{to_c_type}}(key)
+        k = kh_put_{{dtype}}(self.table, ckey, &ret)
         if kh_exist_{{dtype}}(self.table, k):
             self.table.vals[k] = val
         else:
@@ -376,12 +448,12 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t key
+            {{c_type}} key
             khiter_t k
 
         with nogil:
             for i in range(n):
-                key = keys[i]
+                key = {{to_c_type}}(keys[i])
                 k = kh_put_{{dtype}}(self.table, key, &ret)
                 self.table.vals[k] = <Py_ssize_t>values[i]
 
@@ -390,12 +462,12 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val= {{to_c_type}}(values[i])
                 k = kh_put_{{dtype}}(self.table, val, &ret)
                 self.table.vals[k] = i
 
@@ -404,13 +476,13 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
             intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val = {{to_c_type}}(values[i])
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
                     locs[i] = self.table.vals[k]
@@ -466,7 +538,7 @@ cdef class {{name}}HashTable(HashTable):
             Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
             int ret = 0
-            {{dtype}}_t val, na_value2
+            {{c_type}} val, na_value2
             khiter_t k
             {{name}}VectorData *ud
             bint use_na_value, use_mask
@@ -487,23 +559,21 @@ cdef class {{name}}HashTable(HashTable):
             # We use None, to make it optional, which requires `object` type
             # for the parameter. To please the compiler, we use na_value2,
             # which is only used if it's *specified*.
-            na_value2 = <{{dtype}}_t>na_value
+            na_value2 = {{to_c_type}}(na_value)
         else:
-            na_value2 = 0
+            na_value2 = {{to_c_type}}(0)
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val = {{to_c_type}}(values[i])
 
                 if ignore_na and use_mask:
                     if mask_values[i]:
                         labels[i] = na_sentinel
                         continue
                 elif ignore_na and (
-                {{if not name.lower().startswith(("uint", "int"))}}
-                val != val or
-                {{endif}}
-                (use_na_value and val == na_value2)
+                   is_nan_{{c_type}}(val) or
+                   (use_na_value and are_equivalent_{{c_type}}(val, na_value2))
                 ):
                     # if missing values do not count as unique values (i.e. if
                     # ignore_na is True), skip the hashtable entry for them,
@@ -606,6 +676,7 @@ cdef class {{name}}HashTable(HashTable):
                                  ignore_na=True, return_inverse=True)
         return labels
 
+    {{if dtype == 'int64'}}
     @cython.boundscheck(False)
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
@@ -613,7 +684,7 @@ cdef class {{name}}HashTable(HashTable):
             intp_t[:] labels
             Py_ssize_t idx, count = 0
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
             {{name}}Vector uniques = {{name}}Vector()
             {{name}}VectorData *ud
@@ -623,14 +694,12 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
-                val = values[i]
+                val = {{to_c_type}}(values[i])
 
                 # specific for groupby
-                {{if dtype != 'uint64'}}
                 if val < 0:
                     labels[i] = -1
                     continue
-                {{endif}}
 
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
@@ -650,6 +719,7 @@ cdef class {{name}}HashTable(HashTable):
         arr_uniques = uniques.to_array()
 
         return np.asarray(labels), arr_uniques
+    {{endif}}
 
 {{endfor}}
 
@@ -698,7 +768,6 @@ cdef class StringHashTable(HashTable):
         v = get_c_string(key)
 
         k = kh_put_str(self.table, v, &ret)
-        self.table.keys[k] = v
         if kh_exist_str(self.table, k):
             self.table.vals[k] = val
         else:
@@ -1022,7 +1091,6 @@ cdef class PyObjectHashTable(HashTable):
         hash(key)
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
-        # self.table.keys[k] = key
         if kh_exist_pymap(self.table, k):
             self.table.vals[k] = val
         else:

@@ -6,6 +6,7 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
+from __future__ import annotations
 
 from contextlib import contextmanager
 import datetime
@@ -43,8 +44,8 @@ from pandas._typing import (
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
-    Label,
     Scalar,
+    T,
     final,
 )
 from pandas.compat.numpy import function as nv
@@ -476,7 +477,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "BaseGroupBy") -> Iterator["BaseGroupBy"]:
+def group_selection_context(groupby: BaseGroupBy) -> Iterator[BaseGroupBy]:
     """
     Set / reset the group_selection_context.
     """
@@ -521,8 +522,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level: Optional[IndexLabel] = None,
-        grouper: Optional["ops.BaseGrouper"] = None,
-        exclusions: Optional[Set[Label]] = None,
+        grouper: Optional[ops.BaseGrouper] = None,
+        exclusions: Optional[Set[Hashable]] = None,
         selection: Optional[IndexLabel] = None,
         as_index: bool = True,
         sort: bool = True,
@@ -724,8 +725,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     def _set_result_index_ordered(
-        self, result: "OutputFrameOrSeries"
-    ) -> "OutputFrameOrSeries":
+        self, result: OutputFrameOrSeries
+    ) -> OutputFrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -790,7 +791,12 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         ),
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return com.pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
@@ -860,7 +866,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         return obj._take_with_is_copy(inds, axis=self.axis)
 
-    def __iter__(self) -> Iterator[Tuple[Label, FrameOrSeries]]:
+    def __iter__(self) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator.
 
@@ -1365,7 +1371,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Type["Series"]:
+    def _obj_1d_constructor(self) -> Type[Series]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -1620,12 +1626,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if result.ndim == 1:
             result /= np.sqrt(self.count())
         else:
-            cols = result.columns.get_indexer_for(
-                result.columns.difference(self.exclusions).unique()
-            )
-            result.iloc[:, cols] = result.iloc[:, cols] / np.sqrt(
-                self.count().iloc[:, cols]
-            )
+            cols = result.columns.difference(self.exclusions).unique()
+            counts = self.count()
+            result_ilocs = result.columns.get_indexer_for(cols)
+            count_ilocs = counts.columns.get_indexer_for(cols)
+            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final
@@ -3059,7 +3064,7 @@ def get_groupby(
     by: Optional[_KeysArgType] = None,
     axis: int = 0,
     level=None,
-    grouper: "Optional[ops.BaseGrouper]" = None,
+    grouper: Optional[ops.BaseGrouper] = None,
     exclusions=None,
     selection=None,
     as_index: bool = True,

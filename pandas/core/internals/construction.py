@@ -2,14 +2,26 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
+from __future__ import annotations
+
 from collections import abc
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, DtypeObj, Label, Scalar
+from pandas._typing import Axis, DtypeObj, Manager, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -21,7 +33,6 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -55,8 +66,6 @@ from pandas.core.internals.managers import (
 
 if TYPE_CHECKING:
     from numpy.ma.mrecords import MaskedRecords
-
-    from pandas import Series
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -99,7 +108,7 @@ def arrays_to_mgr(
 
 
 def masked_rec_array_to_mgr(
-    data: "MaskedRecords", index, columns, dtype: Optional[DtypeObj], copy: bool
+    data: MaskedRecords, index, columns, dtype: Optional[DtypeObj], copy: bool
 ):
     """
     Extract from a masked rec array and create the manager.
@@ -140,6 +149,33 @@ def masked_rec_array_to_mgr(
     return mgr
 
 
+def mgr_to_mgr(mgr, typ: str):
+    """
+    Convert to specific type of Manager. Does not copy if the type is already
+    correct. Does not guarantee a copy otherwise.
+    """
+    from pandas.core.internals import ArrayManager, BlockManager
+
+    new_mgr: Manager
+
+    if typ == "block":
+        if isinstance(mgr, BlockManager):
+            new_mgr = mgr
+        else:
+            new_mgr = arrays_to_mgr(
+                mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], dtype=None
+            )
+    elif typ == "array":
+        if isinstance(mgr, ArrayManager):
+            new_mgr = mgr
+        else:
+            arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
+            new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
+    else:
+        raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{type}'")
+    return new_mgr
+
+
 # ---------------------------------------------------------------------
 # DataFrame Constructor Interface
 
@@ -160,21 +196,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    # we could have a categorical type passed or coerced to 'category'
-    # recast this to an arrays_to_mgr
-    if is_categorical_dtype(getattr(values, "dtype", None)) or is_categorical_dtype(
-        dtype
-    ):
-
-        if not hasattr(values, "dtype"):
-            values = _prep_ndarray(values, copy=copy)
-            values = values.ravel()
-        elif copy:
-            values = values.copy()
-
-        index, columns = _get_axes(len(values), 1, index, columns)
-        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
-    elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
+    if is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -245,7 +267,7 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
     """
-    arrays: Union[Sequence[Any], "Series"]
+    arrays: Union[Sequence[Any], Series]
 
     if columns is not None:
         from pandas.core.series import Series
@@ -308,6 +330,7 @@ def nested_data_to_arrays(
         if isinstance(data[0], ABCSeries):
             index = _get_names_from_index(data)
         elif isinstance(data[0], Categorical):
+            # GH#38845 hit in test_constructor_categorical
             index = ibase.default_index(len(data[0]))
         else:
             index = ibase.default_index(len(data))
@@ -405,7 +428,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes: List[Union[List[Label], Index]] = []
+        indexes: List[Union[List[Hashable], Index]] = []
 
         have_raw_arrays = False
         have_series = False
@@ -473,7 +496,7 @@ def _get_names_from_index(data):
     if not has_some_name:
         return ibase.default_index(len(data))
 
-    index: List[Label] = list(range(len(data)))
+    index: List[Hashable] = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, "name", None)
@@ -486,7 +509,9 @@ def _get_names_from_index(data):
     return index
 
 
-def _get_axes(N, K, index, columns) -> Tuple[Index, Index]:
+def _get_axes(
+    N: int, K: int, index: Optional[Index], columns: Optional[Index]
+) -> Tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
 
@@ -746,7 +771,7 @@ def _convert_object_array(
     content: List[Scalar], dtype: Optional[DtypeObj] = None
 ) -> List[Scalar]:
     """
-    Internal function ot convert object array.
+    Internal function to convert object array.
 
     Parameters
     ----------

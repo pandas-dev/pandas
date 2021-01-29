@@ -11,6 +11,8 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
+    DtypeArg,
+    FrameOrSeriesUnion,
     IndexLabel,
     JSONSerializable,
     StorageOptions,
@@ -36,7 +38,7 @@ from pandas.io.common import (
 )
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
-from pandas.io.parsers import validate_integer
+from pandas.io.parsers.readers import validate_integer
 
 loads = json.loads
 dumps = json.dumps
@@ -72,7 +74,7 @@ def to_json(
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
 
-    writer: Type["Writer"]
+    writer: Type[Writer]
     if orient == "table" and isinstance(obj, DataFrame):
         writer = JSONTableWriter
     elif isinstance(obj, Series):
@@ -296,7 +298,7 @@ def read_json(
     path_or_buf=None,
     orient=None,
     typ="frame",
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     convert_axes=None,
     convert_dates=True,
     keep_default_dates: bool = True,
@@ -775,7 +777,7 @@ class Parser:
         self,
         json,
         orient,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         convert_axes=True,
         convert_dates=True,
         keep_default_dates=False,
@@ -809,7 +811,7 @@ class Parser:
         self.convert_dates = convert_dates
         self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
-        self.obj = None
+        self.obj: Optional[FrameOrSeriesUnion] = None
 
     def check_keys_split(self, decoded):
         """
@@ -892,14 +894,11 @@ class Parser:
             if result:
                 return new_data, True
 
-        result = False
-
         if data.dtype == "object":
 
             # try float
             try:
                 data = data.astype("float64")
-                result = True
             except (TypeError, ValueError):
                 pass
 
@@ -910,7 +909,6 @@ class Parser:
                 # coerce floats to 64
                 try:
                     data = data.astype("float64")
-                    result = True
                 except (TypeError, ValueError):
                     pass
 
@@ -922,7 +920,6 @@ class Parser:
                 new_data = data.astype("int64")
                 if (new_data == data).all():
                     data = new_data
-                    result = True
             except (TypeError, ValueError, OverflowError):
                 pass
 
@@ -932,11 +929,15 @@ class Parser:
             # coerce floats to 64
             try:
                 data = data.astype("int64")
-                result = True
             except (TypeError, ValueError):
                 pass
 
-        return data, result
+        # if we have an index, we want to preserve dtypes
+        if name == "index" and len(data):
+            if self.orient == "split":
+                return data, False
+
+        return data, True
 
     def _try_convert_to_date(self, data):
         """

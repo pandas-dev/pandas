@@ -9,8 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import IS64, np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -349,6 +348,9 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
+        warn = None if tz_naive_fixture is None else FutureWarning
+        # astype dt64 -> dt64tz deprecated
+
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
@@ -356,7 +358,8 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = DatetimeIndex(arg).astype(dtype)
+            with tm.assert_produces_warning(warn):
+                result = DatetimeIndex(arg).astype(dtype)
         else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
@@ -368,7 +371,8 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = DatetimeIndex(list(arg)).astype(dtype)
+            with tm.assert_produces_warning(warn):
+                result = DatetimeIndex(list(arg)).astype(dtype)
         else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
@@ -551,6 +555,17 @@ class TestIndex(Base):
 
         d = index[0].to_pydatetime()
         assert isinstance(index.asof(d), Timestamp)
+
+    def test_asof_numeric_vs_bool_raises(self):
+        left = Index([1, 2, 3])
+        right = Index([True, False])
+
+        msg = "'<' not supported between instances"
+        with pytest.raises(TypeError, match=msg):
+            left.asof(right)
+
+        with pytest.raises(TypeError, match=msg):
+            right.asof(left)
 
     def test_asof_datetime_partial(self):
         index = date_range("2010-01-01", periods=2, freq="m")
@@ -921,8 +936,9 @@ class TestIndex(Base):
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
-        # sort=None, the default
-        result = op(a)
+        with tm.assert_produces_warning(RuntimeWarning):
+            # sort=None, the default
+            result = op(a)
         expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
         if opname == "difference":
             expected = expected[:2]
@@ -1596,13 +1612,15 @@ class TestIndex(Base):
                 np.array([False, False]),
             )
 
-    def test_isin_nan_common_float64(self, nulls_fixture):
+    def test_isin_nan_common_float64(self, request, nulls_fixture):
         if nulls_fixture is pd.NaT:
             pytest.skip("pd.NaT not compatible with Float64Index")
 
         # Float64Index overrides isin, so must be checked separately
         if nulls_fixture is pd.NA:
-            pytest.xfail("Float64Index cannot contain pd.NA")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Float64Index cannot contain pd.NA")
+            )
 
         tm.assert_numpy_array_equal(
             Float64Index([1.0, nulls_fixture]).isin([np.nan]), np.array([False, True])

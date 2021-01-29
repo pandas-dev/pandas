@@ -175,11 +175,18 @@ class TestDatetimeArray:
     )
     def test_astype_copies(self, dtype, other):
         # https://github.com/pandas-dev/pandas/pull/32490
-        s = pd.Series([1, 2], dtype=dtype)
-        orig = s.copy()
-        t = s.astype(other)
+        ser = pd.Series([1, 2], dtype=dtype)
+        orig = ser.copy()
+
+        warn = None
+        if (dtype == "datetime64[ns]") ^ (other == "datetime64[ns]"):
+            # deprecated in favor of tz_localize
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            t = ser.astype(other)
         t[:] = pd.NaT
-        tm.assert_series_equal(s, orig)
+        tm.assert_series_equal(ser, orig)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
@@ -281,7 +288,7 @@ class TestDatetimeArray:
 
         arr[-2] = pd.NaT
         result = arr.value_counts()
-        expected = pd.Series([1, 4, 2], index=[pd.NaT, dti[0], dti[1]])
+        expected = pd.Series([4, 2, 1], index=[dti[0], dti[1], pd.NaT])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["pad", "backfill"])

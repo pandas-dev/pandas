@@ -156,8 +156,8 @@ class TestDataFramePlots(TestPlotBase):
                 "A": [1, 2, 3, 4, 5],
                 "B": [1.0, 2.0, 3.0, 4.0, 5.0],
                 "C": [7, 5, np.nan, 3, 2],
-                "D": pd.to_datetime(dates, format="%Y"),
-                "E": pd.to_datetime(dates, format="%Y", utc=True),
+                "D": pd.to_datetime(dates, format="%Y").view("i8"),
+                "E": pd.to_datetime(dates, format="%Y", utc=True).view("i8"),
             },
             dtype=np.int64,
         )
@@ -695,6 +695,37 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
+
+    @pytest.mark.parametrize("ordered", [True, False])
+    @pytest.mark.parametrize(
+        "categories",
+        (["setosa", "versicolor", "virginica"], ["versicolor", "virginica", "setosa"]),
+    )
+    def test_scatterplot_color_by_categorical(self, ordered, categories):
+        df = DataFrame(
+            [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
+            columns=["length", "width"],
+        )
+        df["species"] = pd.Categorical(
+            ["setosa", "setosa", "virginica", "virginica", "versicolor"],
+            ordered=ordered,
+            categories=categories,
+        )
+        ax = df.plot.scatter(x=0, y=1, c="species")
+        (colorbar_collection,) = ax.collections
+        colorbar = colorbar_collection.colorbar
+
+        expected_ticks = np.array([0.5, 1.5, 2.5])
+        result_ticks = colorbar.get_ticks()
+        tm.assert_numpy_array_equal(result_ticks, expected_ticks)
+
+        expected_boundaries = np.array([0.0, 1.0, 2.0, 3.0])
+        result_boundaries = colorbar._boundaries
+        tm.assert_numpy_array_equal(result_boundaries, expected_boundaries)
+
+        expected_yticklabels = categories
+        result_yticklabels = [i.get_text() for i in colorbar.ax.get_ymajorticklabels()]
+        assert all(i == j for i, j in zip(result_yticklabels, expected_yticklabels))
 
     @pytest.mark.parametrize("x, y", [("x", "y"), ("y", "x"), ("y", "y")])
     def test_plot_scatter_with_categorical_data(self, x, y):
@@ -2190,80 +2221,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind=kind, x=xcol, y=ycol, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == (xcol if xlabel is None else xlabel)
         assert ax.get_ylabel() == (ycol if ylabel is None else ylabel)
-
-    @pytest.mark.parametrize("method", ["bar", "barh"])
-    def test_bar_ticklabel_consistence(self, method):
-        # Draw two consecutiv bar plot with consistent ticklabels
-        # The labels positions should not move between two drawing on the same axis
-        # GH: 26186
-        def get_main_axis(ax):
-            if method == "barh":
-                return ax.yaxis
-            elif method == "bar":
-                return ax.xaxis
-
-        # Plot the first bar plot
-        data = {"A": 0, "B": 3, "C": -4}
-        df = DataFrame.from_dict(data, orient="index", columns=["Value"])
-        ax = getattr(df.plot, method)()
-        ax.get_figure().canvas.draw()
-
-        # Retrieve the label positions for the first drawing
-        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
-        label_positions_1 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
-
-        # Modify the dataframe order and values and plot on same axis
-        df = df.sort_values("Value") * -2
-        ax = getattr(df.plot, method)(ax=ax, color="red")
-        ax.get_figure().canvas.draw()
-
-        # Retrieve the label positions for the second drawing
-        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
-        label_positions_2 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
-
-        # Assert that the label positions did not change between the plotting
-        assert label_positions_1 == label_positions_2
-
-    def test_bar_numeric(self):
-        # Bar plot with numeric index have tick location values equal to index
-        # values
-        # GH: 11465
-        df = DataFrame(np.random.rand(10), index=np.arange(10, 20))
-        ax = df.plot.bar()
-        ticklocs = ax.xaxis.get_ticklocs()
-        expected = np.arange(10, 20, dtype=np.int64)
-        tm.assert_numpy_array_equal(ticklocs, expected)
-
-    def test_bar_multiindex(self):
-        # Test from pandas/doc/source/user_guide/visualization.rst
-        # at section Plotting With Error Bars
-        # Related to issue GH: 26186
-
-        ix3 = pd.MultiIndex.from_arrays(
-            [
-                ["a", "a", "a", "a", "b", "b", "b", "b"],
-                ["foo", "foo", "bar", "bar", "foo", "foo", "bar", "bar"],
-            ],
-            names=["letter", "word"],
-        )
-
-        df3 = DataFrame(
-            {"data1": [3, 2, 4, 3, 2, 4, 3, 2], "data2": [6, 5, 7, 5, 4, 5, 6, 5]},
-            index=ix3,
-        )
-
-        # Group by index labels and take the means and standard deviations
-        # for each group
-        gp3 = df3.groupby(level=("letter", "word"))
-        means = gp3.mean()
-        errors = gp3.std()
-
-        # No assertion we just ensure that we can plot a MultiIndex bar plot
-        # and are getting a UserWarning if redrawing
-        with tm.assert_produces_warning(None):
-            ax = means.plot.bar(yerr=errors, capsize=4)
-        with tm.assert_produces_warning(UserWarning):
-            means.plot.bar(yerr=errors, capsize=4, ax=ax)
 
 
 def _generate_4_axes_via_gridspec():

@@ -29,7 +29,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import take_1d
+from pandas.core.algorithms import safe_sort, take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -344,8 +344,8 @@ def assert_index_equal(
 
     # If order doesn't matter then sort the index entries
     if not check_order:
-        left = left.sort_values()
-        right = right.sort_values()
+        left = Index(safe_sort(left))
+        right = Index(safe_sort(right))
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -878,6 +878,8 @@ def assert_series_equal(
         .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
 
@@ -966,14 +968,26 @@ def assert_series_equal(
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
     if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
+        left_values = left._values
+        right_values = right._values
         # Only check exact if dtype is numeric
-        assert_numpy_array_equal(
-            left._values,
-            right._values,
-            check_dtype=check_dtype,
-            obj=str(obj),
-            index_values=np.asarray(left.index),
-        )
+        if is_extension_array_dtype(left_values) and is_extension_array_dtype(
+            right_values
+        ):
+            assert_extension_array_equal(
+                left_values,
+                right_values,
+                check_dtype=check_dtype,
+                index_values=np.asarray(left.index),
+            )
+        else:
+            assert_numpy_array_equal(
+                left_values,
+                right_values,
+                check_dtype=check_dtype,
+                obj=str(obj),
+                index_values=np.asarray(left.index),
+            )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
     ):
@@ -1128,6 +1142,8 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5

@@ -185,7 +185,7 @@ class TestSeriesValueCounts:
             (
                 Series([False, True, True, pd.NA]),
                 False,
-                Series([2, 1, 1], index=[True, pd.NA, False]),
+                Series([2, 1, 1], index=[True, False, pd.NA]),
             ),
             (
                 Series([False, True, True, pd.NA]),
@@ -195,7 +195,7 @@ class TestSeriesValueCounts:
             (
                 Series(range(3), index=[True, False, np.nan]).index,
                 False,
-                Series([1, 1, 1], index=[pd.NA, False, True]),
+                Series([1, 1, 1], index=[True, False, np.nan]),
             ),
         ],
     )

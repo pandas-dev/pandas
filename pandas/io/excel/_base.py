@@ -1,18 +1,20 @@
+from __future__ import annotations
+
 import abc
 import datetime
 from distutils.version import LooseVersion
 import inspect
-from io import BufferedIOBase, BytesIO, RawIOBase
+from io import BytesIO
 import os
 from textwrap import fill
-from typing import IO, Any, Dict, Mapping, Optional, Union, cast
+from typing import Any, Dict, Mapping, Optional, Union, cast
 import warnings
 import zipfile
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import Buffer, FilePathOrBuffer, StorageOptions
+from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
@@ -25,7 +27,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
 from pandas.io.excel._util import (
     fill_mi_header,
-    get_default_writer,
+    get_default_engine,
     get_writer,
     maybe_convert_usecols,
     pop_header_name,
@@ -123,6 +125,10 @@ engine : str, default None
          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
        - Otherwise if ``path_or_buffer`` is an xls format,
          ``xlrd`` will be used.
+       - Otherwise if ``path_or_buffer`` is in xlsb format,
+         ``pyxlsb`` will be used.
+
+         .. versionadded:: 1.3.0
        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
          then ``openpyxl`` will be used.
        - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
@@ -184,7 +190,7 @@ parse_dates : bool, list-like, or dict, default False
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
       result 'foo'
 
-    If a column or index contains an unparseable date, the entire column or
+    If a column or index contains an unparsable date, the entire column or
     index will be returned unaltered as an object data type. If you don`t want to
     parse some cells as date just change their type in Excel to "Text".
     For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
@@ -309,7 +315,7 @@ def read_excel(
     index_col=None,
     usecols=None,
     squeeze=False,
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -406,6 +412,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
+        if hasattr(self.book, "close"):
+            # pyxlsb opens a TemporaryFile
+            self.book.close()
         self.handles.close()
 
     @property
@@ -433,7 +442,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         index_col=None,
         usecols=None,
         squeeze=False,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         true_values=None,
         false_values=None,
         skiprows=None,
@@ -479,6 +488,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
+            if hasattr(sheet, "close"):
+                # pyxlsb opens two TemporaryFiles
+                sheet.close()
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
@@ -504,6 +516,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                         header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
+            has_index_names = is_list_like(header) and len(header) > 1
+
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
                 if header is None:
@@ -512,6 +526,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     offset = 1 + header
                 else:
                     offset = 1 + max(header)
+
+                # GH34673: if MultiIndex names present and not defined in the header,
+                # offset needs to be incremented so that forward filling starts
+                # from the first MI value instead of the name
+                if has_index_names:
+                    offset += 1
 
                 # Check if we have an empty dataset
                 # before trying to collect data.
@@ -524,8 +544,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                                 data[row][col] = last
                             else:
                                 last = data[row][col]
-
-            has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
@@ -701,7 +719,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 try:
                     engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
                     if engine == "auto":
-                        engine = get_default_writer(ext)
+                        engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
 
@@ -773,7 +791,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, "ExcelWriter"],
+        path: Union[FilePathOrBuffer, ExcelWriter],
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -850,7 +868,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         elif isinstance(val, datetime.date):
             fmt = self.date_format
         elif isinstance(val, datetime.timedelta):
-            val = val.total_seconds() / float(86400)
+            val = val.total_seconds() / 86400
             fmt = "0"
         else:
             val = str(val)
@@ -896,24 +914,18 @@ PEEK_SIZE = max(len(XLS_SIGNATURE), len(ZIP_SIGNATURE))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    path: Optional[str] = None,
-    content: Union[None, BufferedIOBase, RawIOBase, bytes] = None,
+    content_or_path: FilePathOrBuffer,
     storage_options: StorageOptions = None,
 ) -> str:
     """
     Inspect the path or content of an excel file and get its format.
 
-    At least one of path or content must be not None. If both are not None,
-    content will take precedence.
-
     Adopted from xlrd: https://github.com/python-excel/xlrd.
 
     Parameters
     ----------
-    path : str, optional
-        Path to file to inspect. May be a URL.
-    content : file-like object, optional
-        Content of file to inspect.
+    content_or_path : str or file-like object
+        Path to file or content of file to inspect. May be a URL.
     {storage_options}
 
     Returns
@@ -928,12 +940,8 @@ def inspect_excel_format(
     BadZipFile
         If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
-    content_or_path: Union[None, str, BufferedIOBase, RawIOBase, IO[bytes]]
-    if isinstance(content, bytes):
-        content_or_path = BytesIO(content)
-    else:
-        content_or_path = content or path
-    assert content_or_path is not None
+    if isinstance(content_or_path, bytes):
+        content_or_path = BytesIO(content_or_path)
 
     with get_handle(
         content_or_path, "rb", storage_options=storage_options, is_text=False
@@ -1003,6 +1011,10 @@ class ExcelFile:
              then `odf <https://pypi.org/project/odfpy/>`_ will be used.
            - Otherwise if ``path_or_buffer`` is an xls format,
              ``xlrd`` will be used.
+           - Otherwise if ``path_or_buffer`` is in xlsb format,
+             `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
+
+           .. versionadded:: 1.3.0
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
@@ -1039,46 +1051,25 @@ class ExcelFile:
         self._io = stringify_path(path_or_buffer)
 
         # Determine xlrd version if installed
-        if (
-            import_optional_dependency(
-                "xlrd", raise_on_missing=False, on_version="ignore"
-            )
-            is None
-        ):
+        if import_optional_dependency("xlrd", errors="ignore") is None:
             xlrd_version = None
         else:
             import xlrd
 
             xlrd_version = LooseVersion(xlrd.__version__)
 
-        if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase, bytes)):
-            ext = inspect_excel_format(
-                content=path_or_buffer, storage_options=storage_options
-            )
-        elif xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+        if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
         else:
-            # path_or_buffer is path-like, use stringified path
             ext = inspect_excel_format(
-                path=str(self._io), storage_options=storage_options
+                content_or_path=path_or_buffer, storage_options=storage_options
             )
 
         if engine is None:
-            if ext == "ods":
-                engine = "odf"
-            elif ext == "xls":
-                engine = "xlrd"
-            else:
-                # GH 35029 - Prefer openpyxl except for xls files
-                if (
-                    import_optional_dependency(
-                        "openpyxl", raise_on_missing=False, on_version="ignore"
-                    )
-                    is not None
-                ):
-                    engine = "openpyxl"
-                else:
-                    engine = "xlrd"
+            # ext will always be valid, otherwise inspect_excel_format would raise
+            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            if engine == "auto":
+                engine = get_default_engine(ext, mode="reader")
 
         if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
             if xlrd_version >= "2":
@@ -1106,7 +1097,6 @@ class ExcelFile:
                     FutureWarning,
                     stacklevel=stacklevel,
                 )
-        assert engine in self._engines, f"Engine {engine} not recognized"
 
         self.engine = engine
         self.storage_options = storage_options

@@ -1,12 +1,11 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List, Optional, TypeVar
+from typing import Hashable, List, Optional, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -43,7 +42,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     """
     attr = getattr(delegate, name)
 
-    if isinstance(attr, property):
+    if isinstance(attr, property) or type(attr).__name__ == "getset_descriptor":
+        # getset_descriptor i.e. property defined in cython class
         if cache:
 
             def cached(self):
@@ -215,7 +215,7 @@ class ExtensionIndex(Index):
 
     @doc(Index._shallow_copy)
     def _shallow_copy(
-        self, values: Optional[ExtensionArray] = None, name: Label = lib.no_default
+        self, values: Optional[ExtensionArray] = None, name: Hashable = lib.no_default
     ):
         name = self.name if name is lib.no_default else name
 
@@ -256,6 +256,17 @@ class ExtensionIndex(Index):
 
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
+
+    def delete(self, loc):
+        """
+        Make new Index with passed location(-s) deleted
+
+        Returns
+        -------
+        new_index : Index
+        """
+        arr = self._data.delete(loc)
+        return type(self)._simple_new(arr, name=self.name)
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat((), {"axis": axis})
@@ -333,19 +344,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
 
-    def delete(self, loc):
-        """
-        Make new Index with passed location(-s) deleted
-
-        Returns
-        -------
-        new_index : Index
-        """
-        new_vals = np.delete(self._data._ndarray, loc)
-        arr = self._data._from_backing_data(new_vals)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def insert(self, loc: int, item):
+    def insert(self: _T, loc: int, item) -> _T:
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values.
@@ -371,7 +370,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         return type(self)._simple_new(new_arr, name=self.name)
 
     @doc(Index.where)
-    def where(self, cond, other=None):
+    def where(self: _T, cond: np.ndarray, other=None) -> _T:
         res_values = self._data.where(cond, other)
         return type(self)._simple_new(res_values, name=self.name)
 

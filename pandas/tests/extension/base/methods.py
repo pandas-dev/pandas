@@ -108,6 +108,37 @@ class BaseMethodsTests(BaseExtensionTests):
             getattr(data_na, method)()
 
     @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected
+    ):
+        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        ser = pd.Series(data_missing_for_sorting)
+        result = getattr(ser, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
+    def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
+        # GH#38733
+        data = data_missing_for_sorting
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmin(skipna=False)
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmax(skipna=False)
+
+    @pytest.mark.parametrize(
         "na_position, expected",
         [
             ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
@@ -373,7 +404,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_searchsorted(self, data_for_sorting, as_series):
         b, c, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b, c])
+        arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
 
         if as_series:
             arr = pd.Series(arr)
@@ -459,6 +490,15 @@ class BaseMethodsTests(BaseExtensionTests):
                 np.repeat(data, repeats, **kwargs)
             else:
                 data.repeat(repeats, **kwargs)
+
+    def test_delete(self, data):
+        result = data.delete(0)
+        expected = data[1:]
+        self.assert_extension_array_equal(result, expected)
+
+        result = data.delete([1, 3])
+        expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
+        self.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):

@@ -6,8 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import algos as libalgos, hashtable as ht
-from pandas.compat import IS64
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.compat import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1273,12 +1272,10 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[2 ** 63, -1])
+        expected = Series([1, 1], index=[-1, 2 ** 63])
         result = algos.value_counts(arr)
 
-        # 32-bit linux has a different ordering
-        if IS64:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 class TestDuplicated:
@@ -1733,7 +1730,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d(arr)
+            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.int64))
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
@@ -2253,7 +2250,7 @@ def test_int64_add_overflow():
 
 class TestMode:
     def test_no_mode(self):
-        exp = Series([], dtype=np.float64)
+        exp = Series([], dtype=np.float64, index=Index([], dtype=int))
         tm.assert_series_equal(algos.mode([]), exp)
 
     def test_mode_single(self):
@@ -2409,3 +2406,10 @@ class TestDiff:
         msg = "cannot diff DatetimeArray on axis=1"
         with pytest.raises(ValueError, match=msg):
             algos.diff(dta, 1, axis=1)
+
+    @pytest.mark.parametrize("dtype", ["int8", "int16"])
+    def test_diff_low_precision_int(self, dtype):
+        arr = np.array([0, 1, 1, 0, 0], dtype=dtype)
+        result = algos.diff(arr, 1)
+        expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
+        tm.assert_numpy_array_equal(result, expected)
