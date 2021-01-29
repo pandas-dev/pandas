@@ -257,10 +257,6 @@ cdef convert_to_timedelta64(object ts, str unit):
     elif isinstance(ts, _Timedelta):
         # already in the proper format
         ts = np.timedelta64(ts.value, "ns")
-    elif is_datetime64_object(ts):
-        # only accept a NaT here
-        if ts.astype("int64") == NPY_NAT:
-            return np.timedelta64(NPY_NAT, "ns")
     elif is_timedelta64_object(ts):
         ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
