@@ -715,7 +715,7 @@ def factorize(
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
-            na_value = na_value_for_dtype(original.dtype)
+            na_value = iNaT
         else:
             na_value = None
 

@@ -48,6 +48,17 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_array_of_dt64_nat_with_td64dtype_raises(self, frame_or_series):
+        # GH#39462
+        nat = np.datetime64("NaT", "ns")
+        arr = np.array([nat], dtype=object)
+        if frame_or_series is DataFrame:
+            arr = arr.reshape(1, 1)
+
+        msg = "Could not convert object to NumPy timedelta"
+        with pytest.raises(ValueError, match=msg):
+            frame_or_series(arr, dtype="m8[ns]")
+
     def test_series_with_name_not_matching_column(self):
         # GH#9232
         x = Series(range(5), name=1)
@@ -1761,6 +1772,70 @@ class TestDataFrameConstructors:
         result = DataFrame(arr).dtypes
         expected = Series([np.dtype("datetime64[ns]")])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[M]",
+            "datetime64[D]",
+            "datetime64[h]",
+            "datetime64[m]",
+            "datetime64[s]",
+            "datetime64[ms]",
+            "datetime64[us]",
+            "datetime64[ns]",
+        ],
+    )
+    def test_constructor_datetimes_non_ns(self, order, dtype):
+        na = np.array(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ],
+            dtype=dtype,
+            order=order,
+        )
+        df = DataFrame(na)
+        expected = DataFrame(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ]
+        )
+        expected = expected.astype(dtype=dtype)
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "timedelta64[D]",
+            "timedelta64[h]",
+            "timedelta64[m]",
+            "timedelta64[s]",
+            "timedelta64[ms]",
+            "timedelta64[us]",
+            "timedelta64[ns]",
+        ],
+    )
+    def test_constructor_timedelta_non_ns(self, order, dtype):
+        na = np.array(
+            [
+                [np.timedelta64(1, "D"), np.timedelta64(2, "D")],
+                [np.timedelta64(4, "D"), np.timedelta64(5, "D")],
+            ],
+            dtype=dtype,
+            order=order,
+        )
+        df = DataFrame(na).astype("timedelta64[ns]")
+        expected = DataFrame(
+            [
+                [Timedelta(1, "D"), Timedelta(2, "D")],
+                [Timedelta(4, "D"), Timedelta(5, "D")],
+            ],
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
