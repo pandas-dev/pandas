@@ -210,12 +210,10 @@ class BinOp(ops.BinOp):
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
-            result = metadata.searchsorted(v, side="left")
-
-            # result returns 0 if v is first element or if v is not in metadata
-            # check that metadata contains v
-            if not result and v not in metadata:
+            if v not in metadata:
                 result = -1
+            else:
+                result = metadata.searchsorted(v, side="left")
             return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))
