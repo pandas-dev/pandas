@@ -752,9 +752,16 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
 
-    def test_plot_order(self):
+    @pytest.mark.parametrize(
+        "data, index",
+        [
+            ([1, 2, 3, 4], [3, 2, 1, 0]),
+            ([10, 50, 20, 30], [1910, 1920, 1980, 1950]),
+        ],
+    )
+    def test_plot_order(self, data, index):
         # GH38865 Verify plot order of a Series
-        ser = Series(data=[1, 2, 3, 4], index=[3, 2, 1, 0])
+        ser = Series(data=data, index=index)
         ax = ser.plot(kind="bar")
 
         expected = ser.tolist()
