@@ -748,10 +748,6 @@ class TestIndex(Base):
         tm.assert_contains_all(index, second_cat)
         tm.assert_contains_all(date_index, first_cat)
 
-    def test_map_identity_mapping(self, index):
-        # GH 12766
-        tm.assert_index_equal(index, index.map(lambda x: x))
-
     def test_map_with_tuples(self):
         # GH 12766
 
@@ -881,8 +877,9 @@ class TestIndex(Base):
         else:
             assert result.name == expected
 
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_empty_arg(self, index, sort):
+        if isinstance(index, MultiIndex):
+            pytest.skip("Not applicable")
         first = index[5:20]
         first.name = "name"
         result = first.difference([], sort)

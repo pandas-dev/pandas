@@ -35,10 +35,25 @@ def test_mutability(index):
         index[0] = index[0]
 
 
+def test_map_identity_mapping(index):
+    # GH#12766
+    tm.assert_index_equal(index, index.map(lambda x: x))
+
+
 def test_wrong_number_names(index):
     names = index.nlevels * ["apple", "banana", "carrot"]
     with pytest.raises(ValueError, match="^Length"):
         index.names = names
+
+
+def test_view_preserves_name(index):
+    assert index.view().name == index.name
+
+
+def test_ravel_deprecation(index):
+    # GH#19956 ravel returning ndarray is deprecated
+    with tm.assert_produces_warning(FutureWarning):
+        index.ravel()
 
 
 class TestConversion:
@@ -78,6 +93,12 @@ class TestRoundTrips:
         if result.nlevels > 1:
             # GH#8367 round-trip with timezone
             assert index.equal_levels(result)
+
+    def test_pickle_preserves_name(self, index):
+        original_name, index.name = index.name, "foo"
+        unpickled = tm.round_trip_pickle(index)
+        assert index.equals(unpickled)
+        index.name = original_name
 
 
 class TestIndexing:

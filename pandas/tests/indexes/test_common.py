@@ -128,9 +128,8 @@ class TestCommon:
 
     def test_unique(self, index):
         # don't test a MultiIndex here (as its tested separated)
-        # don't test a CategoricalIndex because categories change (GH 18291)
-        if isinstance(index, (MultiIndex, CategoricalIndex)):
-            pytest.skip("Skip check for MultiIndex/CategoricalIndex")
+        if isinstance(index, MultiIndex):
+            pytest.skip("Skip check for MultiIndex")
 
         # GH 17896
         expected = index.drop_duplicates()
@@ -200,9 +199,6 @@ class TestCommon:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
 
-    def test_view(self, index):
-        assert index.view().name == index.name
-
     def test_searchsorted_monotonic(self, index):
         # GH17271
         # not implemented for tuple searches in MultiIndex
@@ -247,12 +243,6 @@ class TestCommon:
             msg = "index must be monotonic increasing or decreasing"
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
-
-    def test_pickle(self, index):
-        original_name, index.name = index.name, "foo"
-        unpickled = tm.round_trip_pickle(index)
-        assert index.equals(unpickled)
-        index.name = original_name
 
     def test_drop_duplicates(self, index, keep):
         if isinstance(index, MultiIndex):
@@ -359,11 +349,6 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
-
-    def test_ravel_deprecation(self, index):
-        # GH#19956 ravel returning ndarray is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            index.ravel()
 
     def test_asi8_deprecation(self, index):
         # GH#37877
