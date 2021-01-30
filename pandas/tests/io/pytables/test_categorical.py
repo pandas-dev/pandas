@@ -198,7 +198,7 @@ def test_convert_value(setup_path, where: str, df: DataFrame, expected: DataFram
     # Check that read_hdf with categorical columns can filter by where condition.
     df.col = df.col.astype("category")
     max_widths = {"col": 1}
-    categorical_values = sorted(list(df.col.unique()))
+    categorical_values = sorted(df.col.unique())
     expected.col = expected.col.astype("category")
     expected.col.cat.set_categories(categorical_values, inplace=True)
 
