@@ -151,7 +151,7 @@ class TestDataFrameSelectReindex:
     def test_reindex_nearest_tz(self, tz_aware_fixture):
         # GH26683
         tz = tz_aware_fixture
-        idx = pd.date_range("2019-01-01", periods=5, tz=tz)
+        idx = date_range("2019-01-01", periods=5, tz=tz)
         df = DataFrame({"x": list(range(5))}, index=idx)
 
         expected = df.head(3)
@@ -759,7 +759,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_multi_categorical_time(self):
         # https://github.com/pandas-dev/pandas/issues/21390
-        midx = pd.MultiIndex.from_product(
+        midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
                 Categorical(date_range("2012-01-01", periods=3, freq="H")),
@@ -905,4 +905,31 @@ class TestDataFrameSelectReindex:
         df = DataFrame([], index=Index([], name="time"), columns=["a"])
         result = df.reindex(idx, **kwargs)
         expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "src_idx",
+        [
+            Index([]),
+            CategoricalIndex([]),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "cat_idx",
+        [
+            # No duplicates
+            Index([]),
+            CategoricalIndex([]),
+            Index(["A", "B"]),
+            CategoricalIndex(["A", "B"]),
+            # Duplicates: GH#38906
+            Index(["A", "A"]),
+            CategoricalIndex(["A", "A"]),
+        ],
+    )
+    def test_reindex_empty(self, src_idx, cat_idx):
+        df = DataFrame(columns=src_idx, index=["K"], dtype="f8")
+
+        result = df.reindex(columns=cat_idx)
+        expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
         tm.assert_frame_equal(result, expected)
