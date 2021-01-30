@@ -58,7 +58,7 @@ def pivot_table(
         pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
-            table = pivot_table(
+            _table = _pivot_table(
                 data,
                 values=values,
                 index=index,
@@ -70,10 +70,39 @@ def pivot_table(
                 margins_name=margins_name,
                 observed=observed,
             )
-            pieces.append(table)
+            pieces.append(_table)
             keys.append(getattr(func, "__name__", func))
 
-        return concat(pieces, keys=keys, axis=1)
+        table = concat(pieces, keys=keys, axis=1)
+        return table.__finalize__(data, method="pivot_table")
+
+    table = _pivot_table(
+        data,
+        values,
+        index,
+        columns,
+        aggfunc,
+        fill_value,
+        margins,
+        dropna,
+        margins_name,
+        observed,
+    )
+    return table.__finalize__(data, method="pivot_table")
+
+
+def _pivot_table(
+    data,
+    values,
+    index,
+    columns,
+    aggfunc: str,
+    fill_value,
+    margins,
+    dropna,
+    margins_name,
+    observed,
+) -> DataFrame:
 
     keys = index + columns
 
