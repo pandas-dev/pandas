@@ -210,8 +210,12 @@ class BinOp(ops.BinOp):
                 v = Timedelta(v, unit="s").value
             return TermValue(int(v), v, kind)
         elif meta == "category":
-            term_value = self._convert_category_value(self.metadata, v)
-            return term_value
+            metadata = extract_array(self.metadata, extract_numpy=True)
+            if v not in metadata:
+                result = -1
+            else:
+                result = metadata.searchsorted(v, side="left")
+            return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))
             return TermValue(v, v, kind)
@@ -239,15 +243,6 @@ class BinOp(ops.BinOp):
             return TermValue(v, stringify(v), "string")
         else:
             raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
-
-    @staticmethod
-    def _convert_category_value(metadata: Series, value: Any) -> TermValue:
-        metadata = extract_array(metadata, extract_numpy=True)
-        if value not in metadata:
-            result = -1
-        else:
-            result = metadata.searchsorted(value, side="left")
-        return TermValue(result, result, "integer")
 
     def convert_values(self):
         pass
