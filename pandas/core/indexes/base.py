@@ -4331,7 +4331,14 @@ class Index(IndexOpsMixin, PandasObject):
         except (ValueError, TypeError):
             return self.astype(object).where(cond, other)
 
-        values = np.where(cond, values, other)
+        if isinstance(other, np.timedelta64) and self.dtype == object:
+            # https://github.com/numpy/numpy/issues/12550
+            #  timedelta64 will incorrectly cast to int
+            other = [other] * (~cond).sum()
+            values = values.copy()
+            values[~cond] = other
+        else:
+            values = np.where(cond, values, other)
 
         return Index(values, name=self.name)
 
