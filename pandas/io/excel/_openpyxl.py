@@ -527,4 +527,10 @@ class OpenpyxlReader(BaseExcelReader):
         for row in sheet.rows:
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 
+        # openpyxl may not have the correct padding if the dimension tag is
+        # not specified or is incorrect
+        max_width = max(len(row) for row in data)
+        if min(len(row) for row in data) < max_width:
+            data = [row + (max_width - len(row)) * [""] for row in data]
+
         return data
