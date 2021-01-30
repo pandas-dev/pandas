@@ -12,7 +12,7 @@ import pytz
 from pytz import timezone, utc
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timedelta, Timestamp
@@ -309,24 +309,27 @@ class TestTimestamp:
         "value, check_kwargs",
         [
             [946688461000000000, {}],
-            [946688461000000000 / 1000, dict(unit="us")],
-            [946688461000000000 / 1_000_000, dict(unit="ms")],
-            [946688461000000000 / 1_000_000_000, dict(unit="s")],
-            [10957, dict(unit="D", h=0)],
+            [946688461000000000 / 1000, {"unit": "us"}],
+            [946688461000000000 / 1_000_000, {"unit": "ms"}],
+            [946688461000000000 / 1_000_000_000, {"unit": "s"}],
+            [10957, {"unit": "D", "h": 0}],
             [
                 (946688461000000000 + 500000) / 1000000000,
-                dict(unit="s", us=499, ns=964),
+                {"unit": "s", "us": 499, "ns": 964},
             ],
-            [(946688461000000000 + 500000000) / 1000000000, dict(unit="s", us=500000)],
-            [(946688461000000000 + 500000) / 1000000, dict(unit="ms", us=500)],
-            [(946688461000000000 + 500000) / 1000, dict(unit="us", us=500)],
-            [(946688461000000000 + 500000000) / 1000000, dict(unit="ms", us=500000)],
-            [946688461000000000 / 1000.0 + 5, dict(unit="us", us=5)],
-            [946688461000000000 / 1000.0 + 5000, dict(unit="us", us=5000)],
-            [946688461000000000 / 1000000.0 + 0.5, dict(unit="ms", us=500)],
-            [946688461000000000 / 1000000.0 + 0.005, dict(unit="ms", us=5, ns=5)],
-            [946688461000000000 / 1000000000.0 + 0.5, dict(unit="s", us=500000)],
-            [10957 + 0.5, dict(unit="D", h=12)],
+            [
+                (946688461000000000 + 500000000) / 1000000000,
+                {"unit": "s", "us": 500000},
+            ],
+            [(946688461000000000 + 500000) / 1000000, {"unit": "ms", "us": 500}],
+            [(946688461000000000 + 500000) / 1000, {"unit": "us", "us": 500}],
+            [(946688461000000000 + 500000000) / 1000000, {"unit": "ms", "us": 500000}],
+            [946688461000000000 / 1000.0 + 5, {"unit": "us", "us": 5}],
+            [946688461000000000 / 1000.0 + 5000, {"unit": "us", "us": 5000}],
+            [946688461000000000 / 1000000.0 + 0.5, {"unit": "ms", "us": 500}],
+            [946688461000000000 / 1000000.0 + 0.005, {"unit": "ms", "us": 5, "ns": 5}],
+            [946688461000000000 / 1000000000.0 + 0.5, {"unit": "s", "us": 500000}],
+            [10957 + 0.5, {"unit": "D", "h": 12}],
         ],
     )
     def test_unit(self, value, check_kwargs):
@@ -526,17 +529,20 @@ class TestTimestampConversion:
         # by going from nanoseconds to microseconds.
         exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            assert (
-                Timestamp(Timestamp.max.to_pydatetime()).value / 1000
-                == Timestamp.max.value / 1000
-            )
+            pydt_max = Timestamp.max.to_pydatetime()
+
+        assert Timestamp(pydt_max).value / 1000 == Timestamp.max.value / 1000
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            assert (
-                Timestamp(Timestamp.min.to_pydatetime()).value / 1000
-                == Timestamp.min.value / 1000
-            )
+            pydt_min = Timestamp.min.to_pydatetime()
+
+        # The next assertion can be enabled once GH#39221 is merged
+        #  assert pydt_min < Timestamp.min  # this is bc nanos are dropped
+        tdus = timedelta(microseconds=1)
+        assert pydt_min + tdus > Timestamp.min
+
+        assert Timestamp(pydt_min + tdus).value / 1000 == Timestamp.min.value / 1000
 
     def test_to_period_tz_warning(self):
         # GH#21333 make sure a warning is issued when timezone

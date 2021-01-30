@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, time, timedelta, tzinfo
 from typing import Optional, Union, cast
 import warnings
@@ -24,6 +26,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
@@ -38,12 +41,13 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_object_dtype,
     is_period_dtype,
+    is_sparse,
     is_string_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
@@ -154,6 +158,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _scalar_type = Timestamp
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype = is_datetime64_any_dtype
+    _infer_matches = ("datetime", "datetime64", "date")
 
     # define my properties & methods for delegation
     _bool_ops = [
@@ -214,7 +219,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _freq = None
 
     def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy=False):
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
+        if isinstance(values, (ABCSeries, ABCIndex)):
             values = values._values
 
         inferred_freq = getattr(values, "_freq", None)
@@ -288,7 +293,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @classmethod
     def _simple_new(
         cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
-    ) -> "DatetimeArray":
+    ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         if values.dtype != DT64NS_DTYPE:
             assert values.dtype == "i8"
@@ -569,7 +574,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             data = self.asi8
             length = len(self)
             chunksize = 10000
-            chunks = int(length / chunksize) + 1
+            chunks = (length // chunksize) + 1
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
@@ -585,24 +590,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # DatetimeLikeArrayMixin Super handles the rest.
         dtype = pandas_dtype(dtype)
 
-        if is_datetime64_ns_dtype(dtype) and not is_dtype_equal(dtype, self.dtype):
-            # GH#18951: datetime64_ns dtype but not equal means different tz
-            new_tz = getattr(dtype, "tz", None)
-            if getattr(self.dtype, "tz", None) is None:
-                return self.tz_localize(new_tz)
-            result = self.tz_convert(new_tz)
-            if copy:
-                result = result.copy()
-            if new_tz is None:
-                # Do we want .astype('datetime64[ns]') to be an ndarray.
-                # The astype in Block._astype expects this to return an
-                # ndarray, but we could maybe work around it there.
-                result = result._data
-            return result
-        elif is_datetime64tz_dtype(self.dtype) and is_dtype_equal(self.dtype, dtype):
+        if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
+
+        elif is_datetime64_ns_dtype(dtype):
+            return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
+
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
@@ -610,14 +605,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Rendering Methods
 
+    @dtl.ravel_compat
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import get_format_datetime64_from_values
 
         fmt = get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8.ravel(), tz=self.tz, format=fmt, na_rep=na_rep
-        ).reshape(self.shape)
+            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
+        )
 
     # -----------------------------------------------------------------
     # Comparison Methods
@@ -679,7 +675,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         arr_mask = self._isnan | other._isnan
         new_values = checked_add_with_arr(self_i8, -other_i8, arr_mask=arr_mask)
         if self._hasnans or other._hasnans:
-            new_values[arr_mask] = iNaT
+            np.putmask(new_values, arr_mask, iNaT)
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset):
@@ -817,6 +813,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         dtype = tz_to_dtype(tz)
         return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
+    @dtl.ravel_compat
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
         """
         Localize tz-naive Datetime Array/Index to tz-aware
@@ -1049,6 +1046,7 @@ default 'raise'
         new_values = normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
 
+    @dtl.ravel_compat
     def to_period(self, freq=None):
         """
         Cast to PeriodArray/Index at a particular frequency.
@@ -1851,12 +1849,12 @@ default 'raise'
             + 1_721_118.5
             + (
                 self.hour
-                + self.minute / 60.0
-                + self.second / 3600.0
-                + self.microsecond / 3600.0 / 1e6
-                + self.nanosecond / 3600.0 / 1e9
+                + self.minute / 60
+                + self.second / 3600
+                + self.microsecond / 3600 / 10 ** 6
+                + self.nanosecond / 3600 / 10 ** 9
             )
-            / 24.0
+            / 24
         )
 
     # -----------------------------------------------------------------
@@ -1945,7 +1943,7 @@ def sequence_to_dt64ns(
     # if dtype has an embedded tz, capture it
     tz = validate_tz_from_dtype(dtype, tz)
 
-    if isinstance(data, ABCIndexClass):
+    if isinstance(data, ABCIndex):
         if data.nlevels > 1:
             # Without this check, data._data below is None
             raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
@@ -1955,7 +1953,11 @@ def sequence_to_dt64ns(
     data, copy = maybe_convert_dtype(data, copy)
     data_dtype = getattr(data, "dtype", None)
 
-    if is_object_dtype(data_dtype) or is_string_dtype(data_dtype):
+    if (
+        is_object_dtype(data_dtype)
+        or is_string_dtype(data_dtype)
+        or is_sparse(data_dtype)
+    ):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
         copy = False
@@ -2065,23 +2067,27 @@ def objects_to_datetime64ns(
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)
 
+    flags = data.flags
+    order = "F" if flags.f_contiguous else "C"
     try:
         result, tz_parsed = tslib.array_to_datetime(
-            data,
+            data.ravel("K"),
             errors=errors,
             utc=utc,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
         )
-    except ValueError as e:
+        result = result.reshape(data.shape, order=order)
+    except ValueError as err:
         try:
-            values, tz_parsed = conversion.datetime_to_datetime64(data)
+            values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
             # If tzaware, these values represent unix timestamps, so we
             #  return them as i8 to distinguish from wall times
+            values = values.reshape(data.shape, order=order)
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
-            raise e
+            raise err
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array

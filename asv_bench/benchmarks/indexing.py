@@ -3,6 +3,8 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+import itertools
+import string
 import warnings
 
 import numpy as np
@@ -241,6 +243,20 @@ class IntervalIndexing:
         monotonic.loc[80000:]
 
 
+class DatetimeIndexIndexing:
+    def setup(self):
+        dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
+        dti2 = dti.tz_convert("UTC")
+        self.dti = dti
+        self.dti2 = dti2
+
+    def time_get_indexer_mismatched_tz(self):
+        # reached via e.g.
+        #  ser = Series(range(len(dti)), index=dti)
+        #  ser[dti2]
+        self.dti.get_indexer(self.dti2)
+
+
 class CategoricalIndexIndexing:
 
     params = ["monotonic_incr", "monotonic_decr", "non_monotonic"]
@@ -255,6 +271,9 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
+        self.data_unique = CategoricalIndex(
+            ["".join(perm) for perm in itertools.permutations(string.printable, 3)]
+        )
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
@@ -281,7 +300,7 @@ class CategoricalIndexIndexing:
         self.data.get_loc(self.cat_scalar)
 
     def time_get_indexer_list(self, index):
-        self.data.get_indexer(self.cat_list)
+        self.data_unique.get_indexer(self.cat_list)
 
 
 class MethodLookup:
@@ -357,6 +376,14 @@ class InsertColumns:
         np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
+
+    def time_assign_list_like_with_setitem(self):
+        np.random.seed(1234)
+        self.df[list(range(100))] = np.random.randn(self.N, 100)
+
+    def time_assign_list_of_columns_concat(self):
+        df = DataFrame(np.random.randn(self.N, 100))
+        concat([self.df, df], axis=1)
 
 
 class ChainIndexing:

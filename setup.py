@@ -53,6 +53,7 @@ _pxi_dep_template = {
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
+        "_libs/khash_for_primitive_helper.pxi.in",
     ],
     "index": ["_libs/index_class_helper.pxi.in"],
     "sparse": ["_libs/sparse_op_helper.pxi.in"],
@@ -408,17 +409,20 @@ else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
 
 
+extra_compile_args = []
+extra_link_args = []
 if is_platform_windows():
-    extra_compile_args = []
-    extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    extra_compile_args = ["-Werror"]
-    extra_link_args = []
+    # PANDAS_CI=1 is set by ci/setup_env.sh
+    if os.environ.get("PANDAS_CI", "0") == "1":
+        extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
+        extra_compile_args.append("-UNDEBUG")
+        extra_compile_args.append("-O0")
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
@@ -431,7 +435,7 @@ if is_platform_mac():
             "MACOSX_DEPLOYMENT_TARGET", current_system
         )
         if (
-            LooseVersion(python_target) < "10.9"
+            LooseVersion(str(python_target)) < "10.9"
             and LooseVersion(current_system) >= "10.9"
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
@@ -525,7 +529,10 @@ ext_data = {
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
         "include": klib_include,
-        "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
+        "depends": (
+            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
+            + _pxi_dep["hashtable"]
+        ),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",

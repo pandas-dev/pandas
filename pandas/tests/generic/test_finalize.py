@@ -302,7 +302,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.inv),
     (pd.Series, [1], operator.inv),
     (pd.DataFrame, frame_data, abs),
-    pytest.param((pd.Series, [1], abs), marks=not_implemented_mark),
+    (pd.Series, [1], abs),
     pytest.param((pd.DataFrame, frame_data, round), marks=not_implemented_mark),
     (pd.Series, [1], round),
     (pd.DataFrame, frame_data, operator.methodcaller("take", [0, 0])),
@@ -547,14 +547,14 @@ def test_finalize_called_eval_numexpr():
         (pd.DataFrame({"A": [1]}), pd.Series([1])),
     ],
 )
-def test_binops(args, annotate, all_arithmetic_functions):
+def test_binops(request, args, annotate, all_arithmetic_functions):
     # This generates 326 tests... Is that needed?
     left, right = args
     if annotate == "both" and isinstance(left, int) or isinstance(right, int):
         return
 
     if isinstance(left, pd.DataFrame) or isinstance(right, pd.DataFrame):
-        pytest.xfail(reason="not implemented")
+        request.node.add_marker(pytest.mark.xfail(reason="not implemented"))
 
     if annotate in {"left", "both"} and not isinstance(left, int):
         left.attrs = {"a": 1}
