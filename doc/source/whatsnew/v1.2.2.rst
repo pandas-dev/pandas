@@ -14,6 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :class:`DataFrame` constructor reordering element when construction from datetime ndarray with dtype not ``"datetime64[ns]"`` (:issue:`39422`)
 - Fixed regression in :meth:`~DataFrame.to_pickle` failing to create bz2/xz compressed pickle files with ``protocol=5`` (:issue:`39002`)
 -
 
