@@ -529,8 +529,11 @@ class OpenpyxlReader(BaseExcelReader):
 
         # openpyxl may not have the correct padding if the dimension tag is
         # not specified or is incorrect
-        max_width = max(len(row) for row in data)
-        if min(len(row) for row in data) < max_width:
-            data = [row + (max_width - len(row)) * [""] for row in data]
+        if len(data) > 0:
+            max_width = max(len(data_row) for data_row in data)
+            if min(len(data_row) for data_row in data) < max_width:
+                data = [
+                    data_row + (max_width - len(data_row)) * [""] for data_row in data
+                ]
 
         return data
