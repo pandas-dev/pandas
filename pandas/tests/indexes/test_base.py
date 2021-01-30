@@ -1968,18 +1968,3 @@ def test_validate_1d_input():
     ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4)
-
-
-def test_convert_almost_null_slice(index):
-    # slice with None at both ends, but not step
-
-    key = slice(None, None, "foo")
-
-    if isinstance(index, pd.IntervalIndex):
-        msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
-        with pytest.raises(ValueError, match=msg):
-            index._convert_slice_indexer(key, "loc")
-    else:
-        msg = "'>=' not supported between instances of 'str' and 'int'"
-        with pytest.raises(TypeError, match=msg):
-            index._convert_slice_indexer(key, "loc")

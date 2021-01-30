@@ -16,11 +16,14 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     DatetimeIndex,
     Float64Index,
     Index,
     Int64Index,
+    IntervalIndex,
     PeriodIndex,
     Series,
     TimedeltaIndex,
@@ -155,6 +158,43 @@ class TestGetValue:
         with tm.assert_produces_warning(FutureWarning):
             result = index.get_value(Series(values, index=values), value)
         tm.assert_almost_equal(result, values[67])
+
+
+class TestGetIndexer:
+    def test_get_indexer_consistency(self, index):
+        # See GH#16819
+        if isinstance(index, IntervalIndex):
+            # requires index.is_non_overlapping
+            return
+
+        if index.is_unique:
+            indexer = index.get_indexer(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+        else:
+            e = "Reindexing only valid with uniquely valued Index objects"
+            with pytest.raises(InvalidIndexError, match=e):
+                index.get_indexer(index[0:2])
+
+        indexer, _ = index.get_indexer_non_unique(index[0:2])
+        assert isinstance(indexer, np.ndarray)
+        assert indexer.dtype == np.intp
+
+
+class TestConvertSliceIndexer:
+    def test_convert_almost_null_slice(self, index):
+        # slice with None at both ends, but not step
+
+        key = slice(None, None, "foo")
+
+        if isinstance(index, IntervalIndex):
+            msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+            with pytest.raises(ValueError, match=msg):
+                index._convert_slice_indexer(key, "loc")
+        else:
+            msg = "'>=' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
+                index._convert_slice_indexer(key, "loc")
 
 
 @pytest.mark.parametrize(

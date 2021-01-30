@@ -75,17 +75,6 @@ class TestCommon:
         b = type(a)(a)
         tm.assert_equal(a._data, b._data)
 
-    @pytest.mark.parametrize("itm", [101, "no_int"])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_getitem_error(self, index, itm):
-        msg = r"index 101 is out of bounds for axis 0 with size [\d]+|" + re.escape(
-            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
-            "and integer or boolean arrays are valid indices"
-        )
-        with pytest.raises(IndexError, match=msg):
-            index[itm]
-
     def test_to_flat_index(self, index):
         # 22866
         if isinstance(index, MultiIndex):

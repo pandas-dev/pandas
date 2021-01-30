@@ -3,6 +3,8 @@ Tests that can be parametrized over _any_ Index object.
 
 TODO: consider using hypothesis for these.
 """
+import re
+
 import pytest
 
 import pandas._testing as tm
@@ -81,6 +83,17 @@ class TestRoundTrips:
 class TestIndexing:
     def test_slice_keeps_name(self, index):
         assert index.name == index[1:].name
+
+    @pytest.mark.parametrize("item", [101, "no_int"])
+    # FutureWarning from non-tuple sequence of nd indexing
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
+    def test_getitem_error(self, index, item):
+        msg = r"index 101 is out of bounds for axis 0 with size [\d]+|" + re.escape(
+            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+            "and integer or boolean arrays are valid indices"
+        )
+        with pytest.raises(IndexError, match=msg):
+            index[item]
 
 
 class TestRendering:
