@@ -1750,7 +1750,6 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         vals[mask] = mask_a
         result = accum_func(vals, axis=0)
         result[mask] = mask_b
-
     else:
         result = accum_func(values, axis=0)
 
