@@ -140,7 +140,7 @@ Requirements
 ~~~~~~~~~~~~
 
 First, you need to have a development environment to be able to build pandas
-(see the docs on :ref:`creating a development environment above <contributing.dev_env>`).
+(see the docs on :ref:`creating a development environment <contributing.dev_env>`).
 
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
