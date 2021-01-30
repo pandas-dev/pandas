@@ -681,21 +681,6 @@ class Base:
         expected = Index([str(x) for x in index], dtype=object)
         tm.assert_index_equal(result, expected)
 
-    def test_putmask_with_wrong_mask(self):
-        # GH18368
-        index = self.create_index()
-        fill = index[0]
-
-        msg = "putmask: mask and data must be the same size"
-        with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
-
-        with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
-
-        with pytest.raises(ValueError, match=msg):
-            index.putmask("foo", fill)
-
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
     @pytest.mark.parametrize("ordered", [True, False])
@@ -759,25 +744,6 @@ class Base:
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
-
-    def test_contains_requires_hashable_raises(self):
-        idx = self.create_index()
-
-        msg = "unhashable type: 'list'"
-        with pytest.raises(TypeError, match=msg):
-            [] in idx
-
-        msg = "|".join(
-            [
-                r"unhashable type: 'dict'",
-                r"must be real number, not dict",
-                r"an integer is required",
-                r"\{\}",
-                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
-            ]
-        )
-        with pytest.raises(TypeError, match=msg):
-            {} in idx._engine
 
     def test_copy_shares_cache(self):
         # GH32898, GH36840

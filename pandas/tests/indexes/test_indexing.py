@@ -24,6 +24,7 @@ from pandas import (
     Index,
     Int64Index,
     IntervalIndex,
+    MultiIndex,
     PeriodIndex,
     Series,
     TimedeltaIndex,
@@ -140,6 +141,26 @@ class TestContains:
         assert 1.0 not in float_index
         assert 1 not in float_index
 
+    def test_contains_requires_hashable_raises(self, index):
+        if isinstance(index, MultiIndex):
+            return  # TODO: do we want this to raise?
+
+        msg = "unhashable type: 'list'"
+        with pytest.raises(TypeError, match=msg):
+            [] in index
+
+        msg = "|".join(
+            [
+                r"unhashable type: 'dict'",
+                r"must be real number, not dict",
+                r"an integer is required",
+                r"\{\}",
+                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            {} in index._engine
+
 
 class TestGetValue:
     @pytest.mark.parametrize(
@@ -195,6 +216,25 @@ class TestConvertSliceIndexer:
             msg = "'>=' not supported between instances of 'str' and 'int'"
             with pytest.raises(TypeError, match=msg):
                 index._convert_slice_indexer(key, "loc")
+
+
+class TestPutmask:
+    def test_putmask_with_wrong_mask(self, index):
+        # GH#18368
+        if not len(index):
+            return
+
+        fill = index[0]
+
+        msg = "putmask: mask and data must be the same size"
+        with pytest.raises(ValueError, match=msg):
+            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
+
+        with pytest.raises(ValueError, match=msg):
+            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
+
+        with pytest.raises(ValueError, match=msg):
+            index.putmask("foo", fill)
 
 
 @pytest.mark.parametrize(

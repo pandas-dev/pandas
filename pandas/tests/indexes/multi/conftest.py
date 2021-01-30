@@ -5,6 +5,7 @@ import pandas as pd
 from pandas import Index, MultiIndex
 
 
+# Note: identical the the "multi" entry in the top-level "index" fixture
 @pytest.fixture
 def idx():
     # a MultiIndex used to test the general functionality of the
