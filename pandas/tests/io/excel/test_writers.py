@@ -347,19 +347,9 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(gt, df)
 
-        if engine == "odf":
-            msg = "sheet 0 not found"
-            with pytest.raises(ValueError, match=msg):
-                pd.read_excel(xl, "0")
-        elif engine == "xlwt":
-            import xlrd
-
-            msg = "No sheet named <'0'>"
-            with pytest.raises(xlrd.XLRDError, match=msg):
-                pd.read_excel(xl, sheet_name="0")
-        else:
-            with pytest.raises(KeyError, match="Worksheet 0 does not exist."):
-                pd.read_excel(xl, sheet_name="0")
+        msg = "Worksheet named '0' not found"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_excel(xl, "0")
 
     def test_excel_writer_context_manager(self, frame, path):
         with ExcelWriter(path) as writer:

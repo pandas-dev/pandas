@@ -43,9 +43,9 @@ def test_read_xlrd_book(read_ext, frame):
 # TODO: test for openpyxl as well
 def test_excel_table_sheet_by_index(datapath, read_ext):
     path = datapath("io", "data", "excel", f"test1{read_ext}")
-    msg = "No sheet named <'invalid_sheet_name'>"
+    msg = "Worksheet named 'invalid_sheet_name' not found"
     with ExcelFile(path, engine="xlrd") as excel:
-        with pytest.raises(xlrd.XLRDError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             pd.read_excel(excel, sheet_name="invalid_sheet_name")
 
 
