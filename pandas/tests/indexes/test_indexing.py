@@ -22,6 +22,7 @@ from pandas import (
     Index,
     Int64Index,
     PeriodIndex,
+    Series,
     TimedeltaIndex,
     UInt64Index,
 )
@@ -135,6 +136,25 @@ class TestContains:
         assert 1.1 in float_index
         assert 1.0 not in float_index
         assert 1 not in float_index
+
+
+class TestGetValue:
+    @pytest.mark.parametrize(
+        "index", ["string", "int", "datetime", "timedelta"], indirect=True
+    )
+    def test_get_value(self, index):
+        # TODO: Remove function? GH#19728
+        values = np.random.randn(100)
+        value = index[67]
+
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            # Index.get_value requires a Series, not an ndarray
+            with tm.assert_produces_warning(FutureWarning):
+                index.get_value(values, value)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.get_value(Series(values, index=values), value)
+        tm.assert_almost_equal(result, values[67])
 
 
 @pytest.mark.parametrize(

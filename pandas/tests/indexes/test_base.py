@@ -912,24 +912,6 @@ class TestIndex(Base):
 
         tm.assert_index_equal(result, expected)
 
-    def test_symmetric_difference(self, sort):
-        # smoke
-        index1 = Index([5, 2, 3, 4], name="index1")
-        index2 = Index([2, 3, 4, 1])
-        result = index1.symmetric_difference(index2, sort=sort)
-        expected = Index([5, 1])
-        assert tm.equalContents(result, expected)
-        assert result.name is None
-        if sort is None:
-            expected = expected.sort_values()
-        tm.assert_index_equal(result, expected)
-
-        # __xor__ syntax
-        with tm.assert_produces_warning(FutureWarning):
-            expected = index1 ^ index2
-        assert tm.equalContents(result, expected)
-        assert result.name is None
-
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable(self, opname):
         a = Index([3, Timestamp("2000"), 1])
@@ -1119,22 +1101,6 @@ class TestIndex(Base):
     def _check_method_works(self, method, index):
         method(index)
 
-    def test_get_indexer_with_NA_values(
-        self, unique_nulls_fixture, unique_nulls_fixture2
-    ):
-        # GH 22332
-        # check pairwise, that no pair of na values
-        # is mangled
-        if unique_nulls_fixture is unique_nulls_fixture2:
-            return  # skip it, values are not unique
-        arr = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=object)
-        index = Index(arr, dtype=object)
-        result = index.get_indexer(
-            [unique_nulls_fixture, unique_nulls_fixture2, "Unknown"]
-        )
-        expected = np.array([0, 1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
     @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
     def test_drop_by_str_label(self, index):
         n = len(index)
@@ -1245,23 +1211,6 @@ class TestIndex(Base):
         with tm.assert_produces_warning(FutureWarning):
             idx.set_value(arr, idx[1], 80)
         assert arr[1] == 80
-
-    @pytest.mark.parametrize(
-        "index", ["string", "int", "datetime", "timedelta"], indirect=True
-    )
-    def test_get_value(self, index):
-        # TODO: Remove function? GH 19728
-        values = np.random.randn(100)
-        value = index[67]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            # Index.get_value requires a Series, not an ndarray
-            with tm.assert_produces_warning(FutureWarning):
-                index.get_value(values, value)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = index.get_value(Series(values, index=values), value)
-        tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
