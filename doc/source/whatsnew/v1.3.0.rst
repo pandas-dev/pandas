@@ -283,7 +283,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in constructing :class:`Timedelta` from ``np.timedelta64`` objects with non-nanosecond units that are out of bounds for ``timedelta64[ns]`` (:issue:`38965`)
--
+- Bug in constructing a :class:`TimedeltaIndex` incorrectly accepting ``np.datetime64("NaT")`` objects (:issue:`39462`)
 -
 
 Timezones
@@ -375,6 +375,7 @@ I/O
 - Bug in :func:`read_csv` not switching ``true_values`` and ``false_values`` for nullable ``boolean`` dtype (:issue:`34655`)
 - Bug in :func:`read_json` when ``orient="split"`` does not maintain numeric string index (:issue:`28556`)
 - :meth:`read_sql` returned an empty generator if ``chunksize`` was no-zero and the query returned no results. Now returns a generator with a single empty dataframe (:issue:`34411`)
+- Bug in :func:`read_hdf` returning unexpected records when filtering on categorical string columns using ``where`` parameter (:issue:`39189`)
 
 Period
 ^^^^^^
