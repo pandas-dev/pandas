@@ -19,7 +19,6 @@ from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
-from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
