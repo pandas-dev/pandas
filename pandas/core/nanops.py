@@ -1688,8 +1688,6 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         np.minimum.accumulate: (np.inf, np.nan),
     }[accum_func]
 
-    is_ea_dtype = is_extension_array_dtype(values.dtype)
-
     # We will be applying this function to block values
     if values.dtype.kind in ["m", "M"]:
         # GH#30460, GH#29058
@@ -1731,11 +1729,7 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
                 result, dtype=orig_dtype
             )
 
-    elif (
-        skipna
-        and not issubclass(values.dtype.type, (np.integer, np.bool_))
-        or is_ea_dtype
-    ):
+    elif is_extension_array_dtype(values.dtype):
         if is_integer_dtype(values.dtype) and np.isinf(mask_a):
             mask_a = {
                 np.maximum.accumulate: np.iinfo(values.dtype.type).min,
@@ -1744,13 +1738,18 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
 
         vals = values.copy()
         mask = isna(vals)
-        mask_keep = np.copy(mask) if is_ea_dtype else mask
+        mask_copy = np.copy(mask)
         vals[mask] = mask_a
         result = accum_func(vals, axis=0)
-        result[mask_keep] = mask_b
+        result[mask_copy] = mask_b
+        result = sanitize_array(result, None, values.dtype)
 
-        if is_ea_dtype:
-            result = sanitize_array(result, None, values.dtype)
+    elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
+        vals = values.copy()
+        mask = isna(vals)
+        vals[mask] = mask_a
+        result = accum_func(vals, axis=0)
+        result[mask] = mask_b
 
     else:
         result = accum_func(values, axis=0)
