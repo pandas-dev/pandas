@@ -8,7 +8,7 @@ import sys
 from typing import Dict, Optional, Union
 
 from pandas._typing import JSONSerializable
-from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
+from pandas.compat._optional import VERSIONS, get_version, import_optional_dependency
 
 
 def _get_commit_hash() -> Optional[str]:
@@ -81,7 +81,7 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
     result: Dict[str, JSONSerializable] = {}
     for modname in deps:
         mod = import_optional_dependency(modname, errors="ignore")
-        result[modname] = _get_version(mod) if mod else None
+        result[modname] = get_version(mod) if mod else None
     return result
 
 

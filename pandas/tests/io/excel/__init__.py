@@ -2,7 +2,7 @@ from distutils.version import LooseVersion
 
 import pytest
 
-from pandas.compat._optional import _get_version, import_optional_dependency
+from pandas.compat._optional import get_version, import_optional_dependency
 
 pytestmark = [
     pytest.mark.filterwarnings(
@@ -29,4 +29,4 @@ if import_optional_dependency("xlrd", errors="ignore") is None:
 else:
     import xlrd
 
-    xlrd_version = LooseVersion(_get_version(xlrd))
+    xlrd_version = LooseVersion(get_version(xlrd))
