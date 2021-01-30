@@ -3,6 +3,8 @@ from datetime import date
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p20
+
 from pandas import (
     DatetimeIndex,
     Index,
@@ -611,7 +613,10 @@ class TestSetitemCastingEquivalentsTimedelta64IntoNumeric:
         res = Index(obj).where(~mask, val)
         tm.assert_index_equal(res, Index(expected))
 
-    @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
+    @pytest.mark.xfail(
+        np_version_under1p20,
+        reason="Index/Series casting behavior inconsistent GH#38692",
+    )
     def test_index_putmask(self, obj, key, expected, val):
         if Index(obj).dtype != obj.dtype:
             pytest.skip("test not applicable for this dtype")

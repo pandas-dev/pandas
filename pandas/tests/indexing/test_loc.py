@@ -7,7 +7,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
+from pandas.compat import np_version_under1p20
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -978,7 +978,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="gh-35481")
+    @pytest.mark.xfail(not np_version_under1p20, reason="gh-35481")
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
