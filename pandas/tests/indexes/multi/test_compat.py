@@ -35,32 +35,6 @@ def test_logical_compat(idx, method):
         getattr(idx, method)()
 
 
-def test_boolean_context_compat(idx):
-
-    msg = (
-        "The truth value of a MultiIndex is ambiguous. "
-        r"Use a.empty, a.bool\(\), a.item\(\), a.any\(\) or a.all\(\)."
-    )
-    with pytest.raises(ValueError, match=msg):
-        bool(idx)
-
-
-def test_boolean_context_compat2():
-
-    # boolean context compat
-    # GH7897
-    i1 = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-    i2 = MultiIndex.from_tuples([("A", 1), ("A", 3)])
-    common = i1.intersection(i2)
-
-    msg = (
-        r"The truth value of a MultiIndex is ambiguous\. "
-        r"Use a\.empty, a\.bool\(\), a\.item\(\), a\.any\(\) or a\.all\(\)\."
-    )
-    with pytest.raises(ValueError, match=msg):
-        bool(common)
-
-
 def test_inplace_mutation_resets_values():
     levels = [["a", "b", "c"], [4]]
     levels2 = [[1, 2, 3], ["a"]]
