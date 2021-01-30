@@ -7,8 +7,9 @@ tests.series.test_cumulative
 """
 
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series
+from pandas import NA, DataFrame, Series
 import pandas._testing as tm
 
 
@@ -133,3 +134,20 @@ class TestDataFrameCumulativeOps:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "func, exp",
+        [
+            ("cumsum", [2, NA, 7, 6, 6]),
+            ("cumprod", [2, NA, 10, -10, 0]),
+            ("cummin", [2, NA, 2, -1, -1]),
+            ("cummax", [2, NA, 5, 5, 5]),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["Float64", "Int64"])
+    def test_cummulative_ops_extension_dtype(self, frame_or_series, dtype, func, exp):
+        # GH#39479
+        obj = frame_or_series([2, np.nan, 5, -1, 0], dtype=dtype)
+        result = getattr(obj, func)()
+        expected = frame_or_series(exp, dtype=dtype)
+        tm.assert_equal(result, expected)

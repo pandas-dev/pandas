@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex,
     is_datetime64_any_dtype,
+    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -32,7 +33,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
-from pandas.core.construction import extract_array
+from pandas.core.construction import extract_array, sanitize_array
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -1687,6 +1688,8 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         np.minimum.accumulate: (np.inf, np.nan),
     }[accum_func]
 
+    is_ea_dtype = is_extension_array_dtype(values.dtype)
+
     # We will be applying this function to block values
     if values.dtype.kind in ["m", "M"]:
         # GH#30460, GH#29058
@@ -1728,12 +1731,27 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
                 result, dtype=orig_dtype
             )
 
-    elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
+    elif (
+        skipna
+        and not issubclass(values.dtype.type, (np.integer, np.bool_))
+        or is_ea_dtype
+    ):
+        if is_integer_dtype(values.dtype) and np.isinf(mask_a):
+            mask_a = {
+                np.maximum.accumulate: np.iinfo(values.dtype.numpy_dtype).min,
+                np.minimum.accumulate: np.iinfo(values.dtype.numpy_dtype).max,
+            }[accum_func]
+
         vals = values.copy()
         mask = isna(vals)
+        mask_keep = np.copy(mask) if is_ea_dtype else mask
         vals[mask] = mask_a
         result = accum_func(vals, axis=0)
-        result[mask] = mask_b
+        result[mask_keep] = mask_b
+
+        if is_ea_dtype:
+            result = sanitize_array(result, None, values.dtype)
+
     else:
         result = accum_func(values, axis=0)
 
