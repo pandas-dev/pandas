@@ -1910,6 +1910,9 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
             raise ValueError(
                 f"Cannot assign {type(value).__name__} to float/integer series"
             )
+    if dtype.kind == "b":
+        if is_scalar(value) and not is_bool(value):
+            raise ValueError(f"Cannot assign {type(value).__name__} to bool series")
 
 
 def can_hold_element(dtype: np.dtype, element: Any) -> bool:
