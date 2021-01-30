@@ -282,6 +282,107 @@ class TestSetitemCasting:
         tm.assert_series_equal(ser, expected)
 
 
+class SetitemCastingEquivalents:
+    """
+    Check each of several methods that _should_ be equivalent to `obj[key] = val`
+
+    We assume that
+        - obj.index is the default Index(range(len(obj)))
+        - the setitem does not expand the obj
+    """
+
+    @pytest.fixture(params=[np.nan, np.float64("NaN")])
+    def val(self, request):
+        """
+        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
+        attribute.
+        """
+        return request.param
+
+    def check_indexer(self, obj, key, expected, val, indexer):
+        obj = obj.copy()
+        indexer(obj)[key] = val
+        tm.assert_series_equal(obj, expected)
+
+    def test_int_key(self, obj, key, expected, val, indexer_sli):
+        if not isinstance(key, int):
+            return
+
+        self.check_indexer(obj, key, expected, val, indexer_sli)
+
+        rng = range(key, key + 1)
+        self.check_indexer(obj, rng, expected, val, indexer_sli)
+
+        if indexer_sli is not tm.loc:
+            # Note: no .loc because that handles slice edges differently
+            slc = slice(key, key + 1)
+            self.check_indexer(obj, slc, expected, val, indexer_sli)
+
+        ilkey = [key]
+        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+
+        indkey = np.array(ilkey)
+        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+
+    def test_slice_key(self, obj, key, expected, val, indexer_sli):
+        if not isinstance(key, slice):
+            return
+
+        if indexer_sli is not tm.loc:
+            # Note: no .loc because that handles slice edges differently
+            self.check_indexer(obj, key, expected, val, indexer_sli)
+
+        ilkey = list(range(len(obj)))[key]
+        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+
+        indkey = np.array(ilkey)
+        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+
+    def test_mask_key(self, obj, key, expected, val, indexer_sli):
+        # setitem with boolean mask
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        obj = obj.copy()
+        indexer_sli(obj)[mask] = val
+        tm.assert_series_equal(obj, expected)
+
+    def test_series_where(self, obj, key, expected, val):
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        obj = obj.copy()
+        res = obj.where(~mask, val)
+        tm.assert_series_equal(res, expected)
+
+    def test_index_where(self, obj, key, expected, val, request):
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
+
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        if obj.dtype == bool and not mask.all():
+            # When mask is all True, casting behavior does not apply
+            msg = "Index/Series casting behavior inconsistent GH#38692"
+            mark = pytest.mark.xfail(reason=msg)
+            request.node.add_marker(mark)
+
+        res = Index(obj).where(~mask, val)
+        tm.assert_index_equal(res, Index(expected))
+
+    @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
+    def test_index_putmask(self, obj, key, expected, val):
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
+
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        res = Index(obj).putmask(mask, val)
+        tm.assert_index_equal(res, Index(expected))
+
+
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
@@ -329,15 +430,7 @@ class TestSetitemCasting:
         ),
     ],
 )
-class TestSetitemCastingEquivalents:
-    """
-    Check each of several methods that _should_ be equivalent to `obj[key] = np.nan`
-
-    We assume that
-        - obj.index is the default Index(range(len(obj)))
-        - the setitem does not expand the obj
-    """
-
+class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
     @pytest.fixture(params=[np.nan, np.float64("NaN")])
     def val(self, request):
         """
@@ -345,71 +438,6 @@ class TestSetitemCastingEquivalents:
         attribute.
         """
         return request.param
-
-    def test_int_key(self, obj, key, expected, val, indexer_sli):
-        if not isinstance(key, int):
-            return
-
-        obj = obj.copy()
-        indexer_sli(obj)[key] = val
-        tm.assert_series_equal(obj, expected)
-
-    def test_slice_key(self, obj, key, expected, val, indexer_si):
-        # Note: no .loc because that handles slice edges differently
-        obj = obj.copy()
-        indexer_si(obj)[key] = val
-        tm.assert_series_equal(obj, expected)
-
-    def test_intlist_key(self, obj, key, expected, val, indexer_sli):
-        ilkey = list(range(len(obj)))[key]
-
-        obj = obj.copy()
-        indexer_sli(obj)[ilkey] = val
-        tm.assert_series_equal(obj, expected)
-
-    def test_mask_key(self, obj, key, expected, val, indexer_sli):
-        # setitem with boolean mask
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
-
-        obj = obj.copy()
-        indexer_sli(obj)[mask] = val
-        tm.assert_series_equal(obj, expected)
-
-    def test_series_where(self, obj, key, expected, val):
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
-
-        obj = obj.copy()
-        res = obj.where(~mask, val)
-        tm.assert_series_equal(res, expected)
-
-    def test_index_where(self, obj, key, expected, val, request):
-        if Index(obj).dtype != obj.dtype:
-            pytest.skip("test not applicable for this dtype")
-
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
-
-        if obj.dtype == bool and not mask.all():
-            # When mask is all True, casting behavior does not apply
-            msg = "Index/Series casting behavior inconsistent GH#38692"
-            mark = pytest.mark.xfail(reason=msg)
-            request.node.add_marker(mark)
-
-        res = Index(obj).where(~mask, val)
-        tm.assert_index_equal(res, Index(expected))
-
-    @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
-    def test_index_putmask(self, obj, key, expected, val):
-        if Index(obj).dtype != obj.dtype:
-            pytest.skip("test not applicable for this dtype")
-
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
-
-        res = Index(obj).putmask(mask, val)
-        tm.assert_index_equal(res, Index(expected))
 
 
 class TestSetitemWithExpansion:
