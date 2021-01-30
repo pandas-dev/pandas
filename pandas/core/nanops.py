@@ -1738,8 +1738,8 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
     ):
         if is_integer_dtype(values.dtype) and np.isinf(mask_a):
             mask_a = {
-                np.maximum.accumulate: np.iinfo(values.dtype.numpy_dtype).min,
-                np.minimum.accumulate: np.iinfo(values.dtype.numpy_dtype).max,
+                np.maximum.accumulate: np.iinfo(values.dtype.type).min,
+                np.minimum.accumulate: np.iinfo(values.dtype.type).max,
             }[accum_func]
 
         vals = values.copy()
