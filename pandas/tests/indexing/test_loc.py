@@ -7,7 +7,6 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -981,7 +980,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="gh-35481")
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
@@ -995,7 +993,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with pytest.raises(KeyError, match=msg):
             df.loc[[0, 1], "x"] = data
 
-        msg = "cannot copy sequence with size 2 to array axis with dimension 0"
+        msg = "|".join(
+            [
+                "cannot copy sequence with size 2 to array axis with dimension 0",
+                r"could not broadcast input array from shape \(2,\) into shape \(0,\)",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             df.loc[0:2, "x"] = data
 
