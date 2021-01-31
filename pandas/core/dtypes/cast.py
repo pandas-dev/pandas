@@ -1331,7 +1331,7 @@ def convert_dtypes(
     return inferred_dtype
 
 
-def maybe_castable(dtype: DtypeObj) -> bool:
+def maybe_castable(dtype: np.dtype) -> bool:
     # return False to force a non-fastpath
 
     # check datetime64[ns]/timedelta64[ns] are valid
