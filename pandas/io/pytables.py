@@ -3875,7 +3875,7 @@ class Table(Fixed):
 
         # add my values
         vaxes = []
-        for i, (b, b_items) in enumerate(zip(blocks, blk_items)):
+        for i, (blk, b_items) in enumerate(zip(blocks, blk_items)):
 
             # shape of the data column are the indexable axes
             klass = DataCol
@@ -3907,13 +3907,13 @@ class Table(Fixed):
             new_name = name or f"values_block_{i}"
             data_converted = _maybe_convert_for_string_atom(
                 new_name,
-                b,
+                blk,
                 existing_col=existing_col,
                 min_itemsize=min_itemsize,
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
-                block_columns=b_items,
+                columns=b_items,
             )
             adj_name = _maybe_adjust_name(new_name, self.version)
 
@@ -4886,13 +4886,15 @@ def _maybe_convert_for_string_atom(
     nan_rep,
     encoding,
     errors,
-    block_columns: List[str],
+    columns: List[str],
 ):
-    if not block.is_object:
-        return block.values
+    bvalues = block.values
 
-    dtype_name = block.dtype.name
-    inferred_type = lib.infer_dtype(block.values, skipna=False)
+    if bvalues.dtype != object:
+        return bvalues
+
+    dtype_name = bvalues.dtype.name
+    inferred_type = lib.infer_dtype(bvalues, skipna=False)
 
     if inferred_type == "date":
         raise TypeError("[date] is not implemented as a table column")
@@ -4904,7 +4906,7 @@ def _maybe_convert_for_string_atom(
         )
 
     elif not (inferred_type == "string" or dtype_name == "object"):
-        return block.values
+        return bvalues
 
     blocks: List[Block] = block.fillna(nan_rep, downcast=False)
     # Note: because block is always object dtype, fillna goes
@@ -4923,13 +4925,11 @@ def _maybe_convert_for_string_atom(
 
         # expected behaviour:
         # search block for a non-string object column by column
-        for i in range(block.shape[0]):
+        for i in range(data.shape[0]):
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
-                error_column_label = (
-                    block_columns[i] if len(block_columns) > i else f"No.{i}"
-                )
+                error_column_label = columns[i] if len(columns) > i else f"No.{i}"
                 raise TypeError(
                     f"Cannot serialize the column [{error_column_label}]\n"
                     f"because its data contents are not [string] but "
@@ -4938,7 +4938,6 @@ def _maybe_convert_for_string_atom(
 
     # itemsize is the maximum length of a string (along any dimension)
     data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
-    assert data_converted.shape == block.shape, (data_converted.shape, block.shape)
     itemsize = data_converted.itemsize
 
     # specified min_itemsize?

@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     Manager,
+    NpDtype,
     PythonFuncType,
     Renamer,
     StorageOptions,
@@ -128,6 +129,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -1325,7 +1327,9 @@ class DataFrame(NDFrame, OpsMixin):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient="columns", dtype=None, columns=None) -> DataFrame:
+    def from_dict(
+        cls, data, orient="columns", dtype: Optional[Dtype] = None, columns=None
+    ) -> DataFrame:
         """
         Construct DataFrame from dict of array-like or dicts.
 
@@ -1404,7 +1408,10 @@ class DataFrame(NDFrame, OpsMixin):
         return cls(data, index=index, columns=columns, dtype=dtype)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
@@ -3224,66 +3231,65 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
             self.iloc[indexer] = value
 
-        elif isinstance(key, np.ndarray) and key.ndim != 1:
-            # FIXME: kludge just to get the right exception message
-            #  in test_setitem_ndarray_3d
-            raise ValueError(
-                f"Buffer has wrong number of dimensions (expected 1, got {key.ndim})"
-            )
-
-        elif not isinstance(value, (np.ndarray, DataFrame)) and np.ndim(value) > 1:
-            # list of lists
-            value = DataFrame(value)
-            return self._setitem_array(key, value)
-
-        elif not self.columns.is_unique and not all(
-            is_hashable(x) and x in self.columns for x in key
-        ):
-            raise NotImplementedError
-
         else:
-            # Note: unlike self.iloc[:, indexer] = value, this will
-            #  never try to overwrite values inplace
+            if isinstance(value, DataFrame):
+                check_key_length(self.columns, key, value)
+                for k1, k2 in zip(key, value.columns):
+                    self[k1] = value[k2]
 
-            def igetitem(val, i: int):
-                if isinstance(val, np.ndarray) and val.ndim == 2:
-                    return val[:, i]
-                elif isinstance(val, DataFrame):
-                    return val.iloc[:, i]
-                elif not is_list_like(val):
-                    return val
-                else:
-                    return val[i]
+            elif not is_list_like(value):
+                for col in key:
+                    self[col] = value
 
-            if self.columns.is_unique:
-                key_len = len(key)
+            elif isinstance(value, np.ndarray) and value.ndim == 2:
+                self._iset_not_inplace(key, value)
+
+            elif np.ndim(value) > 1:
+                # list of lists
+                value = DataFrame(value).values
+                return self._setitem_array(key, value)
+
             else:
-                indexer, missing = self.columns.get_indexer_non_unique(key)
-                if len(missing) == 0:
-                    key_len = len(indexer)
-                else:
-                    key_len = np.shape(value)[-1]
+                self._iset_not_inplace(key, value)
 
-            if not is_list_like(value):
-                vlen = key_len
+    def _iset_not_inplace(self, key, value):
+        def igetitem(obj, i: int):
+            if isinstance(obj, DataFrame):
+                return obj.iloc[:, i]
+            elif isinstance(obj, np.ndarray):
+                return obj[..., i]
             else:
-                vlen = np.shape(value)[-1]
+                return obj[i]
 
-            if vlen != key_len:
-                # TODO: is this only if all are contained?
+        if self.columns.is_unique:
+            if np.shape(value)[-1] != len(key):
                 raise ValueError("Columns must be same length as key")
 
-            if self.columns.is_unique:
-                # easy case
-                for i, col in enumerate(key):
-                    self[col] = igetitem(value, i)
+            for i, col in enumerate(key):
+                self[col] = igetitem(value, i)
 
-            else:
-                mask = self.columns.isin(key)
-                ilocs = mask.nonzero()[0]
+        else:
+
+            ilocs = self.columns.get_indexer_non_unique(key)[0]
+            if (ilocs < 0).any():
+                # key entries not in self.columns
+                raise NotImplementedError
+
+            if np.shape(value)[-1] != len(ilocs):
+                raise ValueError("Columns must be same length as key")
+
+            assert np.ndim(value) <= 2
+
+            orig_columns = self.columns
+
+            # Using self.iloc[:, i] = ... may set values inplace, which
+            #  by convention we do not do in __setitem__
+            try:
+                self.columns = range(len(self.columns))
                 for i, iloc in enumerate(ilocs):
-                    # TODO: sure this is never-inplace?
-                    self._iset_item(iloc, igetitem(value, i))
+                    self[iloc] = igetitem(value, i)
+            finally:
+                self.columns = orig_columns
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
