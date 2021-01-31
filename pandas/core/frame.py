@@ -3872,6 +3872,7 @@ class DataFrame(NDFrame, OpsMixin):
         1   100     2      99     4
 
         Notice that Pandas uses index alignment in case of `value` from type `Series`:
+
         >>> df.insert(0, "col0", pd.Series([5, 6], index=[1, 2]))
         >>> df
            col0  col1  col1  newcol  col2
