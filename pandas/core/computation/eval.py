@@ -162,7 +162,7 @@ def eval(
     expr,
     parser: str = "pandas",
     engine: Optional[str] = None,
-    truediv: Optional[bool] = no_default,
+    truediv=no_default,
     local_dict: Optional[Dict] = None,
     global_dict: Optional[Dict] = None,
     resolvers=(),
