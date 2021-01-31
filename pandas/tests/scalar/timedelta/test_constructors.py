@@ -263,6 +263,9 @@ def test_construction_out_of_bounds_td64():
         ("P1W", Timedelta(days=7)),
         ("PT300S", Timedelta(seconds=300)),
         ("P1DT0H0M00000000000S", Timedelta(days=1)),
+        ("PT-6H3M", Timedelta(hours=-6, minutes=3)),
+        ("-PT6H3M", Timedelta(hours=-6, minutes=-3)),
+        ("-PT-6H+3M", Timedelta(hours=6, minutes=-3)),
     ],
 )
 def test_iso_constructor(fmt, exp):
