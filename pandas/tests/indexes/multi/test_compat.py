@@ -98,19 +98,6 @@ def test_inplace_mutation_resets_values():
     assert "_values" in mi2._cache
 
 
-def test_ndarray_compat_properties(idx, compat_props):
-    assert idx.T.equals(idx)
-    assert idx.transpose().equals(idx)
-
-    values = idx.values
-    for prop in compat_props:
-        assert getattr(idx, prop) == getattr(values, prop)
-
-    # test for validity
-    idx.nbytes
-    idx.values.nbytes
-
-
 def test_pickle_compat_construction():
     # this is testing for pickle compat
     # need an object to create with

@@ -32,7 +32,6 @@ class Base:
     """ base class for index sub-class tests """
 
     _holder: Type[Index]
-    _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def create_index(self) -> Index:
         raise NotImplementedError("Method not implemented")
@@ -190,19 +189,6 @@ class Base:
             idx.all()
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
-
-    def test_ndarray_compat_properties(self):
-        idx = self.create_index()
-        assert idx.T.equals(idx)
-        assert idx.transpose().equals(idx)
-
-        values = idx.values
-        for prop in self._compat_props:
-            assert getattr(idx, prop) == getattr(values, prop)
-
-        # test for validity
-        idx.nbytes
-        idx.values.nbytes
 
     def test_repr_roundtrip(self):
 

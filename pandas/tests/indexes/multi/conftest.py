@@ -51,12 +51,6 @@ def index_names():
 
 
 @pytest.fixture
-def compat_props():
-    # a MultiIndex must have these properties associated with it
-    return ["shape", "ndim", "size"]
-
-
-@pytest.fixture
 def narrow_multi_index():
     """
     Return a MultiIndex that is narrower than the display (<80 characters).
