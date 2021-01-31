@@ -1616,7 +1616,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
     char *p = (char *)str;
     int num_digits;
     int num_decimals;
-    int max_digits = 17;
+    int max_digits = 309;
     int n;
 
     if (maybe_int != NULL) *maybe_int = 1;
