@@ -275,7 +275,7 @@ cdef convert_to_timedelta64(object ts, str unit):
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts, "ns")
     elif isinstance(ts, str):
-        if len(ts) > 0 and ts[0] == "P":
+        if len(ts) > 0 and (ts[0] == "P" or ts[:2] == "-P"):
             ts = parse_iso_format_string(ts)
         else:
             ts = parse_timedelta_string(ts)
@@ -672,18 +672,23 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
     cdef:
         unicode c
         int64_t result = 0, r
-        int p = 0
+        int p = 0, sign = 1
         object dec_unit = 'ms', err_msg
-        bint have_dot = 0, have_value = 0, neg = 0
+        bint have_dot = 0, have_value = 0, neg = 0, valid_ts = 0
         list number = [], unit = []
 
     err_msg = f"Invalid ISO 8601 Duration format - {ts}"
+
+    if ts[0] == "-":
+        sign = -1
+        ts = ts[1:]
 
     for c in ts:
         # number (ascii codes)
         if 48 <= ord(c) <= 57:
 
             have_value = 1
+            valid_ts = 1
             if have_dot:
                 if p == 3 and dec_unit != 'ns':
                     unit.append(dec_unit)
@@ -703,6 +708,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                 neg = 0
                 unit, number = [], [c]
         else:
+            have_value = 0
             if c == 'P' or c == 'T':
                 pass  # ignore marking characters P and T
             elif c == '-':
@@ -710,6 +716,8 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                     raise ValueError(err_msg)
                 else:
                     neg = 1
+            elif c == "+":
+                pass
             elif c in ['W', 'D', 'H', 'M']:
                 if c in ['H', 'M'] and len(number) > 2:
                     raise ValueError(err_msg)
@@ -746,11 +754,11 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
             else:
                 raise ValueError(err_msg)
 
-    if not have_value:
+    if not valid_ts:
         # Received string only - never parsed any values
         raise ValueError(err_msg)
 
-    return result
+    return sign*result
 
 
 cdef _to_py_int_float(v):
@@ -1251,7 +1259,7 @@ class Timedelta(_Timedelta):
         elif isinstance(value, str):
             if unit is not None:
                 raise ValueError("unit must not be specified if the value is a str")
-            if len(value) > 0 and value[0] == 'P':
+            if len(value) > 0 and (value[0] == 'P' or value[:2] == "-P"):
                 value = parse_iso_format_string(value)
             else:
                 value = parse_timedelta_string(value)
