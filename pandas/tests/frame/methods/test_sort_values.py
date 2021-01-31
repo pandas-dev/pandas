@@ -323,7 +323,7 @@ class TestDataFrameSortValues:
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT))
+        int_values = (2, int(NaT.value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -566,12 +566,13 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self):
+    def test_sort_values_item_cache(self, using_array_manager):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
         df["D"] = df["A"] * 2
         ser = df["A"]
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
 
         df.sort_values(by="A")
         ser.values[0] = 99

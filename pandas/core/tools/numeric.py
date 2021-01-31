@@ -171,7 +171,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     if is_numeric_dtype(values_dtype):
         pass
     elif is_datetime_or_timedelta_dtype(values_dtype):
-        values = values.astype(np.int64)
+        values = values.view(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
@@ -221,7 +221,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         from pandas.core.arrays import FloatingArray, IntegerArray
 
         klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
-        values = klass(data, mask)
+        values = klass(data, mask.copy())
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)

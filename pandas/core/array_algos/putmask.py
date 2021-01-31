@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.cast import convert_scalar_for_putitemlike, maybe_promote
+from pandas.core.dtypes.cast import convert_scalar_for_putitemlike, find_common_type
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_list_like
 from pandas.core.dtypes.missing import isna_compat
 
@@ -106,9 +106,7 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
         # preserves dtype if possible
         return _putmask_preserve(values, new, mask)
 
-    # change the dtype if needed
-    dtype, _ = maybe_promote(new.dtype)
-
+    dtype = find_common_type([values.dtype, new.dtype])
     values = values.astype(dtype)
 
     return _putmask_preserve(values, new, mask)
@@ -120,3 +118,37 @@ def _putmask_preserve(new_values: np.ndarray, new, mask: np.ndarray):
     except (IndexError, ValueError):
         new_values[mask] = new
     return new_values
+
+
+def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> None:
+    """
+    np.putmask will truncate or repeat if `new` is a listlike with
+    len(new) != len(values).  We require an exact match.
+
+    Parameters
+    ----------
+    values : np.ndarray
+    mask : np.ndarray[bool]
+    new : Any
+    """
+    if getattr(new, "ndim", 0) >= 1:
+        new = new.astype(values.dtype, copy=False)
+
+    # TODO: this prob needs some better checking for 2D cases
+    nlocs = mask.sum()
+    if nlocs > 0 and is_list_like(new) and getattr(new, "ndim", 1) == 1:
+        if nlocs == len(new):
+            # GH#30567
+            # If length of ``new`` is less than the length of ``values``,
+            # `np.putmask` would first repeat the ``new`` array and then
+            # assign the masked values hence produces incorrect result.
+            # `np.place` on the other hand uses the ``new`` values at it is
+            # to place in the masked locations of ``values``
+            np.place(values, mask, new)
+            # i.e. values[mask] = new
+        elif mask.shape[-1] == len(new) or len(new) == 1:
+            np.putmask(values, mask, new)
+        else:
+            raise ValueError("cannot assign mismatch length to masked array")
+    else:
+        np.putmask(values, mask, new)

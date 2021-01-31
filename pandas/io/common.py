@@ -1,6 +1,8 @@
 """Common IO api utilities"""
+from __future__ import annotations
 
 import bz2
+import codecs
 from collections import abc
 import dataclasses
 import gzip
@@ -97,7 +99,7 @@ class IOHandles:
         self.created_handles = []
         self.is_wrapped = False
 
-    def __enter__(self) -> "IOHandles":
+    def __enter__(self) -> IOHandles:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -289,15 +291,14 @@ def _get_filepath_or_buffer(
         # urlopen function defined elsewhere in this module
         import urllib.request
 
-        # assuming storage_options is to be interpretted as headers
+        # assuming storage_options is to be interpreted as headers
         req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
-        req = urlopen(req_info)
-        content_encoding = req.headers.get("Content-Encoding", None)
-        if content_encoding == "gzip":
-            # Override compression based on Content-Encoding header
-            compression = {"method": "gzip"}
-        reader = BytesIO(req.read())
-        req.close()
+        with urlopen(req_info) as req:
+            content_encoding = req.headers.get("Content-Encoding", None)
+            if content_encoding == "gzip":
+                # Override compression based on Content-Encoding header
+                compression = {"method": "gzip"}
+            reader = BytesIO(req.read())
         return IOArgs(
             filepath_or_buffer=reader,
             encoding=encoding,
@@ -487,9 +488,15 @@ def infer_compression(
     if compression in _compression_to_extension:
         return compression
 
-    msg = f"Unrecognized compression type: {compression}"
-    valid = ["infer", None] + sorted(_compression_to_extension)
-    msg += f"\nValid compression types are {valid}"
+    # https://github.com/python/mypy/issues/5492
+    # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
+    valid = ["infer", None] + sorted(
+        _compression_to_extension
+    )  # type: ignore[operator]
+    msg = (
+        f"Unrecognized compression type: {compression}\n"
+        f"Valid compression types are {valid}"
+    )
     raise ValueError(msg)
 
 
@@ -553,8 +560,7 @@ def get_handle(
     Returns the dataclass IOHandles
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
-    if encoding is None:
-        encoding = "utf-8"
+    encoding_passed, encoding = encoding, encoding or "utf-8"
 
     # read_csv does not know whether the buffer is opened in binary/text mode
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
@@ -641,6 +647,9 @@ def get_handle(
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
         if ioargs.encoding and "b" not in ioargs.mode:
+            if errors is None and encoding_passed is None:
+                # ignore errors when no encoding is specified
+                errors = "replace"
             # Encoding
             handle = open(
                 handle,
@@ -775,7 +784,7 @@ class _MMapWrapper(abc.Iterator):
             return lambda: self.attributes[name]
         return getattr(self.mmap, name)
 
-    def __iter__(self) -> "_MMapWrapper":
+    def __iter__(self) -> _MMapWrapper:
         return self
 
     def __next__(self) -> str:
@@ -848,9 +857,15 @@ def file_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
 
 def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     """Whether the handle is opened in binary mode"""
-    # classes that expect bytes
-    binary_classes = [BufferedIOBase, RawIOBase]
+    # specified by user
+    if "t" in mode or "b" in mode:
+        return "b" in mode
 
-    return isinstance(handle, tuple(binary_classes)) or "b" in getattr(
-        handle, "mode", mode
-    )
+    # classes that expect string but have 'b' in mode
+    text_classes = (codecs.StreamWriter, codecs.StreamReader, codecs.StreamReaderWriter)
+    if issubclass(type(handle), text_classes):
+        return False
+
+    # classes that expect bytes
+    binary_classes = (BufferedIOBase, RawIOBase)
+    return isinstance(handle, binary_classes) or "b" in getattr(handle, "mode", mode)

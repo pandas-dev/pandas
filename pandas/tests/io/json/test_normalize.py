@@ -1,13 +1,16 @@
-from contextlib import nullcontext as does_not_raise
 import json
 
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame, Index, Series, json_normalize
 import pandas._testing as tm
 
 from pandas.io.json._normalize import nested_to_record
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture
@@ -170,19 +173,21 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "data, record_path, error",
+        "data, record_path, exception_type",
         [
-            ([{"a": 0}, {"a": 1}], None, does_not_raise()),
-            ({"a": [{"a": 0}, {"a": 1}]}, "a", does_not_raise()),
-            ('{"a": [{"a": 0}, {"a": 1}]}', None, pytest.raises(NotImplementedError)),
-            (None, None, pytest.raises(NotImplementedError)),
+            ([{"a": 0}, {"a": 1}], None, None),
+            ({"a": [{"a": 0}, {"a": 1}]}, "a", None),
+            ('{"a": [{"a": 0}, {"a": 1}]}', None, NotImplementedError),
+            (None, None, NotImplementedError),
         ],
     )
-    def test_accepted_input(self, data, record_path, error):
-        with error:
+    def test_accepted_input(self, data, record_path, exception_type):
+        if exception_type is not None:
+            with pytest.raises(exception_type, match=tm.EMPTY_STRING_PATTERN):
+                json_normalize(data, record_path=record_path)
+        else:
             result = json_normalize(data, record_path=record_path)
             expected = DataFrame([0, 1], columns=["a"])
-
             tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize_with_separator(self, deep_nested):

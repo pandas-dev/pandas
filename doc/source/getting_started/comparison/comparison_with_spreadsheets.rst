@@ -14,7 +14,7 @@ terminology and link to documentation for Excel, but much will be the same/simil
 `Apple Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
 Excel-compatible spreadsheet software.
 
-.. include:: comparison_boilerplate.rst
+.. include:: includes/introduction.rst
 
 Data structures
 ---------------
@@ -35,7 +35,7 @@ General terminology translation
 ``DataFrame``
 ~~~~~~~~~~~~~
 
-A ``DataFrame`` in pandas is analogous to an Excel worksheet. While an Excel worksheet can contain
+A ``DataFrame`` in pandas is analogous to an Excel worksheet. While an Excel workbook can contain
 multiple worksheets, pandas ``DataFrame``\s exist independently.
 
 ``Series``
@@ -52,9 +52,12 @@ pandas, if no index is specified, a :class:`~pandas.RangeIndex` is used by defau
 second row = 1, and so on), analogous to row headings/numbers in spreadsheets.
 
 In pandas, indexes can be set to one (or multiple) unique values, which is like having a column that
-use use as the row identifier in a worksheet. Unlike spreadsheets, these ``Index`` values can actually be
-used to reference the rows. For example, in spreadsheets, you would reference the first row as ``A1:Z1``,
-while in pandas you could use ``populations.loc['Chicago']``.
+is used as the row identifier in a worksheet. Unlike most spreadsheets, these ``Index`` values can
+actually be used to reference the rows. (Note that `this can be done in Excel with structured
+references
+<https://support.microsoft.com/en-us/office/using-structured-references-with-excel-tables-f5ed2452-2337-4f71-bed3-c8ae6d2b276e>`_.)
+For example, in spreadsheets, you would reference the first row as ``A1:Z1``, while in pandas you
+could use ``populations.loc['Chicago']``.
 
 Index values are also persistent, so if you re-order the rows in a ``DataFrame``, the label for a
 particular row don't change.
@@ -62,22 +65,29 @@ particular row don't change.
 See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index``
 effectively.
 
-Commonly used spreadsheet functionalities
------------------------------------------
 
-Importing data
-~~~~~~~~~~~~~~
+Copies vs. in place operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. include:: includes/copies.rst
+
+
+Data input / output
+-------------------
+
+Constructing a DataFrame from values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In a spreadsheet, `values can be typed directly into cells <https://support.microsoft.com/en-us/office/enter-data-manually-in-worksheet-cells-c798181d-d75a-41b1-92ad-6c0800f80038>`_.
+
+.. include:: includes/construct_dataframe.rst
+
+Reading external data
+~~~~~~~~~~~~~~~~~~~~~
 
 Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-external-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`__
 and :ref:`pandas <10min_tut_02_read_write>` can import data from various sources in various
 formats.
-
-Excel files
-'''''''''''
-
-Excel opens `various Excel file formats <https://support.microsoft.com/en-us/office/file-formats-that-are-supported-in-excel-0943ff2c-6014-4e8d-aaea-b83d51d46247>`_
-by double-clicking them, or using `the Open menu <https://support.microsoft.com/en-us/office/open-files-from-the-file-menu-97f087d8-3136-4485-8e86-c5b12a8c4176>`_.
-In pandas, you use :ref:`special methods for reading and writing from/to Excel files <io.excel>`.
 
 CSV
 '''
@@ -95,6 +105,269 @@ In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read
    )
    tips = pd.read_csv(url)
    tips
+
+Like `Excel's Text Import Wizard <https://support.microsoft.com/en-us/office/text-import-wizard-c5b02af6-fda1-4440-899f-f78bafe41857>`_,
+``read_csv`` can take a number of parameters to specify how the data should be parsed. For
+example, if the data was instead tab delimited, and did not have column names, the pandas command
+would be:
+
+.. code-block:: python
+
+   tips = pd.read_csv("tips.csv", sep="\t", header=None)
+
+   # alternatively, read_table is an alias to read_csv with tab delimiter
+   tips = pd.read_table("tips.csv", header=None)
+
+Excel files
+'''''''''''
+
+Excel opens `various Excel file formats <https://support.microsoft.com/en-us/office/file-formats-that-are-supported-in-excel-0943ff2c-6014-4e8d-aaea-b83d51d46247>`_
+by double-clicking them, or using `the Open menu <https://support.microsoft.com/en-us/office/open-files-from-the-file-menu-97f087d8-3136-4485-8e86-c5b12a8c4176>`_.
+In pandas, you use :ref:`special methods for reading and writing from/to Excel files <io.excel>`.
+
+Let's first :ref:`create a new Excel file <io.excel_writer>` based on the ``tips`` dataframe in the above example:
+
+.. code-block:: python
+
+    tips.to_excel("./tips.xlsx")
+
+Should you wish to subsequently access the data in the ``tips.xlsx`` file, you can read it into your module using
+
+.. code-block:: python
+
+    tips_df = pd.read_excel("./tips.xlsx", index_col=0)
+
+You have just read in an Excel file using pandas!
+
+
+Limiting output
+~~~~~~~~~~~~~~~
+
+Spreadsheet programs will only show one screenful of data at a time and then allow you to scroll, so
+there isn't really a need to limit output. In pandas, you'll need to put a little more thought into
+controlling how your ``DataFrame``\s are displayed.
+
+.. include:: includes/limit.rst
+
+
+Exporting data
+~~~~~~~~~~~~~~
+
+By default, desktop spreadsheet software will save to its respective file format (``.xlsx``, ``.ods``, etc). You can, however, `save to other file formats <https://support.microsoft.com/en-us/office/save-a-workbook-in-another-file-format-6a16c862-4a36-48f9-a300-c2ca0065286e>`_.
+
+:ref:`pandas can create Excel files <io.excel_writer>`, :ref:`CSV <io.store_in_csv>`, or :ref:`a number of other formats <io>`.
+
+Data operations
+---------------
+
+Operations on columns
+~~~~~~~~~~~~~~~~~~~~~
+
+In spreadsheets, `formulas
+<https://support.microsoft.com/en-us/office/overview-of-formulas-in-excel-ecfdc708-9162-49e8-b993-c311f47ca173>`_
+are often created in individual cells and then `dragged
+<https://support.microsoft.com/en-us/office/copy-a-formula-by-dragging-the-fill-handle-in-excel-for-mac-dd928259-622b-473f-9a33-83aa1a63e218>`_
+into other cells to compute them for other columns. In pandas, you're able to do operations on whole
+columns directly.
+
+.. include:: includes/column_operations.rst
+
+Note that we aren't having to tell it to do that subtraction cell-by-cell — pandas handles that for
+us. See :ref:`how to create new columns derived from existing columns <10min_tut_05_columns>`.
+
+
+Filtering
+~~~~~~~~~
+
+`In Excel, filtering is done through a graphical menu. <https://support.microsoft.com/en-us/office/filter-data-in-a-range-or-table-01832226-31b5-4568-8806-38c37dcc180e>`_
+
+.. image:: ../../_static/spreadsheets/filter.png
+   :alt: Screenshot showing filtering of the total_bill column to values greater than 10
+   :align: center
+
+.. include:: includes/filtering.rst
+
+If/then logic
+~~~~~~~~~~~~~
+
+Let's say we want to make a ``bucket`` column with values of ``low`` and ``high``, based on whether
+the ``total_bill`` is less or more than $10.
+
+In spreadsheets, logical comparison can be done with `conditional formulas
+<https://support.microsoft.com/en-us/office/create-conditional-formulas-ca916c57-abd8-4b44-997c-c309b7307831>`_.
+We'd use a formula of ``=IF(A2 < 10, "low", "high")``, dragged to all cells in a new ``bucket``
+column.
+
+.. image:: ../../_static/spreadsheets/conditional.png
+   :alt: Screenshot showing the formula from above in a bucket column of the tips spreadsheet
+   :align: center
+
+.. include:: includes/if_then.rst
+
+Date functionality
+~~~~~~~~~~~~~~~~~~
+
+*This section will refer to "dates", but timestamps are handled similarly.*
+
+We can think of date functionality in two parts: parsing, and output. In spreadsheets, date values
+are generally parsed automatically, though there is a `DATEVALUE
+<https://support.microsoft.com/en-us/office/datevalue-function-df8b07d4-7761-4a93-bc33-b7471bbff252>`_
+function if you need it. In pandas, you need to explicitly convert plain text to datetime objects,
+either :ref:`while reading from a CSV <io.read_csv_table.datetime>` or :ref:`once in a DataFrame
+<10min_tut_09_timeseries.properties>`.
+
+Once parsed, spreadsheets display the dates in a default format, though `the format can be changed
+<https://support.microsoft.com/en-us/office/format-a-date-the-way-you-want-8e10019e-d5d8-47a1-ba95-db95123d273e>`_.
+In pandas, you'll generally want to keep dates as ``datetime`` objects while you're doing
+calculations with them. Outputting *parts* of dates (such as the year) is done through `date
+functions
+<https://support.microsoft.com/en-us/office/date-and-time-functions-reference-fd1b5961-c1ae-4677-be58-074152f97b81>`_
+in spreadsheets, and :ref:`datetime properties <10min_tut_09_timeseries.properties>` in pandas.
+
+Given ``date1`` and ``date2`` in columns ``A`` and ``B`` of a spreadsheet, you might have these
+formulas:
+
+.. list-table::
+    :header-rows: 1
+    :widths: auto
+
+    * - column
+      - formula
+    * - ``date1_year``
+      - ``=YEAR(A2)``
+    * - ``date2_month``
+      - ``=MONTH(B2)``
+    * - ``date1_next``
+      - ``=DATE(YEAR(A2),MONTH(A2)+1,1)``
+    * - ``months_between``
+      - ``=DATEDIF(A2,B2,"M")``
+
+The equivalent pandas operations are shown below.
+
+.. include:: includes/time_date.rst
+
+See :ref:`timeseries` for more details.
+
+
+Selection of columns
+~~~~~~~~~~~~~~~~~~~~
+
+In spreadsheets, you can select columns you want by:
+
+- `Hiding columns <https://support.microsoft.com/en-us/office/hide-or-show-rows-or-columns-659c2cad-802e-44ee-a614-dde8443579f8>`_
+- `Deleting columns <https://support.microsoft.com/en-us/office/insert-or-delete-rows-and-columns-6f40e6e4-85af-45e0-b39d-65dd504a3246>`_
+- `Referencing a range <https://support.microsoft.com/en-us/office/create-or-change-a-cell-reference-c7b8b95d-c594-4488-947e-c835903cebaa>`_ from one worksheet into another
+
+Since spreadsheet columns are typically `named in a header row
+<https://support.microsoft.com/en-us/office/turn-excel-table-headers-on-or-off-c91d1742-312c-4480-820f-cf4b534c8b3b>`_,
+renaming a column is simply a matter of changing the text in that first cell.
+
+.. include:: includes/column_selection.rst
+
+
+Sorting by values
+~~~~~~~~~~~~~~~~~
+
+Sorting in spreadsheets is accomplished via `the sort dialog <https://support.microsoft.com/en-us/office/sort-data-in-a-range-or-table-62d0b95d-2a90-4610-a6ae-2e545c4a4654>`_.
+
+.. image:: ../../_static/spreadsheets/sort.png
+   :alt: Screenshot of dialog from Excel showing sorting by the sex then total_bill columns
+   :align: center
+
+.. include:: includes/sorting.rst
+
+String processing
+-----------------
+
+Finding length of string
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+In spreadsheets, the number of characters in text can be found with the `LEN
+<https://support.microsoft.com/en-us/office/len-lenb-functions-29236f94-cedc-429d-affd-b5e33d2c67cb>`_
+function. This can be used with the `TRIM
+<https://support.microsoft.com/en-us/office/trim-function-410388fa-c5df-49c6-b16c-9e5630b479f9>`_
+function to remove extra whitespace.
+
+::
+
+   =LEN(TRIM(A2))
+
+.. include:: includes/length.rst
+
+Note this will still include multiple spaces within the string, so isn't 100% equivalent.
+
+
+Finding position of substring
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `FIND
+<https://support.microsoft.com/en-us/office/find-findb-functions-c7912941-af2a-4bdf-a553-d0d89b0a0628>`_
+spreadsheet function returns the position of a substring, with the first character being ``1``.
+
+.. image:: ../../_static/spreadsheets/sort.png
+   :alt: Screenshot of FIND formula being used in Excel
+   :align: center
+
+.. include:: includes/find_substring.rst
+
+
+Extracting substring by position
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Spreadsheets have a `MID
+<https://support.microsoft.com/en-us/office/mid-midb-functions-d5f9e25c-d7d6-472e-b568-4ecb12433028>`_
+formula for extracting a substring from a given position. To get the first character::
+
+   =MID(A2,1,1)
+
+.. include:: includes/extract_substring.rst
+
+
+Extracting nth word
+~~~~~~~~~~~~~~~~~~~
+
+In Excel, you might use the `Text to Columns Wizard
+<https://support.microsoft.com/en-us/office/split-text-into-different-columns-with-the-convert-text-to-columns-wizard-30b14928-5550-41f5-97ca-7a3e9c363ed7>`_
+for splitting text and retrieving a specific column. (Note `it's possible to do so through a formula
+as well <https://exceljet.net/formula/extract-nth-word-from-text-string>`_.)
+
+.. include:: includes/nth_word.rst
+
+
+Changing case
+~~~~~~~~~~~~~
+
+Spreadsheets provide `UPPER, LOWER, and PROPER functions
+<https://support.microsoft.com/en-us/office/change-the-case-of-text-01481046-0fa7-4f3b-a693-496795a7a44d>`_
+for converting text to upper, lower, and title case, respectively.
+
+.. include:: includes/case.rst
+
+
+Merging
+-------
+
+.. include:: includes/merge_setup.rst
+
+In Excel, there are `merging of tables can be done through a VLOOKUP
+<https://support.microsoft.com/en-us/office/how-can-i-merge-two-or-more-tables-c80a9fce-c1ab-4425-bb96-497dd906d656>`_.
+
+.. image:: ../../_static/spreadsheets/vlookup.png
+   :alt: Screenshot showing a VLOOKUP formula between two tables in Excel, with some values being filled in and others with "#N/A"
+   :align: center
+
+.. include:: includes/merge.rst
+
+``merge`` has a number of advantages over ``VLOOKUP``:
+
+* The lookup value doesn't need to be the first column of the lookup table
+* If multiple rows are matched, there will be one row for each match, instead of just the first
+* It will include all columns from the lookup table, instead of just a single specified column
+* It supports :ref:`more complex join operations <merging.join>`
+
+
+Other considerations
+--------------------
 
 Fill Handle
 ~~~~~~~~~~~
@@ -117,21 +390,6 @@ This can be achieved by creating a series and assigning it to the desired cells.
 
     df
 
-Filters
-~~~~~~~
-
-Filters can be achieved by using slicing.
-
-The examples filter by 0 on column AAA, and also show how to filter by multiple
-values.
-
-.. ipython:: python
-
-   df[df.AAA == 0]
-
-   df[(df.AAA == 0) | (df.AAA == 2)]
-
-
 Drop Duplicates
 ~~~~~~~~~~~~~~~
 
@@ -152,7 +410,6 @@ This is supported in pandas via :meth:`~DataFrame.drop_duplicates`.
 
     df.drop_duplicates(["class", "student_count"])
 
-
 Pivot Tables
 ~~~~~~~~~~~~
 
@@ -162,7 +419,8 @@ let's find the average gratuity by size of the party and sex of the server.
 
 In Excel, we use the following configuration for the PivotTable:
 
-.. image:: ../../_static/excel_pivot.png
+.. image:: ../../_static/spreadsheets/pivot.png
+   :alt: Screenshot showing a PivotTable in Excel, using sex as the column, size as the rows, then average tip as the values
    :align: center
 
 The equivalent in pandas:
@@ -173,81 +431,34 @@ The equivalent in pandas:
         tips, values="tip", index=["size"], columns=["sex"], aggfunc=np.average
     )
 
-Formulas
-~~~~~~~~
-
-In spreadsheets, `formulas <https://support.microsoft.com/en-us/office/overview-of-formulas-in-excel-ecfdc708-9162-49e8-b993-c311f47ca173>`_
-are often created in individual cells and then `dragged <https://support.microsoft.com/en-us/office/copy-a-formula-by-dragging-the-fill-handle-in-excel-for-mac-dd928259-622b-473f-9a33-83aa1a63e218>`_
-into other cells to compute them for other columns. In pandas, you'll be doing more operations on
-full columns.
-
-As an example, let's create a new column "girls_count" and try to compute the number of boys in
-each class.
-
-.. ipython:: python
-
-    df["girls_count"] = [21, 12, 21, 31, 23, 17]
-    df
-    df["boys_count"] = df["student_count"] - df["girls_count"]
-    df
-
-Note that we aren't having to tell it to do that subtraction cell-by-cell — pandas handles that for
-us. See :ref:`how to create new columns derived from existing columns <10min_tut_05_columns>`.
-
-VLOOKUP
-~~~~~~~
-
-.. ipython:: python
-
-    import random
-
-    first_names = [
-        "harry",
-        "ron",
-        "hermione",
-        "rubius",
-        "albus",
-        "severus",
-        "luna",
-    ]
-    keys = [1, 2, 3, 4, 5, 6, 7]
-    df1 = pd.DataFrame({"keys": keys, "first_names": first_names})
-    df1
-
-    surnames = [
-        "hadrid",
-        "malfoy",
-        "lovegood",
-        "dumbledore",
-        "grindelwald",
-        "granger",
-        "weasly",
-        "riddle",
-        "longbottom",
-        "snape",
-    ]
-    keys = [random.randint(1, 7) for x in range(0, 10)]
-    random_names = pd.DataFrame({"surnames": surnames, "keys": keys})
-
-    random_names
-
-    random_names.merge(df1, on="keys", how="left")
 
 Adding a row
 ~~~~~~~~~~~~
 
-To appended a row, we can just assign values to an index using :meth:`~DataFrame.loc`.
-
-NOTE: If the index already exists, the values in that index will be over written.
+Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.), we can use :meth:`DataFrame.append` to add a row to the bottom of a ``DataFrame``.
 
 .. ipython:: python
 
-    df1.loc[7] = [8, "tonks"]
-    df1
+    df
+    new_row = {"class": "E", "student_count": 51, "all_pass": True}
+    df.append(new_row, ignore_index=True)
 
 
-Search and Replace
-~~~~~~~~~~~~~~~~~~
+Find and Replace
+~~~~~~~~~~~~~~~~
 
-The ``replace`` method that comes associated with the ``DataFrame`` object can perform
-this function. Please see `pandas.DataFrame.replace <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.replace.html>`__ for examples.
+`Excel's Find dialog <https://support.microsoft.com/en-us/office/find-or-replace-text-and-numbers-on-a-worksheet-0e304ca5-ecef-4808-b90f-fdb42f892e90>`_
+takes you to cells that match, one by one. In pandas, this operation is generally done for an
+entire column or ``DataFrame`` at once through :ref:`conditional expressions <10min_tut_03_subset.rows_and_columns>`.
+
+.. ipython:: python
+
+    tips
+    tips == "Sun"
+    tips["day"].str.contains("S")
+
+pandas' :meth:`~DataFrame.replace` is comparable to Excel's ``Replace All``.
+
+.. ipython:: python
+
+    tips.replace("Thur", "Thu")

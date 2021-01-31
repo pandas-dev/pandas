@@ -17,7 +17,7 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
 
-.. include:: titanic.rst
+.. include:: includes/titanic.rst
 
 .. ipython:: python
 
@@ -267,6 +267,8 @@ For more dedicated functions on missing values, see the user guide section about
 .. raw:: html
 
     </div>
+
+.. _10min_tut_03_subset.rows_and_columns:
 
 How do I select specific rows and columns from a ``DataFrame``?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,3 +1,18 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import numpy as np
 import pytest
 
@@ -142,9 +157,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
         else:
             # ... but not the rest.
             super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_error(self, data, all_arithmetic_operators):
-        pass
 
     def test_divmod_series_array(self):
         # GH 23287
