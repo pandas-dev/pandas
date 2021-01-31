@@ -50,7 +50,6 @@ def test_read_csv_with_custom_date_parser(all_parsers):
         41051.00 -98573.7302 871458.0640 389.0086
         """
     )
-
     result = all_parsers.read_csv(
         testdata,
         delim_whitespace=True,
@@ -58,14 +57,15 @@ def test_read_csv_with_custom_date_parser(all_parsers):
         date_parser=__custom_date_parser,
         index_col="time",
     )
-
+    time = [41047, 41048, 41049, 41050, 41051]
+    time = pd.TimedeltaIndex([pd.to_timedelta(i, unit="s") for i in time])
     expected = DataFrame(
         {
             "e": [-98573.7297, -98573.7299, -98573.7300, -98573.7299, -98573.7302],
             "n": [871458.0640, 871458.0640, 871458.0642, 871458.0643, 871458.0640],
             "h": [389.0089, 389.0089, 389.0088, 389.0088, 389.0086],
         },
-        index=[41047, 41048, 41049, 41050, 41051],
+        index=time,
     )
 
     tm.assert_frame_equal(result, expected)
