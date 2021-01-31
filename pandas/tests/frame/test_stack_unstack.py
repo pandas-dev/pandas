@@ -1948,8 +1948,8 @@ Thur,Lunch,Yes,51.51,17"""
         )
         result = df.stack(2)
         expected = DataFrame(
-            [[0.0, 0.0, 0.0], [np.nan, 0.0, 0.0], [0.0, 0.0, 0.0]],
-            index=Index([(0, np.nan), (0, 0), (0, 1)]),
-            columns=Index([(0, np.nan), (0, 2), (0, 3)]),
+            [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
+            index=Index([(0, None), (0, 0), (0, 1)]),
+            columns=Index([(0, None), (0, 2), (0, 3)]),
         )
         tm.assert_frame_equal(result, expected)

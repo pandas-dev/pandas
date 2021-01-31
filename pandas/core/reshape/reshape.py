@@ -647,7 +647,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     new_data = {}
     level_vals = this.columns.levels[-1]
     level_codes = sorted(set(this.columns.codes[-1]))
-    level_vals_used = level_vals[level_codes]
+    level_vals_nan = level_vals.insert(len(level_vals), None)
+
+    level_vals_used = np.take(level_vals_nan, level_codes)
     levsize = len(level_codes)
     drop_cols = []
     for key in unique_groups:
@@ -668,7 +670,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
-            chunk.columns = level_vals.take(chunk.columns.codes[-1])
+            chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if frame._is_homogeneous_type and is_extension_array_dtype(
