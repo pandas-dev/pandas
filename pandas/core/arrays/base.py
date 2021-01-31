@@ -776,7 +776,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self) -> "ExtensionArray":
+    def unique(self) -> ExtensionArray:
         """
         Compute the ExtensionArray of unique values.
 
@@ -873,7 +873,7 @@ class ExtensionArray:
             equal_na = self.isna() & other.isna()
             return bool((equal_values | equal_na).all())
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values: Union[ExtensionArray, Sequence[Any]]) -> np.ndarray:
         """
         Pointwise comparison for set containment in the given values.
 
@@ -1288,7 +1288,9 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
 
-    def delete(self: ExtensionArrayT, loc) -> ExtensionArrayT:
+    def delete(
+        self: ExtensionArrayT, loc: Union[int, Sequence[int]]
+    ) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
