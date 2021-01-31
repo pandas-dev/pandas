@@ -503,14 +503,14 @@ class OpenpyxlReader(BaseExcelReader):
 
         from openpyxl.cell.cell import TYPE_BOOL, TYPE_ERROR, TYPE_NUMERIC
 
-        if cell.is_date:
+        if cell.value is None:
+            return ""  # compat with xlrd
+        elif cell.is_date:
             return cell.value
         elif cell.data_type == TYPE_ERROR:
             return np.nan
         elif cell.data_type == TYPE_BOOL:
             return bool(cell.value)
-        elif cell.value is None:
-            return ""  # compat with xlrd
         elif cell.data_type == TYPE_NUMERIC:
             # GH5394
             if convert_float:
@@ -529,11 +529,18 @@ class OpenpyxlReader(BaseExcelReader):
         sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
-        for row in sheet.rows:
-            data.append([self._convert_cell(cell, convert_float) for cell in row])
+        last_row_with_data = -1
+        for row_number, row in enumerate(sheet.rows):
+            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            if any(cell != "" for cell in converted_row):
+                last_row_with_data = row_number
+            data.append(converted_row)
 
-        # With dimension reset, openpyxl no longer pads rows
         if len(data) > 0:
+            # Trim trailing rows that have no data
+            data = data[: last_row_with_data + 1]
+
+            # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:
                 data = [
