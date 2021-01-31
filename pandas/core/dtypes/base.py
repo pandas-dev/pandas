@@ -199,7 +199,7 @@ class ExtensionDtype:
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string: str) -> "ExtensionDtype":
+    def construct_from_string(cls, string: str) -> ExtensionDtype:
         r"""
         Construct this type from a string.
 
