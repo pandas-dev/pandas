@@ -632,8 +632,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         levs = []
         for lev, level_codes in zip(this.columns.levels[:-1], this.columns.codes[:-1]):
             if -1 in level_codes:
-                lev = lev.tolist()
-                lev.append(None)
+                lev = np.append(lev, None)
             levs.append(np.take(lev, level_codes))
         tuples = list(zip(*levs))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
