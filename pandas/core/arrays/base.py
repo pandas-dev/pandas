@@ -15,7 +15,6 @@ from typing import (
     Callable,
     Dict,
     Iterator,
-    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -53,6 +52,8 @@ from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
 if TYPE_CHECKING:
+
+    from typing import Literal
 
     class _dummy:
         ...
