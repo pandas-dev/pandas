@@ -127,13 +127,17 @@ def setop_check(method):
     def wrapped(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
-        if not isinstance(other, IntervalIndex):
-            result = getattr(self.astype(object), op_name)(other)
-            if op_name in ("difference",):
-                result = result.astype(self.dtype)
-            return result
+        if op_name == "difference":
+            if not isinstance(other, IntervalIndex):
+                result = getattr(self.astype(object), op_name)(other, sort=sort)
+                return result.astype(self.dtype)
+
+            elif not self._should_compare(other):
+                # GH#19016: ensure set op will not return a prohibited dtype
+                result = getattr(self.astype(object), op_name)(other, sort=sort)
+                return result.astype(self.dtype)
 
         return method(self, other, sort)
 
@@ -725,7 +729,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @property
-    def _index_as_unique(self):
+    def _index_as_unique(self) -> bool:
         return not self.is_overlapping
 
     _requires_unique_msg = (
@@ -818,19 +822,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result = IntervalArray(values)
         return type(self)._simple_new(result, name=self.name)
 
-    def delete(self, loc):
-        """
-        Return a new IntervalIndex with passed location(-s) deleted
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        new_left = self.left.delete(loc)
-        new_right = self.right.delete(loc)
-        result = self._data._shallow_copy(new_left, new_right)
-        return type(self)._simple_new(result, name=self.name)
-
     def insert(self, loc, item):
         """
         Return a new IntervalIndex inserting new item at location. Follows
@@ -912,17 +903,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _assert_can_do_setop(self, other):
-        super()._assert_can_do_setop(other)
-
-        if isinstance(other, IntervalIndex) and not self._should_compare(other):
-            # GH#19016: ensure set op will not return a prohibited dtype
-            raise TypeError(
-                "can only do set operations between two IntervalIndex "
-                "objects that are closed on the same side "
-                "and have compatible dtypes"
-            )
-
     def _intersection(self, other, sort):
         """
         intersection specialized to the case with matching dtypes.
@@ -943,7 +923,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return taken
 
-    def _intersection_unique(self, other: "IntervalIndex") -> IntervalIndex:
+    def _intersection_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does not have any common endpoint,
         no matter left or right.
@@ -966,7 +946,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return self.take(indexer)
 
-    def _intersection_non_unique(self, other: "IntervalIndex") -> IntervalIndex:
+    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does have some common endpoints,
         on either sides.
@@ -1014,7 +994,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return setop_check(func)
 
     _union = _setop("union")
-    difference = _setop("difference")
+    _difference = _setop("difference")
 
     # --------------------------------------------------------------------
 

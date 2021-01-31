@@ -7,7 +7,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -17,6 +17,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    IndexSlice,
     MultiIndex,
     Series,
     SparseDtype,
@@ -2130,3 +2131,17 @@ class TestLocSeries:
         ser = Series(0, index=list("abcde"), dtype=object)
         ser.iloc[0] = arr
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("indexer", [IndexSlice["A", :], ("A", slice(None))])
+    def test_loc_series_getitem_too_many_dimensions(self, indexer):
+        # GH#35349
+        ser = Series(
+            index=MultiIndex.from_tuples([("A", "0"), ("A", "1"), ("B", "0")]),
+            data=[21, 22, 23],
+        )
+        msg = "Too many indices"
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[indexer, :]
+
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[indexer, :] = 1

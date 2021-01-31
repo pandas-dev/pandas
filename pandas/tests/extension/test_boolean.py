@@ -143,11 +143,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # override to not raise an error
         super()._check_divmod_op(s, op, other, None)
 
-    @pytest.mark.skip(reason="BooleanArray does not error on ops")
-    def test_error(self, data, all_arithmetic_operators):
-        # other specific errors tested in the boolean array specific tests
-        pass
-
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         # frame & scalar
         op_name = all_arithmetic_operators
