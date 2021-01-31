@@ -817,25 +817,25 @@ def assert_extension_array_equal(
 
 # This could be refactored to use the NDFrame.equals method
 def assert_series_equal(
-    left,
-    right,
-    check_dtype=True,
-    check_index_type="equiv",
-    check_series_type=True,
-    check_less_precise=no_default,
-    check_names=True,
-    check_exact=False,
-    check_datetimelike_compat=False,
-    check_categorical=True,
-    check_category_order=True,
-    check_freq=True,
-    check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
-    obj="Series",
+    left: Series,
+    right: Series,
+    check_dtype: Union[bool, str] = True,
+    check_index_type: Union[bool, str] = "equiv",
+    check_series_type: bool = True,
+    check_less_precise: Union[bool, int] = no_default,
+    check_names: bool = True,
+    check_exact: bool = False,
+    check_datetimelike_compat: bool = False,
+    check_categorical: bool = True,
+    check_category_order: bool = True,
+    check_freq: bool = True,
+    check_flags: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
+    obj: str = "Series",
     *,
-    check_index=True,
-):
+    check_index: bool = True,
+) -> None:
     """
     Check that left and right Series are equal.
 
@@ -843,7 +843,7 @@ def assert_series_equal(
     ----------
     left : Series
     right : Series
-    check_dtype : bool, default True
+    check_dtype : bool or {'equiv'}, default True
         Whether to check the Series dtype is identical.
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
@@ -949,7 +949,11 @@ def assert_series_equal(
             obj=f"{obj}.index",
         )
 
-    if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
+    if (
+        check_freq
+        and isinstance(left.index, (DatetimeIndex, TimedeltaIndex))
+        and isinstance(right.index, (DatetimeIndex, TimedeltaIndex))
+    ):
         lidx = left.index
         ridx = right.index
         assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
@@ -1066,25 +1070,25 @@ def assert_series_equal(
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(
-    left,
-    right,
-    check_dtype=True,
-    check_index_type="equiv",
-    check_column_type="equiv",
-    check_frame_type=True,
-    check_less_precise=no_default,
-    check_names=True,
-    by_blocks=False,
-    check_exact=False,
-    check_datetimelike_compat=False,
-    check_categorical=True,
-    check_like=False,
-    check_freq=True,
-    check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
-    obj="DataFrame",
-):
+    left: DataFrame,
+    right: DataFrame,
+    check_dtype: Union[bool, str] = True,
+    check_index_type: Union[bool, str] = "equiv",
+    check_column_type: Union[bool, str] = "equiv",
+    check_frame_type: bool = True,
+    check_less_precise: Union[bool, int] = no_default,
+    check_names: bool = True,
+    by_blocks: bool = False,
+    check_exact: bool = False,
+    check_datetimelike_compat: bool = False,
+    check_categorical: bool = True,
+    check_like: bool = False,
+    check_freq: bool = True,
+    check_flags: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
+    obj: str = "DataFrame",
+) -> None:
     """
     Check that left and right DataFrame are equal.
 
@@ -1099,7 +1103,7 @@ def assert_frame_equal(
         First DataFrame to compare.
     right : DataFrame
         Second DataFrame to compare.
-    check_dtype : bool, default True
+    check_dtype : bool or {'equiv'}, default True
         Whether to check the DataFrame dtype is identical.
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
