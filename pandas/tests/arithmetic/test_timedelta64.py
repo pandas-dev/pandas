@@ -2098,11 +2098,8 @@ class TestTimedeltaArraylikeMulDivOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        xbox = (
-            Series
-            if (box is pd.Index or box is tm.to_array or box is pd.array)
-            else box
-        )
+        xbox = get_upcast_box(box, ser)
+
         expected = tm.box_expected(expected, xbox)
 
         result = ser * tdi
@@ -2133,9 +2130,7 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = box
-        if box in [pd.Index, tm.to_array, pd.array] and type(ser) is Series:
-            xbox = Series
+        xbox = get_upcast_box(box, ser)
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)
