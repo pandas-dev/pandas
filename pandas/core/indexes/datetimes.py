@@ -557,8 +557,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "hour",
             "minute",
             "second",
-            "minute",
-            "second",
             "millisecond",
             "microsecond",
         }
