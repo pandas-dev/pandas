@@ -213,17 +213,17 @@ class FloatingArray(NumericArray):
     --------
     Create an FloatingArray with :func:`pandas.array`:
 
-    >>> pd.array([0.1, None, 0.3], dtype=pd.Float32Dtype())
+    >>> pd.array([0.1, None, 0.3], dtype=pd.Float64Dtype())
     <FloatingArray>
     [0.1, <NA>, 0.3]
-    Length: 3, dtype: Float32
+    Length: 3, dtype: Float64
 
     String aliases for the dtypes are also available. They are capitalized.
 
-    >>> pd.array([0.1, None, 0.3], dtype="Float32")
+    >>> pd.array([0.1, None, 0.3], dtype="Float64")
     <FloatingArray>
     [0.1, <NA>, 0.3]
-    Length: 3, dtype: Float32
+    Length: 3, dtype: Float64
     """
 
     # The value used to fill '_data' to avoid upcasting
