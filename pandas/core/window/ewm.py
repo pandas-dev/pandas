@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import datetime
 from functools import partial
 from textwrap import dedent
 from typing import TYPE_CHECKING, Optional, Union
+import warnings
 
 import numpy as np
 
@@ -77,7 +80,7 @@ def get_center_of_mass(
     return float(comass)
 
 
-def wrap_result(obj: "Series", result: np.ndarray) -> "Series":
+def wrap_result(obj: Series, result: np.ndarray) -> Series:
     """
     Wrap a single 1D result.
     """
@@ -358,7 +361,16 @@ class ExponentialMovingWindow(BaseWindow):
         nv.validate_window_func("std", args, kwargs)
         return zsqrt(self.var(bias=bias, **kwargs))
 
-    vol = std
+    def vol(self, bias: bool = False, *args, **kwargs):
+        warnings.warn(
+            (
+                "vol is deprecated will be removed in a future version. "
+                "Use std instead."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.std(bias, *args, **kwargs)
 
     @Substitution(name="ewm", func_name="var")
     @Appender(_doc_template)

@@ -1084,11 +1084,18 @@ cdef class TextReader:
         elif is_extension_array_dtype(dtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
+
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                result = array_type._from_sequence_of_strings(result,
-                                                              dtype=dtype)
+                if is_bool_dtype(dtype):
+                    true_values = [x.decode() for x in self.true_values]
+                    false_values = [x.decode() for x in self.false_values]
+                    result = array_type._from_sequence_of_strings(
+                        result, dtype=dtype, true_values=true_values,
+                        false_values=false_values)
+                else:
+                    result = array_type._from_sequence_of_strings(result, dtype=dtype)
             except NotImplementedError:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "

@@ -32,7 +32,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
-from pandas.core.internals.blocks import IntBlock
+from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
@@ -1010,7 +1010,7 @@ class TestSeriesConstructors:
         # construction from interval & array of intervals
         intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
-        assert result.dtype == "interval[int64]"
+        assert result.dtype == "interval[int64, right]"
         tm.assert_index_equal(Index(result.values), Index(intervals))
 
     @pytest.mark.parametrize(
@@ -1021,7 +1021,7 @@ class TestSeriesConstructors:
         data = [Interval(0, 1), Interval(0, 2), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
-        assert result.dtype == "interval[float64]"
+        assert result.dtype == "interval[float64, right]"
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1622,6 +1622,14 @@ class TestSeriesConstructors:
         # it works! GH#2443
         repr(series.index[0])
 
+    def test_constructor_with_pandas_dtype(self):
+        # going through 2D->1D path
+        vals = [(1,), (2,), (3,)]
+        ser = Series(vals)
+        dtype = ser.array.dtype  # PandasDtype
+        ser2 = Series(vals, dtype=dtype)
+        tm.assert_series_equal(ser, ser2)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
@@ -1649,7 +1657,7 @@ class TestSeriesConstructorInternals:
         ser = Series([1, 2, 3])
         result = Series(ser.array)
         tm.assert_series_equal(ser, result)
-        assert isinstance(result._mgr.blocks[0], IntBlock)
+        assert isinstance(result._mgr.blocks[0], NumericBlock)
 
     def test_from_array(self):
         result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
