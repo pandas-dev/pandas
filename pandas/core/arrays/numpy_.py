@@ -1,115 +1,22 @@
+from __future__ import annotations
+
 import numbers
-from typing import Tuple, Type, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
-from pandas._typing import Scalar
+from pandas._typing import Dtype, NpDtype, Scalar
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.strings.object_array import ObjectStringArrayMixin
-
-
-class PandasDtype(ExtensionDtype):
-    """
-    A Pandas ExtensionDtype for NumPy dtypes.
-
-    .. versionadded:: 0.24.0
-
-    This is mostly for internal compatibility, and is not especially
-    useful on its own.
-
-    Parameters
-    ----------
-    dtype : object
-        Object to be converted to a NumPy data type object.
-
-    See Also
-    --------
-    numpy.dtype
-    """
-
-    _metadata = ("_dtype",)
-
-    def __init__(self, dtype: object):
-        self._dtype = np.dtype(dtype)
-
-    def __repr__(self) -> str:
-        return f"PandasDtype({repr(self.name)})"
-
-    @property
-    def numpy_dtype(self) -> np.dtype:
-        """
-        The NumPy dtype this PandasDtype wraps.
-        """
-        return self._dtype
-
-    @property
-    def name(self) -> str:
-        """
-        A bit-width name for this data-type.
-        """
-        return self._dtype.name
-
-    @property
-    def type(self) -> Type[np.generic]:
-        """
-        The type object used to instantiate a scalar of this NumPy data-type.
-        """
-        return self._dtype.type
-
-    @property
-    def _is_numeric(self) -> bool:
-        # exclude object, str, unicode, void.
-        return self.kind in set("biufc")
-
-    @property
-    def _is_boolean(self) -> bool:
-        return self.kind == "b"
-
-    @classmethod
-    def construct_from_string(cls, string: str) -> "PandasDtype":
-        try:
-            dtype = np.dtype(string)
-        except TypeError as err:
-            if not isinstance(string, str):
-                msg = f"'construct_from_string' expects a string, got {type(string)}"
-            else:
-                msg = f"Cannot construct a 'PandasDtype' from '{string}'"
-            raise TypeError(msg) from err
-        return cls(dtype)
-
-    @classmethod
-    def construct_array_type(cls) -> Type["PandasArray"]:
-        """
-        Return the array type associated with this dtype.
-
-        Returns
-        -------
-        type
-        """
-        return PandasArray
-
-    @property
-    def kind(self) -> str:
-        """
-        A character code (one of 'biufcmMOSUV') identifying the general kind of data.
-        """
-        return self._dtype.kind
-
-    @property
-    def itemsize(self) -> int:
-        """
-        The element size of this data-type object.
-        """
-        return self._dtype.itemsize
 
 
 class PandasArray(
@@ -153,7 +60,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: Union[np.ndarray, "PandasArray"], copy: bool = False):
+    def __init__(self, values: Union[np.ndarray, PandasArray], copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -173,8 +80,8 @@ class PandasArray(
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
-    ) -> "PandasArray":
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+    ) -> PandasArray:
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
@@ -184,10 +91,10 @@ class PandasArray(
         return cls(result)
 
     @classmethod
-    def _from_factorized(cls, values, original) -> "PandasArray":
+    def _from_factorized(cls, values, original) -> PandasArray:
         return cls(values)
 
-    def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
+    def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
 
     # ------------------------------------------------------------------------
@@ -200,7 +107,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
@@ -311,7 +218,15 @@ class PandasArray(
         )
         return self._wrap_reduction_result(axis, result)
 
-    def mean(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def mean(
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        keepdims=False,
+        skipna=True,
+    ):
         nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
         result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
@@ -326,7 +241,14 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def std(
-        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        ddof=1,
+        keepdims=False,
+        skipna=True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
@@ -335,7 +257,14 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def var(
-        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        ddof=1,
+        keepdims=False,
+        skipna=True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
@@ -344,7 +273,14 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def sem(
-        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        ddof=1,
+        keepdims=False,
+        skipna=True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
@@ -352,14 +288,30 @@ class PandasArray(
         result = nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
 
-    def kurt(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def kurt(
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        keepdims=False,
+        skipna=True,
+    ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
         )
         result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def skew(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def skew(
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        keepdims=False,
+        skipna=True,
+    ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
         )
@@ -370,7 +322,10 @@ class PandasArray(
     # Additional Methods
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 

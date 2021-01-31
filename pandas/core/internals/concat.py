@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import copy
+import itertools
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
 import numpy as np
 
 from pandas._libs import NaT, internals as libinternals
-from pandas._typing import ArrayLike, DtypeObj, Shape
+from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -25,6 +28,7 @@ from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray
+from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
@@ -34,8 +38,8 @@ if TYPE_CHECKING:
 
 
 def concatenate_block_managers(
-    mgrs_indexers, axes: List["Index"], concat_axis: int, copy: bool
-) -> BlockManager:
+    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+) -> Manager:
     """
     Concatenate block managers into one.
 
@@ -50,6 +54,21 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
+    if isinstance(mgrs_indexers[0][0], ArrayManager):
+
+        if concat_axis == 1:
+            # TODO for now only fastpath without indexers
+            mgrs = [t[0] for t in mgrs_indexers]
+            arrays = [
+                concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))], axis=0)
+                for j in range(len(mgrs[0].arrays))
+            ]
+            return ArrayManager(arrays, [axes[1], axes[0]])
+        elif concat_axis == 0:
+            mgrs = [t[0] for t in mgrs_indexers]
+            arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+            return ArrayManager(arrays, [axes[1], axes[0]])
+
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
     ]
@@ -245,7 +264,9 @@ class JoinUnit:
             fill_value = upcasted_na
 
             if self.is_na:
-                if getattr(self.block, "is_object", False):
+                blk_dtype = getattr(self.block, "dtype", None)
+
+                if blk_dtype == np.dtype(object):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -253,17 +274,16 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, "is_datetimetz", False) or is_datetime64tz_dtype(
+                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
                     empty_dtype
                 ):
                     if self.block is None:
                         # TODO(EA2D): special case unneeded with 2D EAs
-                        return DatetimeArray(
-                            np.full(self.shape[1], fill_value.value), dtype=empty_dtype
-                        )
-                elif getattr(self.block, "is_categorical", False):
+                        i8values = np.full(self.shape[1], fill_value.value)
+                        return DatetimeArray(i8values, dtype=empty_dtype)
+                elif is_categorical_dtype(blk_dtype):
                     pass
-                elif getattr(self.block, "is_extension", False):
+                elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
                     missing_arr = empty_dtype.construct_array_type()._from_sequence(
@@ -317,12 +337,6 @@ def _concatenate_join_units(
     if concat_axis == 0 and len(join_units) > 1:
         # Concatenating join units along ax0 is handled in _merge_blocks.
         raise AssertionError("Concatenating join units along axis0")
-
-    nonempties = [
-        x for x in join_units if x.block is None or x.block.shape[concat_axis] > 0
-    ]
-    if nonempties:
-        join_units = nonempties
 
     empty_dtype, upcasted_na = _get_empty_dtype_and_na(join_units)
 

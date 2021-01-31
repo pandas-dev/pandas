@@ -552,6 +552,9 @@ These can be specified by the ``x`` and ``y`` keywords.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.rand(50, 4), columns=["a", "b", "c", "d"])
+   df["species"] = pd.Categorical(
+       ["setosa"] * 20 + ["versicolor"] * 20 + ["virginica"] * 10
+   )
 
    @savefig scatter_plot.png
    df.plot.scatter(x="a", y="b");
@@ -577,6 +580,21 @@ each point:
 
    @savefig scatter_plot_colored.png
    df.plot.scatter(x="a", y="b", c="c", s=50);
+
+
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
+
+If a categorical column is passed to ``c``, then a discrete colorbar will be produced:
+
+.. versionadded:: 1.3.0
+
+.. ipython:: python
+
+   @savefig scatter_plot_categorical.png
+   df.plot.scatter(x="a", y="b", c="species", cmap="viridis", s=50);
 
 
 .. ipython:: python

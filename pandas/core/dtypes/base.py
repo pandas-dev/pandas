@@ -2,6 +2,8 @@
 Extend pandas with custom array types.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, Union
 
 import numpy as np
@@ -139,7 +141,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -186,7 +188,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls) -> Type["ExtensionArray"]:
+    def construct_array_type(cls) -> Type[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
