@@ -523,12 +523,16 @@ class OpenpyxlReader(BaseExcelReader):
         return cell.value
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+        # GH 39001
+        # Reading of excel file depends on dimension data being correct but
+        # writers sometimes omit or get it wrong
+        sheet.reset_dimensions()
+
         data: List[List[Scalar]] = []
         for row in sheet.rows:
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 
-        # openpyxl may not have the correct padding if the dimension tag is
-        # not specified or is incorrect
+        # With dimension reset, openpyxl no longer pads rows
         if len(data) > 0:
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:

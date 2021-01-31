@@ -132,8 +132,12 @@ def test_to_excel_with_openpyxl_engine(ext):
         (2, {"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}),
     ],
 )
-def test_read_with_missing_dimension(datapath, ext, header, expected_data):
-    path = datapath("io", "data", "excel", f"no_dimension{ext}")
+@pytest.mark.parametrize(
+    "filename", ["dimension_missing", "dimension_small", "dimension_large"]
+)
+def test_read_with_missing_dimension(datapath, ext, header, expected_data, filename):
+    # GH 38956, 39001, 39181 - no/incorrect dimension information
+    path = datapath("io", "data", "excel", f"{filename}{ext}")
     result = pd.read_excel(path, header=header)
     expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
