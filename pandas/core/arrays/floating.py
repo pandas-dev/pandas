@@ -47,7 +47,7 @@ class FloatingDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["FloatingArray"]:
+    def construct_array_type(cls) -> Type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 

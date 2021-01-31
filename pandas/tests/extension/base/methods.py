@@ -128,6 +128,16 @@ class BaseMethodsTests(BaseExtensionTests):
         result = getattr(ser, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
+    def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
+        # GH#38733
+        data = data_missing_for_sorting
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmin(skipna=False)
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmax(skipna=False)
+
     @pytest.mark.parametrize(
         "na_position, expected",
         [
@@ -480,6 +490,15 @@ class BaseMethodsTests(BaseExtensionTests):
                 np.repeat(data, repeats, **kwargs)
             else:
                 data.repeat(repeats, **kwargs)
+
+    def test_delete(self, data):
+        result = data.delete(0)
+        expected = data[1:]
+        self.assert_extension_array_equal(result, expected)
+
+        result = data.delete([1, 3])
+        expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
+        self.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
