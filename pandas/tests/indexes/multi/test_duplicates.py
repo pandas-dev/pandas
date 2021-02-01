@@ -68,6 +68,7 @@ def test_unique_level(idx, level):
     mi = MultiIndex.from_arrays([[], []], names=["first", "second"])
     result = mi.unique(level=level)
     expected = mi.get_level_values(level)
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("dropna", [True, False])

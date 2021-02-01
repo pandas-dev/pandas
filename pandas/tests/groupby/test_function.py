@@ -531,10 +531,16 @@ def test_idxmin_idxmax_returns_int_types(func, values):
         }
     )
     df["c_date"] = pd.to_datetime(df["c_date"])
+    df["c_date_tz"] = df["c_date"].dt.tz_localize("US/Pacific")
+    df["c_timedelta"] = df["c_date"] - df["c_date"].iloc[0]
+    df["c_period"] = df["c_date"].dt.to_period("W")
 
     result = getattr(df.groupby("name"), func)()
 
     expected = DataFrame(values, index=Index(["A", "B"], name="name"))
+    expected["c_date_tz"] = expected["c_date"]
+    expected["c_timedelta"] = expected["c_date"]
+    expected["c_period"] = expected["c_date"]
 
     tm.assert_frame_equal(result, expected)
 

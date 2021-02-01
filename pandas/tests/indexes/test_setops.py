@@ -38,19 +38,21 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index, index_fixture2):
+def test_union_different_types(request, index, index_fixture2):
     # This test only considers combinations of indices
     # GH 23525
     idx1, idx2 = index, index_fixture2
     type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
     if type_pair in COMPATIBLE_INCONSISTENT_PAIRS:
-        pytest.xfail("This test only considers non compatible indexes.")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="This test only considers non compatible indexes.")
+        )
 
     if any(isinstance(idx, pd.MultiIndex) for idx in (idx1, idx2)):
-        pytest.xfail("This test doesn't consider multiindixes.")
+        pytest.skip("This test doesn't consider multiindixes.")
 
     if is_dtype_equal(idx1.dtype, idx2.dtype):
-        pytest.xfail("This test only considers non matching dtypes.")
+        pytest.skip("This test only considers non matching dtypes.")
 
     # A union with a CategoricalIndex (even as dtype('O')) and a
     # non-CategoricalIndex can only be made if both indices are monotonic.

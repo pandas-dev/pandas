@@ -49,8 +49,7 @@ def compare_or_regex_search(
         if is_scalar(result) and isinstance(a, np.ndarray):
             type_names = [type(a).__name__, type(b).__name__]
 
-            if isinstance(a, np.ndarray):
-                type_names[0] = f"ndarray(dtype={a.dtype})"
+            type_names[0] = f"ndarray(dtype={a.dtype})"
 
             raise TypeError(
                 f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"

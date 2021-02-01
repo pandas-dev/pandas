@@ -16,12 +16,10 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    Int64Index,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
 
@@ -77,17 +75,6 @@ class TestCommon:
         b = type(a)(a)
         tm.assert_equal(a._data, b._data)
 
-    @pytest.mark.parametrize("itm", [101, "no_int"])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_getitem_error(self, index, itm):
-        msg = r"index 101 is out of bounds for axis 0 with size [\d]+|" + re.escape(
-            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
-            "and integer or boolean arrays are valid indices"
-        )
-        with pytest.raises(IndexError, match=msg):
-            index[itm]
-
     def test_to_flat_index(self, index):
         # 22866
         if isinstance(index, MultiIndex):
@@ -141,9 +128,8 @@ class TestCommon:
 
     def test_unique(self, index):
         # don't test a MultiIndex here (as its tested separated)
-        # don't test a CategoricalIndex because categories change (GH 18291)
-        if isinstance(index, (MultiIndex, CategoricalIndex)):
-            pytest.skip("Skip check for MultiIndex/CategoricalIndex")
+        if isinstance(index, MultiIndex):
+            pytest.skip("Skip check for MultiIndex")
 
         # GH 17896
         expected = index.drop_duplicates()
@@ -213,9 +199,6 @@ class TestCommon:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
 
-    def test_view(self, index):
-        assert index.view().name == index.name
-
     def test_searchsorted_monotonic(self, index):
         # GH17271
         # not implemented for tuple searches in MultiIndex
@@ -260,12 +243,6 @@ class TestCommon:
             msg = "index must be monotonic increasing or decreasing"
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
-
-    def test_pickle(self, index):
-        original_name, index.name = index.name, "foo"
-        unpickled = tm.round_trip_pickle(index)
-        assert index.equals(unpickled)
-        index.name = original_name
 
     def test_drop_duplicates(self, index, keep):
         if isinstance(index, MultiIndex):
@@ -354,6 +331,13 @@ class TestCommon:
         if dtype in ["int64", "uint64"]:
             if needs_i8_conversion(index.dtype):
                 warn = FutureWarning
+        elif (
+            isinstance(index, DatetimeIndex)
+            and index.tz is not None
+            and dtype == "datetime64[ns]"
+        ):
+            # This astype is deprecated in favor of tz_localize
+            warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn, check_stacklevel=False):
@@ -366,17 +350,9 @@ class TestCommon:
         else:
             assert result.name == index.name
 
-    def test_ravel_deprecation(self, index):
-        # GH#19956 ravel returning ndarray is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            index.ravel()
-
-    @pytest.mark.xfail(reason="GH38630", strict=False)
     def test_asi8_deprecation(self, index):
         # GH#37877
-        if isinstance(
-            index, (Int64Index, UInt64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex)
-        ):
+        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
             warn = None
         else:
             warn = FutureWarning
@@ -386,9 +362,13 @@ class TestCommon:
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+def test_sort_values_invalid_na_position(request, index_with_missing, na_position):
+    if isinstance(index_with_missing, MultiIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="missing value sorting order not defined for index type"
+            )
+        )
 
     if na_position not in ["first", "last"]:
         with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
@@ -396,12 +376,16 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position):
+def test_sort_values_with_missing(request, index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+    if isinstance(index_with_missing, MultiIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(reason="missing value sorting order not implemented")
+        )
+    elif isinstance(index_with_missing, CategoricalIndex):
+        pytest.skip("missing value sorting order not well-defined")
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

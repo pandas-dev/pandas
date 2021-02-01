@@ -653,64 +653,6 @@ def test_1000_sep_with_decimal(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
-@pytest.mark.parametrize(
-    "value,expected",
-    [
-        ("-1,0", -1.0),
-        ("-1,2e0", -1.2),
-        ("-1e0", -1.0),
-        ("+1e0", 1.0),
-        ("+1e+0", 1.0),
-        ("+1e-1", 0.1),
-        ("+,1e1", 1.0),
-        ("+1,e0", 1.0),
-        ("-,1e1", -1.0),
-        ("-1,e0", -1.0),
-        ("0,1", 0.1),
-        ("1,", 1.0),
-        (",1", 0.1),
-        ("-,1", -0.1),
-        ("1_,", 1.0),
-        ("1_234,56", 1234.56),
-        ("1_234,56e0", 1234.56),
-        # negative cases; must not parse as float
-        ("_", "_"),
-        ("-_", "-_"),
-        ("-_1", "-_1"),
-        ("-_1e0", "-_1e0"),
-        ("_1", "_1"),
-        ("_1,", "_1,"),
-        ("_1,_", "_1,_"),
-        ("_1e0", "_1e0"),
-        ("1,2e_1", "1,2e_1"),
-        ("1,2e1_0", "1,2e1_0"),
-        ("1,_2", "1,_2"),
-        (",1__2", ",1__2"),
-        (",1e", ",1e"),
-        ("-,1e", "-,1e"),
-        ("1_000,000_000", "1_000,000_000"),
-        ("1,e1_2", "1,e1_2"),
-    ],
-)
-def test_1000_sep_decimal_float_precision(
-    c_parser_only, value, expected, float_precision
-):
-    # test decimal and thousand sep handling in across 'float_precision'
-    # parsers
-    parser = c_parser_only
-    df = parser.read_csv(
-        StringIO(value),
-        sep="|",
-        thousands="_",
-        decimal=",",
-        header=None,
-        float_precision=float_precision,
-    )
-    val = df.iloc[0, 0]
-    assert val == expected
-
-
 def test_float_precision_options(c_parser_only):
     # GH 17154, 36228
     parser = c_parser_only

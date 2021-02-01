@@ -21,6 +21,7 @@ import numpy as np
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import (
     BaseOffset,
+    IncompatibleFrequency,
     NaT,
     NaTType,
     Period,
@@ -62,7 +63,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
+from pandas.core.algorithms import checked_add_with_arr, isin, unique1d
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 import pandas.core.common as com
@@ -441,7 +442,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             try:
                 # GH#18435 strings get a pass from tzawareness compat
                 other = self._scalar_from_string(other)
-            except ValueError:
+            except (ValueError, IncompatibleFrequency):
                 # failed to parse as Timestamp/Timedelta/Period
                 raise InvalidComparison(other)
 
@@ -451,7 +452,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
-            except TypeError as err:
+            except (TypeError, IncompatibleFrequency) as err:
                 # e.g. tzawareness mismatch
                 raise InvalidComparison(other) from err
 
@@ -465,7 +466,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             try:
                 other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
-            except TypeError as err:
+            except (TypeError, IncompatibleFrequency) as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
                     # We will have to operate element-wise
                     pass
@@ -613,6 +614,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # We treat empty list as our own dtype.
             return type(self)._from_sequence([], dtype=self.dtype)
 
+        if hasattr(value, "dtype") and value.dtype == object:
+            # `array` below won't do inference if value is an Index or Series.
+            #  so do so here.  in the Index case, inferred_type may be cached.
+            if lib.infer_dtype(value) in self._infer_matches:
+                try:
+                    value = type(self)._from_sequence(value)
+                except (ValueError, TypeError):
+                    if allow_object:
+                        return value
+                    msg = self._validation_error_message(value, True)
+                    raise TypeError(msg)
+
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
         value = array(value)
@@ -677,37 +690,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
-
-    def value_counts(self, dropna: bool = False):
-        """
-        Return a Series containing counts of unique values.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaT values.
-
-        Returns
-        -------
-        Series
-        """
-        if self.ndim != 1:
-            raise NotImplementedError
-
-        from pandas import Index, Series
-
-        if dropna:
-            values = self[~self.isna()]._ndarray
-        else:
-            values = self._ndarray
-
-        cls = type(self)
-
-        result = value_counts(values, sort=False, dropna=dropna)
-        index = Index(
-            cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
-        )
-        return Series(result._values, index=index, name=result.name)
 
     @ravel_compat
     def map(self, mapper):
@@ -1625,7 +1607,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         result = round_nsint64(values, mode, freq)
-        result = self._maybe_mask_results(result, fill_value=NaT)
+        result = self._maybe_mask_results(result, fill_value=iNaT)
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))

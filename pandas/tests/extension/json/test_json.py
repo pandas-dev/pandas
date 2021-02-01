@@ -313,10 +313,17 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
+    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
+    def test_groupby_agg_extension(self, data_for_grouping):
+        super().test_groupby_agg_extension(data_for_grouping)
+
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
-    def test_error(self, data, all_arithmetic_operators):
-        pass
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if len(data[0]) != 1:
+            mark = pytest.mark.xfail(reason="raises in coercing to Series")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)

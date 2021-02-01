@@ -268,6 +268,8 @@ For more dedicated functions on missing values, see the user guide section about
 
     </div>
 
+.. _10min_tut_03_subset.rows_and_columns:
+
 How do I select specific rows and columns from a ``DataFrame``?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

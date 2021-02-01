@@ -64,7 +64,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # this particular codebase (e.g. src/headers, src/klib). However,
     # we can lint all header files since they aren't "generated" like C files are.
     MSG='Linting .c and .h' ; echo $MSG
-    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
+    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/src/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

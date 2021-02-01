@@ -10,7 +10,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat.numpy import _np_version_under1p19, _np_version_under1p20
+from pandas.compat import np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
@@ -48,6 +48,17 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_array_of_dt64_nat_with_td64dtype_raises(self, frame_or_series):
+        # GH#39462
+        nat = np.datetime64("NaT", "ns")
+        arr = np.array([nat], dtype=object)
+        if frame_or_series is DataFrame:
+            arr = arr.reshape(1, 1)
+
+        msg = "Could not convert object to NumPy timedelta"
+        with pytest.raises(ValueError, match=msg):
+            frame_or_series(arr, dtype="m8[ns]")
+
     def test_series_with_name_not_matching_column(self):
         # GH#9232
         x = Series(range(5), name=1)
@@ -149,7 +160,7 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
-    @pytest.mark.skipif(_np_version_under1p19, reason="NumPy change.")
+    @pytest.mark.skipif(np_version_under1p19, reason="NumPy change.")
     def test_constructor_list_of_2d_raises(self):
         # https://github.com/pandas-dev/pandas/issues/32289
         a = DataFrame()
@@ -728,7 +739,7 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -1762,6 +1773,70 @@ class TestDataFrameConstructors:
         expected = Series([np.dtype("datetime64[ns]")])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[M]",
+            "datetime64[D]",
+            "datetime64[h]",
+            "datetime64[m]",
+            "datetime64[s]",
+            "datetime64[ms]",
+            "datetime64[us]",
+            "datetime64[ns]",
+        ],
+    )
+    def test_constructor_datetimes_non_ns(self, order, dtype):
+        na = np.array(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ],
+            dtype=dtype,
+            order=order,
+        )
+        df = DataFrame(na)
+        expected = DataFrame(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ]
+        )
+        expected = expected.astype(dtype=dtype)
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "timedelta64[D]",
+            "timedelta64[h]",
+            "timedelta64[m]",
+            "timedelta64[s]",
+            "timedelta64[ms]",
+            "timedelta64[us]",
+            "timedelta64[ns]",
+        ],
+    )
+    def test_constructor_timedelta_non_ns(self, order, dtype):
+        na = np.array(
+            [
+                [np.timedelta64(1, "D"), np.timedelta64(2, "D")],
+                [np.timedelta64(4, "D"), np.timedelta64(5, "D")],
+            ],
+            dtype=dtype,
+            order=order,
+        )
+        df = DataFrame(na).astype("timedelta64[ns]")
+        expected = DataFrame(
+            [
+                [Timedelta(1, "D"), Timedelta(2, "D")],
+                [Timedelta(4, "D"), Timedelta(5, "D")],
+            ],
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
@@ -1890,6 +1965,16 @@ class TestDataFrameConstructors:
         assert d["a"].dtype == np.object_
         assert not d["a"][1]
 
+    def test_constructor_ndarray_categorical_dtype(self):
+        cat = Categorical(["A", "B", "C"])
+        arr = np.array(cat).reshape(-1, 1)
+        arr = np.broadcast_to(arr, (3, 4))
+
+        result = DataFrame(arr, dtype=cat.dtype)
+
+        expected = DataFrame({0: cat, 1: cat, 2: cat, 3: cat})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_categorical(self):
 
         # GH8626
@@ -1913,11 +1998,13 @@ class TestDataFrameConstructors:
         expected = Series(list("abc"), dtype="category", name=0)
         tm.assert_series_equal(df[0], expected)
 
+    def test_construct_from_1item_list_of_categorical(self):
         # ndim != 1
         df = DataFrame([Categorical(list("abc"))])
         expected = DataFrame({0: Series(list("abc"), dtype="category")})
         tm.assert_frame_equal(df, expected)
 
+    def test_construct_from_list_of_categoricals(self):
         df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
         expected = DataFrame(
             {
@@ -1928,6 +2015,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_from_nested_listlike_mixed_types(self):
         # mixed
         df = DataFrame([Categorical(list("abc")), list("def")])
         expected = DataFrame(
@@ -1935,11 +2023,14 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_construct_from_listlikes_mismatched_lengths(self):
         # invalid (shape)
         msg = r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
 
+    def test_categorical_1d_only(self):
+        # TODO: belongs in Categorical tests
         # ndim > 1
         msg = "> 1 ndim Categorical are not supported at this time"
         with pytest.raises(NotImplementedError, match=msg):
@@ -2221,15 +2312,6 @@ class TestDataFrameConstructorWithDatetimeTZ:
         d = DataFrame({"A": "foo", "B": ts}, index=dr)
         assert d["B"].isna().all()
 
-    def test_frame_timeseries_to_records(self):
-        index = date_range("1/1/2000", periods=10)
-        df = DataFrame(np.random.randn(10, 3), index=index, columns=["a", "b", "c"])
-
-        result = df.to_records()
-        result["index"].dtype == "M8[ns]"
-
-        result = df.to_records(index=False)
-
     def test_frame_timeseries_column(self):
         # GH19157
         dr = date_range(start="20130101T10:00:00", periods=3, freq="T", tz="US/Eastern")
@@ -2364,16 +2446,10 @@ class TestFromScalar:
     def test_from_timestamp_scalar_preserves_nanos(self, constructor):
         ts = Timestamp.now() + Timedelta(1)
 
-        obj = Series(ts, index=range(1), dtype="M8[ns]")
+        obj = constructor(ts, dtype="M8[ns]")
         assert get1(obj) == ts
 
-    def test_from_timedelta64_scalar_object(self, constructor, request):
-        if getattr(constructor, "func", None) is DataFrame and _np_version_under1p20:
-            # getattr check means we only xfail when box is None
-            mark = pytest.mark.xfail(
-                reason="np.array(td64, dtype=object) converts to int"
-            )
-            request.node.add_marker(mark)
+    def test_from_timedelta64_scalar_object(self, constructor):
 
         td = Timedelta(1)
         td64 = td.to_timedelta64()
@@ -2400,8 +2476,20 @@ class TestFromScalar:
         with pytest.raises(TypeError, match="Cannot cast"):
             constructor(scalar, dtype=dtype)
 
-    def test_from_out_of_bounds_datetime(self, constructor):
+    @pytest.mark.parametrize("cls", [datetime, np.datetime64])
+    def test_from_out_of_bounds_datetime(self, constructor, cls):
         scalar = datetime(9999, 1, 1)
+        if cls is np.datetime64:
+            scalar = np.datetime64(scalar, "D")
         result = constructor(scalar)
 
-        assert type(get1(result)) is datetime
+        assert type(get1(result)) is cls
+
+    @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
+    def test_from_out_of_bounds_timedelta(self, constructor, cls):
+        scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
+        if cls is np.timedelta64:
+            scalar = np.timedelta64(scalar, "D")
+        result = constructor(scalar)
+
+        assert type(get1(result)) is cls

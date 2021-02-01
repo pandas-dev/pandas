@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import datetime
-from typing import TYPE_CHECKING, Union
+import numbers
+from typing import TYPE_CHECKING, Any, List, Union
 
 import numpy as np
 
@@ -14,6 +17,8 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
+from pandas.core import ops
+
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
@@ -22,7 +27,7 @@ if TYPE_CHECKING:
 
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
     ) -> BaseMaskedArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
@@ -130,3 +135,57 @@ class NumericArray(BaseMaskedArray):
             )
 
         return self._maybe_mask_result(result, mask, other, op_name)
+
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+
+    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+        # For NumericArray inputs, we apply the ufunc to ._data
+        # and mask the result.
+        if method == "reduce":
+            # Not clear how to handle missing values in reductions. Raise.
+            raise NotImplementedError("The 'reduce' method is not supported.")
+        out = kwargs.get("out", ())
+
+        for x in inputs + out:
+            if not isinstance(x, self._HANDLED_TYPES + (NumericArray,)):
+                return NotImplemented
+
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        mask = np.zeros(len(self), dtype=bool)
+        inputs2: List[Any] = []
+        for x in inputs:
+            if isinstance(x, NumericArray):
+                mask |= x._mask
+                inputs2.append(x._data)
+            else:
+                inputs2.append(x)
+
+        def reconstruct(x):
+            # we don't worry about scalar `x` here, since we
+            # raise for reduce up above.
+
+            if is_integer_dtype(x.dtype):
+                from pandas.core.arrays import IntegerArray
+
+                m = mask.copy()
+                return IntegerArray(x, m)
+            elif is_float_dtype(x.dtype):
+                from pandas.core.arrays import FloatingArray
+
+                m = mask.copy()
+                return FloatingArray(x, m)
+            else:
+                x[mask] = np.nan
+            return x
+
+        result = getattr(ufunc, method)(*inputs2, **kwargs)
+        if isinstance(result, tuple):
+            return tuple(reconstruct(x) for x in result)
+        else:
+            return reconstruct(result)

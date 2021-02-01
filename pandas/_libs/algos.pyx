@@ -26,6 +26,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -388,6 +389,100 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
                     result[xi, yi] = result[yi, xi] = sumx / divisor
                 else:
                     result[xi, yi] = result[yi, xi] = NaN
+
+    return result
+
+
+# ----------------------------------------------------------------------
+# Kendall correlation
+# Wikipedia article: https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
+    """
+    Perform kendall correlation on a 2d array
+
+    Parameters
+    ----------
+    mat : np.ndarray[float64_t, ndim=2]
+        Array to compute kendall correlation on
+    minp : int, default 1
+        Minimum number of observations required per pair of columns
+        to have a valid result.
+
+    Returns
+    -------
+    numpy.ndarray[float64_t, ndim=2]
+        Correlation matrix
+    """
+    cdef:
+        Py_ssize_t i, j, k, xi, yi, N, K
+        ndarray[float64_t, ndim=2] result
+        ndarray[float64_t, ndim=2] ranked_mat
+        ndarray[uint8_t, ndim=2] mask
+        float64_t currj
+        ndarray[uint8_t, ndim=1] valid
+        ndarray[int64_t] sorted_idxs
+        ndarray[float64_t, ndim=1] col
+        int64_t n_concordant
+        int64_t total_concordant = 0
+        int64_t total_discordant = 0
+        float64_t kendall_tau
+        int64_t n_obs
+        const int64_t[:] labels_n
+
+    N, K = (<object>mat).shape
+
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat)
+
+    ranked_mat = np.empty((N, K), dtype=np.float64)
+    # For compatibility when calling rank_1d
+    labels_n = np.zeros(N, dtype=np.int64)
+
+    for i in range(K):
+        ranked_mat[:, i] = rank_1d(mat[:, i], labels_n)
+
+    for xi in range(K):
+        sorted_idxs = ranked_mat[:, xi].argsort()
+        ranked_mat = ranked_mat[sorted_idxs]
+        mask = mask[sorted_idxs]
+        for yi in range(xi + 1, K):
+            valid = mask[:, xi] & mask[:, yi]
+            if valid.sum() < minp:
+                result[xi, yi] = NaN
+                result[yi, xi] = NaN
+            else:
+                # Get columns and order second column using 1st column ranks
+                if not valid.all():
+                    col = ranked_mat[valid.nonzero()][:, yi]
+                else:
+                    col = ranked_mat[:, yi]
+                n_obs = col.shape[0]
+                total_concordant = 0
+                total_discordant = 0
+                for j in range(n_obs - 1):
+                    currj = col[j]
+                    # Count num concordant and discordant pairs
+                    n_concordant = 0
+                    for k in range(j, n_obs):
+                        if col[k] > currj:
+                            n_concordant += 1
+                    total_concordant += n_concordant
+                    total_discordant += (n_obs - 1 - j - n_concordant)
+                # Note: we do total_concordant+total_discordant here which is
+                # equivalent to the C(n, 2), the total # of pairs,
+                # listed on wikipedia
+                kendall_tau = (total_concordant - total_discordant) / \
+                              (total_concordant + total_discordant)
+                result[xi, yi] = kendall_tau
+                result[yi, xi] = kendall_tau
+
+        if mask[:, xi].sum() > minp:
+            result[xi, xi] = 1
+        else:
+            result[xi, xi] = NaN
 
     return result
 
@@ -1105,14 +1200,13 @@ def rank_2d(
         Py_ssize_t infs
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
-        ndarray[int64_t, ndim=2] argsorted
+        ndarray[intp_t, ndim=2] argsort_indexer
         ndarray[uint8_t, ndim=2] mask
         rank_t val, nan_value
         float64_t count, sum_ranks = 0.0
         int tiebreak = 0
         int64_t idx
         bint check_mask, condition, keep_na
-        const int64_t[:] labels
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1158,40 +1252,19 @@ def rank_2d(
 
     n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
-    # For compatibility when calling rank_1d
-    labels = np.zeros(k, dtype=np.int64)
 
-    if rank_t is object:
-        try:
-            _as = values.argsort(1)
-        except TypeError:
-            values = in_arr
-            for i in range(len(values)):
-                ranks[i] = rank_1d(
-                    in_arr[i],
-                    labels=labels,
-                    ties_method=ties_method,
-                    ascending=ascending,
-                    pct=pct
-                )
-            if axis == 0:
-                return ranks.T
-            else:
-                return ranks
+    if tiebreak == TIEBREAK_FIRST:
+        # need to use a stable sort here
+        argsort_indexer = values.argsort(axis=1, kind='mergesort')
+        if not ascending:
+            tiebreak = TIEBREAK_FIRST_DESCENDING
     else:
-        if tiebreak == TIEBREAK_FIRST:
-            # need to use a stable sort here
-            _as = values.argsort(axis=1, kind='mergesort')
-            if not ascending:
-                tiebreak = TIEBREAK_FIRST_DESCENDING
-        else:
-            _as = values.argsort(1)
+        argsort_indexer = values.argsort(1)
 
     if not ascending:
-        _as = _as[:, ::-1]
+        argsort_indexer = argsort_indexer[:, ::-1]
 
-    values = _take_2d(values, _as)
-    argsorted = _as.astype('i8')
+    values = _take_2d(values, argsort_indexer)
 
     for i in range(n):
         dups = sum_ranks = infs = 0
@@ -1200,7 +1273,7 @@ def rank_2d(
         count = 0.0
         for j in range(k):
             val = values[i, j]
-            idx = argsorted[i, j]
+            idx = argsort_indexer[i, j]
             if keep_na and check_mask and mask[i, idx]:
                 ranks[i, idx] = NaN
                 infs += 1
@@ -1215,38 +1288,38 @@ def rank_2d(
                 condition = (
                     j == k - 1 or
                     are_diff(values[i, j + 1], val) or
-                    (keep_na and check_mask and mask[i, argsorted[i, j + 1]])
+                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
                 )
             else:
                 condition = (
                     j == k - 1 or
                     values[i, j + 1] != val or
-                    (keep_na and check_mask and mask[i, argsorted[i, j + 1]])
+                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
                 )
 
             if condition:
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = sum_ranks / dups
+                        ranks[i, argsort_indexer[i, z]] = sum_ranks / dups
                 elif tiebreak == TIEBREAK_MIN:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = j - dups + 2
+                        ranks[i, argsort_indexer[i, z]] = j - dups + 2
                 elif tiebreak == TIEBREAK_MAX:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = j + 1
+                        ranks[i, argsort_indexer[i, z]] = j + 1
                 elif tiebreak == TIEBREAK_FIRST:
                     if rank_t is object:
                         raise ValueError('first not supported for non-numeric data')
                     else:
                         for z in range(j - dups + 1, j + 1):
-                            ranks[i, argsorted[i, z]] = z + 1
+                            ranks[i, argsort_indexer[i, z]] = z + 1
                 elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = 2 * j - z - dups + 2
+                        ranks[i, argsort_indexer[i, z]] = 2 * j - z - dups + 2
                 elif tiebreak == TIEBREAK_DENSE:
                     total_tie_count += 1
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = total_tie_count
+                        ranks[i, argsort_indexer[i, z]] = total_tie_count
                 sum_ranks = dups = 0
         if pct:
             if tiebreak == TIEBREAK_DENSE:

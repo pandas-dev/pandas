@@ -1168,7 +1168,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_merge_datatype_error_raises(self):
-        msg = r"incompatible merge keys \[0\] .*, must be the same type"
+        msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
 
         left = pd.DataFrame({"left_val": [1, 5, 10], "a": ["a", "b", "c"]})
         right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7], "a": [1, 2, 3, 6, 7]})
@@ -1373,3 +1373,39 @@ class TestAsOfMerge:
             tolerance=Timedelta(seconds=0.5),
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{"on": "x"}, {"left_index": True, "right_index": True}]
+)
+@pytest.mark.parametrize(
+    "data",
+    [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
+)
+def test_merge_asof_non_numerical_dtype(kwargs, data):
+    # GH#29130
+    left = pd.DataFrame({"x": data}, index=data)
+    right = pd.DataFrame({"x": data}, index=data)
+    with pytest.raises(
+        MergeError,
+        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+    ):
+        pd.merge_asof(left, right, **kwargs)
+
+
+def test_merge_asof_non_numerical_dtype_object():
+    # GH#29130
+    left = pd.DataFrame({"a": ["12", "13", "15"], "left_val1": ["a", "b", "c"]})
+    right = pd.DataFrame({"a": ["a", "b", "c"], "left_val": ["d", "e", "f"]})
+    with pytest.raises(
+        MergeError,
+        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+    ):
+        pd.merge_asof(
+            left,
+            right,
+            left_on="left_val1",
+            right_on="a",
+            left_by="a",
+            right_by="left_val",
+        )

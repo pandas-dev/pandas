@@ -33,6 +33,22 @@ class BaseGroupbyTests(BaseExtensionTests):
             expected = expected.reset_index()
             self.assert_frame_equal(result, expected)
 
+    def test_groupby_agg_extension(self, data_for_grouping):
+        # GH#38980 groupby agg on extension type fails for non-numeric types
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
+
+        expected = df.iloc[[0, 2, 4, 7]]
+        expected = expected.set_index("A")
+
+        result = df.groupby("A").agg({"B": "first"})
+        self.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").agg("first")
+        self.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").first()
+        self.assert_frame_equal(result, expected)
+
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         result = df.groupby("B", sort=False).A.mean()

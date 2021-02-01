@@ -492,7 +492,7 @@ class TestExcelWriter:
 
     @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
     def test_bool_types(self, np_type, path):
-        # Test np.bool values read come back as float.
+        # Test np.bool8 and np.bool_ values read come back as float.
         df = DataFrame([1, 0, True, False], dtype=np_type)
         df.to_excel(path, "test1")
 
@@ -657,30 +657,27 @@ class TestExcelWriter:
         )
 
         with tm.ensure_clean(ext) as filename2:
-            writer1 = ExcelWriter(path)
-            writer2 = ExcelWriter(
+            with ExcelWriter(path) as writer1:
+                df.to_excel(writer1, "test1")
+
+            with ExcelWriter(
                 filename2,
                 date_format="DD.MM.YYYY",
                 datetime_format="DD.MM.YYYY HH-MM-SS",
-            )
+            ) as writer2:
+                df.to_excel(writer2, "test1")
 
-            df.to_excel(writer1, "test1")
-            df.to_excel(writer2, "test1")
+            with ExcelFile(path) as reader1:
+                rs1 = pd.read_excel(reader1, sheet_name="test1", index_col=0)
 
-            writer1.close()
-            writer2.close()
+            with ExcelFile(filename2) as reader2:
+                rs2 = pd.read_excel(reader2, sheet_name="test1", index_col=0)
 
-            reader1 = ExcelFile(path)
-            reader2 = ExcelFile(filename2)
+        tm.assert_frame_equal(rs1, rs2)
 
-            rs1 = pd.read_excel(reader1, sheet_name="test1", index_col=0)
-            rs2 = pd.read_excel(reader2, sheet_name="test1", index_col=0)
-
-            tm.assert_frame_equal(rs1, rs2)
-
-            # Since the reader returns a datetime object for dates,
-            # we need to use df_expected to check the result.
-            tm.assert_frame_equal(rs2, df_expected)
+        # Since the reader returns a datetime object for dates,
+        # we need to use df_expected to check the result.
+        tm.assert_frame_equal(rs2, df_expected)
 
     def test_to_excel_interval_no_labels(self, path):
         # see gh-19242
@@ -727,7 +724,7 @@ class TestExcelWriter:
 
         df["new"] = df["A"].apply(lambda x: timedelta(seconds=x))
         expected["new"] = expected["A"].apply(
-            lambda x: timedelta(seconds=x).total_seconds() / float(86400)
+            lambda x: timedelta(seconds=x).total_seconds() / 86400
         )
 
         df.to_excel(path, "test1")
@@ -862,7 +859,7 @@ class TestExcelWriter:
                 f = open(filename, "wb")
             except UnicodeEncodeError:
                 pytest.skip("No unicode file names on this system")
-            else:
+            finally:
                 f.close()
 
             df = DataFrame(
@@ -872,15 +869,15 @@ class TestExcelWriter:
             )
             df.to_excel(filename, "test1", float_format="%.2f")
 
-            reader = ExcelFile(filename)
-            result = pd.read_excel(reader, sheet_name="test1", index_col=0)
+            with ExcelFile(filename) as reader:
+                result = pd.read_excel(reader, sheet_name="test1", index_col=0)
 
-            expected = DataFrame(
-                [[0.12, 0.23, 0.57], [12.32, 123123.20, 321321.20]],
-                index=["A", "B"],
-                columns=["X", "Y", "Z"],
-            )
-            tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            [[0.12, 0.23, 0.57], [12.32, 123123.20, 321321.20]],
+            index=["A", "B"],
+            columns=["X", "Y", "Z"],
+        )
+        tm.assert_frame_equal(result, expected)
 
     # FIXME: dont leave commented-out
     # def test_to_excel_header_styling_xls(self, engine, ext):
@@ -1374,8 +1371,8 @@ class TestFSPath:
         with tm.ensure_clean("foo.xlsx") as path:
             df = DataFrame({"A": [1, 2]})
             df.to_excel(path)
-            xl = ExcelFile(path)
-            result = os.fspath(xl)
+            with ExcelFile(path) as xl:
+                result = os.fspath(xl)
             assert result == path
 
     def test_excelwriter_fspath(self):

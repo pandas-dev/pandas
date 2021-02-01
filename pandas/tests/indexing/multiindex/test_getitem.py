@@ -197,6 +197,38 @@ def test_frame_mixed_depth_get():
     tm.assert_series_equal(result, expected)
 
 
+def test_frame_getitem_nan_multiindex(nulls_fixture):
+    # GH#29751
+    # loc on a multiindex containing nan values
+    n = nulls_fixture  # for code readability
+    cols = ["a", "b", "c"]
+    df = DataFrame(
+        [[11, n, 13], [21, n, 23], [31, n, 33], [41, n, 43]],
+        columns=cols,
+        dtype="int64",
+    ).set_index(["a", "b"])
+
+    idx = (21, n)
+    result = df.loc[:idx]
+    expected = DataFrame(
+        [[11, n, 13], [21, n, 23]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[idx:]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33], [41, n, 43]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    idx1, idx2 = (21, n), (31, n)
+    result = df.loc[idx1:idx2]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+
 # ----------------------------------------------------------------------------
 # test indexing of DataFrame with multi-level Index with duplicates
 # ----------------------------------------------------------------------------

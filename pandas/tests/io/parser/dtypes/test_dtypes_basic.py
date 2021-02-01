@@ -10,7 +10,7 @@ import pytest
 from pandas.errors import ParserWarning
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Timestamp
 import pandas._testing as tm
 
 
@@ -164,4 +164,74 @@ def test_boolean_dtype(all_parsers):
         }
     )
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_delimiter_with_usecols_and_parse_dates(all_parsers):
+    # GH#35873
+    result = all_parsers.read_csv(
+        StringIO('"dump","-9,1","-9,1",20101010'),
+        engine="python",
+        names=["col", "col1", "col2", "col3"],
+        usecols=["col1", "col2", "col3"],
+        parse_dates=["col3"],
+        decimal=",",
+    )
+    expected = DataFrame(
+        {"col1": [-9.1], "col2": [-9.1], "col3": [Timestamp("2010-10-10")]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("thousands", ["_", None])
+def test_decimal_and_exponential(python_parser_only, numeric_decimal, thousands):
+    # GH#31920
+    decimal_number_check(python_parser_only, numeric_decimal, thousands, None)
+
+
+@pytest.mark.parametrize("thousands", ["_", None])
+@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
+def test_1000_sep_decimal_float_precision(
+    c_parser_only, numeric_decimal, float_precision, thousands
+):
+    # test decimal and thousand sep handling in across 'float_precision'
+    # parsers
+    decimal_number_check(c_parser_only, numeric_decimal, thousands, float_precision)
+
+
+def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
+    # GH#31920
+    value = numeric_decimal[0]
+    if thousands is None and "_" in value:
+        pytest.skip("Skip test if no thousands sep is defined and sep is in value")
+    df = parser.read_csv(
+        StringIO(value),
+        sep="|",
+        thousands=thousands,
+        decimal=",",
+        header=None,
+    )
+    val = df.iloc[0, 0]
+    assert val == numeric_decimal[1]
+
+
+def test_true_values_cast_to_bool(all_parsers):
+    # GH#34655
+    text = """a,b
+yes,xxx
+no,yyy
+1,zzz
+0,aaa
+    """
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO(text),
+        true_values=["yes"],
+        false_values=["no"],
+        dtype={"a": "boolean"},
+    )
+    expected = DataFrame(
+        {"a": [True, False, True, False], "b": ["xxx", "yyy", "zzz", "aaa"]}
+    )
+    expected["a"] = expected["a"].astype("boolean")
     tm.assert_frame_equal(result, expected)

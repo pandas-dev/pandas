@@ -75,6 +75,19 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
+    parser.addoption(
+        "--array-manager",
+        "--am",
+        action="store_true",
+        help="Use the experimental ArrayManager as default data manager.",
+    )
+
+
+def pytest_sessionstart(session):
+    # Note: we need to set the option here and not in pytest_runtest_setup below
+    # to ensure this is run before creating fixture data
+    if session.config.getoption("--array-manager"):
+        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
@@ -473,7 +486,7 @@ def index_with_missing(request):
     Fixture for indices with missing values
     """
     if request.param in ["int", "uint", "range", "empty", "repeats"]:
-        pytest.xfail("missing values not supported")
+        pytest.skip("missing values not supported")
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
@@ -698,13 +711,31 @@ def float_frame():
     return DataFrame(tm.getSeriesData())
 
 
+@pytest.fixture
+def mixed_type_frame():
+    """
+    Fixture for DataFrame of float/int/string columns with RangeIndex
+    Columns are ['a', 'b', 'c', 'float32', 'int32'].
+    """
+    return DataFrame(
+        {
+            "a": 1.0,
+            "b": 2,
+            "c": "foo",
+            "float32": np.array([1.0] * 10, dtype="float32"),
+            "int32": np.array([1] * 10, dtype="int32"),
+        },
+        index=np.arange(10),
+    )
+
+
 # ----------------------------------------------------------------
 # Scalars
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(left=0, right=5), IntervalDtype("int64")),
-        (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
@@ -1002,20 +1033,15 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(scope="module")
-def datetime_tz_utc():
-    """
-    Yields the UTC timezone object from the datetime module.
-    """
-    return timezone.utc
-
-
 @pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.
     """
     return request.param
+
+
+utc_fixture2 = utc_fixture
 
 
 # ----------------------------------------------------------------
@@ -1189,7 +1215,7 @@ def any_nullable_int_dtype(request):
 
 
 @pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_numeric_dtype(request):
+def any_nullable_numeric_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
@@ -1462,3 +1488,11 @@ def indexer_si(request):
     Parametrize over __setitem__, iloc.__setitem__
     """
     return request.param
+
+
+@pytest.fixture
+def using_array_manager(request):
+    """
+    Fixture to check if the array manager is being used.
+    """
+    return pd.options.mode.data_manager == "array"

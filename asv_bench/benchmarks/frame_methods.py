@@ -263,7 +263,7 @@ class Repr:
     def setup(self):
         nrows = 10000
         data = np.random.randn(nrows, 10)
-        arrays = np.tile(np.random.randn(3, int(nrows / 100)), 100)
+        arrays = np.tile(np.random.randn(3, nrows // 100), 100)
         idx = MultiIndex.from_arrays(arrays)
         self.df3 = DataFrame(data, index=idx)
         self.df4 = DataFrame(data, index=np.random.randn(nrows))
@@ -648,9 +648,9 @@ class Describe:
     def setup(self):
         self.df = DataFrame(
             {
-                "a": np.random.randint(0, 100, int(1e6)),
-                "b": np.random.randint(0, 100, int(1e6)),
-                "c": np.random.randint(0, 100, int(1e6)),
+                "a": np.random.randint(0, 100, 10 ** 6),
+                "b": np.random.randint(0, 100, 10 ** 6),
+                "c": np.random.randint(0, 100, 10 ** 6),
             }
         )
 

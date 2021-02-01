@@ -545,12 +545,12 @@ z
             df.to_csv(
                 path, compression={"method": compression, "archive_name": archive_name}
             )
-            zp = ZipFile(path)
-            expected_arcname = path if archive_name is None else archive_name
-            expected_arcname = os.path.basename(expected_arcname)
-            assert len(zp.filelist) == 1
-            archived_file = os.path.basename(zp.filelist[0].filename)
-            assert archived_file == expected_arcname
+            with ZipFile(path) as zp:
+                expected_arcname = path if archive_name is None else archive_name
+                expected_arcname = os.path.basename(expected_arcname)
+                assert len(zp.filelist) == 1
+                archived_file = os.path.basename(zp.filelist[0].filename)
+                assert archived_file == expected_arcname
 
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):
