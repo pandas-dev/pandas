@@ -51,15 +51,6 @@ from pandas.core.algorithms import factorize_array, isin, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
-if TYPE_CHECKING:
-
-    from typing import Literal
-
-    class _dummy:
-        ...
-
-    np.ndarray = _dummy
-
 _extension_array_shared_docs: Dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")

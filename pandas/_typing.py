@@ -100,6 +100,7 @@ if TYPE_CHECKING:
         ...
 
     np.dtype = _dummy
+    np.ndarray = _dummy
 
 NpDtype = Union[str, np.dtype]
 Dtype = Union[
