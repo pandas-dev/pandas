@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.16.5, <1.20 # gh-39513
+  - numpy>=1.16.5
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -113,6 +113,5 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
   - pip:
-    - numpy==1.20.0rc2
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc
