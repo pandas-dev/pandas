@@ -1256,7 +1256,7 @@ class Block(PandasObject):
         new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods: int, axis: int = 0, fill_value=None):
+    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -1994,11 +1994,11 @@ class DatetimeLikeBlockMixin(HybridMixin, Block):
             TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer, ndim=self.ndim)
         ]
 
-    def shift(self, periods, axis=0, fill_value=None):
+    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values()
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        return self.make_block_same_class(new_values)
+        return [self.make_block_same_class(new_values)]
 
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
