@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.compat import IS64
 
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
@@ -398,3 +399,25 @@ def test_sort_values_with_missing(request, index_with_missing, na_position):
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)
+
+
+def test_ndarray_compat_properties(index):
+    if isinstance(index, PeriodIndex) and not IS64:
+        pytest.skip("Overflow")
+    idx = index
+    assert idx.T.equals(idx)
+    assert idx.transpose().equals(idx)
+
+    values = idx.values
+
+    assert idx.shape == values.shape
+    assert idx.ndim == values.ndim
+    assert idx.size == values.size
+
+    if not isinstance(index, (RangeIndex, MultiIndex)):
+        # These two are not backed by an ndarray
+        assert idx.nbytes == values.nbytes
+
+    # test for validity
+    idx.nbytes
+    idx.values.nbytes

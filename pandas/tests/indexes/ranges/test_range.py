@@ -18,7 +18,6 @@ OI = Index
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ["shape", "ndim", "size"]
 
     @pytest.fixture(
         params=[

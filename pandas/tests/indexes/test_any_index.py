@@ -11,9 +11,13 @@ import pandas._testing as tm
 
 
 def test_boolean_context_compat(index):
+    # GH#7897
     with pytest.raises(ValueError, match="The truth value of a"):
         if index:
             pass
+
+    with pytest.raises(ValueError, match="The truth value of a"):
+        bool(index)
 
 
 def test_sort(index):
@@ -25,6 +29,12 @@ def test_sort(index):
 def test_hash_error(index):
     with pytest.raises(TypeError, match=f"unhashable type: '{type(index).__name__}'"):
         hash(index)
+
+
+def test_copy_dtype_deprecated(index):
+    # GH#35853
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        index.copy(dtype=object)
 
 
 def test_mutability(index):
