@@ -836,7 +836,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
 
     def _apply_pairwise(self, target, other, pairwise, func):
         # Need to manually drop the grouping column first
-        target = target.drop(columns=self._groupby.indices.keys(), errors="ignore")
+        target = target.drop(columns=list(self._groupby.keys), errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func)
         # Modify the resulting index to include the groupby level
 
