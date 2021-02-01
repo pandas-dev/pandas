@@ -544,3 +544,14 @@ def test_fillna_nonconsolidated_frame():
     df_nonconsol = df.pivot("i1", "i2")
     result = df_nonconsol.fillna(0)
     assert result.isna().sum().sum() == 0
+
+
+def test_fillna_infer_bool_dtype(using_array_manager):
+    # With ArrayManager, fillna doesn't change/infer dtypes
+    df = DataFrame([[True, False], [np.nan, True], [False, None]], dtype=object)
+    result = df.fillna(True)
+    if using_array_manager:
+        expected = DataFrame([[True, False], [True, True], [False, True]], dtype=object)
+    else:
+        expected = DataFrame([[True, False], [True, True], [False, True]], dtype=bool)
+    tm.assert_frame_equal(result, expected)

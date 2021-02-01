@@ -8817,6 +8817,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
+        # Needed for DataFrames with ArrayManager, see below for details
+        all_bool_columns = False
+        if isinstance(cond, ABCDataFrame) and cond._has_array_manager:
+            all_bool_columns = all(is_bool_dtype(dt) for dt in cond.dtypes)
+
         # align the cond to same shape as myself
         cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -8831,6 +8836,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # make sure we are boolean
         fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
+
+        # With ArrayManager, `fillna` does not automatically change object dtype
+        # back to bools (if the alignment made it object by introducing NaNs).
+        # So in this case we cast back to bool manually *if* the original columns
+        # before aligning were bool
+        # TODO this workaround can be removed once we have nullable boolean dtype
+        # as default
+        if isinstance(cond, ABCDataFrame) and cond._has_array_manager:
+            if not all(is_bool_dtype(dt) for dt in cond.dtypes) and all_bool_columns:
+                cond = cond.astype(bool)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 

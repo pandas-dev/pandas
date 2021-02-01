@@ -630,6 +630,10 @@ class DataFrame(NDFrame, OpsMixin):
         # fastpath of passing a manager doesn't check the option/manager class
         return DataFrame(new_mgr)
 
+    @property
+    def _has_array_manager(self):
+        return isinstance(self._mgr, ArrayManager)
+
     # ----------------------------------------------------------------------
 
     @property
