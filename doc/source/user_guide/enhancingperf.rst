@@ -199,8 +199,8 @@ in Python, so maybe we could minimize these by cythonizing the apply part.
       ...:     return s * dx
       ...: cpdef np.ndarray[double] apply_integrate_f(np.ndarray col_a, np.ndarray col_b,
       ...:                                            np.ndarray col_N):
-      ...:     assert (col_a.dtype == np.float
-      ...:             and col_b.dtype == np.float and col_N.dtype == np.int)
+      ...:     assert (col_a.dtype == np.float_
+      ...:             and col_b.dtype == np.float_ and col_N.dtype == np.int_)
       ...:     cdef Py_ssize_t i, n = len(col_N)
       ...:     assert (len(col_a) == len(col_b) == n)
       ...:     cdef np.ndarray[double] res = np.empty(n)
