@@ -1369,7 +1369,7 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0):
+    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
         """
         compute the quantiles of the
 
@@ -1733,7 +1733,9 @@ class ExtensionBlock(Block):
 
         return self.values[slicer]
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List[Block]:
         values = self.values if inplace else self.values.copy()
         values = values.fillna(value=value, limit=limit)
         return [
@@ -2155,7 +2157,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             return self.values._data
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List[Block]:
         # We support filling a DatetimeTZ with a `value` whose timezone
         # is different by coercing to object.
         if self._can_hold_element(value):
@@ -2166,7 +2170,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def quantile(self, qs, interpolation="linear", axis=0):
+    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
         naive = self.values.view("M8[ns]")
 
         # TODO(EA2D): kludge for 2D block with 1D values
@@ -2226,7 +2230,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
     def _holder(self):
         return TimedeltaArray
 
-    def fillna(self, value, **kwargs):
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List[Block]:
         # TODO(EA2D): if we operated on array_values, TDA.fillna would handle
         #  raising here.
         if is_integer(value):
@@ -2236,7 +2242,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
                 "longer supported.  To obtain the old behavior, pass "
                 "`pd.Timedelta(seconds=n)` instead."
             )
-        return super().fillna(value, **kwargs)
+        return super().fillna(value, limit=limit, inplace=inplace, downcast=downcast)
 
 
 class ObjectBlock(Block):
