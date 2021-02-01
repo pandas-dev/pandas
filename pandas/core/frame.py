@@ -129,6 +129,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -3229,9 +3230,8 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
             self.iloc[indexer] = value
         else:
-            if isinstance(value, DataFrame) and self.columns.is_unique:
-                if len(value.columns) != len(key):
-                    raise ValueError("Columns must be same length as key")
+            if isinstance(value, DataFrame):
+                check_key_length(self.columns, key, value)
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
@@ -3870,6 +3870,14 @@ class DataFrame(NDFrame, OpsMixin):
            col1  col1  newcol  col2
         0   100     1      99     3
         1   100     2      99     4
+
+        Notice that pandas uses index alignment in case of `value` from type `Series`:
+
+        >>> df.insert(0, "col0", pd.Series([5, 6], index=[1, 2]))
+        >>> df
+           col0  col1  col1  newcol  col2
+        0   NaN   100     1      99     3
+        1   5.0   100     2      99     4
         """
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(

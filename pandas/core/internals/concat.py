@@ -11,7 +11,7 @@ from pandas._libs import internals as libinternals
 from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.cast import find_common_type, maybe_promote
 from pandas.core.dtypes.common import (
     get_dtype,
     is_categorical_dtype,
@@ -264,7 +264,9 @@ class JoinUnit:
             fill_value = upcasted_na
 
             if self.is_na:
-                if getattr(self.block, "is_object", False):
+                blk_dtype = getattr(self.block, "dtype", None)
+
+                if blk_dtype == np.dtype(object):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -272,17 +274,16 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, "is_datetimetz", False) or is_datetime64tz_dtype(
+                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
                     empty_dtype
                 ):
                     if self.block is None:
                         # TODO(EA2D): special case unneeded with 2D EAs
-                        return DatetimeArray(
-                            np.full(self.shape[1], fill_value.value), dtype=empty_dtype
-                        )
-                elif getattr(self.block, "is_categorical", False):
+                        i8values = np.full(self.shape[1], fill_value.value)
+                        return DatetimeArray(i8values, dtype=empty_dtype)
+                elif is_categorical_dtype(blk_dtype):
                     pass
-                elif getattr(self.block, "is_extension", False):
+                elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
                     missing_arr = empty_dtype.construct_array_type()._from_sequence(
@@ -322,7 +323,7 @@ class JoinUnit:
 
         else:
             for ax, indexer in self.indexers.items():
-                values = algos.take_nd(values, indexer, axis=ax, fill_value=fill_value)
+                values = algos.take_nd(values, indexer, axis=ax)
 
         return values
 
@@ -421,25 +422,29 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     has_none_blocks = any(unit.block is None for unit in join_units)
     dtypes = [None if unit.block is None else unit.dtype for unit in join_units]
 
+    filtered_dtypes = [
+        unit.dtype for unit in join_units if unit.block is not None and not unit.is_na
+    ]
+    if not len(filtered_dtypes):
+        filtered_dtypes = [unit.dtype for unit in join_units if unit.block is not None]
+    dtype_alt = find_common_type(filtered_dtypes)
+
     upcast_classes = _get_upcast_classes(join_units, dtypes)
+
+    if is_extension_array_dtype(dtype_alt):
+        return dtype_alt
+    elif dtype_alt == object:
+        return dtype_alt
 
     # TODO: de-duplicate with maybe_promote?
     # create the result
     if "extension" in upcast_classes:
-        if len(upcast_classes) == 1:
-            cls = upcast_classes["extension"][0]
-            return cls
-        else:
-            return np.dtype("object")
-    elif "object" in upcast_classes:
-        return np.dtype(np.object_)
+        return np.dtype("object")
     elif "bool" in upcast_classes:
         if has_none_blocks:
             return np.dtype(np.object_)
         else:
             return np.dtype(np.bool_)
-    elif "category" in upcast_classes:
-        return np.dtype(np.object_)
     elif "datetimetz" in upcast_classes:
         # GH-25014. We use NaT instead of iNaT, since this eventually
         # ends up in DatetimeArray.take, which does not allow iNaT.
@@ -497,7 +502,7 @@ def _get_upcast_classes(
 def _select_upcast_cls_from_dtype(dtype: DtypeObj) -> str:
     """Select upcast class name based on dtype."""
     if is_categorical_dtype(dtype):
-        return "category"
+        return "extension"
     elif is_datetime64tz_dtype(dtype):
         return "datetimetz"
     elif is_extension_array_dtype(dtype):
