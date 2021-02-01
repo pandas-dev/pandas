@@ -83,11 +83,11 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type[str]:
+    def type(self) -> type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowStringArray]:
+    def construct_array_type(cls) -> type[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -104,7 +104,7 @@ class ArrowStringDtype(ExtensionDtype):
         return "ArrowStringDtype"
 
     def __from_arrow__(
-        self, array: Union[pa.Array, pa.ChunkedArray]
+        self, array: pa.Array | pa.ChunkedArray
     ) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
@@ -203,7 +203,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise ImportError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy=False):
         cls._chk_pyarrow_available()
         # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
         scalars = lib.ensure_string_array(scalars, copy=False)
@@ -211,7 +211,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, dtype: Dtype | None = None, copy=False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -222,7 +222,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._dtype
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
@@ -232,7 +232,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     def to_numpy(
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -441,7 +441,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return BooleanArray._from_sequence(result.to_pandas().values)
 
-    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: int | np.ndarray, value: Any) -> None:
         """Set one or more values inplace.
 
         Parameters

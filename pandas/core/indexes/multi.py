@@ -268,7 +268,7 @@ class MultiIndex(Index):
     _comparables = ["names"]
     rename = Index.set_names
 
-    sortorder: Optional[int]
+    sortorder: int | None
 
     # --------------------------------------------------------------------
     # Constructors
@@ -320,7 +320,7 @@ class MultiIndex(Index):
 
         return result
 
-    def _validate_codes(self, level: List, code: List):
+    def _validate_codes(self, level: list, code: list):
         """
         Reassign code values as -1 if their corresponding levels are NaN.
 
@@ -342,7 +342,7 @@ class MultiIndex(Index):
         return code
 
     def _verify_integrity(
-        self, codes: Optional[List] = None, levels: Optional[List] = None
+        self, codes: list | None = None, levels: list | None = None
     ):
         """
         Parameters
@@ -476,8 +476,8 @@ class MultiIndex(Index):
     def from_tuples(
         cls,
         tuples,
-        sortorder: Optional[int] = None,
-        names: Optional[Sequence[Hashable]] = None,
+        sortorder: int | None = None,
+        names: Sequence[Hashable] | None = None,
     ):
         """
         Convert list of tuples to MultiIndex.
@@ -519,7 +519,7 @@ class MultiIndex(Index):
         elif is_iterator(tuples):
             tuples = list(tuples)
 
-        arrays: List[Sequence[Hashable]]
+        arrays: list[Sequence[Hashable]]
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
@@ -1310,14 +1310,14 @@ class MultiIndex(Index):
 
     def format(
         self,
-        name: Optional[bool] = None,
-        formatter: Optional[Callable] = None,
-        na_rep: Optional[str] = None,
+        name: bool | None = None,
+        formatter: Callable | None = None,
+        na_rep: str | None = None,
         names: bool = False,
         space: int = 2,
         sparsify=None,
         adjoin: bool = True,
-    ) -> List:
+    ) -> list:
         if name is not None:
             names = name
 
@@ -2646,7 +2646,7 @@ class MultiIndex(Index):
         return ensure_platform_int(indexer)
 
     def get_slice_bound(
-        self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
+        self, label: Hashable | Sequence[Hashable], side: str, kind: str
     ) -> int:
         """
         For an ordered MultiIndex, compute slice bound
@@ -2971,7 +2971,7 @@ class MultiIndex(Index):
         return self._get_loc_level(key, level=level, drop_level=drop_level)
 
     def _get_loc_level(
-        self, key, level: Union[int, List[int]] = 0, drop_level: bool = True
+        self, key, level: int | list[int] = 0, drop_level: bool = True
     ):
         """
         get_loc_level but with `level` known to be positional, not name-based.
@@ -3247,7 +3247,7 @@ class MultiIndex(Index):
             return Int64Index(r)
 
         def _update_indexer(
-            idxr: Optional[Index], indexer: Optional[Index], key
+            idxr: Index | None, indexer: Index | None, key
         ) -> Index:
             if indexer is None:
                 indexer = Index(np.arange(n))
@@ -3270,7 +3270,7 @@ class MultiIndex(Index):
             elif is_list_like(k):
                 # a collection of labels to include from this level (these
                 # are or'd)
-                indexers: Optional[Int64Index] = None
+                indexers: Int64Index | None = None
                 for x in k:
                     try:
                         idxrs = _convert_to_indexer(
@@ -3327,7 +3327,7 @@ class MultiIndex(Index):
 
     def _reorder_indexer(
         self,
-        seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...],
+        seq: tuple[Scalar | Iterable | AnyArrayLike, ...],
         indexer: Int64Index,
     ) -> Int64Index:
         """
@@ -3361,7 +3361,7 @@ class MultiIndex(Index):
                 return indexer
 
         n = len(self)
-        keys: Tuple[np.ndarray, ...] = ()
+        keys: tuple[np.ndarray, ...] = ()
         # For each level of the sequence in seq, map the level codes with the
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
@@ -3759,7 +3759,7 @@ class MultiIndex(Index):
     __inv__ = make_invalid_op("__inv__")
 
 
-def _lexsort_depth(codes: List[np.ndarray], nlevels: int) -> int:
+def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
     """Count depth (up to a maximum of `nlevels`) with which codes are lexsorted."""
     int64_codes = [ensure_int64(level_codes) for level_codes in codes]
     for k in range(nlevels, 0, -1):

@@ -172,7 +172,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls,
         data,
         closed=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
     ):
@@ -219,7 +219,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right,
         closed=None,
         copy=False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         verify_integrity=True,
     ):
         result = IntervalMixin.__new__(cls)
@@ -301,7 +301,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ):
         return cls(scalars, dtype=dtype, copy=copy)
 
@@ -362,7 +362,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_breaks(
-        cls, breaks, closed="right", copy: bool = False, dtype: Optional[Dtype] = None
+        cls, breaks, closed="right", copy: bool = False, dtype: Dtype | None = None
     ):
         breaks = maybe_convert_platform_interval(breaks)
 
@@ -433,7 +433,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_arrays(
-        cls, left, right, closed="right", copy=False, dtype: Optional[Dtype] = None
+        cls, left, right, closed="right", copy=False, dtype: Dtype | None = None
     ):
         left = maybe_convert_platform_interval(left)
         right = maybe_convert_platform_interval(right)
@@ -492,7 +492,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_tuples(
-        cls, data, closed="right", copy=False, dtype: Optional[Dtype] = None
+        cls, data, closed="right", copy=False, dtype: Dtype | None = None
     ):
         if len(data):
             left, right = [], []
@@ -824,7 +824,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
+        cls: type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
     ) -> IntervalArrayT:
         """
         Concatenate multiple IntervalArray
@@ -1314,7 +1314,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')

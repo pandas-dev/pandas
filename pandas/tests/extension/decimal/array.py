@@ -33,7 +33,7 @@ class DecimalDtype(ExtensionDtype):
         return f"DecimalDtype(context={self.context})"
 
     @classmethod
-    def construct_array_type(cls) -> Type[DecimalArray]:
+    def construct_array_type(cls) -> type[DecimalArray]:
         """
         Return the array type associated with this dtype.
 

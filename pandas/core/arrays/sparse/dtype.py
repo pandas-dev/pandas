@@ -173,7 +173,7 @@ class SparseDtype(ExtensionDtype):
         return self.name
 
     @classmethod
-    def construct_array_type(cls) -> Type[SparseArray]:
+    def construct_array_type(cls) -> type[SparseArray]:
         """
         Return the array type associated with this dtype.
 
@@ -238,7 +238,7 @@ class SparseDtype(ExtensionDtype):
             raise TypeError(msg)
 
     @staticmethod
-    def _parse_subtype(dtype: str) -> Tuple[str, bool]:
+    def _parse_subtype(dtype: str) -> tuple[str, bool]:
         """
         Parse a string to get the subtype
 
@@ -359,7 +359,7 @@ class SparseDtype(ExtensionDtype):
             return type(self.fill_value)
         return self.subtype
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
         # with other compatibtle extension dtypes
         if any(

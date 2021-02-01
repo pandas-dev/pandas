@@ -40,13 +40,13 @@ _INT64_MAX = np.iinfo(np.int64).max
 
 def get_indexer_indexer(
     target: Index,
-    level: Union[str, int, List[str], List[int]],
+    level: str | int | list[str] | list[int],
     ascending: bool,
     kind: str,
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:
+) -> np.array | None:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -263,7 +263,7 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
 
 
 def lexsort_indexer(
-    keys, orders=None, na_position: str = "last", key: Optional[Callable] = None
+    keys, orders=None, na_position: str = "last", key: Callable | None = None
 ):
     """
     Performs lexical sorting on a set of keys
@@ -330,8 +330,8 @@ def nargsort(
     kind: str = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
-    key: Optional[Callable] = None,
-    mask: Optional[np.ndarray] = None,
+    key: Callable | None = None,
+    mask: np.ndarray | None = None,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -468,7 +468,7 @@ def _ensure_key_mapped_multiindex(
     return type(index).from_arrays(mapped)
 
 
-def ensure_key_mapped(values, key: Optional[Callable], levels=None):
+def ensure_key_mapped(values, key: Callable | None, levels=None):
     """
     Applies a callable key function to the values function and checks
     that the resulting value has the same shape. Can be called on Index
@@ -517,10 +517,10 @@ def get_flattened_list(
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
-) -> List[Tuple]:
+) -> list[tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
-    arrays: DefaultDict[int, List[int]] = defaultdict(list)
+    arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
         table.map(comp_ids, labs.astype(np.int64, copy=False))
@@ -530,8 +530,8 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List[Index]
-) -> Dict[Union[str, Tuple], np.ndarray]:
+    label_list: list[np.ndarray], keys: list[Index]
+) -> dict[str | tuple, np.ndarray]:
     """
     Returns
     -------

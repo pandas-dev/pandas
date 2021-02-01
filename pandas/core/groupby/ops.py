@@ -104,14 +104,14 @@ class BaseGrouper:
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
-        indexer: Optional[np.ndarray] = None,
+        indexer: np.ndarray | None = None,
         dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
 
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self._groupings: List[grouper.Grouping] = list(groupings)
+        self._groupings: list[grouper.Grouping] = list(groupings)
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -119,7 +119,7 @@ class BaseGrouper:
         self.dropna = dropna
 
     @property
-    def groupings(self) -> List[grouper.Grouping]:
+    def groupings(self) -> list[grouper.Grouping]:
         return self._groupings
 
     @property
@@ -135,7 +135,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: FrameOrSeries, axis: int = 0
-    ) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
+    ) -> Iterator[tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator
 
@@ -253,15 +253,15 @@ class BaseGrouper:
         return get_indexer_dict(codes_list, keys)
 
     @property
-    def codes(self) -> List[np.ndarray]:
+    def codes(self) -> list[np.ndarray]:
         return [ping.codes for ping in self.groupings]
 
     @property
-    def levels(self) -> List[Index]:
+    def levels(self) -> list[Index]:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> List[Hashable]:
+    def names(self) -> list[Hashable]:
         return [ping.name for ping in self.groupings]
 
     @final
@@ -278,7 +278,7 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self) -> Dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, np.ndarray]:
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
@@ -312,7 +312,7 @@ class BaseGrouper:
         return codes
 
     @final
-    def _get_compressed_codes(self) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
         all_codes = self.codes
         if len(all_codes) > 1:
             group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
@@ -327,7 +327,7 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> List[np.ndarray]:
+    def reconstructed_codes(self) -> list[np.ndarray]:
         codes = self.codes
         comp_ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(comp_ids, obs_ids, self.shape, codes, xnull=True)
@@ -344,7 +344,7 @@ class BaseGrouper:
         )
 
     @final
-    def get_group_levels(self) -> List[Index]:
+    def get_group_levels(self) -> list[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
@@ -497,7 +497,7 @@ class BaseGrouper:
     @final
     def _ea_wrap_cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+    ) -> tuple[np.ndarray, list[str] | None]:
         """
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
@@ -890,7 +890,7 @@ class BinGrouper(BaseGrouper):
         )
 
     @cache_readonly
-    def reconstructed_codes(self) -> List[np.ndarray]:
+    def reconstructed_codes(self) -> list[np.ndarray]:
         # get unique result indices, and prepend 0 as groupby starts from the first
         return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 
@@ -902,15 +902,15 @@ class BinGrouper(BaseGrouper):
         return self.binlabels
 
     @property
-    def levels(self) -> List[Index]:
+    def levels(self) -> list[Index]:
         return [self.binlabels]
 
     @property
-    def names(self) -> List[Hashable]:
+    def names(self) -> list[Hashable]:
         return [self.binlabels.name]
 
     @property
-    def groupings(self) -> List[grouper.Grouping]:
+    def groupings(self) -> list[grouper.Grouping]:
         return [
             grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)
@@ -1013,7 +1013,7 @@ def get_splitter(
     data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
-        klass: Type[DataSplitter] = SeriesSplitter
+        klass: type[DataSplitter] = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter

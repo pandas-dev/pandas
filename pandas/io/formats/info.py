@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
 
 
-def _put_str(s: Union[str, Dtype], space: int) -> str:
+def _put_str(s: str | Dtype, space: int) -> str:
     """
     Make string of specified length, padding to the right if necessary.
 
@@ -53,7 +53,7 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
-def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
+def _sizeof_fmt(num: int | float, size_qualifier: str) -> str:
     """
     Return size in human readable format.
 
@@ -85,8 +85,8 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
 
 
 def _initialize_memory_usage(
-    memory_usage: Optional[Union[bool, str]] = None,
-) -> Union[bool, str]:
+    memory_usage: bool | str | None = None,
+) -> bool | str:
     """Get memory usage based on inputs and display options."""
     if memory_usage is None:
         memory_usage = get_option("display.memory_usage")
@@ -108,7 +108,7 @@ class BaseInfo(ABC):
     """
 
     data: FrameOrSeriesUnion
-    memory_usage: Union[bool, str]
+    memory_usage: bool | str
 
     @property
     @abstractmethod
@@ -168,10 +168,10 @@ class BaseInfo(ABC):
     def render(
         self,
         *,
-        buf: Optional[IO[str]],
-        max_cols: Optional[int],
-        verbose: Optional[bool],
-        show_counts: Optional[bool],
+        buf: IO[str] | None,
+        max_cols: int | None,
+        verbose: bool | None,
+        show_counts: bool | None,
     ) -> None:
         """
         Print a concise summary of a %(klass)s.
@@ -230,7 +230,7 @@ class DataFrameInfo(BaseInfo):
     def __init__(
         self,
         data: DataFrame,
-        memory_usage: Optional[Union[bool, str]] = None,
+        memory_usage: bool | str | None = None,
     ):
         self.data: DataFrame = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
@@ -284,10 +284,10 @@ class DataFrameInfo(BaseInfo):
     def render(
         self,
         *,
-        buf: Optional[IO[str]],
-        max_cols: Optional[int],
-        verbose: Optional[bool],
-        show_counts: Optional[bool],
+        buf: IO[str] | None,
+        max_cols: int | None,
+        verbose: bool | None,
+        show_counts: bool | None,
     ) -> None:
         printer = DataFrameInfoPrinter(
             info=self,
@@ -303,7 +303,7 @@ class InfoPrinterAbstract:
     Class for printing dataframe or series info.
     """
 
-    def to_buffer(self, buf: Optional[IO[str]] = None) -> None:
+    def to_buffer(self, buf: IO[str] | None = None) -> None:
         """Save dataframe info into buffer."""
         table_builder = self._create_table_builder()
         lines = table_builder.get_lines()
@@ -335,9 +335,9 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
     def __init__(
         self,
         info: DataFrameInfo,
-        max_cols: Optional[int] = None,
-        verbose: Optional[bool] = None,
-        show_counts: Optional[bool] = None,
+        max_cols: int | None = None,
+        verbose: bool | None = None,
+        show_counts: bool | None = None,
     ):
         self.info = info
         self.data = info.data
@@ -365,12 +365,12 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
         """Number of columns to be summarized."""
         return self.info.col_count
 
-    def _initialize_max_cols(self, max_cols: Optional[int]) -> int:
+    def _initialize_max_cols(self, max_cols: int | None) -> int:
         if max_cols is None:
             return get_option("display.max_info_columns", self.col_count + 1)
         return max_cols
 
-    def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
+    def _initialize_show_counts(self, show_counts: bool | None) -> bool:
         if show_counts is None:
             return bool(not self.exceeds_info_cols and not self.exceeds_info_rows)
         else:
@@ -402,11 +402,11 @@ class TableBuilderAbstract(ABC):
     Abstract builder for info table.
     """
 
-    _lines: List[str]
+    _lines: list[str]
     info: BaseInfo
 
     @abstractmethod
-    def get_lines(self) -> List[str]:
+    def get_lines(self) -> list[str]:
         """Product in a form of list of lines (strings)."""
 
     @property
@@ -466,7 +466,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
     def __init__(self, *, info: DataFrameInfo):
         self.info: DataFrameInfo = info
 
-    def get_lines(self) -> List[str]:
+    def get_lines(self) -> list[str]:
         self._lines = []
         if self.col_count == 0:
             self._fill_empty_info()

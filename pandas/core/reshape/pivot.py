@@ -55,7 +55,7 @@ def pivot_table(
     columns = _convert_by(columns)
 
     if isinstance(aggfunc, list):
-        pieces: List[DataFrame] = []
+        pieces: list[DataFrame] = []
         keys = []
         for func in aggfunc:
             table = pivot_table(
@@ -230,7 +230,7 @@ def _add_margins(
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
 
-    key: Union[str, Tuple[str, ...]]
+    key: str | tuple[str, ...]
     if len(rows) > 1:
         key = (margins_name,) + ("",) * (len(rows) - 1)
     else:
@@ -374,7 +374,7 @@ def _generate_marginal_results_without_values(
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
-        margin_keys: Union[List, Index] = []
+        margin_keys: list | Index = []
 
         def _all_key():
             if len(cols) == 1:
@@ -425,9 +425,9 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: DataFrame,
-    index: Optional[IndexLabel] = None,
-    columns: Optional[IndexLabel] = None,
-    values: Optional[IndexLabel] = None,
+    index: IndexLabel | None = None,
+    columns: IndexLabel | None = None,
+    values: IndexLabel | None = None,
 ) -> DataFrame:
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
@@ -648,7 +648,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
     if margins is False:
 
         # Actual Normalizations
-        normalizers: Dict[Union[bool, str], Callable] = {
+        normalizers: dict[bool | str, Callable] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
@@ -734,8 +734,8 @@ def _get_names(arrs, names, prefix: str = "row"):
 
 
 def _build_names_mapper(
-    rownames: List[str], colnames: List[str]
-) -> Tuple[Dict[str, str], List[str], Dict[str, str], List[str]]:
+    rownames: list[str], colnames: list[str]
+) -> tuple[dict[str, str], list[str], dict[str, str], list[str]]:
     """
     Given the names of a DataFrame's rows and columns, returns a set of unique row
     and column names and mappers that convert to original names.
@@ -764,7 +764,7 @@ def _build_names_mapper(
     """
 
     def get_duplicates(names):
-        seen: Set = set()
+        seen: set = set()
         return {name for name in names if name not in seen}
 
     shared_names = set(rownames).intersection(set(colnames))

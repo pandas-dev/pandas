@@ -80,7 +80,7 @@ if TYPE_CHECKING:
 class BaseWindow(ShallowMixin, SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
-    _attributes: List[str] = [
+    _attributes: list[str] = [
         "window",
         "min_periods",
         "center",
@@ -90,18 +90,18 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         "closed",
         "method",
     ]
-    exclusions: Set[str] = set()
+    exclusions: set[str] = set()
 
     def __init__(
         self,
         obj: FrameOrSeries,
         window=None,
-        min_periods: Optional[int] = None,
+        min_periods: int | None = None,
         center: bool = False,
-        win_type: Optional[str] = None,
+        win_type: str | None = None,
         axis: Axis = 0,
-        on: Optional[Union[str, Index]] = None,
-        closed: Optional[str] = None,
+        on: str | Index | None = None,
+        closed: str | None = None,
         method: str = "single",
         **kwargs,
     ):
@@ -274,7 +274,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             result = obj.iloc[slice(s, e)]
             yield result
 
-    def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
+    def _prep_values(self, values: np.ndarray | None = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
             values = extract_array(self._selected_obj, extract_numpy=True)
@@ -344,7 +344,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         return FixedWindowIndexer(window_size=self.window)
 
     def _apply_series(
-        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> Series:
         """
         Series version of _apply_blockwise
@@ -362,7 +362,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         return obj._constructor(result, index=obj.index, name=obj.name)
 
     def _apply_blockwise(
-        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> FrameOrSeriesUnion:
         """
         Apply the given function to the DataFrame broken down into homogeneous
@@ -396,7 +396,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         return out
 
     def _apply_tablewise(
-        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> FrameOrSeriesUnion:
         if self._selected_obj.ndim == 1:
             raise ValueError("method='table' not applicable for Series objects.")
@@ -418,8 +418,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _apply(
         self,
         func: Callable[..., Any],
-        name: Optional[str] = None,
-        numba_cache_key: Optional[Tuple[Callable, str]] = None,
+        name: str | None = None,
+        numba_cache_key: tuple[Callable, str] | None = None,
         **kwargs,
     ):
         """
@@ -767,8 +767,8 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
     def _apply(
         self,
         func: Callable[..., Any],
-        name: Optional[str] = None,
-        numba_cache_key: Optional[Tuple[Callable, str]] = None,
+        name: str | None = None,
+        numba_cache_key: tuple[Callable, str] | None = None,
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
@@ -1064,8 +1064,8 @@ class Window(BaseWindow):
     def _apply(
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
-        name: Optional[str] = None,
-        numba_cache_key: Optional[Tuple[Callable, str]] = None,
+        name: str | None = None,
+        numba_cache_key: tuple[Callable, str] | None = None,
         **kwargs,
     ):
         """
@@ -1302,10 +1302,10 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
-        args: Optional[Tuple[Any, ...]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
     ):
         if args is None:
             args = ()
@@ -1344,8 +1344,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def _generate_cython_apply_func(
         self,
-        args: Tuple[Any, ...],
-        kwargs: Dict[str, Any],
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
         raw: bool,
         function: Callable[..., Any],
     ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
@@ -2287,8 +2287,8 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         -------
         GroupbyIndexer
         """
-        rolling_indexer: Type[BaseIndexer]
-        indexer_kwargs: Optional[Dict[str, Any]] = None
+        rolling_indexer: type[BaseIndexer]
+        indexer_kwargs: dict[str, Any] | None = None
         index_array = self._index_array
         window = self.window
         if isinstance(self.window, BaseIndexer):

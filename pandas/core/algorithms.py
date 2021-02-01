@@ -70,15 +70,15 @@ if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 
 
 # --------------- #
 # dtype access    #
 # --------------- #
 def _ensure_data(
-    values: ArrayLike, dtype: Optional[DtypeObj] = None
-) -> Tuple[np.ndarray, DtypeObj]:
+    values: ArrayLike, dtype: DtypeObj | None = None
+) -> tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -495,7 +495,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
 def factorize_array(
     values: np.ndarray, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
 
@@ -558,9 +558,9 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: Optional[int] = -1,
-    size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
+    na_sentinel: int | None = -1,
+    size_hint: int | None = None,
+) -> tuple[np.ndarray, np.ndarray | Index]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -2052,7 +2052,7 @@ def safe_sort(
     na_sentinel: int = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 

@@ -131,7 +131,7 @@ def _get_marker_compat(marker):
 def radviz(
     frame: DataFrame,
     class_column,
-    ax: Optional[Axes] = None,
+    ax: Axes | None = None,
     color=None,
     colormap=None,
     **kwds,
@@ -153,7 +153,7 @@ def radviz(
         ax.set_xlim(-1, 1)
         ax.set_ylim(-1, 1)
 
-    to_plot: Dict[Hashable, List[List]] = {}
+    to_plot: dict[Hashable, list[list]] = {}
     colors = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
@@ -219,7 +219,7 @@ def radviz(
 def andrews_curves(
     frame: DataFrame,
     class_column,
-    ax: Optional[Axes] = None,
+    ax: Axes | None = None,
     samples: int = 200,
     color=None,
     colormap=None,
@@ -257,7 +257,7 @@ def andrews_curves(
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
     t = np.linspace(-np.pi, np.pi, samples)
-    used_legends: Set[str] = set()
+    used_legends: set[str] = set()
 
     color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
@@ -285,7 +285,7 @@ def andrews_curves(
 
 def bootstrap_plot(
     series: Series,
-    fig: Optional[Figure] = None,
+    fig: Figure | None = None,
     size: int = 50,
     samples: int = 500,
     **kwds,
@@ -343,7 +343,7 @@ def parallel_coordinates(
     frame: DataFrame,
     class_column,
     cols=None,
-    ax: Optional[Axes] = None,
+    ax: Axes | None = None,
     color=None,
     use_columns=False,
     xticks=None,
@@ -367,7 +367,7 @@ def parallel_coordinates(
     else:
         df = frame[cols]
 
-    used_legends: Set[str] = set()
+    used_legends: set[str] = set()
 
     ncols = len(df.columns)
 
@@ -419,7 +419,7 @@ def parallel_coordinates(
     return ax
 
 
-def lag_plot(series: Series, lag: int = 1, ax: Optional[Axes] = None, **kwds) -> Axes:
+def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Axes:
     # workaround because `c='b'` is hardcoded in matplotlib's scatter method
     import matplotlib.pyplot as plt
 
@@ -436,7 +436,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Optional[Axes] = None, **kwds) ->
     return ax
 
 
-def autocorrelation_plot(series: Series, ax: Optional[Axes] = None, **kwds) -> Axes:
+def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwds) -> Axes:
     import matplotlib.pyplot as plt
 
     n = len(series)

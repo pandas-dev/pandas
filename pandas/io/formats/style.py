@@ -146,17 +146,17 @@ class Styler:
     def __init__(
         self,
         data: FrameOrSeriesUnion,
-        precision: Optional[int] = None,
-        table_styles: Optional[List[Dict[str, List[Tuple[str, str]]]]] = None,
-        uuid: Optional[str] = None,
-        caption: Optional[str] = None,
-        table_attributes: Optional[str] = None,
+        precision: int | None = None,
+        table_styles: list[dict[str, list[tuple[str, str]]]] | None = None,
+        uuid: str | None = None,
+        caption: str | None = None,
+        table_attributes: str | None = None,
         cell_ids: bool = True,
-        na_rep: Optional[str] = None,
+        na_rep: str | None = None,
         uuid_len: int = 5,
     ):
-        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
-        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
+        self.ctx: DefaultDict[tuple[int, int], list[str]] = defaultdict(list)
+        self._todo: list[tuple[Callable, tuple, dict]] = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -184,9 +184,9 @@ class Styler:
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
-        self.tooltips: Optional[_Tooltips] = None
+        self.tooltips: _Tooltips | None = None
 
-        self.cell_context: Dict[str, Any] = {}
+        self.cell_context: dict[str, Any] = {}
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -200,7 +200,7 @@ class Styler:
                 return x
 
         self._display_funcs: DefaultDict[
-            Tuple[int, int], Callable[[Any], str]
+            tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self) -> str:
@@ -266,8 +266,8 @@ class Styler:
 
     def set_tooltips_class(
         self,
-        name: Optional[str] = None,
-        properties: Optional[Sequence[Tuple[str, Union[str, int, float]]]] = None,
+        name: str | None = None,
+        properties: Sequence[tuple[str, str | int | float]] | None = None,
     ) -> Styler:
         """
         Manually configure the name and/or properties of the class for
@@ -330,19 +330,19 @@ class Styler:
         excel_writer,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
-        float_format: Optional[str] = None,
-        columns: Optional[Sequence[Hashable]] = None,
-        header: Union[Sequence[Hashable], bool] = True,
+        float_format: str | None = None,
+        columns: Sequence[Hashable] | None = None,
+        header: Sequence[Hashable] | bool = True,
         index: bool = True,
-        index_label: Optional[IndexLabel] = None,
+        index_label: IndexLabel | None = None,
         startrow: int = 0,
         startcol: int = 0,
-        engine: Optional[str] = None,
+        engine: str | None = None,
         merge_cells: bool = True,
-        encoding: Optional[str] = None,
+        encoding: str | None = None,
         inf_rep: str = "inf",
         verbose: bool = True,
-        freeze_panes: Optional[Tuple[int, int]] = None,
+        freeze_panes: tuple[int, int] | None = None,
     ) -> None:
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -568,7 +568,7 @@ class Styler:
 
         return d
 
-    def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> Styler:
+    def format(self, formatter, subset=None, na_rep: str | None = None) -> Styler:
         """
         Format the text display value of cells.
 
@@ -836,7 +836,7 @@ class Styler:
     def _apply(
         self,
         func: Callable[..., Styler],
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         subset=None,
         **kwargs,
     ) -> Styler:
@@ -875,7 +875,7 @@ class Styler:
     def apply(
         self,
         func: Callable[..., Styler],
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         subset=None,
         **kwargs,
     ) -> Styler:
@@ -972,7 +972,7 @@ class Styler:
         self,
         cond: Callable,
         value: str,
-        other: Optional[str] = None,
+        other: str | None = None,
         subset=None,
         **kwargs,
     ) -> Styler:
@@ -1050,7 +1050,7 @@ class Styler:
         self.table_attributes = attributes
         return self
 
-    def export(self) -> List[Tuple[Callable, Tuple, Dict]]:
+    def export(self) -> list[tuple[Callable, tuple, dict]]:
         """
         Export the styles to applied to the current Styler.
 
@@ -1066,7 +1066,7 @@ class Styler:
         """
         return self._todo
 
-    def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> Styler:
+    def use(self, styles: list[tuple[Callable, tuple, dict]]) -> Styler:
         """
         Set the styles on the current Styler.
 
@@ -1267,7 +1267,7 @@ class Styler:
     def highlight_null(
         self,
         null_color: str = "red",
-        subset: Optional[IndexLabel] = None,
+        subset: IndexLabel | None = None,
     ) -> Styler:
         """
         Shade the background ``null_color`` for missing values.
@@ -1292,11 +1292,11 @@ class Styler:
         cmap="PuBu",
         low: float = 0,
         high: float = 0,
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         subset=None,
         text_color_threshold: float = 0.408,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
     ) -> Styler:
         """
         Color the background in a gradient style.
@@ -1375,8 +1375,8 @@ class Styler:
         low: float = 0,
         high: float = 0,
         text_color_threshold: float = 0.408,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
     ):
         """
         Color background in a range according to the data.
@@ -1462,10 +1462,10 @@ class Styler:
     def _bar(
         s,
         align: str,
-        colors: List[str],
+        colors: list[str],
         width: float = 100,
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
     ):
         """
         Draw bar chart in dataframe cells.
@@ -1521,12 +1521,12 @@ class Styler:
     def bar(
         self,
         subset=None,
-        axis: Optional[Axis] = 0,
+        axis: Axis | None = 0,
         color="#d65f5f",
         width: float = 100,
         align: str = "left",
-        vmin: Optional[float] = None,
-        vmax: Optional[float] = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
@@ -1603,7 +1603,7 @@ class Styler:
         return self
 
     def highlight_max(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self, subset=None, color: str = "yellow", axis: Axis | None = 0
     ) -> Styler:
         """
         Highlight the maximum by shading the background.
@@ -1625,7 +1625,7 @@ class Styler:
         return self._highlight_handler(subset=subset, color=color, axis=axis, max_=True)
 
     def highlight_min(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self, subset=None, color: str = "yellow", axis: Axis | None = 0
     ) -> Styler:
         """
         Highlight the minimum by shading the background.
@@ -1652,7 +1652,7 @@ class Styler:
         self,
         subset=None,
         color: str = "yellow",
-        axis: Optional[Axis] = None,
+        axis: Axis | None = None,
         max_: bool = True,
     ) -> Styler:
         subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
@@ -1816,7 +1816,7 @@ class _Tooltips:
 
     def __init__(
         self,
-        css_props: Sequence[Tuple[str, Union[str, int, float]]] = [
+        css_props: Sequence[tuple[str, str | int | float]] = [
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),
@@ -1830,7 +1830,7 @@ class _Tooltips:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips
-        self.table_styles: List[Dict[str, Union[str, List[Tuple[str, str]]]]] = []
+        self.table_styles: list[dict[str, str | list[tuple[str, str]]]] = []
 
     @property
     def _class_styles(self):
@@ -1899,7 +1899,7 @@ class _Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: Dict):
+    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -2008,7 +2008,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
 
 def _maybe_wrap_formatter(
-    formatter: Union[Callable, str], na_rep: Optional[str]
+    formatter: Callable | str, na_rep: str | None
 ) -> Callable:
     if isinstance(formatter, str):
         formatter_func = lambda x: formatter.format(x)

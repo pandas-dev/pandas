@@ -141,7 +141,7 @@ _o_dtype = np.dtype(object)
 _Identity = NewType("_Identity", object)
 
 
-def disallow_kwargs(kwargs: Dict[str, Any]):
+def disallow_kwargs(kwargs: dict[str, Any]):
     if kwargs:
         raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
 
@@ -215,7 +215,7 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _hidden_attrs: FrozenSet[str] = (
+    _hidden_attrs: frozenset[str] = (
         PandasObject._hidden_attrs
         | IndexOpsMixin._hidden_attrs
         | frozenset(["contains", "set_value"])
@@ -241,8 +241,8 @@ class Index(IndexOpsMixin, PandasObject):
         return libjoin.outer_join_indexer(left, right)
 
     _typ = "index"
-    _data: Union[ExtensionArray, np.ndarray]
-    _id: Optional[_Identity] = None
+    _data: ExtensionArray | np.ndarray
+    _id: _Identity | None = None
     _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
@@ -655,7 +655,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._engine_type(lambda: target_values, len(self))
 
     @cache_readonly
-    def _dir_additions_for_owner(self) -> Set[str_t]:
+    def _dir_additions_for_owner(self) -> set[str_t]:
         """
         Add the string-like labels to the owner dataframe/series dir output.
 
@@ -902,10 +902,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(
         self: _IndexT,
-        name: Optional[Hashable] = None,
+        name: Hashable | None = None,
         deep: bool = False,
-        dtype: Optional[Dtype] = None,
-        names: Optional[Sequence[Hashable]] = None,
+        dtype: Dtype | None = None,
+        names: Sequence[Hashable] | None = None,
     ) -> _IndexT:
         """
         Make a copy of this object.
@@ -1034,9 +1034,9 @@ class Index(IndexOpsMixin, PandasObject):
     def format(
         self,
         name: bool = False,
-        formatter: Optional[Callable] = None,
+        formatter: Callable | None = None,
         na_rep: str_t = "NaN",
-    ) -> List[str_t]:
+    ) -> list[str_t]:
         """
         Render a string representation of the Index.
         """
@@ -1054,8 +1054,8 @@ class Index(IndexOpsMixin, PandasObject):
         return self._format_with_header(header, na_rep=na_rep)
 
     def _format_with_header(
-        self, header: List[str_t], na_rep: str_t = "NaN"
-    ) -> List[str_t]:
+        self, header: list[str_t], na_rep: str_t = "NaN"
+    ) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -1325,7 +1325,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _validate_names(
         self, name=None, names=None, deep: bool = False
-    ) -> List[Hashable]:
+    ) -> list[Hashable]:
         """
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
@@ -1720,7 +1720,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._drop_level_numbers(levnums)
 
     @final
-    def _drop_level_numbers(self, levnums: List[int]):
+    def _drop_level_numbers(self, levnums: list[int]):
         """
         Drop MultiIndex levels by level _number_, not name.
         """
@@ -3460,7 +3460,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _filter_indexer_tolerance(
         self,
-        target: Union[Index, np.ndarray, ExtensionArray],
+        target: Index | np.ndarray | ExtensionArray,
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
@@ -4250,7 +4250,7 @@ class Index(IndexOpsMixin, PandasObject):
         return array
 
     @property
-    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+    def _values(self) -> ExtensionArray | np.ndarray:
         """
         The best array representation.
 
@@ -4526,7 +4526,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
+    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
         """
         Concatenate multiple Index objects.
         """
@@ -4771,7 +4771,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: str_t = "last",
-        key: Optional[Callable] = None,
+        key: Callable | None = None,
     ):
         """
         Return a sorted copy of the index.
@@ -5416,10 +5416,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(
         self,
-        start: Optional[Hashable] = None,
-        end: Optional[Hashable] = None,
-        step: Optional[int] = None,
-        kind: Optional[str_t] = None,
+        start: Hashable | None = None,
+        end: Hashable | None = None,
+        step: int | None = None,
+        kind: str_t | None = None,
     ) -> slice:
         """
         Compute the slice indexer for input labels and step.
@@ -6028,7 +6028,7 @@ def ensure_index_from_sequences(sequences, names=None):
 
 
 def ensure_index(
-    index_like: Union[AnyArrayLike, Sequence], copy: bool = False
+    index_like: AnyArrayLike | Sequence, copy: bool = False
 ) -> Index:
     """
     Ensure that we have an index from some index-like object.
@@ -6123,7 +6123,7 @@ def ensure_has_len(seq):
         return seq
 
 
-def trim_front(strings: List[str]) -> List[str]:
+def trim_front(strings: list[str]) -> list[str]:
     """
     Trims zeros and decimal points.
 
@@ -6335,7 +6335,7 @@ def _try_convert_to_int_array(
     raise ValueError
 
 
-def get_unanimous_names(*indexes: Index) -> Tuple[Hashable, ...]:
+def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     """
     Return common name if all indices agree, otherwise None (level-by-level).
 

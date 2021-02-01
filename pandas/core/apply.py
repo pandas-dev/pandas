@@ -58,13 +58,13 @@ def frame_apply(
     func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
-    result_type: Optional[str] = None,
+    result_type: str | None = None,
     args=None,
     kwds=None,
 ) -> FrameApply:
     """ construct and return a row or column based frame apply object """
     axis = obj._get_axis_number(axis)
-    klass: Type[FrameApply]
+    klass: type[FrameApply]
     if axis == 0:
         klass = FrameRowApply
     elif axis == 1:
@@ -104,7 +104,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj: AggObjType,
         func,
         raw: bool,
-        result_type: Optional[str],
+        result_type: str | None,
         args,
         kwds,
     ):
@@ -144,7 +144,7 @@ class Apply(metaclass=abc.ABCMeta):
     def apply(self) -> FrameOrSeriesUnion:
         pass
 
-    def agg(self) -> Tuple[Optional[FrameOrSeriesUnion], Optional[bool]]:
+    def agg(self) -> tuple[FrameOrSeriesUnion | None, bool | None]:
         """
         Provide an implementation for the aggregators.
 
@@ -188,7 +188,7 @@ class Apply(metaclass=abc.ABCMeta):
         # caller can react
         return result, True
 
-    def maybe_apply_str(self) -> Optional[FrameOrSeriesUnion]:
+    def maybe_apply_str(self) -> FrameOrSeriesUnion | None:
         """
         Compute apply in case of a string.
 
@@ -212,7 +212,7 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(f"Operation {f} does not support axis=1")
         return self.obj._try_aggregate_string_function(f, *self.args, **self.kwds)
 
-    def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
+    def maybe_apply_multiple(self) -> FrameOrSeriesUnion | None:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -411,7 +411,7 @@ class FrameApply(Apply):
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> Tuple[ResType, Index]:
+    def apply_series_generator(self) -> tuple[ResType, Index]:
         assert callable(self.f)
 
         series_gen = self.series_generator
@@ -664,11 +664,11 @@ class SeriesApply(Apply):
 
 
 class GroupByApply(Apply):
-    obj: Union[SeriesGroupBy, DataFrameGroupBy]
+    obj: SeriesGroupBy | DataFrameGroupBy
 
     def __init__(
         self,
-        obj: Union[SeriesGroupBy, DataFrameGroupBy],
+        obj: SeriesGroupBy | DataFrameGroupBy,
         func: AggFuncType,
         args,
         kwds,
@@ -690,11 +690,11 @@ class GroupByApply(Apply):
 
 class ResamplerWindowApply(Apply):
     axis = 0
-    obj: Union[Resampler, BaseWindow]
+    obj: Resampler | BaseWindow
 
     def __init__(
         self,
-        obj: Union[Resampler, BaseWindow],
+        obj: Resampler | BaseWindow,
         func: AggFuncType,
         args,
         kwds,

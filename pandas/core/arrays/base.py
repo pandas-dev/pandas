@@ -49,7 +49,7 @@ from pandas.core.algorithms import factorize_array, isin, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
-_extension_array_shared_docs: Dict[str, str] = {}
+_extension_array_shared_docs: dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -190,7 +190,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -213,7 +213,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy=False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -261,8 +261,8 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[ExtensionArray, Any]:
+        self, item: int | slice | np.ndarray
+    ) -> ExtensionArray | Any:
         """
         Select a subset of self.
 
@@ -293,7 +293,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
+    def __setitem__(self, key: int | np.ndarray, value: Any) -> None:
         """
         Set one or more values inplace.
 
@@ -395,7 +395,7 @@ class ExtensionArray:
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -869,7 +869,7 @@ class ExtensionArray:
         """
         return isin(np.asarray(self), values)
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
 
@@ -893,7 +893,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -1101,7 +1101,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1139,7 +1139,7 @@ class ExtensionArray:
         class_name = f"<{type(self).__name__}>\n"
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
-    def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """
         Formatting function for scalar values.
 
@@ -1205,7 +1205,7 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+        cls: type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
     ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.

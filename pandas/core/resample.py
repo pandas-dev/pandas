@@ -45,7 +45,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs: Dict[str, str] = {}
+_shared_docs_kwargs: dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, ShallowMixin):
@@ -234,7 +234,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     @Appender(_pipe_template)
     def pipe(
         self,
-        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        func: Callable[..., T] | tuple[Callable[..., T], str],
         *args,
         **kwargs,
     ) -> T:
@@ -1361,18 +1361,18 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: Optional[str] = None,
-        label: Optional[str] = None,
+        closed: str | None = None,
+        label: str | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
-        kind: Optional[str] = None,
-        convention: Optional[str] = None,
-        base: Optional[int] = None,
-        origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        offset: Optional[TimedeltaConvertibleTypes] = None,
+        kind: str | None = None,
+        convention: str | None = None,
+        base: int | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1851,7 +1851,7 @@ def _get_period_range_edges(
 
 def _insert_nat_bin(
     binner: PeriodIndex, bins: np.ndarray, labels: PeriodIndex, nat_count: int
-) -> Tuple[PeriodIndex, np.ndarray, PeriodIndex]:
+) -> tuple[PeriodIndex, np.ndarray, PeriodIndex]:
     # NaT handling as in pandas._lib.lib.generate_bins_dt64()
     # shift bins by the number of NaT
     assert nat_count > 0

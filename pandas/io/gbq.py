@@ -22,18 +22,18 @@ def _try_import():
 
 def read_gbq(
     query: str,
-    project_id: Optional[str] = None,
-    index_col: Optional[str] = None,
-    col_order: Optional[List[str]] = None,
+    project_id: str | None = None,
+    index_col: str | None = None,
+    col_order: list[str] | None = None,
     reauth: bool = False,
     auth_local_webserver: bool = False,
-    dialect: Optional[str] = None,
-    location: Optional[str] = None,
-    configuration: Optional[Dict[str, Any]] = None,
+    dialect: str | None = None,
+    location: str | None = None,
+    configuration: dict[str, Any] | None = None,
     credentials=None,
-    use_bqstorage_api: Optional[bool] = None,
-    max_results: Optional[int] = None,
-    progress_bar_type: Optional[str] = None,
+    use_bqstorage_api: bool | None = None,
+    max_results: int | None = None,
+    progress_bar_type: str | None = None,
 ) -> DataFrame:
     """
     Load data from Google BigQuery.
@@ -170,7 +170,7 @@ def read_gbq(
     """
     pandas_gbq = _try_import()
 
-    kwargs: Dict[str, Union[str, bool, int, None]] = {}
+    kwargs: dict[str, str | bool | int | None] = {}
 
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
@@ -199,13 +199,13 @@ def read_gbq(
 def to_gbq(
     dataframe: DataFrame,
     destination_table: str,
-    project_id: Optional[str] = None,
-    chunksize: Optional[int] = None,
+    project_id: str | None = None,
+    chunksize: int | None = None,
     reauth: bool = False,
     if_exists: str = "fail",
     auth_local_webserver: bool = False,
-    table_schema: Optional[List[Dict[str, str]]] = None,
-    location: Optional[str] = None,
+    table_schema: list[dict[str, str]] | None = None,
+    location: str | None = None,
     progress_bar: bool = True,
     credentials=None,
 ) -> None:

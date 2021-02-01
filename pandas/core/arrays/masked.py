@@ -42,7 +42,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     name: str
     base = None
-    type: Type
+    type: type
 
     na_value = libmissing.NA
 
@@ -61,7 +61,7 @@ class BaseMaskedDtype(ExtensionDtype):
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls) -> Type[BaseMaskedArray]:
+    def construct_array_type(cls) -> type[BaseMaskedArray]:
         """
         Return the array type associated with this dtype.
 
@@ -106,8 +106,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
-    ) -> Union[BaseMaskedArray, Any]:
+        self, item: int | slice | np.ndarray
+    ) -> BaseMaskedArray | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -117,7 +117,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_array(self, values) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
         raise AbstractMethodError(self)
 
     def __setitem__(self, key, value) -> None:
@@ -149,7 +149,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def to_numpy(
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
@@ -261,7 +261,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values
@@ -296,7 +296,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+        cls: type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
     ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
@@ -307,7 +307,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         indexer,
         *,
         allow_fill: bool = False,
-        fill_value: Optional[Scalar] = None,
+        fill_value: Scalar | None = None,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
@@ -349,7 +349,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return type(self)(data, mask, copy=False)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         arr = self._data
         mask = self._mask
 

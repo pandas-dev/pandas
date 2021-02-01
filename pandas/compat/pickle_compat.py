@@ -229,7 +229,7 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+def load(fh, encoding: str | None = None, is_verbose: bool = False):
     """
     Load a pickle, with a provided encoding,
 

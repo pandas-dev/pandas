@@ -111,8 +111,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     __array_priority__ = 1000
     # define my properties & methods for delegation
-    _other_ops: List[str] = []
-    _bool_ops: List[str] = []
+    _other_ops: list[str] = []
+    _bool_ops: list[str] = []
     _object_ops = ["freq"]
     _field_ops = ["days", "seconds", "microseconds", "nanoseconds"]
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
@@ -127,7 +127,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
     #  operates pointwise.
 
-    def _box_func(self, x) -> Union[Timedelta, NaTType]:
+    def _box_func(self, x) -> Timedelta | NaTType:
         return Timedelta(x, unit="ns")
 
     @property
@@ -207,7 +207,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _simple_new(
-        cls, values, freq: Optional[BaseOffset] = None, dtype=TD64NS_DTYPE
+        cls, values, freq: BaseOffset | None = None, dtype=TD64NS_DTYPE
     ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
@@ -355,7 +355,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
         initial=None,
@@ -375,7 +375,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
         keepdims: bool = False,

@@ -76,7 +76,7 @@ def arrays_to_mgr(
     arr_names,
     index,
     columns,
-    dtype: Optional[DtypeObj] = None,
+    dtype: DtypeObj | None = None,
     verify_integrity: bool = True,
 ):
     """
@@ -108,7 +108,7 @@ def arrays_to_mgr(
 
 
 def masked_rec_array_to_mgr(
-    data: MaskedRecords, index, columns, dtype: Optional[DtypeObj], copy: bool
+    data: MaskedRecords, index, columns, dtype: DtypeObj | None, copy: bool
 ):
     """
     Extract from a masked rec array and create the manager.
@@ -180,7 +180,7 @@ def mgr_to_mgr(mgr, typ: str):
 # DataFrame Constructor Interface
 
 
-def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
+def init_ndarray(values, index, columns, dtype: DtypeObj | None, copy: bool):
     # input must be a ndarray, list, Series, index
 
     if isinstance(values, ABCSeries):
@@ -262,12 +262,12 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
+def init_dict(data: dict, index, columns, dtype: DtypeObj | None = None):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
     """
-    arrays: Union[Sequence[Any], Series]
+    arrays: Sequence[Any] | Series
 
     if columns is not None:
         from pandas.core.series import Series
@@ -311,9 +311,9 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
 
 def nested_data_to_arrays(
     data: Sequence,
-    columns: Optional[Index],
-    index: Optional[Index],
-    dtype: Optional[DtypeObj],
+    columns: Index | None,
+    index: Index | None,
+    dtype: DtypeObj | None,
 ):
     """
     Convert a single sequence of arrays to multiple arrays.
@@ -388,7 +388,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index, dtype: Optional[DtypeObj]):
+def _homogenize(data, index, dtype: DtypeObj | None):
     oindex = None
     homogenized = []
 
@@ -428,7 +428,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes: List[Union[List[Hashable], Index]] = []
+        indexes: list[list[Hashable] | Index] = []
 
         have_raw_arrays = False
         have_series = False
@@ -496,7 +496,7 @@ def _get_names_from_index(data):
     if not has_some_name:
         return ibase.default_index(len(data))
 
-    index: List[Hashable] = list(range(len(data)))
+    index: list[Hashable] = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, "name", None)
@@ -510,8 +510,8 @@ def _get_names_from_index(data):
 
 
 def _get_axes(
-    N: int, K: int, index: Optional[Index], columns: Optional[Index]
-) -> Tuple[Index, Index]:
+    N: int, K: int, index: Index | None, columns: Index | None
+) -> tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
 
@@ -559,7 +559,7 @@ def dataclasses_to_dicts(data):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(data, columns, dtype: Optional[DtypeObj] = None):
+def to_arrays(data, columns, dtype: DtypeObj | None = None):
     """
     Return list of arrays, columns.
     """
@@ -610,9 +610,9 @@ def to_arrays(data, columns, dtype: Optional[DtypeObj] = None):
 
 
 def _list_to_arrays(
-    data: List[Scalar],
-    columns: Union[Index, List],
-) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
+    data: list[Scalar],
+    columns: Index | list,
+) -> tuple[list[Scalar], Index | list[Axis]]:
     # Note: we already check len(data) > 0 before getting hre
     if isinstance(data[0], tuple):
         content = lib.to_object_array_tuples(data)
@@ -623,15 +623,15 @@ def _list_to_arrays(
 
 
 def _list_of_series_to_arrays(
-    data: List,
-    columns: Union[Index, List],
-) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
+    data: list,
+    columns: Index | list,
+) -> tuple[list[Scalar], Index | list[Axis]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
         columns = get_objs_combined_axis(pass_data, sort=False)
 
-    indexer_cache: Dict[int, Scalar] = {}
+    indexer_cache: dict[int, Scalar] = {}
 
     aligned_values = []
     for s in data:
@@ -653,9 +653,9 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: List[Dict],
-    columns: Union[Index, List],
-) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
+    data: list[dict],
+    columns: Index | list,
+) -> tuple[list[Scalar], Index | list[Axis]]:
     """
     Convert list of dicts to numpy arrays
 
@@ -690,9 +690,9 @@ def _list_of_dict_to_arrays(
 
 def _finalize_columns_and_data(
     content: np.ndarray,
-    columns: Optional[Union[Index, List]],
-    dtype: Optional[DtypeObj],
-) -> Tuple[List[np.ndarray], Union[Index, List[Axis]]]:
+    columns: Index | list | None,
+    dtype: DtypeObj | None,
+) -> tuple[list[np.ndarray], Index | list[Axis]]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
@@ -710,8 +710,8 @@ def _finalize_columns_and_data(
 
 
 def _validate_or_indexify_columns(
-    content: List, columns: Optional[Union[Index, List]]
-) -> Union[Index, List[Axis]]:
+    content: list, columns: Index | list | None
+) -> Index | list[Axis]:
     """
     If columns is None, make numbers as column names; Otherwise, validate that
     columns have valid length.
@@ -768,8 +768,8 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: List[Scalar], dtype: Optional[DtypeObj] = None
-) -> List[Scalar]:
+    content: list[Scalar], dtype: DtypeObj | None = None
+) -> list[Scalar]:
     """
     Internal function to convert object array.
 

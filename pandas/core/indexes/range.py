@@ -90,7 +90,7 @@ class RangeIndex(Int64Index):
         start=None,
         stop=None,
         step=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy=False,
         name=None,
     ):
@@ -123,7 +123,7 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(
-        cls, data: range, name=None, dtype: Optional[Dtype] = None
+        cls, data: range, name=None, dtype: Dtype | None = None
     ) -> RangeIndex:
         """
         Create RangeIndex from a range object.
@@ -206,7 +206,7 @@ class RangeIndex(Int64Index):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         if not len(self._range):
             return header
         first_val_str = str(self._range[0])
@@ -435,7 +435,7 @@ class RangeIndex(Int64Index):
         return result
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
+    def copy(self, name=None, deep=False, dtype: Dtype | None = None, names=None):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         new_index = self._shallow_copy(name=name)
 
@@ -491,8 +491,8 @@ class RangeIndex(Int64Index):
             return np.arange(len(self) - 1, -1, -1)
 
     def factorize(
-        self, sort: bool = False, na_sentinel: Optional[int] = -1
-    ) -> Tuple[np.ndarray, RangeIndex]:
+        self, sort: bool = False, na_sentinel: int | None = -1
+    ) -> tuple[np.ndarray, RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:

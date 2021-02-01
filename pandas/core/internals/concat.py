@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 
 def concatenate_block_managers(
-    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -116,7 +116,7 @@ def concatenate_block_managers(
     return BlockManager(blocks, axes)
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
+def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -329,7 +329,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: List[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: int, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -375,7 +375,7 @@ def _concatenate_join_units(
     return concat_values
 
 
-def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, Any]:
+def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> tuple[DtypeObj, Any]:
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -455,10 +455,10 @@ def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, A
 def _get_upcast_classes(
     join_units: Sequence[JoinUnit],
     dtypes: Sequence[DtypeObj],
-) -> Dict[str, List[DtypeObj]]:
+) -> dict[str, list[DtypeObj]]:
     """Create mapping between upcast class names and lists of dtypes."""
-    upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
-    null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
+    upcast_classes: dict[str, list[DtypeObj]] = defaultdict(list)
+    null_upcast_classes: dict[str, list[DtypeObj]] = defaultdict(list)
     for dtype, unit in zip(dtypes, join_units):
         if dtype is None:
             continue
@@ -503,7 +503,7 @@ def _select_upcast_cls_from_dtype(dtype: DtypeObj) -> str:
         return "float"
 
 
-def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
+def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic

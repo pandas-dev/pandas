@@ -229,8 +229,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _is_numeric_dtype = False
 
     _data: DatetimeArray
-    inferred_freq: Optional[str]
-    tz: Optional[tzinfo]
+    inferred_freq: str | None
+    tz: tzinfo | None
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -289,7 +289,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ambiguous="raise",
         dayfirst=False,
         yearfirst=False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy=False,
         name=None,
     ):
@@ -398,7 +398,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return this.rename(res_name)
         return this
 
-    def _maybe_utc_convert(self, other: Index) -> Tuple[DatetimeIndex, Index]:
+    def _maybe_utc_convert(self, other: Index) -> tuple[DatetimeIndex, Index]:
         this = self
 
         if isinstance(other, DatetimeIndex):
@@ -1082,7 +1082,7 @@ def date_range(
 def bdate_range(
     start=None,
     end=None,
-    periods: Optional[int] = None,
+    periods: int | None = None,
     freq="B",
     tz=None,
     normalize=True,

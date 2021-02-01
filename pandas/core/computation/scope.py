@@ -244,7 +244,7 @@ class Scope:
                 mapping[new_key] = new_value  # type: ignore[index]
                 return
 
-    def _get_vars(self, stack, scopes: List[str]):
+    def _get_vars(self, stack, scopes: list[str]):
         """
         Get specifically scoped variables from a list of stack frames.
 

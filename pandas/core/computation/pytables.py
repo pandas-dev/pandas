@@ -26,14 +26,14 @@ from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 class PyTablesScope(_scope.Scope):
     __slots__ = ("queryables",)
 
-    queryables: Dict[str, Any]
+    queryables: dict[str, Any]
 
     def __init__(
         self,
         level: int,
         global_dict=None,
         local_dict=None,
-        queryables: Optional[Dict[str, Any]] = None,
+        queryables: dict[str, Any] | None = None,
     ):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or {}
@@ -86,10 +86,10 @@ class BinOp(ops.BinOp):
     _max_selectors = 31
 
     op: str
-    queryables: Dict[str, Any]
-    condition: Optional[str]
+    queryables: dict[str, Any]
+    condition: str | None
 
-    def __init__(self, op: str, lhs, rhs, queryables: Dict[str, Any], encoding):
+    def __init__(self, op: str, lhs, rhs, queryables: dict[str, Any], encoding):
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
@@ -248,7 +248,7 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
-    filter: Optional[Tuple[Any, Any, Index]] = None
+    filter: tuple[Any, Any, Index] | None = None
 
     def __repr__(self) -> str:
         if self.filter is None:
@@ -527,13 +527,13 @@ class PyTablesExpr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    _visitor: Optional[PyTablesExprVisitor]
+    _visitor: PyTablesExprVisitor | None
     env: PyTablesScope
 
     def __init__(
         self,
         where,
-        queryables: Optional[Dict[str, Any]] = None,
+        queryables: dict[str, Any] | None = None,
         encoding=None,
         scope_level: int = 0,
     ):

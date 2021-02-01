@@ -88,7 +88,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 
 def should_cache(
-    arg: ArrayConvertible, unique_share: float = 0.7, check_count: Optional[int] = None
+    arg: ArrayConvertible, unique_share: float = 0.7, check_count: int | None = None
 ) -> bool:
     """
     Decides whether to do caching.
@@ -145,7 +145,7 @@ def should_cache(
 
 def _maybe_cache(
     arg: ArrayConvertible,
-    format: Optional[str],
+    format: str | None,
     cache: bool,
     convert_listlike: Callable,
 ) -> Series:
@@ -184,7 +184,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: Optional[bool] = None, name: Hashable = None
+    dt_array: ArrayLike, utc: bool | None = None, name: Hashable = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -215,7 +215,7 @@ def _box_as_indexlike(
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: Series,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> Index:
     """
     Convert array of dates with a cache and wrap the result in an Index.
@@ -269,15 +269,15 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
 
 def _convert_listlike_datetimes(
     arg,
-    format: Optional[str],
+    format: str | None,
     name: Hashable = None,
-    tz: Optional[Timezone] = None,
-    unit: Optional[str] = None,
-    errors: Optional[str] = None,
-    infer_datetime_format: Optional[bool] = None,
-    dayfirst: Optional[bool] = None,
-    yearfirst: Optional[bool] = None,
-    exact: Optional[bool] = None,
+    tz: Timezone | None = None,
+    unit: str | None = None,
+    errors: str | None = None,
+    infer_datetime_format: bool | None = None,
+    dayfirst: bool | None = None,
+    yearfirst: bool | None = None,
+    exact: bool | None = None,
 ):
     """
     Helper function for to_datetime. Performs the conversions of 1D listlike
@@ -564,14 +564,14 @@ def to_datetime(
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: Optional[bool] = ...,
-    format: Optional[str] = ...,
+    utc: bool | None = ...,
+    format: str | None = ...,
     exact: bool = ...,
-    unit: Optional[str] = ...,
+    unit: str | None = ...,
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Union[DatetimeScalar, NaTType]:
+) -> DatetimeScalar | NaTType:
     ...
 
 
@@ -581,10 +581,10 @@ def to_datetime(
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: Optional[bool] = ...,
-    format: Optional[str] = ...,
+    utc: bool | None = ...,
+    format: str | None = ...,
     exact: bool = ...,
-    unit: Optional[str] = ...,
+    unit: str | None = ...,
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
@@ -594,14 +594,14 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: Union[List, Tuple],
+    arg: list | tuple,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
-    utc: Optional[bool] = ...,
-    format: Optional[str] = ...,
+    utc: bool | None = ...,
+    format: str | None = ...,
     exact: bool = ...,
-    unit: Optional[str] = ...,
+    unit: str | None = ...,
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
@@ -614,14 +614,14 @@ def to_datetime(
     errors: str = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
-    utc: Optional[bool] = None,
-    format: Optional[str] = None,
+    utc: bool | None = None,
+    format: str | None = None,
     exact: bool = True,
-    unit: Optional[str] = None,
+    unit: str | None = None,
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> Union[DatetimeIndex, Series, DatetimeScalar, NaTType]:
+) -> DatetimeIndex | Series | DatetimeScalar | NaTType:
     """
     Convert argument to datetime.
 

@@ -48,10 +48,10 @@ _bias_template = """
 
 
 def get_center_of_mass(
-    comass: Optional[float],
-    span: Optional[float],
-    halflife: Optional[float],
-    alpha: Optional[float],
+    comass: float | None,
+    span: float | None,
+    halflife: float | None,
+    alpha: float | None,
 ) -> float:
     valid_count = common.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
@@ -226,15 +226,15 @@ class ExponentialMovingWindow(BaseWindow):
     def __init__(
         self,
         obj,
-        com: Optional[float] = None,
-        span: Optional[float] = None,
-        halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
-        alpha: Optional[float] = None,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | TimedeltaConvertibleTypes | None = None,
+        alpha: float | None = None,
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
         axis: int = 0,
-        times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+        times: str | np.ndarray | FrameOrSeries | None = None,
         **kwargs,
     ):
         self.obj = obj
@@ -398,8 +398,8 @@ class ExponentialMovingWindow(BaseWindow):
     @Appender(_doc_template)
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
+        other: np.ndarray | FrameOrSeries | None = None,
+        pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,
     ):
@@ -453,8 +453,8 @@ class ExponentialMovingWindow(BaseWindow):
     @Appender(_doc_template)
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
+        other: np.ndarray | FrameOrSeries | None = None,
+        pairwise: bool | None = None,
         **kwargs,
     ):
         """

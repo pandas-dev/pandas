@@ -196,7 +196,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
     _name: Hashable
-    _metadata: List[str] = ["name"]
+    _metadata: list[str] = ["name"]
     _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
@@ -221,7 +221,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self,
         data=None,
         index=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         name=None,
         copy: bool = False,
         fastpath: bool = False,
@@ -347,7 +347,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
-    def _init_dict(self, data, index=None, dtype: Optional[Dtype] = None):
+    def _init_dict(self, data, index=None, dtype: Dtype | None = None):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
@@ -398,11 +398,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> Type[Series]:
+    def _constructor(self) -> type[Series]:
         return Series
 
     @property
-    def _constructor_expanddim(self) -> Type[DataFrame]:
+    def _constructor_expanddim(self) -> type[DataFrame]:
         from pandas.core.frame import DataFrame
 
         return DataFrame
@@ -622,7 +622,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return len(self._mgr)
 
-    def view(self, dtype: Optional[Dtype] = None) -> Series:
+    def view(self, dtype: Dtype | None = None) -> Series:
         """
         Create a new view of the Series.
 
@@ -696,7 +696,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # NDArray Compat
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -757,7 +757,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # indexers
     @property
-    def axes(self) -> List[Index]:
+    def axes(self) -> list[Index]:
         """
         Return a list of the row axis labels.
         """
@@ -1383,12 +1383,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     )
     def to_markdown(
         self,
-        buf: Optional[IO[str]] = None,
+        buf: IO[str] | None = None,
         mode: str = "wt",
         index: bool = True,
         storage_options: StorageOptions = None,
         **kwargs,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Print {klass} in Markdown-friendly format.
 
@@ -1453,7 +1453,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def items(self) -> Iterable[Tuple[Hashable, Any]]:
+    def items(self) -> Iterable[tuple[Hashable, Any]]:
         """
         Lazily iterate over (index, value) tuples.
 
@@ -1483,7 +1483,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return zip(iter(self.index), iter(self))
 
     @Appender(items.__doc__)
-    def iteritems(self) -> Iterable[Tuple[Hashable, Any]]:
+    def iteritems(self) -> Iterable[tuple[Hashable, Any]]:
         return self.items()
 
     # ----------------------------------------------------------------------
@@ -1847,7 +1847,7 @@ Name: Max Speed, dtype: float64
         """
         return super().unique()
 
-    def drop_duplicates(self, keep="first", inplace=False) -> Optional[Series]:
+    def drop_duplicates(self, keep="first", inplace=False) -> Series | None:
         """
         Return Series with duplicate values removed.
 
@@ -2310,8 +2310,8 @@ Name: Max Speed, dtype: float64
     def cov(
         self,
         other: Series,
-        min_periods: Optional[int] = None,
-        ddof: Optional[int] = 1,
+        min_periods: int | None = None,
+        ddof: int | None = 1,
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.
@@ -2704,8 +2704,8 @@ Name: Max Speed, dtype: float64
         return this._construct_result(result, name)
 
     def _construct_result(
-        self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Hashable
-    ) -> Union[Series, Tuple[Series, Series]]:
+        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
+    ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.
 
@@ -3980,7 +3980,7 @@ Keep all original rows and also all original values
         self,
         func: AggFuncType,
         convert_dtype: bool = True,
-        args: Tuple[Any, ...] = (),
+        args: tuple[Any, ...] = (),
         **kwds,
     ) -> FrameOrSeriesUnion:
         """
@@ -4395,7 +4395,7 @@ Keep all original rows and also all original values
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Optional[Series]:
+    ) -> Series | None:
         return super().fillna(
             value=value,
             method=method,
@@ -4828,7 +4828,7 @@ Keep all original rows and also all original values
         self,
         freq,
         method=None,
-        how: Optional[str] = None,
+        how: str | None = None,
         normalize: bool = False,
         fill_value=None,
     ) -> Series:
@@ -4845,16 +4845,16 @@ Keep all original rows and also all original values
         self,
         rule,
         axis=0,
-        closed: Optional[str] = None,
-        label: Optional[str] = None,
+        closed: str | None = None,
+        label: str | None = None,
         convention: str = "start",
-        kind: Optional[str] = None,
+        kind: str | None = None,
         loffset=None,
-        base: Optional[int] = None,
+        base: int | None = None,
         on=None,
         level=None,
-        origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        offset: Optional[TimedeltaConvertibleTypes] = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
     ) -> Resampler:
         return super().resample(
             rule=rule,

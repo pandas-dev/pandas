@@ -103,25 +103,25 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     """
 
     # _infer_matches -> which infer_dtype strings are close enough to our own
-    _infer_matches: Tuple[str, ...]
+    _infer_matches: tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
-    _recognized_scalars: Tuple[Type, ...]
+    _recognized_scalars: tuple[type, ...]
     _data: np.ndarray
 
-    def __init__(self, data, dtype: Optional[Dtype] = None, freq=None, copy=False):
+    def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
     @classmethod
     def _simple_new(
-        cls: Type[DatetimeLikeArrayT],
+        cls: type[DatetimeLikeArrayT],
         values: np.ndarray,
-        freq: Optional[BaseOffset] = None,
-        dtype: Optional[Dtype] = None,
+        freq: BaseOffset | None = None,
+        dtype: Dtype | None = None,
     ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
     @property
-    def _scalar_type(self) -> Type[DatetimeLikeScalar]:
+    def _scalar_type(self) -> type[DatetimeLikeScalar]:
         """
         The scalar associated with this datelike
 
@@ -153,7 +153,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _unbox_scalar(
         self, value: DTScalarOrNaT, setitem: bool = False
-    ) -> Union[np.int64, np.datetime64, np.timedelta64]:
+    ) -> np.int64 | np.datetime64 | np.timedelta64:
         """
         Unbox the integer value of a scalar `value`.
 
@@ -266,15 +266,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
     def __getitem__(
-        self, key: Union[int, slice, np.ndarray]
-    ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
+        self, key: int | slice | np.ndarray
+    ) -> DatetimeLikeArrayMixin | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -315,8 +315,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def __setitem__(
         self,
-        key: Union[int, Sequence[int], Sequence[bool], slice],
-        value: Union[NaTType, Any, Sequence[Any]],
+        key: int | Sequence[int] | Sequence[bool] | slice,
+        value: NaTType | Any | Sequence[Any],
     ) -> None:
         # I'm fudging the types a bit here. "Any" above really depends
         # on type(self). For PeriodArray, it's Period (or stuff coercible
@@ -384,7 +384,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    def view(self, dtype: Optional[Dtype] = None):
+    def view(self, dtype: Dtype | None = None):
         if dtype is None or dtype is self.dtype:
             return type(self)(self._ndarray, dtype=self.dtype)
         return self._ndarray.view(dtype=dtype)
@@ -394,7 +394,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[DatetimeLikeArrayT],
+        cls: type[DatetimeLikeArrayT],
         to_concat: Sequence[DatetimeLikeArrayT],
         axis: int = 0,
     ) -> DatetimeLikeArrayT:
@@ -429,7 +429,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @classmethod
     def _from_factorized(
-        cls: Type[DatetimeLikeArrayT], values, original
+        cls: type[DatetimeLikeArrayT], values, original
     ) -> DatetimeLikeArrayT:
         return cls(values, dtype=original.dtype)
 
@@ -674,7 +674,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _unbox(
         self, other, setitem: bool = False
-    ) -> Union[np.int64, np.datetime64, np.timedelta64, np.ndarray]:
+    ) -> np.int64 | np.datetime64 | np.timedelta64 | np.ndarray:
         """
         Unbox either a scalar with _unbox_scalar or an instance of our own type.
         """
@@ -847,7 +847,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution_obj(self) -> Optional[Resolution]:
+    def _resolution_obj(self) -> Resolution | None:
         try:
             return Resolution.get_reso_from_freq(self.freqstr)
         except KeyError:
@@ -902,7 +902,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @classmethod
     def _generate_range(
-        cls: Type[DatetimeLikeArrayT], start, end, periods, freq, *args, **kwargs
+        cls: type[DatetimeLikeArrayT], start, end, periods, freq, *args, **kwargs
     ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
@@ -1379,7 +1379,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def mean(self, *, skipna=True, axis: Optional[int] = 0):
+    def mean(self, *, skipna=True, axis: int | None = 0):
         """
         Return the mean value of the Array.
 
@@ -1418,7 +1418,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return self._wrap_reduction_result(axis, result)
 
-    def median(self, *, axis: Optional[int] = None, skipna: bool = True, **kwargs):
+    def median(self, *, axis: int | None = None, skipna: bool = True, **kwargs):
         nv.validate_median((), kwargs)
 
         if axis is not None and abs(axis) >= self.ndim:
@@ -1625,11 +1625,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
     # Reductions
 
-    def any(self, *, axis: Optional[int] = None, skipna: bool = True):
+    def any(self, *, axis: int | None = None, skipna: bool = True):
         # GH#34479 discussion of desired behavior long-term
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
-    def all(self, *, axis: Optional[int] = None, skipna: bool = True):
+    def all(self, *, axis: int | None = None, skipna: bool = True):
         # GH#34479 discussion of desired behavior long-term
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 

@@ -60,13 +60,13 @@ class ArrayManager(DataManager):
         "arrays",
     ]
 
-    arrays: List[Union[np.ndarray, ExtensionArray]]
-    _axes: List[Index]
+    arrays: list[np.ndarray | ExtensionArray]
+    _axes: list[Index]
 
     def __init__(
         self,
-        arrays: List[Union[np.ndarray, ExtensionArray]],
-        axes: List[Index],
+        arrays: list[np.ndarray | ExtensionArray],
+        axes: list[Index],
         do_integrity_check: bool = True,
     ):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
@@ -83,7 +83,7 @@ class ArrayManager(DataManager):
         if axes is None:
             axes = [self.axes[1:], Index([])]
 
-        arrays: List[Union[np.ndarray, ExtensionArray]] = []
+        arrays: list[np.ndarray | ExtensionArray] = []
         return type(self)(arrays, axes)
 
     @property
@@ -91,19 +91,19 @@ class ArrayManager(DataManager):
         return self._axes[1]
 
     @property
-    def axes(self) -> List[Index]:  # type: ignore[override]
+    def axes(self) -> list[Index]:  # type: ignore[override]
         # mypy doesn't work to override attribute with property
         # see https://github.com/python/mypy/issues/4125
         """Axes is BlockManager-compatible order (columns, rows)"""
         return [self._axes[1], self._axes[0]]
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         # this still gives the BlockManager-compatible transposed shape
         return tuple(len(ax) for ax in self.axes)
 
     @property
-    def shape_proper(self) -> Tuple[int, ...]:
+    def shape_proper(self) -> tuple[int, ...]:
         # this returns (n_rows, n_columns)
         return tuple(len(ax) for ax in self._axes)
 
@@ -172,7 +172,7 @@ class ArrayManager(DataManager):
 
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
-    ) -> Tuple[T, np.ndarray]:
+    ) -> tuple[T, np.ndarray]:
         # TODO this still fails because `func` assumes to work on 2D arrays
         # TODO implement ignore_failures
         assert self.ndim == 2
@@ -202,7 +202,7 @@ class ArrayManager(DataManager):
     def apply(
         self: T,
         f,
-        align_keys: Optional[List[str]] = None,
+        align_keys: list[str] | None = None,
         ignore_failures: bool = False,
         **kwargs,
     ) -> T:
@@ -225,8 +225,8 @@ class ArrayManager(DataManager):
         assert "filter" not in kwargs
 
         align_keys = align_keys or []
-        result_arrays: List[np.ndarray] = []
-        result_indices: List[int] = []
+        result_arrays: list[np.ndarray] = []
+        result_indices: list[int] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -265,7 +265,7 @@ class ArrayManager(DataManager):
             result_arrays.append(applied)
             result_indices.append(i)
 
-        new_axes: List[Index]
+        new_axes: list[Index]
         if ignore_failures:
             # TODO copy?
             new_axes = [self._axes[0], self._axes[1][result_indices]]
@@ -429,8 +429,8 @@ class ArrayManager(DataManager):
 
     def replace_list(
         self: T,
-        src_list: List[Any],
-        dest_list: List[Any],
+        src_list: list[Any],
+        dest_list: list[Any],
         inplace: bool = False,
         regex: bool = False,
     ) -> T:
@@ -657,7 +657,7 @@ class ArrayManager(DataManager):
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
 
-    def iset(self, loc: Union[int, slice, np.ndarray], value):
+    def iset(self, loc: int | slice | np.ndarray, value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -872,7 +872,7 @@ class ArrayManager(DataManager):
     # quantile
 
 
-def _interleaved_dtype(blocks) -> Optional[DtypeObj]:
+def _interleaved_dtype(blocks) -> DtypeObj | None:
     """
     Find the common dtype for `blocks`.
 

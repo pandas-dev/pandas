@@ -60,7 +60,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: Union[np.ndarray, PandasArray], copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -80,7 +80,7 @@ class PandasArray(
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> PandasArray:
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
@@ -107,7 +107,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
@@ -174,7 +174,7 @@ class PandasArray(
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
+    def _values_for_factorize(self) -> tuple[np.ndarray, int]:
         return self._ndarray, -1
 
     # ------------------------------------------------------------------------
@@ -222,7 +222,7 @@ class PandasArray(
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         keepdims=False,
         skipna=True,
@@ -244,7 +244,7 @@ class PandasArray(
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
         keepdims=False,
@@ -260,7 +260,7 @@ class PandasArray(
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
         keepdims=False,
@@ -276,7 +276,7 @@ class PandasArray(
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
         keepdims=False,
@@ -292,7 +292,7 @@ class PandasArray(
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         keepdims=False,
         skipna=True,
@@ -307,7 +307,7 @@ class PandasArray(
         self,
         *,
         axis=None,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         out=None,
         keepdims=False,
         skipna=True,
@@ -323,7 +323,7 @@ class PandasArray(
 
     def to_numpy(
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:

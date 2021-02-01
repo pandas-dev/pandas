@@ -162,13 +162,13 @@ def find_valid_index(values, how: str):
 def interpolate_1d(
     xvalues: Index,
     yvalues: np.ndarray,
-    method: Optional[str] = "linear",
-    limit: Optional[int] = None,
+    method: str | None = "linear",
+    limit: int | None = None,
     limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
     bounds_error: bool = False,
-    order: Optional[int] = None,
+    order: int | None = None,
     **kwargs,
 ):
     """
@@ -233,7 +233,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    preserve_nans: Union[List, Set]
+    preserve_nans: list | set
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -529,7 +529,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def _interpolate_with_limit_area(
-    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+    values: ArrayLike, method: str, limit: int | None, limit_area: str | None
 ) -> ArrayLike:
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
@@ -577,8 +577,8 @@ def interpolate_2d(
     values,
     method: str = "pad",
     axis: Axis = 0,
-    limit: Optional[int] = None,
-    limit_area: Optional[str] = None,
+    limit: int | None = None,
+    limit_area: str | None = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if

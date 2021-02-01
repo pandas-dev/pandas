@@ -59,7 +59,7 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name: str, is_local: Optional[bool] = None):
+    def __init__(self, name: str, is_local: bool | None = None):
         base_msg = f"{repr(name)} is not defined"
         if is_local:
             msg = f"local variable {base_msg}"
@@ -205,7 +205,7 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands: Iterable[Union[Term, Op]], encoding=None):
+    def __init__(self, op: str, operands: Iterable[Term | Op], encoding=None):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = encoding

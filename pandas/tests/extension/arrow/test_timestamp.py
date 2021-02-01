@@ -24,7 +24,7 @@ class ArrowTimestampUSDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowTimestampUSArray]:
+    def construct_array_type(cls) -> type[ArrowTimestampUSArray]:
         """
         Return the array type associated with this dtype.
 

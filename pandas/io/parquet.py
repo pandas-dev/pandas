@@ -64,7 +64,7 @@ def _get_path_or_handle(
     storage_options: StorageOptions = None,
     mode: str = "rb",
     is_dir: bool = False,
-) -> Tuple[FilePathOrBuffer, Optional[IOHandles], Any]:
+) -> tuple[FilePathOrBuffer, IOHandles | None, Any]:
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
     if is_fsspec_url(path_or_handle) and fs is None:
@@ -148,15 +148,15 @@ class PyArrowImpl(BaseImpl):
         self,
         df: DataFrame,
         path: FilePathOrBuffer[AnyStr],
-        compression: Optional[str] = "snappy",
-        index: Optional[bool] = None,
+        compression: str | None = "snappy",
+        index: bool | None = None,
         storage_options: StorageOptions = None,
-        partition_cols: Optional[List[str]] = None,
+        partition_cols: list[str] | None = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
 
-        from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
+        from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
@@ -334,14 +334,14 @@ class FastParquetImpl(BaseImpl):
 @doc(storage_options=generic._shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
-    path: Optional[FilePathOrBuffer] = None,
+    path: FilePathOrBuffer | None = None,
     engine: str = "auto",
-    compression: Optional[str] = "snappy",
-    index: Optional[bool] = None,
+    compression: str | None = "snappy",
+    index: bool | None = None,
     storage_options: StorageOptions = None,
-    partition_cols: Optional[List[str]] = None,
+    partition_cols: list[str] | None = None,
     **kwargs,
-) -> Optional[bytes]:
+) -> bytes | None:
     """
     Write a DataFrame to the parquet format.
 
