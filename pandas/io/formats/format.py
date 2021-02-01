@@ -28,6 +28,7 @@ from typing import (
     cast,
 )
 from unicodedata import east_asian_width
+from warnings import warn
 
 import numpy as np
 
@@ -913,6 +914,7 @@ class DataFrameRenderer:
 
     Called in pandas.core.frame.DataFrame:
         - to_html
+        - to_xml
         - to_string
 
     Parameters
@@ -1001,6 +1003,121 @@ class DataFrameRenderer:
         )
         string = html_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
+
+    def to_xml(
+        self,
+        io: Optional[FilePathOrBuffer[str]] = None,
+        index: Optional[bool] = True,
+        root_name: Optional[str] = "data",
+        row_name: Optional[str] = "row",
+        na_rep: Optional[str] = None,
+        attr_cols: Optional[Union[str, List[str]]] = None,
+        elem_cols: Optional[Union[str, List[str]]] = None,
+        namespaces: Optional[Union[dict, List[dict]]] = None,
+        prefix: Optional[str] = None,
+        encoding: Optional[str] = "utf-8",
+        xml_declaration: Optional[bool] = True,
+        pretty_print: Optional[bool] = True,
+        parser: Optional[str] = "lxml",
+        stylesheet: Optional[FilePathOrBuffer[str]] = None,
+    ) -> Optional[str]:
+        """
+        Render a DataFrame to an XML document.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        io : str, path object or file-like object, optional
+            File to write output to. If None, the output is returned as a
+            string.
+        index : bool, optional
+            Whether to include index in XML document.
+        root_name : str, default 'data'
+            The name of root element in XML document.
+        root_name : str, default 'row'
+            The name of row element in XML document.
+        na_rep : str, optional
+            Missing data representation.
+        attr_cols : list-like, optional
+            List of columns to write as attributes in row element.
+            Hierarchical columns will be flattened with underscore
+            delimiting the different levels.
+        elem_cols : list-like, optional
+            List of columns to write as children in row element. By default,
+            all columns output as children of row element. Hierarchical
+            columns will be flattened with underscore delimiting the
+            different levels.
+        namespaces : dict, optional
+            All namespaces to be defined in root element. Keys of dict
+            should be prefix names and values of dict corresponding URIs.
+            Default namespaces should be given empty string key. For
+            example, ::
+
+                namespaces = {'': 'https://example.com'}
+
+        prefix : str, optional
+            Namespace prefix to be used for every element and/or attribute
+            in document. This should be one of the keys in ``namespaces``
+            dict.
+        encoding : str, optional, default 'utf-8'
+            Encoding of the resulting document.
+        xml_declaration : str, optional
+            Whether to include the XML declaration at start of document.
+        pretty_print : bool, optional
+            Whether output should be pretty printed with indentation and
+            line breaks.
+        parser : {'lxml','etree'}, default "lxml"
+            Parser module to use for building of tree. Only 'lxml' and
+            'etree' are supported. With 'lxml', the ability to use XSLT
+            stylesheet is supported. Default parser uses 'lxml'. If
+            module is not installed a warning will raise and process
+            will continue with 'etree'.
+        stylesheet : str, path object or file-like object, optional
+            A URL, file-like object, or a raw string containing an XSLT
+            script used to transform the raw XML output. Script should use
+            layout of elements and attributes from original output. This
+            argument requires ``lxml`` to be installed. Only XSLT 1.0
+            scripts and not later versions is currently supported.
+        """
+
+        from pandas.io.formats.xml import EtreeXMLFormatter, LxmlXMLFormatter
+
+        if parser == "lxml":
+            try:
+                TreeBuilder = LxmlXMLFormatter
+            except ImportError:
+                warn(
+                    "You do not have lxml installed (default parser). "
+                    "Instead, etree will be used.",
+                    ImportWarning,
+                )
+                TreeBuilder = EtreeXMLFormatter
+
+        elif parser == "etree":
+            TreeBuilder = EtreeXMLFormatter
+
+        else:
+            raise ValueError("Values for parser can only be lxml or etree.")
+
+        xml_formatter = TreeBuilder(
+            self.fmt,
+            io=io,
+            index=index,
+            root_name=root_name,
+            row_name=row_name,
+            na_rep=na_rep,
+            attr_cols=attr_cols,
+            elem_cols=elem_cols,
+            namespaces=namespaces,
+            prefix=prefix,
+            encoding=encoding,
+            xml_declaration=xml_declaration,
+            pretty_print=pretty_print,
+            stylesheet=stylesheet,
+        )
+
+        return xml_formatter.write_output()
 
     def to_string(
         self,

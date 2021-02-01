@@ -2551,6 +2551,178 @@ class DataFrame(NDFrame, OpsMixin):
             render_links=render_links,
         )
 
+    def to_xml(
+        self,
+        io: Optional[FilePathOrBuffer[str]] = None,
+        index: Optional[bool] = True,
+        root_name: Optional[str] = "data",
+        row_name: Optional[str] = "row",
+        na_rep: Optional[str] = None,
+        attr_cols: Optional[Union[str, List[str]]] = None,
+        elem_cols: Optional[Union[str, List[str]]] = None,
+        namespaces: Optional[Union[dict, List[dict]]] = None,
+        prefix: Optional[str] = None,
+        encoding: Optional[str] = "utf-8",
+        xml_declaration: Optional[bool] = True,
+        pretty_print: Optional[bool] = True,
+        parser: Optional[str] = "lxml",
+        stylesheet: Optional[FilePathOrBuffer[str]] = None,
+    ) -> Optional[str]:
+        """
+        Render a DataFrame to an XML document.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        io : str, path object or file-like object, optional
+            File to write output to. If None, the output is returned as a
+            string.
+        index : bool, optional
+            Whether to include index in XML document.
+        root_name : str, default 'data'
+            The name of root element in XML document.
+        root_name : str, default 'row'
+            The name of row element in XML document.
+        na_rep : str, optional
+            Missing data representation.
+        attr_cols : list-like, optional
+            List of columns to write as attributes in row element.
+            Hierarchical columns will be flattened with underscore
+            delimiting the different levels.
+        elem_cols : list-like, optional
+            List of columns to write as children in row element. By default,
+            all columns output as children of row element. Hierarchical
+            columns will be flattened with underscore delimiting the
+            different levels.
+        namespaces : dict, optional
+            All namespaces to be defined in root element. Keys of dict
+            should be prefix names and values of dict corresponding URIs.
+            Default namespaces should be given empty string key. For
+            example, ::
+
+                namespaces = {'': 'https://example.com'}
+
+        prefix : str, optional
+            Namespace prefix to be used for every element and/or attribute
+            in document. This should be one of the keys in ``namespaces``
+            dict.
+        encoding : str, optional, default 'utf-8'
+            Encoding of the resulting document.
+        xml_declaration : str, optional
+            Whether to include the XML declaration at start of document.
+        pretty_print : bool, optional
+            Whether output should be pretty printed with indentation and
+            line breaks.
+        parser : {'lxml','etree'}, default "lxml"
+            Parser module to use for building of tree. Only 'lxml' and
+            'etree' are supported. With 'lxml', the ability to use XSLT
+            stylesheet is supported. Default parser uses 'lxml'. If
+            module is not installed a warning will raise and process
+            will continue with 'etree'.
+        stylesheet : str, path object or file-like object, optional
+            A URL, file-like object, or a raw string containing an XSLT
+            script used to transform the raw XML output. Script should use
+            layout of elements and attributes from original output. This
+            argument requires ``lxml`` to be installed. Only XSLT 1.0
+            scripts and not later versions is currently supported.
+
+        Returns
+        -------
+        None or str
+            If ``io`` is None, returns the resulting XML format as a
+            string. Otherwise returns None.
+
+        See Also
+        --------
+        to_json : Convert the pandas object to a JSON string.
+        to_html : Convert DataFrame to a html.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'shape': ['square', 'circle', 'triangle'],
+        ...                    'degrees': [360, 360, 180],
+        ...                    'sides': [4, np.nan, 3]})
+
+        >>> df.to_xml()
+        <?xml version='1.0' encoding='utf-8'?>
+        <data>
+          <row>
+            <index>0</index>
+            <shape>square</shape>
+            <degrees>360</degrees>
+            <sides>4.0</sides>
+          </row>
+          <row>
+            <index>1</index>
+            <shape>circle</shape>
+            <degrees>360</degrees>
+            <sides/>
+          </row>
+          <row>
+            <index>2</index>
+            <shape>triangle</shape>
+            <degrees>180</degrees>
+            <sides>3.0</sides>
+          </row>
+        </data>
+
+        >>> df.to_xml(attr_cols=['index', 'shape', 'degrees', 'sides'])
+        <?xml version='1.0' encoding='utf-8'?>
+        <data>
+          <row index="0" shape="square" degrees="360" sides="4.0"/>
+          <row index="1" shape="circle" degrees="360"/>
+          <row index="2" shape="triangle" degrees="180" sides="3.0"/>
+        </data>
+
+        >>> df.to_xml(namespaces = {"doc": "https://example.com"},
+        ...           prefix = "doc")
+        <?xml version='1.0' encoding='utf-8'?>
+        <doc:data xmlns:doc="https://example.com">
+          <doc:row>
+            <doc:index>0</doc:index>
+            <doc:shape>square</doc:shape>
+            <doc:degrees>360</doc:degrees>
+            <doc:sides>4.0</doc:sides>
+          </doc:row>
+          <doc:row>
+            <doc:index>1</doc:index>
+            <doc:shape>circle</doc:shape>
+            <doc:degrees>360</doc:degrees>
+            <doc:sides/>
+          </doc:row>
+          <doc:row>
+            <doc:index>2</doc:index>
+            <doc:shape>triangle</doc:shape>
+            <doc:degrees>180</doc:degrees>
+            <doc:sides>3.0</doc:sides>
+          </doc:row>
+        </doc:data>
+        """
+
+        formatter = fmt.DataFrameFormatter(
+            self,
+            index=index,
+            na_rep=na_rep,
+        )
+
+        return fmt.DataFrameRenderer(formatter).to_xml(
+            io=io,
+            index=index,
+            root_name=root_name,
+            row_name=row_name,
+            na_rep=na_rep,
+            attr_cols=attr_cols,
+            elem_cols=elem_cols,
+            namespaces=namespaces,
+            prefix=prefix,
+            encoding=encoding,
+            xml_declaration=xml_declaration,
+            pretty_print=pretty_print,
+            parser=parser,
+            stylesheet=stylesheet,
+        )
+
     # ----------------------------------------------------------------------
     @Substitution(
         klass="DataFrame",

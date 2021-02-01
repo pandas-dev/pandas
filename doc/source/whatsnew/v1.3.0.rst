@@ -39,6 +39,36 @@ For example:
 ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`.
 See ref:`window.overview` for performance and functional benefits. (:issue:`15095`)
 
+.. _whatsnew_130.read_to_xml:
+
+We added to support to read and generate shallow versions of xml documents.
+With lxml as parser, full XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
+
+.. ipython:: python
+
+    xml = """<?xml version='1.0' encoding='utf-8'?>
+    <data>
+      <row>
+        <shape>square</shape>
+        <degrees>360</degrees>
+        <sides>4.0</sides>
+      </row>
+      <row>
+        <shape>circle</shape>
+        <degrees>360</degrees>
+        <sides/>
+      </row>
+      <row>
+        <shape>triangle</shape>
+        <degrees>180</degrees>
+        <sides>3.0</sides>
+      </row>
+    </data>"""
+
+    df = pd.read_xml(xml)
+
+    df.to_xml()
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
