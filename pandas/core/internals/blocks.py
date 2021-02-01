@@ -1063,7 +1063,7 @@ class Block(PandasObject):
             new_blocks = self.split_and_operate(mask, f, True)
             return new_blocks
 
-    def coerce_to_target_dtype(self, other):
+    def coerce_to_target_dtype(self, other) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -1091,13 +1091,13 @@ class Block(PandasObject):
         coerce: bool = False,
         downcast: Optional[str] = None,
         **kwargs,
-    ):
+    ) -> List[Block]:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
-            return self if inplace else self.copy()
+            return [self] if inplace else [self.copy()]
 
         # a fill na type method
         try:
@@ -1219,7 +1219,9 @@ class Block(PandasObject):
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
-    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_value=lib.no_default):
+    def take_nd(
+        self, indexer, axis: int, new_mgr_locs=None, fill_value=lib.no_default
+    ) -> Block:
         """
         Take values according to indexer and return them as a block.bb
 
@@ -1669,7 +1671,7 @@ class ExtensionBlock(Block):
 
     def take_nd(
         self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
-    ):
+    ) -> Block:
         """
         Take values according to indexer and return them as a block.
         """
