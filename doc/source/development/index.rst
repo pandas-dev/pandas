@@ -13,9 +13,6 @@ Development
     :maxdepth: 2
 
     contributing
-    contributing_documentation
-    contributing_codebase
-    env_outside_docker
     code_style
     maintaining
     internals

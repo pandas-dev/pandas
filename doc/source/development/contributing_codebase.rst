@@ -1,3 +1,5 @@
+.. _contributing_codebase:
+
 Contributing to the code base
 =============================
 

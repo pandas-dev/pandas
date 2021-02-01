@@ -1,3 +1,5 @@
+.. _env_outside_docker:
+
 Setting up an environment outside of Docker
 ===========================================
 
