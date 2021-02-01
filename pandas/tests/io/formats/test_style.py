@@ -102,12 +102,27 @@ class TestStyler:
         assert self.styler._todo != s2._todo
 
     def test_clear(self):
-        s = self.df.style.highlight_max()._compute()
-        assert len(s.ctx) > 0
+        # updated in GH 39396
+        tt = DataFrame({"A": [None, "tt"]})
+        css = DataFrame({"A": [None, "cls-a"]})
+        s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
+        # _todo, tooltips and cell_context items added to..
         assert len(s._todo) > 0
+        assert s.tooltips
+        assert len(s.cell_context) > 0
+
+        s = s._compute()
+        # ctx and _todo items affected when a render takes place
+        assert len(s.ctx) > 0
+        assert len(s._todo) == 0  # _todo is emptied after compute.
+
+        s._todo = [1]
         s.clear()
+        # ctx, _todo, tooltips and cell_context items all revert to null state.
         assert len(s.ctx) == 0
         assert len(s._todo) == 0
+        assert not s.tooltips
+        assert len(s.cell_context) == 0
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
@@ -115,6 +130,15 @@ class TestStyler:
         s = Styler(df, uuid="AB").apply(style)
         s.render()
         # it worked?
+
+    def test_multiple_render(self):
+        # GH 39396
+        s = Styler(self.df, uuid_len=0).applymap(lambda x: "color: red;", subset=["A"])
+        s.render()  # do 2 renders to ensure css styles not duplicated
+        assert (
+            '<style  type="text/css" >\n#T__row0_col0,#T__row1_col0{\n            '
+            "color:  red;\n        }</style>" in s.render()
+        )
 
     def test_render_empty_dfs(self):
         empty_df = DataFrame()

@@ -192,6 +192,6 @@ repos:
         files: ^pandas/
         exclude: ^pandas/tests/
 -   repo: https://github.com/MarcoGorelli/no-string-hints
-    rev: v0.1.5
+    rev: v0.1.6
     hooks:
     -   id: no-string-hints

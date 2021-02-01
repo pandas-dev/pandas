@@ -830,6 +830,7 @@ class Styler:
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
+        self._todo = []
         return r
 
     def _apply(
@@ -1454,9 +1455,8 @@ class Styler:
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = ";".join(f"{p}: {v}" for p, v in kwargs.items())
-        f = lambda x: values
-        return self.applymap(f, subset=subset)
+        values = "".join(f"{p}: {v};" for p, v in kwargs.items())
+        return self.applymap(lambda x: values, subset=subset)
 
     @staticmethod
     def _bar(

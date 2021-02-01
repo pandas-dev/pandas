@@ -16,11 +16,11 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
+from pandas.core.arrays.numpy_ import PandasArray
 
 from . import base
 
@@ -192,16 +192,6 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         # ValueError: PandasArray must be 1-dimensional.
         super().test_take_series(data)
 
-    def test_loc_iloc_frame_single_dtype(self, data, request):
-        npdtype = data.dtype.numpy_dtype
-        if npdtype == object:
-            # GH#33125
-            mark = pytest.mark.xfail(
-                reason="GH#33125 astype doesn't recognize data.dtype"
-            )
-            request.node.add_marker(mark)
-        super().test_loc_iloc_frame_single_dtype(data)
-
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     def test_groupby_extension_apply(
@@ -225,14 +215,6 @@ class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
 
 
 class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
-    @pytest.mark.skip(reason="TODO: remove?")
-    def test_value_counts(self, all_data, dropna):
-        pass
-
-    @pytest.mark.xfail(reason="not working. will be covered by #32028")
-    def test_value_counts_with_normalize(self, data):
-        return super().test_value_counts_with_normalize(data)
-
     @skip_nested
     def test_shift_fill_value(self, data):
         # np.array shape inference. Shift implementation fails.
@@ -301,10 +283,6 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         self._check_divmod_op(ser, divmod, data, exc=None)
 
-    @pytest.mark.skip("We implement ops")
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     @skip_nested
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
@@ -312,6 +290,10 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     @skip_nested
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         super().test_arith_series_with_array(data, all_arithmetic_operators)
+
+    @skip_nested
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):

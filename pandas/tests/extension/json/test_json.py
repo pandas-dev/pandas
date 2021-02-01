@@ -319,9 +319,6 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
 
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         if len(data[0]) != 1:
             mark = pytest.mark.xfail(reason="raises in coercing to Series")
