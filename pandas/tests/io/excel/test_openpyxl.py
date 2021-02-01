@@ -141,3 +141,17 @@ def test_read_with_bad_dimension(datapath, ext, header, expected_data, filename)
     result = pd.read_excel(path, header=header)
     expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_with_empty_trailing_rows(datapath, ext):
+    # GH 39181
+    path = datapath("io", "data", "excel", f"empty_trailing_rows{ext}")
+    result = pd.read_excel(path)
+    expected = DataFrame(
+        {
+            "Title": [np.nan, "A", 1, 2, 3],
+            "Unnamed: 1": [np.nan, "B", 4, 5, 6],
+            "Unnamed: 2": [np.nan, "C", 7, 8, 9],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
