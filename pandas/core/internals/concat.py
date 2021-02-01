@@ -264,7 +264,9 @@ class JoinUnit:
             fill_value = upcasted_na
 
             if self.is_na:
-                if getattr(self.block, "is_object", False):
+                blk_dtype = getattr(self.block, "dtype", None)
+
+                if blk_dtype == np.dtype(object):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -272,17 +274,16 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, "is_datetimetz", False) or is_datetime64tz_dtype(
+                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
                     empty_dtype
                 ):
                     if self.block is None:
                         # TODO(EA2D): special case unneeded with 2D EAs
-                        return DatetimeArray(
-                            np.full(self.shape[1], fill_value.value), dtype=empty_dtype
-                        )
-                elif getattr(self.block, "is_categorical", False):
+                        i8values = np.full(self.shape[1], fill_value.value)
+                        return DatetimeArray(i8values, dtype=empty_dtype)
+                elif is_categorical_dtype(blk_dtype):
                     pass
-                elif getattr(self.block, "is_extension", False):
+                elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
                     missing_arr = empty_dtype.construct_array_type()._from_sequence(
@@ -322,7 +323,7 @@ class JoinUnit:
 
         else:
             for ax, indexer in self.indexers.items():
-                values = algos.take_nd(values, indexer, axis=ax, fill_value=fill_value)
+                values = algos.take_nd(values, indexer, axis=ax)
 
         return values
 
