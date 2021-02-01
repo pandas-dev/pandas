@@ -1,4 +1,4 @@
-.. _contributing:
+.. _contributing_documentation:
 
 {{ header }}
 
@@ -203,4 +203,3 @@ When pull requests are merged into the pandas ``master`` branch, the main parts 
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
-
