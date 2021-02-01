@@ -29,7 +29,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
--
+- :func:`pandas.read_excel` error message when a specified ``sheetname`` does not exist is now uniform across engines (:issue:`39250`)
 -
 
 .. ---------------------------------------------------------------------------
