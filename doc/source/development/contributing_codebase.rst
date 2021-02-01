@@ -819,7 +819,7 @@ issue/pull request number).
 
 If your code is an enhancement, it is most likely necessary to add usage
 examples to the existing documentation.  This can be done following the section
-regarding :ref:`documentation <contributing.documentation>`.
+regarding :doc:`contributing_documentation.rst`.
 Further, to let users know when this feature was added, the ``versionadded``
 directive is used. The sphinx syntax for that is:
 
