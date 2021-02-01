@@ -189,15 +189,15 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34268, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34273, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34271, None),
-        (StataUserAgentResponder, pd.read_stata, 34272, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34261, None),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34261, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34262, "fastparquet"),
+        (PickleUserAgentResponder, pd.read_pickle, 34263, None),
+        (StataUserAgentResponder, pd.read_stata, 34264, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
         pytest.param(
             GzippedJSONUserAgentResponder,
             pd.read_json,
-            34262,
+            34266,
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
@@ -225,23 +225,23 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
 @pytest.mark.parametrize(
     "responder, read_method, port, parquet_engine",
     [
-        (CSVUserAgentResponder, pd.read_csv, 34263, None),
+        (CSVUserAgentResponder, pd.read_csv, 34267, None),
         pytest.param(
             JSONUserAgentResponder,
             pd.read_json,
-            34264,
+            34268,
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34270, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34275, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34273, None),
-        (StataUserAgentResponder, pd.read_stata, 34274, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34269, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34270, "fastparquet"),
+        (PickleUserAgentResponder, pd.read_pickle, 34271, None),
+        (StataUserAgentResponder, pd.read_stata, 34272, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, 34273, None),
         pytest.param(
             GzippedJSONUserAgentResponder,
             pd.read_json,
-            34266,
+            34274,
             None,
             marks=td.skip_array_manager_not_yet_implemented,
         ),
@@ -281,7 +281,7 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
 @pytest.mark.parametrize(
     "responder, read_method, port",
     [
-        (AllHeaderCSVResponder, pd.read_csv, 34267),
+        (AllHeaderCSVResponder, pd.read_csv, 34275),
     ],
 )
 def test_server_and_all_custom_headers(responder, read_method, port):

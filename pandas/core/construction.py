@@ -548,6 +548,11 @@ def _sanitize_ndim(
     elif result.ndim > 1:
         if isinstance(data, np.ndarray):
             raise ValueError("Data must be 1-dimensional")
+        if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
+            # i.e. PandasDtype("O")
+            result = com.asarray_tuplesafe(data, dtype=object)
+            cls = dtype.construct_array_type()
+            result = cls._from_sequence(result, dtype=dtype)
         else:
             # pandas/core/construction.py:553: error: Incompatible types in assignment
             # (expression has type "ndarray", variable has type "ExtensionArray")

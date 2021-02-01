@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -201,25 +200,6 @@ class Base:
 
         with pytest.raises(ValueError, match="Invalid fill method"):
             idx.get_indexer(idx, method="invalid")
-
-    def test_get_indexer_consistency(self, index):
-        # See GH 16819
-        if isinstance(index, IntervalIndex):
-            # requires index.is_non_overlapping
-            return
-
-        if index.is_unique:
-            indexer = index.get_indexer(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
-        else:
-            e = "Reindexing only valid with uniquely valued Index objects"
-            with pytest.raises(InvalidIndexError, match=e):
-                index.get_indexer(index[0:2])
-
-        indexer, _ = index.get_indexer_non_unique(index[0:2])
-        assert isinstance(indexer, np.ndarray)
-        assert indexer.dtype == np.intp
 
     def test_ndarray_compat_properties(self):
         idx = self.create_index()

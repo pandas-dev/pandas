@@ -82,38 +82,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         return ExpandingIndexer()
 
-    def _get_cov_corr_window(
-        self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
-    ) -> int:
-        """
-        Get the window length over which to perform cov and corr operations.
-
-        Parameters
-        ----------
-        other : object, default None
-            The other object that is involved in the operation.
-            Such an object is involved for operations like covariance.
-
-        Returns
-        -------
-        window : int
-            The window length.
-        """
-        axis = self.obj._get_axis(self.axis)
-        length = len(axis) + (other is not None) * len(axis)
-
-        # pandas\core\window\expanding.py:91: error: Incompatible types in
-        # assignment (expression has type "int", variable has type
-        # "Union[ndarray, FrameOrSeries, None]")  [assignment]
-        other = self.min_periods or -1  # type: ignore[assignment]
-        # pandas/core/window/expanding.py:109: error: Value of type variable "_LT" of
-        # "max" cannot be "Union[int, ndarray, FrameOrSeries, None]"  [type-var]
-
-        # pandas/core/window/expanding.py:109: error: Incompatible return value type
-        # (got "Union[int, ndarray, FrameOrSeries, None]", expected "int")
-        # [return-value]
-        return max(length, other)  # type: ignore[type-var,return-value]
-
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -295,9 +263,10 @@ class Expanding(RollingAndExpandingMixin):
         self,
         other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
         pairwise: Optional[bool] = None,
+        ddof: int = 1,
         **kwargs,
     ):
-        return super().corr(other=other, pairwise=pairwise, **kwargs)
+        return super().corr(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
 
 class ExpandingGroupby(BaseWindowGroupby, Expanding):

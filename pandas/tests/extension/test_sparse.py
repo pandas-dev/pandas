@@ -16,6 +16,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat import IS64, is_platform_windows
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -392,9 +393,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # general, so we can't make the expected. This is tested elsewhere
             raise pytest.skip("Incorrected expected from Series.combine")
 
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
@@ -402,6 +400,25 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if data.dtype.fill_value != 0:
+            pass
+        elif all_arithmetic_operators.strip("_") not in [
+            "mul",
+            "rmul",
+            "floordiv",
+            "rfloordiv",
+            "pow",
+            "mod",
+            "rmod",
+        ]:
+            mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
+            request.node.add_marker(mark)
+        elif is_platform_windows() or not IS64:
+            mark = pytest.mark.xfail(reason="results are int32, expected int64")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):

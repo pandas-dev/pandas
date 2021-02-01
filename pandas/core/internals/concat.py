@@ -266,7 +266,9 @@ class JoinUnit:
             fill_value = upcasted_na
 
             if self.is_na:
-                if getattr(self.block, "is_object", False):
+                blk_dtype = getattr(self.block, "dtype", None)
+
+                if blk_dtype == np.dtype(object):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -274,21 +276,16 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, "is_datetimetz", False) or is_datetime64tz_dtype(
+                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
                     empty_dtype
                 ):
                     if self.block is None:
                         # TODO(EA2D): special case unneeded with 2D EAs
-
-                        # pandas/core/internals/concat.py:261: error: Incompatible
-                        # return value type (got "DatetimeArray", expected "ndarray")
-                        # [return-value]
-                        return DatetimeArray(  # type: ignore[return-value]
-                            np.full(self.shape[1], fill_value.value), dtype=empty_dtype
-                        )
-                elif getattr(self.block, "is_categorical", False):
+                        i8values = np.full(self.shape[1], fill_value.value)
+                        return DatetimeArray(i8values, dtype=empty_dtype)
+                elif is_categorical_dtype(blk_dtype):
                     pass
-                elif getattr(self.block, "is_extension", False):
+                elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
                     # pandas\core\internals\concat.py:260: error: Item

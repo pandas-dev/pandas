@@ -27,7 +27,16 @@ from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     time,
     tzinfo as tzinfo_type,
 )
-from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+    PyObject_RichCompareBool,
+)
 
 PyDateTime_IMPORT
 
@@ -295,6 +304,9 @@ cdef class _Timestamp(ABCTimestamp):
             try:
                 ots = type(self)(other)
             except ValueError:
+                if is_datetime64_object(other):
+                    # cast non-nano dt64 to pydatetime
+                    other = other.astype(object)
                 return self._compare_outside_nanorange(other, op)
 
         elif is_array(other):
@@ -349,12 +361,23 @@ cdef class _Timestamp(ABCTimestamp):
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
         cdef:
-            datetime dtval = self.to_pydatetime()
+            datetime dtval = self.to_pydatetime(warn=False)
 
         if not self._can_compare(other):
             return NotImplemented
 
-        return PyObject_RichCompareBool(dtval, other, op)
+        if self.nanosecond == 0:
+            return PyObject_RichCompareBool(dtval, other, op)
+
+        # otherwise we have dtval < self
+        if op == Py_NE:
+            return True
+        if op == Py_EQ:
+            return False
+        if op == Py_LE or op == Py_LT:
+            return other.year <= self.year
+        if op == Py_GE or op == Py_GT:
+            return other.year >= self.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:

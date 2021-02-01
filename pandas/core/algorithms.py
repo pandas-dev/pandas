@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
@@ -803,7 +804,7 @@ def factorize(
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
-            na_value = na_value_for_dtype(original.dtype)
+            na_value = iNaT
         else:
             na_value = None
 
@@ -954,11 +955,6 @@ def value_counts_arraylike(values, dropna: bool):
         # TODO: handle uint8
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
-
-        mask = isna(values)
-        if not dropna and mask.any() and not isna(keys).any():
-            keys = np.insert(keys, 0, np.NaN)
-            counts = np.insert(counts, 0, mask.sum())
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
@@ -2027,7 +2023,6 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     -------
     shifted
     """
-    from pandas.core.arrays import PandasDtype
 
     n = int(n)
     na = np.nan
@@ -2040,7 +2035,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     if isinstance(dtype, PandasDtype):
         # PandasArray cannot necessarily hold shifted versions of itself.
-        arr = np.asarray(arr)
+        arr = arr.to_numpy()
         dtype = arr.dtype
 
     if is_extension_array_dtype(dtype):
