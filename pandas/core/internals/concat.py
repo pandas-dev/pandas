@@ -323,7 +323,7 @@ class JoinUnit:
 
         else:
             for ax, indexer in self.indexers.items():
-                values = algos.take_nd(values, indexer, axis=ax, fill_value=fill_value)
+                values = algos.take_nd(values, indexer, axis=ax)
 
         return values
 
