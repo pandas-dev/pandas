@@ -15,7 +15,7 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import get_version, import_optional_dependency
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
 
@@ -1056,7 +1056,7 @@ class ExcelFile:
         else:
             import xlrd
 
-            xlrd_version = LooseVersion(xlrd.__version__)
+            xlrd_version = LooseVersion(get_version(xlrd))
 
         if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"

@@ -48,7 +48,7 @@ INSTALL_MAPPING = {
 }
 
 
-def _get_version(module: types.ModuleType) -> str:
+def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
     if version is None:
         # xlrd uses a capitalized attribute name
@@ -126,7 +126,7 @@ def import_optional_dependency(
         module_to_get = module
     minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
     if minimum_version:
-        version = _get_version(module_to_get)
+        version = get_version(module_to_get)
         if distutils.version.LooseVersion(version) < minimum_version:
             msg = (
                 f"Pandas requires version '{minimum_version}' or newer of '{parent}' "
