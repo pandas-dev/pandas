@@ -239,7 +239,7 @@ class Block(PandasObject):
         """
         return PandasArray(self.values)
 
-    def get_values(self, dtype: Optional[Dtype] = None):
+    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
@@ -282,7 +282,7 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
-    def make_block_same_class(self, values, placement=None, ndim=None):
+    def make_block_same_class(self, values, placement=None, ndim=None) -> Block:
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
@@ -318,7 +318,7 @@ class Block(PandasObject):
 
         return self.values[slicer]
 
-    def getitem_block(self, slicer, new_mgr_locs=None):
+    def getitem_block(self, slicer, new_mgr_locs=None) -> Block:
         """
         Perform __getitem__-like, return result as block.
 
@@ -338,11 +338,11 @@ class Block(PandasObject):
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         return self.values.shape
 
     @property
-    def dtype(self):
+    def dtype(self) -> DtypeObj:
         return self.values.dtype
 
     def iget(self, i):
@@ -1521,7 +1521,7 @@ class ExtensionBlock(Block):
             raise AssertionError("block.size != values.size")
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
             return (len(self.values),)
@@ -1647,7 +1647,7 @@ class ExtensionBlock(Block):
         self.values[indexer] = value
         return self
 
-    def get_values(self, dtype: Optional[Dtype] = None):
+    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         # ExtensionArrays must be iterable, so this works.
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
@@ -1765,9 +1765,7 @@ class ExtensionBlock(Block):
             axis = 0
         return super().diff(n, axis)
 
-    def shift(
-        self, periods: int, axis: int = 0, fill_value: Any = None
-    ) -> List[ExtensionBlock]:
+    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         """
         Shift the block by `periods`.
 
@@ -1947,7 +1945,7 @@ class DatetimeLikeBlockMixin(HybridMixin, Block):
     def fill_value(self):
         return np.datetime64("NaT", "ns")
 
-    def get_values(self, dtype: Optional[Dtype] = None):
+    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
@@ -2118,7 +2116,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    def get_values(self, dtype: Optional[Dtype] = None):
+    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
         """
         Returns an ndarray of values.
 
