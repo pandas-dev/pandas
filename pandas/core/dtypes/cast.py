@@ -946,7 +946,15 @@ def invalidate_string_dtypes(dtype_set: Set[DtypeObj]):
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
-    non_string_dtypes = dtype_set - {np.dtype("S").type, np.dtype("<U").type}
+    # pandas/core/dtypes/cast.py:949: error: Argument 1 to <set> has incompatible type
+    # "Type[generic]"; expected "Union[dtype[Any], ExtensionDtype, None]"  [arg-type]
+
+    # pandas/core/dtypes/cast.py:949: error: Argument 2 to <set> has incompatible type
+    # "Type[generic]"; expected "Union[dtype[Any], ExtensionDtype, None]"  [arg-type]
+    non_string_dtypes = dtype_set - {
+        np.dtype("S").type,  # type: ignore[arg-type]
+        np.dtype("<U").type,  # type: ignore[arg-type]
+    }
     if non_string_dtypes != dtype_set:
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 

@@ -635,7 +635,10 @@ class ParserBase:
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = algorithms.isin(values, list(na_values))
-            na_count = mask.sum()
+            # pandas/io/parsers/base_parser.py:638: error: Incompatible types in
+            # assignment (expression has type "number[Any]", variable has type "int")
+            # [assignment]
+            na_count = mask.sum()  # type: ignore[assignment]
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
@@ -693,7 +696,11 @@ class ParserBase:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
-                values = astype_nansafe(values, str)
+
+                # pandas/io/parsers/base_parser.py:696: error: Argument 2 to
+                # "astype_nansafe" has incompatible type "Type[str]"; expected
+                # "Union[dtype[Any], ExtensionDtype]"  [arg-type]
+                values = astype_nansafe(values, str)  # type: ignore[arg-type]
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
@@ -889,7 +896,22 @@ class ParserBase:
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
             default_dtype = dtype or object
-            dtype = defaultdict(lambda: default_dtype)
+            # pandas/io/parsers/base_parser.py:892: error: Argument 1 to "defaultdict"
+            # has incompatible type "Callable[[], Union[ExtensionDtype, str, dtype[Any],
+            # Type[object], Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
+            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]]]]"; expected "Optional[Callable[[], Union[ExtensionDtype,
+            # str, dtype[Any], Type[object]]]]"  [arg-type]
+
+            # pandas/io/parsers/base_parser.py:892: error: Incompatible return value
+            # type (got "Union[ExtensionDtype, str, dtype[Any], Type[object],
+            # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
+            # Type[float], Type[int], Type[complex], Type[bool], Type[object]]]]",
+            # expected "Union[ExtensionDtype, str, dtype[Any], Type[object]]")
+            # [return-value]
+            dtype = defaultdict(
+                lambda: default_dtype  # type: ignore[arg-type, return-value]
+            )
         else:
             dtype = cast(dict, dtype)
             dtype = defaultdict(

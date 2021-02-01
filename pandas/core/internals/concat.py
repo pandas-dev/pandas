@@ -268,7 +268,9 @@ class JoinUnit:
             if self.is_na:
                 blk_dtype = getattr(self.block, "dtype", None)
 
-                if blk_dtype == np.dtype(object):
+                # pandas/core/internals/concat.py:271: error: Value of type variable
+                # "_DTypeScalar" of "dtype" cannot be "object"  [type-var]
+                if blk_dtype == np.dtype(object):  # type: ignore[type-var]
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -282,7 +284,12 @@ class JoinUnit:
                     if self.block is None:
                         # TODO(EA2D): special case unneeded with 2D EAs
                         i8values = np.full(self.shape[1], fill_value.value)
-                        return DatetimeArray(i8values, dtype=empty_dtype)
+                        # pandas/core/internals/concat.py:285: error: Incompatible
+                        # return value type (got "DatetimeArray", expected "ndarray")
+                        # [return-value]
+                        return DatetimeArray(  # type: ignore[return-value]
+                            i8values, dtype=empty_dtype
+                        )
                 elif is_categorical_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(blk_dtype):

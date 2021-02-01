@@ -1378,7 +1378,13 @@ class Block(PandasObject):
                 return self._maybe_downcast(blocks, "infer")
 
             # convert datetime to datetime64, timedelta to timedelta64
-            other = convert_scalar_for_putitemlike(other, values.dtype)
+
+            # pandas/core/internals/blocks.py:1381: error: Argument 2 to
+            # "convert_scalar_for_putitemlike" has incompatible type "Union[dtype[Any],
+            # ExtensionDtype]"; expected "dtype[Any]"  [arg-type]
+            other = convert_scalar_for_putitemlike(
+                other, values.dtype  # type: ignore[arg-type]
+            )
 
             # By the time we get here, we should have all Series/Index
             #  args extracted to ndarray

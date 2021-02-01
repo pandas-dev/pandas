@@ -406,7 +406,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         from pandas import Index, Series
 
         if dropna:
-            values = self[~self.isna()]._ndarray
+            # pandas/core/arrays/_mixins.py:409: error: Unsupported operand type for ~
+            # ("ExtensionArray")  [operator]
+            values = self[~self.isna()]._ndarray  # type: ignore[operator]
         else:
             values = self._ndarray
 

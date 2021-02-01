@@ -4959,7 +4959,12 @@ def _maybe_convert_for_string_atom(
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
-    data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
+
+    # error: Argument 1 to "_convert_string_array" has incompatible type "Union[ndarray,
+    # ExtensionArray]"; expected "ndarray"
+    data_converted = _convert_string_array(
+        data, encoding, errors  # type: ignore[arg-type]
+    ).reshape(data.shape)
     itemsize = data_converted.itemsize
 
     # specified min_itemsize?
