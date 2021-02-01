@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
@@ -204,12 +205,18 @@ class TestFloat64Index(Numeric):
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
+
         msg = (
             "String dtype not supported, "
             "you may need to explicitly cast to a numeric type"
         )
-        with pytest.raises(TypeError, match=msg):
+        err = TypeError
+        if not np_version_under1p20:
+            err = ValueError
+            msg = "could not convert string to float: 'a'"
+        with pytest.raises(err, match=msg):
             Float64Index(["a", "b", 0.0])
+
         msg = r"float\(\) argument must be a string or a number, not 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             Float64Index([Timestamp("20130101")])
