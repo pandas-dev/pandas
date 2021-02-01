@@ -2454,7 +2454,9 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     return cls
 
 
-def make_block(values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None):
+def make_block(
+    values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
+) -> Block:
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
@@ -2481,7 +2483,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype: Optional[Dtype] 
 # -----------------------------------------------------------------
 
 
-def extend_blocks(result, blocks=None):
+def extend_blocks(result, blocks=None) -> List[Block]:
     """ return a new extended blocks, given the result """
     if blocks is None:
         blocks = []
