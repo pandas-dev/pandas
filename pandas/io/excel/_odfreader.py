@@ -57,12 +57,14 @@ class ODFReader(BaseExcelReader):
     def get_sheet_by_index(self, index: int):
         from odf.table import Table
 
+        self.raise_if_bad_sheet_by_index(index)
         tables = self.book.getElementsByType(Table)
         return tables[index]
 
     def get_sheet_by_name(self, name: str):
         from odf.table import Table
 
+        self.raise_if_bad_sheet_by_name(name)
         tables = self.book.getElementsByType(Table)
 
         for table in tables:

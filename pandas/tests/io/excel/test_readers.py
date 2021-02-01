@@ -665,6 +665,16 @@ class TestReaders:
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
 
+    @pytest.mark.parametrize(
+        "sheet_name",
+        [3, [0, 3], [3, 0], "Sheet4", ["Sheet1", "Sheet4"], ["Sheet4", "Sheet1"]],
+    )
+    def test_bad_sheetname_raises(self, read_ext, sheet_name):
+        # GH 39250
+        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_excel("blank" + read_ext, sheet_name=sheet_name)
+
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
         # CI tests with zh_CN.utf8, translates to "No such file or directory"
@@ -1262,6 +1272,17 @@ class TestExcelFileRead:
 
         tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
+
+    @pytest.mark.parametrize(
+        "sheet_name",
+        [3, [0, 3], [3, 0], "Sheet4", ["Sheet1", "Sheet4"], ["Sheet4", "Sheet1"]],
+    )
+    def test_bad_sheetname_raises(self, read_ext, sheet_name):
+        # GH 39250
+        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        with pytest.raises(ValueError, match=msg):
+            with pd.ExcelFile("blank" + read_ext) as excel:
+                excel.parse(sheet_name=sheet_name)
 
     def test_excel_read_buffer(self, engine, read_ext):
         pth = "test1" + read_ext

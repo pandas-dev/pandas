@@ -42,5 +42,5 @@ def test_nonexistent_sheetname_raises(read_ext):
     # GH-27676
     # Specifying a non-existent sheet_name parameter should throw an error
     # with the sheet name.
-    with pytest.raises(ValueError, match="sheet xyz not found"):
+    with pytest.raises(ValueError, match="Worksheet named 'xyz' not found"):
         pd.read_excel("blank.ods", sheet_name="xyz")
