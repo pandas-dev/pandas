@@ -529,17 +529,11 @@ class OpenpyxlReader(BaseExcelReader):
         sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
-        last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
-            if any(cell != "" for cell in converted_row):
-                last_row_with_data = row_number
             data.append(converted_row)
 
         if len(data) > 0:
-            # Trim trailing rows that have no data
-            data = data[: last_row_with_data + 1]
-
             # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:

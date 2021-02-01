@@ -136,7 +136,7 @@ def test_to_excel_with_openpyxl_engine(ext):
     "filename", ["dimension_missing", "dimension_small", "dimension_large"]
 )
 def test_read_with_bad_dimension(datapath, ext, header, expected_data, filename):
-    # GH 38956, 39001, 39181 - no/incorrect dimension information
+    # GH 38956, 39001 - no/incorrect dimension information
     path = datapath("io", "data", "excel", f"{filename}{ext}")
     result = pd.read_excel(path, header=header)
     expected = DataFrame(expected_data)

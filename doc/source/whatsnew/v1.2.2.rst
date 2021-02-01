@@ -27,7 +27,6 @@ Bug fixes
 ~~~~~~~~~
 
 - Fixed bug in :func:`pandas.read_excel` producing incorrect results when the engine ``openpyxl`` is used and the excel file is missing or has incorrect dimension information (:issue:`38956`, :issue:`39001`)
-- Fixed bug in :func:`pandas.read_excel` sometimes producing a ``DataFrame`` with trailing rows of ``np.nan`` when the engine ``openpyxl`` is used (:issue:`39181`)
 -
 
 .. ---------------------------------------------------------------------------
