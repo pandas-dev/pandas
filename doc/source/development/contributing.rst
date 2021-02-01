@@ -147,7 +147,7 @@ Creating a development environment
 
 To test out code changes, you'll need to build pandas from source, which
 requires a C/C++ compiler and Python environment. If you're making documentation
-changes, you can skip to :doc:`contributing_documentation.rst` but if you skip
+changes, you can skip to :doc:`contributing_documentation` but if you skip
 creating the development environment you won't be able to build the documentation
 locally before pushing your changes.
 
