@@ -390,6 +390,12 @@ class Styler:
         def format_attr(pair):
             return f"{pair['key']}={pair['value']}"
 
+        def is_visible(idx_row, idx_col, lengths) -> bool:
+            """
+            Index -> {(idx_row, idx_col): bool}).
+            """
+            return (idx_col, idx_row) in lengths
+
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
@@ -454,7 +460,7 @@ class Styler:
                         "value": value,
                         "display_value": value,
                         "class": " ".join(cs),
-                        "is_visible": _is_visible(c, r, col_lengths),
+                        "is_visible": is_visible(c, r, col_lengths),
                     }
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
@@ -496,7 +502,7 @@ class Styler:
                 ]
                 es = {
                     "type": "th",
-                    "is_visible": (_is_visible(r, c, idx_lengths) and not hidden_index),
+                    "is_visible": (is_visible(r, c, idx_lengths) and not hidden_index),
                     "value": value,
                     "display_value": value,
                     "id": "_".join(rid[1:]),
@@ -607,6 +613,26 @@ class Styler:
         >>> df['c'] = ['a', 'b', 'c', 'd']
         >>> df.style.format({'c': str.upper})
         """
+
+        def maybe_wrap_formatter(
+            formatter: Union[Callable, str], na_rep: Optional[str]
+        ) -> Callable:
+            if isinstance(formatter, str):
+                formatter_func = lambda x: formatter.format(x)
+            elif callable(formatter):
+                formatter_func = formatter
+            else:
+                msg = f"Expected a template string or callable, got {formatter} instead"
+                raise TypeError(msg)
+
+            if na_rep is None:
+                return formatter_func
+            elif isinstance(na_rep, str):
+                return lambda x: na_rep if pd.isna(x) else formatter_func(x)
+            else:
+                msg = f"Expected a string, got {na_rep} instead"
+                raise TypeError(msg)
+
         if formatter is None:
             assert self._display_funcs.default_factory is not None
             formatter = self._display_funcs.default_factory()
@@ -626,14 +652,14 @@ class Styler:
         if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
-                col_formatter = _maybe_wrap_formatter(col_formatter, na_rep)
+                col_formatter = maybe_wrap_formatter(col_formatter, na_rep)
                 col_num = self.data.columns.get_indexer_for([col])[0]
 
                 for row_num in row_locs:
                     self._display_funcs[(row_num, col_num)] = col_formatter
         else:
             # single scalar to format all cells with
-            formatter = _maybe_wrap_formatter(formatter, na_rep)
+            formatter = maybe_wrap_formatter(formatter, na_rep)
             locs = product(*(row_locs, col_locs))
             for i, j in locs:
                 self._display_funcs[(i, j)] = formatter
@@ -1954,13 +1980,6 @@ class _Tooltips:
         return d
 
 
-def _is_visible(idx_row, idx_col, lengths) -> bool:
-    """
-    Index -> {(idx_row, idx_col): bool}).
-    """
-    return (idx_col, idx_row) in lengths
-
-
 def _get_level_lengths(index, hidden_elements=None):
     """
     Given an index, find the level length for each element.
@@ -2005,23 +2024,3 @@ def _get_level_lengths(index, hidden_elements=None):
     }
 
     return non_zero_lengths
-
-
-def _maybe_wrap_formatter(
-    formatter: Union[Callable, str], na_rep: Optional[str]
-) -> Callable:
-    if isinstance(formatter, str):
-        formatter_func = lambda x: formatter.format(x)
-    elif callable(formatter):
-        formatter_func = formatter
-    else:
-        msg = f"Expected a template string or callable, got {formatter} instead"
-        raise TypeError(msg)
-
-    if na_rep is None:
-        return formatter_func
-    elif isinstance(na_rep, str):
-        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
-    else:
-        msg = f"Expected a string, got {na_rep} instead"
-        raise TypeError(msg)
