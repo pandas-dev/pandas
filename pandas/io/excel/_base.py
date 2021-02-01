@@ -425,6 +425,17 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def get_sheet_data(self, sheet, convert_float):
         pass
 
+    def raise_if_bad_sheet_by_index(self, index: int) -> None:
+        n_sheets = len(self.sheet_names)
+        if index >= n_sheets:
+            raise ValueError(
+                f"Worksheet index {index} is invalid, {n_sheets} worksheets found"
+            )
+
+    def raise_if_bad_sheet_by_name(self, name: str) -> None:
+        if name not in self.sheet_names:
+            raise ValueError(f"Worksheet named '{name}' not found")
+
     def parse(
         self,
         sheet_name=0,
