@@ -46,7 +46,7 @@ INSTALL_MAPPING = {
 }
 
 
-def _get_version(module: types.ModuleType) -> str:
+def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
     if version is None:
         # xlrd uses a capitalized attribute name
@@ -112,7 +112,7 @@ def import_optional_dependency(
 
     minimum_version = VERSIONS.get(name)
     if minimum_version:
-        version = _get_version(module)
+        version = get_version(module)
         if distutils.version.LooseVersion(version) < minimum_version:
             assert on_version in {"warn", "raise", "ignore"}
             msg = (
