@@ -168,7 +168,7 @@ def test_closed_fixed_binary_col(center, expected_data):
     expected = DataFrame(
         expected_data,
         columns=["binary_col"],
-        index=date_range(start="2020-01-01", freq="min", periods=8),
+        index=date_range(start="2020-01-01", freq="min", periods=len(expected_data)),
     )
 
     rolling = df.rolling(window=len(df), closed="left", min_periods=1, center=center)
