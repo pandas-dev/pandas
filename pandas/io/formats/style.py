@@ -1172,13 +1172,20 @@ class Styler:
         ...       'props': [('background-color', 'yellow')]}]
         ... )
 
+        Or with CSS strings
+
+        >>> df.style.set_table_styles(
+        ...     [{'selector': 'tr:hover',
+        ...       'props': 'background-color: yellow; font-size: 1em;']}]
+        ... )
+
         Adding column styling by name
 
         >>> df.style.set_table_styles({
         ...     'A': [{'selector': '',
         ...            'props': [('color', 'red')]}],
         ...     'B': [{'selector': 'td',
-        ...            'props': [('color', 'blue')]}]
+        ...            'props': 'color: blue;']}]
         ... }, overwrite=False)
 
         Adding row styling
@@ -1202,6 +1209,14 @@ class Styler:
                 for key, styles in table_styles.items()
                 for s in styles
             ]
+
+        table_styles = [
+            {
+                "selector": s["selector"],
+                "props": _maybe_convert_css_to_tuples(s["props"]),
+            }
+            for s in table_styles
+        ]
 
         if not overwrite and self.table_styles is not None:
             self.table_styles.extend(table_styles)
@@ -2025,3 +2040,26 @@ def _maybe_wrap_formatter(
     else:
         msg = f"Expected a string, got {na_rep} instead"
         raise TypeError(msg)
+
+
+def _maybe_convert_css_to_tuples(style):
+    """
+    Check if need to convert to list of tuples format:
+    'color:red; border:1px solid black;'
+    -> [('color', 'red'), ('border','1px solid red')]
+    """
+    if isinstance(style, str):
+        s = style.split(";")
+        try:
+            s = [
+                (x.split(":")[0].strip(), x.split(":")[1].strip())
+                for x in s
+                if x.strip() != ""
+            ]
+            return s
+        except IndexError:
+            raise ValueError(
+                "Styles supplied as string must follow CSS rule formats, "
+                f"for example 'attr: val;'. {style} was given."
+            )
+    return style
