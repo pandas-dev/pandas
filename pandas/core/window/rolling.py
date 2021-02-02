@@ -837,35 +837,66 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
     def _apply_pairwise(self, target, other, pairwise, func):
         # Manually drop the grouping column first
         target = target.drop(columns=list(self._groupby.keys), errors="ignore")
+        breakpoint()
         result = super()._apply_pairwise(target, other, pairwise, func)
-
         # Modify the resulting index to include the groupby level
-        groupby_codes = self._groupby.grouper.codes
-        groupby_levels = self._groupby.grouper.levels
+        if other is not None:
 
-        group_indices = self._groupby.grouper.indices.values()
-        if group_indices:
-            indexer = np.concatenate(list(group_indices))
+            from pandas.core.algorithms import factorize
+            from pandas.core.reshape.concat import concat
+
+            gb_pairs = (list(pair) for pair in self._groupby.indices.keys())
+            groupby_codes = []
+            groupby_levels = []
+            # e.g. [[1, 2], [4, 5]] as [[1, 4], [2, 5]]
+            for gb_level_pair in map(list, zip(*gb_pairs)):
+                labels = np.repeat(np.array(gb_level_pair), len(result))
+                codes, levels = factorize(labels)
+                groupby_codes.append(codes)
+                groupby_levels.append(levels)
+
+            result_codes, result_levels = factorize(result.index)
+            result_codes = groupby_codes + [result_codes]
+            result_levels = groupby_levels + [result_levels]
+            result_names = list(self._groupby.keys) + list(result.index.name)
+            result_index = MultiIndex(
+                result_levels, result_codes, names=result_names, verify_integrity=False
+            )
+            result = concat(
+                [
+                    result.take(gb_indices).reindex(result.index)
+                    for gb_indices in self._groupby.indices.values()
+                ]
+            )
+
+            result.index = result_index
         else:
-            indexer = np.array([], dtype=np.intp)
+            groupby_codes = self._groupby.grouper.codes
+            groupby_levels = self._groupby.grouper.levels
 
-        if target.ndim == 1:
-            num_target_columns = 1
-        else:
-            num_target_columns = len(target.columns)
-        groupby_codes = [
-            np.repeat(c.take(indexer), num_target_columns) for c in groupby_codes
-        ]
+            group_indices = self._groupby.grouper.indices.values()
+            if group_indices:
+                indexer = np.concatenate(list(group_indices))
+            else:
+                indexer = np.array([], dtype=np.intp)
 
-        result_codes = groupby_codes + list(result.index.codes)
-        result_levels = groupby_levels + list(result.index.levels)
-        result_names = list(self._groupby.keys) + list(result.index.names)
+            if target.ndim == 1:
+                repeat_by = 1
+            else:
+                repeat_by = len(target.columns)
+            groupby_codes = [
+                np.repeat(c.take(indexer), repeat_by) for c in groupby_codes
+            ]
 
-        result_index = MultiIndex(
-            result_levels, result_codes, names=result_names, verify_integrity=False
-        )
+            result_codes = groupby_codes + list(result.index.codes)
+            result_levels = groupby_levels + list(result.index.levels)
+            result_names = list(self._groupby.keys) + list(result.index.names)
 
-        result.index = result_index
+            result_index = MultiIndex(
+                result_levels, result_codes, names=result_names, verify_integrity=False
+            )
+
+            result.index = result_index
         return result
 
     def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
