@@ -1137,7 +1137,7 @@ def soft_convert_objects(
         # bound of nanosecond-resolution 64-bit integers.
         try:
             values = lib.maybe_convert_objects(values, convert_datetime=True)
-        except OutOfBoundsDatetime:
+        except (OutOfBoundsDatetime, ValueError):
             pass
 
     if timedelta and is_object_dtype(values.dtype):
