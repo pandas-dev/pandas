@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.compat import IS64
 
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
@@ -75,17 +76,6 @@ class TestCommon:
         b = type(a)(a)
         tm.assert_equal(a._data, b._data)
 
-    @pytest.mark.parametrize("itm", [101, "no_int"])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_getitem_error(self, index, itm):
-        msg = r"index 101 is out of bounds for axis 0 with size [\d]+|" + re.escape(
-            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
-            "and integer or boolean arrays are valid indices"
-        )
-        with pytest.raises(IndexError, match=msg):
-            index[itm]
-
     def test_to_flat_index(self, index):
         # 22866
         if isinstance(index, MultiIndex):
@@ -139,9 +129,8 @@ class TestCommon:
 
     def test_unique(self, index):
         # don't test a MultiIndex here (as its tested separated)
-        # don't test a CategoricalIndex because categories change (GH 18291)
-        if isinstance(index, (MultiIndex, CategoricalIndex)):
-            pytest.skip("Skip check for MultiIndex/CategoricalIndex")
+        if isinstance(index, MultiIndex):
+            pytest.skip("Skip check for MultiIndex")
 
         # GH 17896
         expected = index.drop_duplicates()
@@ -211,9 +200,6 @@ class TestCommon:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
 
-    def test_view(self, index):
-        assert index.view().name == index.name
-
     def test_searchsorted_monotonic(self, index):
         # GH17271
         # not implemented for tuple searches in MultiIndex
@@ -258,12 +244,6 @@ class TestCommon:
             msg = "index must be monotonic increasing or decreasing"
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
-
-    def test_pickle(self, index):
-        original_name, index.name = index.name, "foo"
-        unpickled = tm.round_trip_pickle(index)
-        assert index.equals(unpickled)
-        index.name = original_name
 
     def test_drop_duplicates(self, index, keep):
         if isinstance(index, MultiIndex):
@@ -371,11 +351,6 @@ class TestCommon:
         else:
             assert result.name == index.name
 
-    def test_ravel_deprecation(self, index):
-        # GH#19956 ravel returning ndarray is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            index.ravel()
-
     def test_asi8_deprecation(self, index):
         # GH#37877
         if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
@@ -424,3 +399,25 @@ def test_sort_values_with_missing(request, index_with_missing, na_position):
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)
+
+
+def test_ndarray_compat_properties(index):
+    if isinstance(index, PeriodIndex) and not IS64:
+        pytest.skip("Overflow")
+    idx = index
+    assert idx.T.equals(idx)
+    assert idx.transpose().equals(idx)
+
+    values = idx.values
+
+    assert idx.shape == values.shape
+    assert idx.ndim == values.ndim
+    assert idx.size == values.size
+
+    if not isinstance(index, (RangeIndex, MultiIndex)):
+        # These two are not backed by an ndarray
+        assert idx.nbytes == values.nbytes
+
+    # test for validity
+    idx.nbytes
+    idx.values.nbytes
