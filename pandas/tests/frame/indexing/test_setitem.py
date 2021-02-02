@@ -322,6 +322,8 @@ class TestDataFrameSetItem:
                 "d": [1, 1, 1],
             }
         )
+        expected["c"] = expected["c"].astype(np.intp)
+        expected["d"] = expected["d"].astype(np.intp)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
