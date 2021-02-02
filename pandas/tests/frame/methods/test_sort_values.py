@@ -588,8 +588,9 @@ class TestDataFrameSortValues:
 
         random_state = np.random.RandomState(seed=42)
         test_dict = {
-            int((i - n_cols / 2) % n_cols + 1):
-            random_state.randint(rand_low, rand_high, size=(n_rows))
+            int((i - n_cols / 2) % n_cols + 1): random_state.randint(
+                rand_low, rand_high, size=(n_rows)
+            )
             for i in range(n_cols)
         }
         df = DataFrame(test_dict)
