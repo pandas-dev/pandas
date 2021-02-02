@@ -121,7 +121,7 @@ def duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
-    kh_resize_{{ttype}}(table, min(n, SIZE_HINT_LIMIT))
+    kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     if keep not in ('last', 'first', False):
         raise ValueError('keep must be either "first", "last" or False')

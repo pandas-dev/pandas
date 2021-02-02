@@ -244,3 +244,13 @@ void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
 void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khuint_t val) {
 	kh_resize_str(table->table, val);
 }
+
+// utility function: given the number of elements
+// returns number of necessary buckets
+khuint_t PANDAS_INLINE kh_needed_n_buckets(khuint_t n_elements){
+    khuint_t candidate = n_elements;
+    kroundup32(candidate);
+    khuint_t upper_bound = (khuint_t)(candidate * __ac_HASH_UPPER + 0.5);
+    return (upper_bound < n_elements) ? 2*candidate : candidate;
+
+}
