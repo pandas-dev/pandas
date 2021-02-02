@@ -1184,7 +1184,7 @@ class TestStyler:
         assert styler is result
         assert styler.table_styles == style
 
-        # GH XXXXX
+        # GH 39563
         style = [{"selector": "th", "props": "foo:bar;"}]  # css string format
         styler = self.df.style.set_table_styles(style)
         result = " ".join(styler.render().split())
@@ -1922,7 +1922,7 @@ class TestStyler:
             in s
         )
 
-        # GH XXXXX
+        # GH 39563
         s = (
             Styler(df, uuid_len=0)
             .set_tooltips(DataFrame([["tooltip"]]))
