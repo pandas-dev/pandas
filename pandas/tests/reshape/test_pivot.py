@@ -969,7 +969,9 @@ class TestPivotTable:
         expected = DataFrame(
             {"dull": [12, 21, 3, 9, 45], "shiny": [33, 0, 36, 51, 120]}, index=mi
         ).rename_axis("C", axis=1)
-        expected["All"] = (expected["dull"] + expected["shiny"]).astype(np.intp)
+        expected["All"] = expected["dull"] + expected["shiny"]
+        expected["All"] = expected["All"].astype(np.intp)
+        assert expected.dtypes["All"] == np.intp
 
         result = df.pivot_table(
             values="D",
