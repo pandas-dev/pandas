@@ -1858,7 +1858,12 @@ class _Tooltips:
         -------
         styles : List
         """
-        return [{"selector": f".{self.class_name}", "props": self.class_properties}]
+        return [
+            {
+                "selector": f".{self.class_name}",
+                "props": _maybe_convert_css_to_tuples(self.class_properties),
+            }
+        ]
 
     def _pseudo_css(self, uuid: str, name: str, row: int, col: int, text: str):
         """
