@@ -447,10 +447,10 @@ cpdef array_to_datetime(
                             raise ValueError('Tz-aware datetime.datetime '
                                              'cannot be converted to '
                                              'datetime64 unless utc=True')
+                    elif isinstance(val, _Timestamp):
+                        iresult[i] = val.value
                     else:
                         iresult[i] = pydatetime_to_dt64(val, &dts)
-                        if isinstance(val, _Timestamp):
-                            iresult[i] += val.nanosecond
                         check_dts_bounds(&dts)
 
                 elif PyDate_Check(val):

@@ -3,6 +3,8 @@ aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import partial
 from typing import (
@@ -296,7 +298,7 @@ def relabel_result(
     func: Dict[str, List[Union[Callable, str]]],
     columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Hashable, "Series"]:
+) -> Dict[Hashable, Series]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -323,7 +325,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Hashable, "Series"] = {}
+    reordered_result_in_dict: Dict[Hashable, Series] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -530,56 +532,6 @@ def transform_str_or_callable(
         return obj.apply(func, args=args, **kwargs)
     except Exception:
         return func(obj, *args, **kwargs)
-
-
-def aggregate(
-    obj: AggObjType,
-    arg: AggFuncType,
-    *args,
-    **kwargs,
-):
-    """
-    Provide an implementation for the aggregators.
-
-    Parameters
-    ----------
-    obj : Pandas object to compute aggregation on.
-    arg : string, dict, function.
-    *args : args to pass on to the function.
-    **kwargs : kwargs to pass on to the function.
-
-    Returns
-    -------
-    tuple of result, how.
-
-    Notes
-    -----
-    how can be a string describe the required post-processing, or
-    None if not required.
-    """
-    _axis = kwargs.pop("_axis", None)
-    if _axis is None:
-        _axis = getattr(obj, "axis", 0)
-
-    if isinstance(arg, str):
-        return obj._try_aggregate_string_function(arg, *args, **kwargs), None
-    elif is_dict_like(arg):
-        arg = cast(AggFuncTypeDict, arg)
-        return agg_dict_like(obj, arg, _axis), True
-    elif is_list_like(arg):
-        # we require a list, but not an 'str'
-        arg = cast(List[AggFuncTypeBase], arg)
-        return agg_list_like(obj, arg, _axis=_axis), None
-    else:
-        result = None
-
-    if callable(arg):
-        f = obj._get_cython_func(arg)
-        if f and not args and not kwargs:
-            return getattr(obj, f)(), None
-
-    # caller can react
-    return result, True
 
 
 def agg_list_like(

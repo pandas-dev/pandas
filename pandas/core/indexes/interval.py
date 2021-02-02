@@ -729,7 +729,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @property
-    def _index_as_unique(self):
+    def _index_as_unique(self) -> bool:
         return not self.is_overlapping
 
     _requires_unique_msg = (
@@ -820,19 +820,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             other = self._na_value
         values = np.where(cond, self._values, other)
         result = IntervalArray(values)
-        return type(self)._simple_new(result, name=self.name)
-
-    def delete(self, loc):
-        """
-        Return a new IntervalIndex with passed location(-s) deleted
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        new_left = self.left.delete(loc)
-        new_right = self.right.delete(loc)
-        result = self._data._shallow_copy(new_left, new_right)
         return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
@@ -936,7 +923,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return taken
 
-    def _intersection_unique(self, other: "IntervalIndex") -> IntervalIndex:
+    def _intersection_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does not have any common endpoint,
         no matter left or right.
@@ -959,7 +946,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return self.take(indexer)
 
-    def _intersection_non_unique(self, other: "IntervalIndex") -> IntervalIndex:
+    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does have some common endpoints,
         on either sides.

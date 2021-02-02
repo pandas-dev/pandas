@@ -211,8 +211,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     )
     __hash__ = generic.NDFrame.__hash__
     _mgr: SingleBlockManager
-    div: Callable[["Series", Any], "Series"]
-    rdiv: Callable[["Series", Any], "Series"]
+    div: Callable[[Series, Any], Series]
+    rdiv: Callable[[Series, Any], Series]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -398,11 +398,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> Type["Series"]:
+    def _constructor(self) -> Type[Series]:
         return Series
 
     @property
-    def _constructor_expanddim(self) -> Type["DataFrame"]:
+    def _constructor_expanddim(self) -> Type[DataFrame]:
         from pandas.core.frame import DataFrame
 
         return DataFrame
@@ -1847,7 +1847,7 @@ Name: Max Speed, dtype: float64
         """
         return super().unique()
 
-    def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
+    def drop_duplicates(self, keep="first", inplace=False) -> Optional[Series]:
         """
         Return Series with duplicate values removed.
 
@@ -2309,7 +2309,7 @@ Name: Max Speed, dtype: float64
 
     def cov(
         self,
-        other: "Series",
+        other: Series,
         min_periods: Optional[int] = None,
         ddof: Optional[int] = 1,
     ) -> float:
@@ -2705,7 +2705,7 @@ Name: Max Speed, dtype: float64
 
     def _construct_result(
         self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Hashable
-    ) -> Union["Series", Tuple["Series", "Series"]]:
+    ) -> Union[Series, Tuple[Series, Series]]:
         """
         Construct an appropriately-labelled Series from the result of an op.
 
@@ -2806,7 +2806,7 @@ Keep all original rows and also all original values
     )
     def compare(
         self,
-        other: "Series",
+        other: Series,
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
@@ -4395,7 +4395,7 @@ Keep all original rows and also all original values
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Optional["Series"]:
+    ) -> Optional[Series]:
         return super().fillna(
             value=value,
             method=method,
@@ -4853,8 +4853,8 @@ Keep all original rows and also all original values
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
-        offset: Optional["TimedeltaConvertibleTypes"] = None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
     ) -> Resampler:
         return super().resample(
             rule=rule,
@@ -4935,7 +4935,7 @@ Keep all original rows and also all original values
     _info_axis_number = 0
     _info_axis_name = "index"
 
-    index: "Index" = properties.AxisProperty(
+    index: Index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
 

@@ -102,12 +102,27 @@ class TestStyler:
         assert self.styler._todo != s2._todo
 
     def test_clear(self):
-        s = self.df.style.highlight_max()._compute()
-        assert len(s.ctx) > 0
+        # updated in GH 39396
+        tt = DataFrame({"A": [None, "tt"]})
+        css = DataFrame({"A": [None, "cls-a"]})
+        s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
+        # _todo, tooltips and cell_context items added to..
         assert len(s._todo) > 0
+        assert s.tooltips
+        assert len(s.cell_context) > 0
+
+        s = s._compute()
+        # ctx and _todo items affected when a render takes place
+        assert len(s.ctx) > 0
+        assert len(s._todo) == 0  # _todo is emptied after compute.
+
+        s._todo = [1]
         s.clear()
+        # ctx, _todo, tooltips and cell_context items all revert to null state.
         assert len(s.ctx) == 0
         assert len(s._todo) == 0
+        assert not s.tooltips
+        assert len(s.cell_context) == 0
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
@@ -115,6 +130,15 @@ class TestStyler:
         s = Styler(df, uuid="AB").apply(style)
         s.render()
         # it worked?
+
+    def test_multiple_render(self):
+        # GH 39396
+        s = Styler(self.df, uuid_len=0).applymap(lambda x: "color: red;", subset=["A"])
+        s.render()  # do 2 renders to ensure css styles not duplicated
+        assert (
+            '<style  type="text/css" >\n#T__row0_col0,#T__row1_col0{\n            '
+            "color:  red;\n        }</style>" in s.render()
+        )
 
     def test_render_empty_dfs(self):
         empty_df = DataFrame()
@@ -1706,11 +1730,34 @@ class TestStyler:
     def test_set_data_classes(self, classes):
         # GH 36159
         df = DataFrame(data=[[0, 1], [2, 3]], columns=["A", "B"], index=["a", "b"])
-        s = Styler(df, uuid="_", cell_ids=False).set_td_classes(classes).render()
+        s = Styler(df, uuid_len=0, cell_ids=False).set_td_classes(classes).render()
         assert '<td  class="data row0 col0" >0</td>' in s
         assert '<td  class="data row0 col1 test-class" >1</td>' in s
         assert '<td  class="data row1 col0" >2</td>' in s
         assert '<td  class="data row1 col1" >3</td>' in s
+        # GH 39317
+        s = Styler(df, uuid_len=0, cell_ids=True).set_td_classes(classes).render()
+        assert '<td id="T__row0_col0" class="data row0 col0" >0</td>' in s
+        assert '<td id="T__row0_col1" class="data row0 col1 test-class" >1</td>' in s
+        assert '<td id="T__row1_col0" class="data row1 col0" >2</td>' in s
+        assert '<td id="T__row1_col1" class="data row1 col1" >3</td>' in s
+
+    def test_set_data_classes_reindex(self):
+        # GH 39317
+        df = DataFrame(
+            data=[[0, 1, 2], [3, 4, 5], [6, 7, 8]], columns=[0, 1, 2], index=[0, 1, 2]
+        )
+        classes = DataFrame(
+            data=[["mi", "ma"], ["mu", "mo"]],
+            columns=[0, 2],
+            index=[0, 2],
+        )
+        s = Styler(df, uuid_len=0).set_td_classes(classes).render()
+        assert '<td id="T__row0_col0" class="data row0 col0 mi" >0</td>' in s
+        assert '<td id="T__row0_col2" class="data row0 col2 ma" >2</td>' in s
+        assert '<td id="T__row1_col1" class="data row1 col1" >4</td>' in s
+        assert '<td id="T__row2_col0" class="data row2 col0 mu" >6</td>' in s
+        assert '<td id="T__row2_col2" class="data row2 col2 mo" >8</td>' in s
 
     def test_chaining_table_styles(self):
         # GH 35607
@@ -1814,6 +1861,22 @@ class TestStyler:
             + "</span></td>"
             in s
         )
+
+    def test_tooltip_reindex(self):
+        # GH 39317
+        df = DataFrame(
+            data=[[0, 1, 2], [3, 4, 5], [6, 7, 8]], columns=[0, 1, 2], index=[0, 1, 2]
+        )
+        ttips = DataFrame(
+            data=[["Mi", "Ma"], ["Mu", "Mo"]],
+            columns=[0, 2],
+            index=[0, 2],
+        )
+        s = Styler(df, uuid_len=0).set_tooltips(DataFrame(ttips)).render()
+        assert '#T__ #T__row0_col0 .pd-t::after {\n          content: "Mi";\n    }' in s
+        assert '#T__ #T__row0_col2 .pd-t::after {\n          content: "Ma";\n    }' in s
+        assert '#T__ #T__row2_col0 .pd-t::after {\n          content: "Mu";\n    }' in s
+        assert '#T__ #T__row2_col2 .pd-t::after {\n          content: "Mo";\n    }' in s
 
     def test_tooltip_ignored(self):
         # GH 21266

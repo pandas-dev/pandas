@@ -326,22 +326,24 @@ class TestPartialSetting:
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+    @pytest.mark.parametrize("key", [100, 100.0])
+    def test_setitem_with_expansion_numeric_into_datetimeindex(self, key):
+        # GH#4940 inserting non-strings
+        orig = tm.makeTimeDataFrame()
+        df = orig.copy()
+
+        df.loc[key, :] = df.iloc[0]
+        ex_index = Index(list(orig.index) + [key], dtype=object, name=orig.index.name)
+        ex_data = np.concatenate([orig.values, df.iloc[[0]].values], axis=0)
+        expected = DataFrame(ex_data, index=ex_index, columns=orig.columns)
+        tm.assert_frame_equal(df, expected)
+
     def test_partial_set_invalid(self):
 
         # GH 4940
         # allow only setting of 'valid' values
 
         orig = tm.makeTimeDataFrame()
-        df = orig.copy()
-
-        # don't allow not string inserts
-        msg = r"value should be a 'Timestamp' or 'NaT'\. Got '.*' instead\."
-
-        with pytest.raises(TypeError, match=msg):
-            df.loc[100.0, :] = df.iloc[0]
-
-        with pytest.raises(TypeError, match=msg):
-            df.loc[100, :] = df.iloc[0]
 
         # allow object conversion here
         df = orig.copy()

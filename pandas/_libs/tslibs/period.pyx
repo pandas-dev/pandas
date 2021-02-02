@@ -1,11 +1,12 @@
 import warnings
 
+cimport numpy as cnp
 from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompareBool
-from numpy cimport import_array, int64_t, ndarray
+from numpy cimport int64_t, ndarray
 
 import numpy as np
 
-import_array()
+cnp.import_array()
 
 from libc.stdlib cimport free, malloc
 from libc.string cimport memset, strlen
@@ -75,6 +76,7 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
 )
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
+
 from pandas._libs.tslibs.parsing import parse_time_string
 
 from pandas._libs.tslibs.nattype cimport (
@@ -993,29 +995,6 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
         return ensure_datetime64ns(dta)
 
 
-cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
-    """
-    Convert period ordinal from one frequency to another, and if upsampling,
-    choose to use start ('S') or end ('E') of period.
-    """
-    cdef:
-        int64_t retval
-        freq_conv_func func
-        asfreq_info af_info
-
-    if ordinal == NPY_NAT:
-        return NPY_NAT
-
-    func = get_asfreq_func(freq1, freq2)
-    get_asfreq_info(freq1, freq2, end, &af_info)
-    retval = func(ordinal, &af_info)
-
-    if retval == INT32_MIN:
-        raise ValueError('Frequency conversion failed')
-
-    return retval
-
-
 cdef void get_asfreq_info(int from_freq, int to_freq,
                           bint is_end, asfreq_info *af_info) nogil:
     """
@@ -1068,6 +1047,18 @@ cdef inline int calc_week_end(int freq, int group) nogil:
     return freq - group
 
 
+cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
+    """
+    Convert period ordinal from one frequency to another, and if upsampling,
+    choose to use start ('S') or end ('E') of period.
+    """
+    cdef:
+        int64_t retval
+
+    _period_asfreq(&ordinal, &retval, 1, freq1, freq2, end)
+    return retval
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
@@ -1076,35 +1067,50 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     if upsampling, choose to use start ('S') or end ('E') of period.
     """
     cdef:
-        int64_t[:] result
-        Py_ssize_t i, n
+        Py_ssize_t n = len(arr)
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+
+    _period_asfreq(
+        <int64_t*>cnp.PyArray_DATA(arr),
+        <int64_t*>cnp.PyArray_DATA(result),
+        n,
+        freq1,
+        freq2,
+        end,
+    )
+    return result
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _period_asfreq(
+    int64_t* ordinals,
+    int64_t* out,
+    Py_ssize_t length,
+    int freq1,
+    int freq2,
+    bint end,
+):
+    """See period_asfreq.__doc__"""
+    cdef:
+        Py_ssize_t i
         freq_conv_func func
         asfreq_info af_info
         int64_t val
 
-    n = len(arr)
-    result = np.empty(n, dtype=np.int64)
+    if length == 1 and ordinals[0] == NPY_NAT:
+        # fastpath avoid calling get_asfreq_func
+        out[0] = NPY_NAT
+        return
 
     func = get_asfreq_func(freq1, freq2)
     get_asfreq_info(freq1, freq2, end, &af_info)
 
-    mask = arr == NPY_NAT
-    if mask.any():      # NaT process
-        for i in range(n):
-            val = arr[i]
-            if val != NPY_NAT:
-                val = func(val, &af_info)
-                if val == INT32_MIN:
-                    raise ValueError("Unable to convert to desired frequency.")
-            result[i] = val
-    else:
-        for i in range(n):
-            val = func(arr[i], &af_info)
-            if val == INT32_MIN:
-                raise ValueError("Unable to convert to desired frequency.")
-            result[i] = val
-
-    return result.base  # .base to access underlying np.ndarray
+    for i in range(length):
+        val = ordinals[i]
+        if val != NPY_NAT:
+            val = func(val, &af_info)
+        out[i] = val
 
 
 cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
@@ -1398,6 +1404,28 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def from_ordinals(const int64_t[:] values, freq):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        int64_t[:] result = np.empty(len(values), dtype="i8")
+        int64_t val
+
+    freq = to_offset(freq)
+    if not isinstance(freq, BaseOffset):
+        raise ValueError("freq not specified and cannot be inferred")
+
+    for i in range(n):
+        val = values[i]
+        if val == NPY_NAT:
+            result[i] = NPY_NAT
+        else:
+            result[i] = Period(val, freq=freq).ordinal
+
+    return result.base
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def extract_ordinals(ndarray[object] values, freq):
     # TODO: Change type to const object[:] when Cython supports that.
 
@@ -1413,6 +1441,8 @@ def extract_ordinals(ndarray[object] values, freq):
 
         if is_null_datetimelike(p):
             ordinals[i] = NPY_NAT
+        elif util.is_integer_object(p):
+            raise TypeError(p)
         else:
             try:
                 ordinals[i] = p.ordinal
@@ -1483,6 +1513,60 @@ cdef class PeriodMixin:
             return FR_SEC
         return base
 
+    @property
+    def start_time(self) -> Timestamp:
+        """
+        Get the Timestamp for the start of the period.
+
+        Returns
+        -------
+        Timestamp
+
+        See Also
+        --------
+        Period.end_time : Return the end Timestamp.
+        Period.dayofyear : Return the day of year.
+        Period.daysinmonth : Return the days in that month.
+        Period.dayofweek : Return the day of the week.
+
+        Examples
+        --------
+        >>> period = pd.Period('2012-1-1', freq='D')
+        >>> period
+        Period('2012-01-01', 'D')
+
+        >>> period.start_time
+        Timestamp('2012-01-01 00:00:00')
+
+        >>> period.end_time
+        Timestamp('2012-01-01 23:59:59.999999999')
+        """
+        return self.to_timestamp(how="start")
+
+    @property
+    def end_time(self) -> Timestamp:
+        return self.to_timestamp(how="end")
+
+    def _require_matching_freq(self, other, base=False):
+        # See also arrays.period.raise_on_incompatible
+        if is_offset_object(other):
+            other_freq = other
+        else:
+            other_freq = other.freq
+
+        if base:
+            condition = self.freq.base != other_freq.base
+        else:
+            condition = self.freq != other_freq
+
+        if condition:
+            msg = DIFFERENT_FREQ.format(
+                cls=type(self).__name__,
+                own_freq=self.freqstr,
+                other_freq=other_freq.freqstr,
+            )
+            raise IncompatibleFrequency(msg)
+
 
 cdef class _Period(PeriodMixin):
 
@@ -1541,10 +1625,11 @@ cdef class _Period(PeriodMixin):
     def __richcmp__(self, other, op):
         if is_period_object(other):
             if other.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                            own_freq=self.freqstr,
-                                            other_freq=other.freqstr)
-                raise IncompatibleFrequency(msg)
+                if op == Py_EQ:
+                    return False
+                elif op == Py_NE:
+                    return True
+                self._require_matching_freq(other)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
@@ -1553,15 +1638,15 @@ cdef class _Period(PeriodMixin):
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
-    def _add_delta(self, other) -> "Period":
+    def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
-            int64_t nanos, offset_nanos
+            int64_t nanos, base_nanos
 
         if is_tick_object(self.freq):
             nanos = delta_to_nanoseconds(other)
-            offset_nanos = self.freq.base.nanos
-            if nanos % offset_nanos == 0:
-                ordinal = self.ordinal + (nanos // offset_nanos)
+            base_nanos = self.freq.base.nanos
+            if nanos % base_nanos == 0:
+                ordinal = self.ordinal + (nanos // base_nanos)
                 return Period(ordinal=ordinal, freq=self.freq)
         raise IncompatibleFrequency("Input cannot be converted to "
                                     f"Period(freq={self.freqstr})")
@@ -1571,14 +1656,10 @@ cdef class _Period(PeriodMixin):
         cdef:
             int64_t ordinal
 
-        if other.base == self.freq.base:
-            ordinal = self.ordinal + other.n
-            return Period(ordinal=ordinal, freq=self.freq)
+        self._require_matching_freq(other, base=True)
 
-        msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                    own_freq=self.freqstr,
-                                    other_freq=other.freqstr)
-        raise IncompatibleFrequency(msg)
+        ordinal = self.ordinal + other.n
+        return Period(ordinal=ordinal, freq=self.freq)
 
     def __add__(self, other):
         if not is_period_object(self):
@@ -1588,7 +1669,7 @@ cdef class _Period(PeriodMixin):
             return other.__add__(self)
 
         if is_any_td_scalar(other):
-            return self._add_delta(other)
+            return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
             return self._add_offset(other)
         elif other is NaT:
@@ -1625,11 +1706,7 @@ cdef class _Period(PeriodMixin):
             ordinal = self.ordinal - other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
         elif is_period_object(other):
-            if other.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                            own_freq=self.freqstr,
-                                            other_freq=other.freqstr)
-                raise IncompatibleFrequency(msg)
+            self._require_matching_freq(other)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self.ordinal - other.ordinal) * self.freq.base
         elif other is NaT:
@@ -1666,40 +1743,6 @@ cdef class _Period(PeriodMixin):
         ordinal = period_asfreq(ordinal, base1, base2, end)
 
         return Period(ordinal=ordinal, freq=freq)
-
-    @property
-    def start_time(self) -> Timestamp:
-        """
-        Get the Timestamp for the start of the period.
-
-        Returns
-        -------
-        Timestamp
-
-        See Also
-        --------
-        Period.end_time : Return the end Timestamp.
-        Period.dayofyear : Return the day of year.
-        Period.daysinmonth : Return the days in that month.
-        Period.dayofweek : Return the day of the week.
-
-        Examples
-        --------
-        >>> period = pd.Period('2012-1-1', freq='D')
-        >>> period
-        Period('2012-01-01', 'D')
-
-        >>> period.start_time
-        Timestamp('2012-01-01 00:00:00')
-
-        >>> period.end_time
-        Timestamp('2012-01-01 23:59:59.999999999')
-        """
-        return self.to_timestamp(how='S')
-
-    @property
-    def end_time(self) -> Timestamp:
-        return self.to_timestamp(how="end")
 
     def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
         """

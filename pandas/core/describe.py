@@ -92,7 +92,7 @@ class NDFrameDescriberAbstract(ABC):
         Whether to treat datetime dtypes as numeric.
     """
 
-    def __init__(self, obj: "FrameOrSeriesUnion", datetime_is_numeric: bool):
+    def __init__(self, obj: FrameOrSeriesUnion, datetime_is_numeric: bool):
         self.obj = obj
         self.datetime_is_numeric = datetime_is_numeric
 
@@ -110,7 +110,7 @@ class NDFrameDescriberAbstract(ABC):
 class SeriesDescriber(NDFrameDescriberAbstract):
     """Class responsible for creating series description."""
 
-    obj: "Series"
+    obj: Series
 
     def describe(self, percentiles: Sequence[float]) -> Series:
         describe_func = select_describe_func(
@@ -137,7 +137,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
     def __init__(
         self,
-        obj: "DataFrame",
+        obj: DataFrame,
         *,
         include: Optional[Union[str, Sequence[str]]],
         exclude: Optional[Union[str, Sequence[str]]],
@@ -154,7 +154,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
     def describe(self, percentiles: Sequence[float]) -> DataFrame:
         data = self._select_data()
 
-        ldesc: List["Series"] = []
+        ldesc: List[Series] = []
         for _, series in data.items():
             describe_func = select_describe_func(series, self.datetime_is_numeric)
             ldesc.append(describe_func(series, percentiles))
@@ -191,7 +191,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         return data
 
 
-def reorder_columns(ldesc: Sequence["Series"]) -> List[Hashable]:
+def reorder_columns(ldesc: Sequence[Series]) -> List[Hashable]:
     """Set a convenient order for rows for display."""
     names: List[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
@@ -202,7 +202,7 @@ def reorder_columns(ldesc: Sequence["Series"]) -> List[Hashable]:
     return names
 
 
-def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> Series:
+def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """Describe series containing numerical data.
 
     Parameters
@@ -226,7 +226,7 @@ def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> Serie
 
 
 def describe_categorical_1d(
-    data: "Series",
+    data: Series,
     percentiles_ignored: Sequence[float],
 ) -> Series:
     """Describe series containing categorical data.
@@ -258,7 +258,7 @@ def describe_categorical_1d(
 
 
 def describe_timestamp_as_categorical_1d(
-    data: "Series",
+    data: Series,
     percentiles_ignored: Sequence[float],
 ) -> Series:
     """Describe series containing timestamp data treated as categorical.
@@ -305,7 +305,7 @@ def describe_timestamp_as_categorical_1d(
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> Series:
+def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
     """Describe series containing datetime64 dtype.
 
     Parameters
@@ -330,7 +330,7 @@ def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> Serie
 
 
 def select_describe_func(
-    data: "Series",
+    data: Series,
     datetime_is_numeric: bool,
 ) -> Callable:
     """Select proper function for describing series based on data type.

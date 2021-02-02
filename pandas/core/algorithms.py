@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
@@ -559,7 +560,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -714,7 +715,9 @@ def factorize(
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
-            na_value = na_value_for_dtype(original.dtype)
+            # Note: factorize_array will cast NaT bc it has a __int__
+            #  method, but will not cast the more-correct dtype.type("nat")
+            na_value = iNaT
         else:
             na_value = None
 
@@ -865,11 +868,6 @@ def value_counts_arraylike(values, dropna: bool):
         # TODO: handle uint8
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
-
-        mask = isna(values)
-        if not dropna and mask.any() and not isna(keys).any():
-            keys = np.insert(keys, 0, np.NaN)
-            counts = np.insert(counts, 0, mask.sum())
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
@@ -1662,8 +1660,25 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     return result
 
 
+# TODO: can we de-duplicate with something in dtypes.missing?
+def _get_default_fill_value(dtype, fill_value):
+    if fill_value is lib.no_default:
+        if is_extension_array_dtype(dtype):
+            fill_value = dtype.na_value
+        elif dtype.kind in ["m", "M"]:
+            fill_value = dtype.type("NaT")
+        else:
+            fill_value = np.nan
+    return fill_value
+
+
 def take_nd(
-    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
+    arr,
+    indexer,
+    axis: int = 0,
+    out=None,
+    fill_value=lib.no_default,
+    allow_fill: bool = True,
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1697,6 +1712,8 @@ def take_nd(
         May be the same type as the input, or cast to an ndarray.
     """
     mask_info = None
+
+    fill_value = _get_default_fill_value(arr.dtype, fill_value)
 
     if isinstance(arr, ABCExtensionArray):
         # Check for EA to catch DatetimeArray, TimedeltaArray
@@ -1934,7 +1951,6 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     -------
     shifted
     """
-    from pandas.core.arrays import PandasDtype
 
     n = int(n)
     na = np.nan
@@ -1947,7 +1963,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     if isinstance(dtype, PandasDtype):
         # PandasArray cannot necessarily hold shifted versions of itself.
-        arr = np.asarray(arr)
+        arr = arr.to_numpy()
         dtype = arr.dtype
 
     if is_extension_array_dtype(dtype):

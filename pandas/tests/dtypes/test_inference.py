@@ -300,7 +300,7 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+test_tuple = collections.namedtuple("test_tuple", ["a", "b", "c"])
 
 
 @pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])

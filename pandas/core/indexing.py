@@ -877,6 +877,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
+            if isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in tup
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                raise ValueError("Too many indices")
             if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
@@ -1237,6 +1242,11 @@ class _LocIndexer(_LocationIndexer):
             return {"key": key}
 
         if is_nested_tuple(key, labels):
+            if isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in key
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                raise ValueError("Too many indices")
             return labels.get_locs(key)
 
         elif is_list_like_indexer(key):
@@ -1878,10 +1888,11 @@ class _iLocIndexer(_LocationIndexer):
                     for i, idx in enumerate(indexer)
                     if i != info_axis
                 )
-                and item_labels.is_unique
             ):
-                self.obj[item_labels[indexer[info_axis]]] = value
-                return
+                selected_item_labels = item_labels[indexer[info_axis]]
+                if len(item_labels.get_indexer_for([selected_item_labels])) == 1:
+                    self.obj[selected_item_labels] = value
+                    return
 
             indexer = maybe_convert_ix(*indexer)
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
@@ -1977,7 +1988,7 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = column_indexer
         return ilocs
 
-    def _align_series(self, indexer, ser: "Series", multiindex_indexer: bool = False):
+    def _align_series(self, indexer, ser: Series, multiindex_indexer: bool = False):
         """
         Parameters
         ----------
@@ -2058,7 +2069,17 @@ class _iLocIndexer(_LocationIndexer):
                         return ser._values.copy()
                     return ser.reindex(ax)._values
 
-        elif is_scalar(indexer):
+        elif is_integer(indexer) and self.ndim == 1:
+            if is_object_dtype(self.obj):
+                return ser
+            ax = self.obj._get_axis(0)
+
+            if ser.index.equals(ax):
+                return ser._values.copy()
+
+            return ser.reindex(ax)._values[indexer]
+
+        elif is_integer(indexer):
             ax = self.obj._get_axis(1)
 
             if ser.index.equals(ax):

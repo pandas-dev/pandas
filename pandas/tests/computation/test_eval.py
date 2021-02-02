@@ -8,8 +8,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-from pandas.compat.numpy import np_version_under1p17
+from pandas.compat import is_platform_windows, np_version_under1p17
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 

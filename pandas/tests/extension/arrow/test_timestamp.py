@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from typing import Type
 
@@ -22,7 +24,7 @@ class ArrowTimestampUSDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowTimestampUSArray"]:
+    def construct_array_type(cls) -> Type[ArrowTimestampUSArray]:
         """
         Return the array type associated with this dtype.
 

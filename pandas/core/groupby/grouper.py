@@ -2,6 +2,8 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
+from __future__ import annotations
+
 from typing import Dict, Hashable, List, Optional, Set, Tuple
 import warnings
 
@@ -616,7 +618,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> Tuple["ops.BaseGrouper", Set[Hashable], FrameOrSeries]:
+) -> Tuple[ops.BaseGrouper, Set[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
