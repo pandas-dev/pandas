@@ -3,7 +3,7 @@ Methods used by Block.replace and related methods.
 """
 import operator
 import re
-from typing import Optional, Pattern, Union
+from typing import Any, Optional, Pattern, Union
 
 import numpy as np
 
@@ -13,13 +13,28 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_numeric_v_string_like,
     is_re,
+    is_re_compilable,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna
 
 
+def should_use_regex(regex: bool, to_replace: Any) -> bool:
+    """
+    Decide whether to treat `to_replace` as a regular expression.
+    """
+    if is_re(to_replace):
+        regex = True
+
+    regex = regex and is_re_compilable(to_replace)
+
+    # Don't use regex if the pattern is empty.
+    regex = regex and re.compile(to_replace).pattern != ""
+    return regex
+
+
 def compare_or_regex_search(
-    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: ArrayLike
+    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: np.ndarray
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -32,12 +47,14 @@ def compare_or_regex_search(
     a : array_like
     b : scalar or regex pattern
     regex : bool
-    mask : array_like
+    mask : np.ndarray[bool]
 
     Returns
     -------
     mask : array_like of bool
     """
+    if isna(b):
+        return ~mask
 
     def _check_comparison_types(
         result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern]
