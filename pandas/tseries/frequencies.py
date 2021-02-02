@@ -145,6 +145,13 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         If the index is not datetime-like.
     ValueError
         If there are fewer than three values.
+        
+    Examples
+    --------
+    >>> idx = pd.date_range(start = '2020/12/01', end = '2020/12/30', periods = 30)
+    >>> pd.infer_freq(idx)
+    'D'
+            
     """
     import pandas as pd
 
