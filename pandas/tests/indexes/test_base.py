@@ -878,14 +878,11 @@ class TestIndex(Base):
             assert result.name == expected
 
     def test_difference_empty_arg(self, index, sort):
-        if isinstance(index, MultiIndex):
-            pytest.skip("Not applicable")
         first = index[5:20]
         first.name = "name"
         result = first.difference([], sort)
 
-        assert tm.equalContents(result, first)
-        assert result.name == first.name
+        tm.assert_index_equal(result, first)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_identity(self, index, sort):
