@@ -1904,12 +1904,15 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ):
         raise ValueError("Cannot assign nan to integer series")
 
-    if dtype.kind in ["i", "u", "f", "c"]:
+    elif dtype.kind in ["i", "u", "f", "c"]:
         if is_bool(value) or isinstance(value, np.timedelta64):
             # numpy will cast td64 to integer if we're not careful
             raise ValueError(
                 f"Cannot assign {type(value).__name__} to float/integer series"
             )
+    elif dtype.kind == "b":
+        if is_scalar(value) and not is_bool(value):
+            raise ValueError(f"Cannot assign {type(value).__name__} to bool series")
 
 
 def can_hold_element(dtype: np.dtype, element: Any) -> bool:
