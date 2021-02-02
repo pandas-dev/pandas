@@ -111,12 +111,6 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         expected = pd.Series(data + data)
         self.assert_series_equal(result, expected)
 
-    def test_error(self, data, all_arithmetic_operators):
-        # invalid ops
-        op_name = all_arithmetic_operators
-        with pytest.raises(AttributeError):
-            getattr(data, op_name)
-
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
         # EAs should return NotImplemented for ops with Series/DataFrame

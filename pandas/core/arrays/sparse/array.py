@@ -382,6 +382,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         stacklevel=2,
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
+                    if fill_value is NaT:
+                        fill_value = np.datetime64("NaT", "ns")
                 data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value, dtype=dtype
