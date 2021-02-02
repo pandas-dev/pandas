@@ -1286,16 +1286,18 @@ class MultiIndex(Index):
 
         # go through the levels and format them
         for level, level_codes in zip(self.levels, self.codes):
-            level = level._format_native_types(na_rep=na_rep, **kwargs)
+            level_strs = level._format_native_types(na_rep=na_rep, **kwargs)
             # add nan values, if there are any
             mask = level_codes == -1
             if mask.any():
-                nan_index = len(level)
-                level = np.append(level, na_rep)
+                nan_index = len(level_strs)
+                # numpy 1.21 deprecated implicit string casting
+                level_strs = level_strs.astype(str)
+                level_strs = np.append(level_strs, na_rep)
                 assert not level_codes.flags.writeable  # i.e. copy is needed
                 level_codes = level_codes.copy()  # make writeable
                 level_codes[mask] = nan_index
-            new_levels.append(level)
+            new_levels.append(level_strs)
             new_codes.append(level_codes)
 
         if len(new_levels) == 1:
