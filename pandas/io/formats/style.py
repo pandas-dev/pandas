@@ -279,8 +279,8 @@ class Styler:
         ----------
         name : str, default None
             Name of the tooltip class used in CSS, should conform to HTML standards.
-        properties : list-like, default None
-            List of (attr, value) tuples; see example.
+        properties : list-like or str, default None
+            List of (attr, value) tuples or a valid CSS string; see example.
 
         Returns
         -------
@@ -311,6 +311,8 @@ class Styler:
         ...     ('visibility', 'hidden'),
         ...     ('position', 'absolute'),
         ...     ('z-index', 1)])
+        >>> df.style.set_tooltips_class(name='tt-add',
+        ...     properties='visibility:hidden; position:absolute; z-index:1;')
         """
         self._init_tooltips()
         assert self.tooltips is not None  # mypy requirement
