@@ -24,11 +24,7 @@ from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    infer_dtype_from_scalar,
-    maybe_promote,
-)
+from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_dtype_equal,
@@ -1332,7 +1328,7 @@ class BlockManager(DataManager):
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
-                    _, fill_value = maybe_promote(blk.dtype)
+                    fill_value = blk.fill_value
 
                 if not allow_fill and only_slice:
                     # GH#33597 slice instead of take, so we get
@@ -1702,7 +1698,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(arrays, names: Index, axes) -> List[Block]:
+def _form_blocks(arrays, names: Index, axes: List[Index]) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
     items_dict: DefaultDict[str, List] = defaultdict(list)
@@ -1720,11 +1716,10 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
             extra_locs.append(i)
             continue
 
-        k = names[name_idx]
         v = arrays[name_idx]
 
         block_type = get_block_type(v)
-        items_dict[block_type.__name__].append((i, k, v))
+        items_dict[block_type.__name__].append((i, v))
 
     blocks: List[Block] = []
     if len(items_dict["FloatBlock"]):
@@ -1746,7 +1741,7 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
             make_block(array, klass=DatetimeTZBlock, placement=i, ndim=2)
-            for i, _, array in items_dict["DatetimeTZBlock"]
+            for i, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
 
@@ -1757,14 +1752,14 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
             make_block(array, klass=CategoricalBlock, placement=i, ndim=2)
-            for i, _, array in items_dict["CategoricalBlock"]
+            for i, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [
             make_block(array, klass=ExtensionBlock, placement=i, ndim=2)
-            for i, _, array in items_dict["ExtensionBlock"]
+            for i, array in items_dict["ExtensionBlock"]
         ]
 
         blocks.extend(external_blocks)
@@ -1772,7 +1767,7 @@ def _form_blocks(arrays, names: Index, axes) -> List[Block]:
     if len(items_dict["ObjectValuesExtensionBlock"]):
         external_blocks = [
             make_block(array, klass=ObjectValuesExtensionBlock, placement=i, ndim=2)
-            for i, _, array in items_dict["ObjectValuesExtensionBlock"]
+            for i, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
         blocks.extend(external_blocks)
@@ -1808,7 +1803,7 @@ def _simple_blockify(tuples, dtype) -> List[Block]:
 def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     """ return an array of blocks that potentially have different dtypes """
     # group by dtype
-    grouper = itertools.groupby(tuples, lambda x: x[2].dtype)
+    grouper = itertools.groupby(tuples, lambda x: x[1].dtype)
 
     new_blocks = []
     for dtype, tup_block in grouper:
@@ -1821,7 +1816,7 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     return new_blocks
 
 
-def _stack_arrays(tuples, dtype):
+def _stack_arrays(tuples, dtype: np.dtype):
 
     # fml
     def _asarray_compat(x):
@@ -1830,16 +1825,10 @@ def _stack_arrays(tuples, dtype):
         else:
             return np.asarray(x)
 
-    def _shape_compat(x) -> Shape:
-        if isinstance(x, ABCSeries):
-            return (len(x),)
-        else:
-            return x.shape
-
-    placement, names, arrays = zip(*tuples)
+    placement, arrays = zip(*tuples)
 
     first = arrays[0]
-    shape = (len(arrays),) + _shape_compat(first)
+    shape = (len(arrays),) + first.shape
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
