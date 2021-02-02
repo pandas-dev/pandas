@@ -37,8 +37,8 @@ else:
 def test_read_csv_with_custom_date_parser(all_parsers):
     # GH36111
     def __custom_date_parser(time):
-        time = time.astype(np.float)
-        time = time.astype(np.int)  # convert float seconds to int type
+        time = time.astype(np.float_)
+        time = time.astype(np.int_)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
     testdata = StringIO(
