@@ -3216,6 +3216,9 @@ class Index(IndexOpsMixin, PandasObject):
             except KeyError as err:
                 raise KeyError(key) from err
 
+        if is_scalar(key) and isna(key) and not self.hasnans:
+            raise KeyError(key)
+
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 

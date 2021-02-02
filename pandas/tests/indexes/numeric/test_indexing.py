@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    Timestamp,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -125,12 +133,13 @@ class TestGetLoc:
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
-    @pytest.mark.parametrize("method", ["nearest", "pad"])
-    def test_get_loc_float_index_nan_with_method(self, method):
+    @pytest.mark.parametrize("vals", [[1], [1.0], [Timestamp("2019-12-31")], ["test"]])
+    @pytest.mark.parametrize("method", ["nearest", "pad", "backfill"])
+    def test_get_loc_float_index_nan_with_method(self, vals, method):
         # GH#39382
-        idx = Index([1.0, 2.0, 3.0])
-        result = idx.get_loc(np.nan, method=method)
-        assert result == 2
+        idx = Index(vals)
+        with pytest.raises(KeyError, match="nan"):
+            idx.get_loc(np.nan, method=method)
 
 
 class TestGetIndexer:
