@@ -3870,6 +3870,14 @@ class DataFrame(NDFrame, OpsMixin):
            col1  col1  newcol  col2
         0   100     1      99     3
         1   100     2      99     4
+
+        Notice that pandas uses index alignment in case of `value` from type `Series`:
+
+        >>> df.insert(0, "col0", pd.Series([5, 6], index=[1, 2]))
+        >>> df
+           col0  col1  col1  newcol  col2
+        0   NaN   100     1      99     3
+        1   5.0   100     2      99     4
         """
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(

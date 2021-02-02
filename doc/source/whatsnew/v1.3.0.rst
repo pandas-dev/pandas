@@ -411,7 +411,7 @@ Reshaping
 - Bug in :meth:`DataFrame.join` not assigning values correctly when having :class:`MultiIndex` where at least one dimension is from dtype ``Categorical`` with non-alphabetically sorted categories (:issue:`38502`)
 - :meth:`Series.value_counts` and :meth:`Series.mode` return consistent keys in original order (:issue:`12679`, :issue:`11227` and :issue:`39007`)
 - Bug in :meth:`DataFrame.apply` would give incorrect results when used with a string argument and ``axis=1`` when the axis argument was not supported and now raises a ``ValueError`` instead (:issue:`39211`)
--
+- Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
 
 Sparse
 ^^^^^^
