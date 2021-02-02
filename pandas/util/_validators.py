@@ -215,9 +215,9 @@ def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
         Value to be validated.
     arg_name : str
         Name of the argument. To be reflected in the error message.
-    none_allowed : bool, optional
+    none_allowed : bool, default True
         Whether to consider None to be a valid boolean.
-    int_allowed : bool, optional
+    int_allowed : bool, default False
         Whether to consider integer value to be a valid boolean.
 
     Returns
