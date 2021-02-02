@@ -592,7 +592,7 @@ class TestDataFrameSortValues:
             random_state.randint(rand_low, rand_high, size=(n_rows))
             for i in range(n_cols)
         }
-        df = pd.DataFrame(test_dict)
+        df = DataFrame(test_dict)
         df = df.sort_values(df.index[0], axis=1, ignore_index=True)
 
         assert df.shape == (n_rows, n_cols)
