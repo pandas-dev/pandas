@@ -34,7 +34,7 @@ def should_use_regex(regex: bool, to_replace: Any) -> bool:
 
 
 def compare_or_regex_search(
-    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: ArrayLike
+    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: np.ndarray
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -47,7 +47,7 @@ def compare_or_regex_search(
     a : array_like
     b : scalar or regex pattern
     regex : bool
-    mask : array_like
+    mask : np.ndarray[bool]
 
     Returns
     -------
