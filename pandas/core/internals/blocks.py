@@ -17,7 +17,7 @@ from pandas._libs import (
 )
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Scalar, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -44,8 +44,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_object_dtype,
-    is_re,
-    is_re_compilable,
     is_sparse,
     pandas_dtype,
 )
@@ -59,7 +57,11 @@ from pandas.core.array_algos.putmask import (
     putmask_smart,
     putmask_without_repeat,
 )
-from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
+from pandas.core.array_algos.replace import (
+    compare_or_regex_search,
+    replace_regex,
+    should_use_regex,
+)
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -817,6 +819,12 @@ class Block(PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
+        # TODO: dont special-case Categorical
+        if self.is_categorical and len(algos.unique(dest_list)) == 1:
+            # We likely got here by tiling value inside NDFrame.replace,
+            #  so un-tile here
+            return self.replace(src_list, dest_list[0], inplace, regex)
+
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
@@ -827,21 +835,14 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        def comp(s: Scalar, mask: np.ndarray, regex: bool = False) -> np.ndarray:
-            """
-            Generate a bool array by perform an equality check, or perform
-            an element-wise regular expression matching
-            """
-            if isna(s):
-                return ~mask
-
-            return compare_or_regex_search(self.values, s, regex, mask)
-
         if self.is_object:
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(self.values)
-            masks = [comp(s[0], mask, regex) for s in pairs]
+            masks = [
+                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
+                for s in pairs
+            ]
         else:
             # GH#38086 faster if we know we dont need to check for regex
             masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
@@ -1464,7 +1465,7 @@ class Block(PandasObject):
                 putmask_inplace(nb.values, mask, value)
                 return [nb]
             else:
-                regex = _should_use_regex(regex, to_replace)
+                regex = should_use_regex(regex, to_replace)
                 if regex:
                     return self._replace_regex(
                         to_replace,
@@ -2353,7 +2354,7 @@ class ObjectBlock(Block):
         #  here with listlike to_replace or value, as those cases
         #  go through _replace_list
 
-        regex = _should_use_regex(regex, to_replace)
+        regex = should_use_regex(regex, to_replace)
 
         if regex:
             return self._replace_regex(to_replace, value, inplace=inplace)
@@ -2361,35 +2362,8 @@ class ObjectBlock(Block):
             return super().replace(to_replace, value, inplace=inplace, regex=False)
 
 
-def _should_use_regex(regex: bool, to_replace: Any) -> bool:
-    """
-    Decide whether to treat `to_replace` as a regular expression.
-    """
-    if is_re(to_replace):
-        regex = True
-
-    regex = regex and is_re_compilable(to_replace)
-
-    # Don't use regex if the pattern is empty.
-    regex = regex and re.compile(to_replace).pattern != ""
-    return regex
-
-
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
-
-    def _replace_list(
-        self,
-        src_list: List[Any],
-        dest_list: List[Any],
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> List[Block]:
-        if len(algos.unique(dest_list)) == 1:
-            # We likely got here by tiling value inside NDFrame.replace,
-            #  so un-tile here
-            return self.replace(src_list, dest_list[0], inplace, regex)
-        return super()._replace_list(src_list, dest_list, inplace, regex)
 
     def replace(
         self,
