@@ -14,8 +14,8 @@ from pandas.core.arrays.sparse import SparseDtype
         ("float", np.nan),
         ("bool", False),
         ("object", np.nan),
-        ("datetime64[ns]", pd.NaT),
-        ("timedelta64[ns]", pd.NaT),
+        ("datetime64[ns]", np.datetime64("NaT", "ns")),
+        ("timedelta64[ns]", np.timedelta64("NaT", "ns")),
     ],
 )
 def test_inferred_dtype(dtype, fill_value):
