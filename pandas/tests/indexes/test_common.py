@@ -52,11 +52,9 @@ class TestCommon:
             ):
                 index.droplevel(level)
 
-    def test_constructor_non_hashable_name(self, index):
+    def test_constructor_non_hashable_name(self, index_flat):
         # GH 20527
-
-        if isinstance(index, MultiIndex):
-            pytest.skip("multiindex handled in test_multi.py")
+        index = index_flat
 
         message = "Index.name must be a hashable type"
         renamed = [["1"]]
@@ -69,27 +67,23 @@ class TestCommon:
         with pytest.raises(TypeError, match=message):
             index.set_names(names=renamed)
 
-    def test_constructor_unwraps_index(self, index):
-        if isinstance(index, pd.MultiIndex):
-            raise pytest.skip("MultiIndex has no ._data")
-        a = index
+    def test_constructor_unwraps_index(self, index_flat):
+        a = index_flat
         b = type(a)(a)
         tm.assert_equal(a._data, b._data)
 
-    def test_to_flat_index(self, index):
+    def test_to_flat_index(self, index_flat):
         # 22866
-        if isinstance(index, MultiIndex):
-            pytest.skip("Separate expectation for MultiIndex")
+        index = index_flat
 
         result = index.to_flat_index()
         tm.assert_index_equal(result, index)
 
-    def test_set_name_methods(self, index):
+    def test_set_name_methods(self, index_flat):
+        # MultiIndex tested separately
+        index = index_flat
         new_name = "This is the new name for this index"
 
-        # don't tests a MultiIndex here (as its tested separated)
-        if isinstance(index, MultiIndex):
-            pytest.skip("Skip check for MultiIndex")
         original_name = index.name
         new_ind = index.set_names([new_name])
         assert new_ind.name == new_name
@@ -113,11 +107,10 @@ class TestCommon:
         assert index.name == name
         assert index.names == [name]
 
-    def test_copy_and_deepcopy(self, index):
+    def test_copy_and_deepcopy(self, index_flat):
         from copy import copy, deepcopy
 
-        if isinstance(index, MultiIndex):
-            pytest.skip("Skip check for MultiIndex")
+        index = index_flat
 
         for func in (copy, deepcopy):
             idx_copy = func(index)
@@ -127,10 +120,9 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_unique(self, index):
+    def test_unique(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
-        if isinstance(index, MultiIndex):
-            pytest.skip("Skip check for MultiIndex")
+        index = index_flat
 
         # GH 17896
         expected = index.drop_duplicates()
@@ -149,9 +141,10 @@ class TestCommon:
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
 
-    def test_get_unique_index(self, index):
+    def test_get_unique_index(self, index_flat):
         # MultiIndex tested separately
-        if not len(index) or isinstance(index, MultiIndex):
+        index = index_flat
+        if not len(index):
             pytest.skip("Skip check for empty Index and MultiIndex")
 
         idx = index[[0] * 5]
@@ -200,11 +193,12 @@ class TestCommon:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
 
-    def test_searchsorted_monotonic(self, index):
+    def test_searchsorted_monotonic(self, index_flat):
         # GH17271
+        index = index_flat
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
-        if isinstance(index, (MultiIndex, pd.IntervalIndex)):
+        if isinstance(index, pd.IntervalIndex):
             pytest.skip("Skip check for MultiIndex/IntervalIndex")
 
         # nothing to test if the index is empty
@@ -245,9 +239,9 @@ class TestCommon:
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
-    def test_drop_duplicates(self, index, keep):
-        if isinstance(index, MultiIndex):
-            pytest.skip("MultiIndex is tested separately")
+    def test_drop_duplicates(self, index_flat, keep):
+        # MultiIndex is tested separately
+        index = index_flat
         if isinstance(index, RangeIndex):
             pytest.skip(
                 "RangeIndex is tested in test_drop_duplicates_no_duplicates "
@@ -279,9 +273,9 @@ class TestCommon:
         expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
         tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
 
-    def test_drop_duplicates_no_duplicates(self, index):
-        if isinstance(index, MultiIndex):
-            pytest.skip("MultiIndex is tested separately")
+    def test_drop_duplicates_no_duplicates(self, index_flat):
+        # MultiIndex is tested separately
+        index = index_flat
 
         # make unique index
         if isinstance(index, RangeIndex):
@@ -305,9 +299,12 @@ class TestCommon:
         with pytest.raises(TypeError, match=msg):
             index.drop_duplicates(inplace=True)
 
-    def test_has_duplicates(self, index):
+    def test_has_duplicates(self, index_flat):
+        # MultiIndex tested separately in:
+        #   tests/indexes/multi/test_unique_and_duplicates.
+        index = index_flat
         holder = type(index)
-        if not len(index) or isinstance(index, (MultiIndex, RangeIndex)):
+        if not len(index) or isinstance(index, RangeIndex):
             # MultiIndex tested separately in:
             #   tests/indexes/multi/test_unique_and_duplicates.
             # RangeIndex is unique by definition.
@@ -363,29 +360,18 @@ class TestCommon:
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(request, index_with_missing, na_position):
-    if isinstance(index_with_missing, MultiIndex):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="missing value sorting order not defined for index type"
-            )
-        )
+def test_sort_values_invalid_na_position(index_with_missing, na_position):
 
-    if na_position not in ["first", "last"]:
-        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-            index_with_missing.sort_values(na_position=na_position)
+    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+        index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(request, index_with_missing, na_position):
+def test_sort_values_with_missing(index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, MultiIndex):
-        request.node.add_marker(
-            pytest.mark.xfail(reason="missing value sorting order not implemented")
-        )
-    elif isinstance(index_with_missing, CategoricalIndex):
+    if isinstance(index_with_missing, CategoricalIndex):
         pytest.skip("missing value sorting order not well-defined")
 
     missing_count = np.sum(index_with_missing.isna())
