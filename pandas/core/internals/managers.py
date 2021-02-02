@@ -922,7 +922,11 @@ class BlockManager(DataManager):
                     dtype=dtype, na_value=na_value
                 )
             else:
-                arr = blk.get_values(dtype)
+                # pandas/core/internals/managers.py:925: error: Argument 1 to
+                # "get_values" of "Block" has incompatible type "Union[ExtensionDtype,
+                # str, dtype[Any], Type[object], None]"; expected "Union[dtype[Any],
+                # ExtensionDtype, None]"  [arg-type]
+                arr = blk.get_values(dtype)  # type: ignore[arg-type]
             result[rl.indexer] = arr
             itemmask[rl.indexer] = 1
 

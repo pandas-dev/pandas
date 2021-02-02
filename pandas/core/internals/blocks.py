@@ -249,7 +249,9 @@ class Block(PandasObject):
         """
         if is_object_dtype(dtype):
             return self.values.astype(object)
-        return self.values
+        # pandas/core/internals/blocks.py:252: error: Incompatible return value type
+        # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+        return self.values  # type: ignore[return-value]
 
     def get_block_values_for_json(self) -> np.ndarray:
         """
@@ -1535,7 +1537,10 @@ class Block(PandasObject):
                 nb = self.coerce_to_target_dtype(value)
                 if nb is self and not inplace:
                     nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
+                # pandas/core/internals/blocks.py:1538: error: Value of type variable
+                # "ArrayLike" of "putmask_inplace" cannot be "Union[ndarray,
+                # ExtensionArray]"  [type-var]
+                putmask_inplace(nb.values, mask, value)  # type: ignore[type-var]
                 return [nb]
             else:
                 regex = _should_use_regex(regex, to_replace)
@@ -1883,7 +1888,11 @@ class ExtensionBlock(Block):
             # The default `other` for Series / Frame is np.nan
             # we want to replace that with the correct NA value
             # for the type
-            other = self.dtype.na_value
+
+            # pandas/core/internals/blocks.py:1886: error: Item "dtype[Any]" of
+            # "Union[dtype[Any], ExtensionDtype]" has no attribute "na_value"
+            # [union-attr]
+            other = self.dtype.na_value  # type: ignore[union-attr]
 
         if is_sparse(self.values):
             # TODO(SparseArray.__setitem__): remove this if condition
@@ -1969,7 +1978,10 @@ class NumericBlock(Block):
     is_numeric = True
 
     def _can_hold_element(self, element: Any) -> bool:
-        return can_hold_element(self.dtype, element)
+        # pandas/core/internals/blocks.py:1972: error: Argument 1 to "can_hold_element"
+        # has incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
+        # "dtype[Any]"  [arg-type]
+        return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
 
     @property
     def _can_hold_na(self):
@@ -2036,7 +2048,9 @@ class DatetimeLikeBlockMixin(HybridMixin, Block):
         if is_object_dtype(dtype):
             # DTA/TDA constructor and astype can handle 2D
             return self._holder(self.values).astype(object)
-        return self.values
+        # pandas/core/internals/blocks.py:2039: error: Incompatible return value type
+        # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+        return self.values  # type: ignore[return-value]
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray

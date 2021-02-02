@@ -416,7 +416,9 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     Find the NA value to go with this dtype.
     """
     if is_extension_array_dtype(dtype):
-        return dtype.na_value
+        # pandas/core/internals/concat.py:419: error: Item "dtype[Any]" of
+        # "Union[dtype[Any], ExtensionDtype]" has no attribute "na_value"  [union-attr]
+        return dtype.na_value  # type: ignore[union-attr]
     elif dtype.kind in ["m", "M"]:
         return dtype.type("NaT")
     elif dtype.kind in ["f", "c"]:
