@@ -3218,7 +3218,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self.iloc[key] = value
 
-    def _setitem_array(self, key: Sequence[Hashable], value):
+    def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
             # bool indexer is indexing along rows
