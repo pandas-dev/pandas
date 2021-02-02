@@ -559,14 +559,14 @@ def na_value_for_dtype(dtype, compat: bool = True):
     >>> na_value_for_dtype(np.dtype('bool'))
     False
     >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
-    NaT
+    numpy.datetime64('NaT')
     """
     dtype = pandas_dtype(dtype)
 
     if is_extension_array_dtype(dtype):
         return dtype.na_value
-    if needs_i8_conversion(dtype):
-        return NaT
+    elif needs_i8_conversion(dtype):
+        return dtype.type("NaT", "ns")
     elif is_float_dtype(dtype):
         return np.nan
     elif is_integer_dtype(dtype):
