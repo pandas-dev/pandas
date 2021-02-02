@@ -611,3 +611,8 @@ class TestAstype:
         # do real test: object dtype to a specified tz, different from construction tz.
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
+
+    def test_astype_bytes(self):
+        # GH#39474
+        result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes[0] == np.dtype("S3")
