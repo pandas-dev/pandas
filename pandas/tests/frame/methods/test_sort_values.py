@@ -323,7 +323,7 @@ class TestDataFrameSortValues:
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT))
+        int_values = (2, int(NaT.value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
