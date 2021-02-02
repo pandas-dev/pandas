@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -33,7 +32,6 @@ class Base:
     """ base class for index sub-class tests """
 
     _holder: Type[Index]
-    _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def create_index(self) -> Index:
         raise NotImplementedError("Method not implemented")
@@ -191,48 +189,6 @@ class Base:
             idx.all()
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
-
-    def test_reindex_base(self):
-        idx = self.create_index()
-        expected = np.arange(idx.size, dtype=np.intp)
-
-        actual = idx.get_indexer(idx)
-        tm.assert_numpy_array_equal(expected, actual)
-
-        with pytest.raises(ValueError, match="Invalid fill method"):
-            idx.get_indexer(idx, method="invalid")
-
-    def test_get_indexer_consistency(self, index):
-        # See GH 16819
-        if isinstance(index, IntervalIndex):
-            # requires index.is_non_overlapping
-            return
-
-        if index.is_unique:
-            indexer = index.get_indexer(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
-        else:
-            e = "Reindexing only valid with uniquely valued Index objects"
-            with pytest.raises(InvalidIndexError, match=e):
-                index.get_indexer(index[0:2])
-
-        indexer, _ = index.get_indexer_non_unique(index[0:2])
-        assert isinstance(indexer, np.ndarray)
-        assert indexer.dtype == np.intp
-
-    def test_ndarray_compat_properties(self):
-        idx = self.create_index()
-        assert idx.T.equals(idx)
-        assert idx.transpose().equals(idx)
-
-        values = idx.values
-        for prop in self._compat_props:
-            assert getattr(idx, prop) == getattr(values, prop)
-
-        # test for validity
-        idx.nbytes
-        idx.values.nbytes
 
     def test_repr_roundtrip(self):
 
@@ -674,7 +630,7 @@ class Base:
     def test_map_dictlike(self, mapper):
 
         index = self.create_index()
-        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+        if isinstance(index, pd.CategoricalIndex):
             pytest.skip(f"skipping tests for {type(index)}")
 
         identity = mapper(index.values, index)
@@ -700,21 +656,6 @@ class Base:
         result = index.map(str)
         expected = Index([str(x) for x in index], dtype=object)
         tm.assert_index_equal(result, expected)
-
-    def test_putmask_with_wrong_mask(self):
-        # GH18368
-        index = self.create_index()
-        fill = index[0]
-
-        msg = "putmask: mask and data must be the same size"
-        with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
-
-        with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
-
-        with pytest.raises(ValueError, match=msg):
-            index.putmask("foo", fill)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
@@ -779,25 +720,6 @@ class Base:
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
-
-    def test_contains_requires_hashable_raises(self):
-        idx = self.create_index()
-
-        msg = "unhashable type: 'list'"
-        with pytest.raises(TypeError, match=msg):
-            [] in idx
-
-        msg = "|".join(
-            [
-                r"unhashable type: 'dict'",
-                r"must be real number, not dict",
-                r"an integer is required",
-                r"\{\}",
-                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
-            ]
-        )
-        with pytest.raises(TypeError, match=msg):
-            {} in idx._engine
 
     def test_copy_shares_cache(self):
         # GH32898, GH36840
