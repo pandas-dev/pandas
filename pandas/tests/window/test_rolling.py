@@ -121,20 +121,72 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
-def test_closed_fixed(closed, arithmetic_win_operators, center):
+def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
     df_fixed = DataFrame({"A": [0, 1, 2, 3, 4]})
     df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
 
     result = getattr(
-        df_fixed.rolling(2, closed=closed, min_periods=1, center=center), func_name
+        df_fixed.rolling(2, closed=closed, min_periods=1, center=False), func_name
     )()
     expected = getattr(
-        df_time.rolling("2D", closed=closed, center=center), func_name
+        df_time.rolling("2D", closed=closed, min_periods=1, center=False), func_name
     )().reset_index(drop=True)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_datetimelike_centered_selections(closed, arithmetic_win_operators):
+    # GH 34315
+    func_name = arithmetic_win_operators
+    df_time = DataFrame(
+        {"A": [0.0, 1.0, 2.0, 3.0, 4.0]}, index=date_range("2020", periods=5)
+    )
+
+    if closed == "both":
+        window_selections = [
+            [True, True, False, False, False],
+            [True, True, True, False, False],
+            [False, True, True, True, False],
+            [False, False, True, True, True],
+            [False, False, False, True, True],
+        ]
+    elif closed == "left":
+        window_selections = [
+            [True, False, False, False, False],
+            [True, True, False, False, False],
+            [False, True, True, False, False],
+            [False, False, True, True, False],
+            [False, False, False, True, True],
+        ]
+    elif closed == "right":
+        window_selections = [
+            [True, True, False, False, False],
+            [False, True, True, False, False],
+            [False, False, True, True, False],
+            [False, False, False, True, True],
+            [False, False, False, False, True],
+        ]
+    else:  # closed=="neither"
+        window_selections = [
+            [True, False, False, False, False],
+            [False, True, False, False, False],
+            [False, False, True, False, False],
+            [False, False, False, True, False],
+            [False, False, False, False, True],
+        ]
+
+    expected = DataFrame(
+        {"A": [getattr(df_time["A"].iloc[s], func_name)() for s in window_selections]},
+        index=date_range("2020", periods=5),
+    )
+
+    result = getattr(
+        df_time.rolling("2D", closed=closed, min_periods=1, center=True), func_name
+    )()
+
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 def test_closed_fixed_binary_col(center):
