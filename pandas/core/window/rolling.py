@@ -1663,7 +1663,7 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def sem(self, ddof: int = 1, *args, **kwargs):
-        return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
+        return self.std(*args, **kwargs) / self.count().pow(0.5)
 
     _shared_docs["sem"] = dedent(
         """
