@@ -108,8 +108,8 @@ class IsInForObjects:
         self.vals_short = np.arange(2).astype(object)
         self.vals_long = np.arange(10 ** 5).astype(object)
         # because of nans floats are special:
-        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(object)
-        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(object)
+        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float_)).astype(object)
+        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float_).astype(object)
 
     def time_isin_nans(self):
         # if nan-objects are different objects,
