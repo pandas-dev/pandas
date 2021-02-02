@@ -991,7 +991,7 @@ def test_rolling_sem(frame_or_series):
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.707107] * 2)
+    expected = Series([np.nan] + [0.5] * 2)
     tm.assert_series_equal(result, expected)
 
 
