@@ -382,6 +382,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         stacklevel=2,
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
+                    if fill_value is NaT:
+                        fill_value = np.datetime64("NaT", "ns")
                 data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value, dtype=dtype
@@ -723,13 +725,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         uniques = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of unique values.
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN, even if NaN is in sp_values.
 
         Returns

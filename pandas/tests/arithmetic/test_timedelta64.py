@@ -31,12 +31,21 @@ def assert_dtype(obj, expected_dtype):
     """
     Helper to check the dtype for a Series, Index, or single-column DataFrame.
     """
-    if isinstance(obj, DataFrame):
-        dtype = obj.dtypes.iat[0]
-    else:
-        dtype = obj.dtype
+    dtype = tm.get_dtype(obj)
 
     assert dtype == expected_dtype
+
+
+def get_expected_name(box, names):
+    if box is DataFrame:
+        # Since we are operating with a DataFrame and a non-DataFrame,
+        # the non-DataFrame is cast to Series and its name ignored.
+        exname = names[0]
+    elif box in [tm.to_array, pd.array]:
+        exname = names[1]
+    else:
+        exname = names[2]
+    return exname
 
 
 # ------------------------------------------------------------------
@@ -1212,19 +1221,12 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
         box = box_with_array
+        exname = get_expected_name(box, names)
 
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
-
-        tdi = TimedeltaIndex(["0 days", "1 day"], name=names[0])
+        tdi = TimedeltaIndex(["0 days", "1 day"], name=names[1])
         tdi = np.array(tdi) if box in [tm.to_array, pd.array] else tdi
-        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
-        expected = Series(
-            [Timedelta(hours=3), Timedelta(days=1, hours=4)], name=names[2]
-        )
+        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[0])
+        expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)], name=exname)
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1238,7 +1240,7 @@ class TestTimedeltaArraylikeAddSubOps:
         assert_dtype(result, "timedelta64[ns]")
 
         expected = Series(
-            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=names[2]
+            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=exname
         )
         expected = tm.box_expected(expected, box)
 
@@ -1318,19 +1320,14 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_add_offset_index(self, names, box_with_array):
         # GH#18849, GH#19744
         box = box_with_array
-
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
         other = np.array(other) if box in [tm.to_array, pd.array] else other
 
         expected = TimedeltaIndex(
-            [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=names[2]
+            [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=exname
         )
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
@@ -1370,13 +1367,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#18824, GH#19744
         box = box_with_array
         xbox = box if box not in [tm.to_array, pd.array] else pd.Index
-        exname = names[2] if box not in [tm.to_array, pd.array] else names[1]
-
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
@@ -1412,15 +1403,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#18849
         box = box_with_array
         box2 = Series if box in [pd.Index, tm.to_array, pd.array] else box
-
-        if box is pd.DataFrame:
-            # Since we are operating with a DataFrame and a non-DataFrame,
-            # the non-DataFrame is cast to Series and its name ignored.
-            exname = names[0]
-        elif box in [tm.to_array, pd.array]:
-            exname = names[1]
-        else:
-            exname = names[2]
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
@@ -2100,11 +2083,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_int_series(self, box_with_array, names, request):
         # GH#19042 test for correct name attachment
         box = box_with_array
-        if box_with_array is pd.DataFrame and names[2] is None:
-            reason = "broadcasts along wrong axis, but doesn't raise"
-            request.node.add_marker(pytest.mark.xfail(reason=reason))
-
-        exname = names[2] if box not in [tm.to_array, pd.array] else names[1]
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(
             ["0days", "1day", "2days", "3days", "4days"], name=names[0]
@@ -2119,11 +2098,8 @@ class TestTimedeltaArraylikeMulDivOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        xbox = (
-            Series
-            if (box is pd.Index or box is tm.to_array or box is pd.array)
-            else box
-        )
+        xbox = get_upcast_box(box, ser)
+
         expected = tm.box_expected(expected, xbox)
 
         result = ser * tdi
@@ -2154,9 +2130,7 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = box
-        if box in [pd.Index, tm.to_array, pd.array] and type(ser) is Series:
-            xbox = Series
+        xbox = get_upcast_box(box, ser)
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)
