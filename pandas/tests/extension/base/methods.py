@@ -1,3 +1,4 @@
+import inspect
 import operator
 
 import numpy as np
@@ -14,6 +15,14 @@ from .base import BaseExtensionTests
 
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
+
+    def test_value_counts_default_dropna(self, data):
+        # make sure we have consistent default dropna kwarg
+        if not hasattr(data, "value_counts"):
+            pytest.skip("value_counts is not implemented")
+        sig = inspect.signature(data.value_counts)
+        kwarg = sig.parameters["dropna"]
+        assert kwarg.default is True
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):

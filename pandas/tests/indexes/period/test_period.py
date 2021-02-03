@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -328,10 +327,6 @@ class TestPeriodIndex(DatetimeLike):
     def test_shift(self):
         # This is tested in test_arithmetic
         pass
-
-    @td.skip_if_32bit
-    def test_ndarray_compat_properties(self):
-        super().test_ndarray_compat_properties()
 
     def test_negative_ordinals(self):
         Period(ordinal=-1000, freq="A")

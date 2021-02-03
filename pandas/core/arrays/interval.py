@@ -1021,7 +1021,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of each interval.
 
