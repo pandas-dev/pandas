@@ -715,6 +715,8 @@ def factorize(
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
+            # Note: factorize_array will cast NaT bc it has a __int__
+            #  method, but will not cast the more-correct dtype.type("nat")
             na_value = iNaT
         else:
             na_value = None
@@ -1658,18 +1660,6 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     return result
 
 
-# TODO: can we de-duplicate with something in dtypes.missing?
-def _get_default_fill_value(dtype, fill_value):
-    if fill_value is lib.no_default:
-        if is_extension_array_dtype(dtype):
-            fill_value = dtype.na_value
-        elif dtype.kind in ["m", "M"]:
-            fill_value = dtype.type("NaT")
-        else:
-            fill_value = np.nan
-    return fill_value
-
-
 def take_nd(
     arr,
     indexer,
@@ -1711,7 +1701,8 @@ def take_nd(
     """
     mask_info = None
 
-    fill_value = _get_default_fill_value(arr.dtype, fill_value)
+    if fill_value is lib.no_default:
+        fill_value = na_value_for_dtype(arr.dtype, compat=False)
 
     if isinstance(arr, ABCExtensionArray):
         # Check for EA to catch DatetimeArray, TimedeltaArray
