@@ -2049,17 +2049,19 @@ def _maybe_wrap_formatter(
         raise TypeError(msg)
 
 
-def _maybe_convert_css_to_tuples(style):
+def _maybe_convert_css_to_tuples(
+    style: Union[str, Sequence[Tuple[str, Union[str, int, float]]]]
+):
     """
-    Check if need to convert to list of tuples format:
-    'color:red; border:1px solid black;'
-    -> [('color', 'red'), ('border','1px solid red')]
+    Convert css-string to sequence of tuples format if needed.
+    'color:red; border:1px solid black;' -> [('color', 'red'),
+                                             ('border','1px solid red')]
     """
     if isinstance(style, str):
         s = style.split(";")
         try:
             s = [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())
+                (x.split(":")[0].strip(), x.split(":")[1].strip())  # type: ignore
                 for x in s
                 if x.strip() != ""
             ]
