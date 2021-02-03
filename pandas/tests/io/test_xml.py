@@ -113,6 +113,7 @@ def test_failsafe_parser(datapath):
 # FILE / URL
 
 
+@td.skip_if_no("lxml")
 def test_parser_consistency_file(datapath):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file_lxml = read_xml(filename, parser="lxml")
@@ -123,6 +124,7 @@ def test_parser_consistency_file(datapath):
 
 @tm.network
 @pytest.mark.slow
+@td.skip_if_no("lxml")
 def test_parser_consistency_url(datapath):
     url = (
         "https://data.cityofchicago.org/api/views/"
@@ -216,13 +218,18 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     tm.assert_frame_equal(df_str, df_expected)
 
 
+@td.skip_if_no("lxml")
 def test_not_io_object(parser):
     with pytest.raises(ValueError, match=("io is not a url, file, or xml string")):
         read_xml(DataFrame, parser="lxml")
 
 
+@td.skip_if_no("lxml")
 def test_wrong_file_lxml(datapath):
-    with pytest.raises(OSError, match=("failed to load external entity")):
+    with pytest.raises(
+        (OSError, FileNotFoundError),
+        match=("failed to load external entity|No such file or directory"),
+    ):
         filename = os.path.join("data", "html", "books.xml")
         read_xml(filename, parser="lxml")
 
@@ -731,6 +738,7 @@ def test_stylesheet_buffered_reader(datapath, mode):
     read_xml(kml, stylesheet=xsl_obj)
 
 
+@td.skip_if_no("lxml")
 def test_not_stylesheet(datapath):
     from lxml.etree import XSLTParseError
 
@@ -830,7 +838,10 @@ def test_wrong_stylesheet():
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
     xsl = os.path.join("data", "xml", "flatten.xsl")
 
-    with pytest.raises(OSError, match=("failed to load external entity")):
+    with pytest.raises(
+        (OSError, FileNotFoundError),
+        match=("failed to load external entity|No such file or directory"),
+    ):
         read_xml(kml, stylesheet=xsl)
 
 

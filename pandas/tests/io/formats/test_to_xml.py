@@ -387,8 +387,8 @@ def test_na_empty_elem_option(datapath, parser):
 # ATTR_COLS
 
 
-@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
-def test_attrs_cols_nan_output(datapath, parser):
+@pytest.mark.parametrize("attrs_parser", ["lxml", etree_attr_skip_param])
+def test_attrs_cols_nan_output(datapath, attrs_parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -408,8 +408,8 @@ def test_attrs_cols_nan_output(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
-def test_attrs_cols_prefix(datapath, parser):
+@pytest.mark.parametrize("attrs_parser", ["lxml", etree_attr_skip_param])
+def test_attrs_cols_prefix(datapath, attrs_parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <doc:data xmlns:doc="http://example.xom">
@@ -583,8 +583,8 @@ def test_hierarchical_columns(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
-def test_hierarchical_attrs_columns(datapath, parser):
+@pytest.mark.parametrize("attrs_parser", ["lxml", etree_attr_skip_param])
+def test_hierarchical_attrs_columns(datapath, attrs_parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -663,8 +663,8 @@ def test_multi_index(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
-def test_multi_index_attrs_cols(datapath, parser):
+@pytest.mark.parametrize("attrs_parser", ["lxml", etree_attr_skip_param])
+def test_multi_index_attrs_cols(datapath, attrs_parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -1037,7 +1037,7 @@ def test_stylesheet_with_etree(datapath):
 
 @td.skip_if_installed("lxml")
 def test_stylesheet_without_lxml(datapath, parser):
-    xsl = datapath("io", "data", "xml", "row_field_output.xslt")
+    xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
     with pytest.warns(
         UserWarning, match=("To use stylesheet, you need lxml installed.")
@@ -1049,7 +1049,10 @@ def test_stylesheet_without_lxml(datapath, parser):
 def test_stylesheet_wrong_path(datapath, parser):
     xsl = os.path.join("data", "xml", "row_field_output.xslt")
 
-    with pytest.raises(OSError, match=("failed to load external entity")):
+    with pytest.raises(
+        (OSError, FileNotFoundError),
+        match=("failed to load external entity|No such file or directory"),
+    ):
         geom_df.to_xml(stylesheet=xsl)
 
 
