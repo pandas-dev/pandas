@@ -158,3 +158,4 @@ jobs:
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
         pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean --array-manager
+        pytest pandas/tests/frame/indexing/test_where.py --array-manager

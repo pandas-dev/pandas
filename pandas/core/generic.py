@@ -8817,6 +8817,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
+        cond_orig = cond
+
         # Needed for DataFrames with ArrayManager, see below for details
         all_bool_columns = False
         if isinstance(cond, ABCDataFrame) and cond._has_array_manager:
@@ -8833,9 +8835,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict())
 
+        # Needed for DataFrames with ArrayManager, see below for details
+        if (
+            isinstance(cond, ABCDataFrame)
+            and cond._has_array_manager
+            and isinstance(cond_orig, ABCSeries)
+        ):
+            all_bool_columns = is_bool_dtype(cond_orig.dtype)
+
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        try:
+            cond = cond.fillna(fill_value)
+        except TypeError:
+            # With ArrayManager, fillna can raise an error if `cond` is not
+            # of boolean dtype
+            raise ValueError("Boolean array expected for the condition")
 
         # With ArrayManager, `fillna` does not automatically change object dtype
         # back to bools (if the alignment made it object by introducing NaNs).
