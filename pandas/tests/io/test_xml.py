@@ -21,7 +21,7 @@ etree
 [X] - ValueError("names does not match length of child elements in xpath.")
 [X] - TypeError("...is not a valid type for names")
 [X] - ValueError("io is not a url, file, or xml string")
-[]  - URLError      (GENERAL ERROR USUALLY DUE TO NETWORKING)
+[]  - URLError      (USUALLY DUE TO NETWORKING)
 [X] - HTTPError("HTTP Error 404: Not Found")
 [X] - OSError("No such file")
 []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
@@ -39,11 +39,11 @@ lxml
 [X] - TypeError("...is not a valid type for names")
 [X] - ValueError("io is not a url, file, or xml string")
 [X] - LookupError(unknown encoding)
-[]  - URLError      (GENERAL ERROR USUALLY DUE TO NETWORKING)
+[]  - URLError           (USUALLY DUE TO NETWORKING)
 [X  - HTTPError("HTTP Error 404: Not Found")
 [X] - OSError("failed to load external entity")
 [X] - XMLSyntaxError("Start tag expected, '<' not found")
-[]  - ParserError   (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+[]  - ParserError        (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
 [X] - ValueError("Values for parser can only be lxml or etree.")
 """
 
@@ -228,7 +228,7 @@ def test_not_io_object(parser):
 def test_wrong_file_lxml(datapath):
     with pytest.raises(
         (OSError, FileNotFoundError),
-        match=("failed to load external entity|No such file or directory"),
+        match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
     ):
         filename = os.path.join("data", "html", "books.xml")
         read_xml(filename, parser="lxml")
@@ -840,7 +840,7 @@ def test_wrong_stylesheet():
 
     with pytest.raises(
         (OSError, FileNotFoundError),
-        match=("failed to load external entity|No such file or directory"),
+        match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
     ):
         read_xml(kml, stylesheet=xsl)
 
