@@ -24,10 +24,10 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.4
+    rev: v2.9.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus]
+        args: [--py37-plus, --keep-runtime-typing]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.7.0
     hooks:
