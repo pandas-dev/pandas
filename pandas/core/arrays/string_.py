@@ -338,7 +338,7 @@ class StringArray(PandasArray):
         )
         return self._wrap_reduction_result(axis, result)
 
-    def value_counts(self, dropna=False):
+    def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")

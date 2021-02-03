@@ -230,7 +230,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return np.asarray(res, dtype=bool)
 
-    def value_counts(self, dropna: bool = False):
+    def value_counts(self, dropna: bool = True):
         from pandas.core.algorithms import value_counts
 
         return value_counts(self.to_numpy(), dropna=dropna)
