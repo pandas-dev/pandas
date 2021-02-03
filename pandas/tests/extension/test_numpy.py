@@ -23,8 +23,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import PandasArray, StringArray
 from pandas.core.construction import extract_array
-
-from . import base
+from pandas.tests.extension import base
 
 
 @pytest.fixture(params=["float", "object"])
