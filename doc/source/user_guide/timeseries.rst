@@ -2605,16 +2605,9 @@ For example, to localize and convert a naive stamp to time zone aware.
    s_naive.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
 
 Time zone information can also be manipulated using the ``astype`` method.
-This method can localize and convert time zone naive timestamps or
-convert time zone aware timestamps.
+This method can convert between different timezone-aware dtypes.
 
 .. ipython:: python
-
-   # localize and convert a naive time zone
-   s_naive.astype("datetime64[ns, US/Eastern]")
-
-   # make an aware tz naive
-   s_aware.astype("datetime64[ns]")
 
    # convert to a new time zone
    s_aware.astype("datetime64[ns, CET]")

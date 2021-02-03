@@ -7,8 +7,20 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 
+from pandas.core.dtypes.common import is_scalar
+
 import pandas as pd
-from pandas import Categorical, DataFrame, DatetimeIndex, Index, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    IntervalIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+    period_range,
+)
 import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
@@ -1074,8 +1086,29 @@ class TestBlockPlacement:
 
 
 class TestCanHoldElement:
+    @pytest.fixture(
+        params=[
+            lambda x: x,
+            lambda x: x.to_series(),
+            lambda x: x._data,
+            lambda x: list(x),
+            lambda x: x.astype(object),
+            lambda x: np.asarray(x),
+            lambda x: x[0],
+            lambda x: x[:0],
+        ]
+    )
+    def element(self, request):
+        """
+        Functions that take an Index and return an element that should have
+        blk._can_hold_element(element) for a Block with this index's dtype.
+        """
+        return request.param
+
     def test_datetime_block_can_hold_element(self):
         block = create_block("datetime", [0])
+
+        assert block._can_hold_element([])
 
         # We will check that block._can_hold_element iff arr.__setitem__ works
         arr = pd.array(block.values.ravel())
@@ -1100,6 +1133,111 @@ class TestCanHoldElement:
         )
         with pytest.raises(TypeError, match=msg):
             arr[0] = val
+
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
+    def test_interval_can_hold_element_emptylist(self, dtype, element):
+        arr = np.array([1, 3, 4], dtype=dtype)
+        ii = IntervalIndex.from_breaks(arr)
+        blk = make_block(ii._data, [1], ndim=2)
+
+        assert blk._can_hold_element([])
+        # TODO: check this holds for all blocks
+
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
+    def test_interval_can_hold_element(self, dtype, element):
+        arr = np.array([1, 3, 4, 9], dtype=dtype)
+        ii = IntervalIndex.from_breaks(arr)
+        blk = make_block(ii._data, [1], ndim=2)
+
+        elem = element(ii)
+        self.check_series_setitem(elem, ii, True)
+        assert blk._can_hold_element(elem)
+
+        # Careful: to get the expected Series-inplace behavior we need
+        # `elem` to not have the same length as `arr`
+        ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
+        elem = element(ii2)
+        self.check_series_setitem(elem, ii, False)
+        assert not blk._can_hold_element(elem)
+
+        ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
+        elem = element(ii3)
+        self.check_series_setitem(elem, ii, False)
+        assert not blk._can_hold_element(elem)
+
+        ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
+        elem = element(ii4)
+        self.check_series_setitem(elem, ii, False)
+        assert not blk._can_hold_element(elem)
+
+    def test_period_can_hold_element_emptylist(self):
+        pi = period_range("2016", periods=3, freq="A")
+        blk = make_block(pi._data, [1], ndim=2)
+
+        assert blk._can_hold_element([])
+
+    def test_period_can_hold_element(self, element):
+        pi = period_range("2016", periods=3, freq="A")
+
+        elem = element(pi)
+        self.check_series_setitem(elem, pi, True)
+
+        # Careful: to get the expected Series-inplace behavior we need
+        # `elem` to not have the same length as `arr`
+        pi2 = pi.asfreq("D")[:-1]
+        elem = element(pi2)
+        self.check_series_setitem(elem, pi, False)
+
+        dti = pi.to_timestamp("S")[:-1]
+        elem = element(dti)
+        self.check_series_setitem(elem, pi, False)
+
+    def check_setting(self, elem, index: Index, inplace: bool):
+        self.check_series_setitem(elem, index, inplace)
+        self.check_frame_setitem(elem, index, inplace)
+
+    def check_can_hold_element(self, obj, elem, inplace: bool):
+        blk = obj._mgr.blocks[0]
+        if inplace:
+            assert blk._can_hold_element(elem)
+        else:
+            assert not blk._can_hold_element(elem)
+
+    def check_series_setitem(self, elem, index: Index, inplace: bool):
+        arr = index._data.copy()
+        ser = Series(arr)
+
+        self.check_can_hold_element(ser, elem, inplace)
+
+        if is_scalar(elem):
+            ser[0] = elem
+        else:
+            ser[: len(elem)] = elem
+
+        if inplace:
+            assert ser.array is arr  # i.e. setting was done inplace
+        else:
+            assert ser.dtype == object
+
+    def check_frame_setitem(self, elem, index: Index, inplace: bool):
+        arr = index._data.copy()
+        df = DataFrame(arr)
+
+        self.check_can_hold_element(df, elem, inplace)
+
+        if is_scalar(elem):
+            df.iloc[0, 0] = elem
+        else:
+            df.iloc[: len(elem), 0] = elem
+
+        if inplace:
+            # assertion here implies setting was done inplace
+
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]"
+            #  has no attribute "blocks"  [union-attr]
+            assert df._mgr.blocks[0].values is arr  # type:ignore[union-attr]
+        else:
+            assert df.dtypes[0] == object
 
 
 class TestShouldStore:
@@ -1157,17 +1295,17 @@ def test_make_block_no_pandas_array():
 
     # PandasArray, no dtype
     result = make_block(arr, slice(len(arr)), ndim=arr.ndim)
-    assert result.is_integer is True
+    assert result.dtype.kind in ["i", "u"]
     assert result.is_extension is False
 
     # PandasArray, PandasDtype
     result = make_block(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
-    assert result.is_integer is True
+    assert result.dtype.kind in ["i", "u"]
     assert result.is_extension is False
 
     # ndarray, PandasDtype
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
-    assert result.is_integer is True
+    assert result.dtype.kind in ["i", "u"]
     assert result.is_extension is False
 
 

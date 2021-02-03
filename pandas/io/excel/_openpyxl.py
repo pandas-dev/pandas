@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
@@ -51,7 +53,7 @@ class OpenpyxlWriter(ExcelWriter):
         self.book.save(self.handles.handle)
 
     @classmethod
-    def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, "Serialisable"]:
+    def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, Serialisable]:
         """
         Convert a style_dict to a set of kwargs suitable for initializing
         or updating-on-copy an openpyxl v2 style object.
@@ -492,9 +494,11 @@ class OpenpyxlReader(BaseExcelReader):
         return self.book.sheetnames
 
     def get_sheet_by_name(self, name: str):
+        self.raise_if_bad_sheet_by_name(name)
         return self.book[name]
 
     def get_sheet_by_index(self, index: int):
+        self.raise_if_bad_sheet_by_index(index)
         return self.book.worksheets[index]
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:

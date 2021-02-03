@@ -23,6 +23,13 @@ structure.
     tips = pd.read_csv(url)
     tips
 
+
+Copies vs. in place operations
+------------------------------
+
+.. include:: includes/copies.rst
+
+
 SELECT
 ------
 In SQL, selection is done using a comma-separated list of columns you'd like to select (or a ``*``

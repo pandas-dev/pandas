@@ -14,6 +14,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    array as pd_array,
     concat,
     date_range,
     isna,
@@ -63,6 +64,68 @@ class TestiLoc(Base):
 
 class TestiLocBaseIndependent:
     """Tests Independent Of Base Class"""
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            slice(None),
+            slice(3),
+            range(3),
+            [0, 1, 2],
+            Index(range(3)),
+            np.asarray([0, 1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_iloc_setitem_fullcol_categorical(self, indexer, key):
+        frame = DataFrame({0: range(3)}, dtype=object)
+
+        cat = Categorical(["alpha", "beta", "gamma"])
+        expected = DataFrame({0: cat})
+        # NB: pending GH#38896, the expected likely should become
+        #  expected= DataFrame({"A": cat.astype(object)})
+        # and should remain a view on the original values
+
+        assert frame._mgr.blocks[0]._can_hold_element(cat)
+
+        df = frame.copy()
+        orig_vals = df.values
+        indexer(df)[key, 0] = cat
+
+        overwrite = not isinstance(key, slice)
+
+        tm.assert_frame_equal(df, expected)
+
+        # TODO: this inconsistency is likely undesired GH#39986
+        if overwrite:
+            # check that we overwrote underlying
+            tm.assert_numpy_array_equal(orig_vals, df.values)
+
+        # but we don't have a view on orig_vals
+        orig_vals[0, 0] = 19
+        assert df.iloc[0, 0] != 19
+
+        # check we dont have a view on cat (may be undesired GH#39986)
+        df.iloc[0, 0] = "gamma"
+        assert cat[0] != "gamma"
+
+    @pytest.mark.parametrize("box", [pd_array, Series])
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
+        # GH#38952 Case with not setting a full column
+        #  IntegerArray without NAs
+        arr = pd_array([1, 2, 3, 4])
+        obj = frame_or_series(arr.to_numpy("i8"))
+        values = obj.values
+
+        obj.iloc[:2] = box(arr[2:])
+        expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
+        tm.assert_equal(obj, expected)
+
+        # Check that we are actually in-place
+        if frame_or_series is Series:
+            assert obj.values is values
+        else:
+            assert obj.values.base is values.base and values.base is not None
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access

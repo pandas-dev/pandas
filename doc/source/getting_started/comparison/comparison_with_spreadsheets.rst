@@ -35,7 +35,7 @@ General terminology translation
 ``DataFrame``
 ~~~~~~~~~~~~~
 
-A ``DataFrame`` in pandas is analogous to an Excel worksheet. While an Excel worksheet can contain
+A ``DataFrame`` in pandas is analogous to an Excel worksheet. While an Excel workbook can contain
 multiple worksheets, pandas ``DataFrame``\s exist independently.
 
 ``Series``
@@ -65,6 +65,13 @@ particular row don't change.
 See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index``
 effectively.
 
+
+Copies vs. in place operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. include:: includes/copies.rst
+
+
 Data input / output
 -------------------
 
@@ -81,13 +88,6 @@ Reading external data
 Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-external-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`__
 and :ref:`pandas <10min_tut_02_read_write>` can import data from various sources in various
 formats.
-
-Excel files
-'''''''''''
-
-Excel opens `various Excel file formats <https://support.microsoft.com/en-us/office/file-formats-that-are-supported-in-excel-0943ff2c-6014-4e8d-aaea-b83d51d46247>`_
-by double-clicking them, or using `the Open menu <https://support.microsoft.com/en-us/office/open-files-from-the-file-menu-97f087d8-3136-4485-8e86-c5b12a8c4176>`_.
-In pandas, you use :ref:`special methods for reading and writing from/to Excel files <io.excel>`.
 
 CSV
 '''
@@ -117,6 +117,27 @@ would be:
 
    # alternatively, read_table is an alias to read_csv with tab delimiter
    tips = pd.read_table("tips.csv", header=None)
+
+Excel files
+'''''''''''
+
+Excel opens `various Excel file formats <https://support.microsoft.com/en-us/office/file-formats-that-are-supported-in-excel-0943ff2c-6014-4e8d-aaea-b83d51d46247>`_
+by double-clicking them, or using `the Open menu <https://support.microsoft.com/en-us/office/open-files-from-the-file-menu-97f087d8-3136-4485-8e86-c5b12a8c4176>`_.
+In pandas, you use :ref:`special methods for reading and writing from/to Excel files <io.excel>`.
+
+Let's first :ref:`create a new Excel file <io.excel_writer>` based on the ``tips`` dataframe in the above example:
+
+.. code-block:: python
+
+    tips.to_excel("./tips.xlsx")
+
+Should you wish to subsequently access the data in the ``tips.xlsx`` file, you can read it into your module using
+
+.. code-block:: python
+
+    tips_df = pd.read_excel("./tips.xlsx", index_col=0)
+
+You have just read in an Excel file using pandas!
 
 
 Limiting output

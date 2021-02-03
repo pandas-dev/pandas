@@ -149,6 +149,85 @@ class OpsMixin:
         return self._arith_method(other, roperator.rpow)
 
 
+# -----------------------------------------------------------------------------
+# Helpers to implement __array_ufunc__
+
+
+def _is_aligned(frame, other):
+    """
+    Helper to check if a DataFrame is aligned with another DataFrame or Series.
+    """
+    from pandas import DataFrame
+
+    if isinstance(other, DataFrame):
+        return frame._indexed_same(other)
+    else:
+        # Series -> match index
+        return frame.columns.equals(other.index)
+
+
+def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+    """
+    In the future DataFrame, inputs to ufuncs will be aligned before applying
+    the ufunc, but for now we ignore the index but raise a warning if behaviour
+    would change in the future.
+    This helper detects the case where a warning is needed and then fallbacks
+    to applying the ufunc on arrays to avoid alignment.
+
+    See https://github.com/pandas-dev/pandas/pull/39239
+    """
+    from pandas import DataFrame
+    from pandas.core.generic import NDFrame
+
+    n_alignable = sum(isinstance(x, NDFrame) for x in inputs)
+    n_frames = sum(isinstance(x, DataFrame) for x in inputs)
+
+    if n_alignable >= 2 and n_frames >= 1:
+        # if there are 2 alignable inputs (Series or DataFrame), of which at least 1
+        # is a DataFrame -> we would have had no alignment before -> warn that this
+        # will align in the future
+
+        # the first frame is what determines the output index/columns in pandas < 1.2
+        first_frame = next(x for x in inputs if isinstance(x, DataFrame))
+
+        # check if the objects are aligned or not
+        non_aligned = sum(
+            not _is_aligned(first_frame, x) for x in inputs if isinstance(x, NDFrame)
+        )
+
+        # if at least one is not aligned -> warn and fallback to array behaviour
+        if non_aligned:
+            warnings.warn(
+                "Calling a ufunc on non-aligned DataFrames (or DataFrame/Series "
+                "combination). Currently, the indices are ignored and the result "
+                "takes the index/columns of the first DataFrame. In the future , "
+                "the DataFrames/Series will be aligned before applying the ufunc.\n"
+                "Convert one of the arguments to a NumPy array "
+                "(eg 'ufunc(df1, np.asarray(df2)') to keep the current behaviour, "
+                "or align manually (eg 'df1, df2 = df1.align(df2)') before passing to "
+                "the ufunc to obtain the future behaviour and silence this warning.",
+                FutureWarning,
+                stacklevel=4,
+            )
+
+            # keep the first dataframe of the inputs, other DataFrame/Series is
+            # converted to array for fallback behaviour
+            new_inputs = []
+            for x in inputs:
+                if x is first_frame:
+                    new_inputs.append(x)
+                elif isinstance(x, NDFrame):
+                    new_inputs.append(np.asarray(x))
+                else:
+                    new_inputs.append(x)
+
+            # call the ufunc on those transformed inputs
+            return getattr(ufunc, method)(*new_inputs, **kwargs)
+
+    # signal that we didn't fallback / execute the ufunc yet
+    return NotImplemented
+
+
 def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
     """
     Compatibility with numpy ufuncs.
@@ -161,6 +240,11 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
     from pandas.core.internals import BlockManager
 
     cls = type(self)
+
+    # for backwards compatibility check and potentially fallback for non-aligned frames
+    result = _maybe_fallback(ufunc, method, *inputs, **kwargs)
+    if result is not NotImplemented:
+        return result
 
     # for binary ops, use our custom dunder methods
     result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
@@ -274,8 +358,14 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         result = getattr(ufunc, method)(*inputs, **kwargs)
     else:
         # ufunc(dataframe)
-        mgr = inputs[0]._mgr
-        result = mgr.apply(getattr(ufunc, method))
+        if method == "__call__":
+            # for np.<ufunc>(..) calls
+            mgr = inputs[0]._mgr
+            result = mgr.apply(getattr(ufunc, method))
+        else:
+            # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
+            # Those can have an axis keyword and thus can't be called block-by-block
+            result = getattr(ufunc, method)(np.asarray(inputs[0]), **kwargs)
 
     if ufunc.nout > 1:  # type: ignore[attr-defined]
         result = tuple(reconstruct(x) for x in result)

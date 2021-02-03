@@ -42,6 +42,9 @@ class DummyArray(ExtensionArray):
     def __getitem__(self, item):
         pass
 
+    def copy(self):
+        return self
+
 
 class TestSelectDtypes:
     def test_select_dtypes_include_using_list_like(self):

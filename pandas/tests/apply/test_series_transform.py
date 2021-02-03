@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, concat
+from pandas import Series, concat
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
@@ -63,14 +63,6 @@ def test_transform_wont_agg(string_series):
     with pytest.raises(ValueError, match=msg):
         with np.errstate(all="ignore"):
             string_series.transform(["sqrt", "max"])
-
-
-def test_transform_none_to_type():
-    # GH34377
-    df = DataFrame({"a": [None]})
-    msg = "Transform function failed"
-    with pytest.raises(ValueError, match=msg):
-        df.transform({"a": int})
 
 
 def test_transform_axis_1_raises():

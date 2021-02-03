@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import OutOfBoundsTimedelta
+
 from pandas import Timedelta, offsets, to_timedelta
 
 
@@ -195,6 +197,31 @@ def test_overflow_on_construction():
 
     with pytest.raises(OverflowError, match=msg):
         Timedelta(timedelta(days=13 * 19999))
+
+
+def test_construction_out_of_bounds_td64():
+    # TODO: parametrize over units just above/below the implementation bounds
+    #  once GH#38964 is resolved
+
+    # Timedelta.max is just under 106752 days
+    td64 = np.timedelta64(106752, "D")
+    assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
+
+    msg = "106752 days"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 - 1) == td64 - 1
+
+    td64 *= -1
+    assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
+
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 + 1) == td64 + 1
 
 
 @pytest.mark.parametrize(

@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import abc
 import datetime
 from distutils.version import LooseVersion
 import inspect
-from io import BufferedIOBase, BytesIO, RawIOBase
+from io import BytesIO
 import os
 from textwrap import fill
-from typing import IO, Any, Dict, Mapping, Optional, Union, cast
+from typing import Any, Dict, Mapping, Optional, Union, cast
 import warnings
 import zipfile
 
@@ -13,7 +15,7 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import get_version, import_optional_dependency
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
 
@@ -188,7 +190,7 @@ parse_dates : bool, list-like, or dict, default False
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
       result 'foo'
 
-    If a column or index contains an unparseable date, the entire column or
+    If a column or index contains an unparsable date, the entire column or
     index will be returned unaltered as an object data type. If you don`t want to
     parse some cells as date just change their type in Excel to "Text".
     For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
@@ -410,6 +412,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
+        if hasattr(self.book, "close"):
+            # pyxlsb opens a TemporaryFile
+            self.book.close()
         self.handles.close()
 
     @property
@@ -428,6 +433,17 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_sheet_data(self, sheet, convert_float):
         pass
+
+    def raise_if_bad_sheet_by_index(self, index: int) -> None:
+        n_sheets = len(self.sheet_names)
+        if index >= n_sheets:
+            raise ValueError(
+                f"Worksheet index {index} is invalid, {n_sheets} worksheets found"
+            )
+
+    def raise_if_bad_sheet_by_name(self, name: str) -> None:
+        if name not in self.sheet_names:
+            raise ValueError(f"Worksheet named '{name}' not found")
 
     def parse(
         self,
@@ -483,6 +499,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
+            if hasattr(sheet, "close"):
+                # pyxlsb opens two TemporaryFiles
+                sheet.close()
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
@@ -783,7 +802,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, "ExcelWriter"],
+        path: Union[FilePathOrBuffer, ExcelWriter],
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -906,24 +925,18 @@ PEEK_SIZE = max(len(XLS_SIGNATURE), len(ZIP_SIGNATURE))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    path: Optional[str] = None,
-    content: Union[None, BufferedIOBase, RawIOBase, bytes] = None,
+    content_or_path: FilePathOrBuffer,
     storage_options: StorageOptions = None,
 ) -> str:
     """
     Inspect the path or content of an excel file and get its format.
 
-    At least one of path or content must be not None. If both are not None,
-    content will take precedence.
-
     Adopted from xlrd: https://github.com/python-excel/xlrd.
 
     Parameters
     ----------
-    path : str, optional
-        Path to file to inspect. May be a URL.
-    content : file-like object, optional
-        Content of file to inspect.
+    content_or_path : str or file-like object
+        Path to file or content of file to inspect. May be a URL.
     {storage_options}
 
     Returns
@@ -938,12 +951,8 @@ def inspect_excel_format(
     BadZipFile
         If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
-    content_or_path: Union[None, str, BufferedIOBase, RawIOBase, IO[bytes]]
-    if isinstance(content, bytes):
-        content_or_path = BytesIO(content)
-    else:
-        content_or_path = content or path
-    assert content_or_path is not None
+    if isinstance(content_or_path, bytes):
+        content_or_path = BytesIO(content_or_path)
 
     with get_handle(
         content_or_path, "rb", storage_options=storage_options, is_text=False
@@ -1053,23 +1062,18 @@ class ExcelFile:
         self._io = stringify_path(path_or_buffer)
 
         # Determine xlrd version if installed
-        if (
-            import_optional_dependency(
-                "xlrd", raise_on_missing=False, on_version="ignore"
-            )
-            is None
-        ):
+        if import_optional_dependency("xlrd", errors="ignore") is None:
             xlrd_version = None
         else:
             import xlrd
 
-            xlrd_version = LooseVersion(xlrd.__version__)
+            xlrd_version = LooseVersion(get_version(xlrd))
 
         if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
         else:
             ext = inspect_excel_format(
-                content=path_or_buffer, storage_options=storage_options
+                content_or_path=path_or_buffer, storage_options=storage_options
             )
 
         if engine is None:

@@ -3,12 +3,17 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
 
 from pandas.io.pytables import read_hdf
+
+# TODO(ArrayManager) HDFStore relies on accessing the blocks
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def test_complex_fixed(setup_path):

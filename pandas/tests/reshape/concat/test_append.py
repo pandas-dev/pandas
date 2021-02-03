@@ -82,7 +82,6 @@ class TestAppend:
         df5 = df.append(df3, sort=sort)
 
         expected = DataFrame(index=[0, 1], columns=["A", "B", "C"])
-        expected["C"] = expected["C"].astype(np.float64)
         tm.assert_frame_equal(df5, expected)
 
     def test_append_records(self):
@@ -341,11 +340,16 @@ class TestAppend:
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
+        # These columns get cast to object after append
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
         tm.assert_frame_equal(result_a, expected)
 
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]] * 2, columns=["c", "d", "a", "b", "date"]
         )
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
 
         result_b = result_a.append(s, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
@@ -361,13 +365,25 @@ class TestAppend:
 
         # pd.NaT gets inferred as tz-naive, so append result is tz-naive
         result = df.append({"a": pd.NaT}, ignore_index=True)
-        expected = DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)
 
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
-        result = df.append(
-            Series({"a": pd.NaT}, dtype="datetime64[ns]"), ignore_index=True
-        )
-        expected = DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
+        result = df.append(other, ignore_index=True)
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype_str", ["datetime64[ns, UTC]", "datetime64[ns]", "Int64", "int64"]
+    )
+    def test_append_empty_frame_with_timedelta64ns_nat(self, dtype_str):
+        # https://github.com/pandas-dev/pandas/issues/35460
+        df = DataFrame(columns=["a"]).astype(dtype_str)
+
+        other = DataFrame({"a": [np.timedelta64("NaT", "ns")]})
+        result = df.append(other, ignore_index=True)
+
+        expected = other.astype(object)
         tm.assert_frame_equal(result, expected)

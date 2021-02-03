@@ -160,13 +160,17 @@ def test_transform_broadcast(tsframe, ts):
 
 def test_transform_axis_1(request, transformation_func):
     # GH 36308
+    warn = None
     if transformation_func == "tshift":
+        warn = FutureWarning
+
         request.node.add_marker(pytest.mark.xfail(reason="tshift is deprecated"))
     args = ("ffill",) if transformation_func == "fillna" else ()
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
-    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+    with tm.assert_produces_warning(warn):
+        result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+        expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func == "diff":
         # Result contains nans, so transpose coerces to float

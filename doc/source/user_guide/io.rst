@@ -112,8 +112,9 @@ index_col : int, str, sequence of int / str, or False, default ``None``
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
-  of the data file, then a default index is used.  If it is one larger, then
-  the first field is used as an index.
+  of the data file, then a default index is used.  If it is larger, then
+  the first columns are used as index so that the remaining number of fields in
+  the body are equal to the number of fields in the header.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -2852,7 +2853,7 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
    The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
    old-style ``.xls`` files.
 
-   Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
+   Before pandas 1.2.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
    would result in using the ``xlrd`` engine in many cases, including new
    Excel 2007+ (``.xlsx``) files.
    If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__  is installed,
