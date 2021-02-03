@@ -2293,14 +2293,6 @@ class Index(IndexOpsMixin, PandasObject):
             return values
 
     @cache_readonly
-    @final
-    def _nan_idxs(self):
-        if self._can_hold_na:
-            return self._isnan.nonzero()[0]
-        else:
-            return np.array([], dtype=np.intp)
-
-    @cache_readonly
     def hasnans(self) -> bool:
         """
         Return if I have any nans; enables various perf speedups.
@@ -3223,6 +3215,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(casted_key)
             except KeyError as err:
                 raise KeyError(key) from err
+
+        if is_scalar(key) and isna(key) and not self.hasnans:
+            raise KeyError(key)
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
@@ -4331,7 +4326,15 @@ class Index(IndexOpsMixin, PandasObject):
         except (ValueError, TypeError):
             return self.astype(object).where(cond, other)
 
-        values = np.where(cond, values, other)
+        if isinstance(other, np.timedelta64) and self.dtype == object:
+            # https://github.com/numpy/numpy/issues/12550
+            #  timedelta64 will incorrectly cast to int
+            other = [other] * (~cond).sum()
+            values = cast(np.ndarray, values).copy()
+            # error: Unsupported target for indexed assignment ("ArrayLike")
+            values[~cond] = other  # type:ignore[index]
+        else:
+            values = np.where(cond, values, other)
 
         return Index(values, name=self.name)
 
