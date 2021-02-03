@@ -2060,12 +2060,12 @@ def _maybe_convert_css_to_tuples(
     if isinstance(style, str):
         s = style.split(";")
         try:
-            s = [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())  # type: ignore
+            ret = [
+                (x.split(":")[0].strip(), x.split(":")[1].strip())
                 for x in s
                 if x.strip() != ""
             ]
-            return s
+            return ret
         except IndexError:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
