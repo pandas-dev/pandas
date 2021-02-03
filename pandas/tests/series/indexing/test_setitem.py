@@ -543,7 +543,7 @@ def test_setitem_slice_into_readonly_backing_data():
     assert not array.any()
 
 
-class TestSetitemCastingEquivalentsTimedelta64IntoNumeric(SetitemCastingEquivalents):
+class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
     # timedelta64 should not be treated as integers when setting into
     #  numeric Series
 
