@@ -581,23 +581,11 @@ class TestDataFrameSortValues:
 
     def test_sort_values_reshaping(self):
         # GH 39426
-        rand_low = 0
-        rand_high = 100
-        n_cols = 32
-        n_rows = 4
+        values = list(range(21))
+        expected = DataFrame([values], columns=values)
+        df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
 
-        random_state = np.random.RandomState(seed=42)
-        test_dict = {
-            int((i - n_cols / 2) % n_cols + 1): random_state.randint(
-                rand_low, rand_high, size=(n_rows)
-            )
-            for i in range(n_cols)
-        }
-        df = DataFrame(test_dict)
-        df = df.sort_values(df.index[0], axis=1, ignore_index=True)
-
-        assert df.shape == (n_rows, n_cols)
-        assert list(df.columns) == list(range(n_cols))
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
