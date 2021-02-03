@@ -772,9 +772,6 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    # corr = dispatch("corr", other=None, pairwise=None)
-    # cov = dispatch("cov", other=None, pairwise=None)
-
     def _apply(
         self,
         func: Callable[..., Any],
