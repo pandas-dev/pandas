@@ -23,11 +23,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.numeric import NumericArray, NumericDtype
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
-from .numeric import NumericArray, NumericDtype
 
 
 class _IntegerDtype(NumericDtype):

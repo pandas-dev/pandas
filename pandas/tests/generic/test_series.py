@@ -6,8 +6,7 @@ import pytest
 import pandas as pd
 from pandas import MultiIndex, Series, date_range
 import pandas._testing as tm
-
-from .test_generic import Generic
+from pandas.tests.generic.test_generic import Generic
 
 
 class TestSeries(Generic):

@@ -3,8 +3,7 @@ import io
 import pytest
 
 import pandas as pd
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BasePrintingTests(BaseExtensionTests):

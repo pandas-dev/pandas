@@ -21,8 +21,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
-
-from . import base
+from pandas.tests.extension import base
 
 
 @pytest.fixture(params=["float", "object"])

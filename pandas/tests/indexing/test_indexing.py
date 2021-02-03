@@ -14,8 +14,7 @@ from pandas import DataFrame, Index, NaT, Series, date_range, offsets, timedelta
 import pandas._testing as tm
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
-
-from .test_floats import gen_obj
+from pandas.tests.indexing.test_floats import gen_obj
 
 # ------------------------------------------------------------------------
 # Indexing test cases

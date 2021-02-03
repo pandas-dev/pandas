@@ -14,8 +14,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-
-from ..datetimelike import DatetimeLike
+from pandas.tests.indexes.datetimelike import DatetimeLike
 
 randn = np.random.randn
 

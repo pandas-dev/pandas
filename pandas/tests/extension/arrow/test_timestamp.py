@@ -12,7 +12,7 @@ pytest.importorskip("pyarrow", minversion="0.13.0")
 
 import pyarrow as pa  # isort:skip
 
-from .arrays import ArrowExtensionArray  # isort:skip
+from pandas.tests.extension.arrow.arrays import ArrowExtensionArray  # isort:skip
 
 
 @register_extension_dtype
