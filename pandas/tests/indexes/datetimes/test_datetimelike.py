@@ -3,8 +3,7 @@ import pytest
 
 from pandas import DatetimeIndex, date_range
 import pandas._testing as tm
-
-from ..datetimelike import DatetimeLike
+from pandas.tests.indexes.datetimelike import DatetimeLike
 
 
 class TestDatetimeIndex(DatetimeLike):

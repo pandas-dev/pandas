@@ -417,8 +417,6 @@ def _na_for_min_count(
     if is_numeric_dtype(values):
         values = values.astype("float64")
     fill_value = na_value_for_dtype(values.dtype)
-    if fill_value is NaT:
-        fill_value = values.dtype.type("NaT", "ns")
 
     if values.ndim == 1:
         return fill_value
