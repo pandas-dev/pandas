@@ -725,13 +725,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         uniques = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of unique values.
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN, even if NaN is in sp_values.
 
         Returns
