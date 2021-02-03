@@ -2052,7 +2052,7 @@ class Rolling(RollingAndExpandingMixin):
             except (TypeError, ValueError) as err:
                 raise ValueError(
                     f"passed window {self.window} is not "
-                    "compatible with a d index"
+                    "compatible with a datetimelike index"
                 ) from err
             if isinstance(self._on, ABCPeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
