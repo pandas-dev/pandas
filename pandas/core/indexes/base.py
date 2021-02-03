@@ -4326,7 +4326,15 @@ class Index(IndexOpsMixin, PandasObject):
         except (ValueError, TypeError):
             return self.astype(object).where(cond, other)
 
-        values = np.where(cond, values, other)
+        if isinstance(other, np.timedelta64) and self.dtype == object:
+            # https://github.com/numpy/numpy/issues/12550
+            #  timedelta64 will incorrectly cast to int
+            other = [other] * (~cond).sum()
+            values = cast(np.ndarray, values).copy()
+            # error: Unsupported target for indexed assignment ("ArrayLike")
+            values[~cond] = other  # type:ignore[index]
+        else:
+            values = np.where(cond, values, other)
 
         return Index(values, name=self.name)
 
