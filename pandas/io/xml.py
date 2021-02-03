@@ -674,9 +674,7 @@ def _parse(
     fallback option with etree parser.
     """
 
-    lxml = import_optional_dependency(
-        "lxml.etree", raise_on_missing=False, on_version="ignore"
-    )
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
     if parser == "lxml":
         if lxml is not None:
