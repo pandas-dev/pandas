@@ -24,6 +24,7 @@ from pandas import (
     Index,
     Int64Index,
     IntervalIndex,
+    MultiIndex,
     PeriodIndex,
     Series,
     TimedeltaIndex,
@@ -140,6 +141,26 @@ class TestContains:
         assert 1.0 not in float_index
         assert 1 not in float_index
 
+    def test_contains_requires_hashable_raises(self, index):
+        if isinstance(index, MultiIndex):
+            return  # TODO: do we want this to raise?
+
+        msg = "unhashable type: 'list'"
+        with pytest.raises(TypeError, match=msg):
+            [] in index
+
+        msg = "|".join(
+            [
+                r"unhashable type: 'dict'",
+                r"must be real number, not dict",
+                r"an integer is required",
+                r"\{\}",
+                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            {} in index._engine
+
 
 class TestGetValue:
     @pytest.mark.parametrize(
@@ -161,19 +182,30 @@ class TestGetValue:
 
 
 class TestGetIndexer:
+    def test_get_indexer_base(self, index):
+
+        if index._index_as_unique:
+            expected = np.arange(index.size, dtype=np.intp)
+            actual = index.get_indexer(index)
+            tm.assert_numpy_array_equal(expected, actual)
+        else:
+            msg = "Reindexing only valid with uniquely valued Index objects"
+            with pytest.raises(InvalidIndexError, match=msg):
+                index.get_indexer(index)
+
+        with pytest.raises(ValueError, match="Invalid fill method"):
+            index.get_indexer(index, method="invalid")
+
     def test_get_indexer_consistency(self, index):
         # See GH#16819
-        if isinstance(index, IntervalIndex):
-            # requires index.is_non_overlapping
-            return
 
-        if index.is_unique:
+        if index._index_as_unique:
             indexer = index.get_indexer(index[0:2])
             assert isinstance(indexer, np.ndarray)
             assert indexer.dtype == np.intp
         else:
-            e = "Reindexing only valid with uniquely valued Index objects"
-            with pytest.raises(InvalidIndexError, match=e):
+            msg = "Reindexing only valid with uniquely valued Index objects"
+            with pytest.raises(InvalidIndexError, match=msg):
                 index.get_indexer(index[0:2])
 
         indexer, _ = index.get_indexer_non_unique(index[0:2])
@@ -195,6 +227,25 @@ class TestConvertSliceIndexer:
             msg = "'>=' not supported between instances of 'str' and 'int'"
             with pytest.raises(TypeError, match=msg):
                 index._convert_slice_indexer(key, "loc")
+
+
+class TestPutmask:
+    def test_putmask_with_wrong_mask(self, index):
+        # GH#18368
+        if not len(index):
+            return
+
+        fill = index[0]
+
+        msg = "putmask: mask and data must be the same size"
+        with pytest.raises(ValueError, match=msg):
+            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
+
+        with pytest.raises(ValueError, match=msg):
+            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
+
+        with pytest.raises(ValueError, match=msg):
+            index.putmask("foo", fill)
 
 
 @pytest.mark.parametrize(

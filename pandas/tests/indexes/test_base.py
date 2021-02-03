@@ -878,14 +878,11 @@ class TestIndex(Base):
             assert result.name == expected
 
     def test_difference_empty_arg(self, index, sort):
-        if isinstance(index, MultiIndex):
-            pytest.skip("Not applicable")
         first = index[5:20]
         first.name = "name"
         result = first.difference([], sort)
 
-        assert tm.equalContents(result, first)
-        assert result.name == first.name
+        tm.assert_index_equal(result, first)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_identity(self, index, sort):
@@ -1598,16 +1595,9 @@ class TestIndex(Base):
         code = "import pandas as pd; idx = Index([1, 2])"
         await ip.run_code(code)
 
-        # GH 31324 newer jedi version raises Deprecation warning
-        import jedi
-
-        if jedi.__version__ < "0.16.0":
-            warning = tm.assert_produces_warning(None)
-        else:
-            warning = tm.assert_produces_warning(
-                DeprecationWarning, check_stacklevel=False
-            )
-        with warning:
+        # GH 31324 newer jedi version raises Deprecation warning;
+        #  appears resolved 2021-02-02
+        with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
