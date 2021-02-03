@@ -274,17 +274,9 @@ class TestDataFrameMisc:
 
         await ip.run_code(code)
 
-        # TODO: remove it when Ipython updates
-        # GH 33567, jedi version raises Deprecation warning in Ipython
-        import jedi
-
-        if jedi.__version__ < "0.17.0":
-            warning = tm.assert_produces_warning(None)
-        else:
-            warning = tm.assert_produces_warning(
-                DeprecationWarning, check_stacklevel=False
-            )
-        with warning:
+        # GH 31324 newer jedi version raises Deprecation warning;
+        #  appears resolved 2021-02-02
+        with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("obj.", 1))
 
