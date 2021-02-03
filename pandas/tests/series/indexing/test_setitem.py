@@ -378,8 +378,7 @@ class SetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if obj.dtype == bool and not mask.all():
-            # When mask is all True, casting behavior does not apply
+        if obj.dtype == bool:
             msg = "Index/Series casting behavior inconsistent GH#38692"
             mark = pytest.mark.xfail(reason=msg)
             request.node.add_marker(mark)
@@ -387,7 +386,6 @@ class SetitemCastingEquivalents:
         res = Index(obj).where(~mask, val)
         tm.assert_index_equal(res, Index(expected))
 
-    @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
     def test_index_putmask(self, obj, key, expected, val):
         if Index(obj).dtype != obj.dtype:
             pytest.skip("test not applicable for this dtype")
@@ -516,25 +514,123 @@ def test_setitem_slice_into_readonly_backing_data():
     assert not array.any()
 
 
-@pytest.mark.parametrize(
-    "key", [0, slice(0, 1), [0], np.array([0]), range(1)], ids=type
-)
-@pytest.mark.parametrize("dtype", [complex, int, float])
-def test_setitem_td64_into_complex(key, dtype, indexer_sli):
-    # timedelta64 should not be treated as integers
-    arr = np.arange(5).astype(dtype)
-    ser = Series(arr)
-    td = np.timedelta64(4, "ns")
+class TestSetitemCastingEquivalentsTimedelta64IntoNumeric:
+    # timedelta64 should not be treated as integers when setting into
+    #  numeric Series
 
-    indexer_sli(ser)[key] = td
-    assert ser.dtype == object
-    assert arr[0] == 0  # original array is unchanged
+    @pytest.fixture
+    def val(self):
+        td = np.timedelta64(4, "ns")
+        return td
+        return np.full((1,), td)
 
-    if not isinstance(key, int) and not (
-        indexer_sli is tm.loc and isinstance(key, slice)
-    ):
-        # skip key/indexer_sli combinations that will have mismatched lengths
+    @pytest.fixture(params=[complex, int, float])
+    def dtype(self, request):
+        return request.param
+
+    @pytest.fixture
+    def obj(self, dtype):
+        arr = np.arange(5).astype(dtype)
         ser = Series(arr)
-        indexer_sli(ser)[key] = np.full((1,), td)
-        assert ser.dtype == object
-        assert arr[0] == 0  # original array is unchanged
+        return ser
+
+    @pytest.fixture
+    def expected(self, dtype):
+        arr = np.arange(5).astype(dtype)
+        ser = Series(arr)
+        ser = ser.astype(object)
+        ser.values[0] = np.timedelta64(4, "ns")
+        return ser
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    def check_indexer(self, obj, key, expected, val, indexer):
+        orig = obj
+        obj = obj.copy()
+        arr = obj._values
+
+        indexer(obj)[key] = val
+        tm.assert_series_equal(obj, expected)
+
+        tm.assert_equal(arr, orig._values)  # original  array is unchanged
+
+    def test_int_key(self, obj, key, expected, val, indexer_sli):
+        if not isinstance(key, int):
+            return
+
+        self.check_indexer(obj, key, expected, val, indexer_sli)
+
+        rng = range(key, key + 1)
+        self.check_indexer(obj, rng, expected, val, indexer_sli)
+
+        if indexer_sli is not tm.loc:
+            # Note: no .loc because that handles slice edges differently
+            slc = slice(key, key + 1)
+            self.check_indexer(obj, slc, expected, val, indexer_sli)
+
+        ilkey = [key]
+        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+
+        indkey = np.array(ilkey)
+        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+
+    def test_slice_key(self, obj, key, expected, val, indexer_sli):
+        if not isinstance(key, slice):
+            return
+
+        if indexer_sli is not tm.loc:
+            # Note: no .loc because that handles slice edges differently
+            self.check_indexer(obj, key, expected, val, indexer_sli)
+
+        ilkey = list(range(len(obj)))[key]
+        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+
+        indkey = np.array(ilkey)
+        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+
+    def test_mask_key(self, obj, key, expected, val, indexer_sli):
+        # setitem with boolean mask
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        self.check_indexer(obj, mask, expected, val, indexer_sli)
+
+    def test_series_where(self, obj, key, expected, val):
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        orig = obj
+        obj = obj.copy()
+        arr = obj._values
+        res = obj.where(~mask, val)
+        tm.assert_series_equal(res, expected)
+
+        tm.assert_equal(arr, orig._values)  # original  array is unchanged
+
+    def test_index_where(self, obj, key, expected, val, request):
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
+
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        if obj.dtype == bool and not mask.all():
+            # When mask is all True, casting behavior does not apply
+            msg = "Index/Series casting behavior inconsistent GH#38692"
+            mark = pytest.mark.xfail(reason=msg)
+            request.node.add_marker(mark)
+
+        res = Index(obj).where(~mask, val)
+        tm.assert_index_equal(res, Index(expected))
+
+    def test_index_putmask(self, obj, key, expected, val):
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
+
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        res = Index(obj).putmask(mask, val)
+        tm.assert_index_equal(res, Index(expected))
