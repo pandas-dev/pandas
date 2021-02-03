@@ -1072,9 +1072,12 @@ class ExcelFile:
         ext = None
         if engine is None:
             # Only determine ext if it is needed
-            ext = inspect_excel_format(
-                content_or_path=path_or_buffer, storage_options=storage_options
-            )
+            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                ext = "xls"
+            else:
+                ext = inspect_excel_format(
+                    content_or_path=path_or_buffer, storage_options=storage_options
+                )
 
             # ext will always be valid, otherwise inspect_excel_format would raise
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
