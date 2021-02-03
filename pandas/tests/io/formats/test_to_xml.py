@@ -21,8 +21,6 @@ etree
 [X] - LookupError("unknown encoding")
 [X] - KeyError("...is not included in namespaces")
 [X] - KeyError("no valid column")
-[X] - UserWarning("To use stylesheet, you need lxml installed.")
-[X] - ImportWarning("You do not have lxml installed.")
 
 lxml
 [X] - TypeError("...is not a valid type for attr_cols")
@@ -133,15 +131,6 @@ def mode(request):
 @pytest.fixture(params=["lxml", "etree"])
 def parser(request):
     return request.param
-
-
-# FAIL SAFE WARNING
-
-
-@td.skip_if_installed("lxml")
-def test_failsafe_parser(datapath):
-    with pytest.warns(ImportWarning, match=("You do not have lxml installed.")):
-        geom_df.to_xml()
 
 
 # FILE OUTPUT
@@ -1032,25 +1021,6 @@ def test_stylesheet_buffered_reader(datapath, mode):
     output = geom_df.to_xml(stylesheet=xsl_obj)
 
     assert output == xsl_expected
-
-
-def test_stylesheet_with_etree_parser(datapath):
-    xsl = datapath("io", "data", "xml", "row_field_output.xsl")
-
-    with pytest.warns(
-        UserWarning, match=("To use stylesheet, you need lxml installed.")
-    ):
-        geom_df.to_xml(parser="etree", stylesheet=xsl)
-
-
-@td.skip_if_installed("lxml")
-def test_stylesheet_without_lxml(datapath):
-    xsl = datapath("io", "data", "xml", "row_field_output.xsl")
-
-    with pytest.warns(
-        UserWarning, match=("To use stylesheet, you need lxml installed.")
-    ):
-        geom_df.to_xml(stylesheet=xsl)
 
 
 @td.skip_if_no("lxml")

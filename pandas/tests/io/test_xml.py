@@ -25,7 +25,6 @@ etree
 [X] - HTTPError("HTTP Error 404: Not Found")
 [X] - OSError("No such file")
 []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
-[X] - ImportWarning("You do not have lxml installed.")
 
 lxml
 [X] - ValueError("Either element or attributes can be parsed not both.")
@@ -97,17 +96,6 @@ def mode(request):
 @pytest.fixture(params=["lxml", "etree"])
 def parser(request):
     return request.param
-
-
-# FAIL SAFE WARNING
-
-
-@td.skip_if_installed("lxml")
-def test_failsafe_parser(datapath):
-    filename = datapath("io", "data", "xml", "books.xml")
-
-    with pytest.warns(ImportWarning, match=("You do not have lxml installed.")):
-        read_xml(filename)
 
 
 # FILE / URL
