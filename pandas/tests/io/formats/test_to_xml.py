@@ -1,4 +1,6 @@
 from io import BytesIO, StringIO
+import os
+import sys
 
 import numpy as np
 import pytest
@@ -9,6 +11,44 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.xml import read_xml
+
+"""
+CHECKLIST
+
+etree
+[X] - TypeError("...is not a valid type for attr_cols")
+[X] - TypeError("...is not a valid type for elem_cols")
+[X] - LookupError("unknown encoding")
+[X] - KeyError("...is not included in namespaces")
+[X] - KeyError("no valid column")
+[X] - UserWarning("To use stylesheet, you need lxml installed.")
+[X] - ImportWarning("You do not have lxml installed.")
+
+lxml
+[X] - TypeError("...is not a valid type for attr_cols")
+[X] - TypeError("...is not a valid type for elem_cols")
+[X] - LookupError("unknown encoding")
+[]  - UnicodeDecodeError  (NEED TO NON UTF-8 STYLESHEET)
+[]  - OSError             (NEED UNREACHABLE FILE PATH)
+[X] - KeyError("...is not included in namespaces")
+[X] - KeyError("no valid column")
+[X] - ValueError("stylesheet is not a url, file, or xml string.")
+[]  - LookupError
+[]  - URLError            (GENERAL ERROR USUALLY DUE TO NETWORKING)
+[]  - HTTPError           (NEED TO ONLINE STYLESHEET)
+[X] - OSError("failed to load external entity")
+[X] - XMLSyntaxError("Opening and ending tag mismatch")
+[X] - XSLTApplyError("Cannot resolve URI")
+[X] - XSLTParseError("failed to compile")
+"""
+
+etree_attr_skip_param = pytest.param(
+    "etree",
+    marks=pytest.mark.skipif(
+        sys.version_info <= (3, 7),
+        reason=("etree alpha ordered attributes <= py3.7"),
+    ),
+)
 
 geom_df = DataFrame(
     {
@@ -93,7 +133,28 @@ from_file_expected = """\
 </data>"""
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+@pytest.fixture(params=["rb", "r"])
+def mode(request):
+    return request.param
+
+
+@pytest.fixture(params=["lxml", "etree"])
+def parser(request):
+    return request.param
+
+
+# FAIL SAFE WARNING
+
+
+@td.skip_if_installed("lxml")
+def test_failsafe_parser(datapath):
+    with pytest.warns(ImportWarning, match=("You do not have lxml installed.")):
+        geom_df.to_xml()
+
+
+# FILE OUTPUT
+
+
 def test_file_output_str_read(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, parser=parser)
@@ -112,7 +173,6 @@ def test_file_output_str_read(datapath, parser):
         assert output == from_file_expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_file_output_bytes_read(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, parser=parser)
@@ -131,7 +191,6 @@ def test_file_output_bytes_read(datapath, parser):
         assert output == from_file_expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_str_output(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, parser=parser)
@@ -147,7 +206,9 @@ def test_str_output(datapath, parser):
     assert output == from_file_expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# INDEX
+
+
 def test_index_false(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -192,7 +253,6 @@ def test_index_false(datapath, parser):
         assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_index_false_rename_row_root(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -239,6 +299,8 @@ def test_index_false_rename_row_root(datapath, parser):
         assert output == expected
 
 
+# NA_REP
+
 na_expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -263,7 +325,6 @@ na_expected = """\
 </data>"""
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_na_elem_output(datapath, parser):
     output = geom_df.to_xml(parser=parser)
 
@@ -276,7 +337,6 @@ def test_na_elem_output(datapath, parser):
     assert output == na_expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_na_empty_str_elem_option(datapath, parser):
     output = geom_df.to_xml(na_rep="", parser=parser)
 
@@ -289,7 +349,6 @@ def test_na_empty_str_elem_option(datapath, parser):
     assert output == na_expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_na_empty_elem_option(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -325,7 +384,10 @@ def test_na_empty_elem_option(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# ATTR_COLS
+
+
+@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
 def test_attrs_cols_nan_output(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -346,14 +408,17 @@ def test_attrs_cols_nan_output(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <doc:data xmlns:doc="http://example.xom">
-  <doc:row doc:index="0" doc:shape="square" doc:degrees="360" doc:sides="4.0"/>
-  <doc:row doc:index="1" doc:shape="circle" doc:degrees="360"/>
-  <doc:row doc:index="2" doc:shape="triangle" doc:degrees="180" doc:sides="3.0"/>
+  <doc:row doc:index="0" doc:shape="square" \
+doc:degrees="360" doc:sides="4.0"/>
+  <doc:row doc:index="1" doc:shape="circle" \
+doc:degrees="360"/>
+  <doc:row doc:index="2" doc:shape="triangle" \
+doc:degrees="180" doc:sides="3.0"/>
 </doc:data>"""
 
     output = geom_df.to_xml(
@@ -372,19 +437,19 @@ def test_attrs_cols_prefix(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_attrs_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
         geom_df.to_xml(attr_cols=["shape", "degreees", "sides"], parser=parser)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_attrs_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for attr_cols")):
         geom_df.to_xml(attr_cols='"shape", "degreees", "sides"', parser=parser)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# ELEM_COLS
+
+
 def test_elems_cols_nan_output(datapath, parser):
     elems_cols_expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -419,19 +484,16 @@ def test_elems_cols_nan_output(datapath, parser):
     assert output == elems_cols_expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_elems_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
         geom_df.to_xml(elem_cols=["shape", "degreees", "sides"], parser=parser)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_elems_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for elem_cols")):
         geom_df.to_xml(elem_cols='"shape", "degreees", "sides"', parser=parser)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_elems_and_attrs_cols(datapath, parser):
     elems_cols_expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -466,7 +528,9 @@ def test_elems_and_attrs_cols(datapath, parser):
     assert output == elems_cols_expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# HIERARCHICAL COLUMNS
+
+
 def test_hierarchical_columns(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -475,29 +539,29 @@ def test_hierarchical_columns(datapath, parser):
     <location>inner</location>
     <type>terrestrial</type>
     <count_mass>4</count_mass>
-    <sum_mass>11.811666</sum_mass>
-    <mean_mass>2.9529165</mean_mass>
+    <sum_mass>11.81</sum_mass>
+    <mean_mass>2.95</mean_mass>
   </row>
   <row>
     <location>outer</location>
     <type>gas giant</type>
     <count_mass>2</count_mass>
-    <sum_mass>2466.5044</sum_mass>
-    <mean_mass>1233.2522</mean_mass>
+    <sum_mass>2466.5</sum_mass>
+    <mean_mass>1233.25</mean_mass>
   </row>
   <row>
     <location>outer</location>
     <type>ice giant</type>
     <count_mass>2</count_mass>
-    <sum_mass>189.2253</sum_mass>
-    <mean_mass>94.61265</mean_mass>
+    <sum_mass>189.23</sum_mass>
+    <mean_mass>94.61</mean_mass>
   </row>
   <row>
     <location>All</location>
     <type/>
     <count_mass>8</count_mass>
-    <sum_mass>2667.541366</sum_mass>
-    <mean_mass>333.44267075</mean_mass>
+    <sum_mass>2667.54</sum_mass>
+    <mean_mass>333.44</mean_mass>
   </row>
 </data>"""
 
@@ -506,7 +570,7 @@ def test_hierarchical_columns(datapath, parser):
         values="mass",
         aggfunc=["count", "sum", "mean"],
         margins=True,
-    )
+    ).round(2)
 
     output = pvt.to_xml(parser=parser)
 
@@ -519,19 +583,19 @@ def test_hierarchical_columns(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
   <row location="inner" type="terrestrial" count_mass="4" \
-sum_mass="11.811666" mean_mass="2.9529165"/>
+sum_mass="11.81" mean_mass="2.95"/>
   <row location="outer" type="gas giant" count_mass="2" \
-sum_mass="2466.5044" mean_mass="1233.2522"/>
+sum_mass="2466.5" mean_mass="1233.25"/>
   <row location="outer" type="ice giant" count_mass="2" \
-sum_mass="189.2253" mean_mass="94.61265"/>
+sum_mass="189.23" mean_mass="94.61"/>
   <row location="All" type="" count_mass="8" \
-sum_mass="2667.541366" mean_mass="333.44267075"/>
+sum_mass="2667.54" mean_mass="333.44"/>
 </data>"""
 
     pvt = planet_df.pivot_table(
@@ -539,7 +603,7 @@ sum_mass="2667.541366" mean_mass="333.44267075"/>
         values="mass",
         aggfunc=["count", "sum", "mean"],
         margins=True,
-    )
+    ).round(2)
 
     output = pvt.to_xml(attr_cols=list(pvt.reset_index().columns.values), parser=parser)
 
@@ -552,7 +616,9 @@ sum_mass="2667.541366" mean_mass="333.44267075"/>
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# MULTIINDEX
+
+
 def test_multi_index(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -561,26 +627,30 @@ def test_multi_index(datapath, parser):
     <location>inner</location>
     <type>terrestrial</type>
     <count>4</count>
-    <sum>11.811666</sum>
-    <mean>2.9529165</mean>
+    <sum>11.81</sum>
+    <mean>2.95</mean>
   </row>
   <row>
     <location>outer</location>
     <type>gas giant</type>
     <count>2</count>
-    <sum>2466.5044</sum>
-    <mean>1233.2522</mean>
+    <sum>2466.5</sum>
+    <mean>1233.25</mean>
   </row>
   <row>
     <location>outer</location>
     <type>ice giant</type>
     <count>2</count>
-    <sum>189.2253</sum>
-    <mean>94.61265</mean>
+    <sum>189.23</sum>
+    <mean>94.61</mean>
   </row>
 </data>"""
 
-    agg = planet_df.groupby(["location", "type"])["mass"].agg(["count", "sum", "mean"])
+    agg = (
+        planet_df.groupby(["location", "type"])["mass"]
+        .agg(["count", "sum", "mean"])
+        .round(2)
+    )
 
     output = agg.to_xml(parser=parser)
 
@@ -593,18 +663,24 @@ def test_multi_index(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+@pytest.mark.parametrize("parser", ["lxml", etree_attr_skip_param])
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
-  <row location="inner" type="terrestrial" count="4" sum="11.811666" mean="2.9529165"/>
-  <row location="outer" type="gas giant" count="2" sum="2466.5044" mean="1233.2522"/>
-  <row location="outer" type="ice giant" count="2" sum="189.2253" mean="94.61265"/>
+  <row location="inner" type="terrestrial" count="4" \
+sum="11.81" mean="2.95"/>
+  <row location="outer" type="gas giant" count="2" \
+sum="2466.5" mean="1233.25"/>
+  <row location="outer" type="ice giant" count="2" \
+sum="189.23" mean="94.61"/>
 </data>"""
 
-    agg = planet_df.groupby(["location", "type"])["mass"].agg(["count", "sum", "mean"])
-
+    agg = (
+        planet_df.groupby(["location", "type"])["mass"]
+        .agg(["count", "sum", "mean"])
+        .round(2)
+    )
     output = agg.to_xml(attr_cols=list(agg.reset_index().columns.values), parser=parser)
 
     # etree and lxml differs on quotes and case in xml declaration
@@ -616,7 +692,9 @@ def test_multi_index_attrs_cols(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# NAMESPACE
+
+
 def test_default_namespace(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -652,7 +730,9 @@ def test_default_namespace(parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# PREFIX
+
+
 def test_namespace_prefix(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -690,16 +770,14 @@ def test_namespace_prefix(parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_missing_prefix_in_nmsp(parser):
-    with pytest.raises(KeyError, match=("prefix is not included in namespaces")):
+    with pytest.raises(KeyError, match=("doc is not included in namespaces")):
 
         geom_df.to_xml(
             namespaces={"": "http://example.com"}, prefix="doc", parser=parser
         )
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_namespace_prefix_and_default(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -745,6 +823,8 @@ def test_namespace_prefix_and_default(parser):
     assert output == expected
 
 
+# ENCODING
+
 encoding_expected = """\
 <?xml version='1.0' encoding='ISO-8859-1'?>
 <data>
@@ -781,7 +861,6 @@ encoding_expected = """\
 </data>"""
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_encoding_option_str(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
     df_file = read_xml(filename, parser=parser, encoding="ISO-8859-1").head(5)
@@ -806,7 +885,6 @@ def test_correct_encoding_file(datapath):
         df_file.to_xml(path, index=False, encoding="ISO-8859-1")
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 @pytest.mark.parametrize("encoding", ["UTF-8", "UTF-16", "ISO-8859-1"])
 def test_wrong_encoding_option_lxml(datapath, parser, encoding):
     filename = datapath("io", "data", "xml", "baby_names.xml")
@@ -816,13 +894,14 @@ def test_wrong_encoding_option_lxml(datapath, parser, encoding):
         df_file.to_xml(path, index=False, encoding=encoding, parser=parser)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_misspelled_encoding(parser):
     with pytest.raises(LookupError, match=("unknown encoding")):
         geom_df.to_xml(parser=parser, encoding="uft-8")
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# PRETTY PRINT
+
+
 def test_xml_declaration_pretty_print(parser):
     expected = """\
 <data>
@@ -851,7 +930,6 @@ def test_xml_declaration_pretty_print(parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_no_pretty_print_with_decl(parser):
     expected = (
         "<?xml version='1.0' encoding='utf-8'?>\n"
@@ -873,7 +951,6 @@ def test_no_pretty_print_with_decl(parser):
     assert output == expected
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_no_pretty_print_no_decl(parser):
     expected = (
         "<data><row><index>0</index><shape>square</shape>"
@@ -888,6 +965,8 @@ def test_no_pretty_print_no_decl(parser):
 
     assert output == expected
 
+
+# STYLESHEET
 
 xsl_expected = """\
 <?xml version="1.0" encoding="utf-8"?>
@@ -914,7 +993,6 @@ xsl_expected = """\
 
 
 @td.skip_if_no("lxml")
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_stylesheet_file_like(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
@@ -923,7 +1001,6 @@ def test_stylesheet_file_like(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_stylesheet_io(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
@@ -938,7 +1015,6 @@ def test_stylesheet_io(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_stylesheet_buffered_reader(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
@@ -948,6 +1024,119 @@ def test_stylesheet_buffered_reader(datapath, mode):
     output = geom_df.to_xml(stylesheet=xsl_obj)
 
     assert output == xsl_expected
+
+
+def test_stylesheet_with_etree(datapath):
+    xsl = datapath("io", "data", "xml", "row_field_output.xsl")
+
+    with pytest.warns(
+        UserWarning, match=("To use stylesheet, you need lxml installed.")
+    ):
+        geom_df.to_xml(parser="etree", stylesheet=xsl)
+
+
+@td.skip_if_installed("lxml")
+def test_stylesheet_without_lxml(datapath, parser):
+    xsl = datapath("io", "data", "xml", "row_field_output.xslt")
+
+    with pytest.warns(
+        UserWarning, match=("To use stylesheet, you need lxml installed.")
+    ):
+        geom_df.to_xml(stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+def test_stylesheet_wrong_path(datapath, parser):
+    xsl = os.path.join("data", "xml", "row_field_output.xslt")
+
+    with pytest.raises(OSError, match=("failed to load external entity")):
+        geom_df.to_xml(stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+def test_stylesheet_not_path_buffer(parser):
+    with pytest.raises(
+        ValueError, match=("stylesheet is not a url, file, or xml string")
+    ):
+        geom_df.to_xml(stylesheet=DataFrame)
+
+
+@td.skip_if_no("lxml")
+def test_incorrect_xsl_syntax():
+    from lxml.etree import XMLSyntaxError
+
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:output method="xml" encoding="utf-8" indent="yes" >
+    <xsl:strip-space elements="*"/>
+
+    <xsl:template match="@*|node()">
+        <xsl:copy>
+            <xsl:apply-templates select="@*|node()"/>
+        </xsl:copy>
+    </xsl:template>
+
+    <xsl:template match="row/*">
+        <field>
+            <xsl:attribute name="field">
+                <xsl:value-of select="name()"/>
+            </xsl:attribute>
+            <xsl:value-of select="text()"/>
+        </field>
+    </xsl:template>
+</xsl:stylesheet>"""
+
+    with pytest.raises(XMLSyntaxError, match=("Opening and ending tag mismatch")):
+        geom_df.to_xml(stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+def test_incorrect_xsl_eval():
+    from lxml.etree import XSLTParseError
+
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:output method="xml" encoding="utf-8" indent="yes" />
+    <xsl:strip-space elements="*"/>
+
+    <xsl:template match="@*|node(*)">
+        <xsl:copy>
+            <xsl:apply-templates select="@*|node()"/>
+        </xsl:copy>
+    </xsl:template>
+
+    <xsl:template match="row/*">
+        <field>
+            <xsl:attribute name="field">
+                <xsl:value-of select="name()"/>
+            </xsl:attribute>
+            <xsl:value-of select="text()"/>
+        </field>
+    </xsl:template>
+</xsl:stylesheet>"""
+
+    with pytest.raises(XSLTParseError, match=("failed to compile")):
+        geom_df.to_xml(stylesheet=xsl)
+
+
+def test_incorrect_xsl_apply(parser):
+    from lxml.etree import XSLTApplyError
+
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:output method="xml" encoding="utf-8" indent="yes" />
+    <xsl:strip-space elements="*"/>
+
+    <xsl:template match="@*|node()">
+        <xsl:copy>
+            <xsl:copy-of select="document('non_existent.xml')/*"/>
+        </xsl:copy>
+    </xsl:template>
+</xsl:stylesheet>"""
+
+    with pytest.raises(XSLTApplyError, match=("Cannot resolve URI")):
+        with tm.ensure_clean("test.xml") as path:
+            geom_df.to_xml(path, stylesheet=xsl)
 
 
 @td.skip_if_no("lxml")
@@ -970,7 +1159,7 @@ def test_style_to_csv():
     </xsl:template>
 </xsl:stylesheet>"""
 
-    out_csv = geom_df.to_csv().strip()
+    out_csv = geom_df.to_csv(line_terminator="\n").strip()
     out_xml = geom_df.to_xml(stylesheet=xsl)
 
     assert out_csv == out_xml
@@ -1053,47 +1242,3 @@ def test_style_to_json():
     out_xml = geom_df.to_xml(stylesheet=xsl)
 
     assert out_json == out_xml
-
-
-@pytest.mark.skip(
-    reason="incorrect <th> tag in <tbody> from to_html() to be skipped until fix"
-)
-def test_style_to_html():
-    xsl = """\
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-    <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" />
-    <xsl:strip-space elements="*"/>
-
-    <xsl:template match="/data">
-        <table border="1" class="dataframe">
-            <thead>
-                <tr style="text-align: right;">
-                    <th></th>
-                    <th>shape</th>
-                    <th>degrees</th>
-                    <th>sides</th>
-                </tr>
-            </thead>
-            <tbody>
-                <xsl:apply-templates select="@*|node()"/>
-            </tbody>
-        </table>
-    </xsl:template>
-
-    <xsl:template match="row">
-        <tr>
-            <xsl:apply-templates select="@*|node()"/>
-        </tr>
-    </xsl:template>
-
-    <xsl:template match="row/*">
-        <td>
-            <xsl:value-of select="text()"/>
-        </td>
-    </xsl:template>
-</xsl:stylesheet>"""
-
-    out_html = geom_df.to_html()
-    out_xml = geom_df.to_xml(stylesheet=xsl)
-
-    assert out_html == out_xml

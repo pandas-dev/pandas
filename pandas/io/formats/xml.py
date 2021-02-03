@@ -1,5 +1,5 @@
 """
-Module for formatting output data in XML.
+:mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """
 
 import codecs
@@ -9,6 +9,7 @@ from urllib.error import HTTPError, URLError
 from warnings import warn
 
 from pandas._typing import FilePathOrBuffer
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -16,14 +17,13 @@ from pandas.io.common import is_url, urlopen
 from pandas.io.formats.format import DataFrameFormatter
 
 
-class EtreeXMLFormatter:
+class BaseXMLFormatter:
     """
-    Class for formatting data in xml using Python standard library
-    modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
+    Subclass for formatting data in XML.
 
     Parameters
     ----------
-    io : str or file-like
+    path_or_buffer : str or file-like
         This can be either a string of raw XML, a valid URL,
         file or file-like object.
 
@@ -34,7 +34,7 @@ class EtreeXMLFormatter:
         Name for root of xml document. Default is 'data'.
 
     root_name : str
-        Name for row elemens of xml document. Default is 'row'.
+        Name for row elements of xml document. Default is 'row'.
 
     na_rep : str
         Missing data representation.
@@ -62,23 +62,19 @@ class EtreeXMLFormatter:
         Whether to write xml document with line breaks and indentation.
 
     stylesheet : str or file-like
-        A URL, file, file-like object, or a raw string containing XSLT,
-        `etree` does not support XSLT but retained for consistency.
+        A URL, file, file-like object, or a raw string containing XSLT.
 
     See also
     --------
+    pandas.io.formats.xml.EtreeXMLFormatter
     pandas.io.formats.xml.LxmlXMLFormatter
 
-    Notes
-    -----
-    This class serves as fall back option if user does not have
-    ``lxml`` installed or user specifically requests ``etree`` parser.
     """
 
     def __init__(
         self,
         formatter: DataFrameFormatter,
-        io: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buffer: Optional[FilePathOrBuffer[str]] = None,
         index: Optional[bool] = True,
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
@@ -93,7 +89,7 @@ class EtreeXMLFormatter:
         stylesheet: Optional[FilePathOrBuffer[str]] = None,
     ) -> None:
         self.fmt = formatter
-        self.io = io
+        self.path_or_buffer = path_or_buffer
         self.index = index
         self.root_name = root_name
         self.row_name = row_name
@@ -108,13 +104,6 @@ class EtreeXMLFormatter:
         self.stylesheet = stylesheet
         self.frame = self.fmt.frame
 
-        self.validate_columns()
-        self.validate_encoding()
-        self.orig_cols = self.fmt.frame.columns.tolist()
-        self.frame_dicts = self.process_dataframe()
-        self.handle_indexes()
-        self.prefix_uri = self.get_prefix_uri()
-
     def build_tree(self) -> bytes:
         """
         Build tree from  data.
@@ -122,40 +111,7 @@ class EtreeXMLFormatter:
         This method initializes the root and builds attributes and elements
         with optional namespaces.
         """
-        from xml.etree.ElementTree import Element, SubElement, tostring
-
-        self.root = Element(
-            f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
-        )
-
-        for k, d in self.frame_dicts.items():
-            self.d = d
-            self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
-
-            if self.attr_cols:
-                self.build_attribs()
-            if self.elem_cols:
-                self.build_elems()
-            if not self.attr_cols and not self.elem_cols:
-                self.elem_cols = list(self.frame_dicts[0].keys())
-                self.build_elems()
-
-        self.out_xml = tostring(self.root, method="xml", encoding=self.encoding)
-
-        if self.pretty_print:
-            self.out_xml = self.prettify_tree()
-
-        if not self.xml_declaration:
-            self.out_xml = self.remove_declaration()
-
-        if self.stylesheet:
-            warn(
-                "To use stylesheet, you need lxml installed. "
-                "The non-transformed, original XML is returned instead.",
-                UserWarning,
-            )
-
-        return self.out_xml
+        raise AbstractMethodError(self)
 
     def validate_columns(self) -> None:
         """
@@ -233,23 +189,14 @@ class EtreeXMLFormatter:
         Get uri of namespace prefix.
 
         This method retrieves corresponding URI to prefix in namespaces.
+
+        Raises
+        ------
+        KeyError
+            *If prefix is not included in namespace dict.
         """
 
-        from xml.etree.ElementTree import register_namespace
-
-        uri = ""
-        if self.namespaces:
-            for p, n in self.namespaces.items():
-                register_namespace(p, n)
-            if self.prefix:
-                try:
-                    uri = f"{{{self.namespaces[self.prefix]}}}"
-                except (KeyError):
-                    raise KeyError("prefix is not included in namespaces")
-            else:
-                uri = f'{{{self.namespaces[""]}}}'
-
-        return uri
+        raise AbstractMethodError(self)
 
     def other_namespaces(self) -> dict:
         """
@@ -277,6 +224,109 @@ class EtreeXMLFormatter:
         works with tuples for multindex or hierarchical columns.
         """
 
+        raise AbstractMethodError(self)
+
+    def build_elems(self) -> None:
+        """
+        Create child elements of row.
+
+        This method adds child elements using elem_cols to row element and
+        works with tuples for multindex or hierarchical columns.
+        """
+
+        raise AbstractMethodError(self)
+
+    def write_output(self) -> Optional[str]:
+        xml_doc = self.build_tree()
+
+        try:
+            if self.path_or_buffer:
+                with open(self.path_or_buffer, "wb") as f:
+                    f.write(xml_doc)
+                xml_doc = None
+            else:
+                xml_doc = xml_doc.decode(self.encoding).rstrip()
+        except (UnicodeDecodeError, OSError) as e:
+            raise e
+
+        return xml_doc
+
+
+class EtreeXMLFormatter(BaseXMLFormatter):
+    """
+    Class for formatting data in xml using Python standard library
+    modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
+
+    Notes
+    -----
+    This class serves as fall back option if user does not have
+    ``lxml`` installed or user specifically requests ``etree`` parser.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.validate_columns()
+        self.validate_encoding()
+        self.orig_cols = self.fmt.frame.columns.tolist()
+        self.frame_dicts = self.process_dataframe()
+        self.handle_indexes()
+        self.prefix_uri = self.get_prefix_uri()
+
+    def build_tree(self) -> bytes:
+        from xml.etree.ElementTree import Element, SubElement, tostring
+
+        self.root = Element(
+            f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
+        )
+
+        for k, d in self.frame_dicts.items():
+            self.d = d
+            self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
+
+            if self.attr_cols:
+                self.build_attribs()
+            if self.elem_cols:
+                self.build_elems()
+            if not self.attr_cols and not self.elem_cols:
+                self.elem_cols = list(self.frame_dicts[0].keys())
+                self.build_elems()
+
+        self.out_xml = tostring(self.root, method="xml", encoding=self.encoding)
+
+        if self.pretty_print:
+            self.out_xml = self.prettify_tree()
+
+        if not self.xml_declaration:
+            self.out_xml = self.remove_declaration()
+
+        if self.stylesheet:
+            warn(
+                "To use stylesheet, you need lxml installed. "
+                "Instead, the non-transformed, original XML is returned.",
+                UserWarning,
+            )
+
+        return self.out_xml
+
+    def get_prefix_uri(self) -> str:
+        from xml.etree.ElementTree import register_namespace
+
+        uri = ""
+        if self.namespaces:
+            for p, n in self.namespaces.items():
+                register_namespace(p, n)
+            if self.prefix:
+                try:
+                    uri = f"{{{self.namespaces[self.prefix]}}}"
+                except (KeyError):
+                    raise KeyError(f"{self.prefix} is not included in namespaces")
+            else:
+                uri = f'{{{self.namespaces[""]}}}'
+
+        return uri
+
+    def build_attribs(self) -> None:
         for col in self.attr_cols:
             flat_col = col
             if isinstance(col, tuple):
@@ -294,13 +344,6 @@ class EtreeXMLFormatter:
                 raise KeyError(f"no valid column, {col}")
 
     def build_elems(self) -> None:
-        """
-        Create child elements of row.
-
-        This method adds child elements using elem_cols to row element and
-        works with tuples for multindex or hierarchical columns.
-        """
-
         from xml.etree.ElementTree import SubElement
 
         for col in self.elem_cols:
@@ -342,73 +385,11 @@ class EtreeXMLFormatter:
 
         return self.out_xml.split(b"?>")[-1].strip()
 
-    def write_output(self) -> Optional[str]:
-        xml_doc = self.build_tree()
 
-        try:
-            if self.io:
-                with open(self.io, "wb") as f:
-                    f.write(xml_doc)
-                xml_doc = None
-            else:
-                xml_doc = xml_doc.decode(self.encoding).rstrip()
-        except (UnicodeDecodeError, OSError) as e:
-            raise e
-
-        return xml_doc
-
-
-class LxmlXMLFormatter:
+class LxmlXMLFormatter(BaseXMLFormatter):
     """
     Class for formatting data in xml using Python standard library
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
-
-    Parameters
-    ----------
-    io : str or file-like
-        This can be either a string of raw XML, a valid URL,
-        file or file-like object.
-
-    index : bool
-        Whether to include index in xml document.
-
-    row_name : str
-        Name for root of xml document. Default is 'data'.
-
-    root_name : str
-        Name for row elemens of xml document. Default is 'row'.
-
-    na_rep : str
-        Missing data representation.
-
-    attrs_cols : list
-        List of columns to write as attributes in row element.
-
-    elem_cols : list
-        List of columns to write as children in row element.
-
-    namespacess : dict
-        The namespaces to define in XML document as dicts with key
-        being namespace and value the URI.
-
-    prefix : str
-        The prefix for each element in XML document including root.
-
-    encoding : str
-        Encoding of xml object or document.
-
-    xml_declaration : bool
-        Whether to include xml declaration at top line item in xml.
-
-    pretty_print : bool
-        Whether to write xml document with line breaks and indentation.
-
-    stylesheet : str or file-like
-        A URL, file, file-like object, or a raw string containing XSLT.
-
-    See also
-    --------
-    pandas.io.formats.xml.EtreeXMLFormatter
 
     Notes
     -----
@@ -416,37 +397,8 @@ class LxmlXMLFormatter:
     installed, `to_xml` will fall back with EtreeXMLFormatter.
     """
 
-    def __init__(
-        self,
-        formatter: DataFrameFormatter,
-        io: Optional[FilePathOrBuffer[str]] = None,
-        index: Optional[bool] = True,
-        root_name: Optional[str] = "data",
-        row_name: Optional[str] = "row",
-        na_rep: Optional[str] = None,
-        attr_cols: Optional[Union[str, List[str]]] = None,
-        elem_cols: Optional[Union[str, List[str]]] = None,
-        namespaces: Optional[Dict[str, str]] = None,
-        prefix: Optional[str] = None,
-        encoding: Optional[str] = "utf-8",
-        xml_declaration: Optional[bool] = True,
-        pretty_print: Optional[bool] = True,
-        stylesheet: Optional[FilePathOrBuffer[str]] = None,
-    ) -> None:
-        self.fmt = formatter
-        self.io = io
-        self.index = index
-        self.root_name = root_name
-        self.row_name = row_name
-        self.na_rep = na_rep
-        self.attr_cols = attr_cols
-        self.elem_cols = elem_cols
-        self.namespaces = namespaces
-        self.prefix = prefix
-        self.encoding = encoding
-        self.xml_declaration = xml_declaration
-        self.pretty_print = pretty_print
-        self.stylesheet = stylesheet
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.validate_columns()
         self.validate_encoding()
@@ -495,62 +447,6 @@ class LxmlXMLFormatter:
 
         return self.out_xml
 
-    def validate_columns(self) -> None:
-        """
-        Validate elems_cols and attrs_cols.
-
-        This method will check if columns is list-like.
-
-        Raises
-        ------
-        ValueError
-            * If value is not a list and less then length of nodes.
-        """
-        if self.attr_cols and not is_list_like(self.attr_cols):
-            raise TypeError(
-                f"{type(self.attr_cols).__name__} is not a valid type for attr_cols"
-            )
-
-        if self.elem_cols and not is_list_like(self.elem_cols):
-            raise TypeError(
-                f"{type(self.elem_cols).__name__} is not a valid type for elem_cols"
-            )
-
-    def validate_encoding(self) -> None:
-        """
-        Validate encoding.
-
-        This method will check if encoding is among listed under codecs.
-
-        Raises
-        ------
-        LookupError
-            * If encoding is not available in codecs.
-        """
-
-        try:
-            codecs.lookup(self.encoding)
-        except LookupError as e:
-            raise e
-
-    def process_dataframe(self) -> dict:
-        """
-        Adjust Data Frame to fit xml output.
-
-        This method will adjust underlying data frame for xml output,
-        including replacing missing entities and including indexes.
-        """
-
-        na_dict = {"None": self.na_rep, "NaN": self.na_rep, "nan": self.na_rep}
-
-        df = (
-            (self.fmt.frame.reset_index().applymap(str).replace(na_dict))
-            if self.index
-            else self.fmt.frame.applymap(str).replace(na_dict)
-        )
-
-        return df.to_dict(orient="index")
-
     def convert_empty_str_key(self) -> None:
         """
         Replace zero-lengh string in `namespaces`.
@@ -562,39 +458,14 @@ class LxmlXMLFormatter:
         if self.namespaces and "" in self.namespaces.keys():
             self.namespaces[None] = self.namespaces.pop("", "default")
 
-    def handle_indexes(self) -> None:
-        """
-        Handle indexes.
-
-        This method will add indexes into attr_cols or elem_cols.
-        """
-        indexes = [x for x in self.frame_dicts[0].keys() if x not in self.orig_cols]
-
-        if self.attr_cols and self.index:
-            self.attr_cols = list(indexes) + self.attr_cols
-
-        if self.elem_cols and self.index:
-            self.elem_cols = list(indexes) + self.elem_cols
-
     def get_prefix_uri(self) -> str:
-        """
-        Get uri of namespace prefix.
-
-        This method retrieves corresponding URI to prefix in namespaces.
-
-        Raises
-        ------
-        ValueError
-            *If prefix is not included in namespace dict.
-        """
-
         uri = ""
         if self.namespaces:
             if self.prefix:
                 try:
                     uri = f"{{{self.namespaces[self.prefix]}}}"
                 except (KeyError):
-                    raise KeyError("prefix is not included in namespaces")
+                    raise KeyError(f"{self.prefix} is not included in namespaces")
             else:
                 uri = f'{{{self.namespaces[""]}}}'
 
@@ -656,25 +527,25 @@ class LxmlXMLFormatter:
         as string, depending on object type.
         """
 
-        obj = None
-
         if isinstance(self.stylesheet, str):
             obj = self.stylesheet
 
-        if isinstance(self.stylesheet, bytes):
+        elif isinstance(self.stylesheet, bytes):
             obj = self.stylesheet.decode(self.encoding)
 
-        if isinstance(self.stylesheet, io.StringIO):
+        elif isinstance(self.stylesheet, io.StringIO):
             obj = self.stylesheet.getvalue()
 
-        if isinstance(self.stylesheet, io.BytesIO):
+        elif isinstance(self.stylesheet, io.BytesIO):
             obj = self.stylesheet.getvalue().decode(self.encoding)
 
-        if isinstance(self.stylesheet, io.TextIOWrapper):
+        elif isinstance(self.stylesheet, io.TextIOWrapper):
             obj = self.stylesheet.read()
 
-        if isinstance(self.stylesheet, io.BufferedReader):
+        elif isinstance(self.stylesheet, io.BufferedReader):
             obj = self.stylesheet.read().decode(self.encoding)
+        else:
+            obj = None
 
         return obj
 
@@ -709,7 +580,7 @@ class LxmlXMLFormatter:
         if current_doc:
             is_xml = current_doc.startswith(("<?xml", "<"))
         else:
-            raise ValueError("io is not a url, file, or xml string")
+            raise ValueError("stylesheet is not a url, file, or xml string")
 
         try:
             curr_parser = XMLParser(encoding=self.encoding)
@@ -745,19 +616,3 @@ class LxmlXMLFormatter:
             raise e
 
         return bytes(new_doc)
-
-    def write_output(self) -> Optional[str]:
-        xml_doc = self.build_tree()
-
-        try:
-            if self.io:
-                with open(self.io, "wb") as f:
-                    f.write(xml_doc)
-                xml_doc = None
-            else:
-                xml_doc = xml_doc.decode(self.encoding).rstrip()
-
-        except (UnicodeDecodeError, OSError) as e:
-            raise e
-
-        return xml_doc

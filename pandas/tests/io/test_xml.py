@@ -11,6 +11,43 @@ import pandas._testing as tm
 
 from pandas.io.xml import read_xml
 
+"""
+CHECK LIST
+
+etree
+[X] - ValueError("Either element or attributes can be parsed not both.")
+[X] - ValueError("xpath does not return any nodes...")
+[X] - SyntaxError("You have used an incorrect or unsupported XPath")
+[X] - ValueError("names does not match length of child elements in xpath.")
+[X] - TypeError("...is not a valid type for names")
+[X] - ValueError("io is not a url, file, or xml string")
+[]  - URLError      (GENERAL ERROR USUALLY DUE TO NETWORKING)
+[X] - HTTPError("HTTP Error 404: Not Found")
+[X] - OSError("No such file")
+[]  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+[X] - ImportWarning("You do not have lxml installed.")
+
+lxml
+[X] - ValueError("Either element or attributes can be parsed not both.")
+[X] - XSLTApplyError("Cannot resolve URI")
+[X] - XSLTParseError("document is not a stylesheet")
+[X] - ValueError("xpath does not return any nodes.")
+[X] - XPathEvalError("Invalid expression")
+[]  - XPathSyntaxError   (OLD VERSION IN lxml FOR XPATH ERRORS)
+[X] - TypeError("empty namespace prefix is not supported in XPath")
+[X] - ValueError("names does not match length of child elements in xpath.")
+[X] - TypeError("...is not a valid type for names")
+[X] - ValueError("io is not a url, file, or xml string")
+[X] - LookupError(unknown encoding)
+[]  - URLError      (GENERAL ERROR USUALLY DUE TO NETWORKING)
+[X  - HTTPError("HTTP Error 404: Not Found")
+[X] - OSError("failed to load external entity")
+[X] - XMLSyntaxError("Start tag expected, '<' not found")
+[]  - ParserError   (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+[X] - ValueError("Values for parser can only be lxml or etree.")
+"""
+
+
 xml_default_nmsp = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data xmlns="http://example.com">
@@ -52,6 +89,30 @@ xml_prefix_nmsp = """\
 </doc:data>"""
 
 
+@pytest.fixture(params=["rb", "r"])
+def mode(request):
+    return request.param
+
+
+@pytest.fixture(params=["lxml", "etree"])
+def parser(request):
+    return request.param
+
+
+# FAIL SAFE WARNING
+
+
+@td.skip_if_installed("lxml")
+def test_failsafe_parser(datapath):
+    filename = datapath("io", "data", "xml", "books.xml")
+
+    with pytest.warns(ImportWarning, match=("You do not have lxml installed.")):
+        read_xml(filename)
+
+
+# FILE / URL
+
+
 def test_parser_consistency_file(datapath):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file_lxml = read_xml(filename, parser="lxml")
@@ -67,14 +128,12 @@ def test_parser_consistency_url(datapath):
         "https://data.cityofchicago.org/api/views/"
         "8pix-ypme/rows.xml?accessType=DOWNLOAD"
     )
-    df_file_lxml = read_xml(url, xpath=".//row/row", parser="lxml")
-    df_file_etree = read_xml(url, xpath=".//row/row", parser="etree")
+    df_url_lxml = read_xml(url, xpath=".//row/row", parser="lxml")
+    df_url_etree = read_xml(url, xpath=".//row/row", parser="etree")
 
-    tm.assert_frame_equal(df_file_lxml, df_file_etree)
+    tm.assert_frame_equal(df_url_lxml, df_url_etree)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_file_like(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
     with open(filename, mode) as f:
@@ -93,8 +152,6 @@ def test_file_like(datapath, parser, mode):
     tm.assert_frame_equal(df_file, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_file_io(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
     with open(filename, mode) as f:
@@ -118,8 +175,6 @@ def test_file_io(datapath, parser, mode):
     tm.assert_frame_equal(df_io, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_file_buffered_reader_string(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
     with open(filename, mode) as f:
@@ -140,8 +195,6 @@ def test_file_buffered_reader_string(datapath, parser, mode):
     tm.assert_frame_equal(df_str, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
     with open(filename, mode) as f:
@@ -161,6 +214,11 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     )
 
     tm.assert_frame_equal(df_str, df_expected)
+
+
+def test_not_io_object(parser):
+    with pytest.raises(ValueError, match=("io is not a url, file, or xml string")):
+        read_xml(DataFrame, parser="lxml")
 
 
 def test_wrong_file_lxml(datapath):
@@ -195,14 +253,16 @@ def test_url():
     tm.assert_frame_equal(df_url, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
         url = "https://www.w3schools.com/xml/python.xml"
         read_xml(url, xpath=".//book[count(*)=4]", parser=parser)
 
 
-def test_empty_xpath_lxml(datapath):
+# XPATH
+
+
+def test_empty_xpath_lxml(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     with pytest.raises(ValueError, match=("xpath does not return any nodes")):
         read_xml(filename, xpath=".//python", parser="lxml")
@@ -225,7 +285,9 @@ def test_bad_xpath_lxml(datapath):
         read_xml(filename, xpath=".//[book]", parser="lxml")
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# NAMESPACE
+
+
 def test_default_namespace(parser):
     df_nmsp = read_xml(
         xml_default_nmsp,
@@ -245,7 +307,6 @@ def test_default_namespace(parser):
     tm.assert_frame_equal(df_nmsp, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_prefix_namespace(parser):
     df_nmsp = read_xml(
         xml_prefix_nmsp,
@@ -301,7 +362,9 @@ def test_consistency_prefix_namespace():
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# PREFIX
+
+
 def test_missing_prefix_with_default_namespace(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     with pytest.raises(ValueError, match=("xpath does not return any nodes")):
@@ -337,7 +400,9 @@ def test_none_namespace_prefix(key):
         )
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+# ELEMS AND ATTRS
+
+
 def test_file_elems_and_attrs(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, parser=parser)
@@ -354,7 +419,6 @@ def test_file_elems_and_attrs(datapath, parser):
     tm.assert_frame_equal(df_file, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_file_only_attrs(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, attrs_only=True, parser=parser)
@@ -363,7 +427,6 @@ def test_file_only_attrs(datapath, parser):
     tm.assert_frame_equal(df_file, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_file_only_elems(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, elems_only=True, parser=parser)
@@ -379,7 +442,6 @@ def test_file_only_elems(datapath, parser):
     tm.assert_frame_equal(df_file, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_elem_and_attrs_only(datapath, parser):
     filename = datapath("io", "data", "xml", "cta_rail_lines.kml")
     with pytest.raises(
@@ -389,7 +451,36 @@ def test_elem_and_attrs_only(datapath, parser):
         read_xml(filename, elems_only=True, attrs_only=True, parser=parser)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
+def test_attribute_centric_xml():
+    xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<TrainSchedule>
+      <Stations>
+         <station Name="Manhattan" coords="31,460,195,498"/>
+         <station Name="Laraway Road" coords="63,409,194,455"/>
+         <station Name="179th St (Orland Park)" coords="0,364,110,395"/>
+         <station Name="153rd St (Orland Park)" coords="7,333,113,362"/>
+         <station Name="143rd St (Orland Park)" coords="17,297,115,330"/>
+         <station Name="Palos Park" coords="128,281,239,303"/>
+         <station Name="Palos Heights" coords="148,257,283,279"/>
+         <station Name="Worth" coords="170,230,248,255"/>
+         <station Name="Chicago Ridge" coords="70,187,208,214"/>
+         <station Name="Oak Lawn" coords="166,159,266,185"/>
+         <station Name="Ashburn" coords="197,133,336,157"/>
+         <station Name="Wrightwood" coords="219,106,340,133"/>
+         <station Name="Chicago Union Sta" coords="220,0,360,43"/>
+      </Stations>
+</TrainSchedule>"""
+
+    df_lxml = read_xml(xml, xpath=".//station")
+    df_etree = read_xml(xml, xpath=".//station", parser="etree")
+
+    tm.assert_frame_equal(df_lxml, df_etree)
+
+
+# NAMES
+
+
 def test_names_option_output(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(
@@ -409,7 +500,6 @@ def test_names_option_output(datapath, parser):
     tm.assert_frame_equal(df_file, df_expected)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_names_option_wrong_length(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
@@ -417,12 +507,14 @@ def test_names_option_wrong_length(datapath, parser):
         read_xml(filename, names=["Col1", "Col2", "Col3"], parser=parser)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_names_option_wrong_type(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
     with pytest.raises(TypeError, match=("is not a valid type for names")):
         read_xml(filename, names="Col1, Col2, Col3", parser=parser)
+
+
+# ENCODING
 
 
 @td.skip_if_no("lxml")
@@ -457,7 +549,6 @@ def test_wrong_encoding_etree(datapath, encoding):
     read_xml(filename, parser="etree", encoding=encoding)
 
 
-@pytest.mark.parametrize("parser", ["lxml", "etree"])
 def test_ascii_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
     read_xml(filename, encoding="ascii", parser=parser)
@@ -471,31 +562,7 @@ def test_parser_consistency_with_encoding(datapath):
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
-def test_attribute_centric_xml():
-    xml = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<TrainSchedule>
-      <Stations>
-         <station Name="Manhattan" coords="31,460,195,498"/>
-         <station Name="Laraway Road" coords="63,409,194,455"/>
-         <station Name="179th St (Orland Park)" coords="0,364,110,395"/>
-         <station Name="153rd St (Orland Park)" coords="7,333,113,362"/>
-         <station Name="143rd St (Orland Park)" coords="17,297,115,330"/>
-         <station Name="Palos Park" coords="128,281,239,303"/>
-         <station Name="Palos Heights" coords="148,257,283,279"/>
-         <station Name="Worth" coords="170,230,248,255"/>
-         <station Name="Chicago Ridge" coords="70,187,208,214"/>
-         <station Name="Oak Lawn" coords="166,159,266,185"/>
-         <station Name="Ashburn" coords="197,133,336,157"/>
-         <station Name="Wrightwood" coords="219,106,340,133"/>
-         <station Name="Chicago Union Sta" coords="220,0,360,43"/>
-      </Stations>
-</TrainSchedule>"""
-
-    df_lxml = read_xml(xml, xpath=".//station")
-    df_etree = read_xml(xml, xpath=".//station", parser="etree")
-
-    tm.assert_frame_equal(df_lxml, df_etree)
+# PARSER
 
 
 def test_wrong_parser(datapath):
@@ -505,6 +572,9 @@ def test_wrong_parser(datapath):
         ValueError, match=("Values for parser can only be lxml or etree.")
     ):
         read_xml(filename, parser="bs4")
+
+
+# STYLESHEET
 
 
 @td.skip_if_no("lxml")
@@ -630,7 +700,6 @@ def test_stylesheet_file(datapath):
 
 
 @td.skip_if_no("lxml")
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_stylesheet_file_like(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
@@ -640,7 +709,6 @@ def test_stylesheet_file_like(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_stylesheet_io(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
@@ -653,7 +721,6 @@ def test_stylesheet_io(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-@pytest.mark.parametrize("mode", ["rb", "r"])
 def test_stylesheet_buffered_reader(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
@@ -664,8 +731,102 @@ def test_stylesheet_buffered_reader(datapath, mode):
     read_xml(kml, stylesheet=xsl_obj)
 
 
+def test_not_stylesheet(datapath):
+    from lxml.etree import XSLTParseError
+
+    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
+    xsl = datapath("io", "data", "xml", "books.xml")
+
+    with pytest.raises(XSLTParseError, match=("document is not a stylesheet")):
+        read_xml(kml, stylesheet=xsl)
+
+
 @td.skip_if_no("lxml")
-def test_wrong_stylesheet(datapath):
+def test_incorrect_xsl_syntax(datapath):
+    from lxml.etree import XMLSyntaxError
+
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                              xmlns:k="http://www.opengis.net/kml/2.2"/>
+    <xsl:output method="xml" omit-xml-declaration="yes"
+                cdata-section-elements="k:description" indent="yes"/>
+    <xsl:strip-space elements="*"/>
+
+    <xsl:template match="node()|@*">
+     <xsl:copy>
+       <xsl:apply-templates select="node()|@*"/>
+     </xsl:copy>
+    </xsl:template>
+
+    <xsl:template match="k:MultiGeometry|k:LineString">
+        <xsl:apply-templates select='*'/>
+    </xsl:template>
+
+    <xsl:template match="k:description|k:Snippet|k:Style"/>
+</xsl:stylesheet>"""
+
+    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
+
+    with pytest.raises(
+        XMLSyntaxError, match=("Extra content at the end of the document")
+    ):
+        read_xml(kml, stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+def test_incorrect_xsl_eval(datapath):
+    from lxml.etree import XSLTParseError
+
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                              xmlns:k="http://www.opengis.net/kml/2.2">
+    <xsl:output method="xml" omit-xml-declaration="yes"
+                cdata-section-elements="k:description" indent="yes"/>
+    <xsl:strip-space elements="*"/>
+
+    <xsl:template match="node(*)|@*">
+     <xsl:copy>
+       <xsl:apply-templates select="node()|@*"/>
+     </xsl:copy>
+    </xsl:template>
+
+    <xsl:template match="k:MultiGeometry|k:LineString">
+        <xsl:apply-templates select='*'/>
+    </xsl:template>
+
+    <xsl:template match="k:description|k:Snippet|k:Style"/>
+</xsl:stylesheet>"""
+
+    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
+
+    with pytest.raises(XSLTParseError, match=("failed to compile")):
+        read_xml(kml, stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+def test_incorrect_xsl_apply(datapath):
+    from lxml.etree import XSLTApplyError
+
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:output method="xml" encoding="utf-8" indent="yes" />
+    <xsl:strip-space elements="*"/>
+
+    <xsl:template match="@*|node()">
+        <xsl:copy>
+            <xsl:copy-of select="document('non_existent.xml')/*"/>
+        </xsl:copy>
+    </xsl:template>
+</xsl:stylesheet>"""
+
+    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
+
+    with pytest.raises(XSLTApplyError, match=("Cannot resolve URI")):
+        read_xml(kml, stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+def test_wrong_stylesheet():
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
     xsl = os.path.join("data", "xml", "flatten.xsl")
 

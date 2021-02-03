@@ -1,6 +1,5 @@
 """
-:mod:`pandas.io.xml` is a module containing functionality for dealing with
-XML IO.
+:mod:`pandas.io.xml` is a module for reading XML.
 
 """
 
@@ -10,8 +9,8 @@ from urllib.error import HTTPError, URLError
 from warnings import warn
 
 from pandas._typing import FilePathOrBuffer
-from pandas.errors import ParserError
-from pandas.util._decorators import deprecate_nonkeyword_arguments
+from pandas.compat._optional import import_optional_dependency
+from pandas.errors import AbstractMethodError, ParserError
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -21,10 +20,9 @@ from pandas.io.common import is_url, stringify_path, urlopen
 from pandas.io.parsers import TextParser
 
 
-class _EtreeFrameParser:
+class _XMLFrameParser:
     """
-    Internal class to parse XML into DataFrames with the Python
-    standard library XML modules: `xml.etree.ElementTree`.
+    Internal subclass to parse XML into DataFrames.
 
     Parameters
     ----------
@@ -58,15 +56,22 @@ class _EtreeFrameParser:
 
     See also
     --------
+    pandas.io.xml._EtreeFrameParser
     pandas.io.xml._LxmlFrameParser
 
     Notes
     -----
-    This class serves as fall back option if user does not have
-    ``lxml`` installed or user specifically requests ``etree`` parser.
-    """
+    To subclass this class effectively you must override the following methods:`
+        * :func:`parse_data`
+        * :func:`_parse_nodes`
+        * :func:`_parse_doc`
+        * :func:`_validate_names`
+        * :func:`_validate_path`
 
-    from xml.etree.ElementTree import Element, ElementTree
+
+    See each method's respective documentation for details on their
+    functionality.
+    """
 
     def __init__(
         self,
@@ -87,6 +92,7 @@ class _EtreeFrameParser:
         self.names = names
         self.encoding = encoding
         self.stylesheet = stylesheet
+        self.is_style = None
 
     def parse_data(self) -> List[Dict[str, List[str]]]:
         """
@@ -96,19 +102,7 @@ class _EtreeFrameParser:
         validate xpath, names, parse and return specific nodes.
         """
 
-        if self.stylesheet:
-            warn(
-                "To use stylesheet, you need lxml installed. "
-                "Nodes will be parsed on original XML at the xpath.",
-                UserWarning,
-            )
-
-        self.xml_doc = self._parse_doc()
-
-        self._validate_path()
-        self._validate_names()
-
-        return self._parse_nodes()
+        raise AbstractMethodError(self)
 
     def _parse_nodes(self) -> List[Dict[str, List[str]]]:
         """
@@ -129,6 +123,131 @@ class _EtreeFrameParser:
         elements with missing children or attributes compared to siblings
         will have optional keys filled withi None values.
         """
+
+        raise AbstractMethodError(self)
+
+    def _validate_path(self) -> None:
+        """
+        Validate xpath.
+
+        This method checks for syntax, evaluation, or empty nodes return.
+
+        Raises
+        ------
+        SyntaxError
+            * If xpah is not supported or issues with namespaces.
+
+        ValueError
+            * If xpah does not return any nodes.
+        """
+
+        raise AbstractMethodError(self)
+
+    def _validate_names(self) -> None:
+        """
+        Validate names.
+
+        This method will check if names is a list-like and aligns
+        with length of parse nodes.
+
+        Raises
+        ------
+        ValueError
+            * If value is not a list and less then length of nodes.
+        """
+        raise AbstractMethodError(self)
+
+    def _convert_io(self, xml_data) -> Union[None, str]:
+        """
+        Convert io object to string.
+
+        This method will convert io object into a string or keep
+        as string, depending on object type.
+        """
+
+        if isinstance(xml_data, str):
+            obj = xml_data
+
+        elif isinstance(xml_data, bytes):
+            obj = xml_data.decode(self.encoding)
+
+        elif isinstance(xml_data, io.StringIO):
+            obj = xml_data.getvalue()
+
+        elif isinstance(xml_data, io.BytesIO):
+            obj = xml_data.getvalue().decode(self.encoding)
+
+        elif isinstance(xml_data, io.TextIOWrapper):
+            obj = xml_data.read()
+
+        elif isinstance(xml_data, io.BufferedReader):
+            obj = xml_data.read().decode(self.encoding)
+        else:
+            obj = None
+
+        return obj
+
+    def _parse_doc(self):
+        """
+        Build tree from io.
+
+        This method will parse io object into tree for parsing
+        conditionally by its specific object type.
+
+        Raises
+        ------
+        HttpError
+            * If URL cannot be reached.
+
+        LookupError
+            * If xml document has incorrect or unknown encoding.
+
+        OSError
+            * If file cannot be found.
+
+        ParseError
+            * If xml document conntains syntax issues.
+
+        ValueError
+            * If io object is not readable as string or file-like object.
+        """
+
+        raise AbstractMethodError(self)
+
+
+class _EtreeFrameParser(_XMLFrameParser):
+    """
+    Internal class to parse XML into DataFrames with the Python
+    standard library XML modules: `xml.etree.ElementTree`.
+
+    Notes
+    -----
+    This class serves as fall back option if user does not have
+    ``lxml`` installed or user specifically requests ``etree`` parser.
+    """
+
+    from xml.etree.ElementTree import Element, ElementTree
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def parse_data(self) -> List[Dict[str, List[str]]]:
+
+        if self.stylesheet:
+            warn(
+                "To use stylesheet, you need lxml installed. "
+                "Nodes will be parsed on original XML at the xpath.",
+                UserWarning,
+            )
+
+        self.xml_doc = self._parse_doc()
+
+        self._validate_path()
+        self._validate_names()
+
+        return self._parse_nodes()
+
+    def _parse_nodes(self) -> List[Dict[str, List[str]]]:
 
         elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
 
@@ -215,15 +334,6 @@ class _EtreeFrameParser:
 
     def _validate_path(self) -> None:
         """
-        Validate xpath.
-
-        This method checks for sytnax, evaluation, or empty nodes return.
-
-        Raises
-        ------
-        SyntaxError
-            * If xpah is not supported or issues with namespaces.
-
         Notes
         -----
         `etree` supports limited XPath. If user attempts a more complex
@@ -252,17 +362,6 @@ class _EtreeFrameParser:
             )
 
     def _validate_names(self) -> None:
-        """
-        Validate names.
-
-        This method will check if names is a list-like and aligns
-        with length of parse nodes.
-
-        Raises
-        ------
-        ValueError
-            * If value is not a list and less then length of nodes.
-        """
         if self.names:
             children = self.xml_doc.find(
                 self.xpath, namespaces=self.namespaces
@@ -278,65 +377,14 @@ class _EtreeFrameParser:
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _convert_io(self) -> Union[None, str]:
-        """
-        Convert io object to string.
-
-        This method will convert io object into a string or keep
-        as string, depending on object type.
-        """
-
-        obj = None
-
-        if isinstance(self.io, str):
-            obj = self.io
-
-        if isinstance(self.io, bytes):
-            obj = self.io.decode(self.encoding)
-
-        if isinstance(self.io, io.StringIO):
-            obj = self.io.getvalue()
-
-        if isinstance(self.io, io.BytesIO):
-            obj = self.io.getvalue().decode(self.encoding)
-
-        if isinstance(self.io, io.TextIOWrapper):
-            obj = self.io.read()
-
-        if isinstance(self.io, io.BufferedReader):
-            obj = self.io.read().decode(self.encoding)
-
-        return obj
-
     def _parse_doc(self) -> Union[Element, ElementTree]:
-        """
-        Build tree from io.
-
-        This method will parse io object into tree for parsing
-        conditionally by its specific object type.
-
-        Raises
-        ------
-        HttpError
-            * If URL cannot be reached.
-
-        OSError
-            * If file cannot be found.
-
-        ParseError
-            * If xml document conntains syntax issues.
-
-        ValueError
-            * If io object is not readable as string or file-like object.
-        """
-
         from xml.etree.ElementTree import ParseError, fromstring, parse
 
-        current_doc = self._convert_io()
+        current_doc = self._convert_io(self.io)
         if current_doc:
             is_xml = current_doc.startswith(("<?xml", "<"))
         else:
-            raise ValueError("io is not a url, file, or xml string")
+            raise ValueError("io is not a url, file, or xml string.")
 
         is_xml = (
             (current_doc.decode(self.encoding).startswith(("<?xml", "<")))
@@ -358,44 +406,11 @@ class _EtreeFrameParser:
         return r
 
 
-class _LxmlFrameParser:
+class _LxmlFrameParser(_XMLFrameParser):
     """
     Internal class to parse XML into DataFrames with third-party
     full-featured XML library, `lxml`, that supports
     XPath 1.0 and XSLT 1.0.
-
-    Parameters
-    ----------
-    io : str or file-like
-        This can be either a string of raw XML, a valid URL,
-        file or file-like object.
-
-    xpath : str or regex
-        The XPath expression to parse required set of nodes for
-        migration to `Data Frame`.
-
-    namespacess : dict
-        The namespaces defined in XML document (`xmlns:namespace='URI')
-        as dicts with key being namespace and value the URI.
-
-    elems_only : bool
-        Parse only the child elements at the specified `xpath`.
-
-    attrs_only : bool
-        Parse only the attributes at the specified `xpath`.
-
-    names : list
-        Column names for Data Frame of parsed XML data.
-
-    encoding : str
-        Encoding of xml object or document.
-
-    stylesheet : str or file-like
-        URL, file, file-like object, or a raw string containing XSLT.
-
-    See also
-    --------
-    pandas.io.xml._EtreeFrameParser
 
     Notes
     -----
@@ -405,28 +420,8 @@ class _LxmlFrameParser:
     efficiency.
     """
 
-    def __init__(
-        self,
-        io,
-        xpath,
-        namespaces,
-        elems_only,
-        attrs_only,
-        names,
-        encoding,
-        stylesheet,
-    ):
-        self.io = io
-        self.xpath = xpath
-        self.namespaces = namespaces
-        self.elems_only = elems_only
-        self.attrs_only = attrs_only
-        self.names = names
-        self.encoding = encoding
-        self.stylesheet = stylesheet
-        self.is_style = False
-
-        self.compression = "infer"
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def parse_data(self) -> List[Dict[str, List[str]]]:
         """
@@ -450,24 +445,6 @@ class _LxmlFrameParser:
         return self._parse_nodes()
 
     def _parse_nodes(self) -> List[Dict[str, List[str]]]:
-        """
-        Parse xml nodes.
-
-        This method will parse the children and attributes of elements
-        in xpath, conditionally for only elements, only attributes
-        or both while optionally renaming node names.
-
-        Raises
-        ------
-        ValueError
-            * If only elements and only attributes are specified.
-
-        Notes
-        -----
-        Namespace URIs will be removed from return node values.Also,
-        elements with missing children or attributes compared to siblings
-        will have optional keys filled withi None values.
-        """
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
 
         if self.elems_only and self.attrs_only:
@@ -570,21 +547,6 @@ class _LxmlFrameParser:
         return new_doc
 
     def _validate_path(self) -> None:
-        """
-        Validate xpath.
-
-        This method checks for sytnax, evaluation, or empty nodes return.
-
-        Raises
-        ------
-        SyntaxError
-            * If xpah is not supported or issues with namespaces.
-
-        Notes
-        -----
-        `etree` supports limited XPath. If user attempts a more complex
-        expression syntax error will raise.
-        """
         from lxml.etree import XPathEvalError, XPathSyntaxError
 
         try:
@@ -632,70 +594,16 @@ class _LxmlFrameParser:
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _convert_io(self) -> Union[None, str]:
-        """
-        Convert filepath_or_buffer object to string.
-
-        This method will convert io object into a string or keep
-        as string, depending on object type.
-        """
-
-        obj = None
-
-        if isinstance(self.raw_doc, str):
-            obj = self.raw_doc
-
-        if isinstance(self.raw_doc, bytes):
-            obj = self.raw_doc.decode(self.encoding)
-
-        if isinstance(self.raw_doc, io.StringIO):
-            obj = self.raw_doc.getvalue()
-
-        if isinstance(self.raw_doc, io.BytesIO):
-            obj = self.raw_doc.getvalue().decode(self.encoding)
-
-        if isinstance(self.raw_doc, io.TextIOWrapper):
-            obj = self.raw_doc.read()
-
-        if isinstance(self.raw_doc, io.BufferedReader):
-            obj = self.raw_doc.read().decode(self.encoding)
-
-        return obj
-
     def _parse_doc(self):
-        """
-        Build tree from io.
-
-        This method will parse io object into tree for parsing
-        conditionally by its specific object type.
-
-        Raises
-        ------
-        HttpError
-            * If URL cannot be reached.
-
-        LookupError
-            * If xml document has incorrect or unknown encoding.
-
-        OSError
-            * If file cannot be found.
-
-        XMLSyntaxError
-            * If xml document conntains syntax issues.
-
-        ValueError
-            * If io object is not readable as string or file-like object.
-        """
-
         from lxml.etree import XML, XMLParser, XMLSyntaxError, parse
 
         self.raw_doc = self.stylesheet if self.is_style else self.io
 
-        current_doc = self._convert_io()
+        current_doc = self._convert_io(self.raw_doc)
         if current_doc:
             is_xml = current_doc.startswith(("<?xml", "<"))
         else:
-            raise ValueError("io is not a url, file, or xml string")
+            raise ValueError("io is not a url, file, or xml string.")
 
         try:
             curr_parser = XMLParser(encoding=self.encoding)
@@ -766,8 +674,12 @@ def _parse(
     fallback option with etree parser.
     """
 
+    lxml = import_optional_dependency(
+        "lxml.etree", raise_on_missing=False, on_version="ignore"
+    )
+
     if parser == "lxml":
-        try:
+        if lxml is not None:
             p = _LxmlFrameParser(
                 io,
                 xpath,
@@ -778,7 +690,7 @@ def _parse(
                 encoding,
                 stylesheet,
             )
-        except ImportError:
+        else:
             warn(
                 "You do not have lxml installed (default parser). "
                 "Instead, etree will be used.",
@@ -815,7 +727,6 @@ def _parse(
     return _data_to_frame(data=data_dicts, **kwargs)
 
 
-@deprecate_nonkeyword_arguments(version="2.0")
 def read_xml(
     io: FilePathOrBuffer,
     xpath: Optional[str] = "./*",
@@ -828,7 +739,7 @@ def read_xml(
     stylesheet: Optional[FilePathOrBuffer[str]] = None,
 ) -> DataFrame:
     r"""
-    Read XML docuemnts into a ``DataFrame`` object.
+    Read XML document into a ``DataFrame`` object.
 
     .. versionadded:: 1.3.0
 

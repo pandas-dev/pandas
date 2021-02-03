@@ -41,34 +41,71 @@ See ref:`window.overview` for performance and functional benefits. (:issue:`1509
 
 .. _whatsnew_130.read_to_xml:
 
-We added I/O support to read and render shallow versions of XML documents with 
-:func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using lxml as parser, 
+We added I/O support to read and render shallow versions of XML documents with
+:func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using lxml as parser,
+full XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
+=======
+We added I/O support to read and render shallow versions of `XML`_ documents with
+:func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using `lxml`_ as parser,
 full XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
 
-.. ipython:: python
+.. _XML: https://www.w3.org/standards/xml/core
+.. _lxml: https://lxml.de
 
-    xml = """<?xml version='1.0' encoding='utf-8'?>
+.. code-block:: ipython
+
+    In [1]: xml = """<?xml version='1.0' encoding='utf-8'?>
+       ...: <data>
+       ...:  <row>
+       ...:     <shape>square</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides>4.0</sides>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>circle</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides/>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>triangle</shape>
+       ...:     <degrees>180</degrees>
+       ...:     <sides>3.0</sides>
+       ...:  </row>
+       ...:  </data>"""
+
+    In [2]: df = pd.read_xml(xml)
+    In [3]: df
+    Out[3]:
+          shape  degrees  sides
+    0    square      360    4.0
+    1    circle      360    NaN
+    2  triangle      180    3.0
+
+    In [4]: df.to_xml()
+    Out[4]:
+    <?xml version='1.0' encoding='utf-8'?>
     <data>
       <row>
+        <index>0</index>
         <shape>square</shape>
         <degrees>360</degrees>
         <sides>4.0</sides>
       </row>
       <row>
+        <index>1</index>
         <shape>circle</shape>
         <degrees>360</degrees>
         <sides/>
       </row>
       <row>
+        <index>2</index>
         <shape>triangle</shape>
         <degrees>180</degrees>
         <sides>3.0</sides>
       </row>
-    </data>"""
+    </data>
 
-    df = pd.read_xml(xml)
-
-    df.to_xml()
+For more, see :ref:`io` in the user guide on IO tools.
 
 .. _whatsnew_130.enhancements.other:
 

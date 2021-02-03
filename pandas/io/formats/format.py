@@ -51,6 +51,7 @@ from pandas._typing import (
     IndexLabel,
     StorageOptions,
 )
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -1007,7 +1008,7 @@ class DataFrameRenderer:
 
     def to_xml(
         self,
-        io: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buffer: Optional[FilePathOrBuffer[str]] = None,
         index: Optional[bool] = True,
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
@@ -1029,7 +1030,7 @@ class DataFrameRenderer:
 
         Parameters
         ----------
-        io : str, path object or file-like object, optional
+        path_or_buffer : str, path object or file-like object, optional
             File to write output to. If None, the output is returned as a
             string.
         index : bool, optional
@@ -1084,10 +1085,14 @@ class DataFrameRenderer:
 
         from pandas.io.formats.xml import EtreeXMLFormatter, LxmlXMLFormatter
 
+        lxml = import_optional_dependency(
+            "lxml.etree", raise_on_missing=False, on_version="ignore"
+        )
+
         if parser == "lxml":
-            try:
+            if lxml is not None:
                 TreeBuilder = LxmlXMLFormatter
-            except ImportError:
+            else:
                 warn(
                     "You do not have lxml installed (default parser). "
                     "Instead, etree will be used.",
@@ -1103,7 +1108,7 @@ class DataFrameRenderer:
 
         xml_formatter = TreeBuilder(
             self.fmt,
-            io=io,
+            path_or_buffer=path_or_buffer,
             index=index,
             root_name=root_name,
             row_name=row_name,

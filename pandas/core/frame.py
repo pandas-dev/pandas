@@ -2606,7 +2606,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_xml(
         self,
-        io: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buffer: Optional[FilePathOrBuffer[str]] = None,
         index: Optional[bool] = True,
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
@@ -2628,7 +2628,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        io : str, path object or file-like object, optional
+        path_or_buffer : str, path object or file-like object, optional
             File to write output to. If None, the output is returned as a
             string.
         index : bool, optional
@@ -2760,7 +2760,7 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         return fmt.DataFrameRenderer(formatter).to_xml(
-            io=io,
+            path_or_buffer=path_or_buffer,
             index=index,
             root_name=root_name,
             row_name=row_name,
