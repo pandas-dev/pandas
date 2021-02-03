@@ -4381,7 +4381,10 @@ Keep all original rows and also all original values
                 (
                     "The `columns` parameter does nothing on a Series object. "
                     "It may be removed in a future version."
-                ), Warning, stacklevel=2, )
+                ), 
+                Warning,
+                stacklevel=2,
+            )
             
         return super().drop(
             labels=labels,
