@@ -307,14 +307,6 @@ class SetitemCastingEquivalents:
         - the setitem does not expand the obj
     """
 
-    @pytest.fixture(params=[np.nan, np.float64("NaN")])
-    def val(self, request):
-        """
-        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
-        attribute.
-        """
-        return request.param
-
     def check_indexer(self, obj, key, expected, val, indexer, is_inplace):
         orig = obj
         obj = obj.copy()
