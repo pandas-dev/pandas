@@ -842,6 +842,9 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         result = super()._apply_pairwise(target, other, pairwise, func)
         # Modify the resulting index to include the groupby level
         if other is not None:
+            # When we have other, we must reindex (expand) the result
+            # from flex_binary_moment to a "transform"-like result
+            # per groupby combination
             old_result_len = len(result)
             result = concat(
                 [
@@ -869,6 +872,8 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             result_names = list(self._groupby.keys) + [result.index.name]
 
         else:
+            # When we evaluate the pairwise=True result, repeat the groupby
+            # labels by the number of columns in the original object
             groupby_codes = self._groupby.grouper.codes
             groupby_levels = self._groupby.grouper.levels
 
