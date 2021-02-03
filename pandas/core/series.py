@@ -4376,6 +4376,13 @@ Keep all original rows and also all original values
                 length      0.3
         dtype: float64
         """
+        if columns != None:
+            warnings.warn(
+                (
+                    "The `columns` parameter does nothing on a Series object. "
+                    "It may be removed in a future version."
+                ), Warning, stacklevel=2, )
+            
         return super().drop(
             labels=labels,
             axis=axis,
