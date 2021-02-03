@@ -116,3 +116,11 @@ def test_to_excel_with_openpyxl_engine(ext):
         ).highlight_max()
 
         styled.to_excel(filename, engine="openpyxl")
+
+
+def test_read_workbook(datapath, ext):
+    filename = datapath("io", "data", "excel", "test1" + ext)
+    wb = openpyxl.load_workbook(filename)
+    result = pd.read_excel(wb, engine="openpyxl")
+    expected = pd.read_excel(filename)
+    tm.assert_frame_equal(result, expected)
