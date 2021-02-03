@@ -1663,7 +1663,7 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def sem(self, ddof: int = 1, *args, **kwargs):
-        return self.std(*args, **kwargs) / self.count().pow(0.5)
+        return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
 
     _shared_docs["sem"] = dedent(
         """
@@ -2051,8 +2051,7 @@ class Rolling(RollingAndExpandingMixin):
                 freq = to_offset(self.window)
             except (TypeError, ValueError) as err:
                 raise ValueError(
-                    f"passed window {self.window} is not "
-                    "compatible with a datetimelike index"
+                    f"passed window {self.window} is not " "compatible with a d index"
                 ) from err
             if isinstance(self._on, ABCPeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
@@ -2208,7 +2207,7 @@ class Rolling(RollingAndExpandingMixin):
     @Substitution(name="rolling")
     @Appender(_shared_docs["sem"])
     def sem(self, ddof=1, *args, **kwargs):
-        return self.std(ddof=ddof, *args, **kwargs) / self.count().pow(0.5)
+        return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
 
     _agg_doc = dedent(
         """
