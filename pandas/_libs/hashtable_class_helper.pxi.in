@@ -392,9 +392,8 @@ cdef class {{name}}HashTable(HashTable):
 
     def __cinit__(self, int64_t size_hint=1):
         self.table = kh_init_{{dtype}}()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_{{dtype}}(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_{{dtype}}(self.table, size_hint)
 
     def __len__(self) -> int:
         return self.table.size
@@ -419,6 +418,15 @@ cdef class {{name}}HashTable(HashTable):
         for_pairs =  self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
@@ -731,9 +739,8 @@ cdef class StringHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_str()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_str(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -746,6 +753,15 @@ cdef class StringHashTable(HashTable):
         for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """ returns infos about the state of the hashtable"""
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, str val):
         cdef:
@@ -1044,9 +1060,8 @@ cdef class PyObjectHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_pymap()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_pymap(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -1071,6 +1086,18 @@ cdef class PyObjectHashTable(HashTable):
         for_pairs =  self.table.n_buckets * (sizeof(PyObject *) +  # keys
                                              sizeof(Py_ssize_t))   # vals
         return overhead + for_flags + for_pairs
+
+    def get_state(self):
+        """
+        returns infos about the current state of the hashtable like size,
+        number of buckets and so on.
+        """
+        return {
+            'n_buckets' : self.table.n_buckets,
+            'size' : self.table.size,
+            'n_occupied' : self.table.n_occupied,
+            'upper_bound' : self.table.upper_bound,
+        }
 
     cpdef get_item(self, object val):
         cdef:

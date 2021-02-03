@@ -24,10 +24,10 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.4
+    rev: v2.9.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus]
+        args: [--py37-plus, --keep-runtime-typing]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.7.0
     hooks:
@@ -192,6 +192,11 @@ repos:
         files: ^pandas/
         exclude: ^pandas/tests/
 -   repo: https://github.com/MarcoGorelli/no-string-hints
-    rev: v0.1.5
+    rev: v0.1.7
     hooks:
     -   id: no-string-hints
+-   repo: https://github.com/MarcoGorelli/abs-imports
+    rev: v0.1.2
+    hooks:
+    -   id: abs-imports
+        files: ^pandas/

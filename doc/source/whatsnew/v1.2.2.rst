@@ -14,7 +14,13 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+
+- Fixed regression in :func:`read_excel` that caused it to raise ``AttributeError`` when checking version of older xlrd versions (:issue:`38955`)
+- Fixed regression in :class:`DataFrame` constructor reordering element when construction from datetime ndarray with dtype not ``"datetime64[ns]"`` (:issue:`39422`)
+- Fixed regression in :class:`DataFrame.astype` and :class:`Series.astype` not casting to bytes dtype (:issue:`39474`)
+- Fixed regression in :meth:`~DataFrame.to_pickle` failing to create bz2/xz compressed pickle files with ``protocol=5`` (:issue:`39002`)
+- Fixed regression in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` always raising ``AssertionError`` when comparing extension dtypes (:issue:`39410`)
+- Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamWriter`` in binary mode instead of in text mode and ignoring user-provided ``mode`` (:issue:`39247`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -24,7 +30,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
--
+- :func:`pandas.read_excel` error message when a specified ``sheetname`` does not exist is now uniform across engines (:issue:`39250`)
 -
 
 .. ---------------------------------------------------------------------------

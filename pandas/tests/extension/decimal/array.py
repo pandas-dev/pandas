@@ -9,7 +9,7 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import is_dtype_equal, pandas_dtype
+from pandas.core.dtypes.common import is_dtype_equal, is_float, pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
@@ -52,8 +52,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None):
-        for val in values:
-            if not isinstance(val, decimal.Decimal):
+        for i, val in enumerate(values):
+            if is_float(val) and np.isnan(val):
+                values[i] = DecimalDtype.na_value
+            elif not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " + str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
 
@@ -227,6 +229,11 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
         return np.asarray(res, dtype=bool)
+
+    def value_counts(self, dropna: bool = True):
+        from pandas.core.algorithms import value_counts
+
+        return value_counts(self.to_numpy(), dropna=dropna)
 
 
 def to_decimal(values, context=None):

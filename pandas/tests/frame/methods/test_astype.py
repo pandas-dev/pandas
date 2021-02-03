@@ -651,3 +651,8 @@ class TestAstype:
         # For non-NA values, we should match what we get for non-EA str
         alt = obj.astype(str)
         assert np.all(alt.iloc[1:] == result.iloc[1:])
+
+    def test_astype_bytes(self):
+        # GH#39474
+        result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes[0] == np.dtype("S3")

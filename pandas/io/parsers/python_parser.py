@@ -3,7 +3,7 @@ import csv
 from io import StringIO
 import re
 import sys
-from typing import Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, Set, cast
 
 import numpy as np
 
@@ -53,7 +53,6 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds["skipinitialspace"]
         self.lineterminator = kwds["lineterminator"]
         self.quoting = kwds["quoting"]
-        self.usecols, _ = self._validate_usecols_arg(kwds["usecols"])
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
         self.warn_bad_lines = kwds["warn_bad_lines"]
@@ -136,10 +135,12 @@ class PythonParser(ParserBase):
             self._col_indices = list(range(len(self.columns)))
 
         self._validate_parse_dates_presence(self.columns)
+        no_thousands_columns: Optional[Set[int]] = None
         if self.parse_dates:
-            self._no_thousands_columns = self._set_no_thousands_columns()
-        else:
-            self._no_thousands_columns = None
+            no_thousands_columns = self._set_noconvert_dtype_columns(
+                self._col_indices, self.columns
+            )
+        self._no_thousands_columns = no_thousands_columns
 
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
@@ -154,44 +155,6 @@ class PythonParser(ParserBase):
                 fr"([0-9]?(E|e)\-?[0-9]+)?$"
             )
         self.num = re.compile(regex)
-
-    def _set_no_thousands_columns(self):
-        # Create a set of column ids that are not to be stripped of thousands
-        # operators.
-        noconvert_columns = set()
-
-        def _set(x):
-            if is_integer(x):
-                noconvert_columns.add(x)
-            else:
-                assert self._col_indices is not None
-                col_indices = self._col_indices
-                noconvert_columns.add(col_indices[self.columns.index(x)])
-
-        if isinstance(self.parse_dates, list):
-            for val in self.parse_dates:
-                if isinstance(val, list):
-                    for k in val:
-                        _set(k)
-                else:
-                    _set(val)
-
-        elif isinstance(self.parse_dates, dict):
-            for val in self.parse_dates.values():
-                if isinstance(val, list):
-                    for k in val:
-                        _set(k)
-                else:
-                    _set(val)
-
-        elif self.parse_dates:
-            if isinstance(self.index_col, list):
-                for k in self.index_col:
-                    _set(k)
-            elif self.index_col is not None:
-                _set(self.index_col)
-
-        return noconvert_columns
 
     def _make_reader(self, f):
         sep = self.delimiter
