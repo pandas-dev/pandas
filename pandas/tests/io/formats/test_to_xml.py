@@ -33,7 +33,7 @@ lxml
 [X] - KeyError("...is not included in namespaces")
 [X] - KeyError("no valid column")
 [X] - ValueError("stylesheet is not a url, file, or xml string.")
-[]  - LookupError
+[]  - LookupError         (NEED WRONG ENCODING FOR FILE OUTPUT)
 []  - URLError            (USUALLY DUE TO NETWORKING)
 []  - HTTPError           (NEED AN ONLINE STYLESHEET)
 [X] - OSError("failed to load external entity")
@@ -380,7 +380,7 @@ def test_na_empty_elem_option(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info <= (3, 7),
+    sys.version_info < (3, 8),
     reason=("etree alpha ordered attributes <= py3.7"),
 )
 def test_attrs_cols_nan_output(datapath, parser):
@@ -404,7 +404,7 @@ def test_attrs_cols_nan_output(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info <= (3, 7),
+    sys.version_info < (3, 8),
     reason=("etree alpha ordered attributes <= py3.7"),
 )
 def test_attrs_cols_prefix(datapath, parser):
@@ -582,7 +582,7 @@ def test_hierarchical_columns(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info <= (3, 7),
+    sys.version_info < (3, 8),
     reason=("etree alpha ordered attributes <= py3.7"),
 )
 def test_hierarchical_attrs_columns(datapath, parser):
@@ -665,7 +665,7 @@ def test_multi_index(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info <= (3, 7),
+    sys.version_info < (3, 8),
     reason=("etree alpha ordered attributes <= py3.7"),
 )
 def test_multi_index_attrs_cols(datapath, parser):
@@ -906,7 +906,8 @@ def test_misspelled_encoding(parser):
 # PRETTY PRINT
 
 
-def test_xml_declaration_pretty_print(parser):
+@td.skip_if_no("lxml")
+def test_xml_declaration_pretty_print():
     expected = """\
 <data>
   <row>
@@ -929,12 +930,13 @@ def test_xml_declaration_pretty_print(parser):
   </row>
 </data>"""
 
-    output = geom_df.to_xml(xml_declaration=False, parser=parser)
+    output = geom_df.to_xml(xml_declaration=False)
 
     assert output == expected
 
 
-def test_no_pretty_print_with_decl(parser):
+@td.skip_if_no("lxml")
+def test_no_pretty_print_with_decl():
     expected = (
         "<?xml version='1.0' encoding='utf-8'?>\n"
         "<data><row><index>0</index><shape>square</shape>"
@@ -945,7 +947,7 @@ def test_no_pretty_print_with_decl(parser):
         "</row></data>"
     )
 
-    output = geom_df.to_xml(pretty_print=False, parser=parser)
+    output = geom_df.to_xml(pretty_print=False)
 
     output = output.replace(
         '<?xml version="1.0" encoding="utf-8"?',
@@ -956,7 +958,8 @@ def test_no_pretty_print_with_decl(parser):
     assert output == expected
 
 
-def test_no_pretty_print_no_decl(parser):
+@td.skip_if_no("lxml")
+def test_no_pretty_print_no_decl():
     expected = (
         "<data><row><index>0</index><shape>square</shape>"
         "<degrees>360</degrees><sides>4.0</sides></row><row>"
@@ -966,7 +969,7 @@ def test_no_pretty_print_no_decl(parser):
         "</row></data>"
     )
 
-    output = geom_df.to_xml(xml_declaration=False, pretty_print=False, parser=parser)
+    output = geom_df.to_xml(xml_declaration=False, pretty_print=False)
 
     assert output == expected
 
@@ -1031,7 +1034,7 @@ def test_stylesheet_buffered_reader(datapath, mode):
     assert output == xsl_expected
 
 
-def test_stylesheet_with_etree(datapath):
+def test_stylesheet_with_etree_parser(datapath):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
     with pytest.warns(
@@ -1127,6 +1130,7 @@ def test_incorrect_xsl_eval():
         geom_df.to_xml(stylesheet=xsl)
 
 
+@td.skip_if_no("lxml")
 def test_incorrect_xsl_apply(parser):
     from lxml.etree import XSLTApplyError
 
