@@ -51,7 +51,6 @@ from pandas.core.dtypes.missing import notna
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError, SelectionMixin
-import pandas.core.common as common
 from pandas.core.construction import extract_array
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
@@ -835,10 +834,11 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         return result
 
     def _apply_pairwise(self, target, other, pairwise, func):
+        def as_list(arg):
+            return [arg] if not isinstance(arg, (tuple, list)) else arg
+
         # Manually drop the grouping column first
-        target = target.drop(
-            columns=common.maybe_make_list(self._groupby.keys), errors="ignore"
-        )
+        target = target.drop(columns=as_list(self._groupby.keys), errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func)
         # Modify the resulting index to include the groupby level
         if other is not None:
@@ -853,9 +853,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
                 ]
             )
 
-            gb_pairs = (
-                common.maybe_make_list(pair) for pair in self._groupby.indices.keys()
-            )
+            gb_pairs = (as_list(pair) for pair in self._groupby.indices.keys())
             groupby_codes = []
             groupby_levels = []
             # e.g. [[1, 2], [4, 5]] as [[1, 4], [2, 5]]
@@ -866,10 +864,9 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
                 groupby_levels.append(levels)
 
             result_codes, result_levels = factorize(result.index)
-
             result_codes = groupby_codes + [result_codes]
             result_levels = groupby_levels + [result_levels]
-            result_names = list(self._groupby.keys) + [result.index.name]
+            result_names = as_list(self._groupby.keys) + [result.index.name]
 
         else:
             # When we evaluate the pairwise=True result, repeat the groupby
@@ -890,10 +887,19 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             groupby_codes = [
                 np.repeat(c.take(indexer), repeat_by) for c in groupby_codes
             ]
+            if isinstance(result.index, MultiIndex):
+                result_codes = list(result.index.codes)
+                result_levels = list(result.index.levels)
+                result_names = list(result.index.names)
+            else:
+                result_codes, result_levels = factorize(result.index)
+                result_codes = [result_codes]
+                result_levels = [result_levels]
+                result_names = [result.index.name]
 
-            result_codes = groupby_codes + list(result.index.codes)
-            result_levels = groupby_levels + list(result.index.levels)
-            result_names = list(self._groupby.keys) + list(result.index.names)
+            result_codes = groupby_codes + result_codes
+            result_levels = groupby_levels + result_levels
+            result_names = as_list(self._groupby.keys) + result_names
 
         result_index = MultiIndex(
             result_levels, result_codes, names=result_names, verify_integrity=False
