@@ -1413,6 +1413,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     # ---------------------------------------------------------------------
 
+    def putmask(self, mask: np.ndarray, value) -> None:
+        value_left, value_right = self._validate_setitem_value(value)
+
+        if isinstance(self._left, np.ndarray):
+            np.putmask(self._left, mask, value_left)
+            np.putmask(self._right, mask, value_right)
+        else:
+            self._left.putmask(mask, value_left)
+            self._right.putmask(mask, value_right)
+
     def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
