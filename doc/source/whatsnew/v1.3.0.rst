@@ -55,7 +55,7 @@ Other enhancements
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
 - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes.
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
-
+- :class:`Rolling` now support centered datetime-like windows (:issue:`38780`)
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_130.notable_bug_fixes:
