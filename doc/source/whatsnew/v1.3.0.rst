@@ -33,6 +33,30 @@ For example:
         storage_options=headers
     )
 
+Centered Datetime-Like Rolling Windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When performing rolling calculations on :class:`DataFrame` and :class:`Series`
+objects with a datetime-like index, a centered datetime-like window can now be 
+used (:issue:`38780`).
+For example:
+
+.. code-block:: ipython
+
+   In [1]: df = DataFrame(
+              {"A": [0, 1, 2, 3, 4]}, 
+              index=date_range("2020", periods=5, freq="1D")
+           )
+
+   In [2]: df.rolling("2D", center=True).mean()
+   Out [2]: 
+                    A
+      2020-01-01	0.5
+      2020-01-02	1.5
+      2020-01-03	2.5
+      2020-01-04	3.5
+      2020-01-05	4.0
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
@@ -55,7 +79,6 @@ Other enhancements
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
 - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes.
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
-- :class:`Rolling` now support centered datetime-like windows (:issue:`38780`)
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_130.notable_bug_fixes:
