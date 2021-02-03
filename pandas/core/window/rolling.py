@@ -48,11 +48,14 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError, SelectionMixin
+import pandas.core.common as common
 from pandas.core.construction import extract_array
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
     _doc_template,
@@ -836,32 +839,13 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
 
     def _apply_pairwise(self, target, other, pairwise, func):
         # Manually drop the grouping column first
-        target = target.drop(columns=list(self._groupby.keys), errors="ignore")
-        breakpoint()
+        target = target.drop(
+            columns=common.maybe_make_list(self._groupby.keys), errors="ignore"
+        )
         result = super()._apply_pairwise(target, other, pairwise, func)
         # Modify the resulting index to include the groupby level
         if other is not None:
-
-            from pandas.core.algorithms import factorize
-            from pandas.core.reshape.concat import concat
-
-            gb_pairs = (list(pair) for pair in self._groupby.indices.keys())
-            groupby_codes = []
-            groupby_levels = []
-            # e.g. [[1, 2], [4, 5]] as [[1, 4], [2, 5]]
-            for gb_level_pair in map(list, zip(*gb_pairs)):
-                labels = np.repeat(np.array(gb_level_pair), len(result))
-                codes, levels = factorize(labels)
-                groupby_codes.append(codes)
-                groupby_levels.append(levels)
-
-            result_codes, result_levels = factorize(result.index)
-            result_codes = groupby_codes + [result_codes]
-            result_levels = groupby_levels + [result_levels]
-            result_names = list(self._groupby.keys) + list(result.index.name)
-            result_index = MultiIndex(
-                result_levels, result_codes, names=result_names, verify_integrity=False
-            )
+            old_result_len = len(result)
             result = concat(
                 [
                     result.take(gb_indices).reindex(result.index)
@@ -869,7 +853,24 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
                 ]
             )
 
-            result.index = result_index
+            gb_pairs = (
+                common.maybe_make_list(pair) for pair in self._groupby.indices.keys()
+            )
+            groupby_codes = []
+            groupby_levels = []
+            # e.g. [[1, 2], [4, 5]] as [[1, 4], [2, 5]]
+            for gb_level_pair in map(list, zip(*gb_pairs)):
+                labels = np.repeat(np.array(gb_level_pair), old_result_len)
+                codes, levels = factorize(labels)
+                groupby_codes.append(codes)
+                groupby_levels.append(levels)
+
+            result_codes, result_levels = factorize(result.index)
+
+            result_codes = groupby_codes + [result_codes]
+            result_levels = groupby_levels + [result_levels]
+            result_names = list(self._groupby.keys) + [result.index.name]
+
         else:
             groupby_codes = self._groupby.grouper.codes
             groupby_levels = self._groupby.grouper.levels
@@ -892,11 +893,10 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             result_levels = groupby_levels + list(result.index.levels)
             result_names = list(self._groupby.keys) + list(result.index.names)
 
-            result_index = MultiIndex(
-                result_levels, result_codes, names=result_names, verify_integrity=False
-            )
-
-            result.index = result_index
+        result_index = MultiIndex(
+            result_levels, result_codes, names=result_names, verify_integrity=False
+        )
+        result.index = result_index
         return result
 
     def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
