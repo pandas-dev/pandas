@@ -678,7 +678,12 @@ class SeriesGroupBy(GroupBy[Series]):
         return result.unstack()
 
     def value_counts(
-        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+        self,
+        normalize=False,
+        sort=True,
+        ascending=False,
+        bins=None,
+        dropna: bool = True,
     ):
 
         from pandas.core.reshape.merge import get_join_indexers
