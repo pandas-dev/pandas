@@ -4,7 +4,7 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class Dim2CompatTests(BaseExtensionTests):
