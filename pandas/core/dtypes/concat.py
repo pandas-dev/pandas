@@ -97,7 +97,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     return arr.astype(dtype, copy=False)
 
 
-def concat_compat(to_concat, axis: int = 0):
+def concat_compat(to_concat, axis: int = 0, pretend_axis1: bool = False):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -127,7 +127,7 @@ def concat_compat(to_concat, axis: int = 0):
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
     non_empties = [x for x in to_concat if is_nonempty(x)]
-    if non_empties and axis == 0:
+    if non_empties and axis == 0 and not pretend_axis1:
         to_concat = non_empties
 
     typs = _get_dtype_kinds(to_concat)

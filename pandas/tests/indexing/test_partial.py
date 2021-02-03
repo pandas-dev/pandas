@@ -160,7 +160,8 @@ class TestPartialSetting:
         df = DataFrame(columns=["A", "B"])
         df.loc[0] = Series(1, index=["B"])
 
-        exp = DataFrame([[np.nan, 1]], columns=["A", "B"], index=[0], dtype="float64")
+        # TODO: having this be float64 would not be unreasonable
+        exp = DataFrame([[np.nan, 1]], columns=["A", "B"], index=[0], dtype="object")
         tm.assert_frame_equal(df, exp)
 
         # list-like must conform

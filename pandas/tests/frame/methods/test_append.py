@@ -165,7 +165,7 @@ class TestDataFrameAppend:
         df2 = DataFrame({"bar": np.nan}, index=range(1, 2))
         result = df1.append(df2)
         expected = DataFrame(
-            {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
+            {"bar": Series([Timestamp("20130101"), np.nan], dtype="object")}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -173,7 +173,7 @@ class TestDataFrameAppend:
         df2 = DataFrame({"bar": np.nan}, index=range(1, 2), dtype=object)
         result = df1.append(df2)
         expected = DataFrame(
-            {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
+            {"bar": Series([Timestamp("20130101"), np.nan], dtype="object")}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -181,7 +181,7 @@ class TestDataFrameAppend:
         df2 = DataFrame({"bar": Timestamp("20130101")}, index=range(1, 2))
         result = df1.append(df2)
         expected = DataFrame(
-            {"bar": Series([np.nan, Timestamp("20130101")], dtype="M8[ns]")}
+            {"bar": Series([np.nan, Timestamp("20130101")], dtype="object")}
         )
         tm.assert_frame_equal(result, expected)
 
