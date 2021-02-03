@@ -243,16 +243,22 @@ class TestDataFrameIndexingCategorical:
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
 
-    def test_loc_setitem_categorical_values_partial_column_slice(self):
+    def test_loc_setitem_categorical_values_partial_column_slice(
+        self, using_array_manager
+    ):
         # Assigning a Category to parts of a int/... column uses the values of
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
-        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
-        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
-        tm.assert_frame_equal(df, exp)
+        if using_array_manager:
+            with pytest.raises(ValueError, match=""):
+                df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+        else:
+            df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+            df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+            tm.assert_frame_equal(df, exp)
 
-    def test_loc_setitem_single_row_categorical(self):
+    def test_loc_setitem_single_row_categorical(self, using_array_manager):
         # GH 25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
         categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
@@ -260,6 +266,9 @@ class TestDataFrameIndexingCategorical:
 
         result = df["Alpha"]
         expected = Series(categories, index=df.index, name="Alpha")
+        if using_array_manager:
+            # with ArrayManager the object dtype is preserved
+            expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
     def test_loc_indexing_preserves_index_category_dtype(self):

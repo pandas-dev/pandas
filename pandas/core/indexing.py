@@ -1684,7 +1684,9 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
-                self._setitem_single_column(ilocs[0], value, pi)
+                self._setitem_single_column(
+                    ilocs[0], value, pi, overwrite=name == "setitem"
+                )
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
                 # We are trying to set N values into M entries of a single
@@ -1708,7 +1710,7 @@ class _iLocIndexer(_LocationIndexer):
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):
-                    self._setitem_single_column(loc, v, pi)
+                    self._setitem_single_column(loc, v, pi, overwrite=name == "setitem")
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
                 # This is a setitem-with-expansion, see
@@ -1728,7 +1730,7 @@ class _iLocIndexer(_LocationIndexer):
 
             # scalar value
             for loc in ilocs:
-                self._setitem_single_column(loc, value, pi)
+                self._setitem_single_column(loc, value, pi, overwrite=name == "setitem")
 
     def _setitem_with_indexer_2d_value(self, indexer, value):
         # We get here with np.ndim(value) == 2, excluding DataFrame,
@@ -1797,7 +1799,7 @@ class _iLocIndexer(_LocationIndexer):
 
                 self._setitem_single_column(loc, val, pi)
 
-    def _setitem_single_column(self, loc: int, value, plane_indexer):
+    def _setitem_single_column(self, loc: int, value, plane_indexer, overwrite=True):
         """
 
         Parameters
@@ -1806,7 +1808,14 @@ class _iLocIndexer(_LocationIndexer):
             Indexer for column position
         plane_indexer : int, slice, listlike[int]
             The indexer we use for setitem along axis=0.
+        overwrite : bool
+            Whether to overwrite the original column, or update the existing
+            column inplace
         """
+        if not overwrite and self.obj._has_array_manager:
+            self.obj._mgr.setitem(plane_indexer, value, loc)
+            return
+
         pi = plane_indexer
 
         ser = self.obj._ixs(loc, axis=1)

@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame, Index, IndexSlice, MultiIndex, Series, concat
 import pandas._testing as tm
 import pandas.core.common as com
@@ -102,14 +104,20 @@ class TestXS:
         result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self):
+    def test_xs_view(self, using_array_manager):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
         dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
 
-        dm.xs(2)[:] = 10
-        assert (dm.xs(2) == 10).all()
+        if using_array_manager:
+            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                dm.xs(2)[:] = 20
+            assert not (dm.xs(2) == 20).any()
+        else:
+            dm.xs(2)[:] = 20
+            assert (dm.xs(2) == 20).all()
 
 
 class TestXSWithMultiIndex:
@@ -320,6 +328,7 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test
     def test_xs_droplevel_false_view(self):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))

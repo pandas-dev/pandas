@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
 
@@ -206,6 +207,8 @@ class TestDataFrameIndexing:
         df[columns] = box
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) iset with multiple elements not yet implemented
+    @td.skip_array_manager_not_yet_implemented
     def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
@@ -475,6 +478,8 @@ class TestDataFrameIndexing:
         assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
 
+    @td.skip_array_manager_invalid_test  # valid version below with nullable dtypes
+    def test_setitem_dtype_change(self):
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
         df.iloc[0] = np.nan
@@ -482,6 +487,18 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame([[0, 0]])
+        df.loc[0] = np.nan
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_nullable_nan(self):
+        # version of the test above using nullable dtypes (so that setting
+        # NaN can preserve the dtype)
+        df = DataFrame([[0, 0]], dtype="Int64")
+        df.iloc[0] = np.nan
+        expected = DataFrame([[np.nan, np.nan]], dtype="Int64")
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[0, 0]], dtype="Int64")
         df.loc[0] = np.nan
         tm.assert_frame_equal(df, expected)
 
@@ -579,6 +596,8 @@ class TestDataFrameIndexing:
         float_frame["something"] = 2.5
         assert float_frame["something"].dtype == np.float64
 
+    @td.skip_array_manager_invalid_test
+    def test_setitem_cast_object(self):
         # GH 7704
         # dtype conversion on setting
         df = DataFrame(np.random.rand(30, 3), columns=tuple("ABC"))
@@ -591,6 +610,7 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_preserve_int8_dtype(self):
         # Test that data type is preserved . #5782
         df = DataFrame({"one": np.arange(6, dtype=np.int8)})
         df.loc[1, "one"] = 6
@@ -603,7 +623,10 @@ class TestDataFrameIndexing:
         mask = float_frame["A"] > 0
 
         float_frame.loc[mask, "B"] = 0
-        expected.values[mask.values, 1] = 0
+
+        vals = float_frame.to_numpy()
+        vals[mask.values, 1] = 0
+        expected = DataFrame(vals, index=expected.index, columns=expected.columns)
 
         tm.assert_frame_equal(float_frame, expected)
 
@@ -693,7 +716,7 @@ class TestDataFrameIndexing:
         assert len(dm.columns) == 3
         assert dm[2].dtype == np.object_
 
-    def test_setitem_clear_caches(self):
+    def test_setitem_clear_caches(self, using_array_manager):
         # see gh-304
         df = DataFrame(
             {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
@@ -706,7 +729,10 @@ class TestDataFrameIndexing:
 
         expected = Series([np.nan, np.nan, 42, 42], index=df.index, name="z")
 
-        assert df["z"] is not foo
+        if not using_array_manager:
+            # with ArrayManager, the values are updated in place in the array
+            # so the Series can be the same (? good explanation ?)
+            assert df["z"] is not foo
         tm.assert_series_equal(df["z"], expected)
 
     def test_setitem_None(self, float_frame):
@@ -799,6 +825,7 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=r"^3$"):
             df2.loc[3:11] = 0
 
+    @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
     def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
@@ -857,6 +884,7 @@ class TestDataFrameIndexing:
             for idx in f.index[::5]:
                 assert ix[idx, col] == ts[idx]
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_scalar(self, float_frame):
         f = float_frame
         expected = float_frame.copy()
@@ -896,6 +924,7 @@ class TestDataFrameIndexing:
         expected = f.reindex(index=f.index[boolvec], columns=["C", "D"])
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_boolean(self, float_frame):
         # from 2d, set with booleans
         frame = float_frame.copy()
@@ -1056,7 +1085,7 @@ class TestDataFrameIndexing:
         expected = np.array([np.nan, "qux", np.nan, "qux", np.nan], dtype=object)
         tm.assert_almost_equal(df["str"].values, expected)
 
-    def test_setitem_single_column_mixed_datetime(self):
+    def test_setitem_single_column_mixed_datetime(self, using_array_manager):
         df = DataFrame(
             np.random.randn(5, 3),
             index=["a", "b", "c", "d", "e"],
@@ -1074,10 +1103,12 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
         # GH#16674 iNaT is treated as an integer when given by the user
-        df.loc["b", "timestamp"] = iNaT
-        assert not isna(df.loc["b", "timestamp"])
-        assert df["timestamp"].dtype == np.object_
-        assert df.loc["b", "timestamp"] == iNaT
+        if not using_array_manager:
+            # TODO(ArrayManager) setting iNaT in DatetimeArray actually sets NaT
+            df.loc["b", "timestamp"] = iNaT
+            assert not isna(df.loc["b", "timestamp"])
+            assert df["timestamp"].dtype == np.object_
+            assert df.loc["b", "timestamp"] == iNaT
 
         # allow this syntax
         df.loc["c", "timestamp"] = np.nan
@@ -1093,6 +1124,7 @@ class TestDataFrameIndexing:
         # pytest.raises(
         #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [np.nan])
 
+    @td.skip_array_manager_invalid_test
     def test_setitem_mixed_datetime(self):
         # GH 9336
         expected = DataFrame(
@@ -1282,20 +1314,27 @@ class TestDataFrameIndexing:
         expected = df.loc[8:14]
         tm.assert_frame_equal(result, expected)
 
-        # verify slice is view
-        # setting it makes it raise/warn
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
-            result[2] = 0.0
-
-        exp_col = df[2].copy()
-        exp_col[4:8] = 0.0
-        tm.assert_series_equal(df[2], exp_col)
-
         # list of integers
         result = df.iloc[[1, 2, 4, 6]]
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
+
+    def test_iloc_row_slice_view(self, using_array_manager):
+        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+
+        # verify slice is view
+        # setting it makes it raise/warn
+        subset = df.iloc[slice(4, 8)]
+
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
+            subset[2] = 0.0
+
+        exp_col = df[2].copy()
+        if not using_array_manager:
+            # TODO(ArrayManager) verify it is expected that the original didn't change
+            exp_col[4:8] = 0.0
+        tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
 
@@ -1314,18 +1353,31 @@ class TestDataFrameIndexing:
         expected = df.loc[:, 8:14]
         tm.assert_frame_equal(result, expected)
 
-        # verify slice is view
-        # and that we are setting a copy
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
-            result[8] = 0.0
-
-        assert (df[8] == 0).all()
-
         # list of integers
         result = df.iloc[:, [1, 2, 4, 6]]
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
+
+    def test_iloc_col_slice_view(self, using_array_manager):
+        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
+        original = df.copy()
+        subset = df.iloc[:, slice(4, 8)]
+
+        if not using_array_manager:
+            # verify slice is view
+            # and that we are setting a copy
+            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                subset[8] = 0.0
+
+            assert (df[8] == 0).all()
+        else:
+            # TODO(ArrayManager) verify this is the desired behaviour
+            subset[8] = 0.0
+            # subset changed
+            assert (subset[8] == 0).all()
+            # but df itself did not change (setitem replaces full column)
+            tm.assert_frame_equal(df, original)
 
     def test_iloc_duplicates(self):
 
@@ -1422,17 +1474,21 @@ class TestDataFrameIndexing:
         df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
-    def test_loc_setitem_datetime_coercion(self):
+    def test_loc_setitem_datetime_coercion(self, using_array_manager):
         # gh-1048
         df = DataFrame({"c": [Timestamp("2010-10-01")] * 3})
         df.loc[0:1, "c"] = np.datetime64("2008-08-08")
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
-        df.loc[2, "c"] = date(2005, 5, 5)
-        with tm.assert_produces_warning(FutureWarning):
-            # Comparing Timestamp to date obj is deprecated
-            assert Timestamp("2005-05-05") == df.loc[2, "c"]
-        assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
+        if using_array_manager:
+            with pytest.raises(TypeError, match=""):
+                df.loc[2, "c"] = date(2005, 5, 5)
+        else:
+            df.loc[2, "c"] = date(2005, 5, 5)
+            with tm.assert_produces_warning(FutureWarning):
+                # Comparing Timestamp to date obj is deprecated
+                assert Timestamp("2005-05-05") == df.loc[2, "c"]
+            assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     def test_loc_setitem_datetimelike_with_inference(self):
         # GH 7592
@@ -1623,6 +1679,7 @@ class TestDataFrameIndexing:
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_type_error_multiindex(self):
         # See gh-12218
         df = DataFrame(
@@ -1702,7 +1759,7 @@ class TestDataFrameIndexing:
 
 
 class TestDataFrameIndexingUInt64:
-    def test_setitem(self, uint64_frame):
+    def test_setitem(self, uint64_frame, using_array_manager):
 
         df = uint64_frame
         idx = df["A"].rename("foo")
@@ -1719,6 +1776,11 @@ class TestDataFrameIndexingUInt64:
         # With NaN: because uint64 has no NaN element,
         # the column should be cast to object.
         df2 = df.copy()
+        if using_array_manager:
+            # with ArrayManager we raise in this case
+            with pytest.raises(TypeError, match=""):
+                df2.iloc[1, 1] = pd.NaT
+            return
         df2.iloc[1, 1] = pd.NaT
         df2.iloc[1, 2] = pd.NaT
         result = df2["B"]
@@ -1760,7 +1822,7 @@ def test_reindex_empty(src_idx, cat_idx):
     tm.assert_frame_equal(result, expected)
 
 
-def test_object_casting_indexing_wraps_datetimelike():
+def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
     # GH#31649, check the indexing methods all the way down the stack
     df = DataFrame(
         {
@@ -1781,6 +1843,10 @@ def test_object_casting_indexing_wraps_datetimelike():
     ser = df.xs(0, axis=0)
     assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
+
+    if using_array_manager:
+        # remainder of the test checking BlockManager internals
+        return
 
     mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()

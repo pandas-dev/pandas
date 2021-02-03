@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.base import registry as ea_registry
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
@@ -35,6 +37,7 @@ class TestDataFrameSetItem:
         float_frame[["A", "B"]] = data
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_setitem_error_msmgs(self):
 
         # GH 7432
@@ -264,6 +267,7 @@ class TestDataFrameSetItem:
         df["dates"] = vals
         assert (df["dates"].values == ex_vals).all()
 
+    @td.skip_array_manager_invalid_test
     def test_setitem_dt64tz(self, timezone_frame):
 
         df = timezone_frame
@@ -348,7 +352,9 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self):
+    # TODO(ArrayManager) iset with multiple elements not yet implemented
+    @td.skip_array_manager_not_yet_implemented
+    def test_setitem_frame_duplicate_columns(self, using_array_manager):
         # GH#15695
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
@@ -364,6 +370,8 @@ class TestDataFrameSetItem:
             columns=cols,
             dtype="object",
         )
+        if using_array_manager:
+            expected["C"] = expected["C"].astype("int64")
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
@@ -375,6 +383,8 @@ class TestDataFrameSetItem:
         with pytest.raises(ValueError, match=msg):
             df["a"] = rhs
 
+    # TODO(ArrayManager) iset with multiple elements not yet implemented
+    @td.skip_array_manager_not_yet_implemented
     def test_setitem_listlike_indexer_duplicate_columns(self):
         # GH#38604
         df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
@@ -452,6 +462,7 @@ class TestDataFrameSetItemCallable:
 
 
 class TestDataFrameSetItemBooleanMask:
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     @pytest.mark.parametrize(
         "mask_type",
         [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],

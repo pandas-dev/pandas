@@ -14,9 +14,11 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
+    is_scalar,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -339,9 +341,24 @@ class ArrayManager(DataManager):
             axis=axis,
         )
 
-    # TODO what is this used for?
-    # def setitem(self, indexer, value) -> ArrayManager:
-    #     return self.apply_with_block("setitem", indexer=indexer, value=value)
+    def setitem(self, indexer, value, column_idx) -> ArrayManager:
+        """
+        Set value for a single column and a given row indexer. For example, from
+        ``df.loc[indexer] = value``
+        """
+        arr = self.arrays[column_idx]
+
+        # TODO this special case can be removed once we only store EAs
+        # special case to support setting np.nan in a non-float numpy array
+        if (
+            isinstance(arr, np.ndarray)
+            and is_datetime64_dtype(arr.dtype)
+            and is_scalar(value)
+            and isna(value)
+        ):
+            value = np.datetime64("NaT", "ns")
+
+        arr[indexer] = value
 
     def putmask(self, mask, new, align: bool = True):
 
@@ -454,7 +471,7 @@ class ArrayManager(DataManager):
 
     @property
     def is_numeric_mixed_type(self) -> bool:
-        return False
+        return all(is_numeric_dtype(t) for t in self.get_dtypes())
 
     @property
     def any_extension_types(self) -> bool:

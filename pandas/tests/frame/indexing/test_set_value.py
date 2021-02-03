@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_float_dtype
 
 from pandas import DataFrame, isna
@@ -13,6 +15,8 @@ class TestSetValue:
                 float_frame._set_value(idx, col, 1)
                 assert float_frame[col][idx] == 1
 
+    # TODO(ArrayManager) set_value with resize should allow changing new float column
+    @td.skip_array_manager_not_yet_implemented
     def test_set_value_resize(self, float_frame):
 
         res = float_frame._set_value("foobar", "B", 0)

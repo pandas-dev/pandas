@@ -630,6 +630,10 @@ class DataFrame(NDFrame, OpsMixin):
         # fastpath of passing a manager doesn't check the option/manager class
         return DataFrame(new_mgr)
 
+    @property
+    def _has_array_manager(self):
+        return isinstance(self._mgr, ArrayManager)
+
     # ----------------------------------------------------------------------
 
     @property
@@ -3240,7 +3244,9 @@ class DataFrame(NDFrame, OpsMixin):
                     key, axis=1, raise_missing=False
                 )[1]
                 self._check_setitem_copy()
-                self.iloc[:, indexer] = value
+                self.iloc._setitem_with_indexer(
+                    (slice(None), indexer), value, name="setitem"
+                )
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
