@@ -65,17 +65,6 @@ class CoercionBase:
     def method(self):
         raise NotImplementedError(self)
 
-    def _assert(self, left, right, dtype):
-        # explicitly check dtype to avoid any unexpected result
-        if isinstance(left, pd.Series):
-            tm.assert_series_equal(left, right)
-        elif isinstance(left, pd.Index):
-            tm.assert_index_equal(left, right)
-        else:
-            raise NotImplementedError
-        assert left.dtype == dtype
-        assert right.dtype == dtype
-
 
 class TestSetitemCoercion(CoercionBase):
 
@@ -91,6 +80,7 @@ class TestSetitemCoercion(CoercionBase):
         # check dtype explicitly for sure
         assert temp.dtype == expected_dtype
 
+        # FIXME: dont leave commented-out
         # .loc works different rule, temporary disable
         # temp = original_series.copy()
         # temp.loc[1] = loc_value
@@ -171,34 +161,19 @@ class TestSetitemCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "val,exp_dtype",
         [
-            (1, np.int64),
-            (3, np.int64),
-            (1.1, np.float64),
-            (1 + 1j, np.complex128),
+            (1, object),
+            ("3", object),
+            (3, object),
+            (1.1, object),
+            (1 + 1j, object),
             (True, np.bool_),
         ],
     )
-    def test_setitem_series_bool(self, val, exp_dtype, request):
+    def test_setitem_series_bool(self, val, exp_dtype):
         obj = pd.Series([True, False, True, False])
         assert obj.dtype == np.bool_
 
-        mark = None
-        if exp_dtype is np.int64:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be int")
-        elif exp_dtype is np.float64:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
-        elif exp_dtype is np.complex128:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be complex")
-        if mark is not None:
-            request.node.add_marker(mark)
-
-        exp = pd.Series([True, val, True, False])
+        exp = pd.Series([True, val, True, False], dtype=exp_dtype)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -565,7 +540,8 @@ class TestWhereCoercion(CoercionBase):
         """ test coercion triggered by where """
         target = original.copy()
         res = target.where(cond, values)
-        self._assert(res, expected, expected_dtype)
+        tm.assert_equal(res, expected)
+        assert res.dtype == expected_dtype
 
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
@@ -588,7 +564,7 @@ class TestWhereCoercion(CoercionBase):
         if fill_val is True:
             values = klass([True, False, True, True])
         else:
-            values = klass(fill_val * x for x in [5, 6, 7, 8])
+            values = klass(x * fill_val for x in [5, 6, 7, 8])
 
         exp = klass(["a", values[1], "c", values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
@@ -647,18 +623,19 @@ class TestWhereCoercion(CoercionBase):
         ],
     )
     def test_where_series_complex128(self, fill_val, exp_dtype):
-        obj = pd.Series([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
+        klass = pd.Series
+        obj = klass([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
         assert obj.dtype == np.complex128
-        cond = pd.Series([True, False, True, False])
+        cond = klass([True, False, True, False])
 
-        exp = pd.Series([1 + 1j, fill_val, 3 + 3j, fill_val])
+        exp = klass([1 + 1j, fill_val, 3 + 3j, fill_val])
         self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
         if fill_val is True:
-            values = pd.Series([True, False, True, True])
+            values = klass([True, False, True, True])
         else:
-            values = pd.Series(x * fill_val for x in [5, 6, 7, 8])
-        exp = pd.Series([1 + 1j, values[1], 3 + 3j, values[3]])
+            values = klass(x * fill_val for x in [5, 6, 7, 8])
+        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -666,19 +643,20 @@ class TestWhereCoercion(CoercionBase):
         [(1, object), (1.1, object), (1 + 1j, object), (True, np.bool_)],
     )
     def test_where_series_bool(self, fill_val, exp_dtype):
+        klass = pd.Series
 
-        obj = pd.Series([True, False, True, False])
+        obj = klass([True, False, True, False])
         assert obj.dtype == np.bool_
-        cond = pd.Series([True, False, True, False])
+        cond = klass([True, False, True, False])
 
-        exp = pd.Series([True, fill_val, True, fill_val])
+        exp = klass([True, fill_val, True, fill_val])
         self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
         if fill_val is True:
-            values = pd.Series([True, False, True, True])
+            values = klass([True, False, True, True])
         else:
-            values = pd.Series(x * fill_val for x in [5, 6, 7, 8])
-        exp = pd.Series([True, values[1], True, values[3]])
+            values = klass(x * fill_val for x in [5, 6, 7, 8])
+        exp = klass([True, values[1], True, values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -871,7 +849,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
         """ test coercion triggered by fillna """
         target = original.copy()
         res = target.fillna(value)
-        self._assert(res, expected, expected_dtype)
+        tm.assert_equal(res, expected)
+        assert res.dtype == expected_dtype
 
     @pytest.mark.parametrize(
         "fill_val, fill_dtype",
@@ -1040,10 +1019,28 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     rep["timedelta64[ns]"] = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
 
-    @pytest.mark.parametrize("how", ["dict", "series"])
-    @pytest.mark.parametrize(
-        "to_key",
-        [
+    @pytest.fixture(params=["dict", "series"])
+    def how(self, request):
+        return request.param
+
+    @pytest.fixture(
+        params=[
+            "object",
+            "int64",
+            "float64",
+            "complex128",
+            "bool",
+            "datetime64[ns]",
+            "datetime64[ns, UTC]",
+            "datetime64[ns, US/Eastern]",
+            "timedelta64[ns]",
+        ]
+    )
+    def from_key(self, request):
+        return request.param
+
+    @pytest.fixture(
+        params=[
             "object",
             "int64",
             "float64",
@@ -1066,21 +1063,23 @@ class TestReplaceSeriesCoercion(CoercionBase):
             "timedelta64",
         ],
     )
-    @pytest.mark.parametrize(
-        "from_key",
-        [
-            "object",
-            "int64",
-            "float64",
-            "complex128",
-            "bool",
-            "datetime64[ns]",
-            "datetime64[ns, UTC]",
-            "datetime64[ns, US/Eastern]",
-            "timedelta64[ns]",
-        ],
-    )
-    def test_replace_series(self, how, to_key, from_key):
+    def to_key(self, request):
+        return request.param
+
+    @pytest.fixture
+    def replacer(self, how, from_key, to_key):
+        """
+        Object we will pass to `Series.replace`
+        """
+        if how == "dict":
+            replacer = dict(zip(self.rep[from_key], self.rep[to_key]))
+        elif how == "series":
+            replacer = pd.Series(self.rep[to_key], index=self.rep[from_key])
+        else:
+            raise ValueError
+        return replacer
+
+    def test_replace_series(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xxx")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
@@ -1091,13 +1090,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         elif from_key in ["datetime64[ns, US/Eastern]", "datetime64[ns, UTC]"]:
             # tested below
             return
-
-        if how == "dict":
-            replacer = dict(zip(self.rep[from_key], self.rep[to_key]))
-        elif how == "series":
-            replacer = pd.Series(self.rep[to_key], index=self.rep[from_key])
-        else:
-            raise ValueError
 
         result = obj.replace(replacer)
 
@@ -1117,25 +1109,18 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         tm.assert_series_equal(result, exp)
 
-    @pytest.mark.parametrize("how", ["dict", "series"])
     @pytest.mark.parametrize(
         "to_key",
         ["timedelta64[ns]", "bool", "object", "complex128", "float64", "int64"],
+        indirect=True,
     )
     @pytest.mark.parametrize(
-        "from_key", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"]
+        "from_key", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"], indirect=True
     )
-    def test_replace_series_datetime_tz(self, how, to_key, from_key):
+    def test_replace_series_datetime_tz(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
-
-        if how == "dict":
-            replacer = dict(zip(self.rep[from_key], self.rep[to_key]))
-        elif how == "series":
-            replacer = pd.Series(self.rep[to_key], index=self.rep[from_key])
-        else:
-            raise ValueError
 
         result = obj.replace(replacer)
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
@@ -1143,26 +1128,20 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         tm.assert_series_equal(result, exp)
 
-    @pytest.mark.parametrize("how", ["dict", "series"])
     @pytest.mark.parametrize(
         "to_key",
         ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"],
+        indirect=True,
     )
     @pytest.mark.parametrize(
         "from_key",
         ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"],
+        indirect=True,
     )
-    def test_replace_series_datetime_datetime(self, how, to_key, from_key):
+    def test_replace_series_datetime_datetime(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
-
-        if how == "dict":
-            replacer = dict(zip(self.rep[from_key], self.rep[to_key]))
-        elif how == "series":
-            replacer = pd.Series(self.rep[to_key], index=self.rep[from_key])
-        else:
-            raise ValueError
 
         result = obj.replace(replacer)
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
