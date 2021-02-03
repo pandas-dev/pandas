@@ -337,8 +337,10 @@ Indexing
 - Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
 - Bug in setting ``datetime64`` values into a :class:`Series` with integer-dtype incorrect casting the datetime64 values to integers (:issue:`39266`)
+- Bug in :meth:`Index.get_loc` not raising ``KeyError`` when method is specified for ``NaN`` value when ``NaN`` is not in :class:`Index` (:issue:`39382`)
 - Bug in incorrectly raising in :meth:`Index.insert`, when setting a new column that cannot be held in the existing ``frame.columns``, or in :meth:`Series.reset_index` or :meth:`DataFrame.reset_index` instead of casting to a compatible dtype (:issue:`39068`)
 - Bug in :meth:`RangeIndex.append` where a single object of length 1 was concatenated incorrectly (:issue:`39401`)
+- Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 
 Missing
 ^^^^^^^
@@ -433,7 +435,9 @@ Other
 - Bug in :class:`Index` constructor sometimes silently ignorning a specified ``dtype`` (:issue:`38879`)
 - Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
 - Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`)
+- :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
 - Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
+-
 
 .. ---------------------------------------------------------------------------
 

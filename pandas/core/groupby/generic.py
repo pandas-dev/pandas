@@ -56,7 +56,6 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, nanops
 from pandas.core.aggregation import (
-    agg_list_like,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
@@ -679,7 +678,12 @@ class SeriesGroupBy(GroupBy[Series]):
         return result.unstack()
 
     def value_counts(
-        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+        self,
+        normalize=False,
+        sort=True,
+        ascending=False,
+        bins=None,
+        dropna: bool = True,
     ):
 
         from pandas.core.reshape.merge import get_join_indexers
@@ -978,7 +982,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = agg_list_like(self, [func], _axis=self.axis)
+                    result, _ = GroupByApply(
+                        self, [func], args=(), kwds={"_axis": self.axis}
+                    ).agg()
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040

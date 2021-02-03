@@ -172,7 +172,7 @@ class TestDatetimeArray:
         assert result.index.equals(dti)
 
         arr[-2] = pd.NaT
-        result = arr.value_counts()
+        result = arr.value_counts(dropna=False)
         expected = pd.Series([4, 2, 1], index=[dti[0], dti[1], pd.NaT])
         tm.assert_series_equal(result, expected)
 
