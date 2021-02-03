@@ -1,7 +1,7 @@
 """
 Utility functions related to concat.
 """
-from typing import Set, cast
+from typing import cast
 
 import numpy as np
 
@@ -14,47 +14,11 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_sparse,
 )
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import array, ensure_wrapped_if_datetimelike
-
-
-def _get_dtype_kinds(arrays) -> Set[str]:
-    """
-    Parameters
-    ----------
-    arrays : list of arrays
-
-    Returns
-    -------
-    set[str]
-        A set of kinds that exist in this list of arrays.
-    """
-    typs: Set[str] = set()
-    for arr in arrays:
-        # Note: we use dtype.kind checks because they are much more performant
-        #  than is_foo_dtype
-
-        dtype = arr.dtype
-        if not isinstance(dtype, np.dtype):
-            # ExtensionDtype so we get
-            #  e.g. "categorical", "datetime64[ns, US/Central]", "Sparse[itn64, 0]"
-            typ = str(dtype)
-        elif isinstance(arr, ABCRangeIndex):
-            typ = "range"
-        elif dtype.kind == "M":
-            typ = "datetime"
-        elif dtype.kind == "m":
-            typ = "timedelta"
-        elif dtype.kind in ["O", "b"]:
-            typ = str(dtype)  # i.e. "object", "bool"
-        else:
-            typ = dtype.kind
-
-        typs.add(typ)
-    return typs
 
 
 def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
@@ -130,8 +94,7 @@ def concat_compat(to_concat, axis: int = 0):
     if non_empties and axis == 0:
         to_concat = non_empties
 
-    typs = _get_dtype_kinds(to_concat)
-    _contains_datetime = any(typ.startswith("datetime") for typ in typs)
+    kinds = {obj.dtype.kind for obj in to_concat}
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
@@ -150,17 +113,16 @@ def concat_compat(to_concat, axis: int = 0):
         else:
             return np.concatenate(to_concat)
 
-    elif _contains_datetime or "timedelta" in typs:
+    elif any(kind in ["m", "M"] for kind in kinds):
         return _concat_datetime(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)
-        typs = _get_dtype_kinds(to_concat)
-        if len(typs) != 1:
+        if len(kinds) != 1:
 
-            if not len(typs - {"i", "u", "f"}) or not len(typs - {"bool", "i", "u"}):
+            if not len(kinds - {"i", "u", "f"}) or not len(kinds - {"b", "i", "u"}):
                 # let numpy coerce
                 pass
             else:
