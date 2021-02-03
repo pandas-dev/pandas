@@ -180,7 +180,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
         RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like
-        and index is None, then the keys in the data are used as index. If the
+        and index is None, then the keys in the data are used as the index. If the
         index is not None, the resulting Series is reindexed with the index values.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Series. If not specified, this will be
