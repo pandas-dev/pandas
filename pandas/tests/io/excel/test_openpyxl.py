@@ -119,6 +119,7 @@ def test_to_excel_with_openpyxl_engine(ext):
 
 
 def test_read_workbook(datapath, ext):
+    # GH 39528
     filename = datapath("io", "data", "excel", "test1" + ext)
     wb = openpyxl.load_workbook(filename)
     result = pd.read_excel(wb, engine="openpyxl")
