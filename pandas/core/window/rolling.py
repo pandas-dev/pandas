@@ -2051,7 +2051,8 @@ class Rolling(RollingAndExpandingMixin):
                 freq = to_offset(self.window)
             except (TypeError, ValueError) as err:
                 raise ValueError(
-                    f"passed window {self.window} is not compatible with a d index"
+                    f"passed window {self.window} is not "
+                    "compatible with a d index"
                 ) from err
             if isinstance(self._on, ABCPeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
