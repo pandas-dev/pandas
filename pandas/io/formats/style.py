@@ -1122,7 +1122,12 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> Styler:
+    def set_table_styles(
+        self,
+        table_styles: Union[Dict[Any, CSSStyles], CSSStyles],
+        axis: int = 0,
+        overwrite: bool = True,
+    ) -> Styler:
         """
         Set the table styles on a Styler.
 
@@ -1199,7 +1204,7 @@ class Styler:
         ...          'props': [('font-size', '25px')]}]
         ... }, axis=1, overwrite=False)
         """
-        if is_dict_like(table_styles):
+        if isinstance(table_styles, dict):
             if axis in [0, "index"]:
                 obj, idf = self.data.columns, ".col"
             else:
@@ -1207,20 +1212,20 @@ class Styler:
 
             table_styles = [
                 {
-                    "selector": s["selector"] + idf + str(obj.get_loc(key)),
-                    "props": s["props"],
+                    "selector": str(s["selector"]) + idf + str(obj.get_loc(key)),
+                    "props": _maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
                 for s in styles
             ]
-
-        table_styles = [
-            {
-                "selector": s["selector"],
-                "props": _maybe_convert_css_to_tuples(s["props"]),
-            }
-            for s in table_styles
-        ]
+        else:
+            table_styles = [
+                {
+                    "selector": s["selector"],
+                    "props": _maybe_convert_css_to_tuples(s["props"]),
+                }
+                for s in table_styles
+            ]
 
         if not overwrite and self.table_styles is not None:
             self.table_styles.extend(table_styles)
