@@ -579,6 +579,14 @@ class TestDataFrameSortValues:
 
         assert df.iloc[0, 0] == df["A"][0]
 
+    def test_sort_values_reshaping(self):
+        # GH 39426
+        values = list(range(21))
+        expected = DataFrame([values], columns=values)
+        df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
+
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
