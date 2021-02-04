@@ -608,7 +608,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         # Manually drop the grouping column first
         target = target.drop(columns=self._groupby.grouper.names, errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func)
-        # Modify the resulting index to include the groupby level
+        # 1) Determine the levels + codes of the groupby levels
         if other is not None:
             # When we have other, we must reindex (expand) the result
             # from flex_binary_moment to a "transform"-like result
@@ -633,11 +633,6 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
                 groupby_codes.append(codes)
                 groupby_levels.append(levels)
 
-            result_codes, result_levels = factorize(result.index)
-            result_codes = groupby_codes + [result_codes]
-            result_levels = groupby_levels + [result_levels]
-            result_names = self._groupby.grouper.names + [result.index.name]
-
         else:
             # When we evaluate the pairwise=True result, repeat the groupby
             # labels by the number of columns in the original object
@@ -657,19 +652,21 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             groupby_codes = [
                 np.repeat(c.take(indexer), repeat_by) for c in groupby_codes
             ]
-            if isinstance(result.index, MultiIndex):
-                result_codes = list(result.index.codes)
-                result_levels = list(result.index.levels)
-                result_names = list(result.index.names)
-            else:
-                result_codes, result_levels = factorize(result.index)
-                result_codes = [result_codes]
-                result_levels = [result_levels]
-                result_names = [result.index.name]
+        # 2) Determine the levels + codes of the result from super()._apply_pairwise
+        if isinstance(result.index, MultiIndex):
+            result_codes = list(result.index.codes)
+            result_levels = list(result.index.levels)
+            result_names = list(result.index.names)
+        else:
+            result_codes, result_levels = factorize(result.index)
+            result_codes = [result_codes]
+            result_levels = [result_levels]
+            result_names = [result.index.name]
 
-            result_codes = groupby_codes + result_codes
-            result_levels = groupby_levels + result_levels
-            result_names = self._groupby.grouper.names + result_names
+        # 3) Create the resulting index by combining 1) + 2)
+        result_codes = groupby_codes + result_codes
+        result_levels = groupby_levels + result_levels
+        result_names = self._groupby.grouper.names + result_names
 
         result_index = MultiIndex(
             result_levels, result_codes, names=result_names, verify_integrity=False
