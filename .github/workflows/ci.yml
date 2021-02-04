@@ -158,3 +158,4 @@ jobs:
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
         pytest pandas/tests/frame/indexing --array-manager
+        pytest pandas/tests/indexing --array-manager

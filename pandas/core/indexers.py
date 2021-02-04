@@ -324,8 +324,8 @@ def length_of_indexer(indexer, target=None) -> int:
             start, stop = stop + 1, start + 1
             step = -step
         return (stop - start + step - 1) // step
-    elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
-        if isinstance(indexer, list):
+    elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list, range)):
+        if isinstance(indexer, (list, range)):
             indexer = np.array(indexer)
 
         if indexer.dtype == bool:

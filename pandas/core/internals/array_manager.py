@@ -642,7 +642,14 @@ class ArrayManager(DataManager):
         else:
             temp_dtype = dtype
 
-        result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
+        if dtype == "object":
+            # TODO properly test this, check
+            # pandas/tests/indexing/test_chaining_and_caching.py::TestChaining
+            # ::test_chained_getitem_with_lists
+            result = np.empty(self.shape_proper[1], dtype=dtype)
+            result[:] = [arr[loc] for arr in self.arrays]
+        else:
+            result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
         return result

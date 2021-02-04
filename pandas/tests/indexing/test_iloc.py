@@ -7,6 +7,8 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     CategoricalDtype,
@@ -77,7 +79,7 @@ class TestiLocBaseIndependent:
         ],
     )
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_iloc_setitem_fullcol_categorical(self, indexer, key):
+    def test_iloc_setitem_fullcol_categorical(self, indexer, key, using_array_manager):
         frame = DataFrame({0: range(3)}, dtype=object)
 
         cat = Categorical(["alpha", "beta", "gamma"])
@@ -85,8 +87,10 @@ class TestiLocBaseIndependent:
         # NB: pending GH#38896, the expected likely should become
         #  expected= DataFrame({"A": cat.astype(object)})
         # and should remain a view on the original values
-
-        assert frame._mgr.blocks[0]._can_hold_element(cat)
+        if using_array_manager:
+            expected = expected.astype(object)
+        else:
+            assert frame._mgr.blocks[0]._can_hold_element(cat)
 
         df = frame.copy()
         orig_vals = df.values
@@ -97,7 +101,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
         # TODO: this inconsistency is likely undesired GH#39986
-        if overwrite:
+        if overwrite and not using_array_manager:
             # check that we overwrote underlying
             tm.assert_numpy_array_equal(orig_vals, df.values)
 
@@ -110,12 +114,15 @@ class TestiLocBaseIndependent:
         assert cat[0] != "gamma"
 
     @pytest.mark.parametrize("box", [pd_array, Series])
-    def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_array_manager):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = pd_array([1, 2, 3, 4])
         obj = frame_or_series(arr.to_numpy("i8"))
-        values = obj.values
+        if frame_or_series is Series or not using_array_manager:
+            values = obj.values
+        else:
+            values = obj[0].values
 
         obj.iloc[:2] = box(arr[2:])
         expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
@@ -125,7 +132,10 @@ class TestiLocBaseIndependent:
         if frame_or_series is Series:
             assert obj.values is values
         else:
-            assert obj.values.base is values.base and values.base is not None
+            if using_array_manager:
+                assert obj[0].values is values
+            else:
+                assert obj.values.base is values.base and values.base is not None
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access
@@ -497,13 +507,16 @@ class TestiLocBaseIndependent:
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(self):
+    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(
+        self, using_array_manager
+    ):
         # Same as the "assign back to self" check in test_iloc_setitem_dups
         #  but on a DataFrame with multiple blocks
         df = DataFrame([[0, 1], [2, 3]], columns=["B", "B"])
 
         df.iloc[:, 0] = df.iloc[:, 0].astype("f8")
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
         expected = df.copy()
 
         # assign back to self
@@ -593,6 +606,7 @@ class TestiLocBaseIndependent:
         with pytest.raises(ValueError, match=msg):
             df.iloc["j", "D"]
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile/describe
     def test_iloc_getitem_doc_issue(self):
 
         # multi axis slicing issue with single block
@@ -686,13 +700,45 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
-    @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
+    @pytest.mark.parametrize("value", [[10], np.array([10])])
     def test_iloc_setitem_with_scalar_index(self, indexer, value):
         # GH #19474
         # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        df.iloc[0, indexer] = value
+        result = df.iloc[0, 0]
+
+        assert is_scalar(result) and result == 10
+
+    @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
+    @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
+    def test_iloc_setitem_with_scalar_index_upcast(
+        self, indexer, value, using_array_manager
+    ):
+        # GH #19474
+        # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
+        # elementwisely, not using "setter('A', ['Z'])".
+
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        if using_array_manager:
+            with pytest.raises(ValueError, match="invalid literal"):
+                df.iloc[0, indexer] = value
+        else:
+            df.iloc[0, indexer] = value
+            result = df.iloc[0, 0]
+
+            assert is_scalar(result) and result == "Z"
+
+    @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
+    @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
+    def test_iloc_setitem_with_scalar_index_object(self, indexer, value):
+        # GH #19474
+        # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
+        # elementwisely, not using "setter('A', ['Z'])".
+
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"], dtype=object)
         df.iloc[0, indexer] = value
         result = df.iloc[0, 0]
 
@@ -948,6 +994,9 @@ class TestiLocBaseIndependent:
         expected = df["data"].loc[[1, 3, 6]]
         tm.assert_series_equal(result, expected)
 
+    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
+    # in the "split" path
+    @td.skip_array_manager_not_yet_implemented
     def test_iloc_assign_series_to_df_cell(self):
         # GH 37593
         df = DataFrame(columns=["a"], index=[0])

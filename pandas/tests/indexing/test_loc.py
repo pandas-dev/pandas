@@ -404,6 +404,8 @@ class TestLoc2:
             }
         )
 
+    # TODO(ArrayManager) rewrite test to assert that it raises
+    @td.skip_array_manager_invalid_test
     def test_loc_setitem_consistency(self, frame_for_consistency):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
@@ -425,6 +427,8 @@ class TestLoc2:
         df.loc[:, "date"] = np.array([0, 0, 0, 0, 0], dtype=np.int64)
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) rewrite test to assert that it raises
+    @td.skip_array_manager_invalid_test
     def test_loc_setitem_consistency_dt64_to_str(self, frame_for_consistency):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
@@ -439,6 +443,8 @@ class TestLoc2:
         df.loc[:, "date"] = "foo"
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) rewrite test to assert that it raises
+    @td.skip_array_manager_invalid_test
     def test_loc_setitem_consistency_dt64_to_float(self, frame_for_consistency):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
@@ -452,6 +458,8 @@ class TestLoc2:
         df.loc[:, "date"] = 1.0
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) rewrite test to assert that it raises
+    @td.skip_array_manager_invalid_test
     def test_loc_setitem_consistency_single_row(self):
         # GH 15494
         # setting on frame with single row
@@ -460,6 +468,8 @@ class TestLoc2:
         expected = DataFrame({"date": Series(["string"])})
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) rewrite test to assert that it raises
+    @td.skip_array_manager_invalid_test
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
         expected = DataFrame(columns=["x", "y"])
@@ -472,6 +482,8 @@ class TestLoc2:
         df["x"] = 1
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) rewrite test to assert that it raises
+    @td.skip_array_manager_invalid_test
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
@@ -547,7 +559,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame(self):
+    def test_loc_setitem_frame(self, using_array_manager):
         df = DataFrame(np.random.randn(4, 4), index=list("abcd"), columns=list("ABCD"))
 
         result = df.iloc[0, 0]
@@ -571,6 +583,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({"A": Series([1, 2, 3], index=[4, 3, 5])}).reindex(
             index=[3, 5, 4]
         )
+        if using_array_manager:
+            expected = expected.astype(object)
         tm.assert_frame_equal(df, expected)
 
         # GH 6252
@@ -592,6 +606,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame(
             {"A": Series(val1, index=keys1), "B": Series(val2, index=keys2)}
         ).reindex(index=index)
+        if using_array_manager:
+            expected = expected.astype(float)
         tm.assert_frame_equal(df, expected)
 
         # GH 8669
@@ -653,13 +669,51 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     @pytest.mark.parametrize(
         "indexer", [["A"], slice(None, "A", None), np.array(["A"])]
     )
-    @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
+    @pytest.mark.parametrize("value", [[10], np.array([10])])
     def test_loc_setitem_with_scalar_index(self, indexer, value):
         # GH #19474
         # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        df.loc[0, indexer] = value
+        result = df.loc[0, "A"]
+
+        assert is_scalar(result) and result == 10
+
+    @pytest.mark.parametrize(
+        "indexer", [["A"], slice(None, "A", None), np.array(["A"])]
+    )
+    @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
+    def test_loc_setitem_with_scalar_index_upcast(
+        self, indexer, value, using_array_manager
+    ):
+        # GH #19474
+        # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
+        # elementwisely, not using "setter('A', ['Z'])".
+
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        if using_array_manager:
+            with pytest.raises(ValueError, match="invalid literal"):
+                df.loc[0, indexer] = value
+        else:
+            df.loc[0, indexer] = value
+            result = df.loc[0, "A"]
+
+            assert is_scalar(result) and result == "Z"
+
+    @pytest.mark.parametrize(
+        "indexer", [["A"], slice(None, "A", None), np.array(["A"])]
+    )
+    @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
+    def test_loc_setitem_with_scalar_index_object(
+        self, indexer, value, using_array_manager
+    ):
+        # GH #19474
+        # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
+        # elementwisely, not using "setter('A', ['Z'])".
+
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"], dtype=object)
         df.loc[0, indexer] = value
         result = df.loc[0, "A"]
 
@@ -977,6 +1031,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) setting on zero dimension does not give correct
+    # error message for the "split" path (also for BlockManager actually)
+    @td.skip_array_manager_not_yet_implemented
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
@@ -1022,7 +1079,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_series_equal(result, expected)
 
-    def test_loc_setitem_str_to_small_float_conversion_type(self):
+    def test_loc_setitem_str_to_small_float_conversion_type(self, using_array_manager):
         # GH#20388
         np.random.seed(13)
         col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
@@ -1033,6 +1090,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # change the dtype of the elements from object to float one by one
         result.loc[result.index, "A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
+        if using_array_manager:
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_time_object(self, frame_or_series):

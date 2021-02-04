@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, isna, notna
 import pandas._testing as tm
@@ -116,6 +118,9 @@ class TestMultiIndexSetItem:
                 expected=copy,
             )
 
+    # TODO(ArrayManager) df.loc["bar"] *= 2 doesn't raise an error but results in
+    # all NaNs -> doesn't work in the "split" path (also for BlockManager actually)
+    @td.skip_array_manager_not_yet_implemented
     def test_multiindex_setitem(self):
 
         # GH 3738
@@ -170,7 +175,7 @@ class TestMultiIndexSetItem:
         df.loc[idx[:, :, "Stock"], "price"] *= 2
         tm.assert_frame_equal(df, expected)
 
-    def test_multiindex_assignment(self):
+    def test_multiindex_assignment(self, using_array_manager):
 
         # GH3777 part 2
 
@@ -195,11 +200,15 @@ class TestMultiIndexSetItem:
 
         df.loc[4, "c"] = arr
         exp = Series(arr, index=[8, 10], name="c", dtype="float64")
+        if using_array_manager:
+            exp = exp.astype("int64")
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # scalar ok
         df.loc[4, "c"] = 10
         exp = Series(10, index=[8, 10], name="c", dtype="float64")
+        if using_array_manager:
+            exp = exp.astype("int64")
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # invalid assignments
@@ -312,6 +321,8 @@ class TestMultiIndexSetItem:
         df.loc[:, :] = 10
         tm.assert_frame_equal(df, result)
 
+    # TODO(ArrayManager) iset with multiple elements not yet implemented
+    @td.skip_array_manager_not_yet_implemented
     def test_frame_setitem_multi_column(self):
         df = DataFrame(
             np.random.randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]]
@@ -417,6 +428,8 @@ class TestMultiIndexSetItem:
 
         assert (df.xs((1, 1))["C"] == "_").all()
 
+    # TODO(ArrayManager) iset with multiple elements not yet implemented
+    @td.skip_array_manager_not_yet_implemented
     def test_astype_assignment_with_dups(self):
 
         # GH 4686
@@ -439,6 +452,8 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(df, expected)
 
 
+@td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
+# is not a view
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array
     # really a no-no

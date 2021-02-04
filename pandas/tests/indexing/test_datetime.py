@@ -7,7 +7,7 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
-    def test_indexing_with_datetime_tz(self):
+    def test_indexing_with_datetime_tz(self, using_array_manager):
 
         # GH#8260
         # support datetime64 with tz
@@ -65,10 +65,14 @@ class TestDatetimeIndex:
         # trying to set a single element on a part of a different timezone
         # this converts to object
         df2 = df.copy()
-        df2.loc[df2.new_col == "new", "time"] = v
+        if using_array_manager:
+            with pytest.raises(ValueError, match="Timezones don't match"):
+                df2.loc[df2.new_col == "new", "time"] = v
+        else:
+            df2.loc[df2.new_col == "new", "time"] = v
 
-        expected = Series([v[0], df.loc[1, "time"]], name="time")
-        tm.assert_series_equal(df2.time, expected)
+            expected = Series([v[0], df.loc[1, "time"]], name="time")
+            tm.assert_series_equal(df2.time, expected)
 
         v = df.loc[df.new_col == "new", "time"] + pd.Timedelta("1s")
         df.loc[df.new_col == "new", "time"] = v

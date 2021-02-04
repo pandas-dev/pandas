@@ -7,13 +7,15 @@ TODO: these should be split among the indexer tests
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, Index, Period, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
 
 
 class TestPartialSetting:
-    def test_partial_setting(self):
+    def test_partial_setting(self, using_array_manager):
 
         # GH2578, allow ix and friends to partially set
 
@@ -96,6 +98,8 @@ class TestPartialSetting:
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
         df.loc[:, "B"] = df.loc[:, "A"]
+        if using_array_manager:
+            expected["B"] = expected["B"].astype("float64")
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting
@@ -112,6 +116,9 @@ class TestPartialSetting:
         df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) concat with reindexing
+    @td.skip_array_manager_not_yet_implemented
+    def test_partial_setting2(self):
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
@@ -138,6 +145,10 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager)
+    # df.loc[0] = Series(1, index=range(4)) case creats float columns
+    # instead of object dtype
+    @td.skip_array_manager_not_yet_implemented
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes

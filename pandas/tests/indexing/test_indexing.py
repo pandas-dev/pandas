@@ -7,6 +7,8 @@ import weakref
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
@@ -130,18 +132,25 @@ class TestFancy:
         expected = pd.Float64Index([0, 1, np.inf])
         tm.assert_index_equal(result, expected)
 
-    def test_setitem_dtype_upcast(self):
+    def test_setitem_dtype_upcast(self, using_array_manager):
 
         # GH3216
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df["c"] = np.nan
         assert df["c"].dtype == np.float64
 
-        df.loc[0, "c"] = "foo"
-        expected = DataFrame(
-            [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
-        )
-        tm.assert_frame_equal(df, expected)
+        if using_array_manager:
+            with pytest.raises(ValueError, match="could not convert string to float"):
+                df.loc[0, "c"] = "foo"
+            # TODO(ArrayManager) also update the other cases below (depends on the
+            # exact setitem behaviour we want for integer/floats)
+            return
+        else:
+            df.loc[0, "c"] = "foo"
+            expected = DataFrame(
+                [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
+            )
+            tm.assert_frame_equal(df, expected)
 
         # GH10280
         df = DataFrame(
@@ -389,6 +398,8 @@ class TestFancy:
         )
         tm.assert_frame_equal(result, df)
 
+    # TODO(ArrayManager) update for setitem upcasting changes (pending discussions)
+    @td.skip_array_manager_not_yet_implemented
     def test_multi_assign(self):
 
         # GH 3626, an assignment of a sub-df to a df
@@ -460,6 +471,9 @@ class TestFancy:
         df.loc[df["A"] == 0, ["A", "B"]] = df["D"]
         tm.assert_frame_equal(df, expected)
 
+    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
+    # in the "split" path
+    @td.skip_array_manager_not_yet_implemented
     def test_setitem_list(self):
 
         # GH 6043
@@ -526,6 +540,8 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df.loc["2011", 0]
 
+    # TODO(ArrayManager) update for setitem upcasting changes (pending discussions)
+    @td.skip_array_manager_not_yet_implemented
     def test_astype_assignment(self):
 
         # GH4312 (iloc)
@@ -894,36 +910,52 @@ class TestDataframeNoneCoercion:
     ]
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
-    def test_coercion_with_loc(self, expected):
+    def test_coercion_with_loc(self, expected, using_array_manager):
         start_data, expected_result = expected
 
         start_dataframe = DataFrame({"foo": start_data})
+        if using_array_manager and start_dataframe["foo"].dtype == "int64":
+            with pytest.raises(TypeError, match=""):
+                start_dataframe.loc[0, ["foo"]] = None
+            return
         start_dataframe.loc[0, ["foo"]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
-    def test_coercion_with_setitem_and_dataframe(self, expected):
+    def test_coercion_with_setitem_and_dataframe(self, expected, using_array_manager):
         start_data, expected_result = expected
 
         start_dataframe = DataFrame({"foo": start_data})
+        if using_array_manager and start_dataframe["foo"].dtype == "int64":
+            with pytest.raises(TypeError, match=""):
+                start_dataframe[
+                    start_dataframe["foo"] == start_dataframe["foo"][0]
+                ] = None
+            return
         start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
-    def test_none_coercion_loc_and_dataframe(self, expected):
+    def test_none_coercion_loc_and_dataframe(self, expected, using_array_manager):
         start_data, expected_result = expected
 
         start_dataframe = DataFrame({"foo": start_data})
+        if using_array_manager and start_dataframe["foo"].dtype == "int64":
+            with pytest.raises(TypeError, match=""):
+                start_dataframe.loc[
+                    start_dataframe["foo"] == start_dataframe["foo"][0]
+                ] = None
+            return
         start_dataframe.loc[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
-    def test_none_coercion_mixed_dtypes(self):
+    def test_none_coercion_mixed_dtypes(self, using_array_manager):
         start_dataframe = DataFrame(
             {
                 "a": [1, 2, 3],
@@ -932,6 +964,10 @@ class TestDataframeNoneCoercion:
                 "d": ["a", "b", "c"],
             }
         )
+        if using_array_manager:
+            with pytest.raises(TypeError, match=""):
+                start_dataframe.iloc[0] = None
+            return
         start_dataframe.iloc[0] = None
 
         exp = DataFrame(

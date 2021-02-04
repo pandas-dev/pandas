@@ -133,7 +133,7 @@ class TestChaining:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment(self):
+    def test_detect_chained_assignment(self, using_array_manager):
 
         pd.set_option("chained_assignment", "raise")
 
@@ -150,19 +150,25 @@ class TestChaining:
         df = DataFrame(
             {
                 "A": Series(range(2), dtype="int64"),
-                "B": np.array(np.arange(2, 4), dtype=np.float64),
+                "B": np.array(np.arange(1, 4, 2), dtype=np.float64),
             }
         )
         assert df._is_copy is None
 
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        if not using_array_manager:
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                df["A"][0] = -5
+
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                df["A"][1] = np.nan
+
+            assert df["A"]._is_copy is None
+        else:
             df["A"][0] = -5
-
-        with pytest.raises(com.SettingWithCopyError, match=msg):
-            df["A"][1] = np.nan
-
-        assert df["A"]._is_copy is None
+            df["A"][1] = -6
+            expected["B"] = expected["B"].astype("float64")
+            tm.assert_frame_equal(df, expected)
 
         # Using a copy (the chain), fails
         df = DataFrame(
@@ -191,13 +197,17 @@ class TestChaining:
         expected = DataFrame({"A": [111, "bbb", "ccc"], "B": [1, 2, 3]})
         df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
 
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        if not using_array_manager:
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                df["A"][0] = 111
+
+            df.loc[0, "A"] = 111
+        else:
             df["A"][0] = 111
 
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df.loc[0]["A"] = 111
 
-        df.loc[0, "A"] = 111
         tm.assert_frame_equal(df, expected)
 
         # gh-5475: Make sure that is_copy is picked up reconstruction
@@ -256,10 +266,12 @@ class TestChaining:
         df.loc[:, "letters"] = df["letters"].apply(str.lower)
 
         # Should be ok even though it's a copy!
-        assert df._is_copy is None
+        if not using_array_manager:
+            assert df._is_copy is None
 
         df["letters"] = df["letters"].apply(str.lower)
-        assert df._is_copy is None
+        if not using_array_manager:
+            assert df._is_copy is None
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
@@ -313,8 +325,9 @@ class TestChaining:
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df.loc[2]["C"] = "foo"
 
-        with pytest.raises(com.SettingWithCopyError, match=msg):
-            df["C"][2] = "foo"
+        if not using_array_manager:
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                df["C"][2] = "foo"
 
     def test_setting_with_copy_bug(self):
 

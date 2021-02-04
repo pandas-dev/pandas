@@ -7,14 +7,19 @@ from pandas import CategoricalDtype, DataFrame, Series, Timestamp
 import pandas._testing as tm
 
 
-def test_at_timezone():
+def test_at_timezone(using_array_manager):
     # https://github.com/pandas-dev/pandas/issues/33544
     result = DataFrame({"foo": [datetime(2000, 1, 1)]})
-    result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
-    expected = DataFrame(
-        {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
-    )
-    tm.assert_frame_equal(result, expected)
+    if using_array_manager:
+        # TODO(ArrayManager) this should give a better error message
+        with pytest.raises(TypeError, match="tz-naive and tz-aware"):
+            result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
+    else:
+        result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
+        expected = DataFrame(
+            {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestAtSetItem:
