@@ -19,7 +19,6 @@ from pandas.core.indexing import IndexingError
     [(0, Series([1], index=[0])), (1, Series([2, 3], index=[1, 2]))],
 )
 def test_series_getitem_multiindex(access_method, level1_value, expected):
-
     # GH 6018
     # series regression getitem with a multi-index
 
@@ -87,7 +86,8 @@ def test_series_getitem_returns_scalar(
         (lambda s: s[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4, 5)], IndexingError, "Too many indexers"),
-        (lambda s: s.__getitem__(len(s)), KeyError, ""),  # match should include len(s)
+        (lambda s: s.__getitem__(len(s)), KeyError, ""),
+        # match should include len(s)
         (lambda s: s[len(s)], KeyError, ""),  # match should include len(s)
         (
             lambda s: s.iloc[len(s)],
@@ -229,28 +229,84 @@ def test_frame_getitem_nan_multiindex(nulls_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_getitem_nan_cols_multiindex(nulls_fixture):
+@pytest.mark.parametrize(
+    "indexer,expected",
+    [
+        (
+            (["b"], ["bar", np.nan]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["a", "b"]),
+            (
+                DataFrame(
+                    [[1, 2, 3], [4, 5, 6]],
+                    columns=MultiIndex.from_tuples(
+                        [("a", "foo"), ("b", "bar"), ("b", np.nan)]
+                    ),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], ["bar"]),
+            (
+                DataFrame(
+                    [[2], [5]],
+                    columns=MultiIndex.from_tuples([("b", "bar")]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], [np.nan]),
+            (
+                DataFrame(
+                    [[3], [6]],
+                    columns=MultiIndex.from_tuples([("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (("b", np.nan), Series([3, 6], dtype="int64", name=("b", np.nan))),
+    ],
+)
+def test_frame_getitem_nan_cols_multiindex(
+    indexer,
+    expected,
+    nulls_fixture,
+):
     # Slicing MultiIndex including levels with nan values, for more information
     # see GH#25154
-    index = ["First", nulls_fixture]
     df = DataFrame(
         [[1, 2, 3], [4, 5, 6]],
         columns=MultiIndex.from_tuples(
-            [("a", "foo"), ("b", "foo"), ("b", nulls_fixture)]
+            [("a", "foo"), ("b", "bar"), ("b", nulls_fixture)]
         ),
-        index=index,
         dtype="int64",
     )
 
-    # Slicing out 'b', ['foo', nan]
-    cols = (["b"], ["foo", nulls_fixture])
-    result = df.loc[:, cols]
-    expected_columns = MultiIndex.from_tuples([("b", "foo"), ("b", nulls_fixture)])
-    expected = DataFrame(
-        [[2, 3], [5, 6]], columns=expected_columns, index=index, dtype="int64"
-    )
-
-    tm.assert_frame_equal(result, expected)
+    result = df.loc[:, indexer]
+    if isinstance(result, DataFrame):
+        tm.assert_frame_equal(result, expected, check_column_type=False)
+    elif isinstance(result, Series):
+        tm.assert_series_equal(result, expected)
 
 
 # ----------------------------------------------------------------------------
