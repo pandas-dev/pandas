@@ -1,5 +1,7 @@
 .. _env_outside_docker:
 
+{{ header }}
+
 Setting up an environment outside of Docker
 ===========================================
 
