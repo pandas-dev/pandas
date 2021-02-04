@@ -3239,9 +3239,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. warning::
 
-           It returns -1 for the values which do not match. Example: index
-           is array([1,2,3]) and you try to do index.get_indexer([1,2,4,5])
-           the output would be array([ 0,  1, -1, -1])
+           Returns -1 for the values which do not match. For further explanation 
+           see the example below.
 
         Parameters
         ----------
