@@ -1043,17 +1043,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Scalar value.
         takeable : interpret the index as indexers, default False
         """
-        try:
-            if takeable:
-                self._values[label] = value
-            else:
+        if not takeable:
+            try:
                 loc = self.index.get_loc(label)
-                validate_numeric_casting(self.dtype, value)
-                self._values[loc] = value
-        except KeyError:
+            except KeyError:
+                # set using a non-recursive method
+                self.loc[label] = value
+                return
+        else:
+            loc = label
 
-            # set using a non-recursive method
-            self.loc[label] = value
+        self._set_values(loc, value)
 
     # ----------------------------------------------------------------------
     # Unsorted
