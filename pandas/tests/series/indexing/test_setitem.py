@@ -341,9 +341,9 @@ class SetitemCastingEquivalents:
         self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
 
         if indexer_sli is tm.loc:
-            self.check_indexer(obj, key, expected, val, tm.at)
+            self.check_indexer(obj, key, expected, val, tm.at, is_inplace)
         elif indexer_sli is tm.iloc:
-            self.check_indexer(obj, key, expected, val, tm.iat)
+            self.check_indexer(obj, key, expected, val, tm.iat, is_inplace)
 
         rng = range(key, key + 1)
         self.check_indexer(obj, rng, expected, val, indexer_sli, is_inplace)
