@@ -3239,7 +3239,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. warning::
 
-           Returns -1 for the values which do not match. For further explanation 
+           Returns -1 for the values which do not match. For further explanation
            see the example below.
 
         Parameters
