@@ -220,12 +220,7 @@ class _XMLFrameParser:
 class _EtreeFrameParser(_XMLFrameParser):
     """
     Internal class to parse XML into DataFrames with the Python
-    standard library XML modules: `xml.etree.ElementTree`.
-
-    Notes
-    -----
-    This class serves as fall back option if user does not have
-    ``lxml`` installed or user specifically requests ``etree`` parser.
+    standard library XML module: `xml.etree.ElementTree`.
     """
 
     from xml.etree.ElementTree import Element, ElementTree
@@ -420,13 +415,6 @@ class _LxmlFrameParser(_XMLFrameParser):
     Internal class to parse XML into DataFrames with third-party
     full-featured XML library, `lxml`, that supports
     XPath 1.0 and XSLT 1.0.
-
-    Notes
-    -----
-    This is the default class called with `_EtreeFrameParser` serving
-    as fall back option if user does not have ``lxml`` installed.
-    With `lxml`, the user enjoys the full scope of funcationality and
-    efficiency.
     """
 
     def __init__(self, *args, **kwargs):
@@ -705,11 +693,7 @@ def _parse(
                 stylesheet,
             )
         else:
-            warn(
-                "You do not have lxml installed (default parser). "
-                "Instead, etree will be used.",
-                ImportWarning,
-            )
+            raise ImportError("lxml not found, please install or use the etree parser.")
 
             p = _EtreeFrameParser(
                 io,
@@ -762,7 +746,7 @@ def read_xml(
     io : str, path object or file-like object
         A URL, file-like object, or raw string containing XML.
 
-    xpath : str, optional
+    xpath : str, optional, default './*'
         The XPath to parse required set of nodes for migration to DataFrame.
         XPath should return a collection of elements and not a single
         element. Note: The ``etree`` parser supports limited XPath
@@ -780,11 +764,11 @@ def read_xml(
 
             namespaces = {"doc": "https://example.com"}
 
-    elems_only : bool, optional, default = False
+    elems_only : bool, optional, default False
         Parse only the child elements at the specified ``xpath``. By default,
         all child elements and non-empty text nodes are returned.
 
-    attrs_only :  bool, optional, default = False
+    attrs_only :  bool, optional, default False
         Parse only the attributes at the specified ``xpath``.
         By default, all attributes are returned.
 
@@ -792,15 +776,13 @@ def read_xml(
         Column names for DataFrame of parsed XML data. Use this parameter to
         rename original element names and distinguish same named elements.
 
-    encoding : str, optional, default = 'utf-8'
+    encoding : str, optional, default 'utf-8'
         Encoding of XML document.
 
-    parser : {'lxml','etree'}, default='lxml'
+    parser : {'lxml','etree'}, default 'lxml'
         Parser module to use for retrieval of data. Only 'lxml' and
         'etree' are supported. With 'lxml' more complex XPath searches
-        and ability to use XSLT stylesheet are supported. Default parser
-        uses 'lxml'. If module is not installed a warning will raise and
-        process will continue with 'etree'.
+        and ability to use XSLT stylesheet are supported.
 
     stylesheet : str, path object or file-like object
         A URL, file-like object, or a raw string containing an XSLT script.

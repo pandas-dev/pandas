@@ -1,5 +1,5 @@
 """
-Internal module for formatting output data in csv, html,
+Internal module for formatting output data in csv, html, xml,
 and latex files. This module also applies to display formatting.
 """
 from __future__ import annotations
@@ -30,7 +30,6 @@ from typing import (
     cast,
 )
 from unicodedata import east_asian_width
-from warnings import warn
 
 import numpy as np
 
@@ -1033,7 +1032,7 @@ class DataFrameRenderer:
         path_or_buffer : str, path object or file-like object, optional
             File to write output to. If None, the output is returned as a
             string.
-        index : bool, optional
+        index : bool, default True
             Whether to include index in XML document.
         root_name : str, default 'data'
             The name of root element in XML document.
@@ -1066,15 +1065,13 @@ class DataFrameRenderer:
             Encoding of the resulting document.
         xml_declaration : str, optional
             Whether to include the XML declaration at start of document.
-        pretty_print : bool, optional
+        pretty_print : bool, default True
             Whether output should be pretty printed with indentation and
             line breaks.
         parser : {'lxml','etree'}, default "lxml"
             Parser module to use for building of tree. Only 'lxml' and
             'etree' are supported. With 'lxml', the ability to use XSLT
-            stylesheet is supported. Default parser uses 'lxml'. If
-            module is not installed a warning will raise and process
-            will continue with 'etree'.
+            stylesheet is supported.
         stylesheet : str, path object or file-like object, optional
             A URL, file-like object, or a raw string containing an XSLT
             script used to transform the raw XML output. Script should use
@@ -1093,12 +1090,9 @@ class DataFrameRenderer:
             if lxml is not None:
                 TreeBuilder = LxmlXMLFormatter
             else:
-                warn(
-                    "You do not have lxml installed (default parser). "
-                    "Instead, etree will be used.",
-                    ImportWarning,
+                raise ImportError(
+                    "lxml not found, please install or use the etree parser."
                 )
-                TreeBuilder = EtreeXMLFormatter
 
         elif parser == "etree":
             TreeBuilder = EtreeXMLFormatter

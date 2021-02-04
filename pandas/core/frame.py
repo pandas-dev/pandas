@@ -2631,7 +2631,7 @@ class DataFrame(NDFrame, OpsMixin):
         path_or_buffer : str, path object or file-like object, optional
             File to write output to. If None, the output is returned as a
             string.
-        index : bool, optional
+        index : bool, default True
             Whether to include index in XML document.
         root_name : str, default 'data'
             The name of root element in XML document.
@@ -2662,17 +2662,15 @@ class DataFrame(NDFrame, OpsMixin):
             dict.
         encoding : str, default 'utf-8'
             Encoding of the resulting document.
-        xml_declaration : str, optional
+        xml_declaration : bool, default True
             Whether to include the XML declaration at start of document.
-        pretty_print : bool, optional
+        pretty_print : bool, default True
             Whether output should be pretty printed with indentation and
             line breaks.
-        parser : {'lxml','etree'}, default "lxml"
+        parser : {'lxml','etree'}, default 'lxml'
             Parser module to use for building of tree. Only 'lxml' and
             'etree' are supported. With 'lxml', the ability to use XSLT
-            stylesheet is supported. Default parser uses 'lxml'. If
-            module is not installed a warning will raise and process
-            will continue with 'etree'.
+            stylesheet is supported.
         stylesheet : str, path object or file-like object, optional
             A URL, file-like object, or a raw string containing an XSLT
             script used to transform the raw XML output. Script should use

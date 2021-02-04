@@ -15,7 +15,10 @@ from pandas.io.xml import read_xml
 """
 CHECKLIST
 
+[x] - ValueError("Values for parser can only be lxml or etree.")
+
 etree
+[x] - ImportError("lxml not found, please install or use the etree parser.")
 [X] - TypeError("...is not a valid type for attr_cols")
 [X] - TypeError("...is not a valid type for elem_cols")
 [X] - LookupError("unknown encoding")
@@ -961,6 +964,24 @@ def test_no_pretty_print_no_decl():
     output = geom_df.to_xml(xml_declaration=False, pretty_print=False)
 
     assert output == expected
+
+
+# PARSER
+
+
+@td.skip_if_installed("lxml")
+def test_default_parser_no_lxml():
+    with pytest.raises(
+        ImportError, match=("lxml not found, please install or use the etree parser.")
+    ):
+        geom_df.to_xml()
+
+
+def test_unknown_parser():
+    with pytest.raises(
+        ValueError, match=("Values for parser can only be lxml or etree.")
+    ):
+        geom_df.to_xml(parser="bs4")
 
 
 # STYLESHEET

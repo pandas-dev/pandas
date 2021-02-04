@@ -14,7 +14,10 @@ from pandas.io.xml import read_xml
 """
 CHECK LIST
 
+[x] - ValueError("Values for parser can only be lxml or etree.")
+
 etree
+[x] - ImportError("lxml not found, please install or use the etree parser.")
 [X] - ValueError("Either element or attributes can be parsed not both.")
 [X] - ValueError("xpath does not return any nodes...")
 [X] - SyntaxError("You have used an incorrect or unsupported XPath")
@@ -558,6 +561,16 @@ def test_parser_consistency_with_encoding(datapath):
 
 
 # PARSER
+
+
+@td.skip_if_installed("lxml")
+def test_default_parser_no_lxml(datapath):
+    filename = datapath("io", "data", "xml", "books.xml")
+
+    with pytest.raises(
+        ImportError, match=("lxml not found, please install or use the etree parser.")
+    ):
+        read_xml(filename)
 
 
 def test_wrong_parser(datapath):

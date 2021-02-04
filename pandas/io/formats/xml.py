@@ -262,11 +262,6 @@ class EtreeXMLFormatter(BaseXMLFormatter):
     """
     Class for formatting data in xml using Python standard library
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
-
-    Notes
-    -----
-    This class serves as fall back option if user does not have
-    ``lxml`` installed or user specifically requests ``etree`` parser.
     """
 
     def __init__(self, *args, **kwargs):
@@ -396,11 +391,6 @@ class LxmlXMLFormatter(BaseXMLFormatter):
     """
     Class for formatting data in xml using Python standard library
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
-
-    Notes
-    -----
-    This class serves as default option. If user does not have `lxml`
-    installed, `to_xml` will fall back with EtreeXMLFormatter.
     """
 
     def __init__(self, *args, **kwargs):
