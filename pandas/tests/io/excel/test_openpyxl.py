@@ -116,3 +116,27 @@ def test_to_excel_with_openpyxl_engine(ext):
         ).highlight_max()
 
         styled.to_excel(filename, engine="openpyxl")
+
+
+@pytest.mark.parametrize("engine", (None, "openpyxl"))
+def test_read_excel_workbook(engine, ext):
+    # GH 39528
+    openpyxl = pytest.importorskip("openpyxl")
+    expected = tm.makeDataFrame()
+    message = "Invalid file path or buffer object type"
+
+    with tm.ensure_clean(ext) as filename:
+        expected.to_excel(filename)
+        workbook = openpyxl.load_workbook(filename)
+        if engine is None:
+            # should raise
+            try:
+                with pytest.raises(ValueError, match=message):
+                    df = pd.read_excel(workbook, engine=engine)
+            finally:
+                workbook.close()
+        else:
+            # should work
+            df = pd.read_excel(workbook, engine=engine, index_col=0)
+            workbook.close()
+            tm.assert_frame_equal(expected, df)

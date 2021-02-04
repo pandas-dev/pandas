@@ -1071,7 +1071,7 @@ class ExcelFile:
 
         if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
-        else:
+        elif engine in (None, "xlrd") and True:
             ext = inspect_excel_format(
                 content_or_path=path_or_buffer, storage_options=storage_options
             )
