@@ -323,7 +323,7 @@ class TestDataFrameSortValues:
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT))
+        int_values = (2, int(NaT.value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -578,6 +578,14 @@ class TestDataFrameSortValues:
         ser.values[0] = 99
 
         assert df.iloc[0, 0] == df["A"][0]
+
+    def test_sort_values_reshaping(self):
+        # GH 39426
+        values = list(range(21))
+        expected = DataFrame([values], columns=values)
+        df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
+
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)

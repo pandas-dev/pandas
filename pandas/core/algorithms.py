@@ -715,7 +715,9 @@ def factorize(
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
-            na_value = na_value_for_dtype(original.dtype)
+            # Note: factorize_array will cast NaT bc it has a __int__
+            #  method, but will not cast the more-correct dtype.type("nat")
+            na_value = iNaT
         else:
             na_value = None
 
@@ -1659,7 +1661,12 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
 
 def take_nd(
-    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
+    arr,
+    indexer,
+    axis: int = 0,
+    out=None,
+    fill_value=lib.no_default,
+    allow_fill: bool = True,
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1693,6 +1700,9 @@ def take_nd(
         May be the same type as the input, or cast to an ndarray.
     """
     mask_info = None
+
+    if fill_value is lib.no_default:
+        fill_value = na_value_for_dtype(arr.dtype, compat=False)
 
     if isinstance(arr, ABCExtensionArray):
         # Check for EA to catch DatetimeArray, TimedeltaArray

@@ -24,7 +24,7 @@ dependencies:
   - moto
   - nomkl
   - numexpr
-  - numpy
+  - numpy<1.20  # GH#39541 compat with pyarrow<3
   - openpyxl
   - pytables
   - python-dateutil
