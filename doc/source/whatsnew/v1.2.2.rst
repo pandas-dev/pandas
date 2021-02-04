@@ -10,15 +10,6 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_122.api_breaking.deps:
-
-Increased minimum versions for dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- The minimum version of ``openpyxl`` has been increased from 2.6.0 to 3.0.0 (:issue:`39001`)
-
-.. ---------------------------------------------------------------------------
-
 .. _whatsnew_122.regressions:
 
 Fixed regressions
@@ -40,7 +31,7 @@ Bug fixes
 ~~~~~~~~~
 
 - :func:`pandas.read_excel` error message when a specified ``sheetname`` does not exist is now uniform across engines (:issue:`39250`)
-- Fixed bug in :func:`pandas.read_excel` producing incorrect results when the engine ``openpyxl`` is used and the excel file is missing or has incorrect dimension information (:issue:`38956`, :issue:`39001`)
+- Fixed bug in :func:`pandas.read_excel` producing incorrect results when the engine ``openpyxl`` is used and the excel file is missing or has incorrect dimension information; the fix requires ``openpyxl`` >= 3.0.0, prior versions may still fail (:issue:`38956`, :issue:`39001`)
 -
 
 .. ---------------------------------------------------------------------------

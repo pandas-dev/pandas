@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from distutils.version import LooseVersion
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
 
 from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import get_version, import_optional_dependency
 
 from pandas.io.excel._base import BaseExcelReader, ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
@@ -528,14 +529,19 @@ class OpenpyxlReader(BaseExcelReader):
         # GH 39001
         # Reading of excel file depends on dimension data being correct but
         # writers sometimes omit or get it wrong
-        sheet.reset_dimensions()
+        import openpyxl
+
+        version = LooseVersion(get_version(openpyxl))
+
+        if version >= "3.0.0":
+            sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
         for row_number, row in enumerate(sheet.rows):
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
             data.append(converted_row)
 
-        if len(data) > 0:
+        if version >= "3.0.0" and len(data) > 0:
             # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:

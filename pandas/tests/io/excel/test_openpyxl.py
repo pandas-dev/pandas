@@ -1,5 +1,9 @@
+from distutils.version import LooseVersion
+
 import numpy as np
 import pytest
+
+from pandas.compat._optional import get_version
 
 import pandas as pd
 from pandas import DataFrame
@@ -134,6 +138,10 @@ def test_to_excel_with_openpyxl_engine(ext):
 )
 @pytest.mark.parametrize(
     "filename", ["dimension_missing", "dimension_small", "dimension_large"]
+)
+@pytest.mark.xfail(
+    LooseVersion(get_version(openpyxl)) < "3.0.0",
+    reason="openpyxl read-only sheet is incorrect when dimension data is wrong",
 )
 def test_read_with_bad_dimension(datapath, ext, header, expected_data, filename):
     # GH 38956, 39001 - no/incorrect dimension information
