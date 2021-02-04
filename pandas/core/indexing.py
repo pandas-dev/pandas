@@ -2407,9 +2407,11 @@ def non_reducing_slice(slice_):
         """
         # true when slice does *not* reduce, False when part is a tuple,
         # i.e. MultiIndex slice
-        return (isinstance(part, slice) or is_list_like(part)) and not isinstance(
-            part, tuple
-        )
+        if isinstance(part, tuple):
+            # GH#39421 check for sub-slice:
+            return any((isinstance(s, slice) or is_list_like(s)) for s in part)
+        else:
+            return isinstance(part, slice) or is_list_like(part)
 
     if not is_list_like(slice_):
         if not isinstance(slice_, slice):
