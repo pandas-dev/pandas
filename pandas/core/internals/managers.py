@@ -44,7 +44,6 @@ from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
-    CategoricalBlock,
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
@@ -1748,13 +1747,6 @@ def _form_blocks(arrays, names: Index, axes: List[Index]) -> List[Block]:
     if len(items_dict["ObjectBlock"]) > 0:
         object_blocks = _simple_blockify(items_dict["ObjectBlock"], np.object_)
         blocks.extend(object_blocks)
-
-    if len(items_dict["CategoricalBlock"]) > 0:
-        cat_blocks = [
-            make_block(array, klass=CategoricalBlock, placement=i, ndim=2)
-            for i, array in items_dict["CategoricalBlock"]
-        ]
-        blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [

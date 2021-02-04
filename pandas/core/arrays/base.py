@@ -46,7 +46,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import factorize_array, isin, unique
-from pandas.core.missing import get_fill_func
+from pandas.core.array_algos.putmask import putmask_inplace
+from pandas.core.missing import get_fill_func, mask_missing
 from pandas.core.sorting import nargminmax, nargsort
 
 _extension_array_shared_docs: Dict[str, str] = {}
@@ -1267,6 +1268,33 @@ class ExtensionArray:
     def delete(self: ExtensionArrayT, loc) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
+
+    def replace(
+        self: ExtensionArrayT, to_replace, value, inplace: bool = False
+    ) -> ExtensionArrayT:
+        """
+        Replaces all instances of one value with another
+
+        Parameters
+        ----------
+        to_replace: object
+            The value to be replaced
+        value: object
+            The value to replace it with
+        inplace: bool
+            Whether the operation is done in-place
+
+        Returns
+        -------
+        None if inplace is True, otherwise the new ExtensionArray after replacement
+        """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        mask = mask_missing(self, to_replace)
+
+        result = self if inplace else self.copy()
+        putmask_inplace(result, mask, value)
+        return result
 
 
 class ExtensionOpsMixin:

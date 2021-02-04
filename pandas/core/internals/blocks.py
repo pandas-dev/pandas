@@ -46,7 +46,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, PandasDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -759,8 +759,12 @@ class Block(PandasObject):
             )
 
         blk = self if inplace else self.copy()
-        putmask_inplace(blk.values, mask, value)
-        blocks = blk.convert(numeric=False, copy=not inplace)
+        if self.is_extension:
+            blk.values.replace(to_replace, value, inplace=True)
+            blocks = [blk]
+        else:
+            putmask_inplace(blk.values, mask, value)
+            blocks = blk.convert(numeric=False, copy=not inplace)
         return blocks
 
     def _replace_regex(
@@ -1232,7 +1236,7 @@ class Block(PandasObject):
         Take values according to indexer and return them as a block.bb
 
         """
-        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
+        # algos.take_nd dispatches for DatetimeTZBlock, ExtensionBlock
         # so need to preserve types
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
@@ -1496,7 +1500,7 @@ class ExtensionBlock(Block):
     Notes
     -----
     This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks, CategoricalBlock.
+    parent class for our internal extension types' blocks.
 
     ExtensionArrays are limited to 1-D.
     """
@@ -1706,7 +1710,7 @@ class ExtensionBlock(Block):
 
     def _can_hold_element(self, element: Any) -> bool:
         # TODO: We may need to think about pushing this onto the array.
-        # We're doing the same as CategoricalBlock here.
+        # We're doing the same as ObjectValuesExtensionBlock here.
         return True
 
     def _slice(self, slicer):
@@ -2373,23 +2377,6 @@ class ObjectBlock(Block):
             return super().replace(to_replace, value, inplace=inplace, regex=False)
 
 
-class CategoricalBlock(ExtensionBlock):
-    __slots__ = ()
-
-    def replace(
-        self,
-        to_replace,
-        value,
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> List[Block]:
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        result = self if inplace else self.copy()
-
-        result.values.replace(to_replace, value, inplace=True)
-        return [result]
-
-
 # -----------------------------------------------------------------
 # Constructor Helpers
 
@@ -2418,8 +2405,6 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif isinstance(dtype, CategoricalDtype):
-        cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
     elif vtype is Interval or vtype is Period:
