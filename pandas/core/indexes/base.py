@@ -40,9 +40,10 @@ from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     find_common_type,
+    infer_dtype_from,
     maybe_cast_to_integer_array,
-    maybe_promote,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -87,7 +88,7 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import array_equivalent, is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
@@ -114,7 +115,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import MultiIndex, RangeIndex, Series
+    from pandas import IntervalIndex, MultiIndex, RangeIndex, Series
     from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -824,7 +825,7 @@ class Index(IndexOpsMixin, PandasObject):
         taken = algos.take(
             self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
         )
-        return self._shallow_copy(taken)
+        return type(self)._simple_new(taken, name=self.name)
 
     @final
     def _maybe_disallow_fill(self, allow_fill: bool, fill_value, indices) -> bool:
@@ -892,7 +893,9 @@ class Index(IndexOpsMixin, PandasObject):
     def repeat(self, repeats, axis=None):
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
-        return self._shallow_copy(self._values.repeat(repeats))
+        res_values = self._values.repeat(repeats)
+
+        return type(self)._simple_new(res_values, name=self.name)
 
     # --------------------------------------------------------------------
     # Copying Methods
@@ -2290,14 +2293,6 @@ class Index(IndexOpsMixin, PandasObject):
             return values
 
     @cache_readonly
-    @final
-    def _nan_idxs(self):
-        if self._can_hold_na:
-            return self._isnan.nonzero()[0]
-        else:
-            return np.array([], dtype=np.intp)
-
-    @cache_readonly
     def hasnans(self) -> bool:
         """
         Return if I have any nans; enables various perf speedups.
@@ -2462,7 +2457,8 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError(f"invalid how option: {how}")
 
         if self.hasnans:
-            return self._shallow_copy(self._values[~self._isnan])
+            res_values = self._values[~self._isnan]
+            return type(self)._simple_new(res_values, name=self.name)
         return self._shallow_copy()
 
     # --------------------------------------------------------------------
@@ -3219,6 +3215,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(casted_key)
             except KeyError as err:
                 raise KeyError(key) from err
+
+        if is_scalar(key) and isna(key) and not self.hasnans:
+            raise KeyError(key)
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
@@ -4317,19 +4316,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.where(idx.isin(['car', 'train']), 'other')
         Index(['car', 'other', 'train', 'other'], dtype='object')
         """
-        if other is None:
-            other = self._na_value
-
-        values = self.values
-
-        try:
-            self._validate_fill_value(other)
-        except (ValueError, TypeError):
-            return self.astype(object).where(cond, other)
-
-        values = np.where(cond, values, other)
-
-        return Index(values, name=self.name)
+        cond = np.asarray(cond, dtype=bool)
+        return self.putmask(~cond, other)
 
     # construction helpers
     @final
@@ -4360,6 +4348,8 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
+        if not can_hold_element(self.dtype, value):
+            raise TypeError
         return value
 
     @final
@@ -4542,18 +4532,33 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        values = self._values.copy()
+        mask = np.asarray(mask, dtype=bool)
+        if mask.shape != self.shape:
+            raise ValueError("putmask: mask and data must be the same size")
+        if not mask.any():
+            return self.copy()
+
+        if value is None:
+            value = self._na_value
         try:
             converted = self._validate_fill_value(value)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
                 raise err
 
-            # coerces to object
-            return self.astype(object).putmask(mask, value)
+            dtype = self._find_common_type_compat(value)
+            return self.astype(dtype).putmask(mask, value)
 
-        np.putmask(values, mask, converted)
-        return self._shallow_copy(values)
+        values = self._values.copy()
+        if isinstance(converted, np.timedelta64) and self.dtype == object:
+            # https://github.com/numpy/numpy/issues/12550
+            #  timedelta64 will incorrectly cast to int
+            converted = [converted] * mask.sum()
+            values[mask] = converted
+        else:
+            np.putmask(values, mask, converted)
+
+        return type(self)._simple_new(values, name=self.name)
 
     def equals(self, other: Any) -> bool:
         """
@@ -5189,18 +5194,31 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self, other
 
-    def _find_common_type_compat(self, target: Index) -> DtypeObj:
+    @final
+    def _find_common_type_compat(self, target) -> DtypeObj:
         """
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        dtype = find_common_type([self.dtype, target.dtype])
+        if is_interval_dtype(self.dtype) and is_valid_nat_for_dtype(target, self.dtype):
+            # e.g. setting NA value into IntervalArray[int64]
+            self = cast("IntervalIndex", self)
+            return IntervalDtype(np.float64, closed=self.closed)
+
+        target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
+        dtype = find_common_type([self.dtype, target_dtype])
         if dtype.kind in ["i", "u"]:
             # TODO: what about reversed with self being categorical?
-            if is_categorical_dtype(target.dtype) and target.hasnans:
+            if (
+                isinstance(target, Index)
+                and is_categorical_dtype(target.dtype)
+                and target.hasnans
+            ):
                 # FIXME: find_common_type incorrect with Categorical GH#38240
                 # FIXME: some cases where float64 cast can be lossy?
                 dtype = np.dtype(np.float64)
+        if dtype.kind == "c":
+            dtype = np.dtype(object)
         return dtype
 
     @final
@@ -5715,7 +5733,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
-        return self._shallow_copy(np.delete(self._data, loc))
+        res_values = np.delete(self._data, loc)
+        return type(self)._simple_new(res_values, name=self.name)
 
     def insert(self, loc: int, item):
         """
@@ -5735,16 +5754,14 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
         item = lib.item_from_zerodim(item)
+        if is_valid_nat_for_dtype(item, self.dtype) and self.dtype != object:
+            item = self._na_value
 
         try:
             item = self._validate_fill_value(item)
         except TypeError:
-            if is_scalar(item):
-                dtype, item = maybe_promote(self.dtype, item)
-            else:
-                # maybe_promote would raise ValueError
-                dtype = np.dtype(object)
-
+            inferred, _ = infer_dtype_from(item)
+            dtype = find_common_type([self.dtype, inferred])
             return self.astype(dtype).insert(loc, item)
 
         arr = np.asarray(self)

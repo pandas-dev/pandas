@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     Manager,
+    NpDtype,
     PythonFuncType,
     Renamer,
     StorageOptions,
@@ -128,6 +129,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -1325,7 +1327,9 @@ class DataFrame(NDFrame, OpsMixin):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient="columns", dtype=None, columns=None) -> DataFrame:
+    def from_dict(
+        cls, data, orient="columns", dtype: Optional[Dtype] = None, columns=None
+    ) -> DataFrame:
         """
         Construct DataFrame from dict of array-like or dicts.
 
@@ -1404,7 +1408,10 @@ class DataFrame(NDFrame, OpsMixin):
         return cls(data, index=index, columns=columns, dtype=dtype)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
@@ -3223,9 +3230,8 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
             self.iloc[indexer] = value
         else:
-            if isinstance(value, DataFrame) and self.columns.is_unique:
-                if len(value.columns) != len(key):
-                    raise ValueError("Columns must be same length as key")
+            if isinstance(value, DataFrame):
+                check_key_length(self.columns, key, value)
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
@@ -3864,6 +3870,14 @@ class DataFrame(NDFrame, OpsMixin):
            col1  col1  newcol  col2
         0   100     1      99     3
         1   100     2      99     4
+
+        Notice that pandas uses index alignment in case of `value` from type `Series`:
+
+        >>> df.insert(0, "col0", pd.Series([5, 6], index=[1, 2]))
+        >>> df
+           col0  col1  col1  newcol  col2
+        0   NaN   100     1      99     3
+        1   5.0   100     2      99     4
         """
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
@@ -5451,15 +5465,13 @@ class DataFrame(NDFrame, OpsMixin):
         4     True
         dtype: bool
         """
-        from pandas._libs.hashtable import SIZE_HINT_LIMIT, duplicated_int64
+        from pandas._libs.hashtable import duplicated_int64
 
         if self.empty:
             return self._constructor_sliced(dtype=bool)
 
         def f(vals):
-            labels, shape = algorithms.factorize(
-                vals, size_hint=min(len(self), SIZE_HINT_LIMIT)
-            )
+            labels, shape = algorithms.factorize(vals, size_hint=len(self))
             return labels.astype("i8", copy=False), len(shape)
 
         if subset is None:
@@ -5548,7 +5560,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if ignore_index:
-            new_data.set_axis(1, ibase.default_index(len(indexer)))
+            new_data.set_axis(
+                self._get_block_manager_axis(axis), ibase.default_index(len(indexer))
+            )
 
         result = self._constructor(new_data)
         if inplace:
