@@ -307,6 +307,13 @@ class SetitemCastingEquivalents:
         - the setitem does not expand the obj
     """
 
+    @pytest.fixture
+    def is_inplace(self):
+        """
+        Indicate that we are not (yet) checking whether or not setting is inplace.
+        """
+        return None
+
     def check_indexer(self, obj, key, expected, val, indexer, is_inplace):
         orig = obj
         obj = obj.copy()
@@ -334,9 +341,9 @@ class SetitemCastingEquivalents:
         self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
 
         if indexer_sli is tm.loc:
-            self.check_indexer(obj, key, expected, val, tm.at)
+            self.check_indexer(obj, key, expected, val, tm.at, is_inplace)
         elif indexer_sli is tm.iloc:
-            self.check_indexer(obj, key, expected, val, tm.iat)
+            self.check_indexer(obj, key, expected, val, tm.iat, is_inplace)
 
         rng = range(key, key + 1)
         self.check_indexer(obj, rng, expected, val, indexer_sli, is_inplace)
@@ -469,13 +476,6 @@ class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
         attribute.
         """
         return request.param
-
-    @pytest.fixture
-    def is_inplace(self):
-        """
-        Indicate that we are not (yet) checking whether or not setting is inplace.
-        """
-        return None
 
 
 class TestSetitemWithExpansion:
