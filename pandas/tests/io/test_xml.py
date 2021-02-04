@@ -216,7 +216,7 @@ def test_not_io_object(parser):
 def test_wrong_file_lxml(datapath):
     with pytest.raises(
         (OSError, FileNotFoundError),
-        match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
+        match=(r"failed to load external entity|No such file or directory|没有那个文件或目录"),
     ):
         filename = os.path.join("data", "html", "books.xml")
         read_xml(filename, parser="lxml")
