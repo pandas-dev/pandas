@@ -42,7 +42,11 @@ from pandas.core.generic import NDFrame
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
+CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
+CSSProperties = Union[str, CSSSequence]
+CSSStyles = Sequence[Dict[str, CSSProperties]]
 
+# Union[CSSStyles, Dict[Any, CSSStyles]]
 
 try:
     from matplotlib import colors
@@ -267,7 +271,7 @@ class Styler:
     def set_tooltips_class(
         self,
         name: Optional[str] = None,
-        properties: Optional[Sequence[Tuple[str, Union[str, int, float]]]] = None,
+        properties: Optional[CSSProperties] = None,
     ) -> Styler:
         """
         Manually configure the name and/or properties of the class for
@@ -1833,7 +1837,7 @@ class _Tooltips:
 
     def __init__(
         self,
-        css_props: Sequence[Tuple[str, Union[str, int, float]]] = [
+        css_props: CSSProperties = [
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),
@@ -1847,7 +1851,7 @@ class _Tooltips:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips
-        self.table_styles: List[Dict[str, Union[str, List[Tuple[str, str]]]]] = []
+        self.table_styles: CSSStyles = []
 
     @property
     def _class_styles(self):
@@ -2049,9 +2053,7 @@ def _maybe_wrap_formatter(
         raise TypeError(msg)
 
 
-def _maybe_convert_css_to_tuples(
-    style: Union[str, Sequence[Tuple[str, Union[str, int, float]]]]
-):
+def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
     """
     Convert css-string to sequence of tuples format if needed.
     'color:red; border:1px solid black;' -> [('color', 'red'),
