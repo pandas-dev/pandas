@@ -35,7 +35,7 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby, dispatch
+from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -81,6 +81,22 @@ def wrap_result(obj: Series, result: np.ndarray) -> Series:
     obj = obj._selected_obj
 
     return obj._constructor(result, obj.index, name=obj.name)
+
+
+def dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to groupby apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
 
 
 class ExponentialMovingWindow(BaseWindow):
