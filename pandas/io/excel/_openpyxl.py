@@ -539,8 +539,10 @@ class OpenpyxlReader(BaseExcelReader):
             # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:
+                empty_cell: List[Scalar] = [""]
                 data = [
-                    data_row + (max_width - len(data_row)) * [""] for data_row in data
+                    data_row + (max_width - len(data_row)) * empty_cell
+                    for data_row in data
                 ]
 
         return data
