@@ -585,7 +585,6 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
 
         # if the index of the original dataframe needs to be preserved, append
         # this index (but reordered) to the codes/levels from the groupby
-        breakpoint()
         if grouped_object_index is not None:
             idx = grouped_object_index.take(indexer)
             if not isinstance(idx, MultiIndex):
