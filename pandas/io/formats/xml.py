@@ -4,7 +4,7 @@
 
 import codecs
 import io
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.error import HTTPError, URLError
 from warnings import warn
 
@@ -79,11 +79,11 @@ class BaseXMLFormatter:
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
         na_rep: Optional[str] = None,
-        attr_cols: Optional[Union[str, List[str]]] = None,
-        elem_cols: Optional[Union[str, List[str]]] = None,
-        namespaces: Optional[Dict[str, str]] = None,
+        attr_cols: Optional[List[str]] = None,
+        elem_cols: Optional[List[str]] = None,
+        namespaces: Optional[Dict[Optional[str], str]] = None,
         prefix: Optional[str] = None,
-        encoding: Optional[str] = "utf-8",
+        encoding: str = "utf-8",
         xml_declaration: Optional[bool] = True,
         pretty_print: Optional[bool] = True,
         stylesheet: Optional[FilePathOrBuffer[str]] = None,
@@ -103,6 +103,9 @@ class BaseXMLFormatter:
         self.pretty_print = pretty_print
         self.stylesheet = stylesheet
         self.frame = self.fmt.frame
+
+        self.orig_cols = self.fmt.frame.columns.tolist()
+        self.frame_dicts = self.process_dataframe()
 
     def build_tree(self) -> bytes:
         """
@@ -151,7 +154,7 @@ class BaseXMLFormatter:
         except LookupError as e:
             raise e
 
-    def process_dataframe(self) -> None:
+    def process_dataframe(self) -> Dict[Union[int, str], Dict[str, Any]]:
         """
         Adjust Data Frame to fit xml output.
 
@@ -176,13 +179,15 @@ class BaseXMLFormatter:
         This method will add indexes into attr_cols or elem_cols.
         """
 
-        indexes = [x for x in self.frame_dicts[0].keys() if x not in self.orig_cols]
+        indexes: List[str] = [
+            x for x in self.frame_dicts[0].keys() if x not in self.orig_cols
+        ]
 
         if self.attr_cols and self.index:
-            self.attr_cols = list(indexes) + self.attr_cols
+            self.attr_cols = indexes + self.attr_cols
 
         if self.elem_cols and self.index:
-            self.elem_cols = list(indexes) + self.elem_cols
+            self.elem_cols = indexes + self.elem_cols
 
     def get_prefix_uri(self) -> str:
         """
@@ -207,7 +212,7 @@ class BaseXMLFormatter:
         prefix.
         """
 
-        nmsp_dict = {}
+        nmsp_dict: Dict[str, str] = {}
         if self.namespaces and self.prefix is None:
             nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p != ""}
 
@@ -238,18 +243,19 @@ class BaseXMLFormatter:
 
     def write_output(self) -> Optional[str]:
         xml_doc = self.build_tree()
+        out_str: Optional[str] = xml_doc.decode(self.encoding).rstrip()
 
         try:
-            if self.path_or_buffer:
+            if self.path_or_buffer and isinstance(self.path_or_buffer, str):
                 with open(self.path_or_buffer, "wb") as f:
                     f.write(xml_doc)
-                xml_doc = None
-            else:
-                xml_doc = xml_doc.decode(self.encoding).rstrip()
+
+                out_str = None
+
         except (UnicodeDecodeError, OSError) as e:
             raise e
 
-        return xml_doc
+        return out_str
 
 
 class EtreeXMLFormatter(BaseXMLFormatter):
@@ -268,8 +274,6 @@ class EtreeXMLFormatter(BaseXMLFormatter):
 
         self.validate_columns()
         self.validate_encoding()
-        self.orig_cols = self.fmt.frame.columns.tolist()
-        self.frame_dicts = self.process_dataframe()
         self.handle_indexes()
         self.prefix_uri = self.get_prefix_uri()
 
@@ -284,12 +288,11 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             self.d = d
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
-            if self.attr_cols:
-                self.build_attribs()
-            if self.elem_cols:
-                self.build_elems()
             if not self.attr_cols and not self.elem_cols:
                 self.elem_cols = list(self.frame_dicts[0].keys())
+                self.build_elems()
+            else:
+                self.build_attribs()
                 self.build_elems()
 
         self.out_xml = tostring(self.root, method="xml", encoding=self.encoding)
@@ -315,7 +318,8 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         uri = ""
         if self.namespaces:
             for p, n in self.namespaces.items():
-                register_namespace(p, n)
+                if isinstance(p, str) and isinstance(n, str):
+                    register_namespace(p, n)
             if self.prefix:
                 try:
                     uri = f"{{{self.namespaces[self.prefix]}}}"
@@ -327,40 +331,42 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         return uri
 
     def build_attribs(self) -> None:
-        for col in self.attr_cols:
-            flat_col = col
-            if isinstance(col, tuple):
-                flat_col = (
-                    "".join(str(c) for c in col).strip()
-                    if "" in col
-                    else "_".join(str(c) for c in col).strip()
-                )
+        if self.attr_cols:
+            for col in self.attr_cols:
+                flat_col = col
+                if isinstance(col, tuple):
+                    flat_col = (
+                        "".join(str(c) for c in col).strip()
+                        if "" in col
+                        else "_".join(str(c) for c in col).strip()
+                    )
 
-            attr_name = f"{self.prefix_uri}{flat_col}"
-            try:
-                if self.d[col] is not None:
-                    self.elem_row.attrib[attr_name] = str(self.d[col])
-            except KeyError:
-                raise KeyError(f"no valid column, {col}")
+                attr_name = f"{self.prefix_uri}{flat_col}"
+                try:
+                    if self.d[col] is not None:
+                        self.elem_row.attrib[attr_name] = str(self.d[col])
+                except KeyError:
+                    raise KeyError(f"no valid column, {col}")
 
     def build_elems(self) -> None:
         from xml.etree.ElementTree import SubElement
 
-        for col in self.elem_cols:
-            flat_col = col
-            if isinstance(col, tuple):
-                flat_col = (
-                    "".join(str(c) for c in col).strip()
-                    if "" in col
-                    else "_".join(str(c) for c in col).strip()
-                )
+        if self.elem_cols:
+            for col in self.elem_cols:
+                flat_col = col
+                if isinstance(col, tuple):
+                    flat_col = (
+                        "".join(str(c) for c in col).strip()
+                        if "" in col
+                        else "_".join(str(c) for c in col).strip()
+                    )
 
-            elem_name = f"{self.prefix_uri}{flat_col}"
-            try:
-                val = None if self.d[col] in [None, ""] else str(self.d[col])
-                SubElement(self.elem_row, elem_name).text = val
-            except KeyError:
-                raise KeyError(f"no valid column, {col}")
+                elem_name = f"{self.prefix_uri}{flat_col}"
+                try:
+                    val = None if self.d[col] in [None, ""] else str(self.d[col])
+                    SubElement(self.elem_row, elem_name).text = val
+                except KeyError:
+                    raise KeyError(f"no valid column, {col}")
 
     def prettify_tree(self) -> bytes:
         """
@@ -375,7 +381,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
 
         return dom.toprettyxml(indent="  ", encoding=self.encoding)
 
-    def remove_declaration(self) -> None:
+    def remove_declaration(self) -> bytes:
         """
         Remove xml declaration.
 
@@ -402,8 +408,6 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
         self.validate_columns()
         self.validate_encoding()
-        self.orig_cols = self.fmt.frame.columns.tolist()
-        self.frame_dicts = self.process_dataframe()
         self.prefix_uri = self.get_prefix_uri()
 
         self.convert_empty_str_key()
@@ -424,14 +428,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             self.d = d
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
-            if self.attr_cols:
-                self.build_attribs()
-
-            if self.elem_cols:
-                self.build_elems()
-
             if not self.attr_cols and not self.elem_cols:
                 self.elem_cols = list(self.frame_dicts[0].keys())
+                self.build_elems()
+            else:
+                self.build_attribs()
                 self.build_elems()
 
         self.out_xml = tostring(
@@ -472,60 +473,52 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         return uri
 
     def build_attribs(self) -> None:
-        """
-        Create attributes of row.
+        if self.attr_cols:
+            for col in self.attr_cols:
+                flat_col = col
+                if isinstance(col, tuple):
+                    flat_col = (
+                        "".join(str(c) for c in col).strip()
+                        if "" in col
+                        else "_".join(str(c) for c in col).strip()
+                    )
 
-        This method adds attributes using attr_cols to row element and
-        works with tuples for multindex or hierarchical columns.
-        """
-        for col in self.attr_cols:
-            flat_col = col
-            if isinstance(col, tuple):
-                flat_col = (
-                    "".join(str(c) for c in col).strip()
-                    if "" in col
-                    else "_".join(str(c) for c in col).strip()
-                )
-
-            attr_name = f"{self.prefix_uri}{flat_col}"
-            try:
-                if self.d[col] is not None:
-                    self.elem_row.attrib[attr_name] = self.d[col]
-            except KeyError:
-                raise KeyError(f"no valid column, {col}")
+                attr_name = f"{self.prefix_uri}{flat_col}"
+                try:
+                    if self.d[col] is not None:
+                        self.elem_row.attrib[attr_name] = self.d[col]
+                except KeyError:
+                    raise KeyError(f"no valid column, {col}")
 
     def build_elems(self) -> None:
-        """
-        Create child elements of row.
-
-        This method adds child elements using elem_cols to row element and
-        works with tuples for multindex or hierarchical columns.
-        """
         from lxml.etree import SubElement
 
-        for col in self.elem_cols:
-            flat_col = col
-            if isinstance(col, tuple):
-                flat_col = (
-                    "".join(str(c) for c in col).strip()
-                    if "" in col
-                    else "_".join(str(c) for c in col).strip()
-                )
+        if self.elem_cols:
+            for col in self.elem_cols:
+                flat_col = col
+                if isinstance(col, tuple):
+                    flat_col = (
+                        "".join(str(c) for c in col).strip()
+                        if "" in col
+                        else "_".join(str(c) for c in col).strip()
+                    )
 
-            elem_name = f"{self.prefix_uri}{flat_col}"
-            try:
-                val = None if self.d[col] in [None, ""] else str(self.d[col])
-                SubElement(self.elem_row, elem_name).text = val
-            except KeyError:
-                raise KeyError(f"no valid column, {col}")
+                elem_name = f"{self.prefix_uri}{flat_col}"
+                try:
+                    val = None if self.d[col] in [None, ""] else str(self.d[col])
+                    SubElement(self.elem_row, elem_name).text = val
+                except KeyError:
+                    raise KeyError(f"no valid column, {col}")
 
-    def convert_io(self) -> Union[None, str]:
+    def convert_io(self) -> Union[bytes, str, None]:
         """
         Convert stylesheet object to string.
 
         This method will convert stylesheet object into a string or keep
         as string, depending on object type.
         """
+
+        obj: Union[bytes, str, None] = None
 
         if isinstance(self.stylesheet, str):
             obj = self.stylesheet
@@ -577,7 +570,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         from lxml.etree import XML, XMLParser, XMLSyntaxError, parse
 
         current_doc = self.convert_io()
-        if current_doc:
+        if current_doc and isinstance(current_doc, str):
             is_xml = current_doc.startswith(("<?xml", "<"))
         else:
             raise ValueError("stylesheet is not a url, file, or xml string")

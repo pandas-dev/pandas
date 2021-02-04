@@ -1015,9 +1015,9 @@ class DataFrameRenderer:
         na_rep: Optional[str] = None,
         attr_cols: Optional[Union[str, List[str]]] = None,
         elem_cols: Optional[Union[str, List[str]]] = None,
-        namespaces: Optional[Union[dict, List[dict]]] = None,
+        namespaces: Optional[Dict[Optional[str], str]] = None,
         prefix: Optional[str] = None,
-        encoding: Optional[str] = "utf-8",
+        encoding: str = "utf-8",
         xml_declaration: Optional[bool] = True,
         pretty_print: Optional[bool] = True,
         parser: Optional[str] = "lxml",
@@ -1037,7 +1037,7 @@ class DataFrameRenderer:
             Whether to include index in XML document.
         root_name : str, default 'data'
             The name of root element in XML document.
-        root_name : str, default 'row'
+        row_name : str, default 'row'
             The name of row element in XML document.
         na_rep : str, optional
             Missing data representation.
@@ -1062,7 +1062,7 @@ class DataFrameRenderer:
             Namespace prefix to be used for every element and/or attribute
             in document. This should be one of the keys in ``namespaces``
             dict.
-        encoding : str, optional, default 'utf-8'
+        encoding : str, default 'utf-8'
             Encoding of the resulting document.
         xml_declaration : str, optional
             Whether to include the XML declaration at start of document.
@@ -1086,6 +1086,8 @@ class DataFrameRenderer:
         from pandas.io.formats.xml import EtreeXMLFormatter, LxmlXMLFormatter
 
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
+        TreeBuilder: Union[Type[EtreeXMLFormatter], Type[LxmlXMLFormatter]]
 
         if parser == "lxml":
             if lxml is not None:

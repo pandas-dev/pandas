@@ -2607,15 +2607,15 @@ class DataFrame(NDFrame, OpsMixin):
     def to_xml(
         self,
         path_or_buffer: Optional[FilePathOrBuffer[str]] = None,
-        index: Optional[bool] = True,
+        index: bool = True,
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
         na_rep: Optional[str] = None,
         attr_cols: Optional[Union[str, List[str]]] = None,
         elem_cols: Optional[Union[str, List[str]]] = None,
-        namespaces: Optional[Union[dict, List[dict]]] = None,
+        namespaces: Optional[Dict[Optional[str], str]] = None,
         prefix: Optional[str] = None,
-        encoding: Optional[str] = "utf-8",
+        encoding: str = "utf-8",
         xml_declaration: Optional[bool] = True,
         pretty_print: Optional[bool] = True,
         parser: Optional[str] = "lxml",
@@ -2635,7 +2635,7 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to include index in XML document.
         root_name : str, default 'data'
             The name of root element in XML document.
-        root_name : str, default 'row'
+        row_name : str, default 'row'
             The name of row element in XML document.
         na_rep : str, optional
             Missing data representation.
@@ -2654,13 +2654,13 @@ class DataFrame(NDFrame, OpsMixin):
             Default namespaces should be given empty string key. For
             example, ::
 
-                namespaces = {'': 'https://example.com'}
+                namespaces = {"": "https://example.com"}
 
         prefix : str, optional
             Namespace prefix to be used for every element and/or attribute
             in document. This should be one of the keys in ``namespaces``
             dict.
-        encoding : str, optional, default 'utf-8'
+        encoding : str, default 'utf-8'
             Encoding of the resulting document.
         xml_declaration : str, optional
             Whether to include the XML declaration at start of document.
@@ -2697,7 +2697,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...                    'degrees': [360, 360, 180],
         ...                    'sides': [4, np.nan, 3]})
 
-        >>> df.to_xml()
+        >>> df.to_xml()  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <data>
           <row>
@@ -2720,7 +2720,9 @@ class DataFrame(NDFrame, OpsMixin):
           </row>
         </data>
 
-        >>> df.to_xml(attr_cols=['index', 'shape', 'degrees', 'sides'])
+        >>> df.to_xml(attr_cols=[
+        ...           'index', 'shape', 'degrees', 'sides'
+        ...           ])  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <data>
           <row index="0" shape="square" degrees="360" sides="4.0"/>
@@ -2728,8 +2730,8 @@ class DataFrame(NDFrame, OpsMixin):
           <row index="2" shape="triangle" degrees="180" sides="3.0"/>
         </data>
 
-        >>> df.to_xml(namespaces = {"doc": "https://example.com"},
-        ...           prefix = "doc")
+        >>> df.to_xml(namespaces={"doc": "https://example.com"},
+        ...           prefix="doc")  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <doc:data xmlns:doc="https://example.com">
           <doc:row>
@@ -2756,7 +2758,6 @@ class DataFrame(NDFrame, OpsMixin):
         formatter = fmt.DataFrameFormatter(
             self,
             index=index,
-            na_rep=na_rep,
         )
 
         return fmt.DataFrameRenderer(formatter).to_xml(

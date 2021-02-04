@@ -94,7 +94,7 @@ class _XMLFrameParser:
         self.stylesheet = stylesheet
         self.is_style = None
 
-    def parse_data(self) -> List[Dict[str, List[str]]]:
+    def parse_data(self) -> List[Dict[str, Optional[str]]]:
         """
         Parse xml data.
 
@@ -104,7 +104,7 @@ class _XMLFrameParser:
 
         raise AbstractMethodError(self)
 
-    def _parse_nodes(self) -> List[Dict[str, List[str]]]:
+    def _parse_nodes(self) -> List[Dict[str, Optional[str]]]:
         """
         Parse xml nodes.
 
@@ -157,13 +157,15 @@ class _XMLFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _convert_io(self, xml_data) -> Union[None, str]:
+    def _convert_io(self, xml_data) -> Union[str, bytes, None]:
         """
         Convert io object to string.
 
         This method will convert io object into a string or keep
         as string, depending on object type.
         """
+
+        obj: Union[bytes, str, None] = None
 
         if isinstance(xml_data, str):
             obj = xml_data
@@ -231,7 +233,7 @@ class _EtreeFrameParser(_XMLFrameParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def parse_data(self) -> List[Dict[str, List[str]]]:
+    def parse_data(self) -> List[Dict[str, Optional[str]]]:
 
         if self.stylesheet:
             warn(
@@ -247,9 +249,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         return self._parse_nodes()
 
-    def _parse_nodes(self) -> List[Dict[str, List[str]]]:
-
+    def _parse_nodes(self) -> List[Dict[str, Optional[str]]]:
         elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+        dicts: List[Dict[str, Optional[str]]]
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
@@ -279,7 +281,10 @@ class _EtreeFrameParser(_XMLFrameParser):
                 ]
 
         elif self.attrs_only:
-            dicts = [el.attrib for el in elems]
+            dicts = [
+                {k: v.strip() if v else None for k, v in el.attrib.items()}
+                for el in elems
+            ]
 
         else:
             if self.names:
@@ -363,9 +368,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
     def _validate_names(self) -> None:
         if self.names:
-            children = self.xml_doc.find(
-                self.xpath, namespaces=self.namespaces
-            ).findall("*")
+            parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
+            if parent:
+                children = parent.findall("*")
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):
@@ -378,20 +383,24 @@ class _EtreeFrameParser(_XMLFrameParser):
                 )
 
     def _parse_doc(self) -> Union[Element, ElementTree]:
-        from xml.etree.ElementTree import ParseError, fromstring, parse
+        from xml.etree.ElementTree import (
+            Element,
+            ElementTree,
+            ParseError,
+            fromstring,
+            parse,
+        )
 
         current_doc = self._convert_io(self.io)
         if current_doc:
-            is_xml = current_doc.startswith(("<?xml", "<"))
+            if isinstance(current_doc, str):
+                is_xml = current_doc.startswith(("<?xml", "<"))
+            elif isinstance(current_doc, bytes):
+                is_xml = current_doc.decode(self.encoding).startswith(("<?xml", "<"))
         else:
             raise ValueError("io is not a url, file, or xml string.")
 
-        is_xml = (
-            (current_doc.decode(self.encoding).startswith(("<?xml", "<")))
-            if isinstance(current_doc, bytes)
-            else current_doc.startswith(("<?xml", "<"))
-        )
-
+        r: Union[Element, ElementTree]
         try:
             if is_url(current_doc):
                 with urlopen(current_doc) as f:
@@ -423,7 +432,7 @@ class _LxmlFrameParser(_XMLFrameParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def parse_data(self) -> List[Dict[str, List[str]]]:
+    def parse_data(self) -> List[Dict[str, Optional[str]]]:
         """
         Parse xml data.
 
@@ -444,8 +453,9 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return self._parse_nodes()
 
-    def _parse_nodes(self) -> List[Dict[str, List[str]]]:
+    def _parse_nodes(self) -> List[Dict[str, Optional[str]]]:
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
+        dicts: List[Dict[str, Optional[str]]]
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
@@ -601,7 +611,10 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         current_doc = self._convert_io(self.raw_doc)
         if current_doc:
-            is_xml = current_doc.startswith(("<?xml", "<"))
+            if isinstance(current_doc, str):
+                is_xml = current_doc.startswith(("<?xml", "<"))
+            elif isinstance(current_doc, bytes):
+                is_xml = current_doc.decode(self.encoding).startswith(("<?xml", "<"))
         else:
             raise ValueError("io is not a url, file, or xml string.")
 
@@ -611,8 +624,10 @@ class _LxmlFrameParser(_XMLFrameParser):
             if is_url(current_doc):
                 with urlopen(current_doc) as f:
                     r = parse(f, parser=curr_parser)
-            elif is_xml:
+            elif is_xml and isinstance(current_doc, str):
                 r = XML(bytes(current_doc, encoding=self.encoding))
+            elif is_xml and isinstance(current_doc, bytes):
+                r = XML(current_doc)
             else:
                 r = parse(current_doc, parser=curr_parser)
         except (LookupError, URLError, HTTPError, OSError, XMLSyntaxError) as e:
@@ -675,6 +690,7 @@ def _parse(
     """
 
     lxml = import_optional_dependency("lxml.etree", errors="ignore")
+    p: Union[_EtreeFrameParser, _LxmlFrameParser]
 
     if parser == "lxml":
         if lxml is not None:
@@ -859,7 +875,6 @@ def read_xml(
     ... </data>'''
 
     >>> df = pd.read_xml(xml)
-
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -871,10 +886,9 @@ def read_xml(
     ...   <row shape="square" degrees="360" sides="4.0"/>
     ...   <row shape="circle" degrees="360"/>
     ...   <row shape="triangle" degrees="180" sides="3.0"/>
-    ... </data>"'''
+    ... </data>'''
 
     >>> df = pd.read_xml(xml, xpath=".//row")
-
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -900,10 +914,9 @@ def read_xml(
     ...   </doc:row>
     ... </doc:data>'''
 
-    >>> df = pd.read(xml,
-                     xpath="//doc:row",
-                     namespaces = {'doc': 'https://example.com'})
-
+    >>> df = pd.read_xml(xml,
+    ...                  xpath="//doc:row",
+    ...                  namespaces={"doc": "https://example.com"})
     >>> df
           shape  degrees  sides
     0    square      360    4.0
