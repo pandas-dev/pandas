@@ -658,9 +658,9 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             result_levels = list(result.index.levels)
             result_names = list(result.index.names)
         else:
-            result_codes, result_levels = factorize(result.index)
-            result_codes = [result_codes]
-            result_levels = [result_levels]
+            idx_codes, idx_levels = factorize(result.index)
+            result_codes = [idx_codes]
+            result_levels = [idx_levels]
             result_names = [result.index.name]
 
         # 3) Create the resulting index by combining 1) + 2)
