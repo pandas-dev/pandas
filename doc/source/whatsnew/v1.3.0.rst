@@ -341,6 +341,8 @@ Indexing
 - Bug in incorrectly raising in :meth:`Index.insert`, when setting a new column that cannot be held in the existing ``frame.columns``, or in :meth:`Series.reset_index` or :meth:`DataFrame.reset_index` instead of casting to a compatible dtype (:issue:`39068`)
 - Bug in :meth:`RangeIndex.append` where a single object of length 1 was concatenated incorrectly (:issue:`39401`)
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
+- Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
+-
 
 Missing
 ^^^^^^^
@@ -413,7 +415,9 @@ Reshaping
 - :meth:`merge_asof` raises ``ValueError`` instead of cryptic ``TypeError`` in case of non-numerical merge columns (:issue:`29130`)
 - Bug in :meth:`DataFrame.join` not assigning values correctly when having :class:`MultiIndex` where at least one dimension is from dtype ``Categorical`` with non-alphabetically sorted categories (:issue:`38502`)
 - :meth:`Series.value_counts` and :meth:`Series.mode` return consistent keys in original order (:issue:`12679`, :issue:`11227` and :issue:`39007`)
+- Bug in :meth:`DataFrame.stack` not handling ``NaN`` in :class:`MultiIndex` columns correct (:issue:`39481`)
 - Bug in :meth:`DataFrame.apply` would give incorrect results when used with a string argument and ``axis=1`` when the axis argument was not supported and now raises a ``ValueError`` instead (:issue:`39211`)
+- Bug in :meth:`DataFrame.sort_values` not reshaping index correctly after sorting on columns, when ``ignore_index=True`` (:issue:`39464`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
 
 Sparse
@@ -437,6 +441,8 @@ Other
 - Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`)
 - :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
 - Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
+- Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
+-
 -
 
 .. ---------------------------------------------------------------------------
