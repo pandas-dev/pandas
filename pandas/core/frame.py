@@ -5560,7 +5560,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if ignore_index:
-            new_data.set_axis(1, ibase.default_index(len(indexer)))
+            new_data.set_axis(
+                self._get_block_manager_axis(axis), ibase.default_index(len(indexer))
+            )
 
         result = self._constructor(new_data)
         if inplace:
