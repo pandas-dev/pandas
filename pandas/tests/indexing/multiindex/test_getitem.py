@@ -279,7 +279,9 @@ def test_frame_getitem_nan_multiindex(nulls_fixture):
             (
                 DataFrame(
                     [[3], [6]],
-                    columns=MultiIndex.from_tuples([("b", np.nan)]),
+                    columns=MultiIndex(
+                        codes=[[1], [-1]], levels=[["a", "b"], ["bar", "foo"]]
+                    ),
                     dtype="int64",
                 )
             ),
@@ -303,10 +305,7 @@ def test_frame_getitem_nan_cols_multiindex(
     )
 
     result = df.loc[:, indexer]
-    if isinstance(result, DataFrame):
-        tm.assert_frame_equal(result, expected, check_column_type=False)
-    elif isinstance(result, Series):
-        tm.assert_series_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 # ----------------------------------------------------------------------------
