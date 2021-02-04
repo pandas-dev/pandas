@@ -3237,6 +3237,13 @@ class Index(IndexOpsMixin, PandasObject):
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
 
+        .. warning::
+
+           It returns -1 for the values which do not match. Example: index 
+           is array([1,2,3]) and you try to do index.get_indexer([1,2,4,5])
+           the output would be array([ 0,  1, -1, -1])
+           
+
         Parameters
         ----------
         target : %(target_klass)s
