@@ -117,7 +117,8 @@ class TestRolling:
             return getattr(x.rolling(4), f)(self.frame)
 
         expected = g.apply(func)
-        # The grouped column should be all np.nan (groupby.apply inserts 0s for cov)
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
         expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
@@ -690,10 +691,12 @@ class TestExpanding:
             return getattr(x.expanding(), f)(self.frame)
 
         expected = g.apply(func)
-        # groupby.apply returns 1 instead of nan for windows with all nan values
+        # GH 39591: groupby.apply returns 1 instead of nan for windows
+        # with all nan values
         null_idx = list(range(20, 61)) + list(range(72, 113))
         expected.iloc[null_idx, 1] = np.nan
-        # The grouped column should be all np.nan (groupby.apply inserts 0s for cov)
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
         expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
