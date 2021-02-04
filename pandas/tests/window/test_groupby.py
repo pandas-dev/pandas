@@ -117,6 +117,8 @@ class TestRolling:
             return getattr(x.rolling(4), f)(self.frame)
 
         expected = g.apply(func)
+        # The grouped column should be all np.nan (groupby.apply inserts 0s)
+        expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = getattr(r.B, f)(pairwise=True)
