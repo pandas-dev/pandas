@@ -12,18 +12,22 @@ from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, doc
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
-from pandas.core.window.common import (
-    _doc_template,
+from pandas.core.window.common import flex_binary_moment, zsqrt
+from pandas.core.window.doc import (
     _shared_docs,
-    flex_binary_moment,
-    zsqrt,
+    args_compat,
+    create_section_header,
+    kwargs_compat,
+    template_header,
+    template_returns,
+    template_see_also,
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
@@ -35,16 +39,6 @@ from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby, dispatch
 
 if TYPE_CHECKING:
     from pandas import Series
-
-
-_bias_template = """
-        Parameters
-        ----------
-        bias : bool, default False
-            Use a standard estimation bias correction.
-        *args, **kwargs
-            Arguments and keyword arguments to be passed into func.
-"""
 
 
 def get_center_of_mass(
@@ -283,37 +277,33 @@ class ExponentialMovingWindow(BaseWindow):
         """
         return ExponentialMovingWindowIndexer()
 
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-    >>> df
-       A  B  C
-    0  1  4  7
-    1  2  5  8
-    2  3  6  9
-
-    >>> df.ewm(alpha=0.5).mean()
-              A         B         C
-    0  1.000000  4.000000  7.000000
-    1  1.666667  4.666667  7.666667
-    2  2.428571  5.428571  8.428571
-    """
-    )
-
     @doc(
         _shared_docs["aggregate"],
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
+        see_also=dedent(
+            """
+        See Also
+        --------
+        pandas.DataFrame.rolling.aggregate
+        """
+        ),
+        examples=dedent(
+            """
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        >>> df
+           A  B  C
+        0  1  4  7
+        1  2  5  8
+        2  3  6  9
+
+        >>> df.ewm(alpha=0.5).mean()
+                  A         B         C
+        0  1.000000  4.000000  7.000000
+        1  1.666667  4.666667  7.666667
+        2  2.428571  5.428571  8.428571
+        """
+        ),
         klass="Series/Dataframe",
         axis="",
     )
@@ -322,17 +312,20 @@ class ExponentialMovingWindow(BaseWindow):
 
     agg = aggregate
 
-    @Substitution(name="ewm", func_name="mean")
-    @Appender(_doc_template)
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) mean",
+        agg_method="mean",
+    )
     def mean(self, *args, **kwargs):
-        """
-        Exponential weighted moving average.
-
-        Parameters
-        ----------
-        *args, **kwargs
-            Arguments and keyword arguments to be passed into func.
-        """
         nv.validate_window_func("mean", args, kwargs)
         if self.times is not None:
             window_func = window_aggregations.ewma_time
@@ -351,13 +344,26 @@ class ExponentialMovingWindow(BaseWindow):
             )
         return self._apply(window_func)
 
-    @Substitution(name="ewm", func_name="std")
-    @Appender(_doc_template)
-    @Appender(_bias_template)
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
+        bias : bool, default False
+            Use a standard estimation bias correction.
+        """
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) standard deviation",
+        agg_method="std",
+    )
     def std(self, bias: bool = False, *args, **kwargs):
-        """
-        Exponential weighted moving stddev.
-        """
         nv.validate_window_func("std", args, kwargs)
         return zsqrt(self.var(bias=bias, **kwargs))
 
@@ -372,13 +378,26 @@ class ExponentialMovingWindow(BaseWindow):
         )
         return self.std(bias, *args, **kwargs)
 
-    @Substitution(name="ewm", func_name="var")
-    @Appender(_doc_template)
-    @Appender(_bias_template)
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
+        bias : bool, default False
+            Use a standard estimation bias correction.
+        """
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) variance",
+        agg_method="var",
+    )
     def var(self, bias: bool = False, *args, **kwargs):
-        """
-        Exponential weighted moving variance.
-        """
         nv.validate_window_func("var", args, kwargs)
         window_func = window_aggregations.ewmcov
         window_func = partial(
@@ -394,20 +413,11 @@ class ExponentialMovingWindow(BaseWindow):
 
         return self._apply(var_func)
 
-    @Substitution(name="ewm", func_name="cov")
-    @Appender(_doc_template)
-    def cov(
-        self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
-        bias: bool = False,
-        **kwargs,
-    ):
-        """
-        Exponential weighted sample covariance.
-
-        Parameters
-        ----------
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
         other : Series, DataFrame, or ndarray, optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -420,9 +430,24 @@ class ExponentialMovingWindow(BaseWindow):
             observations will be used.
         bias : bool, default False
             Use a standard estimation bias correction.
-        **kwargs
-           Keyword arguments to be passed into func.
         """
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) sample covariance",
+        agg_method="cov",
+    )
+    def cov(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        bias: bool = False,
+        **kwargs,
+    ):
         if other is None:
             other = self._selected_obj
             # only default unset
@@ -449,19 +474,11 @@ class ExponentialMovingWindow(BaseWindow):
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
-    @Substitution(name="ewm", func_name="corr")
-    @Appender(_doc_template)
-    def corr(
-        self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
-        **kwargs,
-    ):
-        """
-        Exponential weighted sample correlation.
-
-        Parameters
-        ----------
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
         other : Series, DataFrame, or ndarray, optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -472,9 +489,23 @@ class ExponentialMovingWindow(BaseWindow):
             output will be a MultiIndex DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
-        **kwargs
-           Keyword arguments to be passed into func.
         """
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) sample correlation",
+        agg_method="corr",
+    )
+    def corr(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        **kwargs,
+    ):
         if other is None:
             other = self._selected_obj
             # only default unset
