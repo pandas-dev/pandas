@@ -409,6 +409,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
     ) -> FrameOrSeriesUnion:
+        """
+        Apply the given function to the DataFrame across the entire object
+        """
         if self._selected_obj.ndim == 1:
             raise ValueError("method='table' not applicable for Series objects.")
         obj = self._create_data(self._selected_obj)
@@ -426,7 +429,16 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self._insert_on_column(out, obj)
         return out
 
-    def _apply_pairwise(self, target, other, pairwise, func):
+    def _apply_pairwise(
+        self,
+        target: FrameOrSeriesUnion,
+        other: Optional[FrameOrSeriesUnion],
+        pairwise: Optional[bool],
+        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
+    ) -> FrameOrSeriesUnion:
+        """
+        Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
+        """
         if other is None:
             other = target
             # only default unset
@@ -583,7 +595,16 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         result.index = result_index
         return result
 
-    def _apply_pairwise(self, target, other, pairwise, func):
+    def _apply_pairwise(
+        self,
+        target: FrameOrSeriesUnion,
+        other: Optional[FrameOrSeriesUnion],
+        pairwise: Optional[bool],
+        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
+    ) -> FrameOrSeriesUnion:
+        """
+        Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
+        """
         # Manually drop the grouping column first
         target = target.drop(columns=self._groupby.grouper.names, errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func)
