@@ -131,12 +131,8 @@ class CParserWrapper(ParserBase):
                     self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
-                # pandas\io\parsers.py:1997: error: Argument 1 to "len" has
-                # incompatible type "Optional[Any]"; expected "Sized"
-                # [arg-type]
-                self.index_names = [None] * len(
-                    self.index_names  # type: ignore[arg-type]
-                )
+                assert self.index_names is not None
+                self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 
