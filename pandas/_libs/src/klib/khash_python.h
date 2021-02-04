@@ -196,7 +196,9 @@ khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key){
         // for 64bit builds,
         // we need information of the upper 32bits as well
         // see GH 37615
-        return kh_int64_hash_func(hash);
+        khuint64_t as_uint = (khuint64_t) hash;
+        // uints avoid undefined behavior of signed ints
+        return (as_uint>>32)^as_uint;
     #endif
 }
 
