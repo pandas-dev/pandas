@@ -1931,3 +1931,25 @@ Thur,Lunch,Yes,51.51,17"""
         )
 
         tm.assert_index_equal(result, expected)
+
+    def test_stack_nan_in_multiindex_columns(self):
+        # GH#39481
+        df = DataFrame(
+            np.zeros([1, 5]),
+            columns=MultiIndex.from_tuples(
+                [
+                    (0, None, None),
+                    (0, 2, 0),
+                    (0, 2, 1),
+                    (0, 3, 0),
+                    (0, 3, 1),
+                ],
+            ),
+        )
+        result = df.stack(2)
+        expected = DataFrame(
+            [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
+            index=Index([(0, None), (0, 0), (0, 1)]),
+            columns=Index([(0, None), (0, 2), (0, 3)]),
+        )
+        tm.assert_frame_equal(result, expected)
