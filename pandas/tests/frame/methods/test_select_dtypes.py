@@ -128,7 +128,10 @@ class TestSelectDtypes:
         e = df[["b", "e"]]
         tm.assert_frame_equal(r, e)
 
-    def test_select_dtypes_exclude_include_int(self):
+    @pytest.mark.parametrize(
+        "include", [(np.bool_, "int"), (np.bool_, "integer"), ("bool", int)]
+    )
+    def test_select_dtypes_exclude_include_int(self, include):
         # Fix select_dtypes(include='int') for Windows, FYI #36596
         df = DataFrame(
             {
@@ -141,19 +144,6 @@ class TestSelectDtypes:
             }
         )
         exclude = (np.datetime64,)
-        include = np.bool_, "int"
-        result = df.select_dtypes(include=include, exclude=exclude)
-        expected = df[["b", "c", "e"]]
-        tm.assert_frame_equal(result, expected)
-
-        exclude = (np.datetime64,)
-        include = np.bool_, "integer"
-        result = df.select_dtypes(include=include, exclude=exclude)
-        expected = df[["b", "c", "e"]]
-        tm.assert_frame_equal(result, expected)
-
-        exclude = ("datetime",)
-        include = "bool", int
         result = df.select_dtypes(include=include, exclude=exclude)
         expected = df[["b", "c", "e"]]
         tm.assert_frame_equal(result, expected)
