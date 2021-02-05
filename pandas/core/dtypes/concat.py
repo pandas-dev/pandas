@@ -5,21 +5,20 @@ from typing import cast
 
 import numpy as np
 
-from pandas._libs import NaT, lib
+from pandas._libs import lib
 from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
     is_sparse,
-    is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
@@ -67,27 +66,18 @@ def _array_from_proxy(arr, dtype: DtypeObj, fill_value=lib.no_default):
         return dtype.construct_array_type()._from_sequence(
             [dtype.na_value] * arr.n, dtype=dtype
         )
-    elif is_datetime64_ns_dtype(dtype):
-        from pandas.core.arrays import DatetimeArray
-
-        return DatetimeArray._from_sequence([NaT] * arr.n, dtype=dtype)
-    elif is_timedelta64_ns_dtype(dtype):
-        from pandas.core.arrays import TimedeltaArray
-
-        return TimedeltaArray._from_sequence([NaT] * arr.n, dtype=dtype)
     else:
         if is_integer_dtype(dtype):
-            dtype = "float64"
-            fill_value = np.nan
+            dtype = np.dtype("float64")
         elif is_bool_dtype(dtype):
-            dtype = object
+            dtype = np.dtype(object)
 
         if fill_value is lib.no_default:
-            fill_value = np.nan
+            fill_value = na_value_for_dtype(dtype)
 
         arr = np.empty(arr.n, dtype=dtype)
         arr.fill(fill_value)
-        return arr
+        return ensure_wrapped_if_datetimelike(arr)
 
 
 def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
