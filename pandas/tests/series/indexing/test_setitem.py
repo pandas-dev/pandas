@@ -567,7 +567,7 @@ class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
 
 
 class TestSetitemDT64IntoInt(SetitemCastingEquivalents):
-    # dont cast dt64 to int when doing this setitem
+    # GH#39619 dont cast dt64 to int when doing this setitem
 
     @pytest.fixture(params=["M8[ns]", "m8[ns]"])
     def dtype(self, request):
