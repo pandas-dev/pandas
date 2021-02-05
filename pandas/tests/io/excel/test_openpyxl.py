@@ -151,10 +151,45 @@ def test_read_with_bad_dimension(datapath, ext, header, expected_data, filename)
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_workbook(datapath, ext):
+@pytest.mark.parametrize(
+    "header, expected_data",
+    [
+        (
+            0,
+            {
+                "Title": [np.nan, "A", 1, 2, 3],
+                "Unnamed: 1": [np.nan, "B", 4, 5, 6],
+                "Unnamed: 2": [np.nan, "C", 7, 8, 9],
+            },
+        ),
+        (2, {"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}),
+    ],
+)
+@pytest.mark.parametrize(
+    "filename", ["dimension_missing", "dimension_small", "dimension_large"]
+)
+@pytest.mark.parametrize("read_only", [True, False])
+@pytest.mark.xfail(
+    LooseVersion(get_version(openpyxl)) < "3.0.0",
+    reason="openpyxl read-only sheet is incorrect when dimension data is wrong",
+)
+def test_read_wb_with_bad_dimension(
+    datapath, ext, filename, header, expected_data, read_only
+):
+    # GH 38956, 39001 - no/incorrect dimension information
+    path = datapath("io", "data", "excel", f"{filename}{ext}")
+    wb = openpyxl.load_workbook(path, read_only=read_only)
+    result = pd.read_excel(wb, engine="openpyxl", header=header)
+    wb.close()
+    expected = DataFrame(expected_data)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("read_only", [True, False])
+def test_read_workbook(datapath, ext, read_only):
     # GH 39528
     filename = datapath("io", "data", "excel", "test1" + ext)
-    wb = openpyxl.load_workbook(filename)
+    wb = openpyxl.load_workbook(filename, read_only=read_only)
     result = pd.read_excel(wb, engine="openpyxl")
     wb.close()
     expected = pd.read_excel(filename)
