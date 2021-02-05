@@ -1402,7 +1402,7 @@ class Block(PandasObject):
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
 
-        result, _ = quantile_compat(self.values, qs, interpolation, axis)
+        result = quantile_compat(self.values, qs, interpolation, axis)
 
         placement = np.arange(len(result))
         ndim = 2 if is_list_like(qs) else 1
@@ -1836,9 +1836,13 @@ class ExtensionBlock(Block):
         return blocks, mask
 
     def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
-        result, placement = quantile_compat(self.values, qs, interpolation, axis)
+        result = quantile_compat(self.values, qs, interpolation, axis)
 
         ndim = 2 if is_list_like(qs) else 1
+        if ndim == 1:
+            placement = np.arange(len(result))
+        else:
+            placement = [0]
         return make_block(result, placement=placement, ndim=ndim)
 
 

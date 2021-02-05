@@ -35,10 +35,9 @@ def quantile_compat(values: ArrayLike, qs, interpolation: str, axis: int) -> Arr
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-        placement = None  # dummy
     else:
-        result, placement = quantile_ea_compat(values, qs, interpolation, axis)
-    return result, placement
+        result = quantile_ea_compat(values, qs, interpolation, axis)
+    return result
 
 
 def quantile_with_mask(
@@ -150,15 +149,9 @@ def quantile_ea_compat(
             # i.e. qs was originally a scalar
             assert result.shape == (1,), result.shape
             result = type(orig)._from_factorized(result, orig)
-            placement = np.arange(len(result))
 
         else:
             assert result.shape == (1, len(qs)), result.shape
             result = type(orig)._from_factorized(result[0], orig)
-            placement = [0]
-    else:
-        placement = np.arange(len(result))
 
-    # returning placement is a bit of a kludge so that we don't have to
-    #  to re-derive it when calling from ExtensionBlock.quantile
-    return result, placement
+    return result
