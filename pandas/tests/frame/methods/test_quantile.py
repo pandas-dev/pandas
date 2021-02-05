@@ -565,7 +565,7 @@ class TestQuantileExtensionDtype:
     def test_quantile_ea(self, index, frame_or_series):
         obj = frame_or_series(index).copy()
 
-        # shuffle our values
+        # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
         np.random.shuffle(indexer)
         obj = obj.iloc[indexer]
@@ -585,7 +585,7 @@ class TestQuantileExtensionDtype:
         obj.iloc[0] = index._na_value
         obj.iloc[-1] = index._na_value
 
-        # shuffle our values
+        # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
         np.random.shuffle(indexer)
         obj = obj.iloc[indexer]
@@ -604,7 +604,7 @@ class TestQuantileExtensionDtype:
 
         obj.iloc[:] = index._na_value
 
-        # shuffle our values
+        # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
         np.random.shuffle(indexer)
         obj = obj.iloc[indexer]
@@ -620,6 +620,11 @@ class TestQuantileExtensionDtype:
     def test_quantile_ea_scalar(self, index, frame_or_series):
         # scalar qs
         obj = frame_or_series(index).copy()
+
+        # result should be invariant to shuffling
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
 
         qs = 0.5
         result = self.compute_quantile(obj, qs)
