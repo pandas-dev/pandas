@@ -2,7 +2,19 @@ from collections import defaultdict
 import csv
 import datetime
 import itertools
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Union, cast
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -335,9 +347,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            # pandas\io\parsers.py:1559: error: Need type annotation for
-            # 'counts'  [var-annotated]
-            counts = defaultdict(int)  # type: ignore[var-annotated]
+            counts: DefaultDict[Union[int, str, Tuple], int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -382,9 +392,8 @@ class ParserBase:
         # add names for the index
         if indexnamerow:
             coffset = len(indexnamerow) - len(columns)
-            # pandas\io\parsers.py:1604: error: Item "None" of "Optional[Any]"
-            # has no attribute "set_names"  [union-attr]
-            index = index.set_names(indexnamerow[:coffset])  # type: ignore[union-attr]
+            assert index is not None
+            index = index.set_names(indexnamerow[:coffset])
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
@@ -458,9 +467,8 @@ class ParserBase:
                 col_na_fvalues = set()
 
             if isinstance(self.na_values, dict):
-                # pandas\io\parsers.py:1678: error: Value of type
-                # "Optional[Any]" is not indexable  [index]
-                col_name = self.index_names[i]  # type: ignore[index]
+                assert self.index_names is not None
+                col_name = self.index_names[i]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
@@ -549,7 +557,7 @@ class ParserBase:
         return result
 
     def _set_noconvert_dtype_columns(
-        self, col_indices: List[int], names: List[Union[int, str]]
+        self, col_indices: List[int], names: List[Union[int, str, Tuple]]
     ) -> Set[int]:
         """
         Set the columns that should not undergo dtype conversions.
@@ -850,7 +858,7 @@ class ParserBase:
             return [None] * len(index_col), columns, index_col
 
         cp_cols = list(columns)
-        index_names = []
+        index_names: List[Optional[Union[int, str]]] = []
 
         # don't mutate
         index_col = list(index_col)
@@ -871,10 +879,7 @@ class ParserBase:
         # Only clean index names that were placeholders.
         for i, name in enumerate(index_names):
             if isinstance(name, str) and name in unnamed_cols:
-                # pandas\io\parsers.py:3445: error: No overload variant of
-                # "__setitem__" of "list" matches argument types "int", "None"
-                # [call-overload]
-                index_names[i] = None  # type: ignore[call-overload]
+                index_names[i] = None
 
         return index_names, columns, index_col
 

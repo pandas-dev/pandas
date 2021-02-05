@@ -47,6 +47,7 @@ from pandas._libs.tslibs.util cimport (
     is_integer_object,
     is_timedelta64_object,
 )
+from pandas._libs.tslibs.fields import RoundTo, round_nsint64
 
 # ----------------------------------------------------------------------
 # Constants
@@ -1297,14 +1298,18 @@ class Timedelta(_Timedelta):
         object_state = self.value,
         return (Timedelta, object_state)
 
-    def _round(self, freq, rounder):
+    @cython.cdivision(True)
+    def _round(self, freq, mode):
         cdef:
-            int64_t result, unit
+            int64_t result, unit, remainder
+            ndarray[int64_t] arr
 
         from pandas._libs.tslibs.offsets import to_offset
         unit = to_offset(freq).nanos
-        result = unit * rounder(self.value / float(unit))
-        return Timedelta(result, unit='ns')
+
+        arr = np.array([self.value], dtype="i8")
+        result = round_nsint64(arr, mode, unit)[0]
+        return Timedelta(result, unit="ns")
 
     def round(self, freq):
         """
@@ -1323,7 +1328,7 @@ class Timedelta(_Timedelta):
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.round)
+        return self._round(freq, RoundTo.NEAREST_HALF_EVEN)
 
     def floor(self, freq):
         """
@@ -1334,7 +1339,7 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the flooring resolution.
         """
-        return self._round(freq, np.floor)
+        return self._round(freq, RoundTo.MINUS_INFTY)
 
     def ceil(self, freq):
         """
@@ -1345,7 +1350,7 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the ceiling resolution.
         """
-        return self._round(freq, np.ceil)
+        return self._round(freq, RoundTo.PLUS_INFTY)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods

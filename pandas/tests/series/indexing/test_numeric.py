@@ -4,29 +4,24 @@ from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 
 
-def test_slice_float64():
+def test_slice_float64(frame_or_series):
     values = np.arange(10.0, 50.0, 2)
     index = Index(values)
 
     start, end = values[[5, 15]]
 
-    s = Series(np.random.randn(20), index=index)
+    data = np.random.randn(20, 3)
+    if frame_or_series is not DataFrame:
+        data = data[:, 0]
 
-    result = s[start:end]
-    expected = s.iloc[5:16]
-    tm.assert_series_equal(result, expected)
+    obj = frame_or_series(data, index=index)
 
-    result = s.loc[start:end]
-    tm.assert_series_equal(result, expected)
+    result = obj[start:end]
+    expected = obj.iloc[5:16]
+    tm.assert_equal(result, expected)
 
-    df = DataFrame(np.random.randn(20, 3), index=index)
-
-    result = df[start:end]
-    expected = df.iloc[5:16]
-    tm.assert_frame_equal(result, expected)
-
-    result = df.loc[start:end]
-    tm.assert_frame_equal(result, expected)
+    result = obj.loc[start:end]
+    tm.assert_equal(result, expected)
 
 
 def test_getitem_setitem_slice_bug():
