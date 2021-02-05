@@ -636,3 +636,154 @@ def get_locale_names(name_type: str, locale: object = None):
     """
     with set_locale(locale, LC_TIME):
         return getattr(LocaleTime(), name_type)
+
+
+# ---------------------------------------------------------------------
+# Rounding
+
+
+class RoundTo:
+    """
+    enumeration defining the available rounding modes
+
+    Attributes
+    ----------
+    MINUS_INFTY
+        round towards -∞, or floor [2]_
+    PLUS_INFTY
+        round towards +∞, or ceil [3]_
+    NEAREST_HALF_EVEN
+        round to nearest, tie-break half to even [6]_
+    NEAREST_HALF_MINUS_INFTY
+        round to nearest, tie-break half to -∞ [5]_
+    NEAREST_HALF_PLUS_INFTY
+        round to nearest, tie-break half to +∞ [4]_
+
+
+    References
+    ----------
+    .. [1] "Rounding - Wikipedia"
+           https://en.wikipedia.org/wiki/Rounding
+    .. [2] "Rounding down"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_down
+    .. [3] "Rounding up"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_up
+    .. [4] "Round half up"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_up
+    .. [5] "Round half down"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_down
+    .. [6] "Round half to even"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
+    """
+    @property
+    def MINUS_INFTY(self) -> int:
+        return 0
+
+    @property
+    def PLUS_INFTY(self) -> int:
+        return 1
+
+    @property
+    def NEAREST_HALF_EVEN(self) -> int:
+        return 2
+
+    @property
+    def NEAREST_HALF_PLUS_INFTY(self) -> int:
+        return 3
+
+    @property
+    def NEAREST_HALF_MINUS_INFTY(self) -> int:
+        return 4
+
+
+cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                res = value - value % unit
+            result[i] = res
+
+    return result
+
+
+cdef inline ndarray[int64_t] _ceil_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                remainder = value % unit
+                if remainder == 0:
+                    res = value
+                else:
+                    res = value + (unit - remainder)
+
+            result[i] = res
+
+    return result
+
+
+cdef inline ndarray[int64_t] _rounddown_int64(values, int64_t unit):
+    return _ceil_int64(values - unit // 2, unit)
+
+
+cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
+    return _floor_int64(values + unit // 2, unit)
+
+
+def round_nsint64(values: np.ndarray, mode: RoundTo, nanos) -> np.ndarray:
+    """
+    Applies rounding mode at given frequency
+
+    Parameters
+    ----------
+    values : np.ndarray[int64_t]`
+    mode : instance of `RoundTo` enumeration
+    nanos : np.int64
+        Freq to round to, expressed in nanoseconds
+
+    Returns
+    -------
+    np.ndarray[int64_t]
+    """
+    cdef:
+        int64_t unit = nanos
+
+    if mode == RoundTo.MINUS_INFTY:
+        return _floor_int64(values, unit)
+    elif mode == RoundTo.PLUS_INFTY:
+        return _ceil_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_MINUS_INFTY:
+        return _rounddown_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_PLUS_INFTY:
+        return _roundup_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_EVEN:
+        # for odd unit there is no need of a tie break
+        if unit % 2:
+            return _rounddown_int64(values, unit)
+        quotient, remainder = np.divmod(values, unit)
+        mask = np.logical_or(
+            remainder > (unit // 2),
+            np.logical_and(remainder == (unit // 2), quotient % 2)
+        )
+        quotient[mask] += 1
+        return quotient * unit
+
+    # if/elif above should catch all rounding modes defined in enum 'RoundTo':
+    # if flow of control arrives here, it is a bug
+    raise ValueError("round_nsint64 called with an unrecognized rounding mode")
