@@ -9,9 +9,6 @@ import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, date_range, period_range
 import pandas._testing as tm
 
-# TODO(ArrayManager) concat with reindexing
-pytestmark = td.skip_array_manager_not_yet_implemented
-
 
 @pytest.fixture
 def frame_with_period_index():
@@ -183,6 +180,7 @@ def test_join_period_index(frame_with_period_index):
     tm.assert_frame_equal(joined, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat with duplicates
 def test_join_left_sequence_non_unique_index():
     # https://github.com/pandas-dev/pandas/issues/19607
     df1 = DataFrame({"a": [0, 10, 20]}, index=[1, 2, 3])
@@ -234,8 +232,9 @@ class TestDataFrameJoin:
         b = frame.loc[frame.index[2:], ["B", "C"]]
 
         joined = a.join(b, how="outer").reindex(frame.index)
-        expected = frame.copy()
-        expected.values[np.isnan(joined.values)] = np.nan
+        expected = frame.copy().values
+        expected[np.isnan(joined.values)] = np.nan
+        expected = DataFrame(expected, index=frame.index, columns=frame.columns)
 
         assert not np.isnan(joined.values).all()
 

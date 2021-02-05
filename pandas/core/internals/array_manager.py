@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_numeric_dtype,
 )
+from pandas.core.dtypes.concat import NullArrayProxy
 from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -725,10 +726,20 @@ class ArrayManager(DataManager):
         # ignored keywords
         consolidate: bool = True,
         only_slice: bool = False,
+        # ArrayManager specific keywords
+        do_integrity_check=True,
+        use_na_proxy=False,
     ) -> T:
         axis = self._normalize_axis(axis)
         return self._reindex_indexer(
-            new_axis, indexer, axis, fill_value, allow_dups, copy
+            new_axis,
+            indexer,
+            axis,
+            fill_value,
+            allow_dups,
+            copy,
+            do_integrity_check,
+            use_na_proxy,
         )
 
     def _reindex_indexer(
@@ -739,6 +750,8 @@ class ArrayManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
+        do_integrity_check=True,
+        use_na_proxy=False,
     ) -> T:
         """
         Parameters
@@ -773,7 +786,9 @@ class ArrayManager(DataManager):
             new_arrays = []
             for i in indexer:
                 if i == -1:
-                    arr = self._make_na_array(fill_value=fill_value)
+                    arr = self._make_na_array(
+                        fill_value=fill_value, use_na_proxy=use_na_proxy
+                    )
                 else:
                     arr = self.arrays[i]
                 new_arrays.append(arr)
@@ -793,7 +808,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axis
 
-        return type(self)(new_arrays, new_axes)
+        return type(self)(new_arrays, new_axes, do_integrity_check=do_integrity_check)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
@@ -820,10 +835,11 @@ class ArrayManager(DataManager):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def _make_na_array(self, fill_value=None):
+    def _make_na_array(self, fill_value=None, use_na_proxy=False):
+        if use_na_proxy:
+            return NullArrayProxy(self.shape_proper[0])
         if fill_value is None:
             fill_value = np.nan
-
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
         values = np.empty(self.shape_proper[0], dtype=dtype)
         values.fill(fill_value)

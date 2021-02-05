@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import concat_arrays, concat_compat
 from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
@@ -35,6 +35,45 @@ from pandas.core.internals.managers import BlockManager
 if TYPE_CHECKING:
     from pandas import Index
     from pandas.core.arrays.sparse.dtype import SparseDtype
+
+
+def concatenate_array_managers(
+    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+) -> Manager:
+    """
+    Concatenate array managers into one.
+
+    Parameters
+    ----------
+    mgrs_indexers : list of (ArrayManager, {axis: indexer,...}) tuples
+    axes : list of Index
+    concat_axis : int
+    copy : bool
+
+    Returns
+    -------
+    ArrayManager
+    """
+    # reindex all arrays
+    mgrs = []
+    for mgr, indexers in mgrs_indexers:
+        for ax, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(
+                axes[ax], indexer, axis=ax, do_integrity_check=False, use_na_proxy=True
+            )
+        mgrs.append(mgr)
+
+    # concatting along the rows -> concat the reindexed arrays
+    if concat_axis == 1:
+        arrays = [
+            concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            for j in range(len(mgrs[0].arrays))
+        ]
+        return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
+    # concatting along the columns -> combine reindexed arrays in a single manager
+    elif concat_axis == 0:
+        arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+        return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
 
 
 def concatenate_block_managers(
@@ -55,19 +94,7 @@ def concatenate_block_managers(
     BlockManager
     """
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-
-        if concat_axis == 1:
-            # TODO for now only fastpath without indexers
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = [
-                concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))], axis=0)
-                for j in range(len(mgrs[0].arrays))
-            ]
-            return ArrayManager(arrays, [axes[1], axes[0]])
-        elif concat_axis == 0:
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-            return ArrayManager(arrays, [axes[1], axes[0]])
+        return concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers

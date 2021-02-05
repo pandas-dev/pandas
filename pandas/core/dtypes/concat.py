@@ -5,14 +5,19 @@ from typing import cast
 
 import numpy as np
 
+from pandas._libs import NaT, lib
 from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_categorical_dtype,
+    is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_integer_dtype,
     is_sparse,
+    is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
 
@@ -21,11 +26,78 @@ from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import array, ensure_wrapped_if_datetimelike
 
 
+class NullArrayProxy:
+    """
+    Proxy object for an all-NA array.
+
+    Only stores the length of the array, and not the dtype. The dtype
+    will only be known when actually concatenating (after determining the
+    common dtype, for which this proxy is ignored).
+    Using this object avoids that the internals/concat.py needs to determine
+    the proper dtype and array type.
+    """
+
+    ndim = 1
+
+    def __init__(self, n: int):
+        self.n = n
+
+    @property
+    def shape(self):
+        return (self.n,)
+
+
+def _array_from_proxy(arr, dtype: DtypeObj, fill_value=lib.no_default):
+    """
+    Helper function to create the actual all-NA array from the NullArrayProxy object.
+
+    Parameters
+    ----------
+    arr : NullArrayProxy
+    dtype : the dtype for the resulting array
+    fill_value : scalar NA-like value
+        By default uses the ExtensionDtype's na_value or np.nan. For numpy
+        arrays, this can be overridden to be something else (eg None).
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    if is_extension_array_dtype(dtype):
+        return dtype.construct_array_type()._from_sequence(
+            [dtype.na_value] * arr.n, dtype=dtype
+        )
+    elif is_datetime64_ns_dtype(dtype):
+        from pandas.core.arrays import DatetimeArray
+
+        return DatetimeArray._from_sequence([NaT] * arr.n, dtype=dtype)
+    elif is_timedelta64_ns_dtype(dtype):
+        from pandas.core.arrays import TimedeltaArray
+
+        return TimedeltaArray._from_sequence([NaT] * arr.n, dtype=dtype)
+    else:
+        if is_integer_dtype(dtype):
+            dtype = "float64"
+            fill_value = np.nan
+        elif is_bool_dtype(dtype):
+            dtype = object
+
+        if fill_value is lib.no_default:
+            fill_value = np.nan
+
+        arr = np.empty(arr.n, dtype=dtype)
+        arr.fill(fill_value)
+        return arr
+
+
 def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     """
     Helper function for `arr.astype(common_dtype)` but handling all special
     cases.
     """
+    if isinstance(arr, NullArrayProxy):
+        return _array_from_proxy(arr, dtype)
+
     if (
         is_categorical_dtype(arr.dtype)
         and isinstance(dtype, np.dtype)
@@ -130,6 +202,75 @@ def concat_compat(to_concat, axis: int = 0):
                 to_concat = [x.astype("object") for x in to_concat]
 
     return np.concatenate(to_concat, axis=axis)
+
+
+def concat_arrays(to_concat):
+    """
+    Alternative for concat_compat but specialized for use in the ArrayManager.
+
+    Differences: only deals with 1D arrays (no axis keyword) and does not skip
+    empty arrays to determine the dtype.
+    In addition ensures that all NullArrayProxies get replaced with actual
+    arrays.
+
+    Parameters
+    ----------
+    to_concat : list of arrays
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    # ignore the all-NA proxies to determine the resulting dtype
+    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
+
+    kinds = {obj.dtype.kind for obj in to_concat_no_proxy}
+    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
+    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat_no_proxy)
+
+    if any_ea:
+        if not single_dtype:
+            target_dtype = find_common_type([x.dtype for x in to_concat_no_proxy])
+            to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
+        else:
+            target_dtype = to_concat_no_proxy[0].dtype
+            to_concat = [
+                _array_from_proxy(arr, target_dtype)
+                if isinstance(arr, NullArrayProxy)
+                else arr
+                for arr in to_concat
+            ]
+
+        if isinstance(to_concat[0], ExtensionArray):
+            cls = type(to_concat[0])
+            return cls._concat_same_type(to_concat)
+        else:
+            return np.concatenate(to_concat)
+
+    elif any(kind in ["m", "M"] for kind in kinds):
+        return _concat_datetime(to_concat)
+
+    if not single_dtype:
+        target_dtype = np.find_common_type(
+            [arr.dtype for arr in to_concat_no_proxy], []
+        )
+    else:
+        target_dtype = to_concat_no_proxy[0].dtype
+    to_concat = [
+        _array_from_proxy(arr, target_dtype) if isinstance(arr, NullArrayProxy) else arr
+        for arr in to_concat
+    ]
+
+    result = np.concatenate(to_concat)
+
+    # TODO(ArrayManager) this is currently inconsistent between Series and DataFrame
+    # so we should decide whether to keep the below special case or remove it
+    if len(result) == 0:
+        # all empties -> check for bool to not coerce to float
+        if len(kinds) != 1:
+            if "b" in kinds:
+                result = result.astype(object)
+    return result
 
 
 def union_categoricals(
@@ -322,20 +463,35 @@ def _concat_datetime(to_concat, axis=0):
     a single array, preserving the combined dtypes
     """
     to_concat = [ensure_wrapped_if_datetimelike(x) for x in to_concat]
+    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
 
-    single_dtype = len({x.dtype for x in to_concat}) == 1
+    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
 
     # multiple types, need to coerce to object
     if not single_dtype:
         # ensure_wrapped_if_datetimelike ensures that astype(object) wraps
         #  in Timestamp/Timedelta
+        to_concat = [
+            _array_from_proxy(arr, dtype=object, fill_value=None)
+            if isinstance(arr, NullArrayProxy)
+            else arr
+            for arr in to_concat
+        ]
+
         return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
 
     if axis == 1:
         # TODO(EA2D): kludge not necessary with 2D EAs
         to_concat = [x.reshape(1, -1) if x.ndim == 1 else x for x in to_concat]
+    else:
+        to_concat = [
+            _array_from_proxy(arr, dtype=to_concat_no_proxy[0].dtype)
+            if isinstance(arr, NullArrayProxy)
+            else arr
+            for arr in to_concat
+        ]
 
-    result = type(to_concat[0])._concat_same_type(to_concat, axis=axis)
+    result = type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=axis)
 
     if result.ndim == 2 and is_extension_array_dtype(result.dtype):
         # TODO(EA2D): kludge not necessary with 2D EAs
