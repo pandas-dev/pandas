@@ -140,14 +140,24 @@ class Pairwise:
 
     def setup(self, window, method, pairwise):
         N = 10 ** 4
+        n_groups = 20
+        groups = [i for _ in range(N // n_groups) for i in range(n_groups)]
         arr = np.random.random(N)
         self.df = pd.DataFrame(arr)
+        self.df_group = pd.DataFrame({"A": groups, "B": arr}).groupby("A")
 
     def time_pairwise(self, window, method, pairwise):
         if window is None:
             r = self.df.expanding()
         else:
             r = self.df.rolling(window=window)
+        getattr(r, method)(self.df, pairwise=pairwise)
+
+    def time_groupby(self, window, method, pairwise):
+        if window is None:
+            r = self.df_group.expanding()
+        else:
+            r = self.df_group.rolling(window=window)
         getattr(r, method)(self.df, pairwise=pairwise)
 
 

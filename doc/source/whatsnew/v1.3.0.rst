@@ -249,7 +249,8 @@ Performance improvements
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
 - Performance improvement in :meth:`DataFrame.corr` for method=kendall (:issue:`28329`)
-- Performance improvement in :meth:`core.window.Rolling.corr` and :meth:`core.window.Rolling.cov` (:issue:`39388`)
+- Performance improvement in :meth:`core.window.rolling.Rolling.corr` and :meth:`core.window.rolling.Rolling.cov` (:issue:`39388`)
+- Performance improvement in :meth:`core.window.rolling.RollingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` (:issue:`39591`)
 
 .. ---------------------------------------------------------------------------
 
@@ -407,6 +408,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising ``TypeError`` instead of ``SpecificationError`` when missing keys had mixed dtypes (:issue:`39025`)
 - Bug in :meth:`.DataFrameGroupBy.idxmin` and :meth:`.DataFrameGroupBy.idxmax` with ``ExtensionDtype`` columns (:issue:`38733`)
 - Bug in :meth:`Series.resample` would raise when the index was a :class:`PeriodIndex` consisting of ``NaT`` (:issue:`39227`)
+- Bug in :meth:`core.window.rolling.RollingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.corr` where the groupby column would return 0 instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
+- Bug in :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` where 1 would be returned instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 
 Reshaping
 ^^^^^^^^^
