@@ -9,6 +9,7 @@ from pandas import (
     MultiIndex,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     period_range,
@@ -507,6 +508,28 @@ class TestSetitemWithExpansion:
         series["timestamp"] = timestamp
         result = series["timestamp"]
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "td",
+        [
+            Timedelta("9 days"),
+            Timedelta("9 days").to_timedelta64(),
+            Timedelta("9 days").to_pytimedelta(),
+        ],
+    )
+    def test_append_timedelta_does_not_cast(self, td):
+        # GH#22717 inserting a Timedelta should _not_ cast to int64
+        expected = Series(["x", td], index=[0, "td"], dtype=object)
+
+        ser = Series(["x"])
+        ser["td"] = td
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+        ser = Series(["x"])
+        ser.loc["td"] = Timedelta("9 days")
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
 
 
 def test_setitem_scalar_into_readonly_backing_data():
