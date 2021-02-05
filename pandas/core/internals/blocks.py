@@ -56,7 +56,7 @@ from pandas.core.array_algos.putmask import (
     putmask_smart,
     putmask_without_repeat,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
@@ -1402,15 +1402,10 @@ class Block(PandasObject):
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
 
-        fill_value = self.fill_value
-        values = self.values
-        mask = np.asarray(isna(values))
-
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-        ndim = np.ndim(result)
+        result, _ = quantile_compat(self.values, qs, interpolation, axis)
 
         placement = np.arange(len(result))
-
+        ndim = 2 if is_list_like(qs) else 1
         return make_block(result, placement=placement, ndim=ndim)
 
     def _replace_coerce(
@@ -1841,33 +1836,9 @@ class ExtensionBlock(Block):
         return blocks, mask
 
     def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
-        # asarray needed for Sparse, see GH#24600
-        mask = np.asarray(isna(self.values))
-        mask = np.atleast_2d(mask)
+        result, placement = quantile_compat(self.values, qs, interpolation, axis)
 
-        values, fill_value = self.values._values_for_factorize()
-
-        values = np.atleast_2d(values)
-
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-        ndim = np.ndim(result)
-
-        if not is_sparse(self.dtype):
-            # shape[0] should be 1 as long as EAs are 1D
-
-            if result.ndim == 1:
-                # i.e. qs was originally a scalar
-                assert result.shape == (1,), result.shape
-                result = type(self.values)._from_factorized(result, self.values)
-                placement = np.arange(len(result))
-
-            else:
-                assert result.shape == (1, len(qs)), result.shape
-                result = type(self.values)._from_factorized(result[0], self.values)
-                placement = [0]
-        else:
-            placement = np.arange(len(result))
-
+        ndim = 2 if is_list_like(qs) else 1
         return make_block(result, placement=placement, ndim=ndim)
 
 
