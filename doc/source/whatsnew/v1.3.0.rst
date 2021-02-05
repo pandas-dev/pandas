@@ -41,10 +41,6 @@ See ref:`window.overview` for performance and functional benefits. (:issue:`1509
 
 .. _whatsnew_130.read_to_xml:
 
-We added I/O support to read and render shallow versions of XML documents with
-:func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using lxml as parser,
-full XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
-=======
 We added I/O support to read and render shallow versions of `XML`_ documents with
 :func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using `lxml`_ as parser,
 full XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
