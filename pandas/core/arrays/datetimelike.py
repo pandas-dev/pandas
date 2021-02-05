@@ -32,11 +32,8 @@ from pandas._libs.tslibs import (
     iNaT,
     to_offset,
 )
-from pandas._libs.tslibs.timestamps import (
-    RoundTo,
-    integer_op_not_supported,
-    round_nsint64,
-)
+from pandas._libs.tslibs.fields import RoundTo, round_nsint64
+from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
@@ -1606,7 +1603,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             )
 
         values = self.view("i8")
-        result = round_nsint64(values, mode, freq)
+        nanos = to_offset(freq).nanos
+        result = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result, fill_value=iNaT)
         return self._simple_new(result, dtype=self.dtype)
 
