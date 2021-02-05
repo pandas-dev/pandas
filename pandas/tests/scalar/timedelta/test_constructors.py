@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import timedelta
 
 import numpy as np
@@ -266,10 +267,19 @@ def test_construction_out_of_bounds_td64():
         ("PT-6H3M", Timedelta(hours=-6, minutes=3)),
         ("-PT6H3M", Timedelta(hours=-6, minutes=-3)),
         ("-PT-6H+3M", Timedelta(hours=6, minutes=-3)),
+        ("P", True),
+        ("-P", True),
     ],
 )
 def test_iso_constructor(fmt, exp):
-    assert Timedelta(fmt) == exp
+    cm = (
+        pytest.raises(ValueError, match=f"Invalid ISO 8601 Duration format - {fmt}")
+        if exp is True
+        else nullcontext()
+    )
+
+    with cm:
+        assert Timedelta(fmt) == exp
 
 
 @pytest.mark.parametrize(

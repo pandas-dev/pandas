@@ -275,7 +275,7 @@ cdef convert_to_timedelta64(object ts, str unit):
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts, "ns")
     elif isinstance(ts, str):
-        if len(ts) > 0 and (ts[0] == "P" or ts[:2] == "-P"):
+        if (len(ts) > 0 and ts[0] == "P") or (len(ts) > 1 and ts[:2] == "-P"):
             ts = parse_iso_format_string(ts)
         else:
             ts = parse_timedelta_string(ts)
@@ -674,7 +674,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
         int64_t result = 0, r
         int p = 0, sign = 1
         object dec_unit = 'ms', err_msg
-        bint have_dot = 0, have_value = 0, neg = 0, valid_ts = 0
+        bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
 
     err_msg = f"Invalid ISO 8601 Duration format - {ts}"
@@ -688,7 +688,6 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
         if 48 <= ord(c) <= 57:
 
             have_value = 1
-            valid_ts = 1
             if have_dot:
                 if p == 3 and dec_unit != 'ns':
                     unit.append(dec_unit)
@@ -708,7 +707,6 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                 neg = 0
                 unit, number = [], [c]
         else:
-            have_value = 0
             if c == 'P' or c == 'T':
                 pass  # ignore marking characters P and T
             elif c == '-':
@@ -754,7 +752,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
             else:
                 raise ValueError(err_msg)
 
-    if not valid_ts:
+    if not have_value:
         # Received string only - never parsed any values
         raise ValueError(err_msg)
 
@@ -1259,7 +1257,9 @@ class Timedelta(_Timedelta):
         elif isinstance(value, str):
             if unit is not None:
                 raise ValueError("unit must not be specified if the value is a str")
-            if len(value) > 0 and (value[0] == 'P' or value[:2] == "-P"):
+            if (len(value) > 0 and value[0] == 'P') or (
+                len(value) > 1 and value[:2] == '-P'
+            ):
                 value = parse_iso_format_string(value)
             else:
                 value = parse_timedelta_string(value)
