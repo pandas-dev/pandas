@@ -71,7 +71,8 @@ def concatenate_array_managers(
         ]
         return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
     # concatting along the columns -> combine reindexed arrays in a single manager
-    elif concat_axis == 0:
+    else:
+        assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
         return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
 
