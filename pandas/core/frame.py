@@ -9410,6 +9410,13 @@ NaN 12.3   33.0
         """
         validate_percentile(q)
 
+        if not is_list_like(q):
+            # BlockManager.quantile expects listlike, so we wrap and unwrap here
+            res = self.quantile(
+                [q], axis=axis, numeric_only=numeric_only, interpolation=interpolation
+            )
+            return res.iloc[0]
+
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)
         is_transposed = axis == 1

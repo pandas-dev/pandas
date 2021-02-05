@@ -1399,14 +1399,12 @@ class Block(PandasObject):
         """
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
+        assert axis == 1  # only ever called this way
+        assert is_list_like(qs)  # caller is responsible for this
 
         values = self.get_values()
 
         is_empty = values.shape[axis] == 0
-        orig_scalar = not is_list_like(qs)
-        if orig_scalar:
-            # make list-like, unpack later
-            qs = [qs]
 
         if is_empty:
             # create the array of na_values
@@ -1430,14 +1428,7 @@ class Block(PandasObject):
             result = np.array(result, copy=False)
             result = result.T
 
-        if orig_scalar and not lib.is_scalar(result):
-            # result could be scalar in case with is_empty and self.ndim == 1
-            assert result.shape[-1] == 1, result.shape
-            result = result[..., 0]
-            result = lib.item_from_zerodim(result)
-
-        ndim = np.ndim(result)
-        return make_block(result, placement=np.arange(len(result)), ndim=ndim)
+        return make_block(result, placement=self.mgr_locs, ndim=2)
 
     def _replace_coerce(
         self,
@@ -2185,6 +2176,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         )
 
     def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+        assert axis == 1  # only ever called this way
         naive = self.values.view("M8[ns]")
 
         # TODO(EA2D): kludge for 2D block with 1D values
