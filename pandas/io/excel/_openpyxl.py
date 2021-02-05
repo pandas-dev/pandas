@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from distutils.version import LooseVersion
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
 
 from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import get_version, import_optional_dependency
 
 from pandas.io.excel._base import BaseExcelReader, ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
@@ -528,7 +529,16 @@ class OpenpyxlReader(BaseExcelReader):
         # GH 39001
         # Reading of excel file depends on dimension data being correct but
         # writers sometimes omit or get it wrong
-        sheet.reset_dimensions()
+        import openpyxl
+
+        version = LooseVersion(get_version(openpyxl))
+
+        # There is no good way of determining if a sheet is read-only
+        # https://foss.heptapod.net/openpyxl/openpyxl/-/issues/1605
+        is_readonly = hasattr(sheet, "reset_dimensions")
+
+        if version >= "3.0.0" and is_readonly:
+            sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
         last_row_with_data = -1
@@ -538,15 +548,17 @@ class OpenpyxlReader(BaseExcelReader):
                 last_row_with_data = row_number
             data.append(converted_row)
 
-        if len(data) > 0:
-            # Trim trailing empty rows
-            data = data[: last_row_with_data + 1]
+        # Trim trailing empty rows
+        data = data[: last_row_with_data + 1]
 
+        if version >= "3.0.0" and is_readonly and len(data) > 0:
             # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:
+                empty_cell: List[Scalar] = [""]
                 data = [
-                    data_row + (max_width - len(data_row)) * [""] for data_row in data
+                    data_row + (max_width - len(data_row)) * empty_cell
+                    for data_row in data
                 ]
 
         return data

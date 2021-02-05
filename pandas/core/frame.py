@@ -5465,15 +5465,13 @@ class DataFrame(NDFrame, OpsMixin):
         4     True
         dtype: bool
         """
-        from pandas._libs.hashtable import SIZE_HINT_LIMIT, duplicated_int64
+        from pandas._libs.hashtable import duplicated_int64
 
         if self.empty:
             return self._constructor_sliced(dtype=bool)
 
         def f(vals):
-            labels, shape = algorithms.factorize(
-                vals, size_hint=min(len(self), SIZE_HINT_LIMIT)
-            )
+            labels, shape = algorithms.factorize(vals, size_hint=len(self))
             return labels.astype("i8", copy=False), len(shape)
 
         if subset is None:
@@ -5562,7 +5560,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if ignore_index:
-            new_data.set_axis(1, ibase.default_index(len(indexer)))
+            new_data.set_axis(
+                self._get_block_manager_axis(axis), ibase.default_index(len(indexer))
+            )
 
         result = self._constructor(new_data)
         if inplace:

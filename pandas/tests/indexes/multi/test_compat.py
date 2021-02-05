@@ -35,32 +35,6 @@ def test_logical_compat(idx, method):
         getattr(idx, method)()
 
 
-def test_boolean_context_compat(idx):
-
-    msg = (
-        "The truth value of a MultiIndex is ambiguous. "
-        r"Use a.empty, a.bool\(\), a.item\(\), a.any\(\) or a.all\(\)."
-    )
-    with pytest.raises(ValueError, match=msg):
-        bool(idx)
-
-
-def test_boolean_context_compat2():
-
-    # boolean context compat
-    # GH7897
-    i1 = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-    i2 = MultiIndex.from_tuples([("A", 1), ("A", 3)])
-    common = i1.intersection(i2)
-
-    msg = (
-        r"The truth value of a MultiIndex is ambiguous\. "
-        r"Use a\.empty, a\.bool\(\), a\.item\(\), a\.any\(\) or a\.all\(\)\."
-    )
-    with pytest.raises(ValueError, match=msg):
-        bool(common)
-
-
 def test_inplace_mutation_resets_values():
     levels = [["a", "b", "c"], [4]]
     levels2 = [[1, 2, 3], ["a"]]
@@ -122,19 +96,6 @@ def test_inplace_mutation_resets_values():
     assert "_values" not in mi2._cache
     tm.assert_almost_equal(mi2.values, new_values)
     assert "_values" in mi2._cache
-
-
-def test_ndarray_compat_properties(idx, compat_props):
-    assert idx.T.equals(idx)
-    assert idx.transpose().equals(idx)
-
-    values = idx.values
-    for prop in compat_props:
-        assert getattr(idx, prop) == getattr(values, prop)
-
-    # test for validity
-    idx.nbytes
-    idx.values.nbytes
 
 
 def test_pickle_compat_construction():
