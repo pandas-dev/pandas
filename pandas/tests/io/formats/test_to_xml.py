@@ -182,7 +182,7 @@ def test_str_output(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, parser=parser)
 
-    output = df_file.to_xml()
+    output = df_file.to_xml(parser=parser)
 
     # etree and lxml differs on quotes and case in xml declaration
     output = output.replace(
@@ -197,7 +197,7 @@ def test_wrong_file_path(parser):
     with pytest.raises(
         FileNotFoundError, match=("No such file or directory|没有那个文件或目录")
     ):
-        geom_df.to_xml("/my/fake/path/output.xml")
+        geom_df.to_xml("/my/fake/path/output.xml", parser=parser)
 
 
 # INDEX
@@ -871,7 +871,7 @@ def test_encoding_option_str(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
     df_file = read_xml(filename, parser=parser, encoding="ISO-8859-1").head(5)
 
-    output = df_file.to_xml(encoding="ISO-8859-1")
+    output = df_file.to_xml(encoding="ISO-8859-1", parser=parser)
 
     # etree and lxml differs on quotes and case in xml declaration
     output = output.replace(
@@ -885,16 +885,17 @@ def test_encoding_option_str(datapath, parser):
 @td.skip_if_no("lxml")
 def test_correct_encoding_file(datapath):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    df_file = read_xml(filename, encoding="ISO-8859-1")
+    df_file = read_xml(filename, encoding="ISO-8859-1", parser="lxml")
 
     with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, index=False, encoding="ISO-8859-1")
+        df_file.to_xml(path, index=False, encoding="ISO-8859-1", parser="lxml")
 
 
+@td.skip_if_no("lxml")
 @pytest.mark.parametrize("encoding", ["UTF-8", "UTF-16", "ISO-8859-1"])
 def test_wrong_encoding_option_lxml(datapath, parser, encoding):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    df_file = read_xml(filename, encoding="ISO-8859-1")
+    df_file = read_xml(filename, encoding="ISO-8859-1", parser="lxml")
 
     with tm.ensure_clean("test.xml") as path:
         df_file.to_xml(path, index=False, encoding=encoding, parser=parser)
@@ -902,7 +903,7 @@ def test_wrong_encoding_option_lxml(datapath, parser, encoding):
 
 def test_misspelled_encoding(parser):
     with pytest.raises(LookupError, match=("unknown encoding")):
-        geom_df.to_xml(parser=parser, encoding="uft-8")
+        geom_df.to_xml(encoding="uft-8", parser=parser)
 
 
 # PRETTY PRINT

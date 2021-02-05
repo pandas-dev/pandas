@@ -253,7 +253,8 @@ def test_wrong_url(parser):
 # XPATH
 
 
-def test_empty_xpath_lxml(datapath, parser):
+@td.skip_if_no("lxml")
+def test_empty_xpath_lxml(datapath):
     filename = datapath("io", "data", "xml", "books.xml")
     with pytest.raises(ValueError, match=("xpath does not return any nodes")):
         read_xml(filename, xpath=".//python", parser="lxml")
@@ -317,6 +318,7 @@ def test_prefix_namespace(parser):
     tm.assert_frame_equal(df_nmsp, df_expected)
 
 
+@td.skip_if_no("lxml")
 def test_consistency_default_namespace():
     df_lxml = read_xml(
         xml_default_nmsp,
@@ -335,6 +337,7 @@ def test_consistency_default_namespace():
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
+@td.skip_if_no("lxml")
 def test_consistency_prefix_namespace():
     df_lxml = read_xml(
         xml_prefix_nmsp,
@@ -442,6 +445,7 @@ def test_elem_and_attrs_only(datapath, parser):
         read_xml(filename, elems_only=True, attrs_only=True, parser=parser)
 
 
+@td.skip_if_no("lxml")
 def test_attribute_centric_xml():
     xml = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -545,6 +549,7 @@ def test_ascii_encoding(datapath, parser):
     read_xml(filename, encoding="ascii", parser=parser)
 
 
+@td.skip_if_no("lxml")
 def test_parser_consistency_with_encoding(datapath):
     filename = datapath("io", "data", "xml", "baby_names.xml")
     df_lxml = read_xml(filename, parser="lxml", encoding="ISO-8859-1")
