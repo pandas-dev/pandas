@@ -56,6 +56,7 @@ from pandas.core.array_algos.putmask import (
     putmask_smart,
     putmask_without_repeat,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
@@ -79,7 +80,6 @@ from pandas.core.indexers import (
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
-from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -1390,8 +1390,10 @@ class Block(PandasObject):
         Parameters
         ----------
         qs: a scalar or list of the quantiles to be computed
-        interpolation: type of interpolation, default 'linear'
-        axis: axis to compute, default 0
+        interpolation : str, default "linear"
+            Type of interpolation
+        axis : int, default 0
+            Axis along which to compute quantiles.
 
         Returns
         -------
@@ -1400,44 +1402,16 @@ class Block(PandasObject):
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
 
-        values = self.get_values()
+        fill_value = self.fill_value
+        values = self.values
+        mask = np.asarray(isna(values))
 
-        is_empty = values.shape[axis] == 0
-        orig_scalar = not is_list_like(qs)
-        if orig_scalar:
-            # make list-like, unpack later
-            qs = [qs]
-
-        if is_empty:
-            # create the array of na_values
-            # 2d len(values) * len(qs)
-            result = np.repeat(
-                np.array([self.fill_value] * len(qs)), len(values)
-            ).reshape(len(values), len(qs))
-        else:
-            # asarray needed for Sparse, see GH#24600
-            mask = np.asarray(isna(values))
-            result = nanpercentile(
-                values,
-                np.array(qs) * 100,
-                axis=axis,
-                na_value=self.fill_value,
-                mask=mask,
-                ndim=values.ndim,
-                interpolation=interpolation,
-            )
-
-            result = np.array(result, copy=False)
-            result = result.T
-
-        if orig_scalar and not lib.is_scalar(result):
-            # result could be scalar in case with is_empty and self.ndim == 1
-            assert result.shape[-1] == 1, result.shape
-            result = result[..., 0]
-            result = lib.item_from_zerodim(result)
-
+        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
         ndim = np.ndim(result)
-        return make_block(result, placement=np.arange(len(result)), ndim=ndim)
+
+        placement = np.arange(len(result))
+
+        return make_block(result, placement=placement, ndim=ndim)
 
     def _replace_coerce(
         self,
@@ -1866,6 +1840,36 @@ class ExtensionBlock(Block):
         ]
         return blocks, mask
 
+    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+        # asarray needed for Sparse, see GH#24600
+        mask = np.asarray(isna(self.values))
+        mask = np.atleast_2d(mask)
+
+        values, fill_value = self.values._values_for_factorize()
+
+        values = np.atleast_2d(values)
+
+        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+        ndim = np.ndim(result)
+
+        if not is_sparse(self.dtype):
+            # shape[0] should be 1 as long as EAs are 1D
+
+            if result.ndim == 1:
+                # i.e. qs was originally a scalar
+                assert result.shape == (1,), result.shape
+                result = type(self.values)._from_factorized(result, self.values)
+                placement = np.arange(len(result))
+
+            else:
+                assert result.shape == (1, len(qs)), result.shape
+                result = type(self.values)._from_factorized(result[0], self.values)
+                placement = [0]
+        else:
+            placement = np.arange(len(result))
+
+        return make_block(result, placement=placement, ndim=ndim)
+
 
 class HybridMixin:
     """
@@ -2183,19 +2187,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.astype(object).fillna(
             value, limit=limit, inplace=inplace, downcast=downcast
         )
-
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
-        naive = self.values.view("M8[ns]")
-
-        # TODO(EA2D): kludge for 2D block with 1D values
-        naive = naive.reshape(self.shape)
-
-        blk = self.make_block(naive)
-        res_blk = blk.quantile(qs, interpolation=interpolation, axis=axis)
-
-        # TODO(EA2D): ravel is kludge for 2D block with 1D values, assumes column-like
-        aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
-        return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
     def _check_ndim(self, values, ndim):
         """
