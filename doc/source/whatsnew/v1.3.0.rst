@@ -53,9 +53,11 @@ Other enhancements
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
-- :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes.
+- :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`)
+- :meth:`.Styler.set_tooltips_class` and :meth:`.Styler.set_table_styles` amended to optionally allow certain css-string input arguments (:issue:`39564`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
+
 
 .. ---------------------------------------------------------------------------
 
@@ -249,7 +251,8 @@ Performance improvements
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
 - Performance improvement in :meth:`DataFrame.corr` for method=kendall (:issue:`28329`)
-- Performance improvement in :meth:`core.window.Rolling.corr` and :meth:`core.window.Rolling.cov` (:issue:`39388`)
+- Performance improvement in :meth:`core.window.rolling.Rolling.corr` and :meth:`core.window.rolling.Rolling.cov` (:issue:`39388`)
+- Performance improvement in :meth:`core.window.rolling.RollingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` (:issue:`39591`)
 
 .. ---------------------------------------------------------------------------
 
@@ -279,6 +282,7 @@ Datetimelike
 - Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
 - Bug in comparisons between :class:`Timestamp` object and ``datetime64`` objects just outside the implementation bounds for nanosecond ``datetime64`` (:issue:`39221`)
 - Bug in :meth:`Timestamp.round`, :meth:`Timestamp.floor`, :meth:`Timestamp.ceil` for values near the implementation bounds of :class:`Timestamp` (:issue:`39244`)
+- Bug in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, :meth:`Timedelta.ceil` for values near the implementation bounds of :class:`Timedelta` (:issue:`38964`)
 - Bug in :func:`date_range` incorrectly creating :class:`DatetimeIndex` containing ``NaT`` instead of raising ``OutOfBoundsDatetime`` in corner cases (:issue:`24124`)
 
 Timedelta
@@ -406,6 +410,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising ``TypeError`` instead of ``SpecificationError`` when missing keys had mixed dtypes (:issue:`39025`)
 - Bug in :meth:`.DataFrameGroupBy.idxmin` and :meth:`.DataFrameGroupBy.idxmax` with ``ExtensionDtype`` columns (:issue:`38733`)
 - Bug in :meth:`Series.resample` would raise when the index was a :class:`PeriodIndex` consisting of ``NaT`` (:issue:`39227`)
+- Bug in :meth:`core.window.rolling.RollingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.corr` where the groupby column would return 0 instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
+- Bug in :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` where 1 would be returned instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 
 Reshaping
 ^^^^^^^^^

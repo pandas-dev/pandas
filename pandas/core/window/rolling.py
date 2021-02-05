@@ -48,11 +48,14 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError, SelectionMixin
+import pandas.core.common as common
 from pandas.core.construction import extract_array
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import flex_binary_moment, zsqrt
 from pandas.core.window.doc import (
@@ -406,6 +409,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
     ) -> FrameOrSeriesUnion:
+        """
+        Apply the given function to the DataFrame across the entire object
+        """
         if self._selected_obj.ndim == 1:
             raise ValueError("method='table' not applicable for Series objects.")
         obj = self._create_data(self._selected_obj)
@@ -422,6 +428,23 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         self._insert_on_column(out, obj)
         return out
+
+    def _apply_pairwise(
+        self,
+        target: FrameOrSeriesUnion,
+        other: Optional[FrameOrSeriesUnion],
+        pairwise: Optional[bool],
+        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
+    ) -> FrameOrSeriesUnion:
+        """
+        Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
+        """
+        if other is None:
+            other = target
+            # only default unset
+            pairwise = True if pairwise is None else pairwise
+
+        return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
 
     def _apply(
         self,
@@ -495,22 +518,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     agg = aggregate
 
 
-def dispatch(name: str, *args, **kwargs):
-    """
-    Dispatch to groupby apply.
-    """
-
-    def outer(self, *args, **kwargs):
-        def f(x):
-            x = self._shallow_copy(x, groupby=self._groupby)
-            return getattr(x, name)(*args, **kwargs)
-
-        return self._groupby.apply(f)
-
-    outer.__name__ = name
-    return outer
-
-
 class BaseWindowGroupby(GotItemMixin, BaseWindow):
     """
     Provide the groupby windowing facilities.
@@ -525,9 +532,6 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
-
-    corr = dispatch("corr", other=None, pairwise=None)
-    cov = dispatch("cov", other=None, pairwise=None)
 
     def _apply(
         self,
@@ -588,6 +592,85 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             levels, codes, names=result_index_names, verify_integrity=False
         )
 
+        result.index = result_index
+        return result
+
+    def _apply_pairwise(
+        self,
+        target: FrameOrSeriesUnion,
+        other: Optional[FrameOrSeriesUnion],
+        pairwise: Optional[bool],
+        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
+    ) -> FrameOrSeriesUnion:
+        """
+        Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
+        """
+        # Manually drop the grouping column first
+        target = target.drop(columns=self._groupby.grouper.names, errors="ignore")
+        result = super()._apply_pairwise(target, other, pairwise, func)
+        # 1) Determine the levels + codes of the groupby levels
+        if other is not None:
+            # When we have other, we must reindex (expand) the result
+            # from flex_binary_moment to a "transform"-like result
+            # per groupby combination
+            old_result_len = len(result)
+            result = concat(
+                [
+                    result.take(gb_indices).reindex(result.index)
+                    for gb_indices in self._groupby.indices.values()
+                ]
+            )
+
+            gb_pairs = (
+                common.maybe_make_list(pair) for pair in self._groupby.indices.keys()
+            )
+            groupby_codes = []
+            groupby_levels = []
+            # e.g. [[1, 2], [4, 5]] as [[1, 4], [2, 5]]
+            for gb_level_pair in map(list, zip(*gb_pairs)):
+                labels = np.repeat(np.array(gb_level_pair), old_result_len)
+                codes, levels = factorize(labels)
+                groupby_codes.append(codes)
+                groupby_levels.append(levels)
+
+        else:
+            # When we evaluate the pairwise=True result, repeat the groupby
+            # labels by the number of columns in the original object
+            groupby_codes = self._groupby.grouper.codes
+            groupby_levels = self._groupby.grouper.levels
+
+            group_indices = self._groupby.grouper.indices.values()
+            if group_indices:
+                indexer = np.concatenate(list(group_indices))
+            else:
+                indexer = np.array([], dtype=np.intp)
+
+            if target.ndim == 1:
+                repeat_by = 1
+            else:
+                repeat_by = len(target.columns)
+            groupby_codes = [
+                np.repeat(c.take(indexer), repeat_by) for c in groupby_codes
+            ]
+        # 2) Determine the levels + codes of the result from super()._apply_pairwise
+        if isinstance(result.index, MultiIndex):
+            result_codes = list(result.index.codes)
+            result_levels = list(result.index.levels)
+            result_names = list(result.index.names)
+        else:
+            idx_codes, idx_levels = factorize(result.index)
+            result_codes = [idx_codes]
+            result_levels = [idx_levels]
+            result_names = [result.index.name]
+
+        # 3) Create the resulting index by combining 1) + 2)
+        result_codes = groupby_codes + result_codes
+        result_levels = groupby_levels + result_levels
+        result_names = self._groupby.grouper.names + result_names
+
+        result_index = MultiIndex(
+            result_levels, result_codes, names=result_names, verify_integrity=False
+        )
         result.index = result_index
         return result
 
@@ -1205,11 +1288,6 @@ class RollingAndExpandingMixin(BaseWindow):
         return self._apply(window_func, name="quantile", **kwargs)
 
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-
         from pandas import Series
 
         def cov_func(x, y):
@@ -1239,15 +1317,9 @@ class RollingAndExpandingMixin(BaseWindow):
                 result = (mean_x_y - mean_x * mean_y) * (count_x_y / (count_x_y - ddof))
             return Series(result, index=x.index, name=x.name)
 
-        return flex_binary_moment(
-            self._selected_obj, other, cov_func, pairwise=bool(pairwise)
-        )
+        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
 
     def corr(self, other=None, pairwise=None, ddof=1, **kwargs):
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
 
         from pandas import Series
 
@@ -1288,9 +1360,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 result = numerator / denominator
             return Series(result, index=x.index, name=x.name)
 
-        return flex_binary_moment(
-            self._selected_obj, other, corr_func, pairwise=bool(pairwise)
-        )
+        return self._apply_pairwise(self._selected_obj, other, pairwise, corr_func)
 
 
 class Rolling(RollingAndExpandingMixin):
