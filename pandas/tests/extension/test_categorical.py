@@ -292,3 +292,13 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    def test_repr_2d(self, data):
+        # Categorical __repr__ doesnt include "Caegorical", so we need to special-case
+        res = repr(data.reshape(1, -1))
+        assert res.count("\nCategories") == 1
+
+        res = repr(data.reshape(-1, 1))
+        assert res.count("\nCategories") == 1

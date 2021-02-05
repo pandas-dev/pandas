@@ -60,11 +60,10 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, get_data_algo, take_1d, unique1d
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 from pandas.core.base import ExtensionArray, NoNewAttributesMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
-from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
@@ -1299,6 +1298,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # -------------------------------------------------------------
 
+    @ravel_compat
     def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """
         The numpy array interface.
@@ -1772,7 +1772,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Returns an Iterator over the values of this Categorical.
         """
-        return iter(self._internal_get_values().tolist())
+        if self.ndim == 1:
+            return iter(self._internal_get_values().tolist())
+        else:
+            return (self[n] for n in range(len(self)))
 
     def __contains__(self, key) -> bool:
         """
@@ -1890,16 +1893,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return result
 
     # ------------------------------------------------------------------
-
-    def __getitem__(self, key):
-        """
-        Return an item.
-        """
-        result = super().__getitem__(key)
-        if getattr(result, "ndim", 0) > 1:
-            result = result._ndarray
-            deprecate_ndim_indexing(result)
-        return result
 
     def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)
@@ -2158,7 +2151,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> CategoricalT:
         from pandas.core.dtypes.concat import union_categoricals
 
-        return union_categoricals(to_concat)
+        result = union_categoricals(to_concat)
+        first = to_concat[0]
+        if axis >= first.ndim:
+            raise ValueError
+        if axis == 1:
+            first = to_concat[0]
+            if not all(len(x) == len(first) for x in to_concat):
+                raise ValueError
+            # TODO: Will this get contiguity wrong?
+            result = result.reshape(-1, len(to_concat), order="F")
+        return result
 
     # ------------------------------------------------------------------
 

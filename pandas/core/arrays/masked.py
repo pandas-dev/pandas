@@ -391,9 +391,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         arr = self._data
         mask = self._mask
 
-        codes, uniques = factorize_array(
-            arr.ravel(), na_sentinel=na_sentinel, mask=mask.ravel()
-        )
+        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
@@ -422,7 +420,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # compute counts on the data with no nans
         data = self._data[~self._mask]
-        value_counts = Index(data.ravel("K")).value_counts()
+        value_counts = Index(data).value_counts()
 
         # TODO(extension)
         # if we have allow Index to hold an ExtensionArray

@@ -188,3 +188,15 @@ class NumericArray(BaseMaskedArray):
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
+
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        result = super()._reduce(name, skipna=skipna, **kwargs)
+        if isinstance(result, np.ndarray):
+            axis = kwargs["axis"]
+            if skipna:
+                # we only retain mask for all-NA rows/columns
+                mask = self._mask.all(axis=axis)
+            else:
+                mask = self._mask.any(axis=axis)
+            return type(self)(result, mask=mask)
+        return result

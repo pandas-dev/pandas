@@ -260,7 +260,7 @@ class StringArray(PandasArray):
         arr = self._ndarray.copy()
         mask = self.isna()
         arr[mask] = -1
-        return arr.ravel("K"), -1
+        return arr, -1
 
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
@@ -345,7 +345,7 @@ class StringArray(PandasArray):
     def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
-        return value_counts(self._ndarray.ravel("K"), dropna=dropna).astype("Int64")
+        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes

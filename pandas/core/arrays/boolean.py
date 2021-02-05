@@ -421,7 +421,7 @@ class BooleanArray(BaseMaskedArray):
         """
         data = self._data.copy()
         data[self._mask] = -1
-        return data.ravel("K")
+        return data
 
     def any(self, *, skipna: bool = True, axis: Optional[int] = 0, **kwargs):
         """

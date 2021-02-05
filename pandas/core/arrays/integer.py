@@ -375,7 +375,7 @@ class IntegerArray(NumericArray):
         data = self._data.copy()
         if self._mask.any():
             data[self._mask] = data.min() - 1
-        return data.ravel("K")
+        return data
 
     def _cmp_method(self, other, op):
         from pandas.core.arrays import BooleanArray

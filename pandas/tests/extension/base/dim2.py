@@ -4,6 +4,7 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -121,3 +122,74 @@ class Dim2CompatTests(BaseExtensionTests):
             return
 
         assert result == expected  # TODO: or matching NA
+
+    @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
+    def test_reductions_2d_axis0(self, data, method):
+        if not hasattr(data, method):
+            pytest.skip("test is not applicable for this type/dtype")
+
+        arr2d = data.reshape(1, -1)
+
+        kwargs = {}
+        if method == "std":
+            # pass ddof=0 so we get all-zero std instead of all-NA std
+            kwargs["ddof"] = 0
+
+        try:
+            result = getattr(arr2d, method)(axis=0, **kwargs)
+        except Exception as err:
+            try:
+                getattr(data, method)()
+            except Exception as err2:
+                assert type(err) == type(err2)
+                return
+            else:
+                raise AssertionError("Both reductions should raise or neither")
+
+        if method in ["mean", "median", "sum", "prod"]:
+            # std and var are not dtype-preserving
+            expected = data
+            if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
+                # FIXME: kludge
+                if data.dtype.kind == "i":
+                    dtype = pd.Int64Dtype
+                else:
+                    dtype = pd.UInt64Dtype
+
+                expected = data.astype(dtype)
+                if type(expected) != type(data):
+                    pytest.xfail(reason="IntegerArray.astype is broken GH#38983")
+                assert type(expected) == type(data), type(expected)
+                assert dtype == expected.dtype
+
+            self.assert_extension_array_equal(result, expected)
+        elif method == "std":
+            self.assert_extension_array_equal(result, data - data)
+        # punt on method == "var"
+
+    @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
+    def test_reductions_2d_axis1(self, data, method):
+        if not hasattr(data, method):
+            pytest.skip("test is not applicable for this type/dtype")
+
+        arr2d = data.reshape(1, -1)
+
+        try:
+            result = getattr(arr2d, method)(axis=1)
+        except Exception as err:
+            try:
+                getattr(data, method)()
+            except Exception as err2:
+                assert type(err) == type(err2)
+                return
+            else:
+                raise AssertionError("Both reductions should raise or neither")
+
+        # not necesarrily type/dtype-preserving, so weaker assertions
+        assert result.shape == (1,)
+        expected_scalar = getattr(data, method)()
+        if pd.isna(result[0]):
+            # TODO: require matching NA
+            assert pd.isna(expected_scalar), expected_scalar
+        else:
+            assert result[0] == expected_scalar
