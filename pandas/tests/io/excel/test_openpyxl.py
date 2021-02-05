@@ -1,5 +1,9 @@
+from distutils.version import LooseVersion
+
 import numpy as np
 import pytest
+
+from pandas.compat._optional import get_version
 
 import pandas as pd
 from pandas import DataFrame
@@ -116,3 +120,32 @@ def test_to_excel_with_openpyxl_engine(ext):
         ).highlight_max()
 
         styled.to_excel(filename, engine="openpyxl")
+
+
+@pytest.mark.parametrize(
+    "header, expected_data",
+    [
+        (
+            0,
+            {
+                "Title": [np.nan, "A", 1, 2, 3],
+                "Unnamed: 1": [np.nan, "B", 4, 5, 6],
+                "Unnamed: 2": [np.nan, "C", 7, 8, 9],
+            },
+        ),
+        (2, {"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}),
+    ],
+)
+@pytest.mark.parametrize(
+    "filename", ["dimension_missing", "dimension_small", "dimension_large"]
+)
+@pytest.mark.xfail(
+    LooseVersion(get_version(openpyxl)) < "3.0.0",
+    reason="openpyxl read-only sheet is incorrect when dimension data is wrong",
+)
+def test_read_with_bad_dimension(datapath, ext, header, expected_data, filename):
+    # GH 38956, 39001 - no/incorrect dimension information
+    path = datapath("io", "data", "excel", f"{filename}{ext}")
+    result = pd.read_excel(path, header=header)
+    expected = DataFrame(expected_data)
+    tm.assert_frame_equal(result, expected)

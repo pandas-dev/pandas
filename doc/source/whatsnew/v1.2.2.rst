@@ -31,6 +31,7 @@ Bug fixes
 ~~~~~~~~~
 
 - :func:`pandas.read_excel` error message when a specified ``sheetname`` does not exist is now uniform across engines (:issue:`39250`)
+- Fixed bug in :func:`pandas.read_excel` producing incorrect results when the engine ``openpyxl`` is used and the excel file is missing or has incorrect dimension information; the fix requires ``openpyxl`` >= 3.0.0, prior versions may still fail (:issue:`38956`, :issue:`39001`)
 -
 
 .. ---------------------------------------------------------------------------
