@@ -78,85 +78,6 @@ class TestDataFrameQuantile:
         expected = Series([3.0, 4.0], index=[0, 1], name=0.5)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("as_dt64tz", [True, False])
-    def test_quantile_period(self, frame_or_series, as_dt64tz):
-        pi = pd.period_range("2016-01-01", periods=9, freq="D", name="A")
-        if as_dt64tz:
-            pi = pi.to_timestamp("S").tz_localize("US/Central")
-
-        obj = frame_or_series(pi)
-
-        qs = [0.5, 0, 1]
-        if frame_or_series is Series:
-            result = obj.quantile(qs)
-        else:
-            result = obj.quantile(qs, numeric_only=False)
-
-        expected = Series([pi[4], pi[0], pi[-1]], index=qs, name="A")
-        expected = frame_or_series(expected)
-
-        tm.assert_equal(result, expected)
-
-    # TODO: tests for axis=1?
-    # TODO: empty case?  might as well do dt64 and td64 here too
-    @pytest.mark.parametrize("as_dt64tz", [True, False])
-    def test_quantile_period_with_nat(self, frame_or_series, as_dt64tz):
-        pi = pd.period_range("2016-01-01", periods=9, freq="D", name="A")
-        if as_dt64tz:
-            pi = pi.to_timestamp("S").tz_localize("US/Central")
-
-        obj = frame_or_series(pi)
-
-        obj.iloc[0] = pd.NaT
-        obj.iloc[-1] = pd.NaT
-
-        qs = [0.5, 0, 1]
-        if frame_or_series is Series:
-            result = obj.quantile(qs)
-        else:
-            result = obj.quantile(qs, numeric_only=False)
-
-        expected = Series([pi[4], pi[1], pi[-2]], index=qs, name="A")
-        expected = frame_or_series(expected)
-        tm.assert_equal(result, expected)
-
-    @pytest.mark.parametrize("as_dt64tz", [True, False])
-    def test_quantile_period_all_nat(self, frame_or_series, as_dt64tz):
-        pi = pd.period_range("2016-01-01", periods=9, freq="D", name="A")
-        if as_dt64tz:
-            pi = pi.to_timestamp("S").tz_localize("US/Central")
-
-        obj = frame_or_series(pi)
-        obj.iloc[:] = pd.NaT
-
-        qs = [0.5, 0, 1]
-        if frame_or_series is Series:
-            result = obj.quantile(qs)
-        else:
-            result = obj.quantile(qs, numeric_only=False)
-
-        expected = Series([pd.NaT, pd.NaT, pd.NaT], dtype=pi.dtype, index=qs, name="A")
-        expected = frame_or_series(expected)
-        tm.assert_equal(result, expected)
-
-    def test_quantile_period_scalar(self, frame_or_series):
-        # scalar qs
-        pi = pd.period_range("2016-01-01", periods=9, freq="D", name="A")
-        obj = frame_or_series(pi)
-
-        qs = 0.5
-        if frame_or_series is Series:
-            result = obj.quantile(qs)
-        else:
-            result = obj.quantile(qs, numeric_only=False)
-
-        expected = Series({"A": pi[4]}, name=0.5)
-        if frame_or_series is Series:
-            expected = expected["A"]
-            assert result == expected
-        else:
-            tm.assert_series_equal(result, expected)
-
     def test_quantile_date_range(self):
         # GH 2460
 
@@ -612,3 +533,100 @@ class TestDataFrameQuantile:
         ser.values[0] = 99
 
         assert df.iloc[0, 0] == df["A"][0]
+
+
+class TestQuantileExtensionDtype:
+    # TODO: tests for axis=1?
+    # TODO: empty case?  might as well do dt64 and td64 here too
+
+    @pytest.fixture(
+        params=[
+            pytest.param(
+                pd.IntervalIndex.from_breaks(range(10)),
+                marks=pytest.mark.xfail(reason="raises when trying to add Intervals"),
+            ),
+            pd.period_range("2016-01-01", periods=9, freq="D"),
+            pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
+        ],
+        ids=lambda x: str(x.dtype),
+    )
+    def index(self, request):
+        idx = request.param
+        idx.name = "A"
+        return idx
+
+    def compute_quantile(self, obj, qs):
+        if isinstance(obj, Series):
+            result = obj.quantile(qs)
+        else:
+            result = obj.quantile(qs, numeric_only=False)
+        return result
+
+    def test_quantile_ea(self, index, frame_or_series):
+        obj = frame_or_series(index).copy()
+
+        # shuffle our values
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
+
+        qs = [0.5, 0, 1]
+        result = self.compute_quantile(obj, qs)
+
+        # expected here assumes len(index) == 9
+        expected = Series([index[4], index[0], index[-1]], index=qs, name="A")
+        expected = frame_or_series(expected)
+
+        tm.assert_equal(result, expected)
+
+    def test_quantile_ea_with_na(self, index, frame_or_series):
+        obj = frame_or_series(index).copy()
+
+        obj.iloc[0] = index._na_value
+        obj.iloc[-1] = index._na_value
+
+        # shuffle our values
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
+
+        qs = [0.5, 0, 1]
+        result = self.compute_quantile(obj, qs)
+
+        # expected here assumes len(index) == 9
+        expected = Series([index[4], index[1], index[-2]], index=qs, name="A")
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
+
+    def test_quantile_ea_all_na(self, index, frame_or_series):
+
+        obj = frame_or_series(index).copy()
+
+        obj.iloc[:] = index._na_value
+
+        # shuffle our values
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
+
+        qs = [0.5, 0, 1]
+        result = self.compute_quantile(obj, qs)
+
+        expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
+        expected = Series(expected, index=qs)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
+
+    def test_quantile_ea_scalar(self, index, frame_or_series):
+        # scalar qs
+        obj = frame_or_series(index).copy()
+
+        qs = 0.5
+        result = self.compute_quantile(obj, qs)
+
+        expected = Series({"A": index[4]}, name=0.5)
+        if frame_or_series is Series:
+            expected = expected["A"]
+            assert result == expected
+        else:
+            tm.assert_series_equal(result, expected)
