@@ -20,7 +20,6 @@ def quantile_with_mask(
     """
     Compute the quantiles of the given values for each quantile in `qs`.
 
-
     Parameters
     ----------
     values : np.ndarray
@@ -36,6 +35,10 @@ def quantile_with_mask(
         Type of interpolation
     axis : int
         Axis along which to compute quantiles.
+
+    Returns
+    -------
+    np.ndarray
 
     Notes
     -----
