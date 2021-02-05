@@ -20,9 +20,13 @@ from pandas.core.internals.managers import (
     create_block_manager_from_blocks,
 )
 
+# alias needed until pyarrow stops using this
+CategoricalBlock = ExtensionBlock
+
 __all__ = [
     "Block",
     "NumericBlock",
+    "CategoricalBlock",
     "DatetimeBlock",
     "DatetimeTZBlock",
     "ExtensionBlock",
