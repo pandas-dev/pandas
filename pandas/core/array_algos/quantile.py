@@ -1,5 +1,3 @@
-from typing import Sequence, Union
-
 import numpy as np
 
 from pandas._libs import lib
@@ -13,7 +11,7 @@ def quantile_with_mask(
     values: np.ndarray,
     mask: np.ndarray,
     fill_value,
-    qs: Union[float, Sequence[float]],
+    qs,
     interpolation: str,
     axis: int,
 ) -> np.ndarray:
