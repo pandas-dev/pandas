@@ -157,4 +157,4 @@ jobs:
       run: |
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
-        pytest pandas/tests/reshape/concat/ --array-manager
+        pytest pandas/tests/reshape --array-manager

@@ -1,10 +1,14 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_categorical_dtype
 
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, Series, crosstab
 import pandas._testing as tm
+
+pytestmark = td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
 
 
 class TestCrosstab:

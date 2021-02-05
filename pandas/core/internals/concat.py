@@ -59,7 +59,12 @@ def concatenate_array_managers(
     for mgr, indexers in mgrs_indexers:
         for ax, indexer in indexers.items():
             mgr = mgr.reindex_indexer(
-                axes[ax], indexer, axis=ax, do_integrity_check=False, use_na_proxy=True
+                axes[ax],
+                indexer,
+                axis=ax,
+                allow_dups=True,
+                do_integrity_check=False,
+                use_na_proxy=True,
             )
         mgrs.append(mgr)
 

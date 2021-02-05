@@ -4,6 +4,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -18,6 +20,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.pivot import pivot_table
+
+pytestmark = td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
 
 
 @pytest.fixture(params=[True, False])

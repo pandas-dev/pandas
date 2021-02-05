@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -277,6 +279,7 @@ class TestMerge:
         merged["d"] = "peekaboo"
         assert (right["d"] == "bar").all()
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) join copy behaviour
     def test_merge_nocopy(self):
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
@@ -656,7 +659,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    def test_join_append_timedeltas(self):
+    def test_join_append_timedeltas(self, using_array_manager):
         # timedelta64 issues with join/merge
         # GH 5695
 
@@ -670,6 +673,8 @@ class TestMerge:
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
             }
         )
+        if using_array_manager:
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         td = np.timedelta64(300000000)
@@ -1362,6 +1367,7 @@ class TestMerge:
         expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite test
     def test_merge_readonly(self):
         # https://github.com/pandas-dev/pandas/issues/27943
         data1 = DataFrame(

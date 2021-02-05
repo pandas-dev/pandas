@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, date_range, period_range
 import pandas._testing as tm
@@ -180,7 +178,6 @@ def test_join_period_index(frame_with_period_index):
     tm.assert_frame_equal(joined, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat with duplicates
 def test_join_left_sequence_non_unique_index():
     # https://github.com/pandas-dev/pandas/issues/19607
     df1 = DataFrame({"a": [0, 10, 20]}, index=[1, 2, 3])
