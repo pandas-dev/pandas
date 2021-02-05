@@ -533,6 +533,8 @@ class OpenpyxlReader(BaseExcelReader):
 
         version = LooseVersion(get_version(openpyxl))
 
+        # There is no good way of determining if a sheet is read-only
+        # https://foss.heptapod.net/openpyxl/openpyxl/-/issues/1605
         is_readonly = hasattr(sheet, "reset_dimensions")
 
         if version >= "3.0.0" and is_readonly:
