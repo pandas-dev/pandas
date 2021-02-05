@@ -68,7 +68,7 @@ class TestSeriesDtypes:
         exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
-        exp2 = Series([1, 2, 3, 4]).astype("int64")
+        exp2 = Series([1, 2, 3, 4]).astype("int")
         tm.assert_series_equal(s2.astype("int"), exp2)
 
         # object don't sort correctly, so just compare that we have the same
