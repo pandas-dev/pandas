@@ -42,7 +42,9 @@ from pandas.core.generic import NDFrame
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-
+CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
+CSSProperties = Union[str, CSSSequence]
+CSSStyles = List[Dict[str, CSSProperties]]
 
 try:
     from matplotlib import colors
@@ -147,7 +149,7 @@ class Styler:
         self,
         data: FrameOrSeriesUnion,
         precision: Optional[int] = None,
-        table_styles: Optional[List[Dict[str, List[Tuple[str, str]]]]] = None,
+        table_styles: Optional[CSSStyles] = None,
         uuid: Optional[str] = None,
         caption: Optional[str] = None,
         table_attributes: Optional[str] = None,
@@ -267,7 +269,7 @@ class Styler:
     def set_tooltips_class(
         self,
         name: Optional[str] = None,
-        properties: Optional[Sequence[Tuple[str, Union[str, int, float]]]] = None,
+        properties: Optional[CSSProperties] = None,
     ) -> Styler:
         """
         Manually configure the name and/or properties of the class for
@@ -279,8 +281,8 @@ class Styler:
         ----------
         name : str, default None
             Name of the tooltip class used in CSS, should conform to HTML standards.
-        properties : list-like, default None
-            List of (attr, value) tuples; see example.
+        properties : list-like or str, default None
+            List of (attr, value) tuples or a valid CSS string; see example.
 
         Returns
         -------
@@ -311,6 +313,8 @@ class Styler:
         ...     ('visibility', 'hidden'),
         ...     ('position', 'absolute'),
         ...     ('z-index', 1)])
+        >>> df.style.set_tooltips_class(name='tt-add',
+        ...     properties='visibility:hidden; position:absolute; z-index:1;')
         """
         self._init_tooltips()
         assert self.tooltips is not None  # mypy requirement
@@ -1118,7 +1122,12 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> Styler:
+    def set_table_styles(
+        self,
+        table_styles: Union[Dict[Any, CSSStyles], CSSStyles],
+        axis: int = 0,
+        overwrite: bool = True,
+    ) -> Styler:
         """
         Set the table styles on a Styler.
 
@@ -1172,13 +1181,20 @@ class Styler:
         ...       'props': [('background-color', 'yellow')]}]
         ... )
 
+        Or with CSS strings
+
+        >>> df.style.set_table_styles(
+        ...     [{'selector': 'tr:hover',
+        ...       'props': 'background-color: yellow; font-size: 1em;']}]
+        ... )
+
         Adding column styling by name
 
         >>> df.style.set_table_styles({
         ...     'A': [{'selector': '',
         ...            'props': [('color', 'red')]}],
         ...     'B': [{'selector': 'td',
-        ...            'props': [('color', 'blue')]}]
+        ...            'props': 'color: blue;']}]
         ... }, overwrite=False)
 
         Adding row styling
@@ -1188,7 +1204,7 @@ class Styler:
         ...          'props': [('font-size', '25px')]}]
         ... }, axis=1, overwrite=False)
         """
-        if is_dict_like(table_styles):
+        if isinstance(table_styles, dict):
             if axis in [0, "index"]:
                 obj, idf = self.data.columns, ".col"
             else:
@@ -1196,11 +1212,19 @@ class Styler:
 
             table_styles = [
                 {
-                    "selector": s["selector"] + idf + str(obj.get_loc(key)),
-                    "props": s["props"],
+                    "selector": str(s["selector"]) + idf + str(obj.get_loc(key)),
+                    "props": _maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
                 for s in styles
+            ]
+        else:
+            table_styles = [
+                {
+                    "selector": s["selector"],
+                    "props": _maybe_convert_css_to_tuples(s["props"]),
+                }
+                for s in table_styles
             ]
 
         if not overwrite and self.table_styles is not None:
@@ -1816,7 +1840,7 @@ class _Tooltips:
 
     def __init__(
         self,
-        css_props: Sequence[Tuple[str, Union[str, int, float]]] = [
+        css_props: CSSProperties = [
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),
@@ -1830,7 +1854,7 @@ class _Tooltips:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips
-        self.table_styles: List[Dict[str, Union[str, List[Tuple[str, str]]]]] = []
+        self.table_styles: CSSStyles = []
 
     @property
     def _class_styles(self):
@@ -1843,7 +1867,12 @@ class _Tooltips:
         -------
         styles : List
         """
-        return [{"selector": f".{self.class_name}", "props": self.class_properties}]
+        return [
+            {
+                "selector": f".{self.class_name}",
+                "props": _maybe_convert_css_to_tuples(self.class_properties),
+            }
+        ]
 
     def _pseudo_css(self, uuid: str, name: str, row: int, col: int, text: str):
         """
@@ -2025,3 +2054,25 @@ def _maybe_wrap_formatter(
     else:
         msg = f"Expected a string, got {na_rep} instead"
         raise TypeError(msg)
+
+
+def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
+    """
+    Convert css-string to sequence of tuples format if needed.
+    'color:red; border:1px solid black;' -> [('color', 'red'),
+                                             ('border','1px solid red')]
+    """
+    if isinstance(style, str):
+        s = style.split(";")
+        try:
+            return [
+                (x.split(":")[0].strip(), x.split(":")[1].strip())
+                for x in s
+                if x.strip() != ""
+            ]
+        except IndexError:
+            raise ValueError(
+                "Styles supplied as string must follow CSS rule formats, "
+                f"for example 'attr: val;'. {style} was given."
+            )
+    return style
