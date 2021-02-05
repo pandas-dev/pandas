@@ -674,14 +674,11 @@ def _parse(
 
     Raises
     ------
-    ValueError
-        * If parser is not lxml or etree.e.
+    ImportError
+        * If lxml is not installed if selected as parser.
 
-    Notes
-    -----
-    This method will raise a warning instead of module not found or
-    import error if user does not have 1xml and then reverts to
-    fallback option with etree parser.
+    ValueError
+        * If parser is not lxml or etree.
     """
 
     lxml = import_optional_dependency("lxml.etree", errors="ignore")
@@ -753,7 +750,7 @@ def read_xml(
     io : str, path object or file-like object
         A URL, file-like object, or raw string containing XML.
 
-    xpath : str, optional, default './*'
+    xpath : str, optional, default './\*'
         The XPath to parse required set of nodes for migration to DataFrame.
         XPath should return a collection of elements and not a single
         element. Note: The ``etree`` parser supports limited XPath
@@ -766,8 +763,8 @@ def read_xml(
         namespaces in XML, only the ones used in ``xpath`` expression.
         Note: if XML document uses default namespace denoted as
         `xmlns='<URI>'` without a prefix, you must assign any temporary
-        namespace, like 'doc', to URI in order to parse any underlying
-        nodes. For example, ::
+        namespace prefix such as 'doc' to the URI in order to parse
+        underlying nodes and/or attributes. For example, ::
 
             namespaces = {"doc": "https://example.com"}
 
@@ -793,12 +790,12 @@ def read_xml(
 
     stylesheet : str, path object or file-like object
         A URL, file-like object, or a raw string containing an XSLT script.
-        This stylesheet should flatten complex, deeply nested XML documents.
-        To use this feature you must have ``lxml`` module installed and use
-        'lxml' as ``parser``. The ``xpath`` must reference nodes of
-        transformed XML document generated after XSLT transformation and not
-        the original XML document. Only XSLT 1.0 scripts and not later
-        versions is currently supported.
+        This stylesheet should flatten complex, deeply nested XML documents
+        for easier parsing. To use this feature you must have ``lxml`` module
+        installed and specify 'lxml' as ``parser``. The ``xpath`` must
+        reference nodes of transformed XML document generated after XSLT
+        transformation and not the original XML document. Only XSLT 1.0
+        scripts and not later versions is currently supported.
 
     Returns
     -------
