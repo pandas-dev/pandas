@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, TimedeltaConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -447,7 +447,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         bias: bool = False,
         **kwargs,
@@ -500,7 +500,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         **kwargs,
     ):
