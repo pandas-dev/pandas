@@ -331,7 +331,7 @@ you can retain subclasses through ``pandas`` data manipulations.
 
 There are 3 possible constructor properties to be defined on a subclass:
 
-* ``DataFrame/Series._constructor``: Used when a manipulation result has the same (sub-)class as the original.
+* ``DataFrame/Series._constructor``: Used when a manipulation result has the same dimension as the original.
 * ``DataFrame._constructor_sliced``: Used when a ``DataFrame`` (sub-)class manipulation result should be a ``Series`` (sub-)class.
 * ``Series._constructor_expanddim``: Used when a ``Series`` (sub-)class manipulation result should be a ``DataFrame`` (sub-)class, e.g. ``Series.to_frame()``.
 
