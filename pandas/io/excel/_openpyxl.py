@@ -40,6 +40,8 @@ class OpenpyxlWriter(ExcelWriter):
             from openpyxl import load_workbook
 
             self.book = load_workbook(self.handles.handle)
+            self.handles.handle.seek(0)
+            self.handles.handle.truncate()
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
