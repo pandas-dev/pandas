@@ -724,7 +724,7 @@ class _MergeOperation:
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame"]:
+    ) -> Tuple[DataFrame, DataFrame]:
 
         columns = left.columns.union(right.columns)
 
@@ -1232,7 +1232,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+    ) -> Tuple[DataFrame, DataFrame, str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added

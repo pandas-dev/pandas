@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from typing import Type
 
@@ -10,7 +12,7 @@ pytest.importorskip("pyarrow", minversion="0.13.0")
 
 import pyarrow as pa  # isort:skip
 
-from .arrays import ArrowExtensionArray  # isort:skip
+from pandas.tests.extension.arrow.arrays import ArrowExtensionArray  # isort:skip
 
 
 @register_extension_dtype
@@ -22,7 +24,7 @@ class ArrowTimestampUSDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowTimestampUSArray"]:
+    def construct_array_type(cls) -> Type[ArrowTimestampUSArray]:
         """
         Return the array type associated with this dtype.
 

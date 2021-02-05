@@ -42,7 +42,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     """
     attr = getattr(delegate, name)
 
-    if isinstance(attr, property):
+    if isinstance(attr, property) or type(attr).__name__ == "getset_descriptor":
+        # getset_descriptor i.e. property defined in cython class
         if cache:
 
             def cached(self):
@@ -256,6 +257,17 @@ class ExtensionIndex(Index):
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
 
+    def delete(self, loc):
+        """
+        Make new Index with passed location(-s) deleted
+
+        Returns
+        -------
+        new_index : Index
+        """
+        arr = self._data.delete(loc)
+        return type(self)._simple_new(arr, name=self.name)
+
     def repeat(self, repeats, axis=None):
         nv.validate_repeat((), {"axis": axis})
         result = self._data.repeat(repeats, axis=axis)
@@ -331,17 +343,6 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
-
-    def delete(self: _T, loc) -> _T:
-        """
-        Make new Index with passed location(-s) deleted
-
-        Returns
-        -------
-        new_index : Index
-        """
-        arr = self._data.delete(loc)
-        return type(self)._simple_new(arr, name=self.name)
 
     def insert(self: _T, loc: int, item) -> _T:
         """

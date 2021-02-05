@@ -24,10 +24,10 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.4
+    rev: v2.9.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus]
+        args: [--py37-plus, --keep-runtime-typing]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.7.0
     hooks:
@@ -60,11 +60,11 @@ repos:
         entry: |
             (?x)
             # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-            from\ pandas\.core\.common\ import|
-            from\ pandas\.core\ import\ common|
+            from\ pandas\.core\.common\ import
+            |from\ pandas\.core\ import\ common
 
             # Check for imports from collections.abc instead of `from collections import abc`
-            from\ collections\.abc\ import
+            |from\ collections\.abc\ import
 
     -   id: non-standard-numpy.random-related-imports
         name: Check for non-standard numpy.random-related imports excluding pandas/_testing.py
@@ -73,8 +73,8 @@ repos:
         entry: |
             (?x)
             # Check for imports from np.random.<method> instead of `from numpy import random` or `from numpy.random import <method>`
-            from\ numpy\ import\ random|
-            from\ numpy.random\ import
+            from\ numpy\ import\ random
+            |from\ numpy.random\ import
         types: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
@@ -82,15 +82,15 @@ repos:
         entry: |
             (?x)
             # Check for imports from pandas._testing instead of `import pandas._testing as tm`
-            from\ pandas\._testing\ import|
-            from\ pandas\ import\ _testing\ as\ tm|
+            from\ pandas\._testing\ import
+            |from\ pandas\ import\ _testing\ as\ tm
 
             # No direct imports from conftest
-            conftest\ import|
-            import\ conftest
+            |conftest\ import
+            |import\ conftest
 
             # Check for use of pandas.testing instead of tm
-            pd\.testing\.
+            |pd\.testing\.
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives
@@ -135,7 +135,7 @@ repos:
         files: ^pandas/tests/
     -   id: FrameOrSeriesUnion
         name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
-        entry: Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]
+        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
         language: pygrep
         types: [python]
         exclude: ^pandas/_typing\.py$
@@ -148,9 +148,8 @@ repos:
         name: Check for outdated annotation syntax and missing error codes
         entry: |
             (?x)
-            \#\ type:\ (?!ignore)|
-            \#\ type:\s?ignore(?!\[)|
-            \)\ ->\ \"
+            \#\ type:\ (?!ignore)
+            |\#\ type:\s?ignore(?!\[)
         language: pygrep
         types: [python]
     -   id: np-bool
@@ -166,9 +165,15 @@ repos:
         files: ^pandas/tests/
         exclude: |
             (?x)^
-            pandas/tests/io/excel/test_writers\.py|
-            pandas/tests/io/pytables/common\.py|
-            pandas/tests/io/pytables/test_store\.py$
+            pandas/tests/io/excel/test_writers\.py
+            |pandas/tests/io/pytables/common\.py
+            |pandas/tests/io/pytables/test_store\.py$
+    -   id: no-pandas-api-types
+        name: Check code for instances of pd.api.types
+        entry: (pd|pandas)\.api\.types\.
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
@@ -184,4 +189,14 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^pandas/core/
+        files: ^pandas/
+        exclude: ^pandas/tests/
+-   repo: https://github.com/MarcoGorelli/no-string-hints
+    rev: v0.1.7
+    hooks:
+    -   id: no-string-hints
+-   repo: https://github.com/MarcoGorelli/abs-imports
+    rev: v0.1.2
+    hooks:
+    -   id: abs-imports
+        files: ^pandas/

@@ -23,8 +23,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow
@@ -72,7 +71,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> Type["BooleanArray"]:
+    def construct_array_type(cls) -> Type[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -94,7 +93,7 @@ class BooleanDtype(BaseMaskedDtype):
         return True
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
     ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
