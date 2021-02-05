@@ -12,7 +12,11 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
-from pandas.io.formats.style import Styler, _get_level_lengths  # isort:skip
+from pandas.io.formats.style import (  # isort:skip
+    Styler,
+    _get_level_lengths,
+    _maybe_convert_css_to_tuples,
+)
 
 
 class TestStyler:
@@ -1167,7 +1171,7 @@ class TestStyler:
         assert np.unique(ids).size == len(ids)
 
     def test_table_styles(self):
-        style = [{"selector": "th", "props": [("foo", "bar")]}]
+        style = [{"selector": "th", "props": [("foo", "bar")]}]  # default format
         styler = Styler(self.df, table_styles=style)
         result = " ".join(styler.render().split())
         assert "th { foo: bar; }" in result
@@ -1176,6 +1180,24 @@ class TestStyler:
         result = styler.set_table_styles(style)
         assert styler is result
         assert styler.table_styles == style
+
+        # GH 39563
+        style = [{"selector": "th", "props": "foo:bar;"}]  # css string format
+        styler = self.df.style.set_table_styles(style)
+        result = " ".join(styler.render().split())
+        assert "th { foo: bar; }" in result
+
+    def test_maybe_convert_css_to_tuples(self):
+        expected = [("a", "b"), ("c", "d e")]
+        assert _maybe_convert_css_to_tuples("a:b;c:d e;") == expected
+        assert _maybe_convert_css_to_tuples("a: b ;c:  d e  ") == expected
+        expected = []
+        assert _maybe_convert_css_to_tuples("") == expected
+
+    def test_maybe_convert_css_to_tuples_err(self):
+        msg = "Styles supplied as string must follow CSS rule formats"
+        with pytest.raises(ValueError, match=msg):
+            _maybe_convert_css_to_tuples("err")
 
     def test_table_attributes(self):
         attributes = 'class="foo" data-bar'
@@ -1894,6 +1916,18 @@ class TestStyler:
         assert "#T__ .other-class {\n          color: green;\n" in s
         assert (
             '#T__ #T__row0_col0 .other-class::after {\n          content: "tooltip";\n'
+            in s
+        )
+
+        # GH 39563
+        s = (
+            Styler(df, uuid_len=0)
+            .set_tooltips(DataFrame([["tooltip"]]))
+            .set_tooltips_class(name="other-class", properties="color:green;color:red;")
+            .render()
+        )
+        assert (
+            "#T__ .other-class {\n          color: green;\n          color: red;\n "
             in s
         )
 
