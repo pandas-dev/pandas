@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    Timestamp,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -102,13 +110,10 @@ class TestGetLoc:
         idx = Float64Index([np.nan, 1, np.nan])
         assert idx.get_loc(1) == 1
 
-        # FIXME: dont leave commented-out
         # representable by slice [0:2:2]
-        # pytest.raises(KeyError, idx.slice_locs, np.nan)
-        sliced = idx.slice_locs(np.nan)
-        assert isinstance(sliced, tuple)
-        assert sliced == (0, 3)
-
+        msg = "'Cannot get left slice bound for non-unique label: nan'"
+        with pytest.raises(KeyError, match=msg):
+            idx.slice_locs(np.nan)
         # not representable by slice
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
         assert idx.get_loc(1) == 1
@@ -127,6 +132,14 @@ class TestGetLoc:
         with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
+
+    @pytest.mark.parametrize("vals", [[1], [1.0], [Timestamp("2019-12-31")], ["test"]])
+    @pytest.mark.parametrize("method", ["nearest", "pad", "backfill"])
+    def test_get_loc_float_index_nan_with_method(self, vals, method):
+        # GH#39382
+        idx = Index(vals)
+        with pytest.raises(KeyError, match="nan"):
+            idx.get_loc(np.nan, method=method)
 
 
 class TestGetIndexer:

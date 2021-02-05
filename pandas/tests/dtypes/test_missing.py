@@ -472,8 +472,8 @@ def test_array_equivalent_nested():
     "dtype, na_value",
     [
         # Datetime-like
-        (np.dtype("M8[ns]"), NaT),
-        (np.dtype("m8[ns]"), NaT),
+        (np.dtype("M8[ns]"), np.datetime64("NaT", "ns")),
+        (np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")),
         (DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]"), NaT),
         (PeriodDtype("M"), NaT),
         # Integer
@@ -499,7 +499,11 @@ def test_array_equivalent_nested():
 )
 def test_na_value_for_dtype(dtype, na_value):
     result = na_value_for_dtype(dtype)
-    assert result is na_value
+    # identify check doesnt work for datetime64/timedelta64("NaT") bc they
+    #  are not singletons
+    assert result is na_value or (
+        isna(result) and isna(na_value) and type(result) is type(na_value)
+    )
 
 
 class TestNAObj:
