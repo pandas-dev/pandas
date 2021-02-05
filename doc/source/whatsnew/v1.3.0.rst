@@ -57,7 +57,7 @@ Other enhancements
 - :meth:`.Styler.set_tooltips_class` and :meth:`.Styler.set_table_styles` amended to optionally allow certain css-string input arguments (:issue:`39564`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
-- Add support for parsing ISO8601-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
+- Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
 
 .. ---------------------------------------------------------------------------
 
