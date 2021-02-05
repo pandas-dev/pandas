@@ -71,22 +71,6 @@ def get_center_of_mass(
     return float(comass)
 
 
-def dispatch(name: str, *args, **kwargs):
-    """
-    Dispatch to groupby apply.
-    """
-
-    def outer(self, *args, **kwargs):
-        def f(x):
-            x = self._shallow_copy(x, groupby=self._groupby)
-            return getattr(x, name)(*args, **kwargs)
-
-        return self._groupby.apply(f)
-
-    outer.__name__ = name
-    return outer
-
-
 class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponential weighted (EW) functions.
@@ -556,10 +540,26 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         )
         return window_indexer
 
-    var = dispatch("var", bias=False)
-    std = dispatch("std", bias=False)
-    cov = dispatch("cov", other=None, pairwise=None, bias=False)
-    corr = dispatch("corr", other=None, pairwise=None)
+    def _groupby_apply(self, name, **kwargs):
+        def f(x):
+            ewm = ExponentialMovingWindow(
+                x, **{attr: getattr(self, attr) for attr in self._attributes}
+            )
+            return getattr(ewm, name)(**kwargs)
+
+        return self._groupby.apply(f)
+
+    def var(self, bias=False):
+        return self._groupby_apply("var", bias=bias)
+
+    def std(self, bias=False):
+        return self._groupby_apply("std", bias=bias)
+
+    def cov(self, other=None, pairwise=None, bias=False):
+        return self._groupby_apply("cov", other=other, pairwise=pairwise, bias=bias)
+
+    def corr(self, other=None, bias=False):
+        return self._groupby_apply("corr", other=other, bias=bias)
 
     def mean(self, engine=None, engine_kwargs=None):
         """
