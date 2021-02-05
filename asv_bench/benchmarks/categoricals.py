@@ -118,11 +118,28 @@ class Concat:
         self.a = pd.Categorical(list("aabbcd") * N)
         self.b = pd.Categorical(list("bbcdjk") * N)
 
+        self.idx_a = pd.CategoricalIndex(range(N), range(N))
+        self.idx_b = pd.CategoricalIndex(range(N + 1), range(N + 1))
+        self.df_a = pd.DataFrame(range(N), columns=["a"], index=self.idx_a)
+        self.df_b = pd.DataFrame(range(N + 1), columns=["a"], index=self.idx_b)
+
     def time_concat(self):
         pd.concat([self.s, self.s])
 
     def time_union(self):
         union_categoricals([self.a, self.b])
+
+    def time_append_overlapping_index(self):
+        self.idx_a.append(self.idx_a)
+
+    def time_append_non_overlapping_index(self):
+        self.idx_a.append(self.idx_b)
+
+    def time_concat_overlapping_index(self):
+        pd.concat([self.df_a, self.df_a])
+
+    def time_concat_non_overlapping_index(self):
+        pd.concat([self.df_a, self.df_b])
 
 
 class ValueCounts:
@@ -299,13 +316,8 @@ class Indexing:
     def setup(self):
         N = 10 ** 5
         self.index = pd.CategoricalIndex(range(N), range(N))
-        self.index_non_overlapping = pd.CategoricalIndex(range(N + 1), range(N + 1))
         self.series = pd.Series(range(N), index=self.index).sort_index()
         self.category = self.index[500]
-        self.df = pd.DataFrame(range(N), columns=["a"], index=self.index)
-        self.df_non_overlapping = pd.DataFrame(
-            range(N + 1), columns=["a"], index=self.index_non_overlapping
-        )
 
     def time_get_loc(self):
         self.index.get_loc(self.category)
@@ -330,18 +342,6 @@ class Indexing:
 
     def time_sort_values(self):
         self.index.sort_values(ascending=False)
-
-    def time_append_index(self):
-        self.index.append(self.index)
-
-    def time_append_non_overlapping_index(self):
-        self.index.append(self.index_non_overlapping)
-
-    def time_concat_with_index(self):
-        pd.concat([self.df, self.df])
-
-    def time_concat_with_non_overlapping_index(self):
-        pd.concat([self.df, self.df_non_overlapping])
 
 
 class SearchSorted:
