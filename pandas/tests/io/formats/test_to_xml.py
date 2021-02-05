@@ -24,13 +24,16 @@ etree
 [X] - LookupError("unknown encoding")
 [X] - KeyError("...is not included in namespaces")
 [X] - KeyError("no valid column")
+[]  - OSError        (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+[X] - FileNotFoundError("No such file or directory")
 
 lxml
 [X] - TypeError("...is not a valid type for attr_cols")
 [X] - TypeError("...is not a valid type for elem_cols")
 [X] - LookupError("unknown encoding")
 []  - UnicodeDecodeError  (NEED NON-UTF-8 STYLESHEET)
-[]  - OSError             (NEED UNREACHABLE LOCAL FILE PATH)
+[]  - OSError        (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+[X] - FileNotFoundError("No such file or directory")
 [X] - KeyError("...is not included in namespaces")
 [X] - KeyError("no valid column")
 [X] - ValueError("stylesheet is not a url, file, or xml string.")
@@ -131,7 +134,7 @@ def mode(request):
     return request.param
 
 
-@pytest.fixture(params=["lxml", "etree"])
+@pytest.fixture(params=[pytest.param("lxml", marks=td.skip_if_no("lxml")), "etree"])
 def parser(request):
     return request.param
 
@@ -188,6 +191,13 @@ def test_str_output(datapath, parser):
     )
 
     assert output == from_file_expected
+
+
+def test_wrong_file_path(parser):
+    with pytest.raises(
+        FileNotFoundError, match=("No such file or directory|没有那个文件或目录")
+    ):
+        geom_df.to_xml("/my/fake/path/output.xml")
 
 
 # INDEX

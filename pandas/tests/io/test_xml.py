@@ -24,9 +24,10 @@ etree
 [X] - ValueError("names does not match length of child elements in xpath.")
 [X] - TypeError("...is not a valid type for names")
 [X] - ValueError("io is not a url, file, or xml string")
-[]  - URLError      (USUALLY DUE TO NETWORKING)
+[]  - URLError      (GENERAL ERROR WITH HTTPError AS SUBCLASS)
 [X] - HTTPError("HTTP Error 404: Not Found")
-[X] - OSError("No such file")
+[]  - OSError        (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+[X] - FileNotFoundError("No such file or directory")
 []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
 
 lxml
@@ -96,7 +97,7 @@ def mode(request):
     return request.param
 
 
-@pytest.fixture(params=["lxml", "etree"])
+@pytest.fixture(params=[pytest.param("lxml", marks=td.skip_if_no("lxml")), "etree"])
 def parser(request):
     return request.param
 
@@ -209,26 +210,18 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     tm.assert_frame_equal(df_str, df_expected)
 
 
-@td.skip_if_no("lxml")
-def test_not_io_object(parser):
+def test_wrong_io_object(parser):
     with pytest.raises(ValueError, match=("io is not a url, file, or xml string")):
-        read_xml(DataFrame, parser="lxml")
+        read_xml(DataFrame, parser=parser)
 
 
-@td.skip_if_no("lxml")
-def test_wrong_file_lxml(datapath):
+def test_wrong_file_path(datapath, parser):
     with pytest.raises(
         (OSError, FileNotFoundError),
         match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
     ):
         filename = os.path.join("data", "html", "books.xml")
-        read_xml(filename, parser="lxml")
-
-
-def test_wrong_file_etree(datapath):
-    with pytest.raises(OSError, match=("No such file|没有那个文件或目录")):
-        filename = os.path.join("data", "html", "books.xml")
-        read_xml(filename, parser="etree")
+        read_xml(filename, parser=parser)
 
 
 @tm.network

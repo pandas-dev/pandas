@@ -404,7 +404,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 r = fromstring(current_doc)
             else:
                 r = parse(current_doc)
-        except (URLError, HTTPError, OSError, ParseError) as e:
+        except (URLError, HTTPError, OSError, FileNotFoundError, ParseError) as e:
             raise e
 
         return r
@@ -618,7 +618,14 @@ class _LxmlFrameParser(_XMLFrameParser):
                 r = XML(current_doc)
             else:
                 r = parse(current_doc, parser=curr_parser)
-        except (LookupError, URLError, HTTPError, OSError, XMLSyntaxError) as e:
+        except (
+            LookupError,
+            URLError,
+            HTTPError,
+            OSError,
+            FileNotFoundError,
+            XMLSyntaxError,
+        ) as e:
             raise e
 
         return r

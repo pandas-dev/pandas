@@ -252,7 +252,7 @@ class BaseXMLFormatter:
 
                 out_str = None
 
-        except (UnicodeDecodeError, OSError) as e:
+        except (UnicodeDecodeError, OSError, FileNotFoundError) as e:
             raise e
 
         return out_str
