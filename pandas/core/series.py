@@ -3940,7 +3940,7 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, func, args=args, kwds=kwargs)
+        op = series_apply(self, func, args=args, kwargs=kwargs)
         result, how = op.agg()
         if result is None:
 
@@ -3981,7 +3981,7 @@ Keep all original rows and also all original values
         func: AggFuncType,
         convert_dtype: bool = True,
         args: Tuple[Any, ...] = (),
-        **kwds,
+        **kwargs,
     ) -> FrameOrSeriesUnion:
         """
         Invoke function on values of Series.
@@ -3998,7 +3998,7 @@ Keep all original rows and also all original values
             False, leave as dtype=object.
         args : tuple
             Positional arguments passed to func after the series value.
-        **kwds
+        **kwargs
             Additional keyword arguments passed to func.
 
         Returns
@@ -4079,7 +4079,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        op = series_apply(self, func, convert_dtype, args, kwds)
+        op = series_apply(self, func, convert_dtype, args, kwargs)
         return op.apply()
 
     def _reduce(
