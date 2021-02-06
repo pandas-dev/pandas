@@ -1217,6 +1217,9 @@ class _LocIndexer(_LocationIndexer):
 
         elif is_list_like_indexer(key):
 
+            if is_iterator(key):
+                key = list(key)
+
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(labels, key)
                 (inds,) = key.nonzero()

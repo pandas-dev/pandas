@@ -2148,3 +2148,15 @@ class TestLocSeries:
 
         with pytest.raises(ValueError, match=msg):
             ser.loc[indexer, :] = 1
+
+    def test_loc_generator(self, frame_or_series):
+        # GH#39614
+        obj = frame_or_series([1, 2, 3])
+        indexer = [True, False, False]
+        result = obj.loc[reversed(indexer)]
+        expected = frame_or_series([3], index=[2])
+        tm.assert_equal(result, expected)
+
+        obj.loc[reversed(indexer)] = 5
+        expected = frame_or_series([1, 2, 5])
+        tm.assert_equal(obj, expected)
