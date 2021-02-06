@@ -132,6 +132,7 @@ repos:
         entry: pytest\.xfail
         language: pygrep
         types: [python]
+        files: ^pandas/tests/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
