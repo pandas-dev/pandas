@@ -140,8 +140,8 @@ class TestStyler:
         s = Styler(self.df, uuid_len=0).applymap(lambda x: "color: red;", subset=["A"])
         s.render()  # do 2 renders to ensure css styles not duplicated
         assert (
-            '<style  type="text/css" >\n#T__row0_col0,#T__row1_col0{\n            '
-            "color:  red;\n        }</style>" in s.render()
+            '<style type="text/css">\n#T__row0_col0, #T__row1_col0 {\n'
+            "  color:  red;\n}\n</style>" in s.render()
         )
 
     def test_render_empty_dfs(self):
@@ -1794,11 +1794,11 @@ class TestStyler:
         df = DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         s = Styler(df, uuid_len=0)
         s = s.set_table_styles({"A": [{"selector": "", "props": [("color", "blue")]}]})
-        assert "#T__ .col0 {\n          color: blue;\n    }" in s.render()
+        assert "#T__ .col0 {\n  color: blue;\n}" in s.render()
         s = s.set_table_styles(
             {0: [{"selector": "", "props": [("color", "blue")]}]}, axis=1
         )
-        assert "#T__ .row0 {\n          color: blue;\n    }" in s.render()
+        assert "#T__ .row0 {\n  color: blue;\n}" in s.render()
 
     def test_colspan_w3(self):
         # GH 36223
@@ -1855,12 +1855,12 @@ class TestStyler:
         s = Styler(df, uuid_len=0).set_tooltips(ttips).render()
 
         # test tooltip table level class
-        assert "#T__ .pd-t {\n          visibility: hidden;\n" in s
+        assert "#T__ .pd-t {\n  visibility: hidden;\n" in s
 
         # test 'Min' tooltip added
         assert (
-            "#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }  "
-            + '  #T__ #T__row0_col0 .pd-t::after {\n          content: "Min";\n    }'
+            "#T__ #T__row0_col0:hover .pd-t {\n  visibility: visible;\n}\n"
+            + '#T__ #T__row0_col0 .pd-t::after {\n  content: "Min";\n}'
             in s
         )
         assert (
@@ -1871,8 +1871,8 @@ class TestStyler:
 
         # test 'Max' tooltip added
         assert (
-            "#T__ #T__row0_col1:hover .pd-t {\n          visibility: visible;\n    }  "
-            + '  #T__ #T__row0_col1 .pd-t::after {\n          content: "Max";\n    }'
+            "#T__ #T__row0_col1:hover .pd-t {\n  visibility: visible;\n}\n"
+            + '#T__ #T__row0_col1 .pd-t::after {\n  content: "Max";\n}'
             in s
         )
         assert (
@@ -1892,16 +1892,16 @@ class TestStyler:
             index=[0, 2],
         )
         s = Styler(df, uuid_len=0).set_tooltips(DataFrame(ttips)).render()
-        assert '#T__ #T__row0_col0 .pd-t::after {\n          content: "Mi";\n    }' in s
-        assert '#T__ #T__row0_col2 .pd-t::after {\n          content: "Ma";\n    }' in s
-        assert '#T__ #T__row2_col0 .pd-t::after {\n          content: "Mu";\n    }' in s
-        assert '#T__ #T__row2_col2 .pd-t::after {\n          content: "Mo";\n    }' in s
+        assert '#T__ #T__row0_col0 .pd-t::after {\n  content: "Mi";\n}' in s
+        assert '#T__ #T__row0_col2 .pd-t::after {\n  content: "Ma";\n}' in s
+        assert '#T__ #T__row2_col0 .pd-t::after {\n  content: "Mu";\n}' in s
+        assert '#T__ #T__row2_col2 .pd-t::after {\n  content: "Mo";\n}' in s
 
     def test_tooltip_ignored(self):
         # GH 21266
         df = DataFrame(data=[[0, 1], [2, 3]])
         s = Styler(df).set_tooltips_class("pd-t").render()  # no set_tooltips()
-        assert '<style  type="text/css" >\n</style>' in s
+        assert '<style type="text/css">\n</style>' in s
         assert '<span class="pd-t"></span>' not in s
 
     def test_tooltip_class(self):
@@ -1913,11 +1913,8 @@ class TestStyler:
             .set_tooltips_class(name="other-class", properties=[("color", "green")])
             .render()
         )
-        assert "#T__ .other-class {\n          color: green;\n" in s
-        assert (
-            '#T__ #T__row0_col0 .other-class::after {\n          content: "tooltip";\n'
-            in s
-        )
+        assert "#T__ .other-class {\n  color: green;\n" in s
+        assert '#T__ #T__row0_col0 .other-class::after {\n  content: "tooltip";\n' in s
 
         # GH 39563
         s = (
@@ -1926,10 +1923,7 @@ class TestStyler:
             .set_tooltips_class(name="other-class", properties="color:green;color:red;")
             .render()
         )
-        assert (
-            "#T__ .other-class {\n          color: green;\n          color: red;\n "
-            in s
-        )
+        assert "#T__ .other-class {\n  color: green;\n  color: red;\n}" in s
 
 
 @td.skip_if_no_mpl
