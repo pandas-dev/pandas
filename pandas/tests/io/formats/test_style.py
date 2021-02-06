@@ -1925,6 +1925,37 @@ class TestStyler:
         )
         assert "#T__ .other-class {\n  color: green;\n  color: red;\n}" in s
 
+    def test_w3_html_format(self):
+        s = (
+            Styler(DataFrame("", index=["a"], columns=["A"]), uuid_len=0)
+            .set_table_styles([{"selector": "th", "props": "att2:v2;"}])
+            .applymap(lambda x: "att1:v1;")
+        )
+        expected = """<style type="text/css">
+#T__ th {
+  att2: v2;
+}
+#T__row0_col0 {
+  att1: v1;
+}
+</style>
+<table id="T__" >
+  <thead>
+    <tr>
+      <th class="blank level0" ></th>
+      <th class="col_heading level0 col0" >A</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
+      <td id="T__row0_col0" class="data row0 col0" ></td>
+    </tr>
+  </tbody>
+</table>
+"""
+        assert expected == s.render()
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep:
