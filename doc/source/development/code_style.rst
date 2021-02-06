@@ -192,6 +192,7 @@ parameters, a fixture, or a combination of these, it is only possible to
 xfail during the testing phase. To do so, use the ``request`` fixture:
 
 .. code-block:: python
+
     import pytest
 
     def test_xfail(request):
