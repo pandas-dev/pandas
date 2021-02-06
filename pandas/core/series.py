@@ -196,6 +196,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     Constructing Series from a dictionary with an Index specified
 
     >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['a', 'b', 'c'])
+    >>> ser
+    a   1
+    b   2
+    c   3
+    dtype: int64
+
+    The keys of the dictionary match with the Index values, hence the Index
+    values have no effect.
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
     >>> ser = pd.Series(data=d, index=['x', 'y', 'z'])
     >>> ser
     x   NaN
