@@ -159,9 +159,7 @@ def test_read_with_bad_dimension(
     version = LooseVersion(get_version(openpyxl))
     if (read_only or read_only is None) and version < "3.0.0":
         msg = "openpyxl read-only sheet is incorrect when dimension data is wrong"
-        request.node.add_marker(
-            pytest.mark.xfail(LooseVersion(get_version(openpyxl)) < "3.0.0", reason=msg)
-        )
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
     path = datapath("io", "data", "excel", f"{filename}{ext}")
     if read_only is None:
         result = pd.read_excel(path, header=header)
