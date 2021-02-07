@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dict_like,
     is_extension_array_dtype,
+    is_int64_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -3754,6 +3755,92 @@ Keep all original rows and also all original values
             index = self.index.repeat(counts)
 
         return self._constructor(values, index=index, name=self.name)
+
+    def explode_range(
+        self, stop, left_shift=0, right_shift=0, ignore_index: bool = False
+    ) -> Series:
+        """
+        Creates series from exploded ranges from this series to the ones given in stop
+
+        Currently works only in int64
+        left_shift and right_shift parameters are used to delay or hasten start - stop
+
+        .. versionadded:: 1.2.x
+
+        Parameters
+        ----------
+        stop: Series providing stop point
+        left_shift: shift for start point - 0 includes it, 1 not
+        right_shift: shift for end point - 0 excludes it, 1 includes
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+        Returns
+        -------
+        Series
+            Exploded ranges to rows; index will be duplicated for these rows.
+
+        See Also
+        --------
+        Series.explode: Transform each element of a list-like to a row.
+
+        Notes
+        -----
+        This routine works with int64 series and returns such.
+
+        Examples
+        --------
+        >>> start = pd.Series([0, 2])
+        >>> start
+        0    0
+        1    2
+        dtype: int64
+        >>> stop = pd.Series([3, 2])
+        >>> stop
+        0    3
+        1    2
+        dtype: int64
+        >>> start.explode_range(stop)
+        0    0
+        0    1
+        0    2
+        dtype: int64
+        >>> start.explode_range(stop, 1) # now start point is skipped
+        0    1
+        0    2
+        dtype: int64
+        >>> start.explode_range(stop, 1, 1) # now start skipped but stop included
+        0    1
+        0    2
+        0    3
+        dtype: int64
+        >>> start.explode_range(stop, 0, 1) # both start and stop included
+        0    0
+        0    1
+        0    2
+        0    3
+        1    2
+        dtype: int64
+
+        """
+        if not is_int64_dtype(self):
+            raise NotImplementedError
+
+        if not len(self):
+            return self._constructor([])
+
+        values, counts = reshape.explode_int64_range(
+            np.asarray(self.array), np.asarray(stop.array), left_shift, right_shift
+        )
+
+        if ignore_index:
+            index = ibase.default_index(len(values))
+        else:
+            index = self.index.repeat(counts)
+
+        result = self._constructor(values, index=index)
+
+        return result
 
     def unstack(self, level=-1, fill_value=None):
         """

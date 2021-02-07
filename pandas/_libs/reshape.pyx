@@ -154,3 +154,50 @@ def explode(ndarray[object] values):
             result[count] = v
             count += 1
     return result, counts
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def explode_int64_range(
+    ndarray[int64_t] start, ndarray[int64_t] stop, int64_t left_shift,
+    int64_t right_shift
+):
+    """
+    creates pairs of values (start[i], stop[i])
+    and returns concatenated array of
+    range(start[i] + left_shift, stop[i] + right_shift)
+    when start and stop have different lengths
+    the entries without pair are discarded
+
+    Parameters
+    ----------
+    start : object ndarray
+    stop : object ndarray
+    left_shift: int64_t
+    right_shift: int64_t
+
+    Returns
+    -------
+    tuple(values, counts)
+    """
+    cdef:
+        Py_ssize_t i, count, n
+        object v
+        int64_t j, delta_shift
+        ndarray[int64_t] result
+        ndarray[int64_t] counts
+
+    # find the resulting len
+    n = min(len(start), len(stop))
+    counts = np.zeros(n, dtype='int64')
+    delta_shift = right_shift - left_shift
+    for i in range(n):
+        counts[i] = max(0, stop[i] - start[i] + delta_shift)
+
+    result = np.empty(counts.sum(), dtype='int64')
+    count = 0
+    for i in range(n):
+        for j in range(start[i] + left_shift, stop[i] + right_shift):
+            result[count] = j
+            count += 1
+    return result, counts
