@@ -1191,27 +1191,14 @@ def test_aggregate_datetime_objects():
 
 def test_aggregate_object_dtype_all_nan():
     # https://github.com/pandas-dev/pandas/issues/39329
-
-    dates = pd.date_range("2020-01-01", periods=15, freq="D")
-    df1 = DataFrame({"key": "A", "date": dates, "col1": range(15), "col_object": "val"})
-    df2 = DataFrame({"key": "B", "date": dates, "col1": range(15)})
-    df = pd.concat([df1, df2], ignore_index=True)
-
-    result = df.groupby(["key"]).resample("W", on="date").min()
-    idx = MultiIndex.from_arrays(
-        [
-            ["A"] * 3 + ["B"] * 3,
-            pd.to_datetime(["2020-01-05", "2020-01-12", "2020-01-19"] * 2),
-        ],
-        names=["key", "date"],
+    # simplified case: multiple object columns where one is all-NaN
+    # -> gets split as the all-NaN is inferred as float
+    df = DataFrame(
+        {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": [np.nan] * 4},
+        dtype=object,
     )
+    result = df.groupby("key").min()
     expected = DataFrame(
-        {
-            "key": ["A"] * 3 + ["B"] * 3,
-            "date": pd.to_datetime(["2020-01-01", "2020-01-06", "2020-01-13"] * 2),
-            "col1": [0, 5, 12] * 2,
-            "col_object": ["val"] * 3 + [np.nan] * 3,
-        },
-        index=idx,
-    )
+        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [np.nan, np.nan]}
+    ).set_index("key")
     tm.assert_frame_equal(result, expected)
