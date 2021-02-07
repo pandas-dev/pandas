@@ -1100,13 +1100,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  in the operation.  We un-split here.
             result = result._consolidate()
             assert isinstance(result, (Series, DataFrame))  # for mypy
-            mgr = result._mgr
-            assert isinstance(mgr, BlockManager)
-            assert len(mgr.blocks) == 1
 
             # unwrap DataFrame to get array
-            result = mgr.blocks[0].values
-            return result
+            mgr = result._mgr
+            assert isinstance(mgr, BlockManager)
+            if len(mgr.blocks) != 1:
+                # We've split an object block! Everything we've assumed
+                # about a single block input returning a single block output
+                # is a lie. To keep the code-path for the typical non-split case
+                # clean, we choose to clean up this mess later on.
+                return mgr.as_array()
+            else:
+                assert len(mgr.blocks) == 1
+                result = mgr.blocks[0].values
+                return result
 
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
