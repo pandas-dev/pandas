@@ -170,7 +170,10 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
 
     # Check that the function output matches applying an alternative function
     # if min_periods isn't specified
-    rolling3 = constructor(values).rolling(window=indexer)
+    # GH 39604: After count-min_periods deprecation, apply(lambda x: len(x))
+    # is equivalent to count after setting min_periods=0
+    min_periods = 0 if func == "count" else None
+    rolling3 = constructor(values).rolling(window=indexer, min_periods=min_periods)
     result3 = getattr(rolling3, func)()
     expected3 = constructor(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result3, expected3)
