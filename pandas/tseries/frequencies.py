@@ -239,7 +239,8 @@ class _FrequencyInferer:
         if not self.is_monotonic or not self.index._is_unique:
             return None
 
-        if self.is_unique and _is_multiple(self.deltas[0], _ONE_DAY):
+        delta = min(self.deltas)
+        if delta and _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
 
         # Business hourly, maybe. 17: one day / 65: one weekend
