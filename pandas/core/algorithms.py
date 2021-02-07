@@ -321,8 +321,7 @@ def unique(values):
     Hash table-based unique. Uniques are returned in order
     of appearance. This does NOT sort.
 
-    Significantly faster than numpy.unique for long enough sequences.
-    Includes NA values.
+    Significantly faster than numpy.unique. Includes NA values.
 
     Parameters
     ----------
