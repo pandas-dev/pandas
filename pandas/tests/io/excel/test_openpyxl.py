@@ -1,5 +1,9 @@
+from distutils.version import LooseVersion
+
 import numpy as np
 import pytest
+
+from pandas.compat._optional import get_version
 
 import pandas as pd
 from pandas import DataFrame
@@ -116,3 +120,52 @@ def test_to_excel_with_openpyxl_engine(ext):
         ).highlight_max()
 
         styled.to_excel(filename, engine="openpyxl")
+
+
+@pytest.mark.parametrize("read_only", [True, False])
+def test_read_workbook(datapath, ext, read_only):
+    # GH 39528
+    filename = datapath("io", "data", "excel", "test1" + ext)
+    wb = openpyxl.load_workbook(filename, read_only=read_only)
+    result = pd.read_excel(wb, engine="openpyxl")
+    wb.close()
+    expected = pd.read_excel(filename)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "header, expected_data",
+    [
+        (
+            0,
+            {
+                "Title": [np.nan, "A", 1, 2, 3],
+                "Unnamed: 1": [np.nan, "B", 4, 5, 6],
+                "Unnamed: 2": [np.nan, "C", 7, 8, 9],
+            },
+        ),
+        (2, {"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}),
+    ],
+)
+@pytest.mark.parametrize(
+    "filename", ["dimension_missing", "dimension_small", "dimension_large"]
+)
+# When read_only is None, use read_excel instead of a workbook
+@pytest.mark.parametrize("read_only", [True, False, None])
+def test_read_with_bad_dimension(
+    datapath, ext, header, expected_data, filename, read_only, request
+):
+    # GH 38956, 39001 - no/incorrect dimension information
+    version = LooseVersion(get_version(openpyxl))
+    if (read_only or read_only is None) and version < "3.0.0":
+        msg = "openpyxl read-only sheet is incorrect when dimension data is wrong"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    path = datapath("io", "data", "excel", f"{filename}{ext}")
+    if read_only is None:
+        result = pd.read_excel(path, header=header)
+    else:
+        wb = openpyxl.load_workbook(path, read_only=read_only)
+        result = pd.read_excel(wb, engine="openpyxl", header=header)
+        wb.close()
+    expected = DataFrame(expected_data)
+    tm.assert_frame_equal(result, expected)

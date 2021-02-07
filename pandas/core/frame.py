@@ -490,23 +490,14 @@ class DataFrame(NDFrame, OpsMixin):
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
+    _accessors: Set[str] = {"sparse"}
+    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
 
     @property
     def _constructor(self) -> Type[DataFrame]:
         return DataFrame
 
     _constructor_sliced: Type[Series] = Series
-    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
-    _accessors: Set[str] = {"sparse"}
-
-    @property
-    def _constructor_expanddim(self):
-        # GH#31549 raising NotImplementedError on a property causes trouble
-        #  for `inspect`
-        def constructor(*args, **kwargs):
-            raise NotImplementedError("Not supported for DataFrames!")
-
-        return constructor
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -5560,7 +5551,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if ignore_index:
-            new_data.set_axis(1, ibase.default_index(len(indexer)))
+            new_data.set_axis(
+                self._get_block_manager_axis(axis), ibase.default_index(len(indexer))
+            )
 
         result = self._constructor(new_data)
         if inplace:
@@ -7716,7 +7709,7 @@ NaN 12.3   33.0
             func=arg,
             axis=0,
             args=args,
-            kwds=kwargs,
+            kwargs=kwargs,
         )
         result, how = op.agg()
 
@@ -7748,7 +7741,7 @@ NaN 12.3   33.0
         raw: bool = False,
         result_type=None,
         args=(),
-        **kwds,
+        **kwargs,
     ):
         """
         Apply a function along an axis of the DataFrame.
@@ -7796,7 +7789,7 @@ NaN 12.3   33.0
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
-        **kwds
+        **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
 
@@ -7890,7 +7883,7 @@ NaN 12.3   33.0
             raw=raw,
             result_type=result_type,
             args=args,
-            kwds=kwds,
+            kwargs=kwargs,
         )
         return op.apply()
 

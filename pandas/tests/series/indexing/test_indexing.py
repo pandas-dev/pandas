@@ -607,29 +607,6 @@ def test_td64_series_assign_nat(nat_val, should_cast):
     tm.assert_series_equal(ser, expected)
 
 
-@pytest.mark.parametrize(
-    "td",
-    [
-        Timedelta("9 days"),
-        Timedelta("9 days").to_timedelta64(),
-        Timedelta("9 days").to_pytimedelta(),
-    ],
-)
-def test_append_timedelta_does_not_cast(td):
-    # GH#22717 inserting a Timedelta should _not_ cast to int64
-    expected = Series(["x", td], index=[0, "td"], dtype=object)
-
-    ser = Series(["x"])
-    ser["td"] = td
-    tm.assert_series_equal(ser, expected)
-    assert isinstance(ser["td"], Timedelta)
-
-    ser = Series(["x"])
-    ser.loc["td"] = Timedelta("9 days")
-    tm.assert_series_equal(ser, expected)
-    assert isinstance(ser["td"], Timedelta)
-
-
 def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
@@ -759,15 +736,11 @@ def test_getitem_unrecognized_scalar():
         timedelta_range("0", periods=20, freq="H"),
     ],
 )
-def test_slice_with_zero_step_raises(index):
-    ts = Series(np.arange(20), index)
+def test_slice_with_zero_step_raises(index, frame_or_series, indexer_sli):
+    ts = frame_or_series(np.arange(20), index=index)
 
     with pytest.raises(ValueError, match="slice step cannot be zero"):
-        ts[::0]
-    with pytest.raises(ValueError, match="slice step cannot be zero"):
-        ts.loc[::0]
-    with pytest.raises(ValueError, match="slice step cannot be zero"):
-        ts.iloc[::0]
+        indexer_sli(ts)[::0]
 
 
 @pytest.mark.parametrize(
@@ -783,7 +756,6 @@ def test_slice_with_negative_step(index):
         expected = ts.iloc[i_slc]
 
         tm.assert_series_equal(ts[l_slc], expected)
-        tm.assert_series_equal(ts.loc[l_slc], expected)
         tm.assert_series_equal(ts.loc[l_slc], expected)
 
     keystr1 = str(index[9])
