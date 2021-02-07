@@ -938,6 +938,16 @@ def test_any_all_np_func(func):
     tm.assert_series_equal(res, exp)
 
 
+def test_transform_ffill():
+    # GH 24211
+    data = [["a", 0.0], ["a", float("nan")], ["b", 1.0], ["b", float("nan")]]
+    df = DataFrame(data, columns=["key", "values"])
+    tm.assert_series_equal(
+        df.groupby("key").transform("ffill")["values"],
+        df.groupby("key")["values"].transform("ffill"),
+    )
+
+
 def test_groupby_transform_rename():
     # https://github.com/pandas-dev/pandas/issues/23461
     def demean_rename(x):
