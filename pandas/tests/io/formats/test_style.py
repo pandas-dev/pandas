@@ -40,10 +40,20 @@ class TestStyler:
             ),
         ]
 
-        self.bar_props = [("width", "10em"), ("height", "80%")]
+        def bar_grad(a=None, b=None, c=None, d=None):
+            ret = [("width", "10em"), ("height", "80%")]
+            if all(x is None for x in [a, b, c, d]):
+                return ret
+            return ret + [
+                (
+                    "background",
+                    f"linear-gradient(90deg,{','.join(x for x in [a, b, c, d] if x)})",
+                )
+            ]
 
-        def bar_grad():
-            return self.bar_props + []
+        self.bar_grad = bar_grad
+
+        self.bar_props = [("width", "10em"), ("height", "80%")]
 
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
@@ -863,25 +873,25 @@ class TestStyler:
         df = DataFrame({"A": [0, 1], "B": [-2, 4]})
         result = df.style.bar(align="mid", axis=None, vmin=-6)._compute().ctx
         expected = {
-            (0, 0): self.bar_props,
-            (1, 0): self.bar_props
-            + [
-                "background: linear-gradient(90deg, "
-                "transparent 60.0%, #d65f5f 60.0%, "
-                "#d65f5f 70.0%, transparent 70.0%)",
-            ],
-            (0, 1): self.bar_props
-            + [
-                "background: linear-gradient(90deg, "
-                "transparent 40.0%, #d65f5f 40.0%, "
-                "#d65f5f 60.0%, transparent 60.0%)",
-            ],
-            (1, 1): self.bar_props
-            + [
-                "background: linear-gradient(90deg, "
-                "transparent 60.0%, #d65f5f 60.0%, "
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
+            (0, 0): self.bar_grad(),
+            (1, 0): self.bar_grad(
+                " transparent 60.0%",
+                " #d65f5f 60.0%",
+                " #d65f5f 70.0%",
+                " transparent 70.0%",
+            ),
+            (0, 1): self.bar_grad(
+                " transparent 40.0%",
+                " #d65f5f 40.0%",
+                " #d65f5f 60.0%",
+                " transparent 60.0%",
+            ),
+            (1, 1): self.bar_grad(
+                " transparent 60.0%",
+                " #d65f5f 60.0%",
+                " #d65f5f 100.0%",
+                " transparent 100.0%",
+            ),
         }
         assert result == expected
 
@@ -889,24 +899,23 @@ class TestStyler:
         df = DataFrame({"A": [0, 1], "B": [-2, 4]})
         result = df.style.bar(align="mid", axis=None, vmax=8)._compute().ctx
         expected = {
-            (0, 0): self.bar_props,
-            (1, 0): self.bar_props
-            + [
-                "background: linear-gradient(90deg, "
-                "transparent 20.0%, #d65f5f 20.0%, "
-                "#d65f5f 30.0%, transparent 30.0%)",
-            ],
-            (0, 1): self.bar_props
-            + [
-                "background: linear-gradient(90deg,"
-                "#d65f5f 20.0%, transparent 20.0%)",
-            ],
-            (1, 1): self.bar_props
-            + [
-                "background: linear-gradient(90deg, "
-                "transparent 20.0%, #d65f5f 20.0%, "
-                "#d65f5f 60.0%, transparent 60.0%)",
-            ],
+            (0, 0): self.bar_grad(),
+            (1, 0): self.bar_grad(
+                " transparent 20.0%",
+                " #d65f5f 20.0%",
+                " #d65f5f 30.0%",
+                " transparent 30.0%",
+            ),
+            (0, 1): self.bar_grad(
+                "#d65f5f 20.0%",
+                " transparent 20.0%",
+            ),
+            (1, 1): self.bar_grad(
+                " transparent 20.0%",
+                " #d65f5f 20.0%",
+                " #d65f5f 60.0%",
+                " transparent 60.0%",
+            ),
         }
         assert result == expected
 
@@ -914,34 +923,25 @@ class TestStyler:
         df = DataFrame({"A": [0, 1], "B": [-2, 4]})
         result = df.style.bar(align="mid", axis=None, vmin=-3, vmax=7)._compute().ctx
         expected = {
-            (0, 0): self.bar_props,
-            (1, 0): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 30.0%, #d65f5f 30.0%, "
-                    "#d65f5f 40.0%, transparent 40.0%)",
-                ),
-            ],
-            (0, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 10.0%, #d65f5f 10.0%, "
-                    "#d65f5f 30.0%, transparent 30.0%)",
-                ),
-            ],
-            (1, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 30.0%, #d65f5f 30.0%, "
-                    "#d65f5f 70.0%, transparent 70.0%)",
-                ),
-            ],
+            (0, 0): self.bar_grad(),
+            (1, 0): self.bar_grad(
+                " transparent 30.0%",
+                " #d65f5f 30.0%",
+                " #d65f5f 40.0%",
+                " transparent 40.0%",
+            ),
+            (0, 1): self.bar_grad(
+                " transparent 10.0%",
+                " #d65f5f 10.0%",
+                " #d65f5f 30.0%",
+                " transparent 30.0%",
+            ),
+            (1, 1): self.bar_grad(
+                " transparent 30.0%",
+                " #d65f5f 30.0%",
+                " #d65f5f 70.0%",
+                " transparent 70.0%",
+            ),
         }
         assert result == expected
 
@@ -949,32 +949,20 @@ class TestStyler:
         df = DataFrame({"A": [0, 1], "B": [-2, 4]})
         result = df.style.bar(align="mid", axis=None, vmin=-1, vmax=3)._compute().ctx
         expected = {
-            (0, 0): self.bar_props,
-            (1, 0): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 25.0%, #d65f5f 25.0%, "
-                    "#d65f5f 50.0%, transparent 50.0%)",
-                ),
-            ],
-            (0, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg," "#d65f5f 25.0%, transparent 25.0%)",
-                )
-            ],
-            (1, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 25.0%, #d65f5f 25.0%, "
-                    "#d65f5f 100.0%, transparent 100.0%)",
-                ),
-            ],
+            (0, 0): self.bar_grad(),
+            (1, 0): self.bar_grad(
+                " transparent 25.0%",
+                " #d65f5f 25.0%",
+                " #d65f5f 50.0%",
+                " transparent 50.0%",
+            ),
+            (0, 1): self.bar_grad("#d65f5f 25.0%", " transparent 25.0%"),
+            (1, 1): self.bar_grad(
+                " transparent 25.0%",
+                " #d65f5f 25.0%",
+                " #d65f5f 100.0%",
+                " transparent 100.0%",
+            ),
         }
         assert result == expected
 
@@ -982,31 +970,19 @@ class TestStyler:
         df = DataFrame({"A": [1, None], "B": [-1, 3]})
         result = df.style.bar(align="mid", axis=None)._compute().ctx
         expected = {
-            (0, 0): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 25.0%, #d65f5f 25.0%, "
-                    "#d65f5f 50.0%, transparent 50.0%)",
-                ),
-            ],
-            (0, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg," "#d65f5f 25.0%, transparent 25.0%)",
-                ),
-            ],
-            (1, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 25.0%, #d65f5f 25.0%, "
-                    "#d65f5f 100.0%, transparent 100.0%)",
-                ),
-            ],
+            (0, 0): self.bar_grad(
+                " transparent 25.0%",
+                " #d65f5f 25.0%",
+                " #d65f5f 50.0%",
+                " transparent 50.0%",
+            ),
+            (0, 1): self.bar_grad("#d65f5f 25.0%", " transparent 25.0%"),
+            (1, 1): self.bar_grad(
+                " transparent 25.0%",
+                " #d65f5f 25.0%",
+                " #d65f5f 100.0%",
+                " transparent 100.0%",
+            ),
         }
         assert result == expected
 
@@ -1014,33 +990,24 @@ class TestStyler:
         df = DataFrame({"A": [1, None], "B": [-1, 2]})
         result = df.style.bar(align="zero", axis=None)._compute().ctx
         expected = {
-            (0, 0): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 50.0%, #d65f5f 50.0%, "
-                    "#d65f5f 75.0%, transparent 75.0%)",
-                ),
-            ],
-            (0, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 25.0%, #d65f5f 25.0%, "
-                    "#d65f5f 50.0%, transparent 50.0%)",
-                ),
-            ],
-            (1, 1): self.bar_props
-            + [
-                (
-                    "background",
-                    "linear-gradient(90deg, "
-                    "transparent 50.0%, #d65f5f 50.0%, "
-                    "#d65f5f 100.0%, transparent 100.0%)",
-                ),
-            ],
+            (0, 0): self.bar_grad(
+                " transparent 50.0%",
+                " #d65f5f 50.0%",
+                " #d65f5f 75.0%",
+                " transparent 75.0%",
+            ),
+            (0, 1): self.bar_grad(
+                " transparent 25.0%",
+                " #d65f5f 25.0%",
+                " #d65f5f 50.0%",
+                " transparent 50.0%",
+            ),
+            (1, 1): self.bar_grad(
+                " transparent 50.0%",
+                " #d65f5f 50.0%",
+                " #d65f5f 100.0%",
+                " transparent 100.0%",
+            ),
         }
         assert result == expected
 
