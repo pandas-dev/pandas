@@ -440,10 +440,11 @@ class BlockManager(DataManager):
 
     def quantile(
         self,
+        *,
+        qs: Float64Index,
         axis: int = 0,
         transposed: bool = False,
         interpolation="linear",
-        qs=None,
     ) -> BlockManager:
         """
         Iterate over blocks applying quantile reduction.
@@ -470,14 +471,13 @@ class BlockManager(DataManager):
         assert is_list_like(qs)  # caller is responsible for this
         assert axis == 1  # only ever called this way
 
-        qs_axe = Float64Index(qs)
         new_axes = list(self.axes)
-        new_axes[1] = qs_axe
+        new_axes[1] = Float64Index(qs)
 
-        blocks = []
-        for b in self.blocks:
-            block = b.quantile(axis=axis, qs=qs, interpolation=interpolation)
-            blocks.append(block)
+        blocks = [
+            blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
+            for blk in self.blocks
+        ]
 
         if transposed:
             new_axes = new_axes[::-1]

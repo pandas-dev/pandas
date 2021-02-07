@@ -82,7 +82,7 @@ import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import Float64Index, Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
@@ -1383,15 +1383,20 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+    def quantile(
+        self, qs: Float64Index, interpolation="linear", axis: int = 0
+    ) -> Block:
         """
         compute the quantiles of the
 
         Parameters
         ----------
-        qs: a scalar or list of the quantiles to be computed
-        interpolation: type of interpolation, default 'linear'
-        axis: axis to compute, default 0
+        qs : Float64Index
+            List of the quantiles to be computed.
+        interpolation : str, default 'linear'
+            Type of interpolation.
+        axis : int, default 0
+            Axis to compute.
 
         Returns
         -------
@@ -2175,7 +2180,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+    def quantile(
+        self, qs: Float64Index, interpolation="linear", axis: int = 0
+    ) -> Block:
         assert axis == 1  # only ever called this way
         naive = self.values.view("M8[ns]")
 
