@@ -164,7 +164,7 @@ For example:
 Testing
 =======
 
-xfailing tests
+Failing tests
 --------------
 
 See https://docs.pytest.org/en/latest/skipping.html for background.
