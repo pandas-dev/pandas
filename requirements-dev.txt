@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-numpy>=1.16.5
+numpy>=1.16.5, <1.20
 python-dateutil>=2.7.3
 pytz
 asv
@@ -11,7 +11,7 @@ cpplint
 flake8
 flake8-comprehensions>=3.1.0
 isort>=5.2.1
-mypy==0.790
+mypy==0.800
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade

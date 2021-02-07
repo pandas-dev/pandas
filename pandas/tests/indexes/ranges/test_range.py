@@ -6,8 +6,7 @@ from pandas.core.dtypes.common import ensure_platform_int
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex
 import pandas._testing as tm
-
-from ..test_numeric import Numeric
+from pandas.tests.indexes.test_numeric import Numeric
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -18,7 +17,6 @@ OI = Index
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ["shape", "ndim", "size"]
 
     @pytest.fixture(
         params=[
@@ -506,3 +504,18 @@ class TestRangeIndex(Numeric):
         empty_idx = self._holder(0)
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
+
+    @pytest.mark.parametrize(
+        "RI",
+        [
+            RangeIndex(0, -1, -1),
+            RangeIndex(0, 1, 1),
+            RangeIndex(1, 3, 2),
+            RangeIndex(0, -1, -2),
+            RangeIndex(-3, -5, -2),
+        ],
+    )
+    def test_append_len_one(self, RI):
+        # GH39401
+        result = RI.append([])
+        tm.assert_index_equal(result, RI, exact=True)
