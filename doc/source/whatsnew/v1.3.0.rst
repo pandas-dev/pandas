@@ -305,6 +305,7 @@ Numeric
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 - Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising ``IndexError`` (:issue:`38932`)
+- Bug in :func:`select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36569`)
 -
 
 Conversion
