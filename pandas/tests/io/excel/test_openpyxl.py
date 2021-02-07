@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -149,3 +150,22 @@ def test_read_with_bad_dimension(datapath, ext, header, expected_data, filename)
     result = pd.read_excel(path, header=header)
     expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
+
+
+def test_append_mode_file(ext):
+    # GH 39576
+    df = DataFrame()
+
+    with tm.ensure_clean(ext) as f:
+        df.to_excel(f, engine="openpyxl")
+
+        with ExcelWriter(f, mode="a", engine="openpyxl") as writer:
+            df.to_excel(writer)
+
+        # make sure that zip files are not concatenated by making sure that
+        # "docProps/app.xml" only occurs twice in the file
+        data = Path(f).read_bytes()
+        first = data.find(b"docProps/app.xml")
+        second = data.find(b"docProps/app.xml", first + 1)
+        third = data.find(b"docProps/app.xml", second + 1)
+        assert second != -1 and third == -1
