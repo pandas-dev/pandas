@@ -8917,7 +8917,7 @@ NaN 12.3   33.0
             level = count_axis._get_level_number(level)
 
         level_name = count_axis._names[level]
-        level_index = count_axis.levels[level]._shallow_copy(name=level_name)
+        level_index = count_axis.levels[level]._rename(name=level_name)
         level_codes = ensure_int64(count_axis.codes[level])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 

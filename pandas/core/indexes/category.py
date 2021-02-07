@@ -220,7 +220,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     @doc(Index._shallow_copy)
     def _shallow_copy(  # type:ignore[override]
         self,
-        values: Optional[Categorical] = None,
+        values: Categorical,
         name: Hashable = no_default,
     ):
         name = self.name if name is no_default else name

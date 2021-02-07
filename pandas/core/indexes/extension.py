@@ -1,7 +1,7 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import Hashable, List, Optional, TypeVar
+from typing import Hashable, List, TypeVar
 
 import numpy as np
 
@@ -214,17 +214,10 @@ class ExtensionIndex(Index):
     __ge__ = _make_wrapped_comparison_op("__ge__")
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self, values: Optional[ExtensionArray] = None, name: Hashable = lib.no_default
-    ):
+    def _shallow_copy(self, values: ExtensionArray, name: Hashable = lib.no_default):
         name = self.name if name is lib.no_default else name
 
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
+        return self._simple_new(values, name=name)
 
     @property
     def _has_complex_internals(self) -> bool:
