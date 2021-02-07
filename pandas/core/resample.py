@@ -301,7 +301,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = ResamplerWindowApply(self, func, args=args, kwds=kwargs).agg()
+        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
             grouper = None
