@@ -157,7 +157,7 @@ class Styler:
         na_rep: Optional[str] = None,
         uuid_len: int = 5,
     ):
-        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
+        self.ctx: DefaultDict[Tuple[int, int], CSSSequence] = defaultdict(list)
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
@@ -528,12 +528,13 @@ class Styler:
                 props = []
                 if self.cell_ids or (r, c) in ctx:
                     row_dict["id"] = "_".join(cs[1:])
-                    for x in ctx[r, c]:
-                        # have to handle empty styles like ['']
-                        if x.count(":"):
-                            props.append(tuple(x.split(":")))
-                        else:
-                            props.append(("", ""))
+                    props.extend(ctx[r, c])
+                    # for x in ctx[r, c]:
+                    #     # have to handle empty styles like ['']
+                    #     if x.count(":"):
+                    #         props.append(tuple(x.split(":")))
+                    #     else:
+                    #         props.append(("", ""))
 
                 # add custom classes from cell context
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
@@ -770,20 +771,19 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        coli = {k: i for i, k in enumerate(self.columns)}
-        rowi = {k: i for i, k in enumerate(self.index)}
-        for jj in range(len(attrs.columns)):
-            cn = attrs.columns[jj]
-            j = coli[cn]
+        data_col_idx = {k: i for i, k in enumerate(self.columns)}
+        data_row_idx = {k: i for i, k in enumerate(self.index)}
+        for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
                     continue
-                c = c.rstrip(";")
-                if not c:
-                    continue
-                i = rowi[rn]
-                for pair in c.split(";"):
-                    self.ctx[(i, j)].append(pair)
+                css_tuples = _maybe_convert_css_to_tuples(c)
+                self.ctx[(data_row_idx[rn], data_col_idx[cn])].extend(css_tuples)
+                # c = c.rstrip(";")
+                # if not c:
+                #     continue
+                # for pair in c.split(";"):
+                #     self.ctx[(data_row_idx[rn], data_col_idx[cn])].append(pair)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
