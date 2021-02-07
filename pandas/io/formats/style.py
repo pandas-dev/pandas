@@ -42,8 +42,8 @@ from pandas.core.generic import NDFrame
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
-CSSProperties = Union[str, CSSSequence]
+CSSList = List[Tuple[str, Union[str, int, float]]]
+CSSProperties = Union[str, CSSList]
 CSSStyles = List[Dict[str, CSSProperties]]
 
 try:
@@ -157,7 +157,7 @@ class Styler:
         na_rep: Optional[str] = None,
         uuid_len: int = 5,
     ):
-        self.ctx: DefaultDict[Tuple[int, int], CSSSequence] = defaultdict(list)
+        self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
@@ -769,10 +769,9 @@ class Styler:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
                     continue
-                css_tuples = _maybe_convert_css_to_tuples(c)
-                self.ctx[(self.index.get_loc(rn), self.columns.get_loc(cn))].extend(
-                    css_tuples
-                )
+                css_seq = _maybe_convert_css_to_tuples(c)
+                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                self.ctx[(i, j)].extend(css_seq)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
@@ -2045,7 +2044,7 @@ def _maybe_wrap_formatter(
         raise TypeError(msg)
 
 
-def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
+def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
     """
     Convert css-string to sequence of tuples format if needed.
     'color:red; border:1px solid black;' -> [('color', 'red'),
