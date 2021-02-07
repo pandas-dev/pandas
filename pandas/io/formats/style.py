@@ -529,12 +529,6 @@ class Styler:
                 if self.cell_ids or (r, c) in ctx:
                     row_dict["id"] = "_".join(cs[1:])
                     props.extend(ctx[r, c])
-                    # for x in ctx[r, c]:
-                    #     # have to handle empty styles like ['']
-                    #     if x.count(":"):
-                    #         props.append(tuple(x.split(":")))
-                    #     else:
-                    #         props.append(("", ""))
 
                 # add custom classes from cell context
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
@@ -771,19 +765,14 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        data_col_idx = {k: i for i, k in enumerate(self.columns)}
-        data_row_idx = {k: i for i, k in enumerate(self.index)}
         for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
                     continue
                 css_tuples = _maybe_convert_css_to_tuples(c)
-                self.ctx[(data_row_idx[rn], data_col_idx[cn])].extend(css_tuples)
-                # c = c.rstrip(";")
-                # if not c:
-                #     continue
-                # for pair in c.split(";"):
-                #     self.ctx[(data_row_idx[rn], data_col_idx[cn])].append(pair)
+                self.ctx[(self.index.get_loc(rn), self.columns.get_loc(cn))].extend(
+                    css_tuples
+                )
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
