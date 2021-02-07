@@ -305,6 +305,7 @@ Numeric
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 - Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising ``IndexError`` (:issue:`38932`)
+- Bug in :func:`select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36569`)
 -
 
 Conversion
@@ -339,7 +340,7 @@ Indexing
 - Bug in :meth:`Series.__setitem__` raising ``ValueError`` when setting a :class:`Series` with a scalar indexer (:issue:`38303`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
 - Bug in :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` always raising ``KeyError`` when slicing with existing strings an :class:`Index` with milliseconds (:issue:`33589`)
-- Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
+- Bug in setting ``timedelta64`` or ``datetime64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`, issue:`39619`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
 - Bug in setting ``datetime64`` values into a :class:`Series` with integer-dtype incorrect casting the datetime64 values to integers (:issue:`39266`)
 - Bug in :meth:`Index.get_loc` not raising ``KeyError`` when method is specified for ``NaN`` value when ``NaN`` is not in :class:`Index` (:issue:`39382`)
@@ -450,7 +451,7 @@ Other
 - :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
 - Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
 - Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
--
+- :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
 -
 
 .. ---------------------------------------------------------------------------
