@@ -169,15 +169,15 @@ Failing tests
 
 See https://docs.pytest.org/en/latest/skipping.html for background.
 
-``pytest.xfail``
-----------------
+Do not use ``pytest.xfail``
+---------------------------
 
 Do not use this method. It has the same behavior as ``pytest.skip``, namely
 it immediately stops the test and does not check if the test will fail. If
 this is the behavior you desire, use ``pytest.skip`` instead.
 
-``pytest.mark.xfail``
----------------------
+Using ``pytest.mark.xfail``
+---------------------------
 
 Use this method if a test is known to fail but the manner in which it fails
 is not meant to be captured. It is common to use this method for a test that
