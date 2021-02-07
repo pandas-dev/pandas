@@ -607,6 +607,7 @@ class Index(IndexOpsMixin, PandasObject):
         result._cache = self._cache
         return result
 
+    @final
     def _rename(self: _IndexT, name: Hashable) -> _IndexT:
         """
         fastpath for rename if new name is already validated.
