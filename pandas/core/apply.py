@@ -63,7 +63,7 @@ def frame_apply(
     raw: bool = False,
     result_type: Optional[str] = None,
     args=None,
-    kwds=None,
+    kwargs=None,
 ) -> FrameApply:
     """ construct and return a row or column based frame apply object """
     axis = obj._get_axis_number(axis)
@@ -79,7 +79,7 @@ def frame_apply(
         raw=raw,
         result_type=result_type,
         args=args,
-        kwds=kwds,
+        kwargs=kwargs,
     )
 
 
@@ -88,14 +88,14 @@ def series_apply(
     func: AggFuncType,
     convert_dtype: bool = True,
     args=None,
-    kwds=None,
+    kwargs=None,
 ) -> SeriesApply:
     return SeriesApply(
         obj,
         func,
         convert_dtype,
         args,
-        kwds,
+        kwargs,
     )
 
 
@@ -109,12 +109,12 @@ class Apply(metaclass=abc.ABCMeta):
         raw: bool,
         result_type: Optional[str],
         args,
-        kwds,
+        kwargs,
     ):
         self.obj = obj
         self.raw = raw
         self.args = args or ()
-        self.kwds = kwds or {}
+        self.kwargs = kwargs or {}
 
         if result_type not in [None, "reduce", "broadcast", "expand"]:
             raise ValueError(
@@ -126,13 +126,13 @@ class Apply(metaclass=abc.ABCMeta):
 
         # curry if needed
         if (
-            (kwds or args)
+            (kwargs or args)
             and not isinstance(func, (np.ufunc, str))
             and not is_list_like(func)
         ):
 
             def f(x):
-                return func(x, *args, **kwds)
+                return func(x, *args, **kwargs)
 
         else:
             f = func
@@ -163,7 +163,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         arg = self.f
         args = self.args
-        kwargs = self.kwds
+        kwargs = self.kwargs
 
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
@@ -413,10 +413,10 @@ class Apply(metaclass=abc.ABCMeta):
         if callable(func):
             sig = inspect.getfullargspec(func)
             if "axis" in sig.args:
-                self.kwds["axis"] = self.axis
+                self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")
-        return self.obj._try_aggregate_string_function(f, *self.args, **self.kwds)
+        return self.obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
 
     def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
         """
@@ -430,7 +430,7 @@ class Apply(metaclass=abc.ABCMeta):
         # Note: dict-likes are list-like
         if not is_list_like(self.f):
             return None
-        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwds)
+        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
 
 class FrameApply(Apply):
@@ -806,7 +806,7 @@ class SeriesApply(Apply):
         func: AggFuncType,
         convert_dtype: bool,
         args,
-        kwds,
+        kwargs,
     ):
         self.convert_dtype = convert_dtype
 
@@ -816,7 +816,7 @@ class SeriesApply(Apply):
             raw=False,
             result_type=None,
             args=args,
-            kwds=kwds,
+            kwargs=kwargs,
         )
 
     def apply(self) -> FrameOrSeriesUnion:
@@ -877,17 +877,17 @@ class GroupByApply(Apply):
         obj: Union[SeriesGroupBy, DataFrameGroupBy],
         func: AggFuncType,
         args,
-        kwds,
+        kwargs,
     ):
-        kwds = kwds.copy()
-        self.axis = obj.obj._get_axis_number(kwds.get("axis", 0))
+        kwargs = kwargs.copy()
+        self.axis = obj.obj._get_axis_number(kwargs.get("axis", 0))
         super().__init__(
             obj,
             func,
             raw=False,
             result_type=None,
             args=args,
-            kwds=kwds,
+            kwargs=kwargs,
         )
 
     def apply(self):
@@ -903,7 +903,7 @@ class ResamplerWindowApply(Apply):
         obj: Union[Resampler, BaseWindow],
         func: AggFuncType,
         args,
-        kwds,
+        kwargs,
     ):
         super().__init__(
             obj,
@@ -911,7 +911,7 @@ class ResamplerWindowApply(Apply):
             raw=False,
             result_type=None,
             args=args,
-            kwds=kwds,
+            kwargs=kwargs,
         )
 
     def apply(self):

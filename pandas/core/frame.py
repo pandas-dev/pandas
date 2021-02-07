@@ -7718,7 +7718,7 @@ NaN 12.3   33.0
             func=arg,
             axis=0,
             args=args,
-            kwds=kwargs,
+            kwargs=kwargs,
         )
         result, how = op.agg()
 
@@ -7750,7 +7750,7 @@ NaN 12.3   33.0
         raw: bool = False,
         result_type=None,
         args=(),
-        **kwds,
+        **kwargs,
     ):
         """
         Apply a function along an axis of the DataFrame.
@@ -7798,7 +7798,7 @@ NaN 12.3   33.0
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
-        **kwds
+        **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
 
@@ -7892,7 +7892,7 @@ NaN 12.3   33.0
             raw=raw,
             result_type=result_type,
             args=args,
-            kwds=kwds,
+            kwargs=kwargs,
         )
         return op.apply()
 
