@@ -4044,6 +4044,12 @@ Keep all original rows and also all original values
         Series.agg: Only perform aggregating type operations.
         Series.transform: Only perform transforming type operations.
 
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
+
         Examples
         --------
         Create a series with typical summer temperatures for each city.
