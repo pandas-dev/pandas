@@ -4550,11 +4550,16 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        if isinstance(converted, np.timedelta64) and self.dtype == object:
+        dtype, _ = infer_dtype_from(converted, pandas_dtype=True)
+        if dtype.kind in ["m", "M"]:
             # https://github.com/numpy/numpy/issues/12550
             #  timedelta64 will incorrectly cast to int
-            converted = [converted] * mask.sum()
-            values[mask] = converted
+            if not is_list_like(converted):
+                converted = [converted] * mask.sum()
+                values[mask] = converted
+            else:
+                converted = list(converted)
+                np.putmask(values, mask, converted)
         else:
             np.putmask(values, mask, converted)
 

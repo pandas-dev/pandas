@@ -74,18 +74,6 @@ class TestSetitemDT64Values:
         tm.assert_series_equal(result, expected)
 
 
-class TestSetitemPeriodDtype:
-    @pytest.mark.parametrize("na_val", [None, np.nan])
-    def test_setitem_na_period_dtype_casts_to_nat(self, na_val):
-        ser = Series(period_range("2000-01-01", periods=10, freq="D"))
-
-        ser[3] = na_val
-        assert ser[3] is NaT
-
-        ser[3:5] = na_val
-        assert ser[4] is NaT
-
-
 class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
         ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
@@ -259,29 +247,6 @@ class TestSetitemCallable:
 
 
 class TestSetitemCasting:
-    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-    def test_setitem_dt64_into_int_series(self, dtype):
-        # dont cast dt64 to int when doing this setitem
-        orig = Series([1, 2, 3])
-
-        val = np.datetime64("2021-01-18 13:25:00", "ns")
-        if dtype == "m8[ns]":
-            val = val - val
-
-        ser = orig.copy()
-        ser[:-1] = val
-        expected = Series([val, val, 3], dtype=object)
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser[0], type(val))
-
-        ser = orig.copy()
-        ser[:-1] = [val, val]
-        tm.assert_series_equal(ser, expected)
-
-        ser = orig.copy()
-        ser[:-1] = np.array([val, val])
-        tm.assert_series_equal(ser, expected)
-
     @pytest.mark.parametrize("unique", [True, False])
     @pytest.mark.parametrize("val", [3, 3.0, "3"], ids=type)
     def test_setitem_non_bool_into_bool(self, val, indexer_sli, unique):
@@ -599,3 +564,70 @@ class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
         Indicate we do _not_ expect the setting to be done inplace.
         """
         return False
+
+
+class TestSetitemDT64IntoInt(SetitemCastingEquivalents):
+    # GH#39619 dont cast dt64 to int when doing this setitem
+
+    @pytest.fixture(params=["M8[ns]", "m8[ns]"])
+    def dtype(self, request):
+        return request.param
+
+    @pytest.fixture
+    def scalar(self, dtype):
+        val = np.datetime64("2021-01-18 13:25:00", "ns")
+        if dtype == "m8[ns]":
+            val = val - val
+        return val
+
+    @pytest.fixture
+    def expected(self, scalar):
+        expected = Series([scalar, scalar, 3], dtype=object)
+        assert isinstance(expected[0], type(scalar))
+        return expected
+
+    @pytest.fixture
+    def obj(self):
+        return Series([1, 2, 3])
+
+    @pytest.fixture
+    def key(self):
+        return slice(None, -1)
+
+    @pytest.fixture(params=[None, list, np.array])
+    def val(self, scalar, request):
+        box = request.param
+        if box is None:
+            return scalar
+        return box([scalar, scalar])
+
+    @pytest.fixture
+    def is_inplace(self):
+        return False
+
+
+class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
+    # Setting compatible NA values into Series with PeriodDtype
+
+    @pytest.fixture
+    def expected(self, key):
+        exp = Series(period_range("2000-01-01", periods=10, freq="D"))
+        exp._values.view("i8")[key] = NaT.value
+        assert exp[key] is NaT or all(x is NaT for x in exp[key])
+        return exp
+
+    @pytest.fixture
+    def obj(self):
+        return Series(period_range("2000-01-01", periods=10, freq="D"))
+
+    @pytest.fixture(params=[3, slice(3, 5)])
+    def key(self, request):
+        return request.param
+
+    @pytest.fixture(params=[None, np.nan])
+    def val(self, request):
+        return request.param
+
+    @pytest.fixture
+    def is_inplace(self):
+        return True
