@@ -145,7 +145,7 @@ class TestStyler:
         s.render()  # do 2 renders to ensure css styles not duplicated
         assert (
             '<style type="text/css">\n#T__row0_col0, #T__row1_col0 {\n'
-            "  color:  red;\n}\n</style>" in s.render()
+            "  color: red;\n}\n</style>" in s.render()
         )
 
     def test_render_empty_dfs(self):
