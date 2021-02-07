@@ -25,6 +25,15 @@ class IsinAlmostFullWithRandomInt:
         self.s.isin(self.values_outside)
 
 
+class UniqueForLargePyObjectInts:
+    def setup(self):
+        lst = [x << 32 for x in range(5000)]
+        self.arr = np.array(lst, dtype=np.object_)
+
+    def time_unique(self):
+        pd.unique(self.arr)
+
+
 class IsinWithRandomFloat:
     params = [
         [np.float64, np.object],
