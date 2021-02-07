@@ -118,11 +118,28 @@ class Concat:
         self.a = pd.Categorical(list("aabbcd") * N)
         self.b = pd.Categorical(list("bbcdjk") * N)
 
+        self.idx_a = pd.CategoricalIndex(range(N), range(N))
+        self.idx_b = pd.CategoricalIndex(range(N + 1), range(N + 1))
+        self.df_a = pd.DataFrame(range(N), columns=["a"], index=self.idx_a)
+        self.df_b = pd.DataFrame(range(N + 1), columns=["a"], index=self.idx_b)
+
     def time_concat(self):
         pd.concat([self.s, self.s])
 
     def time_union(self):
         union_categoricals([self.a, self.b])
+
+    def time_append_overlapping_index(self):
+        self.idx_a.append(self.idx_a)
+
+    def time_append_non_overlapping_index(self):
+        self.idx_a.append(self.idx_b)
+
+    def time_concat_overlapping_index(self):
+        pd.concat([self.df_a, self.df_a])
+
+    def time_concat_non_overlapping_index(self):
+        pd.concat([self.df_a, self.df_b])
 
 
 class ValueCounts:
