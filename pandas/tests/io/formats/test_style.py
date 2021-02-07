@@ -53,8 +53,6 @@ class TestStyler:
 
         self.bar_grad = bar_grad
 
-        self.bar_props = [("width", "10em"), ("height", "80%")]
-
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
         with pytest.raises(TypeError, match=msg):
