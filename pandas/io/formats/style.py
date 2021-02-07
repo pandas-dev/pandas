@@ -387,9 +387,6 @@ class Styler:
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
 
-        def format_attr(pair):
-            return f"{pair['key']}={pair['value']}"
-
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
@@ -458,9 +455,7 @@ class Styler:
                     }
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
-                        es["attributes"] = [
-                            format_attr({"key": "colspan", "value": f'"{colspan}"'})
-                        ]
+                        es["attributes"] = [f'colspan="{colspan}"']
                     row_es.append(es)
                 head.append(row_es)
 
@@ -504,9 +499,7 @@ class Styler:
                 }
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
-                    es["attributes"] = [
-                        format_attr({"key": "rowspan", "value": f'"{rowspan}"'})
-                    ]
+                    es["attributes"] = [f'rowspan="{rowspan}"']
                 row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
