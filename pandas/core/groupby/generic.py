@@ -1107,8 +1107,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if len(mgr.blocks) != 1:
                 # We've split an object block! Everything we've assumed
                 # about a single block input returning a single block output
-                # is a lie. To keep the code-path for the typical non-split case
-                # clean, we choose to clean up this mess later on.
+                # is a lie. See eg GH-39329
                 return mgr.as_array()
             else:
                 assert len(mgr.blocks) == 1
