@@ -3,7 +3,7 @@ from contextlib import nullcontext
 import numpy as np
 import pytest
 
-from pandas import MultiIndex, Series
+from pandas import Index, MultiIndex, Series
 import pandas._testing as tm
 
 
@@ -65,3 +65,24 @@ def test_equals_false_negative():
     assert s1.equals(s4)
     assert s1.equals(s5)
     assert s5.equals(s6)
+
+
+def test_equals_matching_nas():
+    # matching but not identicanl NAs
+    left = Series([np.datetime64("NaT")], dtype=object)
+    right = Series([np.datetime64("NaT")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
+
+    left = Series([np.timedelta64("NaT")], dtype=object)
+    right = Series([np.timedelta64("NaT")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
+
+    left = Series([np.float64("NaN")], dtype=object)
+    right = Series([np.float64("NaN")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
