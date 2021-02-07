@@ -94,13 +94,16 @@ class TestSeriesDtypes:
         result = ser.astype("object").astype(CategoricalDtype())
         tm.assert_series_equal(result, roundtrip_expected)
 
-    def test_categorical_int_to_int32(self):
+    def test_categorical_astype_to_int(self, any_int_or_nullable_int_dtype):
         # GH 39402
 
-        df = DataFrame(data={"col1": [2.0, -1.0, 3.0]})
+        df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
         df.col1 = df.col1.astype("category")
-        df.col1 = df.col1.astype(np.int32)
-        assert df.col1.dtype.type is np.int32
+        df.col1 = df.col1.astype(any_int_or_nullable_int_dtype)
+        expected = DataFrame(
+            {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical
