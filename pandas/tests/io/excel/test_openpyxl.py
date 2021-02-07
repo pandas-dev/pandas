@@ -152,14 +152,14 @@ def test_read_workbook(datapath, ext, read_only):
 )
 # When read_only is None, use read_excel instead of a workbook
 @pytest.mark.parametrize("read_only", [True, False, None])
-@pytest.mark.xfail(
-    LooseVersion(get_version(openpyxl)) < "3.0.0",
-    reason="openpyxl read-only sheet is incorrect when dimension data is wrong",
-)
 def test_read_with_bad_dimension(
-    datapath, ext, header, expected_data, filename, read_only
+    datapath, ext, header, expected_data, filename, read_only, request
 ):
     # GH 38956, 39001 - no/incorrect dimension information
+    version = LooseVersion(get_version(openpyxl))
+    if (read_only or read_only is None) and version < "3.0.0":
+        msg = "openpyxl read-only sheet is incorrect when dimension data is wrong"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
     path = datapath("io", "data", "excel", f"{filename}{ext}")
     if read_only is None:
         result = pd.read_excel(path, header=header)
