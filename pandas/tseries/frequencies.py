@@ -414,7 +414,7 @@ class _TimedeltaFrequencyInferer(_FrequencyInferer):
 
 
 def _is_multiple(us, mult: int) -> bool:
-    return (us % mult == 0)
+    return us % mult == 0
 
 
 def _maybe_add_count(base: str, count: float) -> str:
