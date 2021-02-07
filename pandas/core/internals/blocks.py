@@ -1030,7 +1030,8 @@ class Block(PandasObject):
         elif not mask.any():
             return [self]
 
-        elif isinstance(new, np.timedelta64):
+        dtype, _ = infer_dtype_from(new)
+        if dtype.kind in ["m", "M"]:
             # using putmask with object dtype will incorrect cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
@@ -1316,10 +1317,15 @@ class Block(PandasObject):
                 blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
-            elif isinstance(other, np.timedelta64):
-                # expressions.where will cast np.timedelta64 to int
-                result = self.values.copy()
-                result[~cond] = [other] * (~cond).sum()
+            dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+            if dtype.kind in ["m", "M"] and dtype.kind != values.dtype.kind:
+                # expressions.where would cast np.timedelta64 to int
+                if not is_list_like(other):
+                    other = [other] * (~cond).sum()
+                else:
+                    other = list(other)
+                result = values.copy()
+                np.putmask(result, ~cond, other)
 
             else:
                 # convert datetime to datetime64, timedelta to timedelta64
