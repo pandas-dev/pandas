@@ -34,9 +34,13 @@ cdef class {{name}}Engine(IndexEngine):
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.{{name}}HashTable(n)
 
-    {{if name not in {'Float64', 'Float32'} }}
     cdef _check_type(self, object val):
+    {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
+            raise KeyError(val)
+    {{else}}
+        if util.is_bool_object(val):
+            # avoid casting to True -> 1.0
             raise KeyError(val)
     {{endif}}
 
