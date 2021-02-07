@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from distutils.version import LooseVersion
+import mmap
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
@@ -40,6 +41,7 @@ class OpenpyxlWriter(ExcelWriter):
             from openpyxl import load_workbook
 
             self.book = load_workbook(self.handles.handle)
+            self.handles.handle.seek(0)
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
@@ -52,6 +54,9 @@ class OpenpyxlWriter(ExcelWriter):
         Save workbook to disk.
         """
         self.book.save(self.handles.handle)
+        if "r+" in self.mode and not isinstance(self.handles.handle, mmap.mmap):
+            # truncate file to the written content
+            self.handles.handle.truncate()
 
     @classmethod
     def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, Serialisable]:
