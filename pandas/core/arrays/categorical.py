@@ -466,7 +466,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
             try:
-                new_cats = extract_array(self.categories, extract_numpy=True)
+                new_cats = np.asarray(self.categories)
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
