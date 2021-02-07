@@ -372,6 +372,17 @@ class TestDataFrameSetItem:
         expected.columns = cols
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_duplicate_columns_size_mismatch(self):
+        # GH#39510
+        cols = ["A", "B", "C"] * 2
+        df = DataFrame(index=range(3), columns=cols)
+        with pytest.raises(ValueError, match="Columns must be same length as key"):
+            df[["A"]] = (0, 3, 5)
+
+        df2 = df.iloc[:, :3]  # unique columns
+        with pytest.raises(ValueError, match="Columns must be same length as key"):
+            df2[["A"]] = (0, 3, 5)
+
     @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
     def test_setitem_df_wrong_column_number(self, cols):
         # GH#38604

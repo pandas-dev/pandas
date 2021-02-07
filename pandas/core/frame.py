@@ -3245,9 +3245,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _iset_not_inplace(self, key, value):
         def igetitem(obj, i: int):
-            if isinstance(obj, DataFrame):
-                return obj.iloc[:, i]
-            elif isinstance(obj, np.ndarray):
+            # Note: we catch DataFrame obj before getting here, but
+            #  hypothetically would return obj.iloc[:, i]
+            if isinstance(obj, np.ndarray):
                 return obj[..., i]
             else:
                 return obj[i]
