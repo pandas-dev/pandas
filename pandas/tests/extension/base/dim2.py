@@ -4,8 +4,21 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p17
+
 import pandas as pd
+from pandas.core.arrays import FloatingArray, IntegerArray
 from pandas.tests.extension.base.base import BaseExtensionTests
+
+
+def maybe_xfail_masked_reductions(arr, request):
+    if (
+        isinstance(arr, (FloatingArray, IntegerArray))
+        and np_version_under1p17
+        and arr.ndim == 2
+    ):
+        mark = pytest.mark.xfail(reason="masked_reductions does not implement")
+        request.node.add_marker(mark)
 
 
 class Dim2CompatTests(BaseExtensionTests):
@@ -96,11 +109,12 @@ class Dim2CompatTests(BaseExtensionTests):
             left._concat_same_type([left, right], axis=2)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis_none(self, data, method):
+    def test_reductions_2d_axis_none(self, data, method, request):
         if not hasattr(data, method):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
+        maybe_xfail_masked_reductions(arr2d, request)
 
         err_expected = None
         err_result = None
@@ -124,11 +138,12 @@ class Dim2CompatTests(BaseExtensionTests):
         assert result == expected  # TODO: or matching NA
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis0(self, data, method):
+    def test_reductions_2d_axis0(self, data, method, request):
         if not hasattr(data, method):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
+        maybe_xfail_masked_reductions(arr2d, request)
 
         kwargs = {}
         if method == "std":
@@ -158,7 +173,10 @@ class Dim2CompatTests(BaseExtensionTests):
 
                 expected = data.astype(dtype)
                 if type(expected) != type(data):
-                    pytest.xfail(reason="IntegerArray.astype is broken GH#38983")
+                    mark = pytest.mark.xfail(
+                        reason="IntegerArray.astype is broken GH#38983"
+                    )
+                    request.node.add_marker(mark)
                 assert type(expected) == type(data), type(expected)
                 assert dtype == expected.dtype
 
@@ -168,11 +186,12 @@ class Dim2CompatTests(BaseExtensionTests):
         # punt on method == "var"
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis1(self, data, method):
+    def test_reductions_2d_axis1(self, data, method, request):
         if not hasattr(data, method):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
+        maybe_xfail_masked_reductions(arr2d, request)
 
         try:
             result = getattr(arr2d, method)(axis=1)

@@ -52,7 +52,10 @@ def _sumprod(
             return libmissing.NA
 
         if np_version_under1p17:
-            return func(values[~mask], axis=axis)
+            if values.ndim == 1:
+                return func(values[~mask], axis=axis)
+            else:
+                raise NotImplementedError
         else:
             return func(values, where=~mask, axis=axis)
 
