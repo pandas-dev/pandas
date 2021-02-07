@@ -727,15 +727,10 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         self.multiple_write_buffer: Optional[Union[StringIO, BytesIO]] = None
 
         # add csv file name like gz or bz2
-        try:
-            fname = os.path.basename(file)
-            if not isinstance(fname, bytes):
-                fname = fname.encode('latin-1')
-            if fname.endswith(b'.zip'):
-                xname = fname[:-4].decode('latin-1')
-                self.archive_name=xname
-        except:
-            pass
+        if archive_name is None and isinstance(file, (os.PathLike, str)):
+            archive_name = os.path.basename(file)
+            if archive_name.endswith('.zip'):
+                self.archive_name = archive_name[:-4]
 
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
