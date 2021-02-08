@@ -769,6 +769,15 @@ def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
     comp_func(result, exp)
 
 
+def test_transform_ffill():
+    # GH 24211
+    data = [["a", 0.0], ["a", float("nan")], ["b", 1.0], ["b", float("nan")]]
+    df = DataFrame(data, columns=["key", "values"])
+    expected = df.groupby("key").transform("ffill")["values"]
+    result = df.groupby("key")["values"].transform("ffill")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("mix_groupings", [True, False])
 @pytest.mark.parametrize("as_series", [True, False])
 @pytest.mark.parametrize("val1,val2", [("foo", "bar"), (1, 2), (1.0, 2.0)])
@@ -936,16 +945,6 @@ def test_any_all_np_func(func):
 
     res = df.groupby("key")["val"].transform(func)
     tm.assert_series_equal(res, exp)
-
-
-def test_transform_ffill():
-    # GH 24211
-    data = [["a", 0.0], ["a", float("nan")], ["b", 1.0], ["b", float("nan")]]
-    df = DataFrame(data, columns=["key", "values"])
-    tm.assert_series_equal(
-        df.groupby("key").transform("ffill")["values"],
-        df.groupby("key")["values"].transform("ffill"),
-    )
 
 
 def test_groupby_transform_rename():
