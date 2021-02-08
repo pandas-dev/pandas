@@ -893,7 +893,10 @@ class Styler:
             ``func`` should take a Series or DataFrame (depending
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
-            column labels or an ndarray of appropriate shape when ``axis=None``.
+            column labels or an ndarray with same shape as input when ``axis=None``.
+
+            .. versionchanged:: 1.3.0
+
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
