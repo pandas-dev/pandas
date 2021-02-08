@@ -1,6 +1,6 @@
 .. _whatsnew_122:
 
-What's new in 1.2.2 (February 08, 2021)
+What's new in 1.2.2 (February 09, 2021)
 ---------------------------------------
 
 These are the changes in pandas 1.2.2. See :ref:`release` for a full changelog
