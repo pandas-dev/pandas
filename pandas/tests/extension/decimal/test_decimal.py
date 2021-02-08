@@ -7,6 +7,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import infer_dtype
 from pandas.tests.extension import base
 from pandas.tests.extension.decimal.array import (
     DecimalArray,
@@ -124,8 +125,8 @@ class TestDtype(BaseDecimal, base.BaseDtypeTests):
     def test_infer_dtype(self, data, data_missing, skipna):
         # here overriding base test to ensure we fall back to return
         # "unknown-array" for an EA pandas doesn't know
-        assert pd.api.types.infer_dtype(data, skipna=skipna) == "unknown-array"
-        assert pd.api.types.infer_dtype(data_missing, skipna=skipna) == "unknown-array"
+        assert infer_dtype(data, skipna=skipna) == "unknown-array"
+        assert infer_dtype(data_missing, skipna=skipna) == "unknown-array"
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
