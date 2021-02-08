@@ -3398,7 +3398,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
-            indexer = self._filter_indexer_tolerance(target._values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
     @final
@@ -3448,15 +3448,10 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        target_values = target._values
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        left_distances = np.abs(
-            self._values[left_indexer] - target_values  # type: ignore[operator]
-        )
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        right_distances = np.abs(
-            self._values[right_indexer] - target_values  # type: ignore[operator]
-        )
+        target_values = target._get_engine_target()
+        own_values = self._get_engine_target()
+        left_distances = np.abs(own_values[left_indexer] - target_values)
+        right_distances = np.abs(own_values[right_indexer] - target_values)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3475,8 +3470,8 @@ class Index(IndexOpsMixin, PandasObject):
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        distance = abs(self._values[indexer] - target)  # type: ignore[operator]
+        own_values = self._get_engine_target()
+        distance = abs(own_values[indexer] - target)
         return np.where(distance <= tolerance, indexer, -1)
 
     # --------------------------------------------------------------------
