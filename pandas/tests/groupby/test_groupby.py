@@ -2143,3 +2143,10 @@ def test_groupby_numerical_stability_cumsum():
     )
     expected = DataFrame({"a": exp_data, "b": exp_data})
     tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
+    dups = rand_series_with_duplicate_datetimeindex
+    result = dups.groupby(level=0).mean()
+    expected = dups.groupby(dups.index).mean()
+    tm.assert_series_equal(result, expected)

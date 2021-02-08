@@ -198,23 +198,6 @@ class TestDatetimeIndex:
         new_index = date_range(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
 
-    @pytest.mark.parametrize(
-        "arr, expected",
-        [
-            (DatetimeIndex(["2017", "2017"]), DatetimeIndex(["2017"])),
-            (
-                DatetimeIndex(["2017", "2017"], tz="US/Eastern"),
-                DatetimeIndex(["2017"], tz="US/Eastern"),
-            ),
-        ],
-    )
-    def test_unique(self, arr, expected):
-        result = arr.unique()
-        tm.assert_index_equal(result, expected)
-        # GH 21737
-        # Ensure the underlying data is consistent
-        assert result[0] == expected[0]
-
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
         idx = date_range("2000", periods=2)
