@@ -498,6 +498,8 @@ def test_indexing():
         result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
+
+def test_getitem_str_month_with_datetimeindex():
     # GH3546 (not including times on the last day)
     idx = date_range(start="2013-05-31 00:00", end="2013-05-31 23:00", freq="H")
     ts = Series(range(len(idx)), index=idx)
@@ -509,6 +511,8 @@ def test_indexing():
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
 
+
+def test_getitem_str_year_with_datetimeindex():
     idx = [
         Timestamp("2013-05-31 00:00"),
         Timestamp(datetime(2013, 5, 31, 23, 59, 59, 999999)),
@@ -517,17 +521,19 @@ def test_indexing():
     expected = ts["2013"]
     tm.assert_series_equal(expected, ts)
 
+
+def test_getitem_str_second_with_datetimeindex():
     # GH14826, indexing with a seconds resolution string / datetime object
     df = DataFrame(
         np.random.rand(5, 5),
         columns=["open", "high", "low", "close", "volume"],
         index=date_range("2012-01-02 18:01:00", periods=5, tz="US/Central", freq="s"),
     )
-    expected = df.loc[[df.index[2]]]
 
     # this is a single date, so will raise
     with pytest.raises(KeyError, match=r"^'2012-01-02 18:01:02'$"):
         df["2012-01-02 18:01:02"]
+
     msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central', freq='S'\)"
     with pytest.raises(KeyError, match=msg):
         df[df.index[2]]
