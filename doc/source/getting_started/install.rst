@@ -271,7 +271,7 @@ fsspec                    0.7.4              Handling files aside from local and
 fastparquet               0.4.0              Parquet reading / writing
 gcsfs                     0.6.0              Google Cloud Storage access
 html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
+lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`); XML parser for read_xml
 matplotlib                2.2.3              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
 openpyxl                  2.6.0              Reading / writing for xlsx files
