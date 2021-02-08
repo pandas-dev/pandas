@@ -181,8 +181,14 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
 
-    with tm.assert_produces_warning(warning_type):
+    with tm.assert_produces_warning(warning_type) as record:
         df = parser.read_csv(StringIO(data))
+    if record:
+        assert (
+            str(record[0].message)
+            == "Columns (0) have mixed types. Specify dtype option on import or "
+            "set low_memory=False."
+        )
     assert df.a.dtype == object
 
 
