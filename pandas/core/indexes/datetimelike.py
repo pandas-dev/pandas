@@ -230,9 +230,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """The expected NA value to use with this index."""
 
     def _convert_tolerance(self, tolerance, target):
-        tolerance = super()._convert_tolerance(tolerance, target)
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
-        return tolerance
+        return super()._convert_tolerance(tolerance, target)
 
     def tolist(self) -> List:
         """
