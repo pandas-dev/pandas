@@ -47,6 +47,7 @@ from pandas._libs.tslibs.util cimport (
     is_integer_object,
     is_timedelta64_object,
 )
+from pandas._libs.tslibs.fields import RoundTo, round_nsint64
 
 # ----------------------------------------------------------------------
 # Constants
@@ -257,41 +258,37 @@ cdef convert_to_timedelta64(object ts, str unit):
     elif isinstance(ts, _Timedelta):
         # already in the proper format
         ts = np.timedelta64(ts.value, "ns")
-    elif is_datetime64_object(ts):
-        # only accept a NaT here
-        if ts.astype('int64') == NPY_NAT:
-            return np.timedelta64(NPY_NAT)
     elif is_timedelta64_object(ts):
         ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
             return np.timedelta64(NPY_NAT, "ns")
         else:
-            if unit in ['Y', 'M', 'W']:
+            if unit in ["Y", "M", "W"]:
                 ts = np.timedelta64(ts, unit)
             else:
                 ts = cast_from_unit(ts, unit)
                 ts = np.timedelta64(ts, "ns")
     elif is_float_object(ts):
-        if unit in ['Y', 'M', 'W']:
+        if unit in ["Y", "M", "W"]:
             ts = np.timedelta64(int(ts), unit)
         else:
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts, "ns")
     elif isinstance(ts, str):
-        if len(ts) > 0 and ts[0] == 'P':
+        if len(ts) > 0 and ts[0] == "P":
             ts = parse_iso_format_string(ts)
         else:
             ts = parse_timedelta_string(ts)
         ts = np.timedelta64(ts, "ns")
     elif is_tick_object(ts):
-        ts = np.timedelta64(ts.nanos, 'ns')
+        ts = np.timedelta64(ts.nanos, "ns")
 
     if PyDelta_Check(ts):
-        ts = np.timedelta64(delta_to_nanoseconds(ts), 'ns')
+        ts = np.timedelta64(delta_to_nanoseconds(ts), "ns")
     elif not is_timedelta64_object(ts):
         raise ValueError(f"Invalid type for timedelta scalar: {type(ts)}")
-    return ts.astype('timedelta64[ns]')
+    return ts.astype("timedelta64[ns]")
 
 
 @cython.boundscheck(False)
@@ -1301,14 +1298,18 @@ class Timedelta(_Timedelta):
         object_state = self.value,
         return (Timedelta, object_state)
 
-    def _round(self, freq, rounder):
+    @cython.cdivision(True)
+    def _round(self, freq, mode):
         cdef:
-            int64_t result, unit
+            int64_t result, unit, remainder
+            ndarray[int64_t] arr
 
         from pandas._libs.tslibs.offsets import to_offset
         unit = to_offset(freq).nanos
-        result = unit * rounder(self.value / float(unit))
-        return Timedelta(result, unit='ns')
+
+        arr = np.array([self.value], dtype="i8")
+        result = round_nsint64(arr, mode, unit)[0]
+        return Timedelta(result, unit="ns")
 
     def round(self, freq):
         """
@@ -1327,7 +1328,7 @@ class Timedelta(_Timedelta):
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.round)
+        return self._round(freq, RoundTo.NEAREST_HALF_EVEN)
 
     def floor(self, freq):
         """
@@ -1338,7 +1339,7 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the flooring resolution.
         """
-        return self._round(freq, np.floor)
+        return self._round(freq, RoundTo.MINUS_INFTY)
 
     def ceil(self, freq):
         """
@@ -1349,7 +1350,7 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the ceiling resolution.
         """
-        return self._round(freq, np.ceil)
+        return self._round(freq, RoundTo.PLUS_INFTY)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods

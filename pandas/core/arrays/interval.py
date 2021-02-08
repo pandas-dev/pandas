@@ -1021,7 +1021,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of each interval.
 
@@ -1412,6 +1412,25 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return tuples
 
     # ---------------------------------------------------------------------
+
+    def putmask(self, mask: np.ndarray, value) -> None:
+        value_left, value_right = self._validate_setitem_value(value)
+
+        if isinstance(self._left, np.ndarray):
+            np.putmask(self._left, mask, value_left)
+            np.putmask(self._right, mask, value_right)
+        else:
+            self._left.putmask(mask, value_left)
+            self._right.putmask(mask, value_right)
+
+    def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
+        if isinstance(self._left, np.ndarray):
+            new_left = np.delete(self._left, loc)
+            new_right = np.delete(self._right, loc)
+        else:
+            new_left = self._left.delete(loc)
+            new_right = self._right.delete(loc)
+        return self._shallow_copy(left=new_left, right=new_right)
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
     def repeat(self, repeats, axis=None):

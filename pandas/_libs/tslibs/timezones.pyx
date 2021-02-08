@@ -30,11 +30,18 @@ from pandas._libs.tslibs.util cimport get_nat, is_integer_object
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
 cdef tzinfo utc_pytz = UTC
+cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
+
 
 # ----------------------------------------------------------------------
 
 cpdef inline bint is_utc(tzinfo tz):
-    return tz is utc_pytz or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
+    return (
+        tz is utc_pytz
+        or tz is utc_stdlib
+        or isinstance(tz, _dateutil_tzutc)
+        or tz is utc_dateutil_str
+    )
 
 
 cdef inline bint is_tzlocal(tzinfo tz):
@@ -123,7 +130,7 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     return tz
 
 
-def _p_tz_cache_key(tz):
+def _p_tz_cache_key(tz: tzinfo):
     """
     Python interface for cache function to facilitate testing.
     """
@@ -341,21 +348,27 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
     bool
     """
     # GH 18523
+    if is_utc(start):
+        # GH#38851 consider pytz/dateutil/stdlib UTCs as equivalent
+        return is_utc(end)
+    elif is_utc(end):
+        # Ensure we don't treat tzlocal as equal to UTC when running in UTC
+        return False
     return get_timezone(start) == get_timezone(end)
 
 
-def tz_standardize(tz: tzinfo):
+def tz_standardize(tz: tzinfo) -> tzinfo:
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version
 
     Parameters
     ----------
-    tz : tz object
+    tz : tzinfo
 
-    Returns:
+    Returns
     -------
-    tz object
+    tzinfo
 
     Examples:
     --------

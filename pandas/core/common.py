@@ -26,7 +26,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._typing import AnyArrayLike, NpDtype, Scalar, T
-from pandas.compat.numpy import np_version_under1p18
+from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (

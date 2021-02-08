@@ -180,8 +180,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
         RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like
-        and index is None, then the values in the index are used to
-        reindex the Series after it is created using the keys in the data.
+        and index is None, then the keys in the data are used as the index. If the
+        index is not None, the resulting Series is reindexed with the index values.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
@@ -190,6 +190,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         The name to give to the Series.
     copy : bool, default False
         Copy input data.
+
+    Examples
+    --------
+    Constructing Series from a dictionary with an Index specified
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['a', 'b', 'c'])
+    >>> ser
+    a   1
+    b   2
+    c   3
+    dtype: int64
+
+    The keys of the dictionary match with the Index values, hence the Index
+    values have no effect.
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['x', 'y', 'z'])
+    >>> ser
+    x   NaN
+    y   NaN
+    z   NaN
+    dtype: float64
+
+    Note that the Index is first build with the keys from the dictionary.
+    After this the Series is reindexed with the given Index values, hence we
+    get all NaN as a result.
     """
 
     _typ = "series"
@@ -211,8 +238,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     )
     __hash__ = generic.NDFrame.__hash__
     _mgr: SingleBlockManager
-    div: Callable[["Series", Any], "Series"]
-    rdiv: Callable[["Series", Any], "Series"]
+    div: Callable[[Series, Any], Series]
+    rdiv: Callable[[Series, Any], Series]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -398,11 +425,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> Type["Series"]:
+    def _constructor(self) -> Type[Series]:
         return Series
 
     @property
-    def _constructor_expanddim(self) -> Type["DataFrame"]:
+    def _constructor_expanddim(self) -> Type[DataFrame]:
+        """
+        Used when a manipulation result has one higher dimension as the
+        original, such as Series.to_frame()
+        """
         from pandas.core.frame import DataFrame
 
         return DataFrame
@@ -950,7 +981,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
             values = self._values
-            if is_integer(key) and not self.index.inferred_type == "integer":
+            if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
                 values[key] = value
             else:
@@ -1043,17 +1074,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Scalar value.
         takeable : interpret the index as indexers, default False
         """
-        try:
-            if takeable:
-                self._values[label] = value
-            else:
+        if not takeable:
+            try:
                 loc = self.index.get_loc(label)
-                validate_numeric_casting(self.dtype, value)
-                self._values[loc] = value
-        except KeyError:
+            except KeyError:
+                # set using a non-recursive method
+                self.loc[label] = value
+                return
+        else:
+            loc = label
 
-            # set using a non-recursive method
-            self.loc[label] = value
+        self._set_values(loc, value)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -1284,9 +1315,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             max_rows=max_rows,
             length=show_dimensions,
         )
-        result = buf.getvalue()
-
-        return result
+        return buf.getvalue()
 
     def to_string(
         self,
@@ -1847,10 +1876,9 @@ Name: Max Speed, dtype: float64
         ['b', 'a', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        result = super().unique()
-        return result
+        return super().unique()
 
-    def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
+    def drop_duplicates(self, keep="first", inplace=False) -> Optional[Series]:
         """
         Return Series with duplicate values removed.
 
@@ -2312,7 +2340,7 @@ Name: Max Speed, dtype: float64
 
     def cov(
         self,
-        other: "Series",
+        other: Series,
         min_periods: Optional[int] = None,
         ddof: Optional[int] = 1,
     ) -> float:
@@ -2704,12 +2732,11 @@ Name: Max Speed, dtype: float64
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        ret = this._construct_result(result, name)
-        return ret
+        return this._construct_result(result, name)
 
     def _construct_result(
         self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Hashable
-    ) -> Union["Series", Tuple["Series", "Series"]]:
+    ) -> Union[Series, Tuple[Series, Series]]:
         """
         Construct an appropriately-labelled Series from the result of an op.
 
@@ -2810,7 +2837,7 @@ Keep all original rows and also all original values
     )
     def compare(
         self,
-        other: "Series",
+        other: Series,
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
@@ -3757,9 +3784,7 @@ Keep all original rows and also all original values
         else:
             index = self.index.repeat(counts)
 
-        result = self._constructor(values, index=index, name=self.name)
-
-        return result
+        return self._constructor(values, index=index, name=self.name)
 
     def unstack(self, level=-1, fill_value=None):
         """
@@ -3946,7 +3971,7 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, func, args=args, kwds=kwargs)
+        op = series_apply(self, func, args=args, kwargs=kwargs)
         result, how = op.agg()
         if result is None:
 
@@ -3987,7 +4012,7 @@ Keep all original rows and also all original values
         func: AggFuncType,
         convert_dtype: bool = True,
         args: Tuple[Any, ...] = (),
-        **kwds,
+        **kwargs,
     ) -> FrameOrSeriesUnion:
         """
         Invoke function on values of Series.
@@ -4004,7 +4029,7 @@ Keep all original rows and also all original values
             False, leave as dtype=object.
         args : tuple
             Positional arguments passed to func after the series value.
-        **kwds
+        **kwargs
             Additional keyword arguments passed to func.
 
         Returns
@@ -4085,7 +4110,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        op = series_apply(self, func, convert_dtype, args, kwds)
+        op = series_apply(self, func, convert_dtype, args, kwargs)
         return op.apply()
 
     def _reduce(
@@ -4401,7 +4426,7 @@ Keep all original rows and also all original values
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Optional["Series"]:
+    ) -> Optional[Series]:
         return super().fillna(
             value=value,
             method=method,
@@ -4859,8 +4884,8 @@ Keep all original rows and also all original values
         base: Optional[int] = None,
         on=None,
         level=None,
-        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
-        offset: Optional["TimedeltaConvertibleTypes"] = None,
+        origin: Union[str, TimestampConvertibleTypes] = "start_day",
+        offset: Optional[TimedeltaConvertibleTypes] = None,
     ) -> Resampler:
         return super().resample(
             rule=rule,
@@ -4941,7 +4966,7 @@ Keep all original rows and also all original values
     _info_axis_number = 0
     _info_axis_name = "index"
 
-    index: "Index" = properties.AxisProperty(
+    index: Index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
 

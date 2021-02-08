@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.16.5
+  - numpy>=1.16.5, <1.20 # gh-39513
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -23,7 +23,7 @@ dependencies:
   - flake8
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.790
+  - mypy=0.800
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
