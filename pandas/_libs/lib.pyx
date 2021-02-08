@@ -587,9 +587,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 return False
             elif not (
                 PyObject_RichCompareBool(x, y, Py_EQ)
-                or is_matching_na(x, y)
-                or (x is None and util.is_nan(y))
-                or (util.is_nan(x) and y is None)
+                or is_matching_na(x, y, nan_matches_none=True)
             ):
                 return False
         except ValueError:
