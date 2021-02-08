@@ -83,7 +83,7 @@ jobs:
         python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Test
-      run: ci/run_tests.sh
+      run: pytest -m "(single and db)" -n 2 --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas/tests/io/test_sql.py
       if: always()
 
     - name: Build Version
