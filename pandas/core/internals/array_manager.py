@@ -454,7 +454,7 @@ class ArrayManager(DataManager):
 
     @property
     def is_numeric_mixed_type(self) -> bool:
-        return False
+        return all(is_numeric_dtype(t) for t in self.get_dtypes())
 
     @property
     def any_extension_types(self) -> bool:

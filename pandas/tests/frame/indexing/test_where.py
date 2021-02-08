@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -501,8 +499,6 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    # TODO(ArrayManager) rewrite test to be valid
-    @td.skip_array_manager_invalid_test
     def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
@@ -648,8 +644,6 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    # TODO(ArrayManager) rewrite test to be valid
-    @td.skip_array_manager_invalid_test
     def test_where_categorical_filtering(self):
         # GH#22609 Verify filtering operations on DataFrames with categorical Series
         df = DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
