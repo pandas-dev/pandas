@@ -582,7 +582,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    def _shallow_copy(self, values=None, name: Hashable = no_default):
+    def _shallow_copy(self, values, name: Hashable = no_default):
         """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -597,11 +597,24 @@ class Index(IndexOpsMixin, PandasObject):
         """
         name = self.name if name is no_default else name
 
-        if values is not None:
-            return self._simple_new(values, name=name)
+        return self._simple_new(values, name=name)
 
-        result = self._simple_new(self._values, name=name)
+    def _view(self: _IndexT) -> _IndexT:
+        """
+        fastpath to make a shallow copy, i.e. new object with same data.
+        """
+        result = self._simple_new(self._values, name=self.name)
+
         result._cache = self._cache
+        return result
+
+    @final
+    def _rename(self: _IndexT, name: Hashable) -> _IndexT:
+        """
+        fastpath for rename if new name is already validated.
+        """
+        result = self._view()
+        result._name = name
         return result
 
     @final
@@ -732,7 +745,7 @@ class Index(IndexOpsMixin, PandasObject):
         if cls is not None and not hasattr(cls, "_typ"):
             result = self._data.view(cls)
         else:
-            result = self._shallow_copy()
+            result = self._view()
         if isinstance(result, Index):
             result._id = self._id
         return result
@@ -938,9 +951,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         if deep:
-            new_index = self._shallow_copy(self._data.copy(), name=name)
+            new_data = self._data.copy()
+            new_index = type(self)._simple_new(new_data, name=name)
         else:
-            new_index = self._shallow_copy(name=name)
+            new_index = self._rename(name=name)
 
         if dtype:
             warnings.warn(
@@ -1236,7 +1250,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import Series
 
         if index is None:
-            index = self._shallow_copy()
+            index = self._view()
         if name is None:
             name = self.name
 
@@ -1494,7 +1508,7 @@ class Index(IndexOpsMixin, PandasObject):
         if inplace:
             idx = self
         else:
-            idx = self._shallow_copy()
+            idx = self._view()
 
         idx._set_names(names, level=level)
         if not inplace:
@@ -2439,7 +2453,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # no need to care metadata other than name
                 # because it can't have freq if
                 return Index(result, name=self.name)
-        return self._shallow_copy()
+        return self._view()
 
     def dropna(self, how="any"):
         """
@@ -2461,7 +2475,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.hasnans:
             res_values = self._values[~self._isnan]
             return type(self)._simple_new(res_values, name=self.name)
-        return self._shallow_copy()
+        return self._view()
 
     # --------------------------------------------------------------------
     # Uniqueness Methods
@@ -2490,7 +2504,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
 
         if self.is_unique:
-            return self._shallow_copy()
+            return self._view()
 
         result = super().unique()
         return self._shallow_copy(result)
@@ -2543,7 +2557,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index(['cow', 'beetle', 'hippo'], dtype='object')
         """
         if self.is_unique:
-            return self._shallow_copy()
+            return self._view()
 
         return super().drop_duplicates(keep=keep)
 
@@ -3809,7 +3823,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if len(other) == 0 and how in ("left", "outer"):
-            join_index = self._shallow_copy()
+            join_index = self._view()
             if return_indexers:
                 rindexer = np.repeat(-1, len(join_index))
                 return join_index, None, rindexer
@@ -3817,7 +3831,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return join_index
 
         if len(self) == 0 and how in ("right", "outer"):
-            join_index = other._shallow_copy()
+            join_index = other._view()
             if return_indexers:
                 lindexer = np.repeat(-1, len(join_index))
                 return join_index, lindexer, None

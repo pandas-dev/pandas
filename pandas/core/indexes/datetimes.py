@@ -469,7 +469,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         from pandas import Series
 
         if index is None:
-            index = self._shallow_copy()
+            index = self._view()
         if name is None:
             name = self.name
 
