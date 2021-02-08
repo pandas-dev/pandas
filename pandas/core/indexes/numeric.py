@@ -1,4 +1,4 @@
-from typing import Any, Hashable, Optional
+from typing import Hashable, Optional
 import warnings
 
 import numpy as np
@@ -9,7 +9,6 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    is_bool,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -336,13 +335,6 @@ class Float64Index(NumericIndex):
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
-    @doc(Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if is_bool(key):
-            # Catch this to avoid accidentally casting to 1.0
-            raise KeyError(key)
-        return super().get_loc(key, method=method, tolerance=tolerance)
-
     # ----------------------------------------------------------------
 
     def _format_native_types(
@@ -359,10 +351,3 @@ class Float64Index(NumericIndex):
             fixed_width=False,
         )
         return formatter.get_result_as_array()
-
-    def __contains__(self, other: Any) -> bool:
-        hash(other)
-        if super().__contains__(other):
-            return True
-
-        return is_float(other) and np.isnan(other) and self.hasnans

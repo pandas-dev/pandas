@@ -283,7 +283,7 @@ dialect : str or csv.Dialect, optional
 error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
-    If False, then these "bad lines" will dropped from the DataFrame that is
+    If False, then these "bad lines" will be dropped from the DataFrame that is
     returned.
 warn_bad_lines : bool, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
