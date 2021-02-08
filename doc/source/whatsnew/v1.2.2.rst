@@ -1,6 +1,6 @@
 .. _whatsnew_122:
 
-What's new in 1.2.2 (February ??, 2021)
+What's new in 1.2.2 (February 08, 2021)
 ---------------------------------------
 
 These are the changes in pandas 1.2.2. See :ref:`release` for a full changelog
@@ -25,7 +25,6 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.transform` failing in case of an empty DataFrame or Series (:issue:`39636`)
 - Fixed regression in :meth:`core.window.rolling.Rolling.count` where the ``min_periods`` argument would be set to ``0`` after the operation (:issue:`39554`)
 - Fixed regression in :func:`read_excel` that incorrectly raised when the argument ``io`` was a non-path and non-buffer and the ``engine`` argument was specified (:issue:`39528`)
--
 
 .. ---------------------------------------------------------------------------
 
@@ -36,17 +35,6 @@ Bug fixes
 
 - :func:`pandas.read_excel` error message when a specified ``sheetname`` does not exist is now uniform across engines (:issue:`39250`)
 - Fixed bug in :func:`pandas.read_excel` producing incorrect results when the engine ``openpyxl`` is used and the excel file is missing or has incorrect dimension information; the fix requires ``openpyxl`` >= 3.0.0, prior versions may still fail (:issue:`38956`, :issue:`39001`)
--
-
-.. ---------------------------------------------------------------------------
-
-.. _whatsnew_122.other:
-
-Other
-~~~~~
-
--
--
 
 .. ---------------------------------------------------------------------------
 
