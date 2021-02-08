@@ -422,22 +422,22 @@ class RangeIndex(Int64Index):
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Hashable = no_default):
+    def _shallow_copy(self, values, name: Hashable = no_default):
         name = self.name if name is no_default else name
 
-        if values is not None:
-            if values.dtype.kind == "f":
-                return Float64Index(values, name=name)
-            return Int64Index._simple_new(values, name=name)
+        if values.dtype.kind == "f":
+            return Float64Index(values, name=name)
+        return Int64Index._simple_new(values, name=name)
 
-        result = self._simple_new(self._range, name=name)
+    def _view(self: RangeIndex) -> RangeIndex:
+        result = type(self)._simple_new(self._range, name=self.name)
         result._cache = self._cache
         return result
 
     @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
-        new_index = self._shallow_copy(name=name)
+        new_index = self._rename(name=name)
 
         if dtype:
             warnings.warn(

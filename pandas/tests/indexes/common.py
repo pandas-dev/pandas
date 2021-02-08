@@ -733,7 +733,7 @@ class Base:
         # GH32669, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
-        shallow_copy = idx._shallow_copy()
+        shallow_copy = idx._view()
 
         assert shallow_copy._cache is idx._cache
 
