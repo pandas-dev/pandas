@@ -189,3 +189,43 @@ def test_append_mode_file(ext):
         second = data.find(b"docProps/app.xml", first + 1)
         third = data.find(b"docProps/app.xml", second + 1)
         assert second != -1 and third == -1
+
+
+# When read_only is None, use read_excel instead of a workbook
+@pytest.mark.parametrize("read_only", [True, False, None])
+def test_read_with_empty_trailing_rows(datapath, ext, read_only, request):
+    # GH 39181
+    version = LooseVersion(get_version(openpyxl))
+    if (read_only or read_only is None) and version < "3.0.0":
+        msg = "openpyxl read-only sheet is incorrect when dimension data is wrong"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    path = datapath("io", "data", "excel", f"empty_trailing_rows{ext}")
+    if read_only is None:
+        result = pd.read_excel(path)
+    else:
+        wb = openpyxl.load_workbook(path, read_only=read_only)
+        result = pd.read_excel(wb, engine="openpyxl")
+        wb.close()
+    expected = DataFrame(
+        {
+            "Title": [np.nan, "A", 1, 2, 3],
+            "Unnamed: 1": [np.nan, "B", 4, 5, 6],
+            "Unnamed: 2": [np.nan, "C", 7, 8, 9],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+# When read_only is None, use read_excel instead of a workbook
+@pytest.mark.parametrize("read_only", [True, False, None])
+def test_read_empty_with_blank_row(datapath, ext, read_only):
+    # GH 39547 - empty excel file with a row that has no data
+    path = datapath("io", "data", "excel", f"empty_with_blank_row{ext}")
+    if read_only is None:
+        result = pd.read_excel(path)
+    else:
+        wb = openpyxl.load_workbook(path, read_only=read_only)
+        result = pd.read_excel(wb, engine="openpyxl")
+        wb.close()
+    expected = DataFrame()
+    tm.assert_frame_equal(result, expected)
