@@ -222,6 +222,24 @@ class TestSeriesGetitemSlices:
         with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
             datetime_series[4.5:10.0]
 
+    def test_getitem_slice_bug(self):
+        ser = Series(range(10), index=list(range(10)))
+        result = ser[-12:]
+        tm.assert_series_equal(result, ser)
+
+        result = ser[-7:]
+        tm.assert_series_equal(result, ser[3:])
+
+        result = ser[:-12]
+        tm.assert_series_equal(result, ser[:0])
+
+    def test_getitem_slice_integers(self):
+        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        result = ser[:4]
+        expected = Series(ser.values[:4], index=[2, 4, 6, 8])
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesGetitemListLike:
     @pytest.mark.parametrize("box", [list, np.array, Index, pd.Series])

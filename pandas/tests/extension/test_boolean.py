@@ -106,16 +106,16 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
-    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
+    def _check_op(self, obj, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             if op_name in self.implements:
                 msg = r"numpy boolean subtract"
                 with pytest.raises(TypeError, match=msg):
-                    op(s, other)
+                    op(obj, other)
                 return
 
-            result = op(s, other)
-            expected = s.combine(other, op)
+            result = op(obj, other)
+            expected = self._combine(obj, other, op)
 
             if op_name in (
                 "__floordiv__",
@@ -130,26 +130,19 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             elif op_name in ("__truediv__", "__rtruediv__"):
                 # combine with bools does not generate the correct result
                 #  (numpy behaviour for div is to regard the bools as numeric)
-                expected = s.astype(float).combine(other, op).astype("Float64")
+                expected = self._combine(obj.astype(float), other, op)
+                expected = expected.astype("Float64")
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
                 expected[result.isna()] = np.nan
-            self.assert_series_equal(result, expected)
+            self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
-                op(s, other)
+                op(obj, other)
 
     def _check_divmod_op(self, s, op, other, exc=None):
         # override to not raise an error
         super()._check_divmod_op(s, op, other, None)
-
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
-        # frame & scalar
-        op_name = all_arithmetic_operators
-        if op_name not in self.implements:
-            mark = pytest.mark.xfail(reason="_reduce needs implementation")
-            request.node.add_marker(mark)
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

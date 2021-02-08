@@ -197,13 +197,13 @@ class TestToIterable:
             pd.DatetimeIndex(["2017", "2018"]),
             np.ndarray,
             "datetime64[ns]",
-            marks=[pytest.mark.xfail(reason="datetime _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="datetime _values")],
         ),
         pytest.param(
             pd.TimedeltaIndex([10 ** 10]),
             np.ndarray,
             "m8[ns]",
-            marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="timedelta _values")],
         ),
     ],
 )

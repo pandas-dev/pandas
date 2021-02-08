@@ -113,6 +113,21 @@ class TestSetitemSlices:
         with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
             datetime_series[4.5:10.0] = 0
 
+    def test_setitem_slice(self):
+        ser = Series(range(10), index=list(range(10)))
+        ser[-12:] = 0
+        assert (ser == 0).all()
+
+        ser[:-12] = 5
+        assert (ser == 0).all()
+
+    def test_setitem_slice_integers(self):
+        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        ser[:4] = 0
+        assert (ser[:4] == 0).all()
+        assert not (ser[4:] == 0).any()
+
 
 class TestSetitemBooleanMask:
     def test_setitem_boolean(self, string_series):
