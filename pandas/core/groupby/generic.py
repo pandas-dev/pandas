@@ -983,7 +983,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # try to treat as if we are passing a list
                 try:
                     result, _ = GroupByApply(
-                        self, [func], args=(), kwds={"_axis": self.axis}
+                        self, [func], args=(), kwargs={"_axis": self.axis}
                     ).agg()
 
                     # select everything except for the last level, which is the one

@@ -3,14 +3,14 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING, Optional, Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, TimedeltaConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -19,7 +19,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
-from pandas.core.window.common import flex_binary_moment, zsqrt
+from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (
     _shared_docs,
     args_compat,
@@ -35,10 +35,7 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby, dispatch
-
-if TYPE_CHECKING:
-    from pandas import Series
+from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby
 
 
 def get_center_of_mass(
@@ -74,13 +71,20 @@ def get_center_of_mass(
     return float(comass)
 
 
-def wrap_result(obj: Series, result: np.ndarray) -> Series:
+def dispatch(name: str, *args, **kwargs):
     """
-    Wrap a single 1D result.
+    Dispatch to groupby apply.
     """
-    obj = obj._selected_obj
 
-    return obj._constructor(result, obj.index, name=obj.name)
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
 
 
 class ExponentialMovingWindow(BaseWindow):
@@ -443,36 +447,30 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         bias: bool = False,
         **kwargs,
     ):
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
+        from pandas import Series
 
-        def _get_cov(X, Y):
-            X = self._shallow_copy(X)
-            Y = self._shallow_copy(Y)
-            cov = window_aggregations.ewmcov(
-                X._prep_values(),
+        def cov_func(x, y):
+            x_array = self._prep_values(x)
+            y_array = self._prep_values(y)
+            result = window_aggregations.ewmcov(
+                x_array,
                 np.array([0], dtype=np.int64),
                 np.array([0], dtype=np.int64),
                 self.min_periods,
-                Y._prep_values(),
+                y_array,
                 self.com,
                 self.adjust,
                 self.ignore_na,
                 bias,
             )
-            return wrap_result(X, cov)
+            return Series(result, index=x.index, name=x.name)
 
-        return flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
-        )
+        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
 
     @doc(
         template_header,
@@ -502,45 +500,37 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         **kwargs,
     ):
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
+        from pandas import Series
 
-        def _get_corr(X, Y):
-            X = self._shallow_copy(X)
-            Y = self._shallow_copy(Y)
+        def cov_func(x, y):
+            x_array = self._prep_values(x)
+            y_array = self._prep_values(y)
 
-            def _cov(x, y):
+            def _cov(X, Y):
                 return window_aggregations.ewmcov(
-                    x,
+                    X,
                     np.array([0], dtype=np.int64),
                     np.array([0], dtype=np.int64),
                     self.min_periods,
-                    y,
+                    Y,
                     self.com,
                     self.adjust,
                     self.ignore_na,
                     1,
                 )
 
-            x_values = X._prep_values()
-            y_values = Y._prep_values()
             with np.errstate(all="ignore"):
-                cov = _cov(x_values, y_values)
-                x_var = _cov(x_values, x_values)
-                y_var = _cov(y_values, y_values)
-                corr = cov / zsqrt(x_var * y_var)
-            return wrap_result(X, corr)
+                cov = _cov(x_array, y_array)
+                x_var = _cov(x_array, x_array)
+                y_var = _cov(y_array, y_array)
+                result = cov / zsqrt(x_var * y_var)
+            return Series(result, index=x.index, name=x.name)
 
-        return flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
-        )
+        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
 
 
 class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
