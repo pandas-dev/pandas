@@ -585,7 +585,12 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                     return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
-            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or is_matching_na(x, y)):
+            elif not (
+                PyObject_RichCompareBool(x, y, Py_EQ)
+                or is_matching_na(x, y)
+                or (x is None and util.is_nan(y))
+                or (util.is_nan(x) and y is None)
+            ):
                 return False
         except ValueError:
             # Avoid raising ValueError when comparing Numpy arrays to other types
