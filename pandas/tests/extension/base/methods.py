@@ -1,21 +1,27 @@
+import inspect
 import operator
 
 import numpy as np
 import pytest
-
-from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_bool_dtype
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
+
+    def test_value_counts_default_dropna(self, data):
+        # make sure we have consistent default dropna kwarg
+        if not hasattr(data, "value_counts"):
+            pytest.skip("value_counts is not implemented")
+        sig = inspect.signature(data.value_counts)
+        kwarg = sig.parameters["dropna"]
+        assert kwarg.default is True
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
@@ -129,6 +135,16 @@ class BaseMethodsTests(BaseExtensionTests):
         ser = pd.Series(data_missing_for_sorting)
         result = getattr(ser, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
+
+    def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
+        # GH#38733
+        data = data_missing_for_sorting
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmin(skipna=False)
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmax(skipna=False)
 
     @pytest.mark.parametrize(
         "na_position, expected",
@@ -394,9 +410,6 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
 
-    @pytest.mark.xfail(
-        is_numpy_dev, reason="GH#39089 Numpy changed dtype inference", strict=False
-    )
     def test_searchsorted(self, data_for_sorting, as_series):
         b, c, a = data_for_sorting
         arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
@@ -485,6 +498,15 @@ class BaseMethodsTests(BaseExtensionTests):
                 np.repeat(data, repeats, **kwargs)
             else:
                 data.repeat(repeats, **kwargs)
+
+    def test_delete(self, data):
+        result = data.delete(0)
+        expected = data[1:]
+        self.assert_extension_array_equal(result, expected)
+
+        result = data.delete([1, 3])
+        expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
+        self.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):

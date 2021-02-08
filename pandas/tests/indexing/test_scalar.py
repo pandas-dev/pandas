@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 import pandas._testing as tm
 from pandas.tests.indexing.common import Base
@@ -130,7 +128,6 @@ class TestScalar2:
         result = df.iat[2, 0]
         assert result == 2
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_frame_at_with_duplicate_axes(self):
         # GH#33041
         arr = np.random.randn(6).reshape(3, 2)

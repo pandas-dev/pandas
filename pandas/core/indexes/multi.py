@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import wraps
 from sys import getsizeof
 from typing import (
@@ -404,7 +406,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> MultiIndex:
         """
         Convert arrays to MultiIndex.
 
@@ -700,7 +702,7 @@ class MultiIndex(Index):
         )
 
     @cache_readonly
-    def dtypes(self) -> "Series":
+    def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex
         """
@@ -879,16 +881,7 @@ class MultiIndex(Index):
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
 
-        if level is not None and not is_list_like(level):
-            if not is_list_like(levels):
-                raise TypeError("Levels must be list-like")
-            if is_list_like(levels[0]):
-                raise TypeError("Levels must be list-like")
-            level = [level]
-            levels = [levels]
-        elif level is None or is_list_like(level):
-            if not is_list_like(levels) or not is_list_like(levels[0]):
-                raise TypeError("Levels must be list of lists-like")
+        level, levels = _require_listlike(level, levels, "Levels")
 
         if inplace:
             idx = self
@@ -1048,16 +1041,7 @@ class MultiIndex(Index):
         else:
             inplace = False
 
-        if level is not None and not is_list_like(level):
-            if not is_list_like(codes):
-                raise TypeError("Codes must be list-like")
-            if is_list_like(codes[0]):
-                raise TypeError("Codes must be list-like")
-            level = [level]
-            codes = [codes]
-        elif level is None or is_list_like(level):
-            if not is_list_like(codes) or not is_list_like(codes[0]):
-                raise TypeError("Codes must be list of lists-like")
+        level, codes = _require_listlike(level, codes, "Codes")
 
         if inplace:
             idx = self
@@ -1298,16 +1282,18 @@ class MultiIndex(Index):
 
         # go through the levels and format them
         for level, level_codes in zip(self.levels, self.codes):
-            level = level._format_native_types(na_rep=na_rep, **kwargs)
+            level_strs = level._format_native_types(na_rep=na_rep, **kwargs)
             # add nan values, if there are any
             mask = level_codes == -1
             if mask.any():
-                nan_index = len(level)
-                level = np.append(level, na_rep)
+                nan_index = len(level_strs)
+                # numpy 1.21 deprecated implicit string casting
+                level_strs = level_strs.astype(str)
+                level_strs = np.append(level_strs, na_rep)
                 assert not level_codes.flags.writeable  # i.e. copy is needed
                 level_codes = level_codes.copy()  # make writeable
                 level_codes[mask] = nan_index
-            new_levels.append(level)
+            new_levels.append(level_strs)
             new_codes.append(level_codes)
 
         if len(new_levels) == 1:
@@ -2546,7 +2532,7 @@ class MultiIndex(Index):
         # GH#33355
         return self.levels[0]._should_fallback_to_positional()
 
-    def _get_values_for_loc(self, series: "Series", loc, key):
+    def _get_values_for_loc(self, series: Series, loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
@@ -3868,3 +3854,20 @@ def _coerce_indexer_frozen(array_like, categories, copy: bool = False) -> np.nda
         array_like = array_like.copy()
     array_like.flags.writeable = False
     return array_like
+
+
+def _require_listlike(level, arr, arrname: str):
+    """
+    Ensure that level is either None or listlike, and arr is list-of-listlike.
+    """
+    if level is not None and not is_list_like(level):
+        if not is_list_like(arr):
+            raise TypeError(f"{arrname} must be list-like")
+        if is_list_like(arr[0]):
+            raise TypeError(f"{arrname} must be list-like")
+        level = [level]
+        arr = [arr]
+    elif level is None or is_list_like(level):
+        if not is_list_like(arr) or not is_list_like(arr[0]):
+            raise TypeError(f"{arrname} must be list of lists-like")
+    return level, arr

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Optional, Type, Union
 
 import numpy as np
@@ -69,7 +71,7 @@ class StringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type["StringArray"]:
+    def construct_array_type(cls) -> Type[StringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -83,8 +85,8 @@ class StringDtype(ExtensionDtype):
         return "StringDtype"
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "StringArray":
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+    ) -> StringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
@@ -336,7 +338,7 @@ class StringArray(PandasArray):
         )
         return self._wrap_reduction_result(axis, result)
 
-    def value_counts(self, dropna=False):
+    def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")

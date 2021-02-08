@@ -1,6 +1,8 @@
 """
 Experimental manager based on storing a collection of 1D arrays
 """
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, TypeVar, Union
 
 import numpy as np
@@ -16,12 +18,12 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, PandasDtype
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
@@ -126,7 +128,7 @@ class ArrayManager(DataManager):
 
         self._axes[axis] = new_labels
 
-    def consolidate(self) -> "ArrayManager":
+    def consolidate(self) -> ArrayManager:
         return self
 
     def is_consolidated(self) -> bool:
@@ -185,7 +187,7 @@ class ArrayManager(DataManager):
         indexer = np.arange(self.shape[0])
         return new_mgr, indexer
 
-    def operate_blockwise(self, other: "ArrayManager", array_op) -> "ArrayManager":
+    def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
@@ -318,10 +320,10 @@ class ArrayManager(DataManager):
 
     # TODO quantile
 
-    def isna(self, func) -> "ArrayManager":
+    def isna(self, func) -> ArrayManager:
         return self.apply("apply", func=func)
 
-    def where(self, other, cond, align: bool, errors: str, axis: int) -> "ArrayManager":
+    def where(self, other, cond, align: bool, errors: str, axis: int) -> ArrayManager:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -338,10 +340,10 @@ class ArrayManager(DataManager):
         )
 
     # TODO what is this used for?
-    # def setitem(self, indexer, value) -> "ArrayManager":
+    # def setitem(self, indexer, value) -> ArrayManager:
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True, axis: int = 0):
+    def putmask(self, mask, new, align: bool = True):
 
         if align:
             align_keys = ["new", "mask"]
@@ -354,16 +356,15 @@ class ArrayManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            axis=axis,
         )
 
-    def diff(self, n: int, axis: int) -> "ArrayManager":
+    def diff(self, n: int, axis: int) -> ArrayManager:
         return self.apply_with_block("diff", n=n, axis=axis)
 
-    def interpolate(self, **kwargs) -> "ArrayManager":
+    def interpolate(self, **kwargs) -> ArrayManager:
         return self.apply_with_block("interpolate", **kwargs)
 
-    def shift(self, periods: int, axis: int, fill_value) -> "ArrayManager":
+    def shift(self, periods: int, axis: int, fill_value) -> ArrayManager:
         if fill_value is lib.no_default:
             fill_value = None
 
@@ -375,7 +376,7 @@ class ArrayManager(DataManager):
             "shift", periods=periods, axis=axis, fill_value=fill_value
         )
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> "ArrayManager":
+    def fillna(self, value, limit, inplace: bool, downcast) -> ArrayManager:
         # TODO implement downcast
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -399,12 +400,10 @@ class ArrayManager(DataManager):
 
         return self.apply(array_fillna, value=value, limit=limit, inplace=inplace)
 
-    def downcast(self) -> "ArrayManager":
+    def downcast(self) -> ArrayManager:
         return self.apply_with_block("downcast")
 
-    def astype(
-        self, dtype, copy: bool = False, errors: str = "raise"
-    ) -> "ArrayManager":
+    def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
         return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
 
     def convert(
@@ -413,7 +412,7 @@ class ArrayManager(DataManager):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-    ) -> "ArrayManager":
+    ) -> ArrayManager:
         return self.apply_with_block(
             "convert",
             copy=copy,
@@ -422,7 +421,7 @@ class ArrayManager(DataManager):
             timedelta=timedelta,
         )
 
-    def replace(self, value, **kwargs) -> "ArrayManager":
+    def replace(self, value, **kwargs) -> ArrayManager:
         assert np.ndim(value) == 0, value
         # TODO "replace" is right now implemented on the blocks, we should move
         # it to general array algos so it can be reused here
@@ -472,7 +471,7 @@ class ArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return False
 
-    def get_bool_data(self, copy: bool = False) -> "ArrayManager":
+    def get_bool_data(self, copy: bool = False) -> ArrayManager:
         """
         Parameters
         ----------
@@ -485,7 +484,7 @@ class ArrayManager(DataManager):
         new_axes = [self._axes[0], self._axes[1][mask]]
         return type(self)(arrays, new_axes)
 
-    def get_numeric_data(self, copy: bool = False) -> "ArrayManager":
+    def get_numeric_data(self, copy: bool = False) -> ArrayManager:
         """
         Parameters
         ----------
@@ -588,7 +587,7 @@ class ArrayManager(DataManager):
         return result
         # return arr.transpose() if transpose else arr
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> "ArrayManager":
+    def get_slice(self, slobj: slice, axis: int = 0) -> ArrayManager:
         axis = self._normalize_axis(axis)
 
         if axis == 0:
@@ -631,7 +630,7 @@ class ArrayManager(DataManager):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
         return result
 
-    def iget(self, i: int) -> "SingleBlockManager":
+    def iget(self, i: int) -> SingleBlockManager:
         """
         Return the data as a SingleBlockManager.
         """
@@ -834,7 +833,7 @@ class ArrayManager(DataManager):
         # TODO
         raise NotImplementedError
 
-    def unstack(self, unstacker, fill_value) -> "ArrayManager":
+    def unstack(self, unstacker, fill_value) -> ArrayManager:
         """
         Return a BlockManager with all blocks unstacked..
 

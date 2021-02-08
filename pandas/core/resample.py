@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, Optional, Union, no_type_check
+from typing import Callable, Dict, Optional, Tuple, Union, no_type_check
 
 import numpy as np
 
@@ -14,15 +16,15 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+from pandas._typing import T, TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas.core.aggregation import aggregate
 import pandas.core.algorithms as algos
+from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
@@ -179,8 +181,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
         -------
         obj : converted object
         """
-        obj = obj._consolidate()
-        return obj
+        return obj._consolidate()
 
     def _get_binner_for_time(self):
         raise AbstractMethodError(self)
@@ -231,7 +232,12 @@ class Resampler(BaseGroupBy, ShallowMixin):
     2012-08-04  1""",
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return super().pipe(func, *args, **kwargs)
 
     _agg_see_also_doc = dedent(
@@ -295,7 +301,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = aggregate(self, func, *args, **kwargs)
+        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
             grouper = None
@@ -447,7 +453,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
-            result.index = _asfreq_compat(obj.index, freq=self.freq)
+            # When index is all NaT, result is empty but index is not
+            result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
         return result
@@ -1063,17 +1070,16 @@ class DatetimeIndexResampler(Resampler):
             return obj
 
         # do we have a regular frequency
-        if ax.freq is not None or ax.inferred_freq is not None:
+        # pandas\core\resample.py:1037: error: "BaseGrouper" has no
+        # attribute "binlabels"  [attr-defined]
+        if (
+            (ax.freq is not None or ax.inferred_freq is not None)
+            and len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+            and how is None
+        ):
 
-            # pandas\core\resample.py:1037: error: "BaseGrouper" has no
-            # attribute "binlabels"  [attr-defined]
-            if (
-                len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
-                and how is None
-            ):
-
-                # let's do an asfreq
-                return self.asfreq()
+            # let's do an asfreq
+            return self.asfreq()
 
         # we are downsampling
         # we want to call the actual grouper method here
@@ -1646,10 +1652,14 @@ class TimeGrouper(Grouper):
             nat_count = np.sum(memb._isnan)
             memb = memb[~memb._isnan]
 
-        # if index contains no valid (non-NaT) values, return empty index
         if not len(memb):
+            # index contains no valid (non-NaT) values
+            bins = np.array([], dtype=np.int64)
             binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)
-            return binner, [], labels
+            if len(ax) > 0:
+                # index is all NaT
+                binner, bins, labels = _insert_nat_bin(binner, bins, labels, len(ax))
+            return binner, bins, labels
 
         freq_mult = self.freq.n
 
@@ -1695,12 +1705,7 @@ class TimeGrouper(Grouper):
         bins = memb.searchsorted(prng, side="left")
 
         if nat_count > 0:
-            # NaT handling as in pandas._lib.lib.generate_bins_dt64()
-            # shift bins by the number of NaT
-            bins += nat_count
-            bins = np.insert(bins, 0, nat_count)
-            binner = binner.insert(0, NaT)
-            labels = labels.insert(0, NaT)
+            binner, bins, labels = _insert_nat_bin(binner, bins, labels, nat_count)
 
         return binner, bins, labels
 
@@ -1842,6 +1847,19 @@ def _get_period_range_edges(
     first = (first + int(adjust_first) * freq).to_period(freq)
     last = (last - int(adjust_last) * freq).to_period(freq)
     return first, last
+
+
+def _insert_nat_bin(
+    binner: PeriodIndex, bins: np.ndarray, labels: PeriodIndex, nat_count: int
+) -> Tuple[PeriodIndex, np.ndarray, PeriodIndex]:
+    # NaT handling as in pandas._lib.lib.generate_bins_dt64()
+    # shift bins by the number of NaT
+    assert nat_count > 0
+    bins += nat_count
+    bins = np.insert(bins, 0, nat_count)
+    binner = binner.insert(0, NaT)
+    labels = labels.insert(0, NaT)
+    return binner, bins, labels
 
 
 def _adjust_dates_anchored(

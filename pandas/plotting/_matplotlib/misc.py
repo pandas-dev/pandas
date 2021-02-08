@@ -11,7 +11,12 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import create_subplots, set_ticks_props
+from pandas.plotting._matplotlib.tools import (
+    create_subplots,
+    do_adjust_figure,
+    maybe_adjust_figure,
+    set_ticks_props,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -39,7 +44,7 @@ def scatter_matrix(
     fig, axes = create_subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
 
     # no gaps between subplots
-    fig.subplots_adjust(wspace=0, hspace=0)
+    maybe_adjust_figure(fig, wspace=0, hspace=0)
 
     mask = notna(df)
 
@@ -126,11 +131,11 @@ def _get_marker_compat(marker):
 def radviz(
     frame: DataFrame,
     class_column,
-    ax: Optional["Axes"] = None,
+    ax: Optional[Axes] = None,
     color=None,
     colormap=None,
     **kwds,
-) -> "Axes":
+) -> Axes:
     import matplotlib.pyplot as plt
 
     def normalize(series):
@@ -214,12 +219,12 @@ def radviz(
 def andrews_curves(
     frame: DataFrame,
     class_column,
-    ax: Optional["Axes"] = None,
+    ax: Optional[Axes] = None,
     samples: int = 200,
     color=None,
     colormap=None,
     **kwds,
-) -> "Axes":
+) -> Axes:
     import matplotlib.pyplot as plt
 
     def function(amplitudes):
@@ -279,12 +284,12 @@ def andrews_curves(
 
 
 def bootstrap_plot(
-    series: "Series",
-    fig: Optional["Figure"] = None,
+    series: Series,
+    fig: Optional[Figure] = None,
     size: int = 50,
     samples: int = 500,
     **kwds,
-) -> "Figure":
+) -> Figure:
 
     import matplotlib.pyplot as plt
 
@@ -329,7 +334,8 @@ def bootstrap_plot(
     for axis in axes:
         plt.setp(axis.get_xticklabels(), fontsize=8)
         plt.setp(axis.get_yticklabels(), fontsize=8)
-    plt.tight_layout()
+    if do_adjust_figure(fig):
+        plt.tight_layout()
     return fig
 
 
@@ -337,7 +343,7 @@ def parallel_coordinates(
     frame: DataFrame,
     class_column,
     cols=None,
-    ax: Optional["Axes"] = None,
+    ax: Optional[Axes] = None,
     color=None,
     use_columns=False,
     xticks=None,
@@ -346,7 +352,7 @@ def parallel_coordinates(
     axvlines_kwds=None,
     sort_labels: bool = False,
     **kwds,
-) -> "Axes":
+) -> Axes:
     import matplotlib.pyplot as plt
 
     if axvlines_kwds is None:
@@ -413,9 +419,7 @@ def parallel_coordinates(
     return ax
 
 
-def lag_plot(
-    series: "Series", lag: int = 1, ax: Optional["Axes"] = None, **kwds
-) -> "Axes":
+def lag_plot(series: Series, lag: int = 1, ax: Optional[Axes] = None, **kwds) -> Axes:
     # workaround because `c='b'` is hardcoded in matplotlib's scatter method
     import matplotlib.pyplot as plt
 
@@ -432,9 +436,7 @@ def lag_plot(
     return ax
 
 
-def autocorrelation_plot(
-    series: "Series", ax: Optional["Axes"] = None, **kwds
-) -> "Axes":
+def autocorrelation_plot(series: Series, ax: Optional[Axes] = None, **kwds) -> Axes:
     import matplotlib.pyplot as plt
 
     n = len(series)

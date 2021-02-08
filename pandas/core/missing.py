@@ -1,6 +1,8 @@
 """
 Routines for filling missing data.
 """
+from __future__ import annotations
+
 from functools import partial
 from typing import TYPE_CHECKING, Any, List, Optional, Set, Union
 
@@ -147,7 +149,7 @@ def find_valid_index(values, how: str):
     if how == "first":
         idxpos = is_valid[::].argmax()
 
-    if how == "last":
+    elif how == "last":
         idxpos = len(values) - 1 - is_valid[::-1].argmax()
 
     chk_notna = is_valid[idxpos]
@@ -158,7 +160,7 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues: "Index",
+    xvalues: Index,
     yvalues: np.ndarray,
     method: Optional[str] = "linear",
     limit: Optional[int] = None,
