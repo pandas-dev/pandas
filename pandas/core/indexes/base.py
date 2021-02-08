@@ -115,7 +115,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import IntervalIndex, MultiIndex, RangeIndex, Series
+    from pandas import CategoricalIndex, IntervalIndex, MultiIndex, RangeIndex, Series
     from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -405,6 +405,7 @@ class Index(IndexOpsMixin, PandasObject):
             data = data.copy()
         return data
 
+    @final
     @classmethod
     def _dtype_to_subclass(cls, dtype: DtypeObj):
         # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
@@ -1013,8 +1014,8 @@ class Index(IndexOpsMixin, PandasObject):
         if self.inferred_type == "string":
             is_justify = False
         elif self.inferred_type == "categorical":
-            # error: "Index" has no attribute "categories"
-            if is_object_dtype(self.categories):  # type: ignore[attr-defined]
+            self = cast("CategoricalIndex", self)
+            if is_object_dtype(self.categories):
                 is_justify = False
 
         return format_object_summary(
@@ -1075,6 +1076,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = trim_front(format_array(values, None, justify="left"))
         return header + result
 
+    @final
     def to_native_types(self, slicer=None, **kwargs):
         """
         Format specified values of `self` and return them.
@@ -4550,11 +4552,16 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        if isinstance(converted, np.timedelta64) and self.dtype == object:
+        dtype, _ = infer_dtype_from(converted, pandas_dtype=True)
+        if dtype.kind in ["m", "M"]:
             # https://github.com/numpy/numpy/issues/12550
             #  timedelta64 will incorrectly cast to int
-            converted = [converted] * mask.sum()
-            values[mask] = converted
+            if not is_list_like(converted):
+                converted = [converted] * mask.sum()
+                values[mask] = converted
+            else:
+                converted = list(converted)
+                np.putmask(values, mask, converted)
         else:
             np.putmask(values, mask, converted)
 

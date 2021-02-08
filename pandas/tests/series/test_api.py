@@ -1,7 +1,10 @@
+import inspect
 import pydoc
 
 import numpy as np
 import pytest
+
+from pandas.util._test_decorators import skip_if_no
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, date_range
@@ -167,3 +170,10 @@ class TestSeriesMisc:
         s.attrs["version"] = 1
         result = s + 1
         assert result.attrs == {"version": 1}
+
+    @skip_if_no("jinja2")
+    def test_inspect_getmembers(self):
+        # GH38782
+        ser = Series(dtype=object)
+        with tm.assert_produces_warning(None):
+            inspect.getmembers(ser)
