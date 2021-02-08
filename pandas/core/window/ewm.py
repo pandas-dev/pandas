@@ -564,15 +564,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         )
         return window_indexer
 
-    def _groupby_apply(self, name, **kwargs):
-        def f(x):
-            ewm = ExponentialMovingWindow(
-                x, **{attr: getattr(self, attr) for attr in self._attributes}
-            )
-            return getattr(ewm, name)(**kwargs)
-
-        return self._groupby.apply(f)
-
     def mean(self, engine=None, engine_kwargs=None):
         """
         Parameters

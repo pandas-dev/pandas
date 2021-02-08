@@ -254,7 +254,7 @@ Performance improvements
 - Performance improvement in :meth:`core.window.rolling.Rolling.corr` and :meth:`core.window.rolling.Rolling.cov` (:issue:`39388`)
 - Performance improvement in :meth:`core.window.rolling.RollingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` (:issue:`39591`)
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
-- Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:``)
+- Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
 
 .. ---------------------------------------------------------------------------
 
