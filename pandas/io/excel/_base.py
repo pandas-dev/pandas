@@ -1069,26 +1069,37 @@ class ExcelFile:
 
             xlrd_version = LooseVersion(get_version(xlrd))
 
-        if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-            ext = "xls"
-        else:
-            ext = inspect_excel_format(
-                content_or_path=path_or_buffer, storage_options=storage_options
-            )
-
+        ext = None
         if engine is None:
+            # Only determine ext if it is needed
+            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                ext = "xls"
+            else:
+                ext = inspect_excel_format(
+                    content_or_path=path_or_buffer, storage_options=storage_options
+                )
+
             # ext will always be valid, otherwise inspect_excel_format would raise
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
-        if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
-            if xlrd_version >= "2":
+        if engine == "xlrd" and xlrd_version is not None:
+            if ext is None:
+                # Need ext to determine ext in order to raise/warn
+                if isinstance(path_or_buffer, xlrd.Book):
+                    ext = "xls"
+                else:
+                    ext = inspect_excel_format(
+                        path_or_buffer, storage_options=storage_options
+                    )
+
+            if ext != "xls" and xlrd_version >= "2":
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."
                 )
-            else:
+            elif ext != "xls":
                 caller = inspect.stack()[1]
                 if (
                     caller.filename.endswith(
