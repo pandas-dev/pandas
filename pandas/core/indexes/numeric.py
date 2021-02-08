@@ -119,9 +119,8 @@ class NumericIndex(Index):
         return super()._shallow_copy(values=values, name=name)
 
     def _convert_tolerance(self, tolerance, target):
-        tolerance = np.asarray(tolerance)
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
+        tolerance = super()._convert_tolerance(tolerance, target)
+
         if not np.issubdtype(tolerance.dtype, np.number):
             if tolerance.ndim > 0:
                 raise ValueError(
