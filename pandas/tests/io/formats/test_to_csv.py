@@ -546,7 +546,7 @@ z
                 path, compression={"method": compression, "archive_name": archive_name}
             )
             with ZipFile(path) as zp:
-                expected_arcname = path if archive_name is None else archive_name
+                expected_arcname = path[:-4] if archive_name is None else archive_name
                 expected_arcname = os.path.basename(expected_arcname)
                 assert len(zp.filelist) == 1
                 archived_file = os.path.basename(zp.filelist[0].filename)
