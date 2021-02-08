@@ -1078,11 +1078,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  in the operation.  We un-split here.
             result = result._consolidate()
             assert isinstance(result, (Series, DataFrame))  # for mypy
-            assert len(result._mgr.blocks) == 1
+            mgr = result._mgr
+            assert isinstance(mgr, BlockManager)
 
             # unwrap DataFrame to get array
-            result = result._mgr.blocks[0].values
-            return result
+            if len(mgr.blocks) != 1:
+                # We've split an object block! Everything we've assumed
+                # about a single block input returning a single block output
+                # is a lie. See eg GH-39329
+                return mgr.as_array()
+            else:
+                result = mgr.blocks[0].values
+                return result
 
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 

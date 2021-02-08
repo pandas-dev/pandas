@@ -23,7 +23,8 @@ Fixed regressions
 - Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamWriter`` in binary mode instead of in text mode and ignoring user-provided ``mode`` (:issue:`39247`)
 - Fixed regression in :meth:`~DataFrame.to_excel` creating corrupt files when appending (``mode="a"``) to an existing file (:issue:`39576`)
 - Fixed regression in :meth:`DataFrame.transform` failing in case of an empty DataFrame or Series (:issue:`39636`)
-- Fixed regression in :meth:`core.window.rolling.Rolling.count` where the ``min_periods`` argument would be set to ``0`` after the operation (:issue:`39554`)
+- Fixed regression in :meth:`~DataFrame.groupby` or :meth:`~DataFrame.resample` when aggregating an all-NaN or numeric object dtype column (:issue:`39329`)
+- Fixed regression in :meth:`.Rolling.count` where the ``min_periods`` argument would be set to ``0`` after the operation (:issue:`39554`)
 - Fixed regression in :func:`read_excel` that incorrectly raised when the argument ``io`` was a non-path and non-buffer and the ``engine`` argument was specified (:issue:`39528`)
 -
 
