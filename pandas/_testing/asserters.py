@@ -459,13 +459,24 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     ):
         # np.nan
         return True
+    elif (
+        isinstance(left_attr, (np.datetime64, np.timedelta64))
+        and isinstance(right_attr, (np.datetime64, np.timedelta64))
+        and type(left_attr) is type(right_attr)
+        and np.isnat(left_attr)
+        and np.isnat(right_attr)
+    ):
+        # np.datetime64("nat") or np.timedelta64("nat")
+        return True
 
     try:
         result = left_attr == right_attr
     except TypeError:
         # datetimetz on rhs may raise TypeError
         result = False
-    if not isinstance(result, bool):
+    if (left_attr is pd.NA) ^ (right_attr is pd.NA):
+        result = False
+    elif not isinstance(result, bool):
         result = result.all()
 
     if result:
@@ -968,14 +979,26 @@ def assert_series_equal(
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
     if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
+        left_values = left._values
+        right_values = right._values
         # Only check exact if dtype is numeric
-        assert_numpy_array_equal(
-            left._values,
-            right._values,
-            check_dtype=check_dtype,
-            obj=str(obj),
-            index_values=np.asarray(left.index),
-        )
+        if is_extension_array_dtype(left_values) and is_extension_array_dtype(
+            right_values
+        ):
+            assert_extension_array_equal(
+                left_values,
+                right_values,
+                check_dtype=check_dtype,
+                index_values=np.asarray(left.index),
+            )
+        else:
+            assert_numpy_array_equal(
+                left_values,
+                right_values,
+                check_dtype=check_dtype,
+                obj=str(obj),
+                index_values=np.asarray(left.index),
+            )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
     ):

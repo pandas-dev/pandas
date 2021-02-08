@@ -19,6 +19,7 @@ from pandas._libs.khash cimport (
     are_equivalent_float64_t,
     are_equivalent_khcomplex64_t,
     are_equivalent_khcomplex128_t,
+    kh_needed_n_buckets,
     kh_str_t,
     khcomplex64_t,
     khcomplex128_t,
@@ -152,7 +153,7 @@ def unique_label_indices(const int64_t[:] labels):
         ndarray[int64_t, ndim=1] arr
         Int64VectorData *ud = idx.data
 
-    kh_resize_int64(table, min(n, SIZE_HINT_LIMIT))
+    kh_resize_int64(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     with nogil:
         for i in range(n):

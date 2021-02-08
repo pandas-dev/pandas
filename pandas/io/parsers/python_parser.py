@@ -3,7 +3,7 @@ import csv
 from io import StringIO
 import re
 import sys
-from typing import Iterator, List, Optional, cast
+from typing import DefaultDict, Iterator, List, Optional, Set, Tuple, cast
 
 import numpy as np
 
@@ -53,7 +53,6 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds["skipinitialspace"]
         self.lineterminator = kwds["lineterminator"]
         self.quoting = kwds["quoting"]
-        self.usecols, _ = self._validate_usecols_arg(kwds["usecols"])
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
         self.warn_bad_lines = kwds["warn_bad_lines"]
@@ -119,7 +118,7 @@ class PythonParser(ParserBase):
             self.columns = self.columns[0]
 
         # get popped off for index
-        self.orig_names = list(self.columns)
+        self.orig_names: List[Union[int, str, Tuple]] = list(self.columns)
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
@@ -136,10 +135,12 @@ class PythonParser(ParserBase):
             self._col_indices = list(range(len(self.columns)))
 
         self._validate_parse_dates_presence(self.columns)
+        no_thousands_columns: Optional[Set[int]] = None
         if self.parse_dates:
-            self._no_thousands_columns = self._set_no_thousands_columns()
-        else:
-            self._no_thousands_columns = None
+            no_thousands_columns = self._set_noconvert_dtype_columns(
+                self._col_indices, self.columns
+            )
+        self._no_thousands_columns = no_thousands_columns
 
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
@@ -154,44 +155,6 @@ class PythonParser(ParserBase):
                 fr"([0-9]?(E|e)\-?[0-9]+)?$"
             )
         self.num = re.compile(regex)
-
-    def _set_no_thousands_columns(self):
-        # Create a set of column ids that are not to be stripped of thousands
-        # operators.
-        noconvert_columns = set()
-
-        def _set(x):
-            if is_integer(x):
-                noconvert_columns.add(x)
-            else:
-                assert self._col_indices is not None
-                col_indices = self._col_indices
-                noconvert_columns.add(col_indices[self.columns.index(x)])
-
-        if isinstance(self.parse_dates, list):
-            for val in self.parse_dates:
-                if isinstance(val, list):
-                    for k in val:
-                        _set(k)
-                else:
-                    _set(val)
-
-        elif isinstance(self.parse_dates, dict):
-            for val in self.parse_dates.values():
-                if isinstance(val, list):
-                    for k in val:
-                        _set(k)
-                else:
-                    _set(val)
-
-        elif self.parse_dates:
-            if isinstance(self.index_col, list):
-                for k in self.index_col:
-                    _set(k)
-            elif self.index_col is not None:
-                _set(self.index_col)
-
-        return noconvert_columns
 
     def _make_reader(self, f):
         sep = self.delimiter
@@ -273,10 +236,7 @@ class PythonParser(ParserBase):
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        # pandas\io\parsers.py:2480: error: Argument 1 to "list" has
-        # incompatible type "Optional[Any]"; expected "Iterable[Any]"
-        # [arg-type]
-        columns = list(self.orig_names)  # type: ignore[arg-type]
+        columns = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
@@ -329,15 +289,8 @@ class PythonParser(ParserBase):
             """converts col numbers to names"""
             clean = {}
             for col, v in mapping.items():
-                # pandas\io\parsers.py:2537: error: Unsupported right operand
-                # type for in ("Optional[Any]")  [operator]
-                if (
-                    isinstance(col, int)
-                    and col not in self.orig_names  # type: ignore[operator]
-                ):
-                    # pandas\io\parsers.py:2538: error: Value of type
-                    # "Optional[Any]" is not indexable  [index]
-                    col = self.orig_names[col]  # type: ignore[index]
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
                 clean[col] = v
             return clean
 
@@ -357,15 +310,8 @@ class PythonParser(ParserBase):
                 na_value = self.na_values[col]
                 na_fvalue = self.na_fvalues[col]
 
-                # pandas\io\parsers.py:2558: error: Unsupported right operand
-                # type for in ("Optional[Any]")  [operator]
-                if (
-                    isinstance(col, int)
-                    and col not in self.orig_names  # type: ignore[operator]
-                ):
-                    # pandas\io\parsers.py:2559: error: Value of type
-                    # "Optional[Any]" is not indexable  [index]
-                    col = self.orig_names[col]  # type: ignore[index]
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
 
                 clean_na_values[col] = na_value
                 clean_na_fvalues[col] = na_fvalue
@@ -386,10 +332,7 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        # pandas\io\parsers.py:2580: error: Need type annotation for
-        # 'unnamed_cols' (hint: "unnamed_cols: Set[<type>] = ...")
-        # [var-annotated]
-        unnamed_cols = set()  # type: ignore[var-annotated]
+        unnamed_cols: Set[Optional[Union[int, str]]] = set()
 
         if self.header is not None:
             header = self.header
@@ -403,9 +346,7 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            # pandas\io\parsers.py:2594: error: Need type annotation for
-            # 'columns' (hint: "columns: List[<type>] = ...")  [var-annotated]
-            columns = []  # type: ignore[var-annotated]
+            columns: List[List[Optional[Union[int, str]]]] = []
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -434,7 +375,7 @@ class PythonParser(ParserBase):
 
                     line = self.names[:]
 
-                this_columns = []
+                this_columns: List[Optional[Union[int, str]]] = []
                 this_unnamed_cols = []
 
                 for i, c in enumerate(line):
@@ -450,9 +391,7 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns and self.mangle_dupe_cols:
-                    # pandas\io\parsers.py:2639: error: Need type annotation
-                    # for 'counts'  [var-annotated]
-                    counts = defaultdict(int)  # type: ignore[var-annotated]
+                    counts: DefaultDict = defaultdict(int)
 
                     for i, col in enumerate(this_columns):
                         cur_count = counts[col]
@@ -476,16 +415,10 @@ class PythonParser(ParserBase):
 
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             clear_buffer = False
-                            # pandas\io\parsers.py:2663: error: List item 0 has
-                            # incompatible type "None"; expected "str"
-                            # [list-item]
-                            this_columns = [None] * lc  # type: ignore[list-item]
+                            this_columns = [None] * lc
                             self.buf = [self.buf[-1]]
 
-                # pandas\io\parsers.py:2666: error: Argument 1 to "append" of
-                # "list" has incompatible type "List[str]"; expected
-                # "List[None]"  [arg-type]
-                columns.append(this_columns)  # type: ignore[arg-type]
+                columns.append(this_columns)
                 unnamed_cols.update({this_columns[i] for i in this_unnamed_cols})
 
                 if len(columns) == 1:
@@ -527,19 +460,9 @@ class PythonParser(ParserBase):
 
             if not names:
                 if self.prefix:
-                    # pandas\io\parsers.py:2711: error: List comprehension has
-                    # incompatible type List[str]; expected List[None]  [misc]
-                    columns = [
-                        [
-                            f"{self.prefix}{i}"  # type: ignore[misc]
-                            for i in range(ncols)
-                        ]
-                    ]
+                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
                 else:
-                    # pandas\io\parsers.py:2713: error: Argument 1 to "list"
-                    # has incompatible type "range"; expected "Iterable[None]"
-                    # [arg-type]
-                    columns = [list(range(ncols))]  # type: ignore[arg-type]
+                    columns = [list(range(ncols))]
                 columns = self._handle_usecols(columns, columns[0])
             else:
                 if self.usecols is None or len(names) >= num_original_columns:

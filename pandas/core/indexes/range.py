@@ -13,6 +13,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, doc
+from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -169,8 +170,15 @@ class RangeIndex(Int64Index):
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
     @cache_readonly
-    def _int64index(self) -> Int64Index:
+    def _cached_int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
+
+    @property
+    def _int64index(self):
+        # wrap _cached_int64index so we can be sure its name matches self.name
+        res = self._cached_int64index
+        res._name = self._name
+        return res
 
     def _get_data_as_items(self):
         """ return a list of tuples of start, stop, step """
@@ -390,6 +398,22 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
 
+    def repeat(self, repeats, axis=None):
+        return self._int64index.repeat(repeats, axis=axis)
+
+    def delete(self, loc):
+        return self._int64index.delete(loc)
+
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+        with rewrite_exception("Int64Index", type(self).__name__):
+            return self._int64index.take(
+                indices,
+                axis=axis,
+                allow_fill=allow_fill,
+                fill_value=fill_value,
+                **kwargs,
+            )
+
     def tolist(self):
         return list(self._range)
 
@@ -398,22 +422,22 @@ class RangeIndex(Int64Index):
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Hashable = no_default):
+    def _shallow_copy(self, values, name: Hashable = no_default):
         name = self.name if name is no_default else name
 
-        if values is not None:
-            if values.dtype.kind == "f":
-                return Float64Index(values, name=name)
-            return Int64Index._simple_new(values, name=name)
+        if values.dtype.kind == "f":
+            return Float64Index(values, name=name)
+        return Int64Index._simple_new(values, name=name)
 
-        result = self._simple_new(self._range, name=name)
+    def _view(self: RangeIndex) -> RangeIndex:
+        result = type(self)._simple_new(self._range, name=self.name)
         result._cache = self._cache
         return result
 
     @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
-        new_index = self._shallow_copy(name=name)
+        new_index = self._rename(name=name)
 
         if dtype:
             warnings.warn(
@@ -645,7 +669,7 @@ class RangeIndex(Int64Index):
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
-            return self._shallow_copy(name=res_name)
+            return self.rename(name=res_name)
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
@@ -696,6 +720,9 @@ class RangeIndex(Int64Index):
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
             return super()._concat(indexes, name)
+
+        elif len(indexes) == 1:
+            return indexes[0]
 
         start = step = next_ = None
 
