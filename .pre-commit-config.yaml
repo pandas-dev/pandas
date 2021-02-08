@@ -127,6 +127,12 @@ repos:
         types: [python]
         files: ^pandas/tests/
         exclude: ^pandas/tests/extension/
+    -   id: unwanted-patters-pytest-xfail
+        name: Check for use of pytest.xfail
+        entry: pytest\.xfail
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
