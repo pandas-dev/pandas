@@ -546,88 +546,53 @@ def test_timedelta_assignment():
 
 
 @pytest.mark.parametrize(
-    "nat_val,should_cast",
+    "nat_val",
     [
-        (pd.NaT, True),
-        (np.timedelta64("NaT", "ns"), False),
-        (np.datetime64("NaT", "ns"), True),
+        pd.NaT,
+        np.timedelta64("NaT", "ns"),
+        np.datetime64("NaT", "ns"),
     ],
 )
 @pytest.mark.parametrize("tz", [None, "UTC"])
-def test_dt64_series_assign_nat(nat_val, should_cast, tz):
+def test_dt64_series_assign_nat(nat_val, tz, indexer_sli):
     # some nat-like values should be cast to datetime64 when inserting
     #  into a datetime64 series.  Others should coerce to object
     #  and retain their dtypes.
     dti = pd.date_range("2016-01-01", periods=3, tz=tz)
     base = Series(dti)
     expected = Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
+
+    should_cast = nat_val is pd.NaT or base.dtype.kind == nat_val.dtype.kind
     if not should_cast:
         expected = expected.astype(object)
 
     ser = base.copy(deep=True)
-    ser[0] = nat_val
-    tm.assert_series_equal(ser, expected)
-
-    ser = base.copy(deep=True)
-    ser.loc[0] = nat_val
-    tm.assert_series_equal(ser, expected)
-
-    ser = base.copy(deep=True)
-    ser.iloc[0] = nat_val
+    indexer_sli(ser)[0] = nat_val
     tm.assert_series_equal(ser, expected)
 
 
 @pytest.mark.parametrize(
-    "nat_val,should_cast",
+    "nat_val",
     [
-        (pd.NaT, True),
-        (np.timedelta64("NaT", "ns"), True),
-        (np.datetime64("NaT", "ns"), False),
+        pd.NaT,
+        np.timedelta64("NaT", "ns"),
+        np.datetime64("NaT", "ns"),
     ],
 )
-def test_td64_series_assign_nat(nat_val, should_cast):
+def test_td64_series_assign_nat(nat_val, indexer_sli):
     # some nat-like values should be cast to timedelta64 when inserting
     #  into a timedelta64 series.  Others should coerce to object
     #  and retain their dtypes.
     base = Series([0, 1, 2], dtype="m8[ns]")
     expected = Series([pd.NaT, 1, 2], dtype="m8[ns]")
+
+    should_cast = nat_val is pd.NaT or base.dtype == nat_val.dtype
     if not should_cast:
         expected = expected.astype(object)
 
     ser = base.copy(deep=True)
-    ser[0] = nat_val
+    indexer_sli(ser)[0] = nat_val
     tm.assert_series_equal(ser, expected)
-
-    ser = base.copy(deep=True)
-    ser.loc[0] = nat_val
-    tm.assert_series_equal(ser, expected)
-
-    ser = base.copy(deep=True)
-    ser.iloc[0] = nat_val
-    tm.assert_series_equal(ser, expected)
-
-
-@pytest.mark.parametrize(
-    "td",
-    [
-        Timedelta("9 days"),
-        Timedelta("9 days").to_timedelta64(),
-        Timedelta("9 days").to_pytimedelta(),
-    ],
-)
-def test_append_timedelta_does_not_cast(td):
-    # GH#22717 inserting a Timedelta should _not_ cast to int64
-    expected = Series(["x", td], index=[0, "td"], dtype=object)
-
-    ser = Series(["x"])
-    ser["td"] = td
-    tm.assert_series_equal(ser, expected)
-    assert isinstance(ser["td"], Timedelta)
-
-    ser = Series(["x"])
-    ser.loc["td"] = Timedelta("9 days")
-    tm.assert_series_equal(ser, expected)
-    assert isinstance(ser["td"], Timedelta)
 
 
 def test_underlying_data_conversion():
@@ -759,15 +724,11 @@ def test_getitem_unrecognized_scalar():
         timedelta_range("0", periods=20, freq="H"),
     ],
 )
-def test_slice_with_zero_step_raises(index):
-    ts = Series(np.arange(20), index)
+def test_slice_with_zero_step_raises(index, frame_or_series, indexer_sli):
+    ts = frame_or_series(np.arange(20), index=index)
 
     with pytest.raises(ValueError, match="slice step cannot be zero"):
-        ts[::0]
-    with pytest.raises(ValueError, match="slice step cannot be zero"):
-        ts.loc[::0]
-    with pytest.raises(ValueError, match="slice step cannot be zero"):
-        ts.iloc[::0]
+        indexer_sli(ts)[::0]
 
 
 @pytest.mark.parametrize(
@@ -783,7 +744,6 @@ def test_slice_with_negative_step(index):
         expected = ts.iloc[i_slc]
 
         tm.assert_series_equal(ts[l_slc], expected)
-        tm.assert_series_equal(ts.loc[l_slc], expected)
         tm.assert_series_equal(ts.loc[l_slc], expected)
 
     keystr1 = str(index[9])
