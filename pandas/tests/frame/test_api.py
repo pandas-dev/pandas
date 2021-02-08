@@ -65,7 +65,7 @@ class TestDataFrameMisc:
         df = DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
         for key in list("ABCD"):
             assert key in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.Series)
+        assert isinstance(df.__getitem__("A"), Series)
 
         # DataFrame whose first-level columns are identifiers shall have
         # them in __dir__.
@@ -77,7 +77,7 @@ class TestDataFrameMisc:
             assert key in dir(df)
         for key in list("EFGH"):
             assert key not in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.DataFrame)
+        assert isinstance(df.__getitem__("A"), DataFrame)
 
     def test_not_hashable(self):
         empty_frame = DataFrame()

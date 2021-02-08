@@ -212,7 +212,7 @@ class TestDataFrameIndexing:
         it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]
 
         cols = MultiIndex.from_product(it)
-        index = pd.date_range("20141006", periods=20)
+        index = date_range("20141006", periods=20)
         vals = np.random.randint(1, 1000, (len(index), len(cols)))
         df = DataFrame(vals, columns=cols, index=index)
 
@@ -1349,7 +1349,7 @@ class TestDataFrameIndexing:
         # gh-17105
 
         # insert a duplicate element to the index
-        trange = pd.date_range(
+        trange = date_range(
             start=Timestamp(year=2017, month=1, day=1),
             end=Timestamp(year=2017, month=1, day=5),
         )
@@ -1413,7 +1413,7 @@ class TestDataFrameIndexing:
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
         # Make sure timezone isn't lost
-        column = Series(pd.date_range("2015-01-01", periods=3, tz="utc"), name="dates")
+        column = Series(date_range("2015-01-01", periods=3, tz="utc"), name="dates")
         df = DataFrame({"dates": column})
         df["dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
@@ -1737,7 +1737,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     df = DataFrame(
         {
             "A": [1, 2],
-            "B": pd.date_range("2000", periods=2),
+            "B": date_range("2000", periods=2),
             "C": pd.timedelta_range("1 Day", periods=2),
         }
     )

@@ -304,7 +304,7 @@ class TestDataFrameJoin:
         tm.assert_frame_equal(df1.join(df2, how="left"), exp)
         tm.assert_frame_equal(df2.join(df1, how="right"), exp[["value2", "value1"]])
 
-        exp_idx = pd.MultiIndex.from_product(
+        exp_idx = MultiIndex.from_product(
             [["a", "b"], ["x", "y", "z"]], names=["first", "second"]
         )
         exp = DataFrame(
