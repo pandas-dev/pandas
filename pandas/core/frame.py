@@ -490,23 +490,14 @@ class DataFrame(NDFrame, OpsMixin):
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
+    _accessors: Set[str] = {"sparse"}
+    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
 
     @property
     def _constructor(self) -> Type[DataFrame]:
         return DataFrame
 
     _constructor_sliced: Type[Series] = Series
-    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
-    _accessors: Set[str] = {"sparse"}
-
-    @property
-    def _constructor_expanddim(self):
-        # GH#31549 raising NotImplementedError on a property causes trouble
-        #  for `inspect`
-        def constructor(*args, **kwargs):
-            raise NotImplementedError("Not supported for DataFrames!")
-
-        return constructor
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -3786,8 +3777,21 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("at least one of include or exclude must be nonempty")
 
         # convert the myriad valid dtypes object to a single representation
-        include = frozenset(infer_dtype_from_object(x) for x in include)
-        exclude = frozenset(infer_dtype_from_object(x) for x in exclude)
+        def check_int_infer_dtype(dtypes):
+            converted_dtypes = []
+            for dtype in dtypes:
+                # Numpy maps int to different types (int32, in64) on Windows and Linux
+                # see https://github.com/numpy/numpy/issues/9464
+                if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
+                    converted_dtypes.append(np.int32)
+                    converted_dtypes.append(np.int64)
+                else:
+                    converted_dtypes.append(infer_dtype_from_object(dtype))
+            return frozenset(converted_dtypes)
+
+        include = check_int_infer_dtype(include)
+        exclude = check_int_infer_dtype(exclude)
+
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
 
@@ -7718,7 +7722,7 @@ NaN 12.3   33.0
             func=arg,
             axis=0,
             args=args,
-            kwds=kwargs,
+            kwargs=kwargs,
         )
         result, how = op.agg()
 
@@ -7750,7 +7754,7 @@ NaN 12.3   33.0
         raw: bool = False,
         result_type=None,
         args=(),
-        **kwds,
+        **kwargs,
     ):
         """
         Apply a function along an axis of the DataFrame.
@@ -7798,7 +7802,7 @@ NaN 12.3   33.0
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
-        **kwds
+        **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
 
@@ -7892,7 +7896,7 @@ NaN 12.3   33.0
             raw=raw,
             result_type=result_type,
             args=args,
-            kwds=kwds,
+            kwargs=kwargs,
         )
         return op.apply()
 
@@ -9410,6 +9414,14 @@ NaN 12.3   33.0
         """
         validate_percentile(q)
 
+        if not is_list_like(q):
+            # BlockManager.quantile expects listlike, so we wrap and unwrap here
+            res = self.quantile(
+                [q], axis=axis, numeric_only=numeric_only, interpolation=interpolation
+            )
+            return res.iloc[0]
+
+        q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)
         is_transposed = axis == 1
@@ -9428,10 +9440,7 @@ NaN 12.3   33.0
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
         )
 
-        if result.ndim == 2:
-            result = self._constructor(result)
-        else:
-            result = self._constructor_sliced(result, name=q)
+        result = self._constructor(result)
 
         if is_transposed:
             result = result.T

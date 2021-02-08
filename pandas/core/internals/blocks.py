@@ -82,7 +82,7 @@ from pandas.core.indexers import (
 import pandas.core.missing as missing
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import Float64Index, Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
@@ -1031,7 +1031,8 @@ class Block(PandasObject):
         elif not mask.any():
             return [self]
 
-        elif isinstance(new, np.timedelta64):
+        dtype, _ = infer_dtype_from(new)
+        if dtype.kind in ["m", "M"]:
             # using putmask with object dtype will incorrect cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
@@ -1317,10 +1318,15 @@ class Block(PandasObject):
                 blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
-            elif isinstance(other, np.timedelta64):
-                # expressions.where will cast np.timedelta64 to int
-                result = self.values.copy()
-                result[~cond] = [other] * (~cond).sum()
+            dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+            if dtype.kind in ["m", "M"] and dtype.kind != values.dtype.kind:
+                # expressions.where would cast np.timedelta64 to int
+                if not is_list_like(other):
+                    other = [other] * (~cond).sum()
+                else:
+                    other = list(other)
+                result = values.copy()
+                np.putmask(result, ~cond, other)
 
             else:
                 # convert datetime to datetime64, timedelta to timedelta64
@@ -1383,17 +1389,20 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+    def quantile(
+        self, qs: Float64Index, interpolation="linear", axis: int = 0
+    ) -> Block:
         """
         compute the quantiles of the
 
         Parameters
         ----------
-        qs: a scalar or list of the quantiles to be computed
-        interpolation : str, default "linear"
-            Type of interpolation
+        qs : Float64Index
+            List of the quantiles to be computed.
+        interpolation : str, default 'linear'
+            Type of interpolation.
         axis : int, default 0
-            Axis along which to compute quantiles.
+            Axis to compute.
 
         Returns
         -------
@@ -1401,17 +1410,16 @@ class Block(PandasObject):
         """
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
+        assert axis == 1  # only ever called this way
+        assert is_list_like(qs)  # caller is responsible for this
 
         fill_value = self.fill_value
         values = self.values
         mask = np.asarray(isna(values))
 
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-        ndim = np.ndim(result)
 
-        placement = np.arange(len(result))
-
-        return make_block(result, placement=placement, ndim=ndim)
+        return make_block(result, placement=self.mgr_locs, ndim=2)
 
     def _replace_coerce(
         self,
