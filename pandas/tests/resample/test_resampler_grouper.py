@@ -394,13 +394,16 @@ def test_resample_groupby_agg():
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_groupby_agg_object_dtype_all_nan():
+@pytest.mark.parametrize("consolidate", [True, False])
+def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     # https://github.com/pandas-dev/pandas/issues/39329
 
     dates = pd.date_range("2020-01-01", periods=15, freq="D")
     df1 = DataFrame({"key": "A", "date": dates, "col1": range(15), "col_object": "val"})
     df2 = DataFrame({"key": "B", "date": dates, "col1": range(15)})
     df = pd.concat([df1, df2], ignore_index=True)
+    if consolidate:
+        df = df._consolidate()
 
     result = df.groupby(["key"]).resample("W", on="date").min()
     idx = pd.MultiIndex.from_arrays(
