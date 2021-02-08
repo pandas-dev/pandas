@@ -817,20 +817,15 @@ class TestMisc:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_unaligned_boolean_frame_indexing(self):
+    def test_boolean_frame_indexing(self):
         # GH 39004
         df = DataFrame(
             np.arange(9.0).reshape(3, 3), index=list("abc"), columns=list("ABC")
         )
 
-        unaligned_indexer = DataFrame(True, index=list("ab"), columns=list("AB"))
+        boolean_frame_indexer = DataFrame(True, index=list("abc"), columns=list("ABC"))
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df[unaligned_indexer]
-
-        aligned_indexer = DataFrame(True, index=list("abc"), columns=list("ABC"))
-        result = df[aligned_indexer]
-        expected = df
-        tm.assert_frame_equal(result, expected)
+            df[boolean_frame_indexer]
 
     def test_no_reference_cycle(self):
         df = DataFrame({"a": [0, 1], "b": [2, 3]})

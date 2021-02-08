@@ -3041,11 +3041,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
-            if not (key.index.equals(self.index) and key.columns.equals(self.columns)):
-                warnings.warn("Unaligned DataFrame indexer is deprecated"
-                              " and will be disallowed in future. Use where instead.",
-                              FutureWarning,
-                              stacklevel=2)
+            warnings.warn(
+                "DataFrame indexer is deprecated "
+                "and will be disallowed in future. Use where instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
             return self.where(key)
 
         # Do we have a (boolean) 1d indexer?
