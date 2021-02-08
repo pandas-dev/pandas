@@ -1319,7 +1319,7 @@ class Block(PandasObject):
                 return self._maybe_downcast(blocks, "infer")
 
             dtype, _ = infer_dtype_from(other, pandas_dtype=True)
-            if dtype.kind in ["m", "M"] != values.dtype.kind:
+            if dtype.kind in ["m", "M"] and dtype.kind != values.dtype.kind:
                 # expressions.where would cast np.timedelta64 to int
                 if not is_list_like(other):
                     other = [other] * (~cond).sum()
