@@ -239,7 +239,7 @@ class _FrequencyInferer:
         if not self.is_monotonic or not self.index._is_unique:
             return None
 
-        delta = min(self.deltas)
+        delta = self.deltas[0]
         if delta and _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
 
