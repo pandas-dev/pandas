@@ -18,6 +18,7 @@ import pytest
 import pytz
 
 from pandas.compat import np_version_under1p19
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -159,7 +160,10 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = "Wrong number of items passed 2, placement implies 1"
+        msg = (
+            "Wrong number of items passed 2, placement implies 1"
+            "|expected 1D array, got array"
+        )
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
@@ -174,12 +178,15 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view(self):
+    def test_constructor_dtype_nocast_view_dataframe(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         should_be_view[0][0] = 99
         assert df.values[0, 0] == 99
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) keep view on 2D array?
+    def test_constructor_dtype_nocast_view_2d_array(self):
+        df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df.values, dtype=df[0].dtype)
         should_be_view[0][0] = 97
         assert df.values[0, 0] == 97
@@ -1931,6 +1938,7 @@ class TestDataFrameConstructors:
         assert (cop["A"] == 5).all()
         assert not (float_frame["A"] == 5).all()
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) keep view on 2D array?
     def test_constructor_ndarray_copy(self, float_frame):
         df = DataFrame(float_frame.values)
 

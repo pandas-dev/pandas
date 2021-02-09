@@ -153,6 +153,7 @@ jobs:
       run: |
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
+        pytest pandas/tests/frame/test_* --array-manager -k "not test_reductions"
         pytest pandas/tests/arithmetic/ --array-manager
         pytest pandas/tests/reshape/merge --array-manager
 
