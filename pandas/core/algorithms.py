@@ -1592,6 +1592,14 @@ def _maybe_promote_cached(dtype, fill_value, fill_value_type):
     return maybe_promote(dtype, fill_value)
 
 
+def _maybe_promote(dtype, fill_value):
+    try:
+        return _maybe_promote_cached(dtype, fill_value, type(fill_value))
+    except TypeError:
+        # if fill_value is not hashable (required for caching)
+        return maybe_promote(dtype, fill_value)
+
+
 def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
     """
     Take elements from an array.
@@ -1699,9 +1707,7 @@ def _take_preprocess_indexer_and_fill_value(
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = _maybe_promote_cached(
-                arr.dtype, fill_value, type(fill_value)
-            )
+            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 mask = indexer == -1
