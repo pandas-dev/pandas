@@ -86,8 +86,8 @@ else
     echo "Not using ccache"
 fi
 
-echo "conda deactivate"
-conda deactivate
+echo "source deactivate"
+source deactivate
 
 echo "conda list (root environment)"
 conda list
