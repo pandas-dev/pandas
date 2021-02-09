@@ -1598,7 +1598,7 @@ def _maybe_promote(dtype, fill_value):
         # "Type[Any]"; expected "Hashable"  [arg-type]
         return _maybe_promote_cached(
             dtype, fill_value, type(fill_value)
-        )  # type: ignore[override]
+        )  # type: ignore[arg-type]
     except TypeError:
         # if fill_value is not hashable (required for caching)
         return maybe_promote(dtype, fill_value)
