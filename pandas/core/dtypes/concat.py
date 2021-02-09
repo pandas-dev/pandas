@@ -73,7 +73,8 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
     to_concat : array of arrays
     axis : axis to provide concatenation
     ea_compat_axis : bool, default False
-        For ExtensionArray compat, behave as if axis == 1
+        For ExtensionArray compat, behave as if axis == 1 when determining
+        whether to drop empty arrays.
 
     Returns
     -------

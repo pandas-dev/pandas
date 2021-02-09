@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import isna_all
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
@@ -227,6 +227,24 @@ class JoinUnit:
         else:
             return get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
 
+    def is_valid_na_for(self, dtype: DtypeObj) -> bool:
+        """
+        Check that we are all-NA of a type/dtype that is compatible with this dtype.
+        """
+        if not self.is_na:
+            return False
+        if self.block is None:
+            return True
+
+        if self.dtype == object:
+            values = self.block.values
+            return all(
+                is_valid_nat_for_dtype(x, dtype) for x in values.ravel(order="K")
+            )
+
+        na_value = self.block.fill_value
+        return is_valid_nat_for_dtype(na_value, dtype)
+
     @cache_readonly
     def is_na(self) -> bool:
         if self.block is None:
@@ -257,7 +275,7 @@ class JoinUnit:
         else:
             fill_value = upcasted_na
 
-            if self.is_na:
+            if self.is_valid_na_for(empty_dtype):
                 blk_dtype = getattr(self.block, "dtype", None)
 
                 if blk_dtype == np.dtype(object):
@@ -418,8 +436,12 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         return empty_dtype
 
     has_none_blocks = any(unit.block is None for unit in join_units)
-    dtypes = [None if unit.block is None else unit.dtype for unit in join_units]
-    dtypes = [x for x in dtypes if x is not None]
+
+    dtypes = [
+        unit.dtype for unit in join_units if unit.block is not None and not unit.is_na
+    ]
+    if not len(dtypes):
+        dtypes = [unit.dtype for unit in join_units if unit.block is not None]
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:
