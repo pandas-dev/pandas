@@ -74,9 +74,6 @@ if TYPE_CHECKING:
 _shared_docs: Dict[str, str] = {}
 
 
-maybe_promote_cached = functools.lru_cache(maxsize=128)(maybe_promote)
-
-
 # --------------- #
 # dtype access    #
 # --------------- #
@@ -1573,7 +1570,9 @@ def __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
 def _get_take_nd_function(
     ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
 ):
-    func = __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis)
+    func = None
+    if ndim <= 2:
+        func = __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis)
 
     if func is None:
 
@@ -1584,6 +1583,13 @@ def _get_take_nd_function(
             )
 
     return func
+
+
+@functools.lru_cache(maxsize=128)
+def _maybe_promote_cached(dtype, fill_value, fill_value_type):
+    # also use fill_value_type as (unused) argument to use this in the cache
+    # lookup -> differentiate 1 and True
+    return maybe_promote(dtype, fill_value)
 
 
 def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
@@ -1693,7 +1699,9 @@ def _take_preprocess_indexer_and_fill_value(
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = maybe_promote_cached(arr.dtype, fill_value)
+            dtype, fill_value = _maybe_promote_cached(
+                arr.dtype, fill_value, type(fill_value)
+            )
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 mask = indexer == -1
