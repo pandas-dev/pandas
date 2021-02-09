@@ -39,7 +39,7 @@ class Visitor(ast.NodeVisitor):
             and node.value.id == "pd"
             and node.attr not in EXCLUDE
         ):
-            self.pandas_namespace[(node.lineno, node.col_offset)] = node.attr
+            self.pandas_namespace[Offset(node.lineno, node.col_offset)] = node.attr
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name):
