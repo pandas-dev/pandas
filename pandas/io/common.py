@@ -728,7 +728,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
 
         # add csv file name like gz or bz2
         if archive_name is None and isinstance(file, (os.PathLike, str)):
-            archive_name = os.path.basename(file)
+            archive_name = stringify_path(file)
             if archive_name.endswith('.zip'):
                 self.archive_name = archive_name[:-4]
 
