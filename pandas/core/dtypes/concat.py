@@ -45,39 +45,40 @@ class NullArrayProxy:
     def shape(self):
         return (self.n,)
 
+    def to_array(self, dtype: DtypeObj, fill_value=lib.no_default) -> ArrayLike:
+        """
+        Helper function to create the actual all-NA array from the NullArrayProxy
+        object.
 
-def _array_from_proxy(arr, dtype: DtypeObj, fill_value=lib.no_default):
-    """
-    Helper function to create the actual all-NA array from the NullArrayProxy object.
+        Parameters
+        ----------
+        arr : NullArrayProxy
+        dtype : the dtype for the resulting array
+        fill_value : scalar NA-like value
+            By default uses the ExtensionDtype's na_value or np.nan. For numpy
+            arrays, this can be overridden to be something else (eg None).
 
-    Parameters
-    ----------
-    arr : NullArrayProxy
-    dtype : the dtype for the resulting array
-    fill_value : scalar NA-like value
-        By default uses the ExtensionDtype's na_value or np.nan. For numpy
-        arrays, this can be overridden to be something else (eg None).
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        if is_extension_array_dtype(dtype):
+            empty = dtype.construct_array_type()._from_sequence([], dtype=dtype)
+            indexer = -np.ones(self.n, dtype=np.intp)
+            return empty.take(indexer, allow_fill=True)
+        else:
+            # when introducing missing values, int becomes float, bool becomes object
+            if is_integer_dtype(dtype):
+                dtype = np.dtype("float64")
+            elif is_bool_dtype(dtype):
+                dtype = np.dtype(object)
 
-    Returns
-    -------
-    np.ndarray or ExtensionArray
-    """
-    if is_extension_array_dtype(dtype):
-        return dtype.construct_array_type()._from_sequence(
-            [dtype.na_value] * arr.n, dtype=dtype
-        )
-    else:
-        if is_integer_dtype(dtype):
-            dtype = np.dtype("float64")
-        elif is_bool_dtype(dtype):
-            dtype = np.dtype(object)
+            if fill_value is lib.no_default:
+                fill_value = na_value_for_dtype(dtype)
 
-        if fill_value is lib.no_default:
-            fill_value = na_value_for_dtype(dtype)
-
-        arr = np.empty(arr.n, dtype=dtype)
-        arr.fill(fill_value)
-        return ensure_wrapped_if_datetimelike(arr)
+            arr = np.empty(self.n, dtype=dtype)
+            arr.fill(fill_value)
+            return ensure_wrapped_if_datetimelike(arr)
 
 
 def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
@@ -86,7 +87,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     cases.
     """
     if isinstance(arr, NullArrayProxy):
-        return _array_from_proxy(arr, dtype)
+        return arr.to_array(dtype)
 
     if (
         is_categorical_dtype(arr.dtype)
@@ -194,7 +195,7 @@ def concat_compat(to_concat, axis: int = 0):
     return np.concatenate(to_concat, axis=axis)
 
 
-def concat_arrays(to_concat):
+def concat_arrays(to_concat) -> ArrayLike:
     """
     Alternative for concat_compat but specialized for use in the ArrayManager.
 
@@ -225,9 +226,7 @@ def concat_arrays(to_concat):
         else:
             target_dtype = to_concat_no_proxy[0].dtype
             to_concat = [
-                _array_from_proxy(arr, target_dtype)
-                if isinstance(arr, NullArrayProxy)
-                else arr
+                arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
                 for arr in to_concat
             ]
 
@@ -247,7 +246,7 @@ def concat_arrays(to_concat):
     else:
         target_dtype = to_concat_no_proxy[0].dtype
     to_concat = [
-        _array_from_proxy(arr, target_dtype) if isinstance(arr, NullArrayProxy) else arr
+        arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
         for arr in to_concat
     ]
 
@@ -462,7 +461,7 @@ def _concat_datetime(to_concat, axis=0):
         # ensure_wrapped_if_datetimelike ensures that astype(object) wraps
         #  in Timestamp/Timedelta
         to_concat = [
-            _array_from_proxy(arr, dtype=object, fill_value=None)
+            arr.to_array(object, fill_value=None)
             if isinstance(arr, NullArrayProxy)
             else arr
             for arr in to_concat
@@ -475,7 +474,7 @@ def _concat_datetime(to_concat, axis=0):
         to_concat = [x.reshape(1, -1) if x.ndim == 1 else x for x in to_concat]
     else:
         to_concat = [
-            _array_from_proxy(arr, dtype=to_concat_no_proxy[0].dtype)
+            arr.to_array(to_concat_no_proxy[0].dtype)
             if isinstance(arr, NullArrayProxy)
             else arr
             for arr in to_concat
