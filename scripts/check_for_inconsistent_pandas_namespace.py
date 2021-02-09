@@ -29,7 +29,7 @@ EXCLUDE = {
 
 
 class Visitor(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self) -> None:
         self.pandas_namespace: MutableMapping[Offset, str] = {}
         self.no_namespace: Set[str] = set()
 
@@ -42,13 +42,15 @@ class Visitor(ast.NodeVisitor):
             self.pandas_namespace[Offset(node.lineno, node.col_offset)] = node.attr
         self.generic_visit(node)
 
-    def visit_Name(self, node: ast.Name):
+    def visit_Name(self, node: ast.Name) -> None:
         if node.id not in EXCLUDE:
             self.no_namespace.add(node.id)
         self.generic_visit(node)
 
 
-def check_for_inconsistent_pandas_namespace(content, path, *, replace):
+def check_for_inconsistent_pandas_namespace(
+    content: str, path: str, *, replace: bool
+) -> Optional[str]:
     tree = ast.parse(content)
 
     visitor = Visitor()
@@ -76,7 +78,8 @@ def check_for_inconsistent_pandas_namespace(content, path, *, replace):
             # Replace `.`
             tokens[n + 1] = i._replace(src="")
 
-    return tokens_to_src(tokens)
+    new_src: str = tokens_to_src(tokens)
+    return new_src
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
@@ -91,7 +94,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         new_content = check_for_inconsistent_pandas_namespace(
             content, path, replace=args.replace
         )
-        if not args.replace:
+        if not args.replace or new_content is None:
             continue
         with open(path, "w", encoding="utf-8") as fd:
             fd.write(new_content)
