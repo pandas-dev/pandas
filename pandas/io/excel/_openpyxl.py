@@ -530,10 +530,6 @@ class OpenpyxlReader(BaseExcelReader):
         return cell.value
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
-        # GH 39001
-        # Reading of excel file depends on dimension data being correct but
-        # writers sometimes omit or get it wrong
-        import openpyxl
 
         # There is no good way of determining if a sheet is read-only
         # https://foss.heptapod.net/openpyxl/openpyxl/-/issues/1605
