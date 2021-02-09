@@ -1,0 +1,48 @@
+.. _whatsnew_123:
+
+What's new in 1.2.3 (March ??, 2021)
+------------------------------------
+
+These are the changes in pandas 1.2.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_123.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_123.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_123.other:
+
+Other
+~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_123.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.2..v1.2.3|HEAD
