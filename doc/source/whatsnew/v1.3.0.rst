@@ -41,9 +41,12 @@ See ref:`window.overview` for performance and functional benefits. (:issue:`1509
 
 .. _whatsnew_130.read_to_xml:
 
+Read and write XML documents
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 We added I/O support to read and render shallow versions of `XML`_ documents with
 :func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using `lxml`_ as parser,
-full XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
+both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
 
 .. _XML: https://www.w3.org/standards/xml/core
 .. _lxml: https://lxml.de
@@ -101,7 +104,7 @@ full XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
       </row>
     </data>
 
-For more, see :ref:`io` in the user guide on IO tools.
+For more, see :ref:`io.xml` in the user guide on IO tools.
 
 .. _whatsnew_130.enhancements.other:
 
