@@ -1844,8 +1844,8 @@ def take_1d_array(
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
 
-    if isinstance(arr, ABCExtensionArray):
-        # Check for EA to catch DatetimeArray, TimedeltaArray
+    if not isinstance(arr, np.ndarray):
+        # ExtensionArray -> dispatch to their method
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
