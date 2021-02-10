@@ -87,12 +87,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import (
-    is_valid_nat_for_dtype,
-    isna,
-    na_value_for_dtype,
-    notna,
-)
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -548,18 +543,6 @@ def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
             fill_value = np.nan
             dtype = np.dtype(np.object_)
 
-    if is_valid_nat_for_dtype(fill_value, dtype) and dtype.kind in [
-        "i",
-        "u",
-        "f",
-        "c",
-        "m",
-        "M",
-    ]:
-        dtype = ensure_dtype_can_hold_na(dtype)
-        fv = na_value_for_dtype(dtype)
-        return dtype, fv
-
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
         if isinstance(fill_value, datetime) and fill_value.tzinfo is not None:
@@ -608,9 +591,7 @@ def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
             # TODO: sure we want to cast here?
             dtype = np.dtype(np.object_)
 
-    elif is_extension_array_dtype(dtype) and isna(
-        fill_value
-    ):  # TODO: is_valid_nat_for_dtype
+    elif is_extension_array_dtype(dtype) and isna(fill_value):
         fill_value = dtype.na_value
 
     elif is_float(fill_value):
