@@ -71,12 +71,11 @@ def test_unique_level(idx, level):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
-def test_get_unique_index(idx, dropna):
+def test_get_unique_index(idx):
     mi = idx[[0, 1, 0, 1, 1, 0, 0]]
     expected = mi._shallow_copy(mi[[0, 1]])
 
-    result = mi._get_unique_index(dropna=dropna)
+    result = mi._get_unique_index()
     assert result.unique
     tm.assert_index_equal(result, expected)
 

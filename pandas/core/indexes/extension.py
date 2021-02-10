@@ -263,13 +263,11 @@ class ExtensionIndex(Index):
         # ExtensionIndex subclasses must override Index.insert
         raise AbstractMethodError(self)
 
-    def _get_unique_index(self, dropna=False):
-        if self.is_unique and not dropna:
+    def _get_unique_index(self):
+        if self.is_unique:
             return self
 
         result = self._data.unique()
-        if dropna and self.hasnans:
-            result = result[~result.isna()]
         return self._shallow_copy(result)
 
     @doc(Index.map)
