@@ -4274,6 +4274,7 @@ class Index(IndexOpsMixin, PandasObject):
         result += self._engine.sizeof(deep=deep)
         return result
 
+    @final
     def where(self, cond, other=None):
         """
         Replace values where the condition is False.
@@ -4306,6 +4307,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.where(idx.isin(['car', 'train']), 'other')
         Index(['car', 'other', 'train', 'other'], dtype='object')
         """
+        if isinstance(self, ABCMultiIndex):
+            raise NotImplementedError(
+                ".where is not supported for MultiIndex operations"
+            )
         cond = np.asarray(cond, dtype=bool)
         return self.putmask(~cond, other)
 
