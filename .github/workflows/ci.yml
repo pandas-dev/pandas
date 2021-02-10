@@ -157,3 +157,5 @@ jobs:
       run: |
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
+        pytest pandas/tests/frame/test_reductions.py --array-manager
+        pytest pandas/tests/reductions/ --array-manager

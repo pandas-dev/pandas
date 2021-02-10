@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, TypeVar,
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, lib
+from pandas._libs import NaT, algos as libalgos, lib
 from pandas._typing import ArrayLike, DtypeObj, Hashable
 from pandas.util._validators import validate_bool_kwarg
 
@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
+    is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -25,7 +26,11 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+    sanitize_array,
+)
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.base import DataManager
@@ -173,18 +178,48 @@ class ArrayManager(DataManager):
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
     ) -> Tuple[T, np.ndarray]:
-        # TODO this still fails because `func` assumes to work on 2D arrays
-        # TODO implement ignore_failures
-        assert self.ndim == 2
+        """
+        Apply reduction function column-wise, returning a single-row ArrayManager.
 
-        res_arrays = []
-        for arr in self.arrays:
-            res = func(arr, axis=0)
-            res_arrays.append(np.array([res]))
+        Parameters
+        ----------
+        func : reduction function
+        ignore_failures : bool, default False
+            Whether to drop columns where func raises TypeError.
+
+        Returns
+        -------
+        ArrayManager
+        np.ndarray
+            Indexer of column indices that are retained.
+        """
+        result_arrays: List[np.ndarray] = []
+        result_indices: List[int] = []
+        for i, arr in enumerate(self.arrays):
+            try:
+                res = func(arr, axis=0)
+            except TypeError:
+                if not ignore_failures:
+                    raise
+            else:
+                # TODO NaT doesn't preserve dtype, so we need to ensure to create
+                # a timedelta result array if original was timedelta
+                # what if datetime results in timedelta? (eg std)
+                if res is NaT and is_timedelta64_ns_dtype(arr.dtype):
+                    result_arrays.append(np.array(["NaT"], dtype="timedelta64[ns]"))
+                else:
+                    result_arrays.append(sanitize_array([res], None))
+                result_indices.append(i)
 
         index = Index([None])  # placeholder
-        new_mgr = type(self)(res_arrays, [index, self.items])
-        indexer = np.arange(self.shape[0])
+        if ignore_failures:
+            indexer = np.array(result_indices)
+            columns = self.items[result_indices]
+        else:
+            indexer = np.arange(self.shape[0])
+            columns = self.items
+
+        new_mgr = type(self)(result_arrays, [index, columns])
         return new_mgr, indexer
 
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
@@ -668,9 +703,11 @@ class ArrayManager(DataManager):
             if isinstance(value, np.ndarray) and value.ndim == 2:
                 value = value[0, :]
 
+            # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
+            # but we should avoid that and pass directly the proper array
+            value = ensure_wrapped_if_datetimelike(value)
+
             assert isinstance(value, (np.ndarray, ExtensionArray))
-            # value = np.asarray(value)
-            # assert isinstance(value, np.ndarray)
             assert len(value) == len(self._axes[0])
             self.arrays[loc] = value
             return
