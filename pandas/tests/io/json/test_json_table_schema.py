@@ -6,6 +6,8 @@ import sys
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
 
 import pandas as pd
@@ -19,6 +21,8 @@ from pandas.io.json._table_schema import (
     convert_pandas_type_to_json_field,
     set_default_names,
 )
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestBuildSchema:
@@ -439,7 +443,11 @@ class TestTableOrient:
         "ignore:an integer is required (got type float)*:DeprecationWarning"
     )
     def test_date_format_raises(self):
-        with pytest.raises(ValueError):
+        msg = (
+            "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
+            "Schema requires dates to be formatted with `date_format='iso'`"
+        )
+        with pytest.raises(ValueError, match=msg):
             self.df.to_json(orient="table", date_format="epoch")
 
         # others work
@@ -705,18 +713,14 @@ class TestTableOrientReader:
         "idx",
         [
             pd.Index(range(4)),
-            pd.Index(
-                pd.date_range(
-                    "2020-08-30",
-                    freq="d",
-                    periods=4,
-                ),
-                freq=None,
-            ),
-            pd.Index(
-                pd.date_range("2020-08-30", freq="d", periods=4, tz="US/Central"),
-                freq=None,
-            ),
+            pd.date_range(
+                "2020-08-30",
+                freq="d",
+                periods=4,
+            )._with_freq(None),
+            pd.date_range(
+                "2020-08-30", freq="d", periods=4, tz="US/Central"
+            )._with_freq(None),
             pd.MultiIndex.from_product(
                 [
                     pd.date_range("2020-08-30", freq="d", periods=2, tz="US/Central"),

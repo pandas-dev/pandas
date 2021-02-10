@@ -3,6 +3,8 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
+from __future__ import annotations
+
 import operator
 from typing import TYPE_CHECKING, Optional, Set
 import warnings
@@ -129,7 +131,7 @@ def fill_binop(left, right, fill_value):
 # Series
 
 
-def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
+def align_method_SERIES(left: Series, right, align_asobject: bool = False):
     """ align lhs and rhs Series """
     # ToDo: Different from align_method_FRAME, list, tuple and ndarray
     # are not coerced here
@@ -293,7 +295,7 @@ def align_method_FRAME(
 
 
 def should_reindex_frame_op(
-    left: "DataFrame", right, op, axis, default_axis, fill_value, level
+    left: DataFrame, right, op, axis, default_axis, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
@@ -309,18 +311,19 @@ def should_reindex_frame_op(
 
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
-        cols = left.columns.intersection(right.columns)
 
-        if len(cols) and not (cols.equals(left.columns) and cols.equals(right.columns)):
+        # Intersection is always unique so we have to check the unique columns
+        left_uniques = left.columns.unique()
+        right_uniques = right.columns.unique()
+        cols = left_uniques.intersection(right_uniques)
+        if len(cols) and not (cols.equals(left_uniques) and cols.equals(right_uniques)):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
     return False
 
 
-def frame_arith_method_with_reindex(
-    left: "DataFrame", right: "DataFrame", op
-) -> "DataFrame":
+def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> DataFrame:
     """
     For DataFrame-with-DataFrame operations that require reindexing,
     operate only on shared columns, then reindex.
@@ -364,7 +367,7 @@ def frame_arith_method_with_reindex(
     return result
 
 
-def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.

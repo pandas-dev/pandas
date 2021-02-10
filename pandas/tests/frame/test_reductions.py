@@ -669,16 +669,22 @@ class TestDataFrameAnalytics:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_mode_empty_df(self):
+        df = DataFrame([], columns=["a", "b"])
+        result = df.mode()
+        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=int))
+        tm.assert_frame_equal(result, expected)
+
     def test_operators_timedelta64(self):
         df = DataFrame(
-            dict(
-                A=date_range("2012-1-1", periods=3, freq="D"),
-                B=date_range("2012-1-2", periods=3, freq="D"),
-                C=Timestamp("20120101") - timedelta(minutes=5, seconds=5),
-            )
+            {
+                "A": date_range("2012-1-1", periods=3, freq="D"),
+                "B": date_range("2012-1-2", periods=3, freq="D"),
+                "C": Timestamp("20120101") - timedelta(minutes=5, seconds=5),
+            }
         )
 
-        diffs = DataFrame(dict(A=df["A"] - df["C"], B=df["A"] - df["B"]))
+        diffs = DataFrame({"A": df["A"] - df["C"], "B": df["A"] - df["B"]})
 
         # min
         result = diffs.min()
@@ -699,7 +705,7 @@ class TestDataFrameAnalytics:
         # abs
         result = diffs.abs()
         result2 = abs(diffs)
-        expected = DataFrame(dict(A=df["A"] - df["C"], B=df["B"] - df["A"]))
+        expected = DataFrame({"A": df["A"] - df["C"], "B": df["B"] - df["A"]})
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
@@ -969,6 +975,20 @@ class TestDataFrameAnalytics:
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 
+    def test_idxmax_mixed_dtype(self):
+        # don't cast to object, which would raise in nanops
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
+
+        result = df.idxmax()
+        expected = Series([1, 0, 2], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([0, 2, 0], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Logical reductions
 
@@ -1077,9 +1097,13 @@ class TestDataFrameAnalytics:
             (np.all, {"A": Series([0, 1], dtype=int)}, False),
             (np.any, {"A": Series([0, 1], dtype=int)}, True),
             pytest.param(np.all, {"A": Series([0, 1], dtype="M8[ns]")}, False),
+            pytest.param(np.all, {"A": Series([0, 1], dtype="M8[ns, UTC]")}, False),
             pytest.param(np.any, {"A": Series([0, 1], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([0, 1], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.all, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.all, {"A": Series([1, 2], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.any, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([1, 2], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.all, {"A": Series([0, 1], dtype="m8[ns]")}, False),
             pytest.param(np.any, {"A": Series([0, 1], dtype="m8[ns]")}, True),
             pytest.param(np.all, {"A": Series([1, 2], dtype="m8[ns]")}, True),
@@ -1205,13 +1229,15 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
-    def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
+    def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
-            pytest.xfail(
-                reason="GH#37659 OSError raised within tzlocal bc Windows "
-                "chokes in times before 1970-01-01"
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#37659 OSError raised within tzlocal bc Windows "
+                    "chokes in times before 1970-01-01"
+                )
             )
 
         df = DataFrame(
@@ -1241,7 +1267,7 @@ class TestDataFrameReductions:
         # returned NaT for series. These tests check that the API is consistent in
         # min/max calls on empty Series/DataFrames. See GH:33704 for more
         # information
-        df = DataFrame(dict(x=pd.to_datetime([])))
+        df = DataFrame({"x": pd.to_datetime([])})
         expected_dt_series = Series(pd.to_datetime([]))
         # check axis 0
         assert (df.min(axis=0).x is pd.NaT) == (expected_dt_series.min() is pd.NaT)
@@ -1254,7 +1280,7 @@ class TestDataFrameReductions:
     def test_min_max_dt64_api_consistency_empty_df(self):
         # check DataFrame/Series api consistency when calling min/max on an empty
         # DataFrame/Series.
-        df = DataFrame(dict(x=[]))
+        df = DataFrame({"x": []})
         expected_float_series = Series([], dtype=float)
         # check axis 0
         assert np.isnan(df.min(axis=0).x) == np.isnan(expected_float_series.min())

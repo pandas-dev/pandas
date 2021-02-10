@@ -2,6 +2,7 @@
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
+from __future__ import annotations
 
 from contextlib import contextmanager
 from csv import QUOTE_NONE, QUOTE_NONNUMERIC
@@ -17,6 +18,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -39,11 +41,13 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    ColspaceArgType,
+    ColspaceType,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
+    FormattersType,
     IndexLabel,
-    Label,
     StorageOptions,
 )
 
@@ -80,14 +84,6 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
 
-
-FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
-]
-ColspaceType = Mapping[Label, Union[str, int]]
-ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
-]
 
 common_docstring = """
         Parameters
@@ -177,7 +173,7 @@ return_docstring = """
 class CategoricalFormatter:
     def __init__(
         self,
-        categorical: "Categorical",
+        categorical: Categorical,
         buf: Optional[IO[str]] = None,
         length: bool = True,
         na_rep: str = "NaN",
@@ -241,7 +237,7 @@ class CategoricalFormatter:
 class SeriesFormatter:
     def __init__(
         self,
-        series: "Series",
+        series: Series,
         buf: Optional[IO[str]] = None,
         length: Union[bool, str] = True,
         header: bool = True,
@@ -467,7 +463,7 @@ class DataFrameFormatter:
 
     def __init__(
         self,
-        frame: "DataFrame",
+        frame: DataFrame,
         columns: Optional[Sequence[str]] = None,
         col_space: Optional[ColspaceArgType] = None,
         header: Union[bool, Sequence[str]] = True,
@@ -818,7 +814,7 @@ class DataFrameFormatter:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
-    def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
+    def _get_formatted_column_labels(self, frame: DataFrame) -> List[List[str]]:
         from pandas.core.indexes.multi import sparsify_labels
 
         columns = frame.columns
@@ -829,7 +825,7 @@ class DataFrameFormatter:
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(l.is_floating for l in columns.levels)
+            restrict_formatting = any(level.is_floating for level in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):
@@ -859,7 +855,7 @@ class DataFrameFormatter:
         # self.str_columns = str_columns
         return str_columns
 
-    def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
+    def _get_formatted_index(self, frame: DataFrame) -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html(). so safe to cast col_space here.
         col_space = {k: cast(int, v) for k, v in self.col_space.items()}
@@ -923,7 +919,7 @@ class DataFrameRenderer:
     Parameters
     ----------
     fmt : DataFrameFormatter
-        Formatter with the formating options.
+        Formatter with the formatting options.
     """
 
     def __init__(self, fmt: DataFrameFormatter):
@@ -1036,7 +1032,7 @@ class DataFrameRenderer:
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         encoding: Optional[str] = None,
         sep: str = ",",
-        columns: Optional[Sequence[Label]] = None,
+        columns: Optional[Sequence[Hashable]] = None,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",
@@ -1305,7 +1301,7 @@ class GenericArrayFormatter:
             if not is_float_type[i] and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
-                fmt_values.append(float_format(v))
+                fmt_values.append(_trim_zeros_single_float(float_format(v)))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
@@ -1314,8 +1310,6 @@ class GenericArrayFormatter:
                 else:
                     tpl = " {v}"
                 fmt_values.append(tpl.format(v=_format(v)))
-
-        fmt_values = _trim_zeros_float(str_floats=fmt_values, decimal=".")
 
         return fmt_values
 
@@ -1508,7 +1502,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
     def __init__(
         self,
-        values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
+        values: Union[np.ndarray, Series, DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
@@ -1537,7 +1531,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         values = extract_array(self.values, extract_numpy=True)
 
-        formatter = values._formatter(boxed=True)
+        formatter = self.formatter
+        if formatter is None:
+            formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1553,7 +1549,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             digits=self.digits,
             space=self.space,
             justify=self.justify,
+            decimal=self.decimal,
             leading_space=self.leading_space,
+            quoting=self.quoting,
         )
         return fmt_values
 
@@ -1640,7 +1638,7 @@ def is_dates_only(
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
     )
@@ -1740,11 +1738,11 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.astype(np.int64)
+    values_int = values.view(np.int64)
 
     consider_values = values_int != iNaT
 
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
     )
@@ -1828,11 +1826,25 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[s
     return padded
 
 
+def _trim_zeros_single_float(str_float: str) -> str:
+    """
+    Trims trailing zeros after a decimal point,
+    leaving just one if necessary.
+    """
+    str_float = str_float.rstrip("0")
+    if str_float.endswith("."):
+        str_float += "0"
+
+    return str_float
+
+
 def _trim_zeros_float(
     str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
     """
-    Trims zeros, leaving just one before the decimal points if need be.
+    Trims the maximum number of trailing zeros equally from
+    all numbers containing decimals, leaving just one if
+    necessary.
     """
     trimmed = str_floats
     number_regex = re.compile(fr"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")

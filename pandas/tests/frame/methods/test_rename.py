@@ -76,8 +76,8 @@ class TestRename:
     @pytest.mark.parametrize(
         "args,kwargs",
         [
-            ((ChainMap({"A": "a"}, {"B": "b"}),), dict(axis="columns")),
-            ((), dict(columns=ChainMap({"A": "a"}, {"B": "b"}))),
+            ((ChainMap({"A": "a"}, {"B": "b"}),), {"axis": "columns"}),
+            ((), {"columns": ChainMap({"A": "a"}, {"B": "b"})}),
         ],
     )
     def test_rename_chainmap(self, args, kwargs):

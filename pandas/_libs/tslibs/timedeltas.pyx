@@ -24,7 +24,7 @@ PyDateTime_IMPORT
 
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.base cimport ABCTimestamp
-from pandas._libs.tslibs.conversion cimport cast_from_unit
+from pandas._libs.tslibs.conversion cimport cast_from_unit, precision_from_unit
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -32,7 +32,10 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
     cmp_scalar,
+    get_datetime64_unit,
+    get_timedelta64_value,
     pandas_timedeltastruct,
     td64_to_tdstruct,
 )
@@ -44,6 +47,7 @@ from pandas._libs.tslibs.util cimport (
     is_integer_object,
     is_timedelta64_object,
 )
+from pandas._libs.tslibs.fields import RoundTo, round_nsint64
 
 # ----------------------------------------------------------------------
 # Constants
@@ -156,7 +160,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if isinstance(delta, _Timedelta):
         delta = delta.value
     if is_timedelta64_object(delta):
-        return delta.astype("timedelta64[ns]").item()
+        return get_timedelta64_value(ensure_td64ns(delta))
     if is_integer_object(delta):
         return delta
     if PyDelta_Check(delta):
@@ -167,6 +171,72 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
         ) * 1000
 
     raise TypeError(type(delta))
+
+
+cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
+    if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # generic -> default to nanoseconds
+        return "ns"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_us:
+        return "us"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_ms:
+        return "ms"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_s:
+        return "s"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_m:
+        return "m"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_h:
+        return "h"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_D:
+        return "D"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_W:
+        return "W"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_M:
+        return "M"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_Y:
+        return "Y"
+    else:
+        raise NotImplementedError(unit)
+
+
+@cython.overflowcheck(True)
+cdef object ensure_td64ns(object ts):
+    """
+    Overflow-safe implementation of td64.astype("m8[ns]")
+
+    Parameters
+    ----------
+    ts : np.timedelta64
+
+    Returns
+    -------
+    np.timedelta64[ns]
+    """
+    cdef:
+        NPY_DATETIMEUNIT td64_unit
+        int64_t td64_value, mult
+        str unitstr
+
+    td64_unit = get_datetime64_unit(ts)
+    if (
+        td64_unit != NPY_DATETIMEUNIT.NPY_FR_ns
+        and td64_unit != NPY_DATETIMEUNIT.NPY_FR_GENERIC
+    ):
+        unitstr = npy_unit_to_abbrev(td64_unit)
+
+        td64_value = get_timedelta64_value(ts)
+
+        mult = precision_from_unit(unitstr)[0]
+        try:
+            # NB: cython#1381 this cannot be *=
+            td64_value = td64_value * mult
+        except OverflowError as err:
+            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
+            raise OutOfBoundsTimedelta(ts)
+
+        return np.timedelta64(td64_value, "ns")
+
+    return ts
 
 
 cdef convert_to_timedelta64(object ts, str unit):
@@ -184,45 +254,41 @@ cdef convert_to_timedelta64(object ts, str unit):
     Return an ns based int64
     """
     if checknull_with_nat(ts):
-        return np.timedelta64(NPY_NAT)
+        return np.timedelta64(NPY_NAT, "ns")
     elif isinstance(ts, _Timedelta):
         # already in the proper format
-        ts = np.timedelta64(ts.value)
-    elif is_datetime64_object(ts):
-        # only accept a NaT here
-        if ts.astype('int64') == NPY_NAT:
-            return np.timedelta64(NPY_NAT)
+        ts = np.timedelta64(ts.value, "ns")
     elif is_timedelta64_object(ts):
-        ts = ts.astype(f"m8[{unit.lower()}]")
+        ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
-            return np.timedelta64(NPY_NAT)
+            return np.timedelta64(NPY_NAT, "ns")
         else:
-            if unit in ['Y', 'M', 'W']:
+            if unit in ["Y", "M", "W"]:
                 ts = np.timedelta64(ts, unit)
             else:
                 ts = cast_from_unit(ts, unit)
-                ts = np.timedelta64(ts)
+                ts = np.timedelta64(ts, "ns")
     elif is_float_object(ts):
-        if unit in ['Y', 'M', 'W']:
+        if unit in ["Y", "M", "W"]:
             ts = np.timedelta64(int(ts), unit)
         else:
             ts = cast_from_unit(ts, unit)
-            ts = np.timedelta64(ts)
+            ts = np.timedelta64(ts, "ns")
     elif isinstance(ts, str):
-        if len(ts) > 0 and ts[0] == 'P':
+        if len(ts) > 0 and ts[0] == "P":
             ts = parse_iso_format_string(ts)
         else:
             ts = parse_timedelta_string(ts)
-        ts = np.timedelta64(ts)
+        ts = np.timedelta64(ts, "ns")
     elif is_tick_object(ts):
-        ts = np.timedelta64(ts.nanos, 'ns')
+        ts = np.timedelta64(ts.nanos, "ns")
 
     if PyDelta_Check(ts):
-        ts = np.timedelta64(delta_to_nanoseconds(ts), 'ns')
+        ts = np.timedelta64(delta_to_nanoseconds(ts), "ns")
     elif not is_timedelta64_object(ts):
         raise ValueError(f"Invalid type for timedelta scalar: {type(ts)}")
-    return ts.astype('timedelta64[ns]')
+    return ts.astype("timedelta64[ns]")
 
 
 @cython.boundscheck(False)
@@ -1091,11 +1157,9 @@ cdef class _Timedelta(timedelta):
         >>> td.isoformat()
         'P6DT0H50M3.010010012S'
         >>> pd.Timedelta(hours=1, seconds=10).isoformat()
-        'P0DT0H0M10S'
-        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
-        'P0DT0H0M10S'
+        'P0DT1H0M10S'
         >>> pd.Timedelta(days=500.5).isoformat()
-        'P500DT12H0MS'
+        'P500DT12H0M0S'
         """
         components = self.components
         seconds = (f'{components.seconds}.'
@@ -1198,7 +1262,7 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(value):
             if unit is not None:
                 value = value.astype(f'timedelta64[{unit}]')
-            value = value.astype('timedelta64[ns]')
+            value = ensure_td64ns(value)
         elif is_tick_object(value):
             value = np.timedelta64(value.nanos, 'ns')
         elif is_integer_object(value) or is_float_object(value):
@@ -1234,14 +1298,18 @@ class Timedelta(_Timedelta):
         object_state = self.value,
         return (Timedelta, object_state)
 
-    def _round(self, freq, rounder):
+    @cython.cdivision(True)
+    def _round(self, freq, mode):
         cdef:
-            int64_t result, unit
+            int64_t result, unit, remainder
+            ndarray[int64_t] arr
 
         from pandas._libs.tslibs.offsets import to_offset
         unit = to_offset(freq).nanos
-        result = unit * rounder(self.value / float(unit))
-        return Timedelta(result, unit='ns')
+
+        arr = np.array([self.value], dtype="i8")
+        result = round_nsint64(arr, mode, unit)[0]
+        return Timedelta(result, unit="ns")
 
     def round(self, freq):
         """
@@ -1260,7 +1328,7 @@ class Timedelta(_Timedelta):
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.round)
+        return self._round(freq, RoundTo.NEAREST_HALF_EVEN)
 
     def floor(self, freq):
         """
@@ -1271,7 +1339,7 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the flooring resolution.
         """
-        return self._round(freq, np.floor)
+        return self._round(freq, RoundTo.MINUS_INFTY)
 
     def ceil(self, freq):
         """
@@ -1282,7 +1350,7 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the ceiling resolution.
         """
-        return self._round(freq, np.ceil)
+        return self._round(freq, RoundTo.PLUS_INFTY)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods

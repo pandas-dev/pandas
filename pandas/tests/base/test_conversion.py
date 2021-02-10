@@ -109,7 +109,7 @@ class TestToIterable:
         s = typ([1], dtype=dtype)
         result = s.map(type)[0]
         if not isinstance(rdtype, tuple):
-            rdtype = tuple([rdtype])
+            rdtype = (rdtype,)
         assert result in rdtype
 
     @pytest.mark.parametrize(
@@ -197,13 +197,13 @@ class TestToIterable:
             pd.DatetimeIndex(["2017", "2018"]),
             np.ndarray,
             "datetime64[ns]",
-            marks=[pytest.mark.xfail(reason="datetime _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="datetime _values")],
         ),
         pytest.param(
             pd.TimedeltaIndex([10 ** 10]),
             np.ndarray,
             "m8[ns]",
-            marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="timedelta _values")],
         ),
     ],
 )
@@ -240,8 +240,8 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     [
         (pd.Categorical(["a", "b"]), "_codes"),
         (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
-        (pd.core.arrays.integer_array([0, np.nan]), "_data"),
-        (IntervalArray.from_breaks([0, 1]), "_combined"),
+        (pd.array([0, np.nan], dtype="Int64"), "_data"),
+        (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
         (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
         # tz-aware Datetime
@@ -285,7 +285,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (pd.core.arrays.integer_array([0, np.nan]), np.array([0, pd.NA], dtype=object)),
+        (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -316,16 +316,33 @@ def test_array_multiindex_raises():
             TimedeltaArray(np.array([0, 3600000000000], dtype="i8"), freq="H"),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),
+        # GH#26406 tz is preserved in Categorical[dt64tz]
+        (
+            pd.Categorical(pd.date_range("2016-01-01", periods=2, tz="US/Pacific")),
+            np.array(
+                [
+                    Timestamp("2016-01-01", tz="US/Pacific"),
+                    Timestamp("2016-01-02", tz="US/Pacific"),
+                ]
+            ),
+        ),
     ],
 )
-def test_to_numpy(array, expected, index_or_series):
-    box = index_or_series
+def test_to_numpy(array, expected, index_or_series_or_array, request):
+    box = index_or_series_or_array
     thing = box(array)
 
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
         pytest.skip(f"No index type for {array.dtype}")
 
+    if array.dtype.name == "int64" and box is pd.array:
+        mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
+        request.node.add_marker(mark)
+
     result = thing.to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = np.asarray(thing)
     tm.assert_numpy_array_equal(result, expected)
 
 

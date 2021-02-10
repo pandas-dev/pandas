@@ -210,6 +210,12 @@ class TestMultiIndexSetItem:
         with pytest.raises(ValueError, match=msg):
             df.loc[4, "c"] = [0]
 
+        # But with a length-1 listlike column indexer this behaves like
+        #  `df.loc[4, "c"] = 0
+        df.loc[4, ["c"]] = [0]
+        assert (df.loc[4, "c"] == 0).all()
+
+    def test_groupby_example(self):
         # groupby example
         NUM_ROWS = 100
         NUM_COLS = 10

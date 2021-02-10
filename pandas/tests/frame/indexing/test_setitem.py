@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.base import registry as ea_registry
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 from pandas import (
@@ -181,7 +182,7 @@ class TestDataFrameSetItem:
         "obj,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -196,6 +197,25 @@ class TestDataFrameSetItem:
         df["obj"] = obj
 
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "ea_name",
+        [
+            dtype.name
+            for dtype in ea_registry.dtypes
+            # property would require instantiation
+            if not isinstance(dtype.name, property)
+        ]
+        # mypy doesn't allow adding lists of different types
+        # https://github.com/python/mypy/issues/5492
+        + ["datetime64[ns, UTC]", "period[D]"],  # type: ignore[list-item]
+    )
+    def test_setitem_with_ea_name(self, ea_name):
+        # GH 38386
+        result = DataFrame([0])
+        result[ea_name] = [1]
+        expected = DataFrame({0: [0], ea_name: [1]})
+        tm.assert_frame_equal(result, expected)
 
     def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
         # GH#7492
@@ -288,6 +308,126 @@ class TestDataFrameSetItem:
         rs = df.reset_index().set_index("index")
         assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
+
+    def test_setitem_complete_column_with_array(self):
+        # GH#37954
+        df = DataFrame({"a": ["one", "two", "three"], "b": [1, 2, 3]})
+        arr = np.array([[1, 1], [3, 1], [5, 1]])
+        df[["c", "d"]] = arr
+        expected = DataFrame(
+            {
+                "a": ["one", "two", "three"],
+                "b": [1, 2, 3],
+                "c": [1, 3, 5],
+                "d": [1, 1, 1],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_setitem_bool_with_numeric_index(self, dtype):
+        # GH#36319
+        cols = Index([1, 2, 3], dtype=dtype)
+        df = DataFrame(np.random.randn(3, 3), columns=cols)
+
+        df[False] = ["a", "b", "c"]
+
+        expected_cols = Index([1, 2, 3, False], dtype=object)
+        if dtype == "f8":
+            expected_cols = Index([1.0, 2.0, 3.0, False], dtype=object)
+
+        tm.assert_index_equal(df.columns, expected_cols)
+
+    @pytest.mark.parametrize("indexer", ["B", ["B"]])
+    def test_setitem_frame_length_0_str_key(self, indexer):
+        # GH#38831
+        df = DataFrame(columns=["A", "B"])
+        other = DataFrame({"B": [1, 2]})
+        df[indexer] = other
+        expected = DataFrame({"A": [np.nan] * 2, "B": [1, 2]})
+        expected["A"] = expected["A"].astype("object")
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_frame_duplicate_columns(self):
+        # GH#15695
+        cols = ["A", "B", "C"] * 2
+        df = DataFrame(index=range(3), columns=cols)
+        df.loc[0, "A"] = (0, 3)
+        df.loc[:, "B"] = (1, 4)
+        df["C"] = (2, 5)
+        expected = DataFrame(
+            [
+                [0, 1, 2, 3, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+            ],
+            columns=cols,
+            dtype="object",
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
+    def test_setitem_df_wrong_column_number(self, cols):
+        # GH#38604
+        df = DataFrame([[1, 2, 3]], columns=cols)
+        rhs = DataFrame([[10, 11]], columns=["d", "e"])
+        msg = "Columns must be same length as key"
+        with pytest.raises(ValueError, match=msg):
+            df["a"] = rhs
+
+    def test_setitem_listlike_indexer_duplicate_columns(self):
+        # GH#38604
+        df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
+        rhs = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
+        df[["a", "b"]] = rhs
+        expected = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
+        tm.assert_frame_equal(df, expected)
+
+        df[["c", "b"]] = rhs
+        expected = DataFrame([[10, 11, 12, 10]], columns=["a", "b", "b", "c"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_listlike_indexer_duplicate_columns_not_equal_length(self):
+        # GH#39403
+        df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
+        rhs = DataFrame([[10, 11]], columns=["a", "b"])
+        msg = "Columns must be same length as key"
+        with pytest.raises(ValueError, match=msg):
+            df[["a", "b"]] = rhs
+
+
+class TestDataFrameSetItemWithExpansion:
+    def test_setitem_listlike_views(self):
+        # GH#38148
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
+
+        # get one column as a view of df
+        ser = df["a"]
+
+        # add columns with list-like indexer
+        df[["c", "d"]] = np.array([[0.1, 0.2], [0.3, 0.4], [0.4, 0.5]])
+
+        # edit in place the first column to check view semantics
+        df.iloc[0, 0] = 100
+
+        expected = Series([100, 2, 3], name="a")
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_string_column_numpy_dtype_raising(self):
+        # GH#39010
+        df = DataFrame([[1, 2], [3, 4]])
+        df["0 - Name"] = [5, 6]
+        expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_empty_df_duplicate_columns(self):
+        # GH#38521
+        df = DataFrame(columns=["a", "b", "b"], dtype="float64")
+        df.loc[:, "a"] = list(range(2))
+        expected = DataFrame(
+            [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:

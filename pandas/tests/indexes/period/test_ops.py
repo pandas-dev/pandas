@@ -278,46 +278,12 @@ class TestPeriodIndexOps:
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         assert idx.hasnans is False
-        tm.assert_numpy_array_equal(idx._nan_idxs, np.array([], dtype=np.intp))
 
         idx = PeriodIndex(["2011-01-01", "NaT"], freq="D")
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
         assert idx.hasnans is True
-        tm.assert_numpy_array_equal(idx._nan_idxs, np.array([1], dtype=np.intp))
-
-    @pytest.mark.parametrize("freq", ["D", "M"])
-    def test_equals(self, freq):
-        # GH#13107
-        idx = PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq=freq)
-        assert idx.equals(idx)
-        assert idx.equals(idx.copy())
-        assert idx.equals(idx.astype(object))
-        assert idx.astype(object).equals(idx)
-        assert idx.astype(object).equals(idx.astype(object))
-        assert not idx.equals(list(idx))
-        assert not idx.equals(Series(idx))
-
-        idx2 = PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq="H")
-        assert not idx.equals(idx2)
-        assert not idx.equals(idx2.copy())
-        assert not idx.equals(idx2.astype(object))
-        assert not idx.astype(object).equals(idx2)
-        assert not idx.equals(list(idx2))
-        assert not idx.equals(Series(idx2))
-
-        # same internal, different tz
-        idx3 = PeriodIndex._simple_new(
-            idx._values._simple_new(idx._values.asi8, freq="H")
-        )
-        tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-        assert not idx.equals(idx3)
-        assert not idx.equals(idx3.copy())
-        assert not idx.equals(idx3.astype(object))
-        assert not idx.astype(object).equals(idx3)
-        assert not idx.equals(list(idx3))
-        assert not idx.equals(Series(idx3))
 
     def test_freq_setter_deprecated(self):
         # GH 20678

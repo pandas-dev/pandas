@@ -610,7 +610,7 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
    pd.Timestamp('2012-01-01') - ser
 
 
-``NaT.isoformat()`` now returns ``'NaT'``. This change allows allows
+``NaT.isoformat()`` now returns ``'NaT'``. This change allows
 ``pd.Timestamp`` to rehydrate any timestamp like object from its isoformat
 (:issue:`12300`).
 

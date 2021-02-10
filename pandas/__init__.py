@@ -19,7 +19,7 @@ if missing_dependencies:
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
-from pandas.compat.numpy import (
+from pandas.compat import (
     np_version_under1p17 as _np_version_under1p17,
     np_version_under1p18 as _np_version_under1p18,
     is_numpy_dev as _is_numpy_dev,
@@ -180,7 +180,7 @@ import pandas.testing
 import pandas.arrays
 
 # use the closest tagged version if possible
-from ._version import get_versions
+from pandas._version import get_versions
 
 v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
@@ -189,25 +189,10 @@ del get_versions, v
 
 
 # GH 27101
-# TODO: remove Panel compat in 1.0
 def __getattr__(name):
     import warnings
 
-    if name == "Panel":
-
-        warnings.warn(
-            "The Panel class is removed from pandas. Accessing it "
-            "from the top-level namespace will also be removed in the next version",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        class Panel:
-            pass
-
-        return Panel
-
-    elif name == "datetime":
+    if name == "datetime":
         warnings.warn(
             "The pandas.datetime class is deprecated "
             "and will be removed from pandas in a future version. "

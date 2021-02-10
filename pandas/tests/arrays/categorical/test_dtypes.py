@@ -127,7 +127,7 @@ class TestCategoricalDtypes:
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
-        msg = r"Cannot cast object dtype to <class 'float'>"
+        msg = r"Cannot cast object dtype to float64"
         with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
@@ -138,7 +138,7 @@ class TestCategoricalDtypes:
         tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(int)
-        expected = np.array(cat, dtype="int64")
+        expected = np.array(cat, dtype="int")
         tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(float)

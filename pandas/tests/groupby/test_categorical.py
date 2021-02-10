@@ -33,39 +33,37 @@ def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
     return result.reindex(index, fill_value=fill_value).sort_index()
 
 
-_results_for_groupbys_with_missing_categories = dict(
+_results_for_groupbys_with_missing_categories = {
     # This maps the builtin groupby functions to their expected outputs for
     # missing categories when they are called on a categorical grouper with
     # observed=False. Some functions are expected to return NaN, some zero.
     # These expected values can be used across several tests (i.e. they are
     # the same for SeriesGroupBy and DataFrameGroupBy) but they should only be
     # hardcoded in one place.
-    [
-        ("all", np.NaN),
-        ("any", np.NaN),
-        ("count", 0),
-        ("corrwith", np.NaN),
-        ("first", np.NaN),
-        ("idxmax", np.NaN),
-        ("idxmin", np.NaN),
-        ("last", np.NaN),
-        ("mad", np.NaN),
-        ("max", np.NaN),
-        ("mean", np.NaN),
-        ("median", np.NaN),
-        ("min", np.NaN),
-        ("nth", np.NaN),
-        ("nunique", 0),
-        ("prod", np.NaN),
-        ("quantile", np.NaN),
-        ("sem", np.NaN),
-        ("size", 0),
-        ("skew", np.NaN),
-        ("std", np.NaN),
-        ("sum", 0),
-        ("var", np.NaN),
-    ]
-)
+    "all": np.NaN,
+    "any": np.NaN,
+    "count": 0,
+    "corrwith": np.NaN,
+    "first": np.NaN,
+    "idxmax": np.NaN,
+    "idxmin": np.NaN,
+    "last": np.NaN,
+    "mad": np.NaN,
+    "max": np.NaN,
+    "mean": np.NaN,
+    "median": np.NaN,
+    "min": np.NaN,
+    "nth": np.NaN,
+    "nunique": 0,
+    "prod": np.NaN,
+    "quantile": np.NaN,
+    "sem": np.NaN,
+    "size": 0,
+    "skew": np.NaN,
+    "std": np.NaN,
+    "sum": 0,
+    "var": np.NaN,
+}
 
 
 def test_apply_use_categorical_name(df):
@@ -1151,7 +1149,7 @@ def df_cat(df):
 
 
 @pytest.mark.parametrize(
-    "operation, kwargs", [("agg", dict(dtype="category")), ("apply", dict())]
+    "operation, kwargs", [("agg", {"dtype": "category"}), ("apply", {})]
 )
 def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     # GH 24880
@@ -1680,3 +1678,23 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     df_grp = df.groupby(["a", "b"], observed=observed)
     result = getattr(df_grp, func)()
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_categorical_indices_unused_categories():
+    # GH#38642
+    df = DataFrame(
+        {
+            "key": Categorical(["b", "b", "a"], categories=["a", "b", "c"]),
+            "col": range(3),
+        }
+    )
+    grouped = df.groupby("key", sort=False)
+    result = grouped.indices
+    expected = {
+        "b": np.array([0, 1], dtype="int64"),
+        "a": np.array([2], dtype="int64"),
+        "c": np.array([], dtype="int64"),
+    }
+    assert result.keys() == expected.keys()
+    for key in result.keys():
+        tm.assert_numpy_array_equal(result[key], expected[key])

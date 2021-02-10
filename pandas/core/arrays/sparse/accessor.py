@@ -329,22 +329,22 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
 
-        dtype = find_common_type(self._parent.dtypes)
+        dtype = find_common_type(self._parent.dtypes.to_list())
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
 
-        cols, rows, datas = [], [], []
+        cols, rows, data = [], [], []
         for col, name in enumerate(self._parent):
             s = self._parent[name]
             row = s.array.sp_index.to_int_index().indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            datas.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(s.array.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
-        datas = np.concatenate(datas)
-        return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
+        data = np.concatenate(data)
+        return coo_matrix((data, (rows, cols)), shape=self._parent.shape)
 
     @property
     def density(self) -> float:

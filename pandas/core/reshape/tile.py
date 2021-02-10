@@ -135,12 +135,12 @@ def cut(
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3)
     ... # doctest: +ELLIPSIS
     [(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
-    Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
+    Categories (3, interval[float64, right]): [(0.994, 3.0] < (3.0, 5.0] ...
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, retbins=True)
     ... # doctest: +ELLIPSIS
     ([(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
-    Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
+    Categories (3, interval[float64, right]): [(0.994, 3.0] < (3.0, 5.0] ...
     array([0.994, 3.   , 5.   , 7.   ]))
 
     Discovers the same bins, but assign them specific labels. Notice that
@@ -176,7 +176,7 @@ def cut(
     d     (7.333, 10.0]
     e     (7.333, 10.0]
     dtype: category
-    Categories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...
+    Categories (3, interval[float64, right]): [(1.992, 4.667] < (4.667, ...
 
     Passing a Series as an input returns a Series with mapping value.
     It is used to map numerically to intervals based on bins.
@@ -214,7 +214,7 @@ def cut(
     >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
-    Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
+    Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -336,7 +336,7 @@ def qcut(
     >>> pd.qcut(range(5), 4)
     ... # doctest: +ELLIPSIS
     [(-0.001, 1.0], (-0.001, 1.0], (1.0, 2.0], (2.0, 3.0], (3.0, 4.0]]
-    Categories (4, interval[float64]): [(-0.001, 1.0] < (1.0, 2.0] ...
+    Categories (4, interval[float64, right]): [(-0.001, 1.0] < (1.0, 2.0] ...
 
     >>> pd.qcut(range(5), 3, labels=["good", "medium", "bad"])
     ... # doctest: +SKIP

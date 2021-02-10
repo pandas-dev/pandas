@@ -56,8 +56,8 @@ class TestXSWithMultiIndex:
         mi = MultiIndex.from_tuples(
             [("a", "x"), ("a", "y"), ("b", "x")], names=["level1", "level2"]
         )
-        df = Series([1, 1, 1], index=mi)
-        result = df.xs("a", axis=0, drop_level=False)
+        ser = Series([1, 1, 1], index=mi)
+        result = ser.xs("a", axis=0, drop_level=False)
         expected = Series(
             [1, 1],
             index=MultiIndex.from_tuples(

@@ -86,7 +86,7 @@ class Indexing:
         self.index.get_loc(self.period)
 
     def time_shallow_copy(self):
-        self.index._shallow_copy()
+        self.index._view()
 
     def time_series_loc(self):
         self.series.loc[self.period]

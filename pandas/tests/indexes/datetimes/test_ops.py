@@ -34,7 +34,7 @@ class TestDatetimeIndexOps:
                 getattr(datetime_series, op)
 
         # attribute access should still work!
-        s = Series(dict(year=2000, month=1, day=10))
+        s = Series({"year": 2000, "month": 1, "day": 10})
         assert s.year == 2000
         assert s.month == 1
         assert s.day == 10
@@ -50,7 +50,7 @@ class TestDatetimeIndexOps:
         assert result.freq is None
         assert len(result) == 5 * len(rng)
 
-        index = pd.date_range("2001-01-01", periods=2, freq="D", tz=tz)
+        index = date_range("2001-01-01", periods=2, freq="D", tz=tz)
         exp = DatetimeIndex(
             ["2001-01-01", "2001-01-01", "2001-01-02", "2001-01-02"], tz=tz
         )
@@ -58,7 +58,7 @@ class TestDatetimeIndexOps:
             tm.assert_index_equal(res, exp)
             assert res.freq is None
 
-        index = pd.date_range("2001-01-01", periods=2, freq="2D", tz=tz)
+        index = date_range("2001-01-01", periods=2, freq="2D", tz=tz)
         exp = DatetimeIndex(
             ["2001-01-01", "2001-01-01", "2001-01-03", "2001-01-03"], tz=tz
         )
@@ -90,7 +90,7 @@ class TestDatetimeIndexOps:
         reps = 2
         msg = "the 'axis' parameter is not supported"
 
-        rng = pd.date_range(start="2016-01-01", periods=2, freq="30Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=2, freq="30Min", tz=tz)
 
         expected_rng = DatetimeIndex(
             [
@@ -123,22 +123,24 @@ class TestDatetimeIndexOps:
             ("U", "microsecond"),
         ],
     )
-    def test_resolution(self, tz_naive_fixture, freq, expected):
+    def test_resolution(self, request, tz_naive_fixture, freq, expected):
         tz = tz_naive_fixture
         if freq == "A" and not IS64 and isinstance(tz, tzlocal):
-            pytest.xfail(reason="OverflowError inside tzlocal past 2038")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
+            )
 
-        idx = pd.date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
+        idx = date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
         assert idx.resolution == expected
 
     def test_value_counts_unique(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 7735
-        idx = pd.date_range("2011-01-01 09:00", freq="H", periods=10)
+        idx = date_range("2011-01-01 09:00", freq="H", periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
         idx = DatetimeIndex(np.repeat(idx.values, range(1, len(idx) + 1)), tz=tz)
 
-        exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
+        exp_idx = date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
         expected.index = expected.index._with_freq(None)
 
@@ -146,7 +148,7 @@ class TestDatetimeIndexOps:
 
             tm.assert_series_equal(obj.value_counts(), expected)
 
-        expected = pd.date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
+        expected = date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
         expected = expected._with_freq(None)
         tm.assert_index_equal(idx.unique(), expected)
 
@@ -261,7 +263,7 @@ class TestDatetimeIndexOps:
 
     def test_drop_duplicates_metadata(self, freq_sample):
         # GH 10115
-        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
+        idx = date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -287,7 +289,7 @@ class TestDatetimeIndexOps:
     )
     def test_drop_duplicates(self, freq_sample, keep, expected, index):
         # to check Index/Series compat
-        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
+        idx = date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
         idx = idx.append(idx[:5])
 
         tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
@@ -301,7 +303,7 @@ class TestDatetimeIndexOps:
 
     def test_infer_freq(self, freq_sample):
         # GH 11018
-        idx = pd.date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
+        idx = date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
         result = DatetimeIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
@@ -314,57 +316,13 @@ class TestDatetimeIndexOps:
         idx = DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
         assert idx._can_hold_na
 
-        tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         assert idx.hasnans is False
-        tm.assert_numpy_array_equal(idx._nan_idxs, np.array([], dtype=np.intp))
 
         idx = DatetimeIndex(["2011-01-01", "NaT"], tz=tz)
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
         assert idx.hasnans is True
-        tm.assert_numpy_array_equal(idx._nan_idxs, np.array([1], dtype=np.intp))
-
-    def test_equals(self):
-        # GH 13107
-        idx = DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"])
-        assert idx.equals(idx)
-        assert idx.equals(idx.copy())
-        assert idx.equals(idx.astype(object))
-        assert idx.astype(object).equals(idx)
-        assert idx.astype(object).equals(idx.astype(object))
-        assert not idx.equals(list(idx))
-        assert not idx.equals(Series(idx))
-
-        idx2 = DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"], tz="US/Pacific")
-        assert not idx.equals(idx2)
-        assert not idx.equals(idx2.copy())
-        assert not idx.equals(idx2.astype(object))
-        assert not idx.astype(object).equals(idx2)
-        assert not idx.equals(list(idx2))
-        assert not idx.equals(Series(idx2))
-
-        # same internal, different tz
-        idx3 = DatetimeIndex(idx.asi8, tz="US/Pacific")
-        tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-        assert not idx.equals(idx3)
-        assert not idx.equals(idx3.copy())
-        assert not idx.equals(idx3.astype(object))
-        assert not idx.astype(object).equals(idx3)
-        assert not idx.equals(list(idx3))
-        assert not idx.equals(Series(idx3))
-
-        # check that we do not raise when comparing with OutOfBounds objects
-        oob = Index([datetime(2500, 1, 1)] * 3, dtype=object)
-        assert not idx.equals(oob)
-        assert not idx2.equals(oob)
-        assert not idx3.equals(oob)
-
-        # check that we do not raise when comparing with OutOfBounds dt64
-        oob2 = oob.map(np.datetime64)
-        assert not idx.equals(oob2)
-        assert not idx2.equals(oob2)
-        assert not idx3.equals(oob2)
 
     @pytest.mark.parametrize("values", [["20180101", "20180103", "20180105"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "2B", BDay(2), "48H", Hour(48)])
@@ -402,7 +360,7 @@ class TestDatetimeIndexOps:
         # Setting the freq for one DatetimeIndex shouldn't alter the freq
         #  for another that views the same data
 
-        dti = pd.date_range("2016-01-01", periods=5)
+        dti = date_range("2016-01-01", periods=5)
         dta = dti._data
 
         dti2 = DatetimeIndex(dta)._with_freq(None)
@@ -428,9 +386,6 @@ class TestBusinessDatetimeIndex:
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_equals(self):
-        assert not self.rng.equals(list(self.rng))
 
     def test_identical(self):
         t1 = self.rng.copy()
@@ -465,6 +420,3 @@ class TestCustomDatetimeIndex:
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_equals(self):
-        assert not self.rng.equals(list(self.rng))

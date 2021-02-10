@@ -126,7 +126,7 @@ However, operations such as slicing will also slice the index.
 .. note::
 
    We will address array-based indexing like ``s[[4, 3, 1]]``
-   in :ref:`section <indexing>`.
+   in :ref:`section on indexing <indexing>`.
 
 Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
 
@@ -439,7 +439,7 @@ Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>
 can be passed into the DataFrame constructor.
 Passing a list of dataclasses is equivalent to passing a list of dictionaries.
 
-Please be aware, that that all values in the list should be dataclasses, mixing
+Please be aware, that all values in the list should be dataclasses, mixing
 types in the list would result in a TypeError.
 
 .. ipython:: python

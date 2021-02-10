@@ -122,41 +122,45 @@ class TestS3:
         # Read with a chunksize
         chunksize = 5
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
-            df_reader = read_csv(
+            with read_csv(
                 "s3://pandas-test/tips.csv" + ext,
                 chunksize=chunksize,
                 compression=comp,
                 storage_options=s3so,
-            )
-            assert df_reader.chunksize == chunksize
-            for i_chunk in [0, 1, 2]:
-                # Read a couple of chunks and make sure we see them
-                # properly.
-                df = df_reader.get_chunk()
-                assert isinstance(df, DataFrame)
-                assert not df.empty
-                true_df = tips_df.iloc[chunksize * i_chunk : chunksize * (i_chunk + 1)]
-                tm.assert_frame_equal(true_df, df)
+            ) as df_reader:
+                assert df_reader.chunksize == chunksize
+                for i_chunk in [0, 1, 2]:
+                    # Read a couple of chunks and make sure we see them
+                    # properly.
+                    df = df_reader.get_chunk()
+                    assert isinstance(df, DataFrame)
+                    assert not df.empty
+                    true_df = tips_df.iloc[
+                        chunksize * i_chunk : chunksize * (i_chunk + 1)
+                    ]
+                    tm.assert_frame_equal(true_df, df)
 
     def test_parse_public_s3_bucket_chunked_python(self, tips_df, s3so):
         # Read with a chunksize using the Python parser
         chunksize = 5
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
-            df_reader = read_csv(
+            with read_csv(
                 "s3://pandas-test/tips.csv" + ext,
                 chunksize=chunksize,
                 compression=comp,
                 engine="python",
                 storage_options=s3so,
-            )
-            assert df_reader.chunksize == chunksize
-            for i_chunk in [0, 1, 2]:
-                # Read a couple of chunks and make sure we see them properly.
-                df = df_reader.get_chunk()
-                assert isinstance(df, DataFrame)
-                assert not df.empty
-                true_df = tips_df.iloc[chunksize * i_chunk : chunksize * (i_chunk + 1)]
-                tm.assert_frame_equal(true_df, df)
+            ) as df_reader:
+                assert df_reader.chunksize == chunksize
+                for i_chunk in [0, 1, 2]:
+                    # Read a couple of chunks and make sure we see them properly.
+                    df = df_reader.get_chunk()
+                    assert isinstance(df, DataFrame)
+                    assert not df.empty
+                    true_df = tips_df.iloc[
+                        chunksize * i_chunk : chunksize * (i_chunk + 1)
+                    ]
+                    tm.assert_frame_equal(true_df, df)
 
     def test_parse_public_s3_bucket_python(self, tips_df, s3so):
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
@@ -196,14 +200,16 @@ class TestS3:
             tm.assert_frame_equal(tips_df.iloc[:10], df)
 
     def test_read_s3_fails(self, s3so):
-        with pytest.raises(IOError):
+        msg = "The specified bucket does not exist"
+        with pytest.raises(IOError, match=msg):
             read_csv("s3://nyqpug/asdf.csv", storage_options=s3so)
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with pytest.raises(IOError):
+        with pytest.raises(IOError, match=msg):
             read_csv("s3://cant_get_it/file.csv")
 
+    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     def test_write_s3_csv_fails(self, tips_df, s3so):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
@@ -219,6 +225,7 @@ class TestS3:
                 "s3://an_s3_bucket_data_doesnt_exit/not_real.csv", storage_options=s3so
             )
 
+    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df, s3so):
         # GH 27679

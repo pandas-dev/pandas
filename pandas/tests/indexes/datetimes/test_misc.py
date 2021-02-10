@@ -14,7 +14,7 @@ import pandas._testing as tm
 class TestTimeSeries:
     def test_range_edges(self):
         # GH#13672
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000000001"),
             end=Timestamp("1970-01-01 00:00:00.000000004"),
             freq="N",
@@ -30,7 +30,7 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000000004"),
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
@@ -38,7 +38,7 @@ class TestTimeSeries:
         exp = DatetimeIndex([], freq="N")
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000000001"),
             end=Timestamp("1970-01-01 00:00:00.000000001"),
             freq="N",
@@ -46,7 +46,7 @@ class TestTimeSeries:
         exp = DatetimeIndex(["1970-01-01 00:00:00.000000001"], freq="N")
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.000001"),
             end=Timestamp("1970-01-01 00:00:00.000004"),
             freq="U",
@@ -62,7 +62,7 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:00.001"),
             end=Timestamp("1970-01-01 00:00:00.004"),
             freq="L",
@@ -78,7 +78,7 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:00:01"),
             end=Timestamp("1970-01-01 00:00:04"),
             freq="S",
@@ -94,7 +94,7 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 00:01"),
             end=Timestamp("1970-01-01 00:04"),
             freq="T",
@@ -110,7 +110,7 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01 01:00"),
             end=Timestamp("1970-01-01 04:00"),
             freq="H",
@@ -126,7 +126,7 @@ class TestTimeSeries:
         )
         tm.assert_index_equal(idx, exp)
 
-        idx = pd.date_range(
+        idx = date_range(
             start=Timestamp("1970-01-01"), end=Timestamp("1970-01-04"), freq="D"
         )
         exp = DatetimeIndex(
@@ -137,9 +137,9 @@ class TestTimeSeries:
 
 class TestDatetime64:
     def test_datetimeindex_accessors(self):
-        dti_naive = pd.date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
+        dti_naive = date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
         # GH#13303
-        dti_tz = pd.date_range(
+        dti_tz = date_range(
             freq="D", start=datetime(1998, 1, 1), periods=365, tz="US/Eastern"
         )
         for dti in [dti_naive, dti_tz]:
@@ -227,7 +227,7 @@ class TestDatetime64:
             exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name")
             tm.assert_index_equal(res, exp)
 
-        dti = pd.date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
+        dti = date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
 
         assert sum(dti.is_quarter_start) == 0
         assert sum(dti.is_quarter_end) == 4
@@ -329,7 +329,7 @@ class TestDatetime64:
                 expected_months = calendar.month_name[1:]
 
         # GH#11128
-        dti = pd.date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
+        dti = date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
         english_days = [
             "Monday",
             "Tuesday",
@@ -350,7 +350,7 @@ class TestDatetime64:
         assert np.isnan(ts.day_name(locale=time_locale))
 
         # GH#12805
-        dti = pd.date_range(freq="M", start="2012", end="2013")
+        dti = date_range(freq="M", start="2012", end="2013")
         result = dti.month_name(locale=time_locale)
         expected = Index([month.capitalize() for month in expected_months])
 
@@ -388,7 +388,7 @@ def test_iter_readonly():
 
 def test_week_and_weekofyear_are_deprecated():
     # GH#33595 Deprecate week and weekofyear
-    idx = pd.date_range(start="2019-12-29", freq="D", periods=4)
+    idx = date_range(start="2019-12-29", freq="D", periods=4)
     with tm.assert_produces_warning(FutureWarning):
         idx.week
     with tm.assert_produces_warning(FutureWarning):

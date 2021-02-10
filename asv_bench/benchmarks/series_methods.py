@@ -2,7 +2,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import NaT, Series, date_range
+from pandas import Categorical, NaT, Series, date_range
 
 from .pandas_vb_common import tm
 
@@ -25,33 +25,76 @@ class SeriesConstructor:
 
 class IsIn:
 
-    params = ["int64", "uint64", "object"]
+    params = ["int64", "uint64", "object", "Int64"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        self.s = Series(np.random.randint(1, 10, 100000)).astype(dtype)
+        N = 10000
+        self.s = Series(np.random.randint(1, 10, N)).astype(dtype)
         self.values = [1, 2]
 
     def time_isin(self, dtypes):
         self.s.isin(self.values)
 
 
-class IsInFloat64:
-    def setup(self):
-        self.small = Series([1, 2], dtype=np.float64)
-        self.many_different_values = np.arange(10 ** 6, dtype=np.float64)
-        self.few_different_values = np.zeros(10 ** 7, dtype=np.float64)
-        self.only_nans_values = np.full(10 ** 7, np.nan, dtype=np.float64)
+class IsInBoolean:
 
-    def time_isin_many_different(self):
+    params = ["boolean", "bool"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10000
+        self.s = Series(np.random.randint(0, 2, N)).astype(dtype)
+        self.values = [True, False]
+
+    def time_isin(self, dtypes):
+        self.s.isin(self.values)
+
+
+class IsInDatetime64:
+    def setup(self):
+        dti = date_range(
+            start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
+        )
+        self.ser = Series(dti)
+        self.subset = self.ser._values[::3]
+        self.cat_subset = Categorical(self.subset)
+
+    def time_isin(self):
+        self.ser.isin(self.subset)
+
+    def time_isin_cat_values(self):
+        self.ser.isin(self.cat_subset)
+
+    def time_isin_mismatched_dtype(self):
+        self.ser.isin([1, 2])
+
+    def time_isin_empty(self):
+        self.ser.isin([])
+
+
+class IsInFloat64:
+
+    params = [np.float64, "Float64"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N_many = 10 ** 5
+        N_few = 10 ** 6
+        self.small = Series([1, 2], dtype=dtype)
+        self.many_different_values = np.arange(N_many, dtype=np.float64)
+        self.few_different_values = np.zeros(N_few, dtype=np.float64)
+        self.only_nans_values = np.full(N_few, np.nan, dtype=np.float64)
+
+    def time_isin_many_different(self, dtypes):
         # runtime is dominated by creation of the lookup-table
         self.small.isin(self.many_different_values)
 
-    def time_isin_few_different(self):
+    def time_isin_few_different(self, dtypes):
         # runtime is dominated by creation of the lookup-table
         self.small.isin(self.few_different_values)
 
-    def time_isin_nan_values(self):
+    def time_isin_nan_values(self, dtypes):
         # runtime is dominated by creation of the lookup-table
         self.small.isin(self.few_different_values)
 
@@ -65,8 +108,8 @@ class IsInForObjects:
         self.vals_short = np.arange(2).astype(object)
         self.vals_long = np.arange(10 ** 5).astype(object)
         # because of nans floats are special:
-        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(object)
-        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(object)
+        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float_)).astype(object)
+        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float_).astype(object)
 
     def time_isin_nans(self):
         # if nan-objects are different objects,
@@ -92,7 +135,7 @@ class IsInForObjects:
 
 class IsInLongSeriesLookUpDominates:
     params = [
-        ["int64", "int32", "float64", "float32", "object"],
+        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
         [5, 1000],
         ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
@@ -119,7 +162,7 @@ class IsInLongSeriesLookUpDominates:
 
 class IsInLongSeriesValuesDominate:
     params = [
-        ["int64", "int32", "float64", "float32", "object"],
+        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
         ["random", "monotone"],
     ]
     param_names = ["dtype", "series_type"]
@@ -241,14 +284,27 @@ class Clip:
 
 class ValueCounts:
 
-    params = ["int", "uint", "float", "object"]
-    param_names = ["dtype"]
+    params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
+    param_names = ["N", "dtype"]
 
-    def setup(self, dtype):
-        self.s = Series(np.random.randint(0, 1000, size=100000)).astype(dtype)
+    def setup(self, N, dtype):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
 
-    def time_value_counts(self, dtype):
+    def time_value_counts(self, N, dtype):
         self.s.value_counts()
+
+
+class Mode:
+
+    params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
+    param_names = ["N", "dtype"]
+
+    def setup(self, N, dtype):
+        np.random.seed(42)
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
+
+    def time_mode(self, N, dtype):
+        self.s.mode()
 
 
 class Dir:
@@ -262,7 +318,7 @@ class Dir:
 class SeriesGetattr:
     # https://github.com/pandas-dev/pandas/issues/19764
     def setup(self):
-        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=int(1e6)))
+        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=10 ** 6))
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, "a", None)
@@ -325,6 +381,20 @@ class NanOps:
 
     def time_func(self, func, N, dtype):
         self.func()
+
+
+class Rank:
+
+    param_names = ["dtype"]
+    params = [
+        ["int", "uint", "float", "object"],
+    ]
+
+    def setup(self, dtype):
+        self.s = Series(np.random.randint(0, 1000, size=100000), dtype=dtype)
+
+    def time_rank(self, dtype):
+        self.s.rank()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

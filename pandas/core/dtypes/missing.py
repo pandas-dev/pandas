@@ -29,12 +29,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_string_like_dtype,
     needs_i8_conversion,
-    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCSeries,
 )
@@ -156,7 +155,7 @@ def _isna(obj, inf_as_na: bool = False):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)):
         return _isna_ndarraylike(obj, inf_as_na=inf_as_na)
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
@@ -358,8 +357,8 @@ def isna_compat(arr, fill_value=np.nan) -> bool:
     -------
     True if we can fill using this fill_value
     """
-    dtype = arr.dtype
     if isna(fill_value):
+        dtype = arr.dtype
         return not (is_bool_dtype(dtype) or is_integer_dtype(dtype))
     return True
 
@@ -447,9 +446,10 @@ def array_equivalent(
         right = right.view("i8")
 
     # if we have structured dtypes, compare first
-    if left.dtype.type is np.void or right.dtype.type is np.void:
-        if left.dtype != right.dtype:
-            return False
+    if (
+        left.dtype.type is np.void or right.dtype.type is np.void
+    ) and left.dtype != right.dtype:
+        return False
 
     return np.array_equal(left, right)
 
@@ -534,7 +534,7 @@ def maybe_fill(arr, fill_value=np.nan):
     return arr
 
 
-def na_value_for_dtype(dtype, compat: bool = True):
+def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     """
     Return a dtype compat na value
 
@@ -558,14 +558,13 @@ def na_value_for_dtype(dtype, compat: bool = True):
     >>> na_value_for_dtype(np.dtype('bool'))
     False
     >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
-    NaT
+    numpy.datetime64('NaT')
     """
-    dtype = pandas_dtype(dtype)
 
     if is_extension_array_dtype(dtype):
         return dtype.na_value
-    if needs_i8_conversion(dtype):
-        return NaT
+    elif needs_i8_conversion(dtype):
+        return dtype.type("NaT", "ns")
     elif is_float_dtype(dtype):
         return np.nan
     elif is_integer_dtype(dtype):
@@ -589,7 +588,7 @@ def remove_na_arraylike(arr):
         return arr[notna(np.asarray(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
+def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 
@@ -637,8 +636,6 @@ def isna_all(arr: ArrayLike) -> bool:
     else:
         checker = lambda x: _isna_ndarraylike(x, inf_as_na=INF_AS_NA)
 
-    for i in range(0, total_len, chunk_len):
-        if not checker(arr[i : i + chunk_len]).all():
-            return False
-
-    return True
+    return all(
+        checker(arr[i : i + chunk_len]).all() for i in range(0, total_len, chunk_len)
+    )

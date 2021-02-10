@@ -1,5 +1,6 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
+from typing import cast
 import warnings
 
 import numpy as np
@@ -7,22 +8,6 @@ import numpy as np
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.indexes.api import MultiIndex
-from pandas.core.shared_docs import _shared_docs
-
-_shared_docs = dict(**_shared_docs)
-_doc_template = """
-        Returns
-        -------
-        Series or DataFrame
-            Return type is determined by the caller.
-
-        See Also
-        --------
-        pandas.Series.%(name)s : Calling object with Series data.
-        pandas.DataFrame.%(name)s : Calling object with DataFrame data.
-        pandas.Series.%(func_name)s : Similar method for Series.
-        pandas.DataFrame.%(func_name)s : Similar method for DataFrame.
-"""
 
 
 def flex_binary_moment(arg1, arg2, f, pairwise=False):
@@ -109,6 +94,9 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
 
                     # set the index and reorder
                     if arg2.columns.nlevels > 1:
+                        # mypy needs to know columns is a MultiIndex, Index doesn't
+                        # have levels attribute
+                        arg2.columns = cast(MultiIndex, arg2.columns)
                         result.index = MultiIndex.from_product(
                             arg2.columns.levels + [result_index]
                         )

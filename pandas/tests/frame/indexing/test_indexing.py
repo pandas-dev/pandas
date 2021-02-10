@@ -241,6 +241,24 @@ class TestDataFrameIndexing:
         expected = DataFrame([[-1, inc], [inc, -1]])
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "cols, values, expected",
+        [
+            (["C", "D", "D", "a"], [1, 2, 3, 4], 4),  # with duplicates
+            (["D", "C", "D", "a"], [1, 2, 3, 4], 4),  # mixed order
+            (["C", "B", "B", "a"], [1, 2, 3, 4], 4),  # other duplicate cols
+            (["C", "B", "a"], [1, 2, 3], 3),  # no duplicates
+            (["B", "C", "a"], [3, 2, 1], 1),  # alphabetical order
+            (["C", "a", "B"], [3, 2, 1], 2),  # in the middle
+        ],
+    )
+    def test_setitem_same_column(self, cols, values, expected):
+        # GH 23239
+        df = DataFrame([values], columns=cols)
+        df["a"] = df["a"]
+        result = df["a"].values[0]
+        assert result == expected
+
     def test_getitem_boolean(
         self, float_string_frame, mixed_float_frame, mixed_int_frame, datetime_frame
     ):
@@ -714,7 +732,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("dtype", ["float", "int64"])
-    @pytest.mark.parametrize("kwargs", [dict(), dict(index=[1]), dict(columns=["A"])])
+    @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
     def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
         # see gh-10126
         kwargs["dtype"] = dtype
@@ -1238,7 +1256,7 @@ class TestDataFrameIndexing:
         assert is_integer(result)
 
         # GH 11617
-        df = DataFrame(dict(a=[1.23]))
+        df = DataFrame({"a": [1.23]})
         df["b"] = 666
 
         result = df.loc[0, "b"]
@@ -1411,7 +1429,10 @@ class TestDataFrameIndexing:
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        assert Timestamp("2005-05-05") == df.loc[2, "c"]
+        with tm.assert_produces_warning(FutureWarning):
+            # Comparing Timestamp to date obj is deprecated
+            assert Timestamp("2005-05-05") == df.loc[2, "c"]
+        assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     def test_loc_setitem_datetimelike_with_inference(self):
         # GH 7592
@@ -1503,10 +1524,29 @@ class TestDataFrameIndexing:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    @pytest.mark.parametrize("tpl", [tuple([1]), tuple([1, 2])])
+    @pytest.mark.parametrize(
+        "tpl",
+        [
+            (1,),
+            (
+                1,
+                2,
+            ),
+        ],
+    )
     def test_loc_getitem_index_single_double_tuples(self, tpl):
         # GH 20991
-        idx = Index([tuple([1]), tuple([1, 2])], name="A", tupleize_cols=False)
+        idx = Index(
+            [
+                (1,),
+                (
+                    1,
+                    2,
+                ),
+            ],
+            name="A",
+            tupleize_cols=False,
+        )
         df = DataFrame(index=idx)
 
         result = df.loc[[tpl]]
@@ -1644,6 +1684,21 @@ class TestDataFrameIndexing:
 
         res = df.loc[:, 0.5]
         tm.assert_series_equal(res, expected)
+
+    @pytest.mark.parametrize("indexer", ["A", ["A"], ("A", slice(None))])
+    def test_setitem_unsorted_multiindex_columns(self, indexer):
+        # GH#38601
+        mi = MultiIndex.from_tuples([("A", 4), ("B", "3"), ("A", "2")])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        obj = df.copy()
+        obj.loc[:, indexer] = np.zeros((2, 2), dtype=int)
+        expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
+        tm.assert_frame_equal(obj, expected)
+
+        df = df.sort_index(1)
+        df.loc[:, indexer] = np.zeros((2, 2), dtype=int)
+        expected = expected.sort_index(1)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64:

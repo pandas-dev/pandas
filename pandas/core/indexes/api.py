@@ -282,7 +282,4 @@ def all_indexes_same(indexes):
     """
     itr = iter(indexes)
     first = next(itr)
-    for index in itr:
-        if not first.equals(index):
-            return False
-    return True
+    return all(first.equals(index) for index in itr)

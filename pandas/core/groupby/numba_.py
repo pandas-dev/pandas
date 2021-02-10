@@ -89,10 +89,6 @@ def generate_numba_agg_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_agg(
@@ -104,9 +100,9 @@ def generate_numba_agg_func(
         num_columns: int,
     ) -> np.ndarray:
         result = np.empty((num_groups, num_columns))
-        for i in loop_range(num_groups):
+        for i in numba.prange(num_groups):
             group_index = index[begin[i] : end[i]]
-            for j in loop_range(num_columns):
+            for j in numba.prange(num_columns):
                 group = values[begin[i] : end[i], j]
                 result[i, j] = numba_func(group, group_index, *args)
         return result
@@ -153,10 +149,6 @@ def generate_numba_transform_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_transform(
@@ -168,9 +160,9 @@ def generate_numba_transform_func(
         num_columns: int,
     ) -> np.ndarray:
         result = np.empty((len(values), num_columns))
-        for i in loop_range(num_groups):
+        for i in numba.prange(num_groups):
             group_index = index[begin[i] : end[i]]
-            for j in loop_range(num_columns):
+            for j in numba.prange(num_columns):
                 group = values[begin[i] : end[i], j]
                 result[begin[i] : end[i], j] = numba_func(group, group_index, *args)
         return result

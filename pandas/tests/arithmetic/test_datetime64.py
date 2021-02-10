@@ -12,7 +12,7 @@ import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -1288,8 +1288,8 @@ class TestDatetime64DateOffsetArithmetic:
             ("seconds", 2),
             ("microseconds", 5),
         ]
-        for i, kwd in enumerate(relative_kwargs):
-            off = DateOffset(**dict([kwd]))
+        for i, (unit, value) in enumerate(relative_kwargs):
+            off = DateOffset(**{unit: value})
 
             expected = DatetimeIndex([x + off for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)

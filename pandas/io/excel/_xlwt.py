@@ -45,7 +45,9 @@ class XlwtWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
-        self.book.save(self.handles.handle)
+        if self.sheets:
+            # fails when the ExcelWriter is just opened and then closed
+            self.book.save(self.handles.handle)
 
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None

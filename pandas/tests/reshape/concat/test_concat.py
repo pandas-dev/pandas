@@ -31,7 +31,7 @@ class TestConcatenate:
         for b in result._mgr.blocks:
             if b.is_float:
                 assert b.values.base is df._mgr.blocks[0].values.base
-            elif b.is_integer:
+            elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
@@ -42,7 +42,7 @@ class TestConcatenate:
         for b in result._mgr.blocks:
             if b.is_float:
                 assert b.values.base is None
-            elif b.is_integer:
+            elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
             elif b.is_object:
                 assert b.values.base is not None
@@ -330,8 +330,8 @@ class TestConcatenate:
         # #1649
         df0 = DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
 
-        result = concat(dict(a=None, b=df0, c=df0[:2], d=df0[:1], e=df0))
-        expected = concat(dict(b=df0, c=df0[:2], d=df0[:1], e=df0))
+        result = concat({"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
+        expected = concat({"b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
         tm.assert_frame_equal(result, expected)
 
         result = concat(
@@ -429,7 +429,7 @@ class TestConcatenate:
         tm.assert_index_equal(result, expected)
 
     def test_concat_different_extension_dtypes_upcasts(self):
-        a = Series(pd.core.arrays.integer_array([1, 2]))
+        a = Series(pd.array([1, 2], dtype="Int64"))
         b = Series(to_decimal([1, 2]))
 
         result = pd.concat([a, b], ignore_index=True)
@@ -441,9 +441,7 @@ class TestConcatenate:
         expected = pd.concat(
             [Series(range(3)), Series(range(4))], keys=["First", "Another"]
         )
-        result = pd.concat(
-            dict([("First", Series(range(3))), ("Another", Series(range(4)))])
-        )
+        result = pd.concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
 
 
@@ -556,3 +554,21 @@ def test_concat_preserves_extension_int64_dtype():
     result = pd.concat([df_a, df_b], ignore_index=True)
     expected = DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("keys", "integrity"),
+    [
+        (["red"] * 3, True),
+        (["red"] * 3, False),
+        (["red", "blue", "red"], False),
+        (["red", "blue", "red"], True),
+    ],
+)
+def test_concat_repeated_keys(keys, integrity):
+    # GH: 20816
+    series_list = [Series({"a": 1}), Series({"b": 2}), Series({"c": 3})]
+    result = concat(series_list, keys=keys, verify_integrity=integrity)
+    tuples = list(zip(keys, ["a", "b", "c"]))
+    expected = Series([1, 2, 3], index=MultiIndex.from_tuples(tuples))
+    tm.assert_series_equal(result, expected)

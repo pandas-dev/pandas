@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex
 import pandas._testing as tm
@@ -25,6 +27,41 @@ def test_get_level_number_integer(idx):
         idx._get_level_number(2)
     with pytest.raises(KeyError, match="Level fourth not found"):
         idx._get_level_number("fourth")
+
+
+def test_get_dtypes():
+    # Test MultiIndex.dtypes (# Gh37062)
+    idx_multitype = MultiIndex.from_product(
+        [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
+        names=["int", "string", "dt"],
+    )
+    expected = pd.Series(
+        {
+            "int": np.dtype("int64"),
+            "string": np.dtype("O"),
+            "dt": DatetimeTZDtype(tz="utc"),
+        }
+    )
+    tm.assert_series_equal(expected, idx_multitype.dtypes)
+
+
+def test_get_dtypes_no_level_name():
+    # Test MultiIndex.dtypes (# GH38580 )
+    idx_multitype = MultiIndex.from_product(
+        [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            pd.date_range("20200101", periods=2, tz="UTC"),
+        ],
+    )
+    expected = pd.Series(
+        {
+            "level_0": np.dtype("int64"),
+            "level_1": np.dtype("O"),
+            "level_2": DatetimeTZDtype(tz="utc"),
+        }
+    )
+    tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
 def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):

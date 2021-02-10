@@ -113,6 +113,8 @@ class TestCategoricalAnalytics:
             f"the '{kwarg}' parameter is not supported in the pandas implementation "
             f"of {method}"
         )
+        if kwarg == "axis":
+            msg = r"`axis` must be fewer than the number of dimensions \(1\)"
         kwargs = {kwarg: 42}
         method = getattr(np, method)
         with pytest.raises(ValueError, match=msg):

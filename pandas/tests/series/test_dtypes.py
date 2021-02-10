@@ -68,7 +68,7 @@ class TestSeriesDtypes:
         exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
-        exp2 = Series([1, 2, 3, 4]).astype("int64")
+        exp2 = Series([1, 2, 3, 4]).astype("int")
         tm.assert_series_equal(s2.astype("int"), exp2)
 
         # object don't sort correctly, so just compare that we have the same
@@ -94,20 +94,16 @@ class TestSeriesDtypes:
         result = ser.astype("object").astype(CategoricalDtype())
         tm.assert_series_equal(result, roundtrip_expected)
 
-    def test_astype_categorical_invalid_conversions(self):
-        # invalid conversion (these are NOT a dtype)
-        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(np.random.RandomState(0).randint(0, 10000, 100)).sort_values()
-        ser = pd.cut(ser, range(0, 10500, 500), right=False, labels=cat)
+    def test_categorical_astype_to_int(self, any_int_or_nullable_int_dtype):
+        # GH 39402
 
-        msg = (
-            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
-            "not understood"
+        df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
+        df.col1 = df.col1.astype("category")
+        df.col1 = df.col1.astype(any_int_or_nullable_int_dtype)
+        expected = DataFrame(
+            {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
         )
-        with pytest.raises(TypeError, match=msg):
-            ser.astype(Categorical)
-        with pytest.raises(TypeError, match=msg):
-            ser.astype("object").astype(Categorical)
+        tm.assert_frame_equal(df, expected)
 
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical

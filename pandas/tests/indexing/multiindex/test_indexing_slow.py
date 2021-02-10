@@ -86,5 +86,5 @@ def test_multiindex_get_loc(lexsort_depth, key, frame):
             df = frame.sort_values(by=cols[:lexsort_depth])
 
         mi = df.set_index(cols[:-1])
-        assert not mi.index.lexsort_depth < lexsort_depth
+        assert not mi.index._lexsort_depth < lexsort_depth
         validate(mi, df, key)

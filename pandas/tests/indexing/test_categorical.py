@@ -57,9 +57,12 @@ class TestCategoricalIndex:
         with pytest.raises(KeyError, match=r"^'d'$"):
             df.loc["d"]
 
-        msg = "cannot append a non-category item to a CategoricalIndex"
-        with pytest.raises(TypeError, match=msg):
-            df.loc["d"] = 10
+        df2 = df.copy()
+        expected = df2.copy()
+        expected.index = expected.index.astype(object)
+        expected.loc["d"] = 10
+        df2.loc["d"] = 10
+        tm.assert_frame_equal(df2, expected)
 
         msg = "'fill_value=d' is not present in this Categorical's categories"
         with pytest.raises(TypeError, match=msg):
@@ -429,25 +432,6 @@ class TestCategoricalIndex:
             columns=CategoricalIndex(list("XXY")),
         )
         tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
-
-    def test_read_only_source(self):
-        # GH 10043
-        rw_array = np.eye(10)
-        rw_df = DataFrame(rw_array)
-
-        ro_array = np.eye(10)
-        ro_array.setflags(write=False)
-        ro_df = DataFrame(ro_array)
-
-        tm.assert_frame_equal(rw_df.iloc[[1, 2, 3]], ro_df.iloc[[1, 2, 3]])
-        tm.assert_frame_equal(rw_df.iloc[[1]], ro_df.iloc[[1]])
-        tm.assert_series_equal(rw_df.iloc[1], ro_df.iloc[1])
-        tm.assert_frame_equal(rw_df.iloc[1:3], ro_df.iloc[1:3])
-
-        tm.assert_frame_equal(rw_df.loc[[1, 2, 3]], ro_df.loc[[1, 2, 3]])
-        tm.assert_frame_equal(rw_df.loc[[1]], ro_df.loc[[1]])
-        tm.assert_series_equal(rw_df.loc[1], ro_df.loc[1])
-        tm.assert_frame_equal(rw_df.loc[1:3], ro_df.loc[1:3])
 
     def test_loc_slice(self):
         # GH9748

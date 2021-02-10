@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs.lib import is_list_like
 
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import notna
 
 
@@ -103,7 +103,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, format)
         return arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         return _convert_listlike(arg, format)
     elif is_list_like(arg):
         return _convert_listlike(arg, format)

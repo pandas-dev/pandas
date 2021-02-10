@@ -336,19 +336,19 @@ class TestDataFrameReshape:
     def test_unstack_preserve_dtypes(self):
         # Checks fix for #11847
         df = DataFrame(
-            dict(
-                state=["IL", "MI", "NC"],
-                index=["a", "b", "c"],
-                some_categories=Series(["a", "b", "c"]).astype("category"),
-                A=np.random.rand(3),
-                B=1,
-                C="foo",
-                D=pd.Timestamp("20010102"),
-                E=Series([1.0, 50.0, 100.0]).astype("float32"),
-                F=Series([3.0, 4.0, 5.0]).astype("float64"),
-                G=False,
-                H=Series([1, 200, 923442], dtype="int8"),
-            )
+            {
+                "state": ["IL", "MI", "NC"],
+                "index": ["a", "b", "c"],
+                "some_categories": Series(["a", "b", "c"]).astype("category"),
+                "A": np.random.rand(3),
+                "B": 1,
+                "C": "foo",
+                "D": pd.Timestamp("20010102"),
+                "E": Series([1.0, 50.0, 100.0]).astype("float32"),
+                "F": Series([3.0, 4.0, 5.0]).astype("float64"),
+                "G": False,
+                "H": Series([1, 200, 923442], dtype="int8"),
+            }
         )
 
         def unstack_and_compare(df, column_name):
@@ -1081,7 +1081,7 @@ class TestDataFrameReshape:
         index = MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 1)], names=["a", "b"])
         df = DataFrame(
             {
-                "A": pd.core.arrays.integer_array([0, 1, None]),
+                "A": pd.array([0, 1, None], dtype="Int64"),
                 "B": pd.Categorical(["a", "a", "b"]),
             },
             index=index,
@@ -1173,6 +1173,32 @@ def test_stack_timezone_aware_values():
         index=MultiIndex(levels=[["a", "b", "c"], ["A"]], codes=[[0, 1, 2], [0, 0, 0]]),
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_stack_empty_frame(dropna):
+    # GH 36113
+    expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+    result = DataFrame(dtype=np.float64).stack(dropna=dropna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+@pytest.mark.parametrize("fill_value", [None, 0])
+def test_stack_unstack_empty_frame(dropna, fill_value):
+    # GH 36113
+    result = (
+        DataFrame(dtype=np.int64).stack(dropna=dropna).unstack(fill_value=fill_value)
+    )
+    expected = DataFrame(dtype=np.int64)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_single_index_series():
+    # GH 36113
+    msg = r"index must be a MultiIndex to unstack.*"
+    with pytest.raises(ValueError, match=msg):
+        Series(dtype=np.int64).unstack()
 
 
 def test_unstacking_multi_index_df():
@@ -1663,7 +1689,7 @@ Thur,Lunch,Yes,51.51,17"""
         name = (["a"] * 3) + (["b"] * 3)
         date = pd.to_datetime(["2013-01-03", "2013-01-04", "2013-01-05"] * 2)
         var1 = np.random.randint(0, 100, 6)
-        df = DataFrame(dict(ID=id_col, NAME=name, DATE=date, VAR1=var1))
+        df = DataFrame({"ID": id_col, "NAME": name, "DATE": date, "VAR1": var1})
 
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
@@ -1854,3 +1880,76 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
         assert result.shape == (500, 2)
+
+    def test_unstack_with_missing_int_cast_to_float(self):
+        # https://github.com/pandas-dev/pandas/issues/37115
+        df = DataFrame(
+            {
+                "a": ["A", "A", "B"],
+                "b": ["ca", "cb", "cb"],
+                "v": [10] * 3,
+            }
+        ).set_index(["a", "b"])
+
+        # add another int column to get 2 blocks
+        df["is_"] = 1
+        assert len(df._mgr.blocks) == 2
+
+        result = df.unstack("b")
+        result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
+
+        expected = DataFrame(
+            [[10.0, 10.0, 1.0, 1.0], [np.nan, 10.0, 0.0, 1.0]],
+            index=Index(["A", "B"], dtype="object", name="a"),
+            columns=MultiIndex.from_tuples(
+                [("v", "ca"), ("v", "cb"), ("is_", "ca"), ("is_", "cb")],
+                names=[None, "b"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_with_level_has_nan(self):
+        # GH 37510
+        df1 = DataFrame(
+            {
+                "L1": [1, 2, 3, 4],
+                "L2": [3, 4, 1, 2],
+                "L3": [1, 1, 1, 1],
+                "x": [1, 2, 3, 4],
+            }
+        )
+        df1 = df1.set_index(["L1", "L2", "L3"])
+        new_levels = ["n1", "n2", "n3", None]
+        df1.index = df1.index.set_levels(levels=new_levels, level="L1")
+        df1.index = df1.index.set_levels(levels=new_levels, level="L2")
+
+        result = df1.unstack("L3")[("x", 1)].sort_index().index
+        expected = MultiIndex(
+            levels=[["n1", "n2", "n3", None], ["n1", "n2", "n3", None]],
+            codes=[[0, 1, 2, 3], [2, 3, 0, 1]],
+            names=["L1", "L2"],
+        )
+
+        tm.assert_index_equal(result, expected)
+
+    def test_stack_nan_in_multiindex_columns(self):
+        # GH#39481
+        df = DataFrame(
+            np.zeros([1, 5]),
+            columns=MultiIndex.from_tuples(
+                [
+                    (0, None, None),
+                    (0, 2, 0),
+                    (0, 2, 1),
+                    (0, 3, 0),
+                    (0, 3, 1),
+                ],
+            ),
+        )
+        result = df.stack(2)
+        expected = DataFrame(
+            [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
+            index=Index([(0, None), (0, 0), (0, 1)]),
+            columns=Index([(0, None), (0, 2), (0, 3)]),
+        )
+        tm.assert_frame_equal(result, expected)

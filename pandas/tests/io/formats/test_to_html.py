@@ -152,8 +152,8 @@ def test_to_html_decimal(datapath):
 @pytest.mark.parametrize(
     "kwargs,string,expected",
     [
-        (dict(), "<type 'str'>", "escaped"),
-        (dict(escape=False), "<b>bold</b>", "escape_disabled"),
+        ({}, "<type 'str'>", "escaped"),
+        ({"escape": False}, "<b>bold</b>", "escape_disabled"),
     ],
 )
 def test_to_html_escaped(kwargs, string, expected, datapath):
@@ -246,6 +246,21 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
             ),
             {"hod": lambda x: x.strftime("%H:%M")},
             "datetime64_hourformatter",
+        ),
+        (
+            DataFrame(
+                {
+                    "i": pd.Series([1, 2], dtype="int64"),
+                    "f": pd.Series([1, 2], dtype="float64"),
+                    "I": pd.Series([1, 2], dtype="Int64"),
+                    "s": pd.Series([1, 2], dtype="string"),
+                    "b": pd.Series([True, False], dtype="boolean"),
+                    "c": pd.Series(["a", "b"], dtype=pd.CategoricalDtype(["a", "b"])),
+                    "o": pd.Series([1, "2"], dtype=object),
+                }
+            ),
+            [lambda x: "formatted"] * 7,
+            "various_dtypes_formatted",
         ),
     ],
 )

@@ -15,6 +15,9 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
 import pandas._testing as tm
 
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
 _seriesd = tm.getSeriesData()
 
 _frame = DataFrame(_seriesd)
@@ -112,7 +115,7 @@ class TestPandasContainer:
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
                 # TODO: a to_epoch method would also solve; see GH 14772
-                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1000000
+                expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
 
@@ -165,7 +168,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [None, np.float64, int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_str_axes(self, orient, convert_axes, numpy, dtype):
+    def test_roundtrip_str_axes(self, request, orient, convert_axes, numpy, dtype):
         df = DataFrame(
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
@@ -175,7 +178,9 @@ class TestPandasContainer:
 
         # TODO: do we even need to support U3 dtypes?
         if numpy and dtype == "U3" and orient != "split":
-            pytest.xfail("Can't decode directly to array")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Can't decode directly to array")
+            )
 
         data = df.to_json(orient=orient)
         result = pd.read_json(
@@ -191,25 +196,32 @@ class TestPandasContainer:
         # JSON objects. JSON keys are by definition strings, so there's no way
         # to disambiguate whether those keys actually were strings or numeric
         # beforehand and numeric wins out.
-        # TODO: Split should be able to support this
-        if convert_axes and (orient in ("split", "index", "columns")):
+        if convert_axes and (orient in ("index", "columns")):
             expected.columns = expected.columns.astype(np.int64)
             expected.index = expected.index.astype(np.int64)
         elif orient == "records" and convert_axes:
+            expected.columns = expected.columns.astype(np.int64)
+        elif convert_axes and orient == "split":
             expected.columns = expected.columns.astype(np.int64)
 
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_categorical(self, orient, convert_axes, numpy):
+    def test_roundtrip_categorical(self, request, orient, convert_axes, numpy):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
-            pytest.xfail(f"Can't have duplicate index values for orient '{orient}')")
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Can't have duplicate index values for orient '{orient}')"
+                )
+            )
 
         data = self.categorical.to_json(orient=orient)
         if numpy and orient in ("records", "values"):
-            pytest.xfail(f"Orient {orient} is broken with numpy=True")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"Orient {orient} is broken with numpy=True")
+            )
 
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
@@ -254,7 +266,7 @@ class TestPandasContainer:
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
-            idx = expected.index.astype(np.int64) // 1000000
+            idx = expected.index.view(np.int64) // 1000000
             if orient != "split":  # TODO: handle consistently across orients
                 idx = idx.astype(str)
 
@@ -264,9 +276,11 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_mixed(self, orient, convert_axes, numpy):
+    def test_roundtrip_mixed(self, request, orient, convert_axes, numpy):
         if numpy and orient != "split":
-            pytest.xfail("Can't decode directly to array")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Can't decode directly to array")
+            )
 
         index = pd.Index(["a", "b", "c", "d", "e"])
         values = {
@@ -379,7 +393,7 @@ class TestPandasContainer:
         ],
     )
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
-        df = DataFrame([dict(a_float=value)])
+        df = DataFrame([{"a_float": value}])
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
@@ -475,8 +489,8 @@ class TestPandasContainer:
         index = DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
-            dict(
-                float_1=[
+            {
+                "float_1": [
                     -0.92077639,
                     0.77434435,
                     1.25234727,
@@ -488,7 +502,7 @@ class TestPandasContainer:
                     0.95748401,
                     -1.02970536,
                 ],
-                int_1=[
+                "int_1": [
                     19680418,
                     75337055,
                     99973684,
@@ -500,7 +514,7 @@ class TestPandasContainer:
                     41903419,
                     16008365,
                 ],
-                str_1=[
+                "str_1": [
                     "78c608f1",
                     "64a99743",
                     "13d2ff52",
@@ -512,7 +526,7 @@ class TestPandasContainer:
                     "7a669144",
                     "8d64d068",
                 ],
-                float_2=[
+                "float_2": [
                     -0.0428278,
                     -1.80872357,
                     3.36042349,
@@ -524,7 +538,7 @@ class TestPandasContainer:
                     -0.03030452,
                     1.43366348,
                 ],
-                str_2=[
+                "str_2": [
                     "14f04af9",
                     "d085da90",
                     "4bcfac83",
@@ -536,7 +550,7 @@ class TestPandasContainer:
                     "1f6a09ba",
                     "4bfc4d87",
                 ],
-                int_2=[
+                "int_2": [
                     86967717,
                     98098830,
                     51927505,
@@ -548,7 +562,7 @@ class TestPandasContainer:
                     24867120,
                     76131025,
                 ],
-            ),
+            },
             index=index,
         )
 
@@ -591,7 +605,7 @@ class TestPandasContainer:
 
         # the same with multiple columns threw segfaults
         df_mixed = DataFrame({"A": [binthing], "B": [1]}, columns=["A", "B"])
-        with pytest.raises(OverflowError):
+        with pytest.raises(OverflowError, match=msg):
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
@@ -727,9 +741,7 @@ class TestPandasContainer:
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
         result = read_json(df.to_json(), precise_float=True)
-        tm.assert_frame_equal(
-            result, df, check_index_type=False, check_column_type=False
-        )
+        tm.assert_frame_equal(result, df)
 
     def test_typ(self):
 
@@ -1261,19 +1273,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_read_json_large_numbers(self, bigNum):
         # GH20599
 
-        series = Series(bigNum, dtype=object, index=["articleId"])
-        json = '{"articleId":' + str(bigNum) + "}"
-        with pytest.raises(ValueError):
-            json = StringIO(json)
-            result = read_json(json)
-            tm.assert_series_equal(series, result)
+        json = StringIO('{"articleId":' + str(bigNum) + "}")
+        msg = r"Value is too small|Value is too big"
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
 
-        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
-        json = '{"0":{"articleId":' + str(bigNum) + "}}"
-        with pytest.raises(ValueError):
-            json = StringIO(json)
-            result = read_json(json)
-            tm.assert_frame_equal(df, result)
+        json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
 
     def test_read_json_large_numbers2(self):
         # GH18842

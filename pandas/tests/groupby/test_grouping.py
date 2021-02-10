@@ -254,7 +254,8 @@ class TestGrouping:
         )
         result = s.groupby(pd.Grouper(level="three", freq="M")).sum()
         expected = Series(
-            [28], index=Index([Timestamp("2013-01-31")], freq="M", name="three")
+            [28],
+            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="M", name="three"),
         )
         tm.assert_series_equal(result, expected)
 
@@ -307,9 +308,8 @@ class TestGrouping:
         # reset_index changes columns dtype to object
         by_columns = df.reset_index().groupby(idx_names).mean()
 
-        tm.assert_frame_equal(by_levels, by_columns, check_column_type=False)
-
-        by_columns.columns = Index(by_columns.columns, dtype=np.int64)
+        # without casting, by_columns.columns is object-dtype
+        by_columns.columns = by_columns.columns.astype(np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_groupby_categorical_index_and_columns(self, observed):
@@ -627,7 +627,7 @@ class TestGrouping:
         [
             (
                 "transform",
-                Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
+                Series(name=2, dtype=np.float64, index=Index([])),
             ),
             (
                 "agg",

@@ -8,14 +8,25 @@ from collections import abc, defaultdict
 import contextlib
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import np_version_under1p18
+from pandas._typing import AnyArrayLike, NpDtype, Scalar, T
+from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -24,12 +35,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
-    ABCIndex,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -42,13 +48,13 @@ class SettingWithCopyWarning(Warning):
     pass
 
 
-def flatten(l):
+def flatten(line):
     """
     Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
-    l : sequence
+    line : sequence
         The non string sequence to flatten
 
     Notes
@@ -59,11 +65,11 @@ def flatten(l):
     -------
     flattened : generator
     """
-    for el in l:
-        if iterable_not_string(el):
-            yield from flatten(el)
+    for element in line:
+        if iterable_not_string(element):
+            yield from flatten(element)
         else:
-            yield el
+            yield element
 
 
 def consensus_name_attr(objs):
@@ -200,11 +206,11 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype=None):
+def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
-    elif isinstance(values, ABCIndexClass):
+    elif isinstance(values, ABCIndex):
         return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
@@ -223,7 +229,7 @@ def asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def index_labels_to_array(labels, dtype=None):
+def index_labels_to_array(labels, dtype: Optional[NpDtype] = None) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -282,20 +288,23 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(l):
+def is_true_slices(line):
     """
-    Find non-trivial slices in "l": return a list of booleans with same length.
+    Find non-trivial slices in "line": return a list of booleans with same length.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l) -> bool:
+def is_full_slice(obj, line) -> bool:
     """
     We have a full length slice.
     """
     return (
-        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+        isinstance(obj, slice)
+        and obj.start == 0
+        and obj.stop == line
+        and obj.step is None
     )
 
 
@@ -407,7 +416,9 @@ def random_state(state=None):
         )
 
 
-def pipe(obj, func, *args, **kwargs):
+def pipe(
+    obj, func: Union[Callable[..., T], Tuple[Callable[..., T], str]], *args, **kwargs
+) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -469,7 +480,8 @@ def convert_to_list_like(
     inputs are returned unmodified whereas others are converted to list.
     """
     if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        return values
+        # np.ndarray resolving as Any gives a false positive
+        return values  # type: ignore[return-value]
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)
 

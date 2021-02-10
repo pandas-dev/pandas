@@ -42,6 +42,7 @@ cdef extern from "numpy/ndarraytypes.h":
         NPY_FR_ps
         NPY_FR_fs
         NPY_FR_as
+        NPY_FR_GENERIC
 
 cdef extern from "src/datetime/np_datetime.h":
     ctypedef struct pandas_timedeltastruct:

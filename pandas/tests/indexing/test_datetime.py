@@ -160,15 +160,22 @@ class TestDatetimeIndex:
         expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
 
-    def test_series_partial_set_datetime(self):
+    @pytest.mark.parametrize("to_period", [True, False])
+    def test_loc_getitem_listlike_of_datetimelike_keys(self, to_period):
         # GH 11497
 
         idx = date_range("2011-01-01", "2011-01-02", freq="D", name="idx")
+        if to_period:
+            idx = idx.to_period("D")
         ser = Series([0.1, 0.2], index=idx, name="s")
 
-        result = ser.loc[[Timestamp("2011-01-01"), Timestamp("2011-01-02")]]
+        keys = [Timestamp("2011-01-01"), Timestamp("2011-01-02")]
+        if to_period:
+            keys = [x.to_period("D") for x in keys]
+        result = ser.loc[keys]
         exp = Series([0.1, 0.2], index=idx, name="s")
-        exp.index = exp.index._with_freq(None)
+        if not to_period:
+            exp.index = exp.index._with_freq(None)
         tm.assert_series_equal(result, exp, check_index_type=True)
 
         keys = [
@@ -176,8 +183,10 @@ class TestDatetimeIndex:
             Timestamp("2011-01-02"),
             Timestamp("2011-01-01"),
         ]
+        if to_period:
+            keys = [x.to_period("D") for x in keys]
         exp = Series(
-            [0.2, 0.2, 0.1], index=pd.DatetimeIndex(keys, name="idx"), name="s"
+            [0.2, 0.2, 0.1], index=Index(keys, name="idx", dtype=idx.dtype), name="s"
         )
         result = ser.loc[keys]
         tm.assert_series_equal(result, exp, check_index_type=True)
@@ -187,35 +196,9 @@ class TestDatetimeIndex:
             Timestamp("2011-01-02"),
             Timestamp("2011-01-03"),
         ]
-        with pytest.raises(KeyError, match="with any missing labels"):
-            ser.loc[keys]
+        if to_period:
+            keys = [x.to_period("D") for x in keys]
 
-    def test_series_partial_set_period(self):
-        # GH 11497
-
-        idx = pd.period_range("2011-01-01", "2011-01-02", freq="D", name="idx")
-        ser = Series([0.1, 0.2], index=idx, name="s")
-
-        result = ser.loc[
-            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-01-02", freq="D")]
-        ]
-        exp = Series([0.1, 0.2], index=idx, name="s")
-        tm.assert_series_equal(result, exp, check_index_type=True)
-
-        keys = [
-            pd.Period("2011-01-02", freq="D"),
-            pd.Period("2011-01-02", freq="D"),
-            pd.Period("2011-01-01", freq="D"),
-        ]
-        exp = Series([0.2, 0.2, 0.1], index=pd.PeriodIndex(keys, name="idx"), name="s")
-        result = ser.loc[keys]
-        tm.assert_series_equal(result, exp, check_index_type=True)
-
-        keys = [
-            pd.Period("2011-01-03", freq="D"),
-            pd.Period("2011-01-02", freq="D"),
-            pd.Period("2011-01-03", freq="D"),
-        ]
         with pytest.raises(KeyError, match="with any missing labels"):
             ser.loc[keys]
 
@@ -248,3 +231,24 @@ class TestDatetimeIndex:
             dtype=object,
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_getitem_millisecond_resolution(self, frame_or_series):
+        # GH#33589
+        obj = frame_or_series(
+            [1, 2, 3, 4],
+            index=[
+                Timestamp("2017-10-25T16:25:04.151"),
+                Timestamp("2017-10-25T16:25:04.252"),
+                Timestamp("2017-10-25T16:50:05.237"),
+                Timestamp("2017-10-25T16:50:05.238"),
+            ],
+        )
+        result = obj["2017-10-25T16:25:04.252":"2017-10-25T16:50:05.237"]
+        expected = frame_or_series(
+            [2, 3],
+            index=[
+                Timestamp("2017-10-25T16:25:04.252"),
+                Timestamp("2017-10-25T16:50:05.237"),
+            ],
+        )
+        tm.assert_equal(result, expected)

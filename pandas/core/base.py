@@ -19,7 +19,7 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import DtypeObj, IndexLabel
+from pandas._typing import Dtype, DtypeObj, IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.core import algorithms
@@ -46,13 +46,13 @@ import pandas.core.nanops as nanops
 if TYPE_CHECKING:
     from pandas import Categorical
 
-_shared_docs: Dict[str, str] = dict()
-_indexops_doc_kwargs = dict(
-    klass="IndexOpsMixin",
-    inplace="",
-    unique="IndexOpsMixin",
-    duplicated="IndexOpsMixin",
-)
+_shared_docs: Dict[str, str] = {}
+_indexops_doc_kwargs = {
+    "klass": "IndexOpsMixin",
+    "inplace": "",
+    "unique": "IndexOpsMixin",
+    "duplicated": "IndexOpsMixin",
+}
 
 _T = TypeVar("_T", bound="IndexOpsMixin")
 
@@ -199,7 +199,7 @@ class SelectionMixin:
     @property
     def _selection_list(self):
         if not isinstance(
-            self._selection, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)
+            self._selection, (list, tuple, ABCSeries, ABCIndex, np.ndarray)
         ):
             return [self._selection]
         return self._selection
@@ -254,7 +254,7 @@ class SelectionMixin:
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
+        if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
             # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
             # "obj"  [attr-defined]
             if len(
@@ -269,12 +269,14 @@ class SelectionMixin:
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
-            if key not in self.obj.columns:
+            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
+            if key not in self.obj.columns:  # type: ignore[attr-defined]
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
-            if key not in self.obj:
+            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
+            if key not in self.obj:  # type: ignore[attr-defined]
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
@@ -319,10 +321,9 @@ class SelectionMixin:
             return f
 
         f = getattr(np, arg, None)
-        if f is not None:
-            if hasattr(self, "__array__"):
-                # in particular exclude Window
-                return f(self, *args, **kwargs)
+        if f is not None and hasattr(self, "__array__"):
+            # in particular exclude Window
+            return f(self, *args, **kwargs)
 
         raise AttributeError(
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
@@ -498,7 +499,13 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
+    def to_numpy(
+        self,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
+        **kwargs,
+    ):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -713,9 +720,17 @@ class IndexOpsMixin(OpsMixin):
         the minimum cereal calories is the first element,
         since series is zero-indexed.
         """
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmax(self._values, skipna=skipna)
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmax()
+        else:
+            return nanops.nanargmax(delegate, skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -763,9 +778,17 @@ class IndexOpsMixin(OpsMixin):
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmin(self._values, skipna=skipna)
+        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmin()
+        else:
+            return nanops.nanargmin(delegate, skipna=skipna)
 
     def tolist(self):
         """
@@ -919,10 +942,9 @@ class IndexOpsMixin(OpsMixin):
             # "astype"  [attr-defined]
             values = self.astype(object)._values  # type: ignore[attr-defined]
             if na_action == "ignore":
-
-                def map_f(values, f):
-                    return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
-
+                map_f = lambda values, f: lib.map_infer_mask(
+                    values, f, isna(values).view(np.uint8)
+                )
             elif na_action is None:
                 map_f = lib.map_infer
             else:
@@ -982,9 +1004,9 @@ class IndexOpsMixin(OpsMixin):
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
+        1.0    1
         2.0    1
         4.0    1
-        1.0    1
         dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
@@ -993,9 +1015,9 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
+        1.0    0.2
         2.0    0.2
         4.0    0.2
-        1.0    0.2
         dtype: float64
 
         **bins**
@@ -1017,13 +1039,13 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        2.0    1
-        NaN    1
-        4.0    1
         1.0    1
+        2.0    1
+        4.0    1
+        NaN    1
         dtype: int64
         """
-        result = value_counts(
+        return value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -1031,7 +1053,6 @@ class IndexOpsMixin(OpsMixin):
             bins=bins,
             dropna=dropna,
         )
-        return result
 
     def unique(self):
         values = self._values
@@ -1294,8 +1315,7 @@ class IndexOpsMixin(OpsMixin):
         duplicated = self.duplicated(keep=keep)
         # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
         # indexable  [index]
-        result = self[np.logical_not(duplicated)]  # type: ignore[index]
-        return result
+        return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep="first"):
         return duplicated(self._values, keep=keep)

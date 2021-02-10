@@ -305,14 +305,27 @@ def test_hash_with_tuple():
     expected = Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
-    df2 = DataFrame({"data": [tuple([1]), tuple([2])]})
+    df2 = DataFrame({"data": [(1,), (2,)]})
     result = hash_pandas_object(df2)
     expected = Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
     # require that the elements of such tuples are themselves hashable
 
-    df3 = DataFrame({"data": [tuple([1, []]), tuple([2, {}])]})
+    df3 = DataFrame(
+        {
+            "data": [
+                (
+                    1,
+                    [],
+                ),
+                (
+                    2,
+                    {},
+                ),
+            ]
+        }
+    )
     with pytest.raises(TypeError, match="unhashable type: 'list'"):
         hash_pandas_object(df3)
 
