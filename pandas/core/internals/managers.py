@@ -1013,6 +1013,9 @@ class BlockManager(DataManager):
                 return value
 
         else:
+            if value.ndim == 2:
+                value = value.T
+
             if value.ndim == self.ndim - 1:
                 value = safe_reshape(value, (1,) + value.shape)
 
@@ -1134,6 +1137,9 @@ class BlockManager(DataManager):
 
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
+
+        if value.ndim == 2:
+            value = value.T
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
