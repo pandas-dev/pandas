@@ -1,4 +1,5 @@
 from datetime import timedelta
+from itertools import product
 
 import numpy as np
 import pytest
@@ -342,3 +343,22 @@ def test_string_with_unit(constructor, value, unit, expectation):
     exp, match = expectation
     with pytest.raises(exp, match=match):
         _ = constructor(value, unit=unit)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "".join(elements)
+        for repetition in (1, 2)
+        for elements in product("+-, ", repeat=repetition)
+    ],
+)
+def test_string_without_numbers(value):
+    # GH39710 Timedelta input string with only symbols and no digits raises an error
+    msg = (
+        "symbols w/o a number"
+        if value != "--"
+        else "only leading negative signs are allowed"
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(value)
