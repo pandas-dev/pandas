@@ -496,6 +496,10 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
         else:
             raise ValueError("unit abbreviation w/o a number")
 
+    # we only have symbols and no numbers
+    elif len(number) == 0:
+        raise ValueError("symbols w/o a number")
+
     # treat as nanoseconds
     # but only if we don't have anything else
     else:
