@@ -1013,6 +1013,9 @@ class BlockManager(DataManager):
                 return value
 
         else:
+            if value.ndim == 2:
+                value = value.T
+
             if value.ndim == self.ndim - 1:
                 value = safe_reshape(value, (1,) + value.shape)
 
