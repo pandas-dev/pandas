@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
@@ -636,7 +636,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise InvalidIndexError(key)
 
         orig_key = key
-        if is_valid_nat_for_dtype(key, self.dtype):
+        if is_valid_na_for_dtype(key, self.dtype):
             key = NaT
 
         if isinstance(key, self._data._recognized_scalars):
