@@ -1014,14 +1014,6 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            if self.dtype.kind in ["m", "M"]:
-                arr = self.array_values()
-                arr = cast("NDArrayBackedExtensionArray", arr)
-                if transpose:
-                    arr = arr.T
-                arr.putmask(mask, new)
-                return [self]
-
             if transpose:
                 new_values = new_values.T
 
@@ -2025,6 +2017,18 @@ class DatetimeLikeBlockMixin(HybridMixin, Block):
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         return self.make_block(result)
 
+    def putmask(self, mask, new) -> List[Block]:
+        mask = _extract_bool_array(mask)
+
+        if not self._can_hold_element(new):
+            return self.astype(object).putmask(mask, new)
+
+        # TODO(EA2D): reshape unnecessary with 2D EAs
+        arr = self.array_values().reshape(self.shape)
+        arr = cast("NDArrayBackedExtensionArray", arr)
+        arr.T.putmask(mask, new)
+        return [self]
+
     def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
@@ -2099,6 +2103,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     diff = DatetimeBlock.diff
     fill_value = np.datetime64("NaT", "ns")
     where = DatetimeBlock.where
+    putmask = DatetimeLikeBlockMixin.putmask
 
     array_values = ExtensionBlock.array_values
 

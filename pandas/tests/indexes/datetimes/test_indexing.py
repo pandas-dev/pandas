@@ -175,40 +175,56 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         dti = date_range("20130101", periods=3, tz="US/Eastern")
 
-        i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
+        tail = dti[2:].tolist()
+        i2 = Index([pd.NaT, pd.NaT] + tail)
 
-        msg = "value should be a 'Timestamp', 'NaT', or array of those. Got"
-        msg2 = "Cannot compare tz-naive and tz-aware datetime-like objects"
-        with pytest.raises(TypeError, match=msg2):
-            # passing tz-naive ndarray to tzaware DTI
-            dti.where(notna(i2), i2.values)
+        mask = notna(i2)
 
-        with pytest.raises(TypeError, match=msg2):
-            # passing tz-aware DTI to tznaive DTI
-            dti.tz_localize(None).where(notna(i2), i2)
+        # passing tz-naive ndarray to tzaware DTI
+        result = dti.where(mask, i2.values)
+        expected = Index([pd.NaT.asm8, pd.NaT.asm8] + tail, dtype=object)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
+        # passing tz-aware DTI to tznaive DTI
+        naive = dti.tz_localize(None)
+        result = naive.where(mask, i2)
+        expected = Index([i2[0], i2[1]] + naive[2:].tolist(), dtype=object)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+        pi = i2.tz_localize(None).to_period("D")
+        result = dti.where(mask, pi)
+        expected = Index([pi[0], pi[1]] + tail, dtype=object)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            dti.where(notna(i2), i2.asi8)
+        tda = i2.asi8.view("timedelta64[ns]")
+        result = dti.where(mask, tda)
+        expected = Index([tda[0], tda[1]] + tail, dtype=object)
+        assert isinstance(expected[0], np.timedelta64)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            # non-matching scalar
-            dti.where(notna(i2), pd.Timedelta(days=4))
+        result = dti.where(mask, i2.asi8)
+        expected = Index([pd.NaT.value, pd.NaT.value] + tail, dtype=object)
+        assert isinstance(expected[0], int)
+        tm.assert_index_equal(result, expected)
+
+        # non-matching scalar
+        td = pd.Timedelta(days=4)
+        result = dti.where(mask, td)
+        expected = Index([td, td] + tail, dtype=object)
+        assert expected[0] is td
+        tm.assert_index_equal(result, expected)
 
     def test_where_mismatched_nat(self, tz_aware_fixture):
         tz = tz_aware_fixture
         dti = date_range("2013-01-01", periods=3, tz=tz)
         cond = np.array([True, False, True])
 
-        msg = "value should be a 'Timestamp', 'NaT', or array of those. Got"
-        with pytest.raises(TypeError, match=msg):
-            # wrong-dtyped NaT
-            dti.where(cond, np.timedelta64("NaT", "ns"))
+        tdnat = np.timedelta64("NaT", "ns")
+        expected = Index([dti[0], tdnat, dti[2]], dtype=object)
+        assert expected[1] is tdnat
+
+        result = dti.where(cond, tdnat)
+        tm.assert_index_equal(result, expected)
 
     def test_where_tz(self):
         i = date_range("20130101", periods=3, tz="US/Eastern")

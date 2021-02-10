@@ -4528,7 +4528,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not mask.any():
             return self.copy()
 
-        if value is None:
+        if value is None and (self._is_numeric_dtype or self.dtype == object):
             value = self._na_value
         try:
             converted = self._validate_fill_value(value)
