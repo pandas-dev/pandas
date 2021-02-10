@@ -1526,7 +1526,12 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     False
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-    return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
+    if isinstance(dtype, ExtensionDtype):
+        return True
+    elif isinstance(dtype, np.dtype):
+        return False
+    else:
+        return registry.find(dtype) is not None
 
 
 def is_ea_or_datetimelike_dtype(dtype: Optional[DtypeObj]) -> bool:

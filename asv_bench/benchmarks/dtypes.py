@@ -2,9 +2,10 @@ import string
 
 import numpy as np
 
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.api.types import pandas_dtype
+from pandas.api.types import is_extension_array_dtype, pandas_dtype
 
 from .pandas_vb_common import (
     datetime_dtypes,
@@ -117,6 +118,18 @@ class SelectDtypes:
 
     def time_select_dtype_string_exclude(self, dtype):
         self.df_string.select_dtypes(exclude=dtype)
+
+
+class CheckDtypes:
+    def setup(self):
+        self.ext_dtype = pd.Int64Dtype()
+        self.np_dtype = np.dtype("int64")
+
+    def time_is_extension_array_dtype_true(self):
+        is_extension_array_dtype(self.ext_dtype)
+
+    def time_is_extension_array_dtype_false(self):
+        is_extension_array_dtype(self.np_dtype)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
