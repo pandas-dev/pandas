@@ -222,10 +222,11 @@ class Styler:
 
     def set_tooltips(self, ttips: DataFrame) -> Styler:
         """
-        Sets the tooltips ``DataFrame`` on ``Styler`` that is used to generate on hover table tooltips.
+        Set the tooltips ``DataFrame`` on ``Styler`` that is used to generate on hover
+        table tooltips.
 
-        These string based tooltips are only applicable to ``<td>`` HTML elements, and cannot be used for
-        header rows or index column names.
+        These string based tooltips are only applicable to ``<td>`` HTML elements,
+        and cannot be used for header rows or index column names.
 
         .. versionadded:: 1.3.0
 
@@ -287,8 +288,8 @@ class Styler:
 
         Notes
         -----
-        If either argument is `None` will not make any changes to the underlying ``Tooltips``
-        existing values.
+        If either argument is `None` will not make any changes to the underlying
+        ``Tooltips`` existing values.
 
         The default properties for the tooltip CSS class are:
 
@@ -635,7 +636,8 @@ class Styler:
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Set the ``DataFrame`` whose string values are added to the ``class`` attribute of ``<td>`` HTML elements.
+        Set the ``DataFrame`` whose string values are added to the ``class``
+        attribute of ``<td>`` HTML elements.
 
         Parameters
         ----------
@@ -1118,8 +1120,8 @@ class Styler:
         Notes
         _____
         Almost all HTML elements within the table, and including the ``<table>`` element
-        are assigned ``id`` attributes. The format is ``T_uuid_<extra>`` where ``<extra>`` is
-        typically a more specific identifier, such as ``row1_col2``.
+        are assigned ``id`` attributes. The format is ``T_uuid_<extra>`` where
+        ``<extra>`` is typically a more specific identifier, such as ``row1_col2``.
         """
         self.uuid = uuid
         return self
@@ -1475,7 +1477,7 @@ class Styler:
 
     def set_properties(self, subset=None, **kwargs) -> Styler:
         """
-        Sets defined CSS-properties to each data cell within the subset.
+        Set defined CSS-properties to each `<td>` HTML element within the given subset.
 
         Parameters
         ----------
