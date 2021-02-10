@@ -548,7 +548,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 
     @property
     def _constructor(self):
-        return ExponentialMovingWindow
+        return ExponentialMovingWindowGroupby
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """

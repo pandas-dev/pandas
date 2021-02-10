@@ -617,7 +617,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
 
     @property
     def _constructor(self):
-        return Expanding
+        return ExpandingGroupby
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """

@@ -1883,7 +1883,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import RollingGroupby
 
-        return RollingGroupby(self, *args, **kwargs)
+        return RollingGroupby(
+            self._selected_obj,
+            *args,
+            _grouping_indices=self.grouper.indices,
+            _grouping_keys=self.grouper.names,
+            _grouping_codes=self.grouper.codes,
+            _grouping_levels=self.grouper.levels,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1895,7 +1903,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExpandingGroupby
 
-        return ExpandingGroupby(self, *args, **kwargs)
+        return ExpandingGroupby(
+            self._selected_obj,
+            *args,
+            _grouping_indices=self.grouper.indices,
+            _grouping_keys=self.grouper.names,
+            _grouping_codes=self.grouper.codes,
+            _grouping_levels=self.grouper.levels,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1906,7 +1922,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
-        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
+        return ExponentialMovingWindowGroupby(
+            self._selected_obj,
+            *args,
+            _grouping_indices=self.grouper.indices,
+            _grouping_keys=self.grouper.names,
+            _grouping_codes=self.grouper.codes,
+            _grouping_levels=self.grouper.levels,
+            **kwargs,
+        )
 
     @final
     def _fill(self, direction, limit=None):
