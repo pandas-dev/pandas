@@ -222,8 +222,10 @@ class Styler:
 
     def set_tooltips(self, ttips: DataFrame) -> Styler:
         """
-        Add string based tooltips that will appear in the `Styler` HTML result. These
-        tooltips are applicable only to`<td>` elements.
+        Sets the tooltips ``DataFrame`` on ``Styler`` that is used to generate on hover table tooltips.
+
+        These string based tooltips are only applicable to ``<td>`` HTML elements, and cannot be used for
+        header rows or index column names.
 
         .. versionadded:: 1.3.0
 
@@ -268,8 +270,7 @@ class Styler:
         properties: Optional[CSSProperties] = None,
     ) -> Styler:
         """
-        Manually configure the name and/or properties of the class for
-        creating tooltips on hover.
+        Set the name and CSS-properties of the class for on hover tooltips.
 
         .. versionadded:: 1.3.0
 
@@ -286,7 +287,7 @@ class Styler:
 
         Notes
         -----
-        If arguments are `None` will not make any changes to the underlying ``Tooltips``
+        If either argument is `None` will not make any changes to the underlying ``Tooltips``
         existing values.
 
         The default properties for the tooltip CSS class are:
@@ -634,14 +635,13 @@ class Styler:
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Add string based CSS class names to data cells that will appear within the
-        `Styler` HTML result. These classes are added within specified `<td>` elements.
+        Set the ``DataFrame`` whose string values are added to the ``class`` attribute of ``<td>`` HTML elements.
 
         Parameters
         ----------
         classes : DataFrame
             DataFrame containing strings that will be translated to CSS classes,
-            mapped by identical column and index values that must exist on the
+            mapped by identical column and index key values that must exist on the
             underlying `Styler` data. None, NaN values, and empty strings will
             be ignored and not affect the rendered HTML.
 
@@ -993,7 +993,7 @@ class Styler:
         **kwargs,
     ) -> Styler:
         """
-        Apply a function elementwise.
+        Apply CSS-styles based on conditional function elementwise.
 
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
@@ -1029,7 +1029,7 @@ class Styler:
 
     def set_precision(self, precision: int) -> Styler:
         """
-        Set the precision used to render.
+        Set the precision used for the display value of floats.
 
         Parameters
         ----------
@@ -1044,10 +1044,9 @@ class Styler:
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
-        Set the table attributes.
+        Set the table attributes added to the ``<table>`` HTML element.
 
-        These are the items that show up in the opening ``<table>`` tag
-        in addition to automatic (by default) id.
+        These are items in addition to automatic (by default) ``id`` attribute.
 
         Parameters
         ----------
@@ -1106,7 +1105,7 @@ class Styler:
 
     def set_uuid(self, uuid: str) -> Styler:
         """
-        Set the uuid for a Styler.
+        Set the uuid applied to ``id`` attributes of HTML elements.
 
         Parameters
         ----------
@@ -1115,13 +1114,19 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        _____
+        Almost all HTML elements within the table, and including the ``<table>`` element
+        are assigned ``id`` attributes. The format is ``T_uuid_<extra>`` where ``<extra>`` is
+        typically a more specific identifier, such as ``row1_col2``.
         """
         self.uuid = uuid
         return self
 
     def set_caption(self, caption: str) -> Styler:
         """
-        Set the caption on a Styler.
+        Set the text added to a ``<caption>`` HTML element.
 
         Parameters
         ----------
@@ -1141,9 +1146,7 @@ class Styler:
         overwrite: bool = True,
     ) -> Styler:
         """
-        Set the table styles on a Styler.
-
-        These are placed in a ``<style>`` tag before the generated HTML table.
+        Set the table styles included within the ``<style>`` HTML element.
 
         This function can be used to style the entire table, columns, rows or
         specific HTML selectors.
@@ -1472,7 +1475,7 @@ class Styler:
 
     def set_properties(self, subset=None, **kwargs) -> Styler:
         """
-        Method to set one or more non-data dependent properties or each cell.
+        Sets defined CSS-properties to each data cell within the subset.
 
         Parameters
         ----------
@@ -1484,6 +1487,11 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This is a convenience methods which wraps the :meth:`Styler.applymap` calling a
+        function returning the CSS-properties independently of the data.
 
         Examples
         --------
@@ -1944,7 +1952,7 @@ class _Tooltips:
         """
         Mutate the render dictionary to allow for tooltips:
 
-        - Add `<span>` HTML element to each data cells `display_value`. Ignores
+        - Add ``<span>`` HTML element to each data cells ``display_value``. Ignores
           headers.
         - Add table level CSS styles to control pseudo classes.
 
