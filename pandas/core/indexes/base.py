@@ -88,7 +88,7 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import array_equivalent, is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import array_equivalent, is_valid_na_for_dtype, isna
 
 from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
@@ -2620,36 +2620,15 @@ class Index(IndexOpsMixin, PandasObject):
             return np.zeros(len(self), dtype=bool)
         return super().duplicated(keep=keep)
 
-    def _get_unique_index(self, dropna: bool = False):
+    def _get_unique_index(self: _IndexT) -> _IndexT:
         """
         Returns an index containing unique values.
 
-        Parameters
-        ----------
-        dropna : bool, default False
-            If True, NaN values are dropped.
-
         Returns
         -------
-        uniques : index
+        Index
         """
-        if self.is_unique and not dropna:
-            return self
-
-        if not self.is_unique:
-            values = self.unique()
-            if not isinstance(self, ABCMultiIndex):
-                # extract an array to pass to _shallow_copy
-                values = values._data
-        else:
-            values = self._values
-
-        if dropna and not isinstance(self, ABCMultiIndex):
-            # isna not defined for MultiIndex
-            if self.hasnans:
-                values = values[~isna(values)]
-
-        return self._shallow_copy(values)
+        return self.unique()
 
     # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
@@ -5216,7 +5195,7 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        if is_interval_dtype(self.dtype) and is_valid_nat_for_dtype(target, self.dtype):
+        if is_interval_dtype(self.dtype) and is_valid_na_for_dtype(target, self.dtype):
             # e.g. setting NA value into IntervalArray[int64]
             self = cast("IntervalIndex", self)
             return IntervalDtype(np.float64, closed=self.closed)
@@ -5770,7 +5749,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
         item = lib.item_from_zerodim(item)
-        if is_valid_nat_for_dtype(item, self.dtype) and self.dtype != object:
+        if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
             item = self._na_value
 
         try:
