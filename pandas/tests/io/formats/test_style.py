@@ -1749,8 +1749,10 @@ class TestStyler:
                 columns=["A", "B"],
                 index=["a", "b"],
             ),
-            DataFrame(data=[["test-class"]], columns=["B"], index=["a"]),
-            DataFrame(data=[["test-class", "unused"]], columns=["B", "C"], index=["a"]),
+            DataFrame(data=[[" test-class "]], columns=["B"], index=["a"]),
+            DataFrame(
+                data=[["test-class ", "unused"]], columns=["B", "C"], index=["a"]
+            ),
         ],
     )
     def test_set_data_classes(self, classes):

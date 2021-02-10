@@ -683,7 +683,9 @@ class Styler:
         '  </tbody>'
         '</table>'
         """
-        classes = classes.reindex_like(self.data)
+        classes = classes.reindex_like(self.data).applymap(
+            lambda v: v.strip() if isinstance(v, str) else v
+        )  # perf: stripping cost ~2-3ms/5000 elements, maybe improves below
 
         mask = (classes.isna()) | (classes.eq(""))
         self.cell_context["data"] = {
