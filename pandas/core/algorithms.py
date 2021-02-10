@@ -1821,7 +1821,7 @@ take_1d = take_nd
 
 
 def take_1d_array(
-    arr: np.ndarray,
+    arr: ArrayLike,
     indexer: np.ndarray,
     out=None,
     fill_value=lib.no_default,
@@ -1830,9 +1830,10 @@ def take_1d_array(
     """
     Specialized version for 1D arrays. Differences compared to take_nd/take_1d:
 
-    - Assumes input (arr, indexer) has already been converted to numpy arrays
+    - Assumes input (arr, indexer) has already been converted to numpy array / EA
     - Only works for 1D arrays
 
+    To ensure the lowest possible overhead.
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
