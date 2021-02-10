@@ -5,7 +5,6 @@ from typing import cast
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.cast import find_common_type
@@ -45,7 +44,7 @@ class NullArrayProxy:
     def shape(self):
         return (self.n,)
 
-    def to_array(self, dtype: DtypeObj, fill_value=lib.no_default) -> ArrayLike:
+    def to_array(self, dtype: DtypeObj) -> ArrayLike:
         """
         Helper function to create the actual all-NA array from the NullArrayProxy
         object.
@@ -54,9 +53,6 @@ class NullArrayProxy:
         ----------
         arr : NullArrayProxy
         dtype : the dtype for the resulting array
-        fill_value : scalar NA-like value
-            By default uses the ExtensionDtype's na_value or np.nan. For numpy
-            arrays, this can be overridden to be something else (eg None).
 
         Returns
         -------
@@ -73,9 +69,7 @@ class NullArrayProxy:
             elif is_bool_dtype(dtype):
                 dtype = np.dtype(object)
 
-            if fill_value is lib.no_default:
-                fill_value = na_value_for_dtype(dtype)
-
+            fill_value = na_value_for_dtype(dtype)
             arr = np.empty(self.n, dtype=dtype)
             arr.fill(fill_value)
             return ensure_wrapped_if_datetimelike(arr)
@@ -461,9 +455,7 @@ def _concat_datetime(to_concat, axis=0):
         # ensure_wrapped_if_datetimelike ensures that astype(object) wraps
         #  in Timestamp/Timedelta
         to_concat = [
-            arr.to_array(object, fill_value=None)
-            if isinstance(arr, NullArrayProxy)
-            else arr
+            arr.to_array(object) if isinstance(arr, NullArrayProxy) else arr
             for arr in to_concat
         ]
 
