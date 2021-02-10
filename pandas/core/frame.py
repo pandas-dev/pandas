@@ -3042,7 +3042,7 @@ class DataFrame(NDFrame, OpsMixin):
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
             warnings.warn(
-                "DataFrame indexer is deprecated "
+                "Using a DataFrame as an indexer is deprecated "
                 "and will be disallowed in future. Use where instead.",
                 FutureWarning,
                 stacklevel=2,
