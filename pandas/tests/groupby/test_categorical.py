@@ -1639,8 +1639,8 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     val = [0, 1, 1, 0]
     df = DataFrame({"a": cat, "b": cat, "c": val})
 
-    idx = Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    cat2 = Categorical([0, 1])
+    idx = pd.MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
         "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
@@ -1664,8 +1664,8 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     val = [0, 1, 1, 0]
     df = DataFrame({"a": cat, "b": cat, "c": val})
 
-    idx = Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    cat2 = Categorical([0, 1])
+    idx = pd.MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
         "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
