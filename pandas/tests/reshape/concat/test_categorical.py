@@ -42,6 +42,7 @@ class TestCategoricalConcat:
                 "h": [None] * 6 + cat_values,
             }
         )
+        exp["h"] = exp["h"].astype(df2["h"].dtype)
         tm.assert_frame_equal(res, exp)
 
     def test_categorical_concat_dtypes(self):

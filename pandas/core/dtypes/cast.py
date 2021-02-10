@@ -1221,7 +1221,7 @@ def soft_convert_objects(
             values = lib.maybe_convert_objects(
                 values, convert_datetime=datetime, convert_timedelta=timedelta
             )
-        except OutOfBoundsDatetime:
+        except (OutOfBoundsDatetime, ValueError):
             return values
 
     if numeric and is_object_dtype(values.dtype):
@@ -1331,20 +1331,18 @@ def convert_dtypes(
     return inferred_dtype
 
 
-def maybe_castable(arr: np.ndarray) -> bool:
+def maybe_castable(dtype: np.dtype) -> bool:
     # return False to force a non-fastpath
-
-    assert isinstance(arr, np.ndarray)  # GH 37024
 
     # check datetime64[ns]/timedelta64[ns] are valid
     # otherwise try to coerce
-    kind = arr.dtype.kind
+    kind = dtype.kind
     if kind == "M":
-        return is_datetime64_ns_dtype(arr.dtype)
+        return is_datetime64_ns_dtype(dtype)
     elif kind == "m":
-        return is_timedelta64_ns_dtype(arr.dtype)
+        return is_timedelta64_ns_dtype(dtype)
 
-    return arr.dtype.name not in POSSIBLY_CAST_DTYPES
+    return dtype.name not in POSSIBLY_CAST_DTYPES
 
 
 def maybe_infer_to_datetimelike(
@@ -1904,12 +1902,15 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ):
         raise ValueError("Cannot assign nan to integer series")
 
-    if dtype.kind in ["i", "u", "f", "c"]:
+    elif dtype.kind in ["i", "u", "f", "c"]:
         if is_bool(value) or isinstance(value, np.timedelta64):
             # numpy will cast td64 to integer if we're not careful
             raise ValueError(
                 f"Cannot assign {type(value).__name__} to float/integer series"
             )
+    elif dtype.kind == "b":
+        if is_scalar(value) and not is_bool(value):
+            raise ValueError(f"Cannot assign {type(value).__name__} to bool series")
 
 
 def can_hold_element(dtype: np.dtype, element: Any) -> bool:
