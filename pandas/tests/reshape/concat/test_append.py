@@ -343,8 +343,6 @@ class TestAppend:
         # These columns get cast to object after append
         expected["c"] = expected["c"].astype(object)
         expected["d"] = expected["d"].astype(object)
-        expected["date"] = expected["date"].astype(object)
-        # TODO: "date" might make sense to keep as dt64tz
         tm.assert_frame_equal(result_a, expected)
 
         expected = DataFrame(
@@ -352,8 +350,6 @@ class TestAppend:
         )
         expected["c"] = expected["c"].astype(object)
         expected["d"] = expected["d"].astype(object)
-        expected["date"] = expected["date"].astype(object)
-        # TODO: "date" might make sense to keep as dt64tz
         result_b = result_a.append(ser, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
 

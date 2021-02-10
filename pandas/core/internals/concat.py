@@ -15,11 +15,12 @@ from pandas.core.dtypes.common import (
     get_dtype,
     is_categorical_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna_all
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
@@ -238,12 +239,16 @@ class JoinUnit:
 
         if self.dtype == object:
             values = self.block.values
-            return all(
-                is_valid_nat_for_dtype(x, dtype) for x in values.ravel(order="K")
-            )
+            return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
+
+        if self.dtype.kind == dtype.kind == "M" and not is_dtype_equal(
+            self.dtype, dtype
+        ):
+            # fill_values match but we should not case self.block.values to dtype
+            return False
 
         na_value = self.block.fill_value
-        return is_valid_nat_for_dtype(na_value, dtype)
+        return is_valid_na_for_dtype(na_value, dtype)
 
     @cache_readonly
     def is_na(self) -> bool:
@@ -289,10 +294,9 @@ class JoinUnit:
                 if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
                     empty_dtype
                 ):
-                    if self.block is None:
-                        # TODO(EA2D): special case unneeded with 2D EAs
-                        i8values = np.full(self.shape[1], fill_value.value)
-                        return DatetimeArray(i8values, dtype=empty_dtype)
+                    # TODO(EA2D): special case unneeded with 2D EAs
+                    i8values = np.full(self.shape[1], fill_value.value)
+                    return DatetimeArray(i8values, dtype=empty_dtype)
                 elif is_categorical_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(blk_dtype):
