@@ -4821,7 +4821,10 @@ class DataFrame(NDFrame, OpsMixin):
                 names.extend(col.names)
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
-                arrays.append(col)
+
+                # error: Argument 1 to "append" of "list" has incompatible
+                #  type "Union[Index, Series]"; expected "Index"  [arg-type]
+                arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)

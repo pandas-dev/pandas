@@ -475,7 +475,8 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
         # upcast (possibly), otherwise we DON't want to upcast (e.g. if we
         # have values, say integers, in the success portion then it's ok to not
         # upcast)
-        new_dtype, _ = maybe_promote(result.dtype, np.nan)
+        new_dtype = ensure_dtype_can_hold_na(result.dtype)
+
         if new_dtype != result.dtype:
             result = result.astype(new_dtype, copy=True)
 
@@ -484,7 +485,21 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return result
 
 
-def maybe_promote(dtype, fill_value=np.nan):
+def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
+    """
+    If we have a dtype that cannot hold NA values, find the best match that can.
+    """
+    if isinstance(dtype, ExtensionDtype):
+        # TODO: ExtensionDtype.can_hold_na?
+        return dtype
+    elif dtype.kind == "b":
+        return np.dtype(object)
+    elif dtype.kind in ["i", "u"]:
+        return np.dtype(np.float64)
+    return dtype
+
+
+def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
     """
     Find the minimal dtype that can hold both the given dtype and fill_value.
 
@@ -565,7 +580,7 @@ def maybe_promote(dtype, fill_value=np.nan):
                     fill_value = np.timedelta64("NaT", "ns")
                 else:
                     fill_value = fv.to_timedelta64()
-    elif is_datetime64tz_dtype(dtype):
+    elif isinstance(dtype, DatetimeTZDtype):
         if isna(fill_value):
             fill_value = NaT
         elif not isinstance(fill_value, datetime):
