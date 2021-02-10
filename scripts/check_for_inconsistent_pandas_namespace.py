@@ -23,8 +23,9 @@ from tokenize_rt import Offset, reversed_enumerate, src_to_tokens, tokens_to_src
 
 ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
 EXCLUDE = {
+    "array",  # `import array` and `pd.array` should both be allowed
+    "eval",  # built-in, different from `pd.eval`
     "np",  # pd.np is deprecated but still tested
-    "eval",
 }
 
 
@@ -68,11 +69,10 @@ def check_for_inconsistent_pandas_namespace(
             and visitor.pandas_namespace[i.offset] in visitor.no_namespace
         ):
             if not replace:
-                raise RuntimeError(
-                    ERROR_MESSAGE.format(
-                        name=visitor.pandas_namespace[i.offset], path=path
-                    )
+                msg = ERROR_MESSAGE.format(
+                    name=visitor.pandas_namespace[i.offset], path=path
                 )
+                raise RuntimeError(msg)
             # Replace `pd`
             tokens[n] = i._replace(src="")
             # Replace `.`

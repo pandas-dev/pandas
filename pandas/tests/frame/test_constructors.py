@@ -33,7 +33,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.arrays import IntervalArray, PeriodArray, SparseArray
-from pandas.core.construction import array as pd_array
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -754,7 +753,7 @@ class TestDataFrameConstructors:
         assert df["a"].dtype == dtype
         assert df["b"].dtype == dtype
 
-        arr = pd_array([data] * 2, dtype=dtype)
+        arr = pd.array([data] * 2, dtype=dtype)
         expected = DataFrame({"a": arr, "b": arr})
 
         tm.assert_frame_equal(df, expected)
