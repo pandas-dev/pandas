@@ -580,7 +580,7 @@ def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
                     fill_value = np.timedelta64("NaT", "ns")
                 else:
                     fill_value = fv.to_timedelta64()
-    elif is_datetime64tz_dtype(dtype):
+    elif isinstance(dtype, DatetimeTZDtype):
         if isna(fill_value):
             fill_value = NaT
         elif not isinstance(fill_value, datetime):
