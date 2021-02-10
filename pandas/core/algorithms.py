@@ -1538,8 +1538,9 @@ _take_2d_multi_dict = {
 @functools.lru_cache(maxsize=128)
 def __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
     """
-    Part of _get_take_nd_function below that doesn't need the mask
-    and thus can be cached.
+    Part of _get_take_nd_function below that doesn't need `mask_info` and thus
+    can be cached (mask_info potentially contains a numpy ndarray which is not
+    hashable and thus cannot be used as argument for cached function).
     """
     tup = (arr_dtype.name, out_dtype.name)
     if ndim == 1:
@@ -1570,8 +1571,13 @@ def __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
 def _get_take_nd_function(
     ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
 ):
+    """
+    Get the appropriate "take" implementation for the given dimension, axis
+    and dtypes.
+    """
     func = None
     if ndim <= 2:
+        # for this part we don't need `mask_info` -> use the cached algo lookup
         func = __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis)
 
     if func is None:
