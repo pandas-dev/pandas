@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
@@ -829,9 +829,16 @@ class ArrayManager(DataManager):
         values.fill(fill_value)
         return values
 
-    def equals(self, other: object) -> bool:
-        # TODO
-        raise NotImplementedError
+    def _equal_values(self, other) -> bool:
+        """
+        Used in .equals defined in base class. Only check the column values
+        assuming shape and indexes have already been checked.
+        """
+        for left, right in zip(self.arrays, other.arrays):
+            if not array_equals(left, right):
+                return False
+        else:
+            return True
 
     def unstack(self, unstacker, fill_value) -> ArrayManager:
         """
