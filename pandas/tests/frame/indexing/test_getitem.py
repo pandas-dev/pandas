@@ -6,6 +6,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -174,3 +175,24 @@ class TestGetitemBooleanMask:
             df4[df4.index < 2]
         with pytest.raises(TypeError, match=msg):
             df4[df4.index > 1]
+
+
+class TestGetitemSlice:
+    def test_getitem_slice_float64(self, frame_or_series):
+        values = np.arange(10.0, 50.0, 2)
+        index = Index(values)
+
+        start, end = values[[5, 15]]
+
+        data = np.random.randn(20, 3)
+        if frame_or_series is not DataFrame:
+            data = data[:, 0]
+
+        obj = frame_or_series(data, index=index)
+
+        result = obj[start:end]
+        expected = obj.iloc[5:16]
+        tm.assert_equal(result, expected)
+
+        result = obj.loc[start:end]
+        tm.assert_equal(result, expected)

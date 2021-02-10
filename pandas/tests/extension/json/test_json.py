@@ -6,8 +6,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
-
-from .array import JSONArray, JSONDtype, make_data
+from pandas.tests.extension.json.array import JSONArray, JSONDtype, make_data
 
 
 @pytest.fixture

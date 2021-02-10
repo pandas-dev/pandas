@@ -17,8 +17,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-
-from ..datetimelike import DatetimeLike
+from pandas.tests.indexes.datetimelike import DatetimeLike
 
 
 class TestPeriodIndex(DatetimeLike):
@@ -83,7 +82,7 @@ class TestPeriodIndex(DatetimeLike):
     def test_shallow_copy_empty(self):
         # GH13067
         idx = PeriodIndex([], freq="M")
-        result = idx._shallow_copy()
+        result = idx._view()
         expected = idx
 
         tm.assert_index_equal(result, expected)

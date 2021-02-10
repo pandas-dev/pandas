@@ -17,7 +17,7 @@ from pandas._libs import (
 )
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Scalar, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -29,7 +29,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
-    maybe_promote,
     maybe_upcast,
     soft_convert_objects,
 )
@@ -44,8 +43,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_object_dtype,
-    is_re,
-    is_re_compilable,
     is_sparse,
     pandas_dtype,
 )
@@ -59,7 +56,11 @@ from pandas.core.array_algos.putmask import (
     putmask_smart,
     putmask_without_repeat,
 )
-from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
+from pandas.core.array_algos.replace import (
+    compare_or_regex_search,
+    replace_regex,
+    should_use_regex,
+)
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -83,7 +84,7 @@ import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import Float64Index, Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
@@ -819,6 +820,12 @@ class Block(PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
+        # TODO: dont special-case Categorical
+        if self.is_categorical and len(algos.unique(dest_list)) == 1:
+            # We likely got here by tiling value inside NDFrame.replace,
+            #  so un-tile here
+            return self.replace(src_list, dest_list[0], inplace, regex)
+
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
@@ -829,21 +836,14 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        def comp(s: Scalar, mask: np.ndarray, regex: bool = False) -> np.ndarray:
-            """
-            Generate a bool array by perform an equality check, or perform
-            an element-wise regular expression matching
-            """
-            if isna(s):
-                return ~mask
-
-            return compare_or_regex_search(self.values, s, regex, mask)
-
         if self.is_object:
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(self.values)
-            masks = [comp(s[0], mask, regex) for s in pairs]
+            masks = [
+                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
+                for s in pairs
+            ]
         else:
             # GH#38086 faster if we know we dont need to check for regex
             masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
@@ -1028,6 +1028,13 @@ class Block(PandasObject):
         elif not mask.any():
             return [self]
 
+        dtype, _ = infer_dtype_from(new)
+        if dtype.kind in ["m", "M"]:
+            # using putmask with object dtype will incorrect cast to object
+            # Having excluded self._can_hold_element, we know we cannot operate
+            #  in-place, so we are safe using `where`
+            return self.where(new, ~mask)
+
         else:
             # may need to upcast
             if transpose:
@@ -1049,7 +1056,7 @@ class Block(PandasObject):
                         n = np.array(new)
 
                     # type of the new block
-                    dtype, _ = maybe_promote(n.dtype)
+                    dtype = find_common_type([n.dtype, val.dtype])
 
                     # we need to explicitly astype here to make a copy
                     n = n.astype(dtype)
@@ -1308,12 +1315,23 @@ class Block(PandasObject):
                 blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
-            # convert datetime to datetime64, timedelta to timedelta64
-            other = convert_scalar_for_putitemlike(other, values.dtype)
+            dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+            if dtype.kind in ["m", "M"] and dtype.kind != values.dtype.kind:
+                # expressions.where would cast np.timedelta64 to int
+                if not is_list_like(other):
+                    other = [other] * (~cond).sum()
+                else:
+                    other = list(other)
+                result = values.copy()
+                np.putmask(result, ~cond, other)
 
-            # By the time we get here, we should have all Series/Index
-            #  args extracted to ndarray
-            result = expressions.where(cond, values, other)
+            else:
+                # convert datetime to datetime64, timedelta to timedelta64
+                other = convert_scalar_for_putitemlike(other, values.dtype)
+
+                # By the time we get here, we should have all Series/Index
+                #  args extracted to ndarray
+                result = expressions.where(cond, values, other)
 
         if self._can_hold_na or self.ndim == 1:
 
@@ -1368,15 +1386,20 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+    def quantile(
+        self, qs: Float64Index, interpolation="linear", axis: int = 0
+    ) -> Block:
         """
         compute the quantiles of the
 
         Parameters
         ----------
-        qs: a scalar or list of the quantiles to be computed
-        interpolation: type of interpolation, default 'linear'
-        axis: axis to compute, default 0
+        qs : Float64Index
+            List of the quantiles to be computed.
+        interpolation : str, default 'linear'
+            Type of interpolation.
+        axis : int, default 0
+            Axis to compute.
 
         Returns
         -------
@@ -1384,14 +1407,12 @@ class Block(PandasObject):
         """
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
+        assert axis == 1  # only ever called this way
+        assert is_list_like(qs)  # caller is responsible for this
 
         values = self.get_values()
 
         is_empty = values.shape[axis] == 0
-        orig_scalar = not is_list_like(qs)
-        if orig_scalar:
-            # make list-like, unpack later
-            qs = [qs]
 
         if is_empty:
             # create the array of na_values
@@ -1415,14 +1436,7 @@ class Block(PandasObject):
             result = np.array(result, copy=False)
             result = result.T
 
-        if orig_scalar and not lib.is_scalar(result):
-            # result could be scalar in case with is_empty and self.ndim == 1
-            assert result.shape[-1] == 1, result.shape
-            result = result[..., 0]
-            result = lib.item_from_zerodim(result)
-
-        ndim = np.ndim(result)
-        return make_block(result, placement=np.arange(len(result)), ndim=ndim)
+        return make_block(result, placement=self.mgr_locs, ndim=2)
 
     def _replace_coerce(
         self,
@@ -1461,7 +1475,7 @@ class Block(PandasObject):
                 putmask_inplace(nb.values, mask, value)
                 return [nb]
             else:
-                regex = _should_use_regex(regex, to_replace)
+                regex = should_use_regex(regex, to_replace)
                 if regex:
                     return self._replace_regex(
                         to_replace,
@@ -2173,7 +2187,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+    def quantile(
+        self, qs: Float64Index, interpolation="linear", axis: int = 0
+    ) -> Block:
+        assert axis == 1  # only ever called this way
         naive = self.values.view("M8[ns]")
 
         # TODO(EA2D): kludge for 2D block with 1D values
@@ -2254,7 +2271,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def _maybe_coerce_values(self, values):
-        if issubclass(values.dtype.type, (str, bytes)):
+        if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
         return values
 
@@ -2354,7 +2371,7 @@ class ObjectBlock(Block):
         #  here with listlike to_replace or value, as those cases
         #  go through _replace_list
 
-        regex = _should_use_regex(regex, to_replace)
+        regex = should_use_regex(regex, to_replace)
 
         if regex:
             return self._replace_regex(to_replace, value, inplace=inplace)
@@ -2362,35 +2379,8 @@ class ObjectBlock(Block):
             return super().replace(to_replace, value, inplace=inplace, regex=False)
 
 
-def _should_use_regex(regex: bool, to_replace: Any) -> bool:
-    """
-    Decide whether to treat `to_replace` as a regular expression.
-    """
-    if is_re(to_replace):
-        regex = True
-
-    regex = regex and is_re_compilable(to_replace)
-
-    # Don't use regex if the pattern is empty.
-    regex = regex and re.compile(to_replace).pattern != ""
-    return regex
-
-
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
-
-    def _replace_list(
-        self,
-        src_list: List[Any],
-        dest_list: List[Any],
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> List[Block]:
-        if len(algos.unique(dest_list)) == 1:
-            # We likely got here by tiling value inside NDFrame.replace,
-            #  so un-tile here
-            return self.replace(src_list, dest_list[0], inplace, regex)
-        return super()._replace_list(src_list, dest_list, inplace, regex)
 
     def replace(
         self,

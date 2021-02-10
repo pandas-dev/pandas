@@ -14,8 +14,7 @@ from pandas import DataFrame, Index, NaT, Series, date_range, offsets, timedelta
 import pandas._testing as tm
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
-
-from .test_floats import gen_obj
+from pandas.tests.indexing.test_floats import gen_obj
 
 # ------------------------------------------------------------------------
 # Indexing test cases
@@ -61,16 +60,22 @@ class TestFancy:
         idxr = indexer_sli(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = "|".join(
-            [
-                r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
-                "Cannot index with multidimensional key",
-                r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
-                "Index data must be 1-dimensional",
-                "positional indexers are out-of-bounds",
-                "Indexing a MultiIndex with a multidimensional key is not implemented",
-            ]
-        )
+        msgs = []
+        if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
+            msgs.append(r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]")
+        if frame_or_series is Series or indexer_sli is tm.iloc:
+            msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
+        if indexer_sli is tm.loc or (
+            frame_or_series is Series and indexer_sli is tm.setitem
+        ):
+            msgs.append("Cannot index with multidimensional key")
+        if frame_or_series is DataFrame and indexer_sli is tm.setitem:
+            msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
+            msgs.append("Index data must be 1-dimensional")
+        if len(index) == 0 or isinstance(index, pd.MultiIndex):
+            msgs.append("positional indexers are out-of-bounds")
+        msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
         with pytest.raises(potential_errors, match=msg):
