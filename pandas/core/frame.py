@@ -3885,7 +3885,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "'self.flags.allows_duplicate_labels' is False."
             )
         value = self._sanitize_column(value)
-        value = _maybe_atleast_2d(value)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs) -> DataFrame:
