@@ -671,7 +671,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
         elif is_categorical_dtype(target.dtype):
             target = cast("CategoricalIndex", target)
-            # get an indexer for unique categories then propagate to codes via take_1d
+            # get an indexer for unique categories then propagate to codes via take_nd
             categories_indexer = self.get_indexer(target.categories)
             indexer = take_nd(categories_indexer, target.codes, fill_value=-1)
         elif not is_object_dtype(target):
