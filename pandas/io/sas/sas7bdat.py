@@ -54,12 +54,16 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         if unit == "s":
             s_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
+                if pd.notnull(sas_float)
+                else pd.NaT
             )
             s_series = cast(pd.Series, s_series)
             return s_series
         elif unit == "d":
             d_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
+                if pd.notnull(sas_float)
+                else pd.NaT
             )
             d_series = cast(pd.Series, d_series)
             return d_series
