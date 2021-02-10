@@ -1,11 +1,10 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import Hashable, List, Optional, TypeVar
+from typing import List, TypeVar
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -213,19 +212,6 @@ class ExtensionIndex(Index):
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
 
-    @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self, values: Optional[ExtensionArray] = None, name: Hashable = lib.no_default
-    ):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
-
     @property
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
@@ -277,13 +263,11 @@ class ExtensionIndex(Index):
         # ExtensionIndex subclasses must override Index.insert
         raise AbstractMethodError(self)
 
-    def _get_unique_index(self, dropna=False):
-        if self.is_unique and not dropna:
+    def _get_unique_index(self):
+        if self.is_unique:
             return self
 
         result = self._data.unique()
-        if dropna and self.hasnans:
-            result = result[~result.isna()]
         return self._shallow_copy(result)
 
     @doc(Index.map)

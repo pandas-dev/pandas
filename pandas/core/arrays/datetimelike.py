@@ -57,7 +57,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, isin, unique1d
@@ -493,7 +493,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
-        if is_valid_nat_for_dtype(fill_value, self.dtype):
+        if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
             # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
@@ -557,7 +557,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 msg = self._validation_error_message(value, allow_listlike)
                 raise TypeError(msg) from err
 
-        elif is_valid_nat_for_dtype(value, self.dtype):
+        elif is_valid_na_for_dtype(value, self.dtype):
             # GH#18295
             value = NaT
 

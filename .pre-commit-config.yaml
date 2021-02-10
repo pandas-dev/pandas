@@ -24,12 +24,12 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.9.0
+    rev: v2.10.0
     hooks:
     -   id: pyupgrade
         args: [--py37-plus, --keep-runtime-typing]
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.7.0
+    rev: v1.7.1
     hooks:
       - id: rst-backticks
       - id: rst-directive-colons
@@ -127,6 +127,12 @@ repos:
         types: [python]
         files: ^pandas/tests/
         exclude: ^pandas/tests/extension/
+    -   id: unwanted-patters-pytest-xfail
+        name: Check for use of pytest.xfail
+        entry: pytest\.xfail
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
