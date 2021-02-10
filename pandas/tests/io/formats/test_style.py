@@ -1756,14 +1756,14 @@ class TestStyler:
         ],
     )
     def test_set_data_classes(self, classes):
-        # GH 36159
+        # GH 36159 / GH 39718
         df = DataFrame(data=[[0, 1], [2, 3]], columns=["A", "B"], index=["a", "b"])
         s = Styler(df, uuid_len=0, cell_ids=False).set_td_classes(classes).render()
         assert '<td  class="data row0 col0" >0</td>' in s
         assert '<td  class="data row0 col1 test-class" >1</td>' in s
         assert '<td  class="data row1 col0" >2</td>' in s
         assert '<td  class="data row1 col1" >3</td>' in s
-        # GH 39317
+        # GH 39317 / GH 39718
         s = Styler(df, uuid_len=0, cell_ids=True).set_td_classes(classes).render()
         assert '<td id="T__row0_col0" class="data row0 col0" >0</td>' in s
         assert '<td id="T__row0_col1" class="data row0 col1 test-class" >1</td>' in s
