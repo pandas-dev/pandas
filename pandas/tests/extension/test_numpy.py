@@ -350,9 +350,9 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
-    @skip_nested
+    @pytest.mark.skip(reason="Incorrect expected.")
     def test_merge(self, data, na_value):
-        # Fails creating expected
+        # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
 
     @skip_nested
