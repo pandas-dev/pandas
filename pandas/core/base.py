@@ -926,7 +926,7 @@ class IndexOpsMixin(OpsMixin):
             values = self._values
 
             indexer = mapper.index.get_indexer(values)
-            new_values = algorithms.take_1d(mapper._values, indexer)
+            new_values = algorithms.take_nd(mapper._values, indexer)
 
             return new_values
 

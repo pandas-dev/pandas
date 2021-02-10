@@ -29,7 +29,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import safe_sort, take_1d
+from pandas.core.algorithms import safe_sort, take_nd
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -309,7 +309,7 @@ def assert_index_equal(
         # accept level number only
         unique = index.levels[level]
         level_codes = index.codes[level]
-        filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
+        filled = take_nd(unique._values, level_codes, fill_value=unique._na_value)
         return unique._shallow_copy(filled, name=index.names[level])
 
     if check_less_precise is not no_default:

@@ -138,8 +138,8 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarra
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = algos.take_1d(mgr.blknos, ax0_indexer, fill_value=-1)
-        blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_nd(mgr.blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_nd(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr.is_single_block:
