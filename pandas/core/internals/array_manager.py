@@ -18,12 +18,12 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, PandasDtype
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
@@ -187,7 +187,7 @@ class ArrayManager(DataManager):
         indexer = np.arange(self.shape[0])
         return new_mgr, indexer
 
-    def operate_blockwise(self, other: "ArrayManager", array_op) -> ArrayManager:
+    def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
@@ -343,7 +343,7 @@ class ArrayManager(DataManager):
     # def setitem(self, indexer, value) -> ArrayManager:
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True, axis: int = 0):
+    def putmask(self, mask, new, align: bool = True):
 
         if align:
             align_keys = ["new", "mask"]
@@ -356,7 +356,6 @@ class ArrayManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            axis=axis,
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
@@ -830,9 +829,16 @@ class ArrayManager(DataManager):
         values.fill(fill_value)
         return values
 
-    def equals(self, other: object) -> bool:
-        # TODO
-        raise NotImplementedError
+    def _equal_values(self, other) -> bool:
+        """
+        Used in .equals defined in base class. Only check the column values
+        assuming shape and indexes have already been checked.
+        """
+        for left, right in zip(self.arrays, other.arrays):
+            if not array_equals(left, right):
+                return False
+        else:
+            return True
 
     def unstack(self, unstacker, fill_value) -> ArrayManager:
         """

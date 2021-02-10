@@ -91,7 +91,7 @@ Shape = Tuple[int, ...]
 Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
-Axes = Collection
+Axes = Collection[Any]
 
 # dtypes
 NpDtype = Union[str, np.dtype]

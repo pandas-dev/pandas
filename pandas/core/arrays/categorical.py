@@ -54,7 +54,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
 
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -422,7 +422,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._dtype
 
     @property
-    def _constructor(self) -> Type["Categorical"]:
+    def _constructor(self) -> Type[Categorical]:
         return Categorical
 
     @classmethod
@@ -466,7 +466,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
             try:
-                astyped_cats = self.categories.astype(dtype=dtype, copy=copy)
+                new_cats = np.asarray(self.categories)
+                new_cats = new_cats.astype(dtype=dtype, copy=copy)
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
@@ -474,8 +475,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            astyped_cats = extract_array(astyped_cats, extract_numpy=True)
-            result = take_1d(astyped_cats, libalgos.ensure_platform_int(self._codes))
+            result = take_1d(new_cats, libalgos.ensure_platform_int(self._codes))
 
         return result
 
@@ -1297,7 +1297,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         TypeError
         """
 
-        if is_valid_nat_for_dtype(fill_value, self.categories.dtype):
+        if is_valid_na_for_dtype(fill_value, self.categories.dtype):
             fill_value = -1
         elif fill_value in self.categories:
             fill_value = self._unbox_scalar(fill_value)
@@ -1429,7 +1429,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     notnull = notna
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Return a Series containing counts of each category.
 
@@ -1792,7 +1792,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Returns True if `key` is in this Categorical.
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_valid_nat_for_dtype(key, self.categories.dtype):
+        if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.isna().any()
 
         return contains(self, key, container=self._codes)
@@ -2175,7 +2175,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def _encode_with_my_categories(self, other: "Categorical") -> Categorical:
+    def _encode_with_my_categories(self, other: Categorical) -> Categorical:
         """
         Re-encode another categorical using this Categorical's categories.
 
@@ -2192,7 +2192,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         return self._from_backing_data(codes)
 
-    def _categories_match_up_to_permutation(self, other: "Categorical") -> bool:
+    def _categories_match_up_to_permutation(self, other: Categorical) -> bool:
         """
         Returns True if categoricals are the same dtype
           same categories, and same ordered
@@ -2546,7 +2546,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 # utility routines
 
 
-def _get_codes_for_values(values, categories: "Index") -> np.ndarray:
+def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     """
     utility routine to turn values into codes given the specified categories
 

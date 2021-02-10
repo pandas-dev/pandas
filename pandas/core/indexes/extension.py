@@ -1,11 +1,10 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import Hashable, List, Optional, TypeVar
+from typing import List, TypeVar
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -42,7 +41,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     """
     attr = getattr(delegate, name)
 
-    if isinstance(attr, property):
+    if isinstance(attr, property) or type(attr).__name__ == "getset_descriptor":
+        # getset_descriptor i.e. property defined in cython class
         if cache:
 
             def cached(self):
@@ -212,19 +212,6 @@ class ExtensionIndex(Index):
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
 
-    @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self, values: Optional[ExtensionArray] = None, name: Hashable = lib.no_default
-    ):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
-
     @property
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
@@ -255,6 +242,17 @@ class ExtensionIndex(Index):
 
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
+
+    def delete(self, loc):
+        """
+        Make new Index with passed location(-s) deleted
+
+        Returns
+        -------
+        new_index : Index
+        """
+        arr = self._data.delete(loc)
+        return type(self)._simple_new(arr, name=self.name)
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat((), {"axis": axis})
@@ -331,17 +329,6 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
-
-    def delete(self: _T, loc) -> _T:
-        """
-        Make new Index with passed location(-s) deleted
-
-        Returns
-        -------
-        new_index : Index
-        """
-        arr = self._data.delete(loc)
-        return type(self)._simple_new(arr, name=self.name)
 
     def insert(self: _T, loc: int, item) -> _T:
         """
