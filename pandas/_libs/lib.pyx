@@ -73,6 +73,7 @@ from pandas._libs.tslib import array_to_datetime
 from pandas._libs.missing cimport (
     C_NA,
     checknull,
+    is_matching_na,
     is_null_datetime64,
     is_null_timedelta64,
     isnaobj,
@@ -584,8 +585,10 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                     return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
-            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            elif not (
+                PyObject_RichCompareBool(x, y, Py_EQ)
+                or is_matching_na(x, y, nan_matches_none=True)
+            ):
                 return False
         except ValueError:
             # Avoid raising ValueError when comparing Numpy arrays to other types
