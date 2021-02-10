@@ -1,12 +1,11 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
-
 from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import Any, Dict, Optional, Set, Type
+from typing import Any, Dict, List, Optional, Set, Type
 import warnings
 
 import numpy as np
@@ -284,7 +283,7 @@ dialect : str or csv.Dialect, optional
 error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
-    If False, then these "bad lines" will dropped from the DataFrame that is
+    If False, then these "bad lines" will be dropped from the DataFrame that is
     returned.
 warn_bad_lines : bool, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
@@ -727,6 +726,7 @@ class TextFileReader(abc.Iterator):
         kwds = self.orig_options
 
         options = {}
+        default: Optional[object]
 
         for argname, default in parser_defaults.items():
             value = kwds.get(argname, default)
@@ -756,10 +756,7 @@ class TextFileReader(abc.Iterator):
             options[argname] = value
 
         if engine == "python-fwf":
-            # pandas\io\parsers.py:907: error: Incompatible types in assignment
-            # (expression has type "object", variable has type "Union[int, str,
-            # None]")  [assignment]
-            for argname, default in _fwf_defaults.items():  # type: ignore[assignment]
+            for argname, default in _fwf_defaults.items():
                 options[argname] = kwds.get(argname, default)
 
         return options
@@ -1053,15 +1050,13 @@ def TextParser(*args, **kwds):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-
+    na_fvalues: Union[Set, Dict]
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
         else:
             na_values = set()
-        # pandas\io\parsers.py:3387: error: Need type annotation for
-        # 'na_fvalues' (hint: "na_fvalues: Set[<type>] = ...")  [var-annotated]
-        na_fvalues = set()  # type: ignore[var-annotated]
+        na_fvalues = set()
     elif isinstance(na_values, dict):
         old_na_values = na_values.copy()
         na_values = {}  # Prevent aliasing.
@@ -1078,12 +1073,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | STR_NA_VALUES
 
             na_values[k] = v
-        # pandas\io\parsers.py:3404: error: Incompatible types in assignment
-        # (expression has type "Dict[Any, Any]", variable has type "Set[Any]")
-        # [assignment]
-        na_fvalues = {  # type: ignore[assignment]
-            k: _floatify_na_values(v) for k, v in na_values.items()
-        }
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -1111,7 +1101,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """ return a stringified and numeric for these values """
-    result = []
+    result: List[Union[int, str, float]] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -1124,15 +1114,11 @@ def _stringify_na_values(na_values):
                 result.append(f"{v}.0")
                 result.append(str(v))
 
-            # pandas\io\parsers.py:3522: error: Argument 1 to "append" of
-            # "list" has incompatible type "float"; expected "str"  [arg-type]
-            result.append(v)  # type: ignore[arg-type]
+            result.append(v)
         except (TypeError, ValueError, OverflowError):
             pass
         try:
-            # pandas\io\parsers.py:3526: error: Argument 1 to "append" of
-            # "list" has incompatible type "int"; expected "str"  [arg-type]
-            result.append(int(x))  # type: ignore[arg-type]
+            result.append(int(x))
         except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
