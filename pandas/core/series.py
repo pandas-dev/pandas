@@ -3234,7 +3234,6 @@ Keep all original rows and also all original values
 
         # GH 35922. Make sorting stable by leveraging nargsort
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
-
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         result = self._constructor(
