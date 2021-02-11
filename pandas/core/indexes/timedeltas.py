@@ -138,7 +138,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             if copy:
                 return data.copy()
             else:
-                return data._shallow_copy()
+                return data._view()
 
         # - Cases checked above all return/raise before reaching here - #
 

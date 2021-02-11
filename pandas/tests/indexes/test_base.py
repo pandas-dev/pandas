@@ -748,10 +748,6 @@ class TestIndex(Base):
         tm.assert_contains_all(index, second_cat)
         tm.assert_contains_all(date_index, first_cat)
 
-    def test_map_identity_mapping(self, index):
-        # GH 12766
-        tm.assert_index_equal(index, index.map(lambda x: x))
-
     def test_map_with_tuples(self):
         # GH 12766
 
@@ -881,14 +877,12 @@ class TestIndex(Base):
         else:
             assert result.name == expected
 
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_empty_arg(self, index, sort):
         first = index[5:20]
         first.name = "name"
         result = first.difference([], sort)
 
-        assert tm.equalContents(result, first)
-        assert result.name == first.name
+        tm.assert_index_equal(result, first)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_identity(self, index, sort):
@@ -911,24 +905,6 @@ class TestIndex(Base):
             expected = expected.sort_values()
 
         tm.assert_index_equal(result, expected)
-
-    def test_symmetric_difference(self, sort):
-        # smoke
-        index1 = Index([5, 2, 3, 4], name="index1")
-        index2 = Index([2, 3, 4, 1])
-        result = index1.symmetric_difference(index2, sort=sort)
-        expected = Index([5, 1])
-        assert tm.equalContents(result, expected)
-        assert result.name is None
-        if sort is None:
-            expected = expected.sort_values()
-        tm.assert_index_equal(result, expected)
-
-        # __xor__ syntax
-        with tm.assert_produces_warning(FutureWarning):
-            expected = index1 ^ index2
-        assert tm.equalContents(result, expected)
-        assert result.name is None
 
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable(self, opname):
@@ -1119,331 +1095,6 @@ class TestIndex(Base):
     def _check_method_works(self, method, index):
         method(index)
 
-    def test_get_indexer(self):
-        index1 = Index([1, 2, 3, 4, 5])
-        index2 = Index([2, 4, 6])
-
-        r1 = index1.get_indexer(index2)
-        e1 = np.array([1, 3, -1], dtype=np.intp)
-        tm.assert_almost_equal(r1, e1)
-
-    @pytest.mark.parametrize("reverse", [True, False])
-    @pytest.mark.parametrize(
-        "expected,method",
-        [
-            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "pad"),
-            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "ffill"),
-            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "backfill"),
-            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "bfill"),
-        ],
-    )
-    def test_get_indexer_methods(self, reverse, expected, method):
-        index1 = Index([1, 2, 3, 4, 5])
-        index2 = Index([2, 4, 6])
-
-        if reverse:
-            index1 = index1[::-1]
-            expected = expected[::-1]
-
-        result = index2.get_indexer(index1, method=method)
-        tm.assert_almost_equal(result, expected)
-
-    def test_get_indexer_invalid(self):
-        # GH10411
-        index = Index(np.arange(10))
-
-        with pytest.raises(ValueError, match="tolerance argument"):
-            index.get_indexer([1, 0], tolerance=1)
-
-        with pytest.raises(ValueError, match="limit argument"):
-            index.get_indexer([1, 0], limit=1)
-
-    @pytest.mark.parametrize(
-        "method, tolerance, indexer, expected",
-        [
-            ("pad", None, [0, 5, 9], [0, 5, 9]),
-            ("backfill", None, [0, 5, 9], [0, 5, 9]),
-            ("nearest", None, [0, 5, 9], [0, 5, 9]),
-            ("pad", 0, [0, 5, 9], [0, 5, 9]),
-            ("backfill", 0, [0, 5, 9], [0, 5, 9]),
-            ("nearest", 0, [0, 5, 9], [0, 5, 9]),
-            ("pad", None, [0.2, 1.8, 8.5], [0, 1, 8]),
-            ("backfill", None, [0.2, 1.8, 8.5], [1, 2, 9]),
-            ("nearest", None, [0.2, 1.8, 8.5], [0, 2, 9]),
-            ("pad", 1, [0.2, 1.8, 8.5], [0, 1, 8]),
-            ("backfill", 1, [0.2, 1.8, 8.5], [1, 2, 9]),
-            ("nearest", 1, [0.2, 1.8, 8.5], [0, 2, 9]),
-            ("pad", 0.2, [0.2, 1.8, 8.5], [0, -1, -1]),
-            ("backfill", 0.2, [0.2, 1.8, 8.5], [-1, 2, -1]),
-            ("nearest", 0.2, [0.2, 1.8, 8.5], [0, 2, -1]),
-        ],
-    )
-    def test_get_indexer_nearest(self, method, tolerance, indexer, expected):
-        index = Index(np.arange(10))
-
-        actual = index.get_indexer(indexer, method=method, tolerance=tolerance)
-        tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
-
-    @pytest.mark.parametrize("listtype", [list, tuple, Series, np.array])
-    @pytest.mark.parametrize(
-        "tolerance, expected",
-        list(
-            zip(
-                [[0.3, 0.3, 0.1], [0.2, 0.1, 0.1], [0.1, 0.5, 0.5]],
-                [[0, 2, -1], [0, -1, -1], [-1, 2, 9]],
-            )
-        ),
-    )
-    def test_get_indexer_nearest_listlike_tolerance(
-        self, tolerance, expected, listtype
-    ):
-        index = Index(np.arange(10))
-
-        actual = index.get_indexer(
-            [0.2, 1.8, 8.5], method="nearest", tolerance=listtype(tolerance)
-        )
-        tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
-
-    def test_get_indexer_nearest_error(self):
-        index = Index(np.arange(10))
-        with pytest.raises(ValueError, match="limit argument"):
-            index.get_indexer([1, 0], method="nearest", limit=1)
-
-        with pytest.raises(ValueError, match="tolerance size must match"):
-            index.get_indexer([1, 0], method="nearest", tolerance=[1, 2, 3])
-
-    @pytest.mark.parametrize(
-        "method,expected",
-        [("pad", [8, 7, 0]), ("backfill", [9, 8, 1]), ("nearest", [9, 7, 0])],
-    )
-    def test_get_indexer_nearest_decreasing(self, method, expected):
-        index = Index(np.arange(10))[::-1]
-
-        actual = index.get_indexer([0, 5, 9], method=method)
-        tm.assert_numpy_array_equal(actual, np.array([9, 4, 0], dtype=np.intp))
-
-        actual = index.get_indexer([0.2, 1.8, 8.5], method=method)
-        tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
-
-    @pytest.mark.parametrize(
-        "method,expected",
-        [
-            ("pad", np.array([-1, 0, 1, 1], dtype=np.intp)),
-            ("backfill", np.array([0, 0, 1, -1], dtype=np.intp)),
-        ],
-    )
-    def test_get_indexer_strings(self, method, expected):
-        index = Index(["b", "c"])
-        actual = index.get_indexer(["a", "b", "c", "d"], method=method)
-
-        tm.assert_numpy_array_equal(actual, expected)
-
-    def test_get_indexer_strings_raises(self):
-        index = Index(["b", "c"])
-
-        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            index.get_indexer(["a", "b", "c", "d"], method="nearest")
-
-        with pytest.raises(TypeError, match=msg):
-            index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
-
-        with pytest.raises(TypeError, match=msg):
-            index.get_indexer(
-                ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
-            )
-
-    @pytest.mark.parametrize(
-        "idx_class", [Int64Index, RangeIndex, Float64Index, UInt64Index]
-    )
-    @pytest.mark.parametrize("method", ["get_indexer", "get_indexer_non_unique"])
-    def test_get_indexer_numeric_index_boolean_target(self, method, idx_class):
-        # GH 16877
-
-        numeric_index = idx_class(RangeIndex(4))
-        other = Index([True, False, True])
-
-        result = getattr(numeric_index, method)(other)
-        expected = np.array([-1, -1, -1], dtype=np.intp)
-        if method == "get_indexer":
-            tm.assert_numpy_array_equal(result, expected)
-        else:
-            missing = np.arange(3, dtype=np.intp)
-            tm.assert_numpy_array_equal(result[0], expected)
-            tm.assert_numpy_array_equal(result[1], missing)
-
-    def test_get_indexer_with_NA_values(
-        self, unique_nulls_fixture, unique_nulls_fixture2
-    ):
-        # GH 22332
-        # check pairwise, that no pair of na values
-        # is mangled
-        if unique_nulls_fixture is unique_nulls_fixture2:
-            return  # skip it, values are not unique
-        arr = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=object)
-        index = Index(arr, dtype=object)
-        result = index.get_indexer(
-            [unique_nulls_fixture, unique_nulls_fixture2, "Unknown"]
-        )
-        expected = np.array([0, 1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    def test_get_loc(self, method):
-        index = Index([0, 1, 2])
-        assert index.get_loc(1, method=method) == 1
-
-        if method:
-            assert index.get_loc(1, method=method, tolerance=0) == 1
-
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    def test_get_loc_raises_bad_label(self, method):
-        index = Index([0, 1, 2])
-        if method:
-            msg = "not supported between"
-        else:
-            msg = "invalid key"
-
-        with pytest.raises(TypeError, match=msg):
-            index.get_loc([1, 2], method=method)
-
-    @pytest.mark.parametrize(
-        "method,loc", [("pad", 1), ("backfill", 2), ("nearest", 1)]
-    )
-    def test_get_loc_tolerance(self, method, loc):
-        index = Index([0, 1, 2])
-        assert index.get_loc(1.1, method) == loc
-        assert index.get_loc(1.1, method, tolerance=1) == loc
-
-    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
-    def test_get_loc_outside_tolerance_raises(self, method):
-        index = Index([0, 1, 2])
-        with pytest.raises(KeyError, match="1.1"):
-            index.get_loc(1.1, method, tolerance=0.05)
-
-    def test_get_loc_bad_tolerance_raises(self):
-        index = Index([0, 1, 2])
-        with pytest.raises(ValueError, match="must be numeric"):
-            index.get_loc(1.1, "nearest", tolerance="invalid")
-
-    def test_get_loc_tolerance_no_method_raises(self):
-        index = Index([0, 1, 2])
-        with pytest.raises(ValueError, match="tolerance .* valid if"):
-            index.get_loc(1.1, tolerance=1)
-
-    def test_get_loc_raises_missized_tolerance(self):
-        index = Index([0, 1, 2])
-        with pytest.raises(ValueError, match="tolerance size must match"):
-            index.get_loc(1.1, "nearest", tolerance=[1, 1])
-
-    def test_get_loc_raises_object_nearest(self):
-        index = Index(["a", "c"])
-        with pytest.raises(TypeError, match="unsupported operand type"):
-            index.get_loc("a", method="nearest")
-
-    def test_get_loc_raises_object_tolerance(self):
-        index = Index(["a", "c"])
-        with pytest.raises(TypeError, match="unsupported operand type"):
-            index.get_loc("a", method="pad", tolerance="invalid")
-
-    @pytest.mark.parametrize("dtype", [int, float])
-    def test_slice_locs(self, dtype):
-        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
-        n = len(index)
-
-        assert index.slice_locs(start=2) == (2, n)
-        assert index.slice_locs(start=3) == (3, n)
-        assert index.slice_locs(3, 8) == (3, 6)
-        assert index.slice_locs(5, 10) == (3, n)
-        assert index.slice_locs(end=8) == (0, 6)
-        assert index.slice_locs(end=9) == (0, 7)
-
-        # reversed
-        index2 = index[::-1]
-        assert index2.slice_locs(8, 2) == (2, 6)
-        assert index2.slice_locs(7, 3) == (2, 5)
-
-    @pytest.mark.parametrize("dtype", [int, float])
-    def test_slice_float_locs(self, dtype):
-        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
-        n = len(index)
-        assert index.slice_locs(5.0, 10.0) == (3, n)
-        assert index.slice_locs(4.5, 10.5) == (3, 8)
-
-        index2 = index[::-1]
-        assert index2.slice_locs(8.5, 1.5) == (2, 6)
-        assert index2.slice_locs(10.5, -1) == (0, n)
-
-    def test_slice_locs_dup(self):
-        index = Index(["a", "a", "b", "c", "d", "d"])
-        assert index.slice_locs("a", "d") == (0, 6)
-        assert index.slice_locs(end="d") == (0, 6)
-        assert index.slice_locs("a", "c") == (0, 4)
-        assert index.slice_locs("b", "d") == (2, 6)
-
-        index2 = index[::-1]
-        assert index2.slice_locs("d", "a") == (0, 6)
-        assert index2.slice_locs(end="a") == (0, 6)
-        assert index2.slice_locs("d", "b") == (0, 4)
-        assert index2.slice_locs("c", "a") == (2, 6)
-
-    @pytest.mark.parametrize("dtype", [int, float])
-    def test_slice_locs_dup_numeric(self, dtype):
-        index = Index(np.array([10, 12, 12, 14], dtype=dtype))
-        assert index.slice_locs(12, 12) == (1, 3)
-        assert index.slice_locs(11, 13) == (1, 3)
-
-        index2 = index[::-1]
-        assert index2.slice_locs(12, 12) == (1, 3)
-        assert index2.slice_locs(13, 11) == (1, 3)
-
-    def test_slice_locs_na(self):
-        index = Index([np.nan, 1, 2])
-        assert index.slice_locs(1) == (1, 3)
-        assert index.slice_locs(np.nan) == (0, 3)
-
-        index = Index([0, np.nan, np.nan, 1, 2])
-        assert index.slice_locs(np.nan) == (1, 5)
-
-    def test_slice_locs_na_raises(self):
-        index = Index([np.nan, 1, 2])
-        with pytest.raises(KeyError, match=""):
-            index.slice_locs(start=1.5)
-
-        with pytest.raises(KeyError, match=""):
-            index.slice_locs(end=1.5)
-
-    @pytest.mark.parametrize(
-        "in_slice,expected",
-        [
-            # error: Slice index must be an integer or None
-            (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["b"::-1], "b"),  # type: ignore[misc]
-            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore[misc]
-            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore[misc]
-            # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore[misc]
-            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore[misc]
-            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore[misc]
-            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore[misc]
-        ],
-    )
-    def test_slice_locs_negative_step(self, in_slice, expected):
-        index = Index(list("bcdxy"))
-
-        s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop, in_slice.step)
-        result = index[s_start : s_stop : in_slice.step]
-        expected = Index(list(expected))
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
     def test_drop_by_str_label(self, index):
         n = len(index)
@@ -1554,23 +1205,6 @@ class TestIndex(Base):
         with tm.assert_produces_warning(FutureWarning):
             idx.set_value(arr, idx[1], 80)
         assert arr[1] == 80
-
-    @pytest.mark.parametrize(
-        "index", ["string", "int", "datetime", "timedelta"], indirect=True
-    )
-    def test_get_value(self, index):
-        # TODO: Remove function? GH 19728
-        values = np.random.randn(100)
-        value = index[67]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            # Index.get_value requires a Series, not an ndarray
-            with tm.assert_produces_warning(FutureWarning):
-                index.get_value(values, value)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = index.get_value(Series(values, index=values), value)
-        tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -1961,16 +1595,9 @@ class TestIndex(Base):
         code = "import pandas as pd; idx = Index([1, 2])"
         await ip.run_code(code)
 
-        # GH 31324 newer jedi version raises Deprecation warning
-        import jedi
-
-        if jedi.__version__ < "0.16.0":
-            warning = tm.assert_produces_warning(None)
-        else:
-            warning = tm.assert_produces_warning(
-                DeprecationWarning, check_stacklevel=False
-            )
-        with warning:
+        # GH 31324 newer jedi version raises Deprecation warning;
+        #  appears resolved 2021-02-02
+        with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
@@ -2328,56 +1955,3 @@ def test_validate_1d_input():
     ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4)
-
-
-def test_convert_almost_null_slice(index):
-    # slice with None at both ends, but not step
-
-    key = slice(None, None, "foo")
-
-    if isinstance(index, pd.IntervalIndex):
-        msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
-        with pytest.raises(ValueError, match=msg):
-            index._convert_slice_indexer(key, "loc")
-    else:
-        msg = "'>=' not supported between instances of 'str' and 'int'"
-        with pytest.raises(TypeError, match=msg):
-            index._convert_slice_indexer(key, "loc")
-
-
-dtlike_dtypes = [
-    np.dtype("timedelta64[ns]"),
-    np.dtype("datetime64[ns]"),
-    pd.DatetimeTZDtype("ns", "Asia/Tokyo"),
-    pd.PeriodDtype("ns"),
-]
-
-
-@pytest.mark.parametrize("ldtype", dtlike_dtypes)
-@pytest.mark.parametrize("rdtype", dtlike_dtypes)
-def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
-
-    vals = np.tile(3600 * 10 ** 9 * np.arange(3), 2)
-
-    def construct(dtype):
-        if dtype is dtlike_dtypes[-1]:
-            # PeriodArray will try to cast ints to strings
-            return DatetimeIndex(vals).astype(dtype)
-        return Index(vals, dtype=dtype)
-
-    left = construct(ldtype)
-    right = construct(rdtype)
-
-    result = left.get_indexer_non_unique(right)
-
-    if ldtype is rdtype:
-        ex1 = np.array([0, 3, 1, 4, 2, 5] * 2, dtype=np.intp)
-        ex2 = np.array([], dtype=np.intp)
-        tm.assert_numpy_array_equal(result[0], ex1)
-        tm.assert_numpy_array_equal(result[1], ex2)
-
-    else:
-        no_matches = np.array([-1] * 6, dtype=np.intp)
-        missing = np.arange(6, dtype=np.intp)
-        tm.assert_numpy_array_equal(result[0], no_matches)
-        tm.assert_numpy_array_equal(result[1], missing)

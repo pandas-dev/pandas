@@ -42,7 +42,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas.core.algorithms import take_1d, unique
+from pandas.core.algorithms import take_nd, unique
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 from pandas.core.indexers import is_valid_positional_slice
@@ -671,9 +671,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
         elif is_categorical_dtype(target.dtype):
             target = cast("CategoricalIndex", target)
-            # get an indexer for unique categories then propagate to codes via take_1d
+            # get an indexer for unique categories then propagate to codes via take_nd
             categories_indexer = self.get_indexer(target.categories)
-            indexer = take_1d(categories_indexer, target.codes, fill_value=-1)
+            indexer = take_nd(categories_indexer, target.codes, fill_value=-1)
         elif not is_object_dtype(target):
             # homogeneous scalar index: use IntervalTree
             target = self._maybe_convert_i8(target)
@@ -799,28 +799,21 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return Index(self._data.length, copy=False)
 
     def putmask(self, mask, value):
-        arr = self._data.copy()
+        mask = np.asarray(mask, dtype=bool)
+        if mask.shape != self.shape:
+            raise ValueError("putmask: mask and data must be the same size")
+        if not mask.any():
+            return self.copy()
+
         try:
-            value_left, value_right = arr._validate_setitem_value(value)
+            self._validate_fill_value(value)
         except (ValueError, TypeError):
-            return self.astype(object).putmask(mask, value)
+            dtype = self._find_common_type_compat(value)
+            return self.astype(dtype).putmask(mask, value)
 
-        if isinstance(self._data._left, np.ndarray):
-            np.putmask(arr._left, mask, value_left)
-            np.putmask(arr._right, mask, value_right)
-        else:
-            # TODO: special case not needed with __array_function__
-            arr._left.putmask(mask, value_left)
-            arr._right.putmask(mask, value_right)
+        arr = self._data.copy()
+        arr.putmask(mask, value)
         return type(self)._simple_new(arr, name=self.name)
-
-    @Appender(Index.where.__doc__)
-    def where(self, cond, other=None):
-        if other is None:
-            other = self._na_value
-        values = np.where(cond, self._values, other)
-        result = IntervalArray(values)
-        return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
         """
@@ -997,6 +990,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     _difference = _setop("difference")
 
     # --------------------------------------------------------------------
+
+    def _validate_fill_value(self, value):
+        return self._data._validate_setitem_value(value)
 
     @property
     def _is_all_dates(self) -> bool:
