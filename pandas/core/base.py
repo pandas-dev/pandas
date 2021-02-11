@@ -155,7 +155,7 @@ class SelectionMixin:
     Sub-classes need to define: obj, exclusions
     """
 
-    obj: Any
+    obj: Any  # TODO: refine this type, should NOT be Any
     """Target object for the selection and aggregation."""
     # GH 38239
     # TODO obj here must be typed as FrameOrSeriesUnion,
