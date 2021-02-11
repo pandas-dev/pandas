@@ -824,8 +824,13 @@ class TestMisc:
         )
 
         boolean_frame_indexer = DataFrame(True, index=list("abc"), columns=list("ABC"))
+
+        # test getitem
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df[boolean_frame_indexer]
+        # test setitem
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df[boolean_frame_indexer] = 0
 
     def test_no_reference_cycle(self):
         df = DataFrame({"a": [0, 1], "b": [2, 3]})
