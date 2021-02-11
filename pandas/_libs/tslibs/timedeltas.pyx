@@ -276,7 +276,7 @@ cdef convert_to_timedelta64(object ts, str unit):
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts, "ns")
     elif isinstance(ts, str):
-        if len(ts) > 0 and ts[0] == "P":
+        if (len(ts) > 0 and ts[0] == "P") or (len(ts) > 1 and ts[:2] == "-P"):
             ts = parse_iso_format_string(ts)
         else:
             ts = parse_timedelta_string(ts)
@@ -496,6 +496,10 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
         else:
             raise ValueError("unit abbreviation w/o a number")
 
+    # we only have symbols and no numbers
+    elif len(number) == 0:
+        raise ValueError("symbols w/o a number")
+
     # treat as nanoseconds
     # but only if we don't have anything else
     else:
@@ -673,12 +677,16 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
     cdef:
         unicode c
         int64_t result = 0, r
-        int p = 0
+        int p = 0, sign = 1
         object dec_unit = 'ms', err_msg
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
 
     err_msg = f"Invalid ISO 8601 Duration format - {ts}"
+
+    if ts[0] == "-":
+        sign = -1
+        ts = ts[1:]
 
     for c in ts:
         # number (ascii codes)
@@ -711,6 +719,8 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                     raise ValueError(err_msg)
                 else:
                     neg = 1
+            elif c == "+":
+                pass
             elif c in ['W', 'D', 'H', 'M']:
                 if c in ['H', 'M'] and len(number) > 2:
                     raise ValueError(err_msg)
@@ -751,7 +761,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
         # Received string only - never parsed any values
         raise ValueError(err_msg)
 
-    return result
+    return sign*result
 
 
 cdef _to_py_int_float(v):
@@ -1252,7 +1262,9 @@ class Timedelta(_Timedelta):
         elif isinstance(value, str):
             if unit is not None:
                 raise ValueError("unit must not be specified if the value is a str")
-            if len(value) > 0 and value[0] == 'P':
+            if (len(value) > 0 and value[0] == 'P') or (
+                len(value) > 1 and value[:2] == '-P'
+            ):
                 value = parse_iso_format_string(value)
             else:
                 value = parse_timedelta_string(value)
