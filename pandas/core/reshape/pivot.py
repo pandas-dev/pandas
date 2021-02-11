@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data,
+    data: DataFrame,
     values=None,
     index=None,
     columns=None,
@@ -98,7 +98,7 @@ def pivot_table(
 
 
 def __internal_pivot_table(
-    data,
+    data: DataFrame,
     values,
     index,
     columns,
