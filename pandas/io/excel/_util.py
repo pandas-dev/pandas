@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, MutableMapping
 
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_integer, is_list_like
 
-_writers = {}
+_writers: MutableMapping[str, str] = {}
 
 
 def register_writer(klass):
