@@ -669,7 +669,7 @@ class ArrayManager(DataManager):
         """
         # single column -> single integer index
         if lib.is_integer(loc):
-            # TODO normalize array -> this should in theory not be needed?
+            # TODO the extract array should in theory not be needed?
             value = extract_array(value, extract_numpy=True)
 
             # TODO can we avoid needing to unpack this here? That means converting
