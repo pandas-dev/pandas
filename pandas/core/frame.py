@@ -3272,7 +3272,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         # now align rows
         value = _reindex_for_setitem(value, self.index)
-        value = value.T
         self._set_item_mgr(key, value)
 
     def _iset_item_mgr(self, loc: int, value) -> None:
@@ -3280,8 +3279,6 @@ class DataFrame(NDFrame, OpsMixin):
         self._clear_item_cache()
 
     def _set_item_mgr(self, key, value):
-        value = _maybe_atleast_2d(value)
-
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:
@@ -3298,7 +3295,6 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _iset_item(self, loc: int, value):
         value = self._sanitize_column(value)
-        value = _maybe_atleast_2d(value)
         self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
@@ -3328,7 +3324,7 @@ class DataFrame(NDFrame, OpsMixin):
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1))
+                    value = np.tile(value, (len(existing_piece.columns), 1)).T
 
         self._set_item_mgr(key, value)
 
@@ -3889,7 +3885,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "'self.flags.allows_duplicate_labels' is False."
             )
         value = self._sanitize_column(value)
-        value = _maybe_atleast_2d(value)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs) -> DataFrame:
@@ -3994,8 +3989,6 @@ class DataFrame(NDFrame, OpsMixin):
                     value = maybe_convert_platform(value)
                 else:
                     value = com.asarray_tuplesafe(value)
-            elif value.ndim == 2:
-                value = value.copy().T
             elif isinstance(value, Index):
                 value = value.copy(deep=True)
             else:
@@ -4828,7 +4821,10 @@ class DataFrame(NDFrame, OpsMixin):
                 names.extend(col.names)
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
-                arrays.append(col)
+
+                # error: Argument 1 to "append" of "list" has incompatible
+                #  type "Union[Index, Series]"; expected "Index"  [arg-type]
+                arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)

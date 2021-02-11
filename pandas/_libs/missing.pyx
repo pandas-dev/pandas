@@ -29,6 +29,58 @@ cdef:
     bint is_32bit = not IS64
 
 
+cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False):
+    """
+    Check if two scalars are both NA of matching types.
+
+    Parameters
+    ----------
+    left : Any
+    right : Any
+    nan_matches_none : bool, default False
+        For backwards compatibility, consider NaN as matching None.
+
+    Returns
+    -------
+    bool
+    """
+    if left is None:
+        if nan_matches_none and util.is_nan(right):
+            return True
+        return right is None
+    elif left is C_NA:
+        return right is C_NA
+    elif left is NaT:
+        return right is NaT
+    elif util.is_float_object(left):
+        if nan_matches_none and right is None:
+            return True
+        return (
+            util.is_nan(left)
+            and util.is_float_object(right)
+            and util.is_nan(right)
+        )
+    elif util.is_complex_object(left):
+        return (
+            util.is_nan(left)
+            and util.is_complex_object(right)
+            and util.is_nan(right)
+        )
+    elif util.is_datetime64_object(left):
+        return (
+            get_datetime64_value(left) == NPY_NAT
+            and util.is_datetime64_object(right)
+            and get_datetime64_value(right) == NPY_NAT
+        )
+    elif util.is_timedelta64_object(left):
+        return (
+            get_timedelta64_value(left) == NPY_NAT
+            and util.is_timedelta64_object(right)
+            and get_timedelta64_value(right) == NPY_NAT
+        )
+    return False
+
+
 cpdef bint checknull(object val):
     """
     Return boolean describing of the input is NA-like, defined here as any

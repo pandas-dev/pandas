@@ -272,9 +272,9 @@ def union_categoricals(
             categories = categories.sort_values()
             indexer = categories.get_indexer(first.categories)
 
-            from pandas.core.algorithms import take_1d
+            from pandas.core.algorithms import take_nd
 
-            new_codes = take_1d(indexer, new_codes, fill_value=-1)
+            new_codes = take_nd(indexer, new_codes, fill_value=-1)
     elif ignore_order or all(not c.ordered for c in to_union):
         # different categories - union and recode
         cats = first.categories.append([c.categories for c in to_union[1:]])
