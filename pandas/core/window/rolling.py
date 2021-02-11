@@ -116,8 +116,6 @@ class BaseWindow(SelectionMixin):
         method: str = "single",
         **kwargs,
     ):
-
-        self.__dict__.update(kwargs)
         self.obj = obj
         self.on = on
         self.closed = closed
@@ -267,7 +265,7 @@ class BaseWindow(SelectionMixin):
         attrs_list = (
             f"{attr_name}={getattr(self, attr_name)}"
             for attr_name in self._attributes
-            if getattr(self, attr_name, None) is not None
+            if getattr(self, attr_name, None) is not None and attr_name[0] != "_"
         )
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
