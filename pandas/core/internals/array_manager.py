@@ -32,7 +32,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import Index, RangeIndex, ensure_index
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import make_block
 
@@ -211,7 +211,7 @@ class ArrayManager(DataManager):
                     result_arrays.append(sanitize_array([res], None))
                 result_indices.append(i)
 
-        index = Index([None])  # placeholder
+        index = RangeIndex(1)  # placeholder
         if ignore_failures:
             indexer = np.array(result_indices)
             columns = self.items[result_indices]
