@@ -323,7 +323,7 @@ class Indexing:
         self.index.get_loc(self.category)
 
     def time_shallow_copy(self):
-        self.index._shallow_copy()
+        self.index._view()
 
     def time_align(self):
         pd.DataFrame({"a": self.series, "b": self.series[:500]})
