@@ -126,7 +126,7 @@ However, operations such as slicing will also slice the index.
 .. note::
 
    We will address array-based indexing like ``s[[4, 3, 1]]``
-   in :ref:`section <indexing>`.
+   in :ref:`section on indexing <indexing>`.
 
 Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
 

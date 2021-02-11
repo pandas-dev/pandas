@@ -357,7 +357,7 @@ class TestSparseArrayArithmetics:
 
         if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv] and mix:
-                mark = pytest.mark.xfail(strict=True, reason="GH#38172")
+                mark = pytest.mark.xfail(reason="GH#38172")
                 request.node.add_marker(mark)
 
         rdtype = "int64"

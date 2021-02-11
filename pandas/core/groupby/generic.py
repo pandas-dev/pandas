@@ -565,7 +565,7 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        out = algorithms.take_1d(result._values, ids)
+        out = algorithms.take_nd(result._values, ids)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -983,7 +983,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # try to treat as if we are passing a list
                 try:
                     result, _ = GroupByApply(
-                        self, [func], args=(), kwds={"_axis": self.axis}
+                        self, [func], args=(), kwargs={"_axis": self.axis}
                     ).agg()
 
                     # select everything except for the last level, which is the one
@@ -1102,11 +1102,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             assert isinstance(result, (Series, DataFrame))  # for mypy
             mgr = result._mgr
             assert isinstance(mgr, BlockManager)
-            assert len(mgr.blocks) == 1
 
             # unwrap DataFrame to get array
-            result = mgr.blocks[0].values
-            return result
+            if len(mgr.blocks) != 1:
+                # We've split an object block! Everything we've assumed
+                # about a single block input returning a single block output
+                # is a lie. See eg GH-39329
+                return mgr.as_array()
+            else:
+                result = mgr.blocks[0].values
+                return result
 
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
@@ -1408,7 +1413,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
-            algorithms.take_1d(result.iloc[:, i].values, ids)
+            algorithms.take_nd(result.iloc[:, i].values, ids)
             for i, _ in enumerate(result.columns)
         ]
 
