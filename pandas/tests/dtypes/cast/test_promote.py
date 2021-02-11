@@ -605,31 +605,3 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, nulls_fi
             exp_val_for_scalar = np.nan
 
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
-@pytest.mark.parametrize("dim", [0, 2, 3])
-def test_maybe_promote_dimensions(any_numpy_dtype_reduced, dim):
-    dtype = np.dtype(any_numpy_dtype_reduced)
-
-    # create 0-dim array of given dtype; casts "1" to correct dtype
-    fill_array = np.array(1, dtype=dtype)
-
-    # expand to desired dimension:
-    for _ in range(dim):
-        fill_array = np.expand_dims(fill_array, 0)
-
-    if dtype != object:
-        # test against 1-dimensional case
-        with pytest.raises(ValueError, match="fill_value must be a scalar"):
-            maybe_promote(dtype, np.array([1], dtype=dtype))
-
-        with pytest.raises(ValueError, match="fill_value must be a scalar"):
-            maybe_promote(dtype, fill_array)
-
-    else:
-        expected_dtype, expected_missing_value = maybe_promote(
-            dtype, np.array([1], dtype=dtype)
-        )
-        result_dtype, result_missing_value = maybe_promote(dtype, fill_array)
-        assert result_dtype == expected_dtype
-        _assert_match(result_missing_value, expected_missing_value)
