@@ -9,6 +9,7 @@ steps:
 - name: test
   image: python:3.7
   commands:
+  - python -c "import platform; print(platform.machine())"
   - pip install -r requirements-dev.txt
   - python setup.py build_ext -j 4
   - python -m pip install -e . --no-build-isolation --no-use-pep517
