@@ -1662,7 +1662,12 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
 
 def _take_preprocess_indexer_and_fill_value(
-    arr, indexer, axis, out, fill_value, allow_fill
+    arr: np.ndarray,
+    indexer: Optional[np.ndarray],
+    axis: int,
+    out: Optional[np.ndarray],
+    fill_value,
+    allow_fill: bool,
 ):
     mask_info = None
 
@@ -1783,7 +1788,9 @@ def take_nd(
     return out
 
 
-def take_2d_multi(arr, indexer, fill_value=np.nan):
+def take_2d_multi(
+    arr: np.ndarray, indexer: np.ndarray, fill_value=np.nan
+) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
     """
