@@ -1526,7 +1526,12 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     False
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-    return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
+    if isinstance(dtype, ExtensionDtype):
+        return True
+    elif isinstance(dtype, np.dtype):
+        return False
+    else:
+        return registry.find(dtype) is not None
 
 
 def is_ea_or_datetimelike_dtype(dtype: Optional[DtypeObj]) -> bool:
@@ -1677,7 +1682,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     return condition(tipo)
 
 
-def infer_dtype_from_object(dtype):
+def infer_dtype_from_object(dtype) -> DtypeObj:
     """
     Get a numpy dtype.type-style object for a dtype object.
 

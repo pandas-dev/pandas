@@ -23,8 +23,8 @@ from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas.core.aggregation import aggregate
 import pandas.core.algorithms as algos
+from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
@@ -301,7 +301,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = aggregate(self, func, *args, **kwargs)
+        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
             grouper = None
@@ -1713,7 +1713,7 @@ class TimeGrouper(Grouper):
 def _take_new_index(obj, indexer, new_index, axis=0):
 
     if isinstance(obj, ABCSeries):
-        new_values = algos.take_1d(obj._values, indexer)
+        new_values = algos.take_nd(obj._values, indexer)
         return obj._constructor(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, ABCDataFrame):
         if axis == 1:

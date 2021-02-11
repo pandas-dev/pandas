@@ -324,7 +324,8 @@ def unique(values):
     Hash table-based unique. Uniques are returned in order
     of appearance. This does NOT sort.
 
-    Significantly faster than numpy.unique. Includes NA values.
+    Significantly faster than numpy.unique for long enough sequences.
+    Includes NA values.
 
     Parameters
     ----------
@@ -715,7 +716,9 @@ def factorize(
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
-            na_value = na_value_for_dtype(original.dtype)
+            # Note: factorize_array will cast NaT bc it has a __int__
+            #  method, but will not cast the more-correct dtype.type("nat")
+            na_value = iNaT
         else:
             na_value = None
 
@@ -1649,7 +1652,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
-        result = take_1d(
+        result = take_nd(
             arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
         )
     else:
@@ -1658,8 +1661,47 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     return result
 
 
+def _take_preprocess_indexer_and_fill_value(
+    arr, indexer, axis, out, fill_value, allow_fill
+):
+    mask_info = None
+
+    if indexer is None:
+        indexer = np.arange(arr.shape[axis], dtype=np.int64)
+        dtype, fill_value = arr.dtype, arr.dtype.type()
+    else:
+        indexer = ensure_int64(indexer, copy=False)
+        if not allow_fill:
+            dtype, fill_value = arr.dtype, arr.dtype.type()
+            mask_info = None, False
+        else:
+            # check for promotion based on types only (do this first because
+            # it's faster than computing a mask)
+            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+            if dtype != arr.dtype and (out is None or out.dtype != dtype):
+                # check if promotion is actually required based on indexer
+                mask = indexer == -1
+                needs_masking = mask.any()
+                mask_info = mask, needs_masking
+                if needs_masking:
+                    if out is not None and out.dtype != dtype:
+                        raise TypeError("Incompatible type for fill_value")
+                else:
+                    # if not, then depromote, set fill_value to dummy
+                    # (it won't be used but we don't want the cython code
+                    # to crash when trying to cast it to dtype)
+                    dtype, fill_value = arr.dtype, arr.dtype.type()
+
+    return indexer, dtype, fill_value, mask_info
+
+
 def take_nd(
-    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
+    arr,
+    indexer,
+    axis: int = 0,
+    out=None,
+    fill_value=lib.no_default,
+    allow_fill: bool = True,
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1692,7 +1734,8 @@ def take_nd(
     subarray : array-like
         May be the same type as the input, or cast to an ndarray.
     """
-    mask_info = None
+    if fill_value is lib.no_default:
+        fill_value = na_value_for_dtype(arr.dtype, compat=False)
 
     if isinstance(arr, ABCExtensionArray):
         # Check for EA to catch DatetimeArray, TimedeltaArray
@@ -1701,31 +1744,9 @@ def take_nd(
     arr = extract_array(arr)
     arr = np.asarray(arr)
 
-    if indexer is None:
-        indexer = np.arange(arr.shape[axis], dtype=np.int64)
-        dtype, fill_value = arr.dtype, arr.dtype.type()
-    else:
-        indexer = ensure_int64(indexer, copy=False)
-        if not allow_fill:
-            dtype, fill_value = arr.dtype, arr.dtype.type()
-            mask_info = None, False
-        else:
-            # check for promotion based on types only (do this first because
-            # it's faster than computing a mask)
-            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-            if dtype != arr.dtype and (out is None or out.dtype != dtype):
-                # check if promotion is actually required based on indexer
-                mask = indexer == -1
-                needs_masking = mask.any()
-                mask_info = mask, needs_masking
-                if needs_masking:
-                    if out is not None and out.dtype != dtype:
-                        raise TypeError("Incompatible type for fill_value")
-                else:
-                    # if not, then depromote, set fill_value to dummy
-                    # (it won't be used but we don't want the cython code
-                    # to crash when trying to cast it to dtype)
-                    dtype, fill_value = arr.dtype, arr.dtype.type()
+    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, axis, out, fill_value, allow_fill
+    )
 
     flip_order = False
     if arr.ndim == 2 and arr.flags.f_contiguous:
@@ -1760,9 +1781,6 @@ def take_nd(
     if flip_order:
         out = out.T
     return out
-
-
-take_1d = take_nd
 
 
 def take_2d_multi(arr, indexer, fill_value=np.nan):
@@ -2148,9 +2166,9 @@ def safe_sort(
         sorter = ensure_platform_int(t.lookup(ordered))
 
     if na_sentinel == -1:
-        # take_1d is faster, but only works for na_sentinels of -1
+        # take_nd is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_codes = take_1d(order2, codes, fill_value=-1)
+        new_codes = take_nd(order2, codes, fill_value=-1)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
         else:

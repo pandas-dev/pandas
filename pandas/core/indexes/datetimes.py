@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
@@ -342,12 +342,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
-    def _validate_fill_value(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
-        return self._data._validate_setitem_value(value)
-
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
         Can we compare values of the given dtype to our own?
@@ -475,7 +469,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         from pandas import Series
 
         if index is None:
-            index = self._shallow_copy()
+            index = self._view()
         if name is None:
             name = self.name
 
@@ -563,8 +557,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "hour",
             "minute",
             "second",
-            "minute",
-            "second",
             "millisecond",
             "microsecond",
         }
@@ -644,7 +636,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise InvalidIndexError(key)
 
         orig_key = key
-        if is_valid_nat_for_dtype(key, self.dtype):
+        if is_valid_na_for_dtype(key, self.dtype):
             key = NaT
 
         if isinstance(key, self._data._recognized_scalars):

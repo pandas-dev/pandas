@@ -231,10 +231,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
-
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return tolerance
+        return super()._convert_tolerance(tolerance, target)
 
     def tolist(self) -> List:
         """
@@ -609,6 +606,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_insert_freq(loc, item)
         return result
 
+    def _validate_fill_value(self, value):
+        """
+        Convert value to be insertable to ndarray.
+        """
+        return self._data._validate_setitem_value(value)
+
     # --------------------------------------------------------------------
     # Join/Set Methods
 
@@ -791,7 +794,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
-            result = self._shallow_copy(dates)._with_freq("infer")
+            result = type(self)._simple_new(dates, name=self.name)
+            result = result._with_freq("infer")
             return result
         else:
             left, right = other, self

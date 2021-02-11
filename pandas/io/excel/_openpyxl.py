@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from distutils.version import LooseVersion
+import mmap
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
 
 from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import get_version, import_optional_dependency
 
 from pandas.io.excel._base import BaseExcelReader, ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
@@ -39,6 +41,7 @@ class OpenpyxlWriter(ExcelWriter):
             from openpyxl import load_workbook
 
             self.book = load_workbook(self.handles.handle)
+            self.handles.handle.seek(0)
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
@@ -51,6 +54,9 @@ class OpenpyxlWriter(ExcelWriter):
         Save workbook to disk.
         """
         self.book.save(self.handles.handle)
+        if "r+" in self.mode and not isinstance(self.handles.handle, mmap.mmap):
+            # truncate file to the written content
+            self.handles.handle.truncate()
 
     @classmethod
     def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, Serialisable]:
@@ -494,23 +500,25 @@ class OpenpyxlReader(BaseExcelReader):
         return self.book.sheetnames
 
     def get_sheet_by_name(self, name: str):
+        self.raise_if_bad_sheet_by_name(name)
         return self.book[name]
 
     def get_sheet_by_index(self, index: int):
+        self.raise_if_bad_sheet_by_index(index)
         return self.book.worksheets[index]
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
 
         from openpyxl.cell.cell import TYPE_BOOL, TYPE_ERROR, TYPE_NUMERIC
 
-        if cell.is_date:
+        if cell.value is None:
+            return ""  # compat with xlrd
+        elif cell.is_date:
             return cell.value
         elif cell.data_type == TYPE_ERROR:
             return np.nan
         elif cell.data_type == TYPE_BOOL:
             return bool(cell.value)
-        elif cell.value is None:
-            return ""  # compat with xlrd
         elif cell.data_type == TYPE_NUMERIC:
             # GH5394
             if convert_float:
@@ -523,8 +531,39 @@ class OpenpyxlReader(BaseExcelReader):
         return cell.value
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+        # GH 39001
+        # Reading of excel file depends on dimension data being correct but
+        # writers sometimes omit or get it wrong
+        import openpyxl
+
+        version = LooseVersion(get_version(openpyxl))
+
+        # There is no good way of determining if a sheet is read-only
+        # https://foss.heptapod.net/openpyxl/openpyxl/-/issues/1605
+        is_readonly = hasattr(sheet, "reset_dimensions")
+
+        if version >= "3.0.0" and is_readonly:
+            sheet.reset_dimensions()
+
         data: List[List[Scalar]] = []
-        for row in sheet.rows:
-            data.append([self._convert_cell(cell, convert_float) for cell in row])
+        last_row_with_data = -1
+        for row_number, row in enumerate(sheet.rows):
+            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            if not all(cell == "" for cell in converted_row):
+                last_row_with_data = row_number
+            data.append(converted_row)
+
+        # Trim trailing empty rows
+        data = data[: last_row_with_data + 1]
+
+        if version >= "3.0.0" and is_readonly and len(data) > 0:
+            # With dimension reset, openpyxl no longer pads rows
+            max_width = max(len(data_row) for data_row in data)
+            if min(len(data_row) for data_row in data) < max_width:
+                empty_cell: List[Scalar] = [""]
+                data = [
+                    data_row + (max_width - len(data_row)) * empty_cell
+                    for data_row in data
+                ]
 
         return data
