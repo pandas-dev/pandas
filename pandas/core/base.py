@@ -152,13 +152,17 @@ class SelectionMixin:
     Mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
 
-    obj : FrameOrSeries
+    obj : DataFrame or Series
         Target object for the selection and aggregation.
     exclusions : set, optional
         Columns to exclude.
     """
 
     obj: Any
+    # GH 38239
+    # TODO obj here must be typed as FrameOrSeriesUnion,
+    # however this creates multiple mypy errors elsewhere.
+    # Those have to be addressed in a separate PR.
     exclusions: Set[Label]
 
     _selection: Optional[IndexLabel] = None
