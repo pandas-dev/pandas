@@ -659,9 +659,14 @@ class ArrayManager(DataManager):
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
-        Set new item in-place. Does not consolidate. Adds new Block if not
-        contained in the current set of items
+        Set new column in-place (replaces (an) existing column(s)).
+
+        Parameters
+        ----------
+        loc : positional location (already bounds checked)
+        value : array-like
         """
+        # single column
         if lib.is_integer(loc):
             # TODO normalize array -> this should in theory not be needed?
             value = extract_array(value, extract_numpy=True)
@@ -678,6 +683,7 @@ class ArrayManager(DataManager):
             self.arrays[loc] = value
             return
 
+        # multiple columns (slice or array)
         if isinstance(loc, slice):
             indices = range(
                 loc.start if loc.start is not None else 0,
