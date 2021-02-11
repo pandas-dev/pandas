@@ -228,15 +228,9 @@ def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
     return NotImplemented
 
 
-def array_ufunc(self, ufunc, method: str, *inputs: Any, **kwargs: Any):
+def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
     """
     Compatibility with numpy ufuncs.
-
-    Note
-    ----
-    ``ufunc`` should be of type ``np.ufunc``, but the typing is removed here
-    because for now ``np.ufunc`` resolves to ``Any``.
-    Consider adding the annotation when numpy types are implemented.
 
     See also
     --------
