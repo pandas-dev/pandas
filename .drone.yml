@@ -20,3 +20,4 @@ trigger:
   - feature/*
   event:
   - push
+  - pull_request
