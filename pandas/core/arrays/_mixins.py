@@ -17,7 +17,7 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
-from pandas.core.algorithms import take, unique
+from pandas.core.algorithms import take, unique, value_counts
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
@@ -367,3 +367,37 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
         res_values = np.delete(self._ndarray, loc)
         return self._from_backing_data(res_values)
+
+    # ------------------------------------------------------------------------
+    # Additional array methods
+    #  These are not part of the EA API, but we implement them because
+    #  pandas assumes they're there.
+
+    def value_counts(self, dropna: bool = True):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of NA values.
+
+        Returns
+        -------
+        Series
+        """
+        if self.ndim != 1:
+            raise NotImplementedError
+
+        from pandas import Index, Series
+
+        if dropna:
+            values = self[~self.isna()]._ndarray
+        else:
+            values = self._ndarray
+
+        result = value_counts(values, sort=False, dropna=dropna)
+
+        index_arr = self._from_backing_data(np.asarray(result.index._data))
+        index = Index(index_arr, name=result.index.name)
+        return Series(result._values, index=index, name=result.name)

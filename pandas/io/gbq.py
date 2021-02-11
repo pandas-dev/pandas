@@ -34,7 +34,7 @@ def read_gbq(
     use_bqstorage_api: Optional[bool] = None,
     max_results: Optional[int] = None,
     progress_bar_type: Optional[str] = None,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Load data from Google BigQuery.
 

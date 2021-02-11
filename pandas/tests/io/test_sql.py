@@ -661,6 +661,12 @@ class _TestSQLApi(PandasSQLTest):
         iris_frame = sql.read_sql_query("SELECT * FROM iris_view", self.conn)
         self._check_iris_loaded_frame(iris_frame)
 
+    def test_read_sql_with_chunksize_no_result(self):
+        query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
+        with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
+        without_batch = sql.read_sql_query(query, self.conn)
+        tm.assert_frame_equal(pd.concat(with_batch), without_batch)
+
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, "test_frame1", self.conn)
         assert sql.has_table("test_frame1", self.conn)

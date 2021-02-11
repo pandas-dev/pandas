@@ -46,6 +46,7 @@ class DocBuilder:
         warnings_are_errors=False,
     ):
         self.num_jobs = num_jobs
+        self.include_api = include_api
         self.verbosity = verbosity
         self.warnings_are_errors = warnings_are_errors
 
@@ -188,7 +189,14 @@ class DocBuilder:
                 if not row or row[0].strip().startswith("#"):
                     continue
 
-                path = os.path.join(BUILD_PATH, "html", *row[0].split("/")) + ".html"
+                html_path = os.path.join(BUILD_PATH, "html")
+                path = os.path.join(html_path, *row[0].split("/")) + ".html"
+
+                if not self.include_api and (
+                    os.path.join(html_path, "reference") in path
+                    or os.path.join(html_path, "generated") in path
+                ):
+                    continue
 
                 try:
                     title = self._get_page_title(row[1])
@@ -197,11 +205,6 @@ class DocBuilder:
                     # may not be able to read the rst because it has some
                     # sphinx specific stuff
                     title = "this page"
-
-                if os.path.exists(path):
-                    raise RuntimeError(
-                        f"Redirection would overwrite an existing file: {path}"
-                    )
 
                 with open(path, "w") as moved_page_fd:
                     html = f"""\

@@ -3,7 +3,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p20
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm
@@ -208,7 +208,7 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
     # rfloordiv results in nan instead of inf
-    if all_arithmetic_operators == "__rfloordiv__" and _np_version_under1p20:
+    if all_arithmetic_operators == "__rfloordiv__" and np_version_under1p20:
         # for numpy 1.20 https://github.com/numpy/numpy/pull/16161
         #  updated floordiv, now matches our behavior defined in core.ops
         mask = (

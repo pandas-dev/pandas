@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
@@ -154,6 +155,7 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_drop_multiindex_not_lexsorted(self):
         # GH#11640
 
