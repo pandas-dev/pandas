@@ -1823,7 +1823,7 @@ def take_nd(
     return out
 
 
-def take_1d_array(
+def take_1d(
     arr: ArrayLike,
     indexer: np.ndarray,
     out=None,
@@ -1831,7 +1831,7 @@ def take_1d_array(
     allow_fill: bool = True,
 ):
     """
-    Specialized version for 1D arrays. Differences compared to take_nd/take_1d:
+    Specialized version for 1D arrays. Differences compared to take_nd:
 
     - Assumes input (arr, indexer) has already been converted to numpy array / EA
     - Only works for 1D arrays
