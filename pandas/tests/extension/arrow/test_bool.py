@@ -8,7 +8,10 @@ from pandas.tests.extension import base
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
 
-from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
+from pandas.tests.extension.arrow.arrays import (  # isort:skip
+    ArrowBoolArray,
+    ArrowBoolDtype,
+)
 
 
 @pytest.fixture
