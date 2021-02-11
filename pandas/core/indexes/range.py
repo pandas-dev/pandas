@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, Hashable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Hashable, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     ensure_python_int,
     is_float,
     is_integer,
-    is_list_like,
     is_scalar,
     is_signed_integer_dtype,
     is_timedelta64_dtype,
@@ -34,6 +33,9 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import Float64Index, Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 _empty_range = range(0)
 
@@ -368,8 +370,8 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    def _get_indexer(self, target, method=None, limit=None, tolerance=None):
-        if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
+    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+        if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
             )
@@ -381,11 +383,11 @@ class RangeIndex(Int64Index):
             reverse = self._range[::-1]
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
-        target_array = np.asarray(target)
-        if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
+        if not is_signed_integer_dtype(target):
             # checks/conversions/roundings are delegated to general method
             return super()._get_indexer(target, method=method, tolerance=tolerance)
 
+        target_array = np.asarray(target)
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
         locs[~valid] = -1

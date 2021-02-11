@@ -88,7 +88,7 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import array_equivalent, is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import array_equivalent, is_valid_na_for_dtype, isna
 
 from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
@@ -2620,36 +2620,15 @@ class Index(IndexOpsMixin, PandasObject):
             return np.zeros(len(self), dtype=bool)
         return super().duplicated(keep=keep)
 
-    def _get_unique_index(self, dropna: bool = False):
+    def _get_unique_index(self: _IndexT) -> _IndexT:
         """
         Returns an index containing unique values.
 
-        Parameters
-        ----------
-        dropna : bool, default False
-            If True, NaN values are dropped.
-
         Returns
         -------
-        uniques : index
+        Index
         """
-        if self.is_unique and not dropna:
-            return self
-
-        if not self.is_unique:
-            values = self.unique()
-            if not isinstance(self, ABCMultiIndex):
-                # extract an array to pass to _shallow_copy
-                values = values._data
-        else:
-            values = self._values
-
-        if dropna and not isinstance(self, ABCMultiIndex):
-            # isna not defined for MultiIndex
-            if self.hasnans:
-                values = values[~isna(values)]
-
-        return self._shallow_copy(values)
+        return self.unique()
 
     # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
@@ -3398,7 +3377,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
-            indexer = self._filter_indexer_tolerance(target._values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
     @final
@@ -3448,15 +3427,10 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        target_values = target._values
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        left_distances = np.abs(
-            self._values[left_indexer] - target_values  # type: ignore[operator]
-        )
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        right_distances = np.abs(
-            self._values[right_indexer] - target_values  # type: ignore[operator]
-        )
+        target_values = target._get_engine_target()
+        own_values = self._get_engine_target()
+        left_distances = np.abs(own_values[left_indexer] - target_values)
+        right_distances = np.abs(own_values[right_indexer] - target_values)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3475,8 +3449,8 @@ class Index(IndexOpsMixin, PandasObject):
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        distance = abs(self._values[indexer] - target)  # type: ignore[operator]
+        own_values = self._get_engine_target()
+        distance = abs(own_values[indexer] - target)
         return np.where(distance <= tolerance, indexer, -1)
 
     # --------------------------------------------------------------------
@@ -4554,7 +4528,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not mask.any():
             return self.copy()
 
-        if value is None:
+        if value is None and (self._is_numeric_dtype or self.dtype == object):
             value = self._na_value
         try:
             converted = self._validate_fill_value(value)
@@ -5221,7 +5195,7 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        if is_interval_dtype(self.dtype) and is_valid_nat_for_dtype(target, self.dtype):
+        if is_interval_dtype(self.dtype) and is_valid_na_for_dtype(target, self.dtype):
             # e.g. setting NA value into IntervalArray[int64]
             self = cast("IntervalIndex", self)
             return IntervalDtype(np.float64, closed=self.closed)
@@ -5775,7 +5749,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
         item = lib.item_from_zerodim(item)
-        if is_valid_nat_for_dtype(item, self.dtype) and self.dtype != object:
+        if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
             item = self._na_value
 
         try:
@@ -5792,7 +5766,7 @@ class Index(IndexOpsMixin, PandasObject):
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return Index(idx, name=self.name)
 
-    def drop(self, labels, errors: str_t = "raise"):
+    def drop(self: _IndexT, labels, errors: str_t = "raise") -> _IndexT:
         """
         Make new Index with passed list of labels deleted.
 

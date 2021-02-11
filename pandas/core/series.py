@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    pandas_dtype,
     validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
@@ -405,7 +406,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(dtype)
+            values = na_value_for_dtype(pandas_dtype(dtype))
             keys = index
         else:
             keys, values = (), []
@@ -443,7 +444,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index = None
+    _index: Optional[Index] = None
 
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
@@ -4154,7 +4155,7 @@ Keep all original rows and also all original values
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(
+        new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
         )
         return self._constructor(new_values, index=new_index)
