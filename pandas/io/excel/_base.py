@@ -758,7 +758,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    curr_sheet = None
     path = None
 
     @property
