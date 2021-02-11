@@ -16,7 +16,13 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, IndexLabel
+from pandas._typing import (
+    AggFuncType,
+    AggFuncTypeBase,
+    AggFuncTypeDict,
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -44,7 +50,7 @@ def pivot_table(
     values=None,
     index=None,
     columns=None,
-    aggfunc="mean",
+    aggfunc: AggFuncType = "mean",
     fill_value=None,
     margins=False,
     dropna=True,
@@ -96,12 +102,12 @@ def _pivot_table(
     values,
     index,
     columns,
-    aggfunc: str,
+    aggfunc: Union[AggFuncTypeBase, AggFuncTypeDict],
     fill_value,
-    margins,
-    dropna,
-    margins_name,
-    observed,
+    margins: bool,
+    dropna: bool,
+    margins_name: str,
+    observed: bool,
 ) -> DataFrame:
 
     keys = index + columns
