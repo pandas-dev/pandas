@@ -5378,6 +5378,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return boolean Series denoting which columns have unique values.
 
+        .. versionadded:: 1.3.0
+
         Parameters
         ----------
         subset : column label or sequence of labels, optional
