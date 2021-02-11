@@ -31,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
@@ -40,7 +39,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import Float64Index, Index, ensure_index
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
@@ -256,7 +255,7 @@ class BlockManager(DataManager):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return algos.take_1d(dtypes, self.blknos, allow_fill=False)
+        return algos.take_nd(dtypes, self.blknos, allow_fill=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -441,11 +440,11 @@ class BlockManager(DataManager):
 
     def quantile(
         self,
+        *,
+        qs: Float64Index,
         axis: int = 0,
         transposed: bool = False,
         interpolation="linear",
-        qs=None,
-        numeric_only=None,
     ) -> BlockManager:
         """
         Iterate over blocks applying quantile reduction.
@@ -460,8 +459,7 @@ class BlockManager(DataManager):
         transposed: bool, default False
             we are holding transposed data
         interpolation : type of interpolation, default 'linear'
-        qs : a scalar or list of the quantiles to be computed
-        numeric_only : ignored
+        qs : list of the quantiles to be computed
 
         Returns
         -------
@@ -470,73 +468,25 @@ class BlockManager(DataManager):
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
+        assert is_list_like(qs)  # caller is responsible for this
+        assert axis == 1  # only ever called this way
 
-        def get_axe(block, qs, axes):
-            # Because Series dispatches to DataFrame, we will always have
-            #  block.ndim == 2
-            from pandas import Float64Index
+        new_axes = list(self.axes)
+        new_axes[1] = Float64Index(qs)
 
-            if is_list_like(qs):
-                ax = Float64Index(qs)
-            else:
-                ax = axes[0]
-            return ax
+        blocks = [
+            blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
+            for blk in self.blocks
+        ]
 
-        axes, blocks = [], []
-        for b in self.blocks:
-            block = b.quantile(axis=axis, qs=qs, interpolation=interpolation)
+        if transposed:
+            new_axes = new_axes[::-1]
+            blocks = [
+                b.make_block(b.values.T, placement=np.arange(b.shape[1]))
+                for b in blocks
+            ]
 
-            axe = get_axe(b, qs, axes=self.axes)
-
-            axes.append(axe)
-            blocks.append(block)
-
-        # note that some DatetimeTZ, Categorical are always ndim==1
-        ndim = {b.ndim for b in blocks}
-        assert 0 not in ndim, ndim
-
-        if 2 in ndim:
-
-            new_axes = list(self.axes)
-
-            # multiple blocks that are reduced
-            if len(blocks) > 1:
-                new_axes[1] = axes[0]
-
-                # reset the placement to the original
-                for b, sb in zip(blocks, self.blocks):
-                    b.mgr_locs = sb.mgr_locs
-
-            else:
-                new_axes[axis] = Index(np.concatenate([ax._values for ax in axes]))
-
-            if transposed:
-                new_axes = new_axes[::-1]
-                blocks = [
-                    b.make_block(b.values.T, placement=np.arange(b.shape[1]))
-                    for b in blocks
-                ]
-
-            return type(self)(blocks, new_axes)
-
-        # single block, i.e. ndim == {1}
-        values = concat_compat([b.values for b in blocks])
-
-        # compute the orderings of our original data
-        if len(self.blocks) > 1:
-
-            indexer = np.empty(len(self.axes[0]), dtype=np.intp)
-            i = 0
-            for b in self.blocks:
-                for j in b.mgr_locs:
-                    indexer[j] = i
-                    i = i + 1
-
-            values = values.take(indexer)
-
-        return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0]
-        )
+        return type(self)(blocks, new_axes)
 
     def isna(self, func) -> BlockManager:
         return self.apply("apply", func=func)
@@ -1063,6 +1013,9 @@ class BlockManager(DataManager):
                 return value
 
         else:
+            if value.ndim == 2:
+                value = value.T
+
             if value.ndim == self.ndim - 1:
                 value = safe_reshape(value, (1,) + value.shape)
 
@@ -1184,6 +1137,9 @@ class BlockManager(DataManager):
 
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
+
+        if value.ndim == 2:
+            value = value.T
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
@@ -1352,10 +1308,10 @@ class BlockManager(DataManager):
             blknos = self.blknos[slobj]
             blklocs = self.blklocs[slobj]
         else:
-            blknos = algos.take_1d(
+            blknos = algos.take_nd(
                 self.blknos, slobj, fill_value=-1, allow_fill=allow_fill
             )
-            blklocs = algos.take_1d(
+            blklocs = algos.take_nd(
                 self.blklocs, slobj, fill_value=-1, allow_fill=allow_fill
             )
 
@@ -1445,16 +1401,11 @@ class BlockManager(DataManager):
             consolidate=False,
         )
 
-    def equals(self, other: object) -> bool:
-        if not isinstance(other, BlockManager):
-            return False
-
-        self_axes, other_axes = self.axes, other.axes
-        if len(self_axes) != len(other_axes):
-            return False
-        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
-            return False
-
+    def _equal_values(self: T, other: T) -> bool:
+        """
+        Used in .equals defined in base class. Only check the column values
+        assuming shape and indexes have already been checked.
+        """
         if self.ndim == 1:
             # For SingleBlockManager (i.e.Series)
             if other.ndim != 1:
