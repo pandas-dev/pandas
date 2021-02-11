@@ -3193,7 +3193,15 @@ class DataFrame(NDFrame, OpsMixin):
             #  to a slice for partial-string date indexing
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
+        if isinstance(key, DataFrame):
+            warnings.warn(
+                "Using a DataFrame as an indexer is deprecated "
+                "and will be disallowed in future. Use where instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            self._setitem_frame(key, value)
+        elif getattr(key, "ndim", None) == 2:
             self._setitem_frame(key, value)
         elif isinstance(key, (Series, np.ndarray, list, Index)):
             self._setitem_array(key, value)
