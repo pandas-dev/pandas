@@ -178,11 +178,31 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 	return result;
 }
 
-// For PyObject_Hash holds:
-//    hash(0.0) == 0 == hash(-0.0)
-//    hash(X) == 0 if X is a NaN-value
-// so it is OK to use it directly
-#define kh_python_hash_func(key) (PyObject_Hash(key))
+
+khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key){
+    // For PyObject_Hash holds:
+    //    hash(0.0) == 0 == hash(-0.0)
+    //    hash(X) == 0 if X is a NaN-value
+    // so it is OK to use it directly for doubles
+    Py_hash_t hash = PyObject_Hash(key);
+	if (hash == -1) {
+		PyErr_Clear();
+		return 0;
+	}
+    #if SIZEOF_PY_HASH_T == 4
+        // it is already 32bit value
+        return hash;
+    #else
+        // for 64bit builds,
+        // we need information of the upper 32bits as well
+        // see GH 37615
+        khuint64_t as_uint = (khuint64_t) hash;
+        // uints avoid undefined behavior of signed ints
+        return (as_uint>>32)^as_uint;
+    #endif
+}
+
+
 #define kh_python_hash_equal(a, b) (pyobject_cmp(a, b))
 
 
@@ -243,4 +263,14 @@ void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
 
 void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khuint_t val) {
 	kh_resize_str(table->table, val);
+}
+
+// utility function: given the number of elements
+// returns number of necessary buckets
+khuint_t PANDAS_INLINE kh_needed_n_buckets(khuint_t n_elements){
+    khuint_t candidate = n_elements;
+    kroundup32(candidate);
+    khuint_t upper_bound = (khuint_t)(candidate * __ac_HASH_UPPER + 0.5);
+    return (upper_bound < n_elements) ? 2*candidate : candidate;
+
 }

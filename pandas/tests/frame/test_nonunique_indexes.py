@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
@@ -16,7 +14,6 @@ def check(result, expected=None):
 
 
 class TestDataFrameNonuniqueIndexes:
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_column_dups_operations(self):
 
         # assignment
@@ -313,7 +310,6 @@ class TestDataFrameNonuniqueIndexes:
         result = df.dropna(subset=["A", "C"], how="all")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_getitem_boolean_series_with_duplicate_columns(self):
         # boolean indexing
         # GH 4879
@@ -341,7 +337,6 @@ class TestDataFrameNonuniqueIndexes:
         result = df[df > 6]
         check(result, expected)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_getitem_boolean_frame_unaligned_with_duplicate_columns(self):
         # `df.A > 6` is a DataFrame with a different shape from df
         dups = ["A", "A", "C", "D"]

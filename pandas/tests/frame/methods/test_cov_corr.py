@@ -191,14 +191,15 @@ class TestDataFrameCorr:
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self):
+    def test_corr_item_cache(self, using_array_manager):
         # Check that corr does not lead to incorrect entries in item_cache
 
         df = DataFrame({"A": range(10)})
         df["B"] = range(10)[::-1]
 
         ser = df["A"]  # populate item_cache
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
 
         _ = df.corr()
 

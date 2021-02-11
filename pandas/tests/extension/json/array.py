@@ -11,6 +11,8 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
+from __future__ import annotations
+
 from collections import UserDict, abc
 import itertools
 import numbers
@@ -25,6 +27,7 @@ from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.types import is_bool_dtype
 
 
 class JSONDtype(ExtensionDtype):
@@ -33,7 +36,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type["JSONArray"]:
+    def construct_array_type(cls) -> Type[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -80,7 +83,7 @@ class JSONArray(ExtensionArray):
             return type(self)(self.data[item])
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
-            if pd.api.types.is_bool_dtype(item.dtype):
+            if is_bool_dtype(item.dtype):
                 return self._from_sequence([x for x, m in zip(self, item) if m])
             # integer
             return type(self)([self.data[i] for i in item])

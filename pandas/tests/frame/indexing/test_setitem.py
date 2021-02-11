@@ -348,6 +348,53 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_duplicate_columns(self):
+        # GH#15695
+        cols = ["A", "B", "C"] * 2
+        df = DataFrame(index=range(3), columns=cols)
+        df.loc[0, "A"] = (0, 3)
+        df.loc[:, "B"] = (1, 4)
+        df["C"] = (2, 5)
+        expected = DataFrame(
+            [
+                [0, 1, 2, 3, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+                [np.nan, 1, 2, np.nan, 4, 5],
+            ],
+            columns=cols,
+            dtype="object",
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
+    def test_setitem_df_wrong_column_number(self, cols):
+        # GH#38604
+        df = DataFrame([[1, 2, 3]], columns=cols)
+        rhs = DataFrame([[10, 11]], columns=["d", "e"])
+        msg = "Columns must be same length as key"
+        with pytest.raises(ValueError, match=msg):
+            df["a"] = rhs
+
+    def test_setitem_listlike_indexer_duplicate_columns(self):
+        # GH#38604
+        df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
+        rhs = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
+        df[["a", "b"]] = rhs
+        expected = DataFrame([[10, 11, 12]], columns=["a", "b", "b"])
+        tm.assert_frame_equal(df, expected)
+
+        df[["c", "b"]] = rhs
+        expected = DataFrame([[10, 11, 12, 10]], columns=["a", "b", "b", "c"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_listlike_indexer_duplicate_columns_not_equal_length(self):
+        # GH#39403
+        df = DataFrame([[1, 2, 3]], columns=["a", "b", "b"])
+        rhs = DataFrame([[10, 11]], columns=["a", "b"])
+        msg = "Columns must be same length as key"
+        with pytest.raises(ValueError, match=msg):
+            df[["a", "b"]] = rhs
+
 
 class TestDataFrameSetItemWithExpansion:
     def test_setitem_listlike_views(self):
@@ -371,6 +418,15 @@ class TestDataFrameSetItemWithExpansion:
         df = DataFrame([[1, 2], [3, 4]])
         df["0 - Name"] = [5, 6]
         expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_empty_df_duplicate_columns(self):
+        # GH#38521
+        df = DataFrame(columns=["a", "b", "b"], dtype="float64")
+        df.loc[:, "a"] = list(range(2))
+        expected = DataFrame(
+            [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
+        )
         tm.assert_frame_equal(df, expected)
 
 

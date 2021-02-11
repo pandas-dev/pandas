@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import algos as libalgos, index as libindex
-from pandas.compat import is_numpy_dev
 
 import pandas as pd
 import pandas._testing as tm
@@ -199,7 +198,6 @@ class TestObjectEngine:
         engine = self.engine_type(lambda: arr, len(arr))
         assert engine.is_unique is False
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_get_loc(self):
         # unique
         arr = np.array(self.values, dtype=self.dtype)
