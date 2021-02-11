@@ -71,22 +71,6 @@ def get_center_of_mass(
     return float(comass)
 
 
-def dispatch(name: str, *args, **kwargs):
-    """
-    Dispatch to groupby apply.
-    """
-
-    def outer(self, *args, **kwargs):
-        def f(x):
-            x = self._shallow_copy(x, groupby=self._groupby)
-            return getattr(x, name)(*args, **kwargs)
-
-        return self._groupby.apply(f)
-
-    outer.__name__ = name
-    return outer
-
-
 class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponential weighted (EW) functions.
@@ -457,10 +441,22 @@ class ExponentialMovingWindow(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
             result = window_aggregations.ewmcov(
                 x_array,
-                np.array([0], dtype=np.int64),
-                np.array([0], dtype=np.int64),
+                start,
+                end,
                 self.min_periods,
                 y_array,
                 self.com,
@@ -509,12 +505,24 @@ class ExponentialMovingWindow(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
 
             def _cov(X, Y):
                 return window_aggregations.ewmcov(
                     X,
-                    np.array([0], dtype=np.int64),
-                    np.array([0], dtype=np.int64),
+                    start,
+                    end,
                     self.min_periods,
                     Y,
                     self.com,
@@ -555,11 +563,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
-
-    var = dispatch("var", bias=False)
-    std = dispatch("std", bias=False)
-    cov = dispatch("cov", other=None, pairwise=None, bias=False)
-    corr = dispatch("corr", other=None, pairwise=None)
 
     def mean(self, engine=None, engine_kwargs=None):
         """
@@ -602,11 +605,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
-
-            def f(x):
-                x = self._shallow_copy(x, groupby=self._groupby)
-                return x.mean()
-
-            return self._groupby.apply(f)
+            return super().mean()
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
