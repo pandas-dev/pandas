@@ -1837,6 +1837,9 @@ def take_1d(
     - Only works for 1D arrays
 
     To ensure the lowest possible overhead.
+
+    TODO(ArrayManager): mainly useful for ArrayManager, otherwise can potentially
+    be removed again if we don't end up with ArrayManager.
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
