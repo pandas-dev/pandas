@@ -318,40 +318,40 @@ class TestDatetime64SeriesComparison:
             box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
         )
 
-        ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), "NaT"])
+        ser = Series([Timestamp("2000-01-29 01:59:00"), "NaT"])
         ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser
-        expected = tm.box_expected([False, False, True], xbox)
+        expected = tm.box_expected([False, True], xbox)
         tm.assert_equal(result, expected)
 
         warn = FutureWarning if box_with_array is pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
             result = ser != ser[0]
-        expected = tm.box_expected([False, True, True], xbox)
+        expected = tm.box_expected([False, True], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
-            result = ser != ser[2]
-        expected = tm.box_expected([True, True, True], xbox)
+            result = ser != ser[1]
+        expected = tm.box_expected([True, True], xbox)
         tm.assert_equal(result, expected)
 
         result = ser == ser
-        expected = tm.box_expected([True, True, False], xbox)
+        expected = tm.box_expected([True, False], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
             result = ser == ser[0]
-        expected = tm.box_expected([True, False, False], xbox)
+        expected = tm.box_expected([True, False], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
-            result = ser == ser[2]
-        expected = tm.box_expected([False, False, False], xbox)
+            result = ser == ser[1]
+        expected = tm.box_expected([False, False], xbox)
         tm.assert_equal(result, expected)
 
 

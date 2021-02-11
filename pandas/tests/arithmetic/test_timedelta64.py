@@ -2077,15 +2077,17 @@ class TestTimedeltaArraylikeMulDivOps:
             result = tdser / vector.astype(object)
             if box_with_array is pd.DataFrame:
                 expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
-                if using_array_manager:
-                    # https://github.com/pandas-dev/pandas/issues/39750
-                    # third column with all-NaT as result doesn't get preserved
-                    # as timedelta64 dtype
-                    result[2] = pd.array(["NaT", "NaT"], dtype="timedelta64[ns]")
             else:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
+
+            if using_array_manager and box_with_array is pd.DataFrame:
+                # https://github.com/pandas-dev/pandas/issues/39750
+                # third column with all-NaT as result doesn't get preserved
+                # as timedelta64 dtype
+                expected[2] = Series([pd.NaT, pd.NaT], dtype=object)
+
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
