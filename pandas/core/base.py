@@ -10,6 +10,7 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
+    Hashable,
     Optional,
     Set,
     TypeVar,
@@ -20,7 +21,7 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import Dtype, DtypeObj, IndexLabel, Label
+from pandas._typing import Dtype, DtypeObj, IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -160,7 +161,7 @@ class SelectionMixin:
     # TODO obj here must be typed as FrameOrSeriesUnion,
     # however this creates multiple mypy errors elsewhere.
     # Those have to be addressed in a separate PR.
-    exclusions: Set[Label]
+    exclusions: Set[Hashable]
     """Columns to exclude."""
 
     _selection: Optional[IndexLabel] = None
