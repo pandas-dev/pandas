@@ -1672,3 +1672,9 @@ class TestSeriesConstructorInternals:
 
         result = Series(["2015"], dtype="datetime64[ns]")
         assert result._mgr.blocks[0].is_extension is False
+
+
+def test_constructor(rand_series_with_duplicate_datetimeindex):
+    dups = rand_series_with_duplicate_datetimeindex
+    assert isinstance(dups, Series)
+    assert isinstance(dups.index, DatetimeIndex)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, Hashable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Hashable, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     ensure_python_int,
     is_float,
     is_integer,
-    is_list_like,
     is_scalar,
     is_signed_integer_dtype,
     is_timedelta64_dtype,
@@ -34,6 +33,9 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import Float64Index, Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 _empty_range = range(0)
 
@@ -368,8 +370,8 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    def _get_indexer(self, target, method=None, limit=None, tolerance=None):
-        if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
+    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+        if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
             )
@@ -381,11 +383,11 @@ class RangeIndex(Int64Index):
             reverse = self._range[::-1]
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
-        target_array = np.asarray(target)
-        if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
+        if not is_signed_integer_dtype(target):
             # checks/conversions/roundings are delegated to general method
             return super()._get_indexer(target, method=method, tolerance=tolerance)
 
+        target_array = np.asarray(target)
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
         locs[~valid] = -1
@@ -422,22 +424,22 @@ class RangeIndex(Int64Index):
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Hashable = no_default):
+    def _shallow_copy(self, values, name: Hashable = no_default):
         name = self.name if name is no_default else name
 
-        if values is not None:
-            if values.dtype.kind == "f":
-                return Float64Index(values, name=name)
-            return Int64Index._simple_new(values, name=name)
+        if values.dtype.kind == "f":
+            return Float64Index(values, name=name)
+        return Int64Index._simple_new(values, name=name)
 
-        result = self._simple_new(self._range, name=name)
+    def _view(self: RangeIndex) -> RangeIndex:
+        result = type(self)._simple_new(self._range, name=self.name)
         result._cache = self._cache
         return result
 
     @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
-        new_index = self._shallow_copy(name=name)
+        new_index = self._rename(name=name)
 
         if dtype:
             warnings.warn(
