@@ -91,16 +91,7 @@ if TYPE_CHECKING:
 class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
-    _attributes: List[str] = [
-        "window",
-        "min_periods",
-        "center",
-        "win_type",
-        "axis",
-        "on",
-        "closed",
-        "method",
-    ]
+    _attributes: List[str] = []
     exclusions: Set[str] = set()
 
     def __init__(
@@ -114,7 +105,6 @@ class BaseWindow(SelectionMixin):
         on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
         method: str = "single",
-        **kwargs,
     ):
         self.obj = obj
         self.on = on
@@ -525,15 +515,7 @@ class BaseWindowGroupby(BaseWindow):
     Provide the groupby windowing facilities.
     """
 
-    _attributes: List[str] = [
-        "window",
-        "min_periods",
-        "center",
-        "win_type",
-        "axis",
-        "on",
-        "closed",
-        "method",
+    _attributes = [
         "_grouping_indices",
         "_grouping_keys",
         "_grouping_codes",
@@ -894,6 +876,17 @@ class Window(BaseWindow):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
     """
+
+    _attributes = [
+        "window",
+        "min_periods",
+        "center",
+        "win_type",
+        "axis",
+        "on",
+        "closed",
+        "method",
+    ]
 
     def validate(self):
         super().validate()
@@ -1385,6 +1378,18 @@ class RollingAndExpandingMixin(BaseWindow):
 
 
 class Rolling(RollingAndExpandingMixin):
+
+    _attributes = [
+        "window",
+        "min_periods",
+        "center",
+        "win_type",
+        "axis",
+        "on",
+        "closed",
+        "method",
+    ]
+
     def validate(self):
         super().validate()
 
@@ -2162,6 +2167,8 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
+
+    _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 
     @property
     def _constructor(self):

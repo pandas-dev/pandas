@@ -80,9 +80,7 @@ class Expanding(RollingAndExpandingMixin):
 
     _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(
-        self, obj, min_periods=1, center=None, axis=0, method="single", **kwargs
-    ):
+    def __init__(self, obj, min_periods=1, center=None, axis=0, method="single"):
         super().__init__(
             obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
         )
@@ -614,6 +612,8 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
     Provide a expanding groupby implementation.
     """
+
+    _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 
     @property
     def _constructor(self):
