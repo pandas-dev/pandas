@@ -1,0 +1,22 @@
+kind: pipeline
+type: docker
+name: py37-amd64
+
+platform:
+  arch: amd64
+
+steps:
+- name: test
+  image: python:3.7
+  commands:
+  - pip install -r requirements-dev.txt
+  - python setup.py build_ext -j 4
+  - python -m pip install -e . --no-build-isolation --no-use-pep517
+  - pytest -m "(not slow and not network and not clipboard and not arm_slow)" -n 2  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas
+
+trigger:
+  branch:
+  - master
+  - feature/*
+  event:
+  - push
