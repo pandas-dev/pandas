@@ -72,15 +72,8 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
-    - name: Environment Detail
-      run: |
-        conda info
-        conda list
-
     - name: Build Pandas
-      run: |
-        python setup.py build_ext -j 2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+      uses: ./.github/actions/build_pandas
 
     - name: Test
       run: ci/run_tests.sh
@@ -158,15 +151,8 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
-    - name: Environment Detail
-      run: |
-        conda info
-        conda list
-
     - name: Build Pandas
-      run: |
-        python setup.py build_ext -j 2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+      uses: ./.github/actions/build_pandas
 
     - name: Test
       run: ci/run_tests.sh
