@@ -23,6 +23,7 @@ import numpy as np
 from pandas.errors import EmptyDataError, OutOfBoundsDatetime
 
 import pandas as pd
+from pandas import notna
 
 from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
@@ -54,7 +55,7 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         if unit == "s":
             s_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
-                if pd.notnull(sas_float)
+                if notna(sas_float)
                 else pd.NaT
             )
             s_series = cast(pd.Series, s_series)
@@ -62,7 +63,7 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         elif unit == "d":
             d_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
-                if pd.notnull(sas_float)
+                if notna(sas_float)
                 else pd.NaT
             )
             d_series = cast(pd.Series, d_series)
