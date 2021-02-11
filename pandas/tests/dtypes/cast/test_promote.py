@@ -450,6 +450,17 @@ def test_maybe_promote_datetimetz_with_na(tz_aware_fixture, fill_value):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
+def test_maybe_promote_datetimetz_with_mismatched_na(tz_aware_fixture):
+    fill_value = np.timedelta64("NaT")
+
+    dtype = DatetimeTZDtype(tz=tz_aware_fixture)
+
+    expected_dtype = np.dtype(object)
+    exp_val_for_scalar = fill_value
+
+    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
+
+
 @pytest.mark.parametrize(
     "fill_value",
     [
