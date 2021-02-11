@@ -666,7 +666,7 @@ class ArrayManager(DataManager):
         loc : positional location (already bounds checked)
         value : array-like
         """
-        # single column
+        # single column -> single integer index
         if lib.is_integer(loc):
             # TODO normalize array -> this should in theory not be needed?
             value = extract_array(value, extract_numpy=True)
@@ -683,8 +683,8 @@ class ArrayManager(DataManager):
             self.arrays[loc] = value
             return
 
-        # multiple columns (slice or array)
-        if isinstance(loc, slice):
+        # multiple columns -> convert slice or array to integer indices
+        elif isinstance(loc, slice):
             indices = range(
                 loc.start if loc.start is not None else 0,
                 loc.stop if loc.stop is not None else self.shape_proper[1],
