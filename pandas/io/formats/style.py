@@ -2085,6 +2085,6 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
         except IndexError:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
-                f"for example 'attr: val;'. {style} was given."
+                f"for example 'attr: val;'. '{style}' was given."
             )
     return style
