@@ -1,9 +1,9 @@
 kind: pipeline
 type: docker
-name: py37-amd64
+name: py37-arm64
 
 platform:
-  arch: amd64
+  arch: arm64
 
 steps:
 - name: test
