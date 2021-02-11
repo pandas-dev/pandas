@@ -5560,7 +5560,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         axis: Axis = 0,
         level: Optional[Level] = None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",

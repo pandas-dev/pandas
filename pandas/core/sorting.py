@@ -41,7 +41,7 @@ _INT64_MAX = np.iinfo(np.int64).max
 def get_indexer_indexer(
     target: Index,
     level: Union[str, int, List[str], List[int]],
-    ascending: bool,
+    ascending: Union[Sequence[Union[bool, int]], Union[bool, int]],
     kind: str,
     na_position: str,
     sort_remaining: bool,

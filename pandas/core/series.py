@@ -15,9 +15,11 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -3039,7 +3041,7 @@ Keep all original rows and also all original values
     def sort_values(
         self,
         axis=0,
-        ascending=True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -3217,6 +3219,7 @@ Keep all original rows and also all original values
             )
 
         if is_list_like(ascending):
+            ascending = cast(Sequence[Union[bool, int]], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3231,7 +3234,8 @@ Keep all original rows and also all original values
 
         # GH 35922. Make sorting stable by leveraging nargsort
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
-        sorted_index = nargsort(values_to_sort, kind, ascending, na_position)
+
+        sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
@@ -3249,7 +3253,7 @@ Keep all original rows and also all original values
         self,
         axis=0,
         level=None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",

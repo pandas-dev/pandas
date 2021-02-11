@@ -2,7 +2,7 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
-from typing import Iterable, Union
+from typing import Iterable, Sequence, Union
 import warnings
 
 import numpy as np
@@ -411,3 +411,14 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
         if not all(0 <= qs <= 1 for qs in q_arr):
             raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
+
+
+def validate_ascending(
+    ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
+):
+    """Validate ``ascending`` kwargs for ``sort_index`` method."""
+    kwargs = {"none_allowed": False, "int_allowed": True}
+    if not isinstance(ascending, (list, tuple)):
+        return validate_bool_kwarg(ascending, "ascending", **kwargs)
+
+    return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]

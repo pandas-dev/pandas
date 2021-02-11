@@ -59,7 +59,11 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc, rewrite_axis_style_signature
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.util._validators import (
+    validate_ascending,
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -4522,7 +4526,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         axis=0,
         level=None,
-        ascending: bool_t = True,
+        ascending: Union[Union[bool_t, int], Sequence[Union[bool_t, int]]] = True,
         inplace: bool_t = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -11774,12 +11778,3 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
-
-
-def validate_ascending(ascending):
-    """Validate ``ascending`` kwargs for ``sort_index`` method."""
-    kwargs = {"none_allowed": False, "int_allowed": True}
-    if not isinstance(ascending, (list, tuple)):
-        return validate_bool_kwarg(ascending, "ascending", **kwargs)
-
-    return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]
