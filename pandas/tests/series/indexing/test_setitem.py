@@ -50,19 +50,6 @@ class TestSetitemDT64Values:
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
 
-    def test_setitem_with_different_tz_casts_to_object(self):
-        # GH#24024
-        ser = Series(date_range("2000", periods=2, tz="US/Central"))
-        ser[0] = Timestamp("2000", tz="US/Eastern")
-        expected = Series(
-            [
-                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
-                Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
-            ],
-            dtype=object,
-        )
-        tm.assert_series_equal(ser, expected)
-
     def test_setitem_tuple_with_datetimetz_values(self):
         # GH#20441
         arr = date_range("2017", periods=4, tz="US/Eastern")
@@ -112,6 +99,21 @@ class TestSetitemSlices:
 
         with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
             datetime_series[4.5:10.0] = 0
+
+    def test_setitem_slice(self):
+        ser = Series(range(10), index=list(range(10)))
+        ser[-12:] = 0
+        assert (ser == 0).all()
+
+        ser[:-12] = 5
+        assert (ser == 0).all()
+
+    def test_setitem_slice_integers(self):
+        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        ser[:4] = 0
+        assert (ser[:4] == 0).all()
+        assert not (ser[4:] == 0).any()
 
 
 class TestSetitemBooleanMask:
@@ -631,3 +633,29 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def is_inplace(self):
         return True
+
+
+class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
+    # GH#24024
+    @pytest.fixture
+    def obj(self):
+        return Series(date_range("2000", periods=2, tz="US/Central"))
+
+    @pytest.fixture
+    def val(self):
+        return Timestamp("2000", tz="US/Eastern")
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def expected(self):
+        expected = Series(
+            [
+                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
+                Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
+            ],
+            dtype=object,
+        )
+        return expected

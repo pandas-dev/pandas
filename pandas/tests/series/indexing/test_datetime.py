@@ -9,18 +9,10 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import iNaT, index as libindex
+from pandas._libs import index as libindex
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
+from pandas import DataFrame, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
 
 
@@ -347,77 +339,10 @@ test duplicates in time series
 """
 
 
-@pytest.fixture
-def dups():
-    dates = [
-        datetime(2000, 1, 2),
-        datetime(2000, 1, 2),
-        datetime(2000, 1, 2),
-        datetime(2000, 1, 3),
-        datetime(2000, 1, 3),
-        datetime(2000, 1, 3),
-        datetime(2000, 1, 4),
-        datetime(2000, 1, 4),
-        datetime(2000, 1, 4),
-        datetime(2000, 1, 5),
-    ]
-
-    return Series(np.random.randn(len(dates)), index=dates)
-
-
-def test_constructor(dups):
-    assert isinstance(dups, Series)
-    assert isinstance(dups.index, DatetimeIndex)
-
-
-def test_is_unique_monotonic(dups):
-    assert not dups.index.is_unique
-
-
-def test_index_unique(dups):
-    uniques = dups.index.unique()
-    expected = DatetimeIndex(
-        [
-            datetime(2000, 1, 2),
-            datetime(2000, 1, 3),
-            datetime(2000, 1, 4),
-            datetime(2000, 1, 5),
-        ]
-    )
-    assert uniques.dtype == "M8[ns]"  # sanity
-    tm.assert_index_equal(uniques, expected)
-    assert dups.index.nunique() == 4
-
-    # #2563
-    assert isinstance(uniques, DatetimeIndex)
-
-    dups_local = dups.index.tz_localize("US/Eastern")
-    dups_local.name = "foo"
-    result = dups_local.unique()
-    expected = DatetimeIndex(expected, name="foo")
-    expected = expected.tz_localize("US/Eastern")
-    assert result.tz is not None
-    assert result.name == "foo"
-    tm.assert_index_equal(result, expected)
-
-    # NaT, note this is excluded
-    arr = [1370745748 + t for t in range(20)] + [iNaT]
-    idx = DatetimeIndex(arr * 3)
-    tm.assert_index_equal(idx.unique(), DatetimeIndex(arr))
-    assert idx.nunique() == 20
-    assert idx.nunique(dropna=False) == 21
-
-    arr = [
-        Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)
-    ] + [NaT]
-    idx = DatetimeIndex(arr * 3)
-    tm.assert_index_equal(idx.unique(), DatetimeIndex(arr))
-    assert idx.nunique() == 20
-    assert idx.nunique(dropna=False) == 21
-
-
-def test_duplicate_dates_indexing(dups):
-    ts = dups
+def test_indexing_with_duplicate_datetimeindex(
+    rand_series_with_duplicate_datetimeindex,
+):
+    ts = rand_series_with_duplicate_datetimeindex
 
     uniques = ts.index.unique()
     for date in uniques:
@@ -443,12 +368,6 @@ def test_duplicate_dates_indexing(dups):
     # new index
     ts[datetime(2000, 1, 6)] = 0
     assert ts[datetime(2000, 1, 6)] == 0
-
-
-def test_groupby_average_dup_values(dups):
-    result = dups.groupby(level=0).mean()
-    expected = dups.groupby(dups.index).mean()
-    tm.assert_series_equal(result, expected)
 
 
 def test_indexing_over_size_cutoff(monkeypatch):
@@ -579,6 +498,8 @@ def test_indexing():
         result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
+
+def test_getitem_str_month_with_datetimeindex():
     # GH3546 (not including times on the last day)
     idx = date_range(start="2013-05-31 00:00", end="2013-05-31 23:00", freq="H")
     ts = Series(range(len(idx)), index=idx)
@@ -590,6 +511,8 @@ def test_indexing():
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
 
+
+def test_getitem_str_year_with_datetimeindex():
     idx = [
         Timestamp("2013-05-31 00:00"),
         Timestamp(datetime(2013, 5, 31, 23, 59, 59, 999999)),
@@ -598,17 +521,19 @@ def test_indexing():
     expected = ts["2013"]
     tm.assert_series_equal(expected, ts)
 
+
+def test_getitem_str_second_with_datetimeindex():
     # GH14826, indexing with a seconds resolution string / datetime object
     df = DataFrame(
         np.random.rand(5, 5),
         columns=["open", "high", "low", "close", "volume"],
         index=date_range("2012-01-02 18:01:00", periods=5, tz="US/Central", freq="s"),
     )
-    expected = df.loc[[df.index[2]]]
 
     # this is a single date, so will raise
     with pytest.raises(KeyError, match=r"^'2012-01-02 18:01:02'$"):
         df["2012-01-02 18:01:02"]
+
     msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central', freq='S'\)"
     with pytest.raises(KeyError, match=msg):
         df[df.index[2]]
