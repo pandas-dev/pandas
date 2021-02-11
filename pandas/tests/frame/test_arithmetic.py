@@ -972,7 +972,7 @@ class TestFrameArithmeticUnsorted:
 
         result = ts + ts[::2]
         expected = ts + ts
-        expected.values[1::2] = np.nan
+        expected.iloc[1::2] = np.nan
         tm.assert_frame_equal(result, expected)
 
         half = ts[::2]

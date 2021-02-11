@@ -1,6 +1,8 @@
 """
 SparseArray data structure
 """
+from __future__ import annotations
+
 from collections import abc
 import numbers
 import operator
@@ -60,7 +62,7 @@ SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 _sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
-def _get_fill(arr: "SparseArray") -> np.ndarray:
+def _get_fill(arr: SparseArray) -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -85,7 +87,7 @@ def _get_fill(arr: "SparseArray") -> np.ndarray:
 
 
 def _sparse_array_op(
-    left: "SparseArray", right: "SparseArray", op: Callable, name: str
+    left: SparseArray, right: SparseArray, op: Callable, name: str
 ) -> Any:
     """
     Perform a binary operation between two arrays.
@@ -380,6 +382,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         stacklevel=2,
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
+                    if fill_value is NaT:
+                        fill_value = np.datetime64("NaT", "ns")
                 data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value, dtype=dtype
@@ -721,13 +725,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         uniques = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of unique values.
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN, even if NaN is in sp_values.
 
         Returns
@@ -812,7 +816,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, *, allow_fill=False, fill_value=None) -> "SparseArray":
+    def take(self, indices, *, allow_fill=False, fill_value=None) -> SparseArray:
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
@@ -894,7 +898,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return taken
 
-    def _take_without_fill(self, indices) -> Union[np.ndarray, "SparseArray"]:
+    def _take_without_fill(self, indices) -> Union[np.ndarray, SparseArray]:
         to_shift = indices < 0
         indices = indices.copy()
 
@@ -1403,7 +1407,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
                 return _sparse_array_op(self, other, op, op_name)
 
-    def _cmp_method(self, other, op) -> "SparseArray":
+    def _cmp_method(self, other, op) -> SparseArray:
         if not is_scalar(other) and not isinstance(other, type(self)):
             # convert list-like to ndarray
             other = np.asarray(other)
@@ -1431,19 +1435,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     _logical_method = _cmp_method
 
-    def _unary_method(self, op) -> "SparseArray":
+    def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
         values = op(self.sp_values)
         dtype = SparseDtype(values.dtype, fill_value)
         return type(self)._simple_new(values, self.sp_index, dtype)
 
-    def __pos__(self) -> "SparseArray":
+    def __pos__(self) -> SparseArray:
         return self._unary_method(operator.pos)
 
-    def __neg__(self) -> "SparseArray":
+    def __neg__(self) -> SparseArray:
         return self._unary_method(operator.neg)
 
-    def __invert__(self) -> "SparseArray":
+    def __invert__(self) -> SparseArray:
         return self._unary_method(operator.invert)
 
     # ----------

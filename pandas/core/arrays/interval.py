@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 from operator import le, lt
 import textwrap
@@ -41,7 +43,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
 
 from pandas.core.algorithms import isin, take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
@@ -149,7 +151,7 @@ for more.
     >>> pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
     <IntervalArray>
     [(0, 1], (1, 5]]
-    Length: 2, closed: right, dtype: interval[int64, right]
+    Length: 2, dtype: interval[int64, right]
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalArray.from_arrays`,
@@ -354,7 +356,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3])
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
-        Length: 3, closed: right, dtype: interval[int64, right]
+        Length: 3, dtype: interval[int64, right]
         """
             ),
         }
@@ -425,7 +427,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3])
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
-        Length: 3, closed: right, dtype: interval[int64, right]
+        Length: 3, dtype: interval[int64, right]
         """
             ),
         }
@@ -484,7 +486,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
         <IntervalArray>
         [(0, 1], (1, 2]]
-        Length: 2, closed: right, dtype: interval[int64, right]
+        Length: 2, dtype: interval[int64, right]
         """
             ),
         }
@@ -861,7 +863,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def isna(self) -> np.ndarray:
         return isna(self._left)
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
+    def shift(self, periods: int = 1, fill_value: object = None) -> IntervalArray:
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -955,19 +957,29 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # list-like of intervals
         try:
             array = IntervalArray(value)
-            # TODO: self._check_closed_matches(array, name="value")
+            self._check_closed_matches(array, name="value")
             value_left, value_right = array.left, array.right
         except TypeError as err:
             # wrong type: not interval or NA
             msg = f"'value' should be an interval type, got {type(value)} instead."
             raise TypeError(msg) from err
+
+        try:
+            self.left._validate_fill_value(value_left)
+        except (ValueError, TypeError) as err:
+            msg = (
+                "'value' should be a compatible interval type, "
+                f"got {type(value)} instead."
+            )
+            raise TypeError(msg) from err
+
         return value_left, value_right
 
     def _validate_scalar(self, value):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
-        elif is_valid_nat_for_dtype(value, self.left.dtype):
+        elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
             left = right = value
         else:
@@ -982,7 +994,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _validate_setitem_value(self, value):
         needs_float_conversion = False
 
-        if is_valid_nat_for_dtype(value, self.left.dtype):
+        if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
@@ -995,10 +1007,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 value = np.timedelta64("NaT")
             value_left, value_right = value, value
 
-        elif is_interval_dtype(value) or isinstance(value, Interval):
+        elif isinstance(value, Interval):
             # scalar interval
             self._check_closed_matches(value, name="value")
             value_left, value_right = value.left, value.right
+            self.left._validate_fill_value(value_left)
+            self.left._validate_fill_value(value_right)
 
         else:
             return self._validate_listlike(value)
@@ -1007,7 +1021,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of each interval.
 
@@ -1071,11 +1085,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         data = self._format_data()
         class_name = f"<{type(self).__name__}>\n"
 
-        template = (
-            f"{class_name}"
-            f"{data}\n"
-            f"Length: {len(self)}, closed: {self.closed}, dtype: {self.dtype}"
-        )
+        template = f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
         return template
 
     def _format_space(self):
@@ -1185,7 +1195,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
-        Length: 3, closed: right, dtype: interval[int64, right]
+        Length: 3, dtype: interval[int64, right]
         """
             ),
         }
@@ -1249,11 +1259,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> index
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
-        Length: 3, closed: right, dtype: interval[int64, right]
+        Length: 3, dtype: interval[int64, right]
         >>> index.set_closed('both')
         <IntervalArray>
         [[0, 1], [1, 2], [2, 3]]
-        Length: 3, closed: both, dtype: interval[int64, both]
+        Length: 3, dtype: interval[int64, both]
         """
             ),
         }
@@ -1403,6 +1413,25 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     # ---------------------------------------------------------------------
 
+    def putmask(self, mask: np.ndarray, value) -> None:
+        value_left, value_right = self._validate_setitem_value(value)
+
+        if isinstance(self._left, np.ndarray):
+            np.putmask(self._left, mask, value_left)
+            np.putmask(self._right, mask, value_right)
+        else:
+            self._left.putmask(mask, value_left)
+            self._right.putmask(mask, value_right)
+
+    def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
+        if isinstance(self._left, np.ndarray):
+            new_left = np.delete(self._left, loc)
+            new_right = np.delete(self._right, loc)
+        else:
+            new_left = self._left.delete(loc)
+            new_right = self._right.delete(loc)
+        return self._shallow_copy(left=new_left, right=new_right)
+
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
     def repeat(self, repeats, axis=None):
         nv.validate_repeat((), {"axis": axis})
@@ -1452,7 +1481,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
-        Length: 3, closed: right, dtype: interval[int64, right]
+        Length: 3, dtype: interval[int64, right]
         """
             ),
         }

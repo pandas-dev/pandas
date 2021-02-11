@@ -52,13 +52,17 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
     except OutOfBoundsDatetime:
         if unit == "s":
-            return sas_datetimes.apply(
+            s_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
             )
+            s_series = cast(pd.Series, s_series)
+            return s_series
         elif unit == "d":
-            return sas_datetimes.apply(
+            d_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
             )
+            d_series = cast(pd.Series, d_series)
+            return d_series
         else:
             raise ValueError("unit must be 'd' or 's'")
 

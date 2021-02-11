@@ -1,7 +1,8 @@
 """
 Tests for the pandas.io.common functionalities
 """
-from io import StringIO
+import codecs
+from io import BytesIO, StringIO
 import mmap
 import os
 from pathlib import Path
@@ -272,7 +273,9 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            ("to_json", {}, "os"),
+            pytest.param(
+                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
+            ),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
@@ -427,3 +430,49 @@ def test_default_errors():
         file = Path(path)
         file.write_bytes(b"\xe4\na\n1")
         tm.assert_frame_equal(pd.read_csv(file, skiprows=[0]), pd.DataFrame({"a": [1]}))
+
+
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+@pytest.mark.parametrize("format", ["csv", "json"])
+def test_codecs_encoding(encoding, format):
+    # GH39247
+    expected = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        with codecs.open(path, mode="w", encoding=encoding) as handle:
+            getattr(expected, f"to_{format}")(handle)
+        with codecs.open(path, mode="r", encoding=encoding) as handle:
+            if format == "csv":
+                df = pd.read_csv(handle, index_col=0)
+            else:
+                df = pd.read_json(handle)
+    tm.assert_frame_equal(expected, df)
+
+
+def test_codecs_get_writer_reader():
+    # GH39247
+    expected = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        with open(path, "wb") as handle:
+            with codecs.getwriter("utf-8")(handle) as encoded:
+                expected.to_csv(encoded)
+        with open(path, "rb") as handle:
+            with codecs.getreader("utf-8")(handle) as encoded:
+                df = pd.read_csv(encoded, index_col=0)
+    tm.assert_frame_equal(expected, df)
+
+
+@pytest.mark.parametrize(
+    "io_class,mode,msg",
+    [
+        (BytesIO, "t", "a bytes-like object is required, not 'str'"),
+        (StringIO, "b", "string argument expected, got 'bytes'"),
+    ],
+)
+def test_explicit_encoding(io_class, mode, msg):
+    # GH39247; this test makes sure that if a user provides mode="*t" or "*b",
+    # it is used. In the case of this test it leads to an error as intentionally the
+    # wrong mode is requested
+    expected = tm.makeDataFrame()
+    with io_class() as buffer:
+        with pytest.raises(TypeError, match=msg):
+            expected.to_csv(buffer, mode=f"w{mode}")
