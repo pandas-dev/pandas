@@ -180,7 +180,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ["_AXIS_NAMES", "_AXIS_NUMBERS", "get_values", "tshift"]
     )
     _metadata: List[str] = []
-    _is_copy = None
+    _is_copy: Optional[weakref.ReferenceType[NDFrame]] = None
     _mgr: Manager
     _attrs: Dict[Optional[Hashable], Any]
     _typ: str
@@ -389,7 +389,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Axis
     _stat_axis_number = 0
     _stat_axis_name = "index"
-    _ix = None
     _AXIS_ORDERS: List[str]
     _AXIS_TO_AXIS_NUMBER: Dict[Axis, int] = {0: 0, "index": 0, "rows": 0}
     _AXIS_REVERSED: bool
@@ -3815,7 +3814,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return result
 
     @final
-    def _set_is_copy(self, ref, copy: bool_t = True) -> None:
+    def _set_is_copy(self, ref: FrameOrSeries, copy: bool_t = True) -> None:
         if not copy:
             self._is_copy = None
         else:

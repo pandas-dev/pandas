@@ -80,7 +80,7 @@ class TestTake:
 
         indexer = [2, 1, 0, 1]
         out = np.empty(4, dtype=dtype)
-        algos.take_1d(data, indexer, out=out)
+        algos.take_nd(data, indexer, out=out)
 
         expected = data.take(indexer)
         tm.assert_almost_equal(out, expected)
@@ -89,13 +89,13 @@ class TestTake:
         out = np.empty(4, dtype=dtype)
 
         if can_hold_na:
-            algos.take_1d(data, indexer, out=out)
+            algos.take_nd(data, indexer, out=out)
             expected = data.take(indexer)
             expected[3] = np.nan
             tm.assert_almost_equal(out, expected)
         else:
             with pytest.raises(TypeError, match=self.fill_error):
-                algos.take_1d(data, indexer, out=out)
+                algos.take_nd(data, indexer, out=out)
 
             # No Exception otherwise.
             data.take(indexer, out=out)
@@ -105,14 +105,14 @@ class TestTake:
         data = np.random.randint(0, 2, 4).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_1d(data, indexer, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, fill_value=fill_value)
         assert (result[[0, 1, 2]] == data[[2, 1, 0]]).all()
         assert result[3] == fill_value
         assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
 
-        result = algos.take_1d(data, indexer, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, fill_value=fill_value)
         assert (result[[0, 1, 2, 3]] == data[indexer]).all()
         assert result.dtype == dtype
 
@@ -269,7 +269,7 @@ class TestTake:
         arr = np.random.randn(10).astype(np.float32)
 
         indexer = [1, 2, 3, -1]
-        result = algos.take_1d(arr, indexer)
+        result = algos.take_nd(arr, indexer)
         expected = arr.take(indexer)
         expected[-1] = np.nan
         tm.assert_almost_equal(result, expected)
@@ -294,11 +294,11 @@ class TestTake:
     def test_1d_bool(self):
         arr = np.array([0, 1, 0], dtype=bool)
 
-        result = algos.take_1d(arr, [0, 2, 2, 1])
+        result = algos.take_nd(arr, [0, 2, 2, 1])
         expected = arr.take([0, 2, 2, 1])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.take_1d(arr, [0, 2, -1])
+        result = algos.take_nd(arr, [0, 2, -1])
         assert result.dtype == np.object_
 
     def test_2d_bool(self):
