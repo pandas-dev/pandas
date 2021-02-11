@@ -461,6 +461,7 @@ Other
 - Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
 - :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
+- Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 
 
 .. ---------------------------------------------------------------------------
