@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -48,6 +47,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
@@ -68,7 +68,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
-    from pandas.core.arrays import DatetimeArray, IntervalArray, TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -150,12 +150,10 @@ def _ensure_data(
             from pandas import PeriodIndex
 
             values = PeriodIndex(values)._data
-            dtype = values.dtype
         elif is_timedelta64_dtype(values.dtype) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
             values = TimedeltaIndex(values)._data
-            dtype = values.dtype
         else:
             # Datetime
             if values.ndim > 1 and is_datetime64_ns_dtype(values.dtype):
@@ -169,8 +167,7 @@ def _ensure_data(
             from pandas import DatetimeIndex
 
             values = DatetimeIndex(values)._data
-            dtype = values.dtype
-
+        dtype = values.dtype
         return values.asi8, dtype
 
     elif is_categorical_dtype(values.dtype) and (
@@ -327,7 +324,8 @@ def unique(values):
     Hash table-based unique. Uniques are returned in order
     of appearance. This does NOT sort.
 
-    Significantly faster than numpy.unique. Includes NA values.
+    Significantly faster than numpy.unique for long enough sequences.
+    Includes NA values.
 
     Parameters
     ----------
@@ -453,13 +451,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_categorical_dtype(comps.dtype):
-        # TODO(extension)
-        # handle categoricals
-        return cast("Categorical", comps).isin(values)
-
-    elif is_interval_dtype(comps.dtype):
-        return cast("IntervalArray", comps).isin(values)
+    if is_extension_array_dtype(comps.dtype):
+        return comps.isin(values)
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -471,9 +464,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     elif needs_i8_conversion(values.dtype):
         return isin(comps, values.astype(object))
 
-    elif is_extension_array_dtype(comps.dtype) or is_extension_array_dtype(
-        values.dtype
-    ):
+    elif is_extension_array_dtype(values.dtype):
         return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
@@ -484,7 +475,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
-            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+
+            def f(c, v):
+                return np.logical_or(np.in1d(c, v), np.isnan(c))
+
         else:
             f = np.in1d
 
@@ -567,7 +561,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, Index]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -722,7 +716,9 @@ def factorize(
         values, dtype = _ensure_data(values)
 
         if original.dtype.kind in ["m", "M"]:
-            na_value = na_value_for_dtype(original.dtype)
+            # Note: factorize_array will cast NaT bc it has a __int__
+            #  method, but will not cast the more-correct dtype.type("nat")
+            na_value = iNaT
         else:
             na_value = None
 
@@ -873,12 +869,6 @@ def value_counts_arraylike(values, dropna: bool):
         # TODO: handle uint8
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
-
-        mask = isna(values)
-        if not dropna and mask.any():
-            if not isna(keys).any():
-                keys = np.insert(keys, 0, np.NaN)
-                counts = np.insert(counts, 0, mask.sum())
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
@@ -1662,7 +1652,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
-        result = take_1d(
+        result = take_nd(
             arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
         )
     else:
@@ -1671,8 +1661,47 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     return result
 
 
+def _take_preprocess_indexer_and_fill_value(
+    arr, indexer, axis, out, fill_value, allow_fill
+):
+    mask_info = None
+
+    if indexer is None:
+        indexer = np.arange(arr.shape[axis], dtype=np.int64)
+        dtype, fill_value = arr.dtype, arr.dtype.type()
+    else:
+        indexer = ensure_int64(indexer, copy=False)
+        if not allow_fill:
+            dtype, fill_value = arr.dtype, arr.dtype.type()
+            mask_info = None, False
+        else:
+            # check for promotion based on types only (do this first because
+            # it's faster than computing a mask)
+            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+            if dtype != arr.dtype and (out is None or out.dtype != dtype):
+                # check if promotion is actually required based on indexer
+                mask = indexer == -1
+                needs_masking = mask.any()
+                mask_info = mask, needs_masking
+                if needs_masking:
+                    if out is not None and out.dtype != dtype:
+                        raise TypeError("Incompatible type for fill_value")
+                else:
+                    # if not, then depromote, set fill_value to dummy
+                    # (it won't be used but we don't want the cython code
+                    # to crash when trying to cast it to dtype)
+                    dtype, fill_value = arr.dtype, arr.dtype.type()
+
+    return indexer, dtype, fill_value, mask_info
+
+
 def take_nd(
-    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
+    arr,
+    indexer,
+    axis: int = 0,
+    out=None,
+    fill_value=lib.no_default,
+    allow_fill: bool = True,
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1705,7 +1734,8 @@ def take_nd(
     subarray : array-like
         May be the same type as the input, or cast to an ndarray.
     """
-    mask_info = None
+    if fill_value is lib.no_default:
+        fill_value = na_value_for_dtype(arr.dtype, compat=False)
 
     if isinstance(arr, ABCExtensionArray):
         # Check for EA to catch DatetimeArray, TimedeltaArray
@@ -1714,36 +1744,13 @@ def take_nd(
     arr = extract_array(arr)
     arr = np.asarray(arr)
 
-    if indexer is None:
-        indexer = np.arange(arr.shape[axis], dtype=np.int64)
-        dtype, fill_value = arr.dtype, arr.dtype.type()
-    else:
-        indexer = ensure_int64(indexer, copy=False)
-        if not allow_fill:
-            dtype, fill_value = arr.dtype, arr.dtype.type()
-            mask_info = None, False
-        else:
-            # check for promotion based on types only (do this first because
-            # it's faster than computing a mask)
-            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-            if dtype != arr.dtype and (out is None or out.dtype != dtype):
-                # check if promotion is actually required based on indexer
-                mask = indexer == -1
-                needs_masking = mask.any()
-                mask_info = mask, needs_masking
-                if needs_masking:
-                    if out is not None and out.dtype != dtype:
-                        raise TypeError("Incompatible type for fill_value")
-                else:
-                    # if not, then depromote, set fill_value to dummy
-                    # (it won't be used but we don't want the cython code
-                    # to crash when trying to cast it to dtype)
-                    dtype, fill_value = arr.dtype, arr.dtype.type()
+    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, axis, out, fill_value, allow_fill
+    )
 
     flip_order = False
-    if arr.ndim == 2:
-        if arr.flags.f_contiguous:
-            flip_order = True
+    if arr.ndim == 2 and arr.flags.f_contiguous:
+        flip_order = True
 
     if flip_order:
         arr = arr.T
@@ -1774,9 +1781,6 @@ def take_nd(
     if flip_order:
         out = out.T
     return out
-
-
-take_1d = take_nd
 
 
 def take_2d_multi(arr, indexer, fill_value=np.nan):
@@ -1915,8 +1919,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    result = arr.searchsorted(value, side=side, sorter=sorter)
-    return result
+    return arr.searchsorted(value, side=side, sorter=sorter)
 
 
 # ---- #
@@ -1945,7 +1948,6 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     -------
     shifted
     """
-    from pandas.core.arrays import PandasDtype
 
     n = int(n)
     na = np.nan
@@ -1958,7 +1960,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     if isinstance(dtype, PandasDtype):
         # PandasArray cannot necessarily hold shifted versions of itself.
-        arr = np.asarray(arr)
+        arr = arr.to_numpy()
         dtype = arr.dtype
 
     if is_extension_array_dtype(dtype):
@@ -2164,9 +2166,9 @@ def safe_sort(
         sorter = ensure_platform_int(t.lookup(ordered))
 
     if na_sentinel == -1:
-        # take_1d is faster, but only works for na_sentinels of -1
+        # take_nd is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_codes = take_1d(order2, codes, fill_value=-1)
+        new_codes = take_nd(order2, codes, fill_value=-1)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
         else:

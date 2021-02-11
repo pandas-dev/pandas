@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame, date_range
 import pandas._testing as tm
 
@@ -79,6 +81,7 @@ class TestTranspose:
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
+    @td.skip_array_manager_invalid_test
     def test_transpose_get_view(self, float_frame):
         dft = float_frame.T
         dft.values[:, 5:10] = 5

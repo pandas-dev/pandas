@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import datetime
 from distutils.version import LooseVersion
@@ -13,7 +15,7 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import get_version, import_optional_dependency
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
 
@@ -188,7 +190,7 @@ parse_dates : bool, list-like, or dict, default False
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
       result 'foo'
 
-    If a column or index contains an unparseable date, the entire column or
+    If a column or index contains an unparsable date, the entire column or
     index will be returned unaltered as an object data type. If you don`t want to
     parse some cells as date just change their type in Excel to "Text".
     For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
@@ -410,6 +412,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
+        if hasattr(self.book, "close"):
+            # pyxlsb opens a TemporaryFile
+            self.book.close()
         self.handles.close()
 
     @property
@@ -428,6 +433,17 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_sheet_data(self, sheet, convert_float):
         pass
+
+    def raise_if_bad_sheet_by_index(self, index: int) -> None:
+        n_sheets = len(self.sheet_names)
+        if index >= n_sheets:
+            raise ValueError(
+                f"Worksheet index {index} is invalid, {n_sheets} worksheets found"
+            )
+
+    def raise_if_bad_sheet_by_name(self, name: str) -> None:
+        if name not in self.sheet_names:
+            raise ValueError(f"Worksheet named '{name}' not found")
 
     def parse(
         self,
@@ -483,6 +499,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
+            if hasattr(sheet, "close"):
+                # pyxlsb opens two TemporaryFiles
+                sheet.close()
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
@@ -739,7 +758,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    curr_sheet = None
     path = None
 
     @property
@@ -783,7 +801,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, "ExcelWriter"],
+        path: Union[FilePathOrBuffer, ExcelWriter],
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -1043,38 +1061,44 @@ class ExcelFile:
         self._io = stringify_path(path_or_buffer)
 
         # Determine xlrd version if installed
-        if (
-            import_optional_dependency(
-                "xlrd", raise_on_missing=False, on_version="ignore"
-            )
-            is None
-        ):
+        if import_optional_dependency("xlrd", errors="ignore") is None:
             xlrd_version = None
         else:
             import xlrd
 
-            xlrd_version = LooseVersion(xlrd.__version__)
+            xlrd_version = LooseVersion(get_version(xlrd))
 
-        if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-            ext = "xls"
-        else:
-            ext = inspect_excel_format(
-                content_or_path=path_or_buffer, storage_options=storage_options
-            )
-
+        ext = None
         if engine is None:
+            # Only determine ext if it is needed
+            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                ext = "xls"
+            else:
+                ext = inspect_excel_format(
+                    content_or_path=path_or_buffer, storage_options=storage_options
+                )
+
             # ext will always be valid, otherwise inspect_excel_format would raise
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
-        if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
-            if xlrd_version >= "2":
+        if engine == "xlrd" and xlrd_version is not None:
+            if ext is None:
+                # Need ext to determine ext in order to raise/warn
+                if isinstance(path_or_buffer, xlrd.Book):
+                    ext = "xls"
+                else:
+                    ext = inspect_excel_format(
+                        path_or_buffer, storage_options=storage_options
+                    )
+
+            if ext != "xls" and xlrd_version >= "2":
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."
                 )
-            else:
+            elif ext != "xls":
                 caller = inspect.stack()[1]
                 if (
                     caller.filename.endswith(

@@ -394,6 +394,100 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
 
 
 # ----------------------------------------------------------------------
+# Kendall correlation
+# Wikipedia article: https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
+    """
+    Perform kendall correlation on a 2d array
+
+    Parameters
+    ----------
+    mat : np.ndarray[float64_t, ndim=2]
+        Array to compute kendall correlation on
+    minp : int, default 1
+        Minimum number of observations required per pair of columns
+        to have a valid result.
+
+    Returns
+    -------
+    numpy.ndarray[float64_t, ndim=2]
+        Correlation matrix
+    """
+    cdef:
+        Py_ssize_t i, j, k, xi, yi, N, K
+        ndarray[float64_t, ndim=2] result
+        ndarray[float64_t, ndim=2] ranked_mat
+        ndarray[uint8_t, ndim=2] mask
+        float64_t currj
+        ndarray[uint8_t, ndim=1] valid
+        ndarray[int64_t] sorted_idxs
+        ndarray[float64_t, ndim=1] col
+        int64_t n_concordant
+        int64_t total_concordant = 0
+        int64_t total_discordant = 0
+        float64_t kendall_tau
+        int64_t n_obs
+        const int64_t[:] labels_n
+
+    N, K = (<object>mat).shape
+
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat)
+
+    ranked_mat = np.empty((N, K), dtype=np.float64)
+    # For compatibility when calling rank_1d
+    labels_n = np.zeros(N, dtype=np.int64)
+
+    for i in range(K):
+        ranked_mat[:, i] = rank_1d(mat[:, i], labels_n)
+
+    for xi in range(K):
+        sorted_idxs = ranked_mat[:, xi].argsort()
+        ranked_mat = ranked_mat[sorted_idxs]
+        mask = mask[sorted_idxs]
+        for yi in range(xi + 1, K):
+            valid = mask[:, xi] & mask[:, yi]
+            if valid.sum() < minp:
+                result[xi, yi] = NaN
+                result[yi, xi] = NaN
+            else:
+                # Get columns and order second column using 1st column ranks
+                if not valid.all():
+                    col = ranked_mat[valid.nonzero()][:, yi]
+                else:
+                    col = ranked_mat[:, yi]
+                n_obs = col.shape[0]
+                total_concordant = 0
+                total_discordant = 0
+                for j in range(n_obs - 1):
+                    currj = col[j]
+                    # Count num concordant and discordant pairs
+                    n_concordant = 0
+                    for k in range(j, n_obs):
+                        if col[k] > currj:
+                            n_concordant += 1
+                    total_concordant += n_concordant
+                    total_discordant += (n_obs - 1 - j - n_concordant)
+                # Note: we do total_concordant+total_discordant here which is
+                # equivalent to the C(n, 2), the total # of pairs,
+                # listed on wikipedia
+                kendall_tau = (total_concordant - total_discordant) / \
+                              (total_concordant + total_discordant)
+                result[xi, yi] = kendall_tau
+                result[yi, xi] = kendall_tau
+
+        if mask[:, xi].sum() > minp:
+            result[xi, xi] = 1
+        else:
+            result[xi, xi] = NaN
+
+    return result
+
+
+# ----------------------------------------------------------------------
 
 ctypedef fused algos_t:
     float64_t

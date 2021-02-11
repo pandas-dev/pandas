@@ -271,12 +271,12 @@ def init_dev_clipboard_clipboard():
         if "\r" in text:
             warnings.warn("Pyperclip cannot handle \\r characters on Cygwin.")
 
-        with open("/dev/clipboard", "wt") as fo:
-            fo.write(text)
+        with open("/dev/clipboard", "wt") as fd:
+            fd.write(text)
 
     def paste_dev_clipboard() -> str:
-        with open("/dev/clipboard") as fo:
-            content = fo.read()
+        with open("/dev/clipboard") as fd:
+            content = fd.read()
         return content
 
     return copy_dev_clipboard, paste_dev_clipboard

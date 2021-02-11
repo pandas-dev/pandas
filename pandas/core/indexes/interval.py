@@ -1,8 +1,10 @@
 """ define the IntervalIndex """
+from __future__ import annotations
+
 from functools import wraps
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Hashable, List, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -11,7 +13,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
-from pandas._typing import Dtype, DtypeObj, Label
+from pandas._typing import Dtype, DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -40,7 +42,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas.core.algorithms import take_1d, unique
+from pandas.core.algorithms import take_nd, unique
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 from pandas.core.indexers import is_valid_positional_slice
@@ -51,7 +53,6 @@ from pandas.core.indexes.base import (
     default_pprint,
     ensure_index,
     maybe_extract_name,
-    unpack_nested_dtype,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
@@ -126,13 +127,17 @@ def setop_check(method):
     def wrapped(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
-        if not isinstance(other, IntervalIndex):
-            result = getattr(self.astype(object), op_name)(other)
-            if op_name in ("difference",):
-                result = result.astype(self.dtype)
-            return result
+        if op_name == "difference":
+            if not isinstance(other, IntervalIndex):
+                result = getattr(self.astype(object), op_name)(other, sort=sort)
+                return result.astype(self.dtype)
+
+            elif not self._should_compare(other):
+                # GH#19016: ensure set op will not return a prohibited dtype
+                result = getattr(self.astype(object), op_name)(other, sort=sort)
+                return result.astype(self.dtype)
 
         return method(self, other, sort)
 
@@ -157,7 +162,6 @@ def setop_check(method):
 
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
-                  closed='right',
                   dtype='interval[int64, right]')
 
     It may also be constructed using one of the constructor
@@ -212,7 +216,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return cls._simple_new(array, name)
 
     @classmethod
-    def _simple_new(cls, array: IntervalArray, name: Label = None):
+    def _simple_new(cls, array: IntervalArray, name: Hashable = None):
         """
         Construct from an IntervalArray
 
@@ -242,7 +246,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         --------
         >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
-                      closed='right',
                       dtype='interval[int64, right]')
         """
             ),
@@ -273,7 +276,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         --------
         >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
-                      closed='right',
                       dtype='interval[int64, right]')
         """
             ),
@@ -305,7 +307,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         --------
         >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
         IntervalIndex([(0, 1], (1, 2]],
-                       closed='right',
                        dtype='interval[int64, right]')
         """
             ),
@@ -445,7 +446,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
         >>> index
         IntervalIndex([(0, 2], (1, 3], (4, 5]],
-              closed='right',
               dtype='interval[int64, right]')
         >>> index.is_overlapping
         True
@@ -455,7 +455,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index = pd.interval_range(0, 3, closed='both')
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
-              closed='both',
               dtype='interval[int64, both]')
         >>> index.is_overlapping
         True
@@ -465,7 +464,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index = pd.interval_range(0, 3, closed='left')
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
-              closed='left',
               dtype='interval[int64, left]')
         >>> index.is_overlapping
         False
@@ -673,9 +671,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
         elif is_categorical_dtype(target.dtype):
             target = cast("CategoricalIndex", target)
-            # get an indexer for unique categories then propagate to codes via take_1d
+            # get an indexer for unique categories then propagate to codes via take_nd
             categories_indexer = self.get_indexer(target.categories)
-            indexer = take_1d(categories_indexer, target.codes, fill_value=-1)
+            indexer = take_nd(categories_indexer, target.codes, fill_value=-1)
         elif not is_object_dtype(target):
             # homogeneous scalar index: use IntervalTree
             target = self._maybe_convert_i8(target)
@@ -731,7 +729,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @property
-    def _index_as_unique(self):
+    def _index_as_unique(self) -> bool:
         return not self.is_overlapping
 
     _requires_unique_msg = (
@@ -777,16 +775,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         if not isinstance(dtype, IntervalDtype):
             return False
+        if self.closed != dtype.closed:
+            return False
         common_subtype = find_common_type([self.dtype.subtype, dtype.subtype])
         return not is_object_dtype(common_subtype)
-
-    def _should_compare(self, other) -> bool:
-        other = unpack_nested_dtype(other)
-        if is_object_dtype(other.dtype):
-            return True
-        if not self._is_comparable_dtype(other.dtype):
-            return False
-        return other.closed == self.closed
 
     # --------------------------------------------------------------------
 
@@ -807,41 +799,21 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return Index(self._data.length, copy=False)
 
     def putmask(self, mask, value):
-        arr = self._data.copy()
+        mask = np.asarray(mask, dtype=bool)
+        if mask.shape != self.shape:
+            raise ValueError("putmask: mask and data must be the same size")
+        if not mask.any():
+            return self.copy()
+
         try:
-            value_left, value_right = arr._validate_setitem_value(value)
+            self._validate_fill_value(value)
         except (ValueError, TypeError):
-            return self.astype(object).putmask(mask, value)
+            dtype = self._find_common_type_compat(value)
+            return self.astype(dtype).putmask(mask, value)
 
-        if isinstance(self._data._left, np.ndarray):
-            np.putmask(arr._left, mask, value_left)
-            np.putmask(arr._right, mask, value_right)
-        else:
-            # TODO: special case not needed with __array_function__
-            arr._left.putmask(mask, value_left)
-            arr._right.putmask(mask, value_right)
+        arr = self._data.copy()
+        arr.putmask(mask, value)
         return type(self)._simple_new(arr, name=self.name)
-
-    @Appender(Index.where.__doc__)
-    def where(self, cond, other=None):
-        if other is None:
-            other = self._na_value
-        values = np.where(cond, self._values, other)
-        result = IntervalArray(values)
-        return type(self)._simple_new(result, name=self.name)
-
-    def delete(self, loc):
-        """
-        Return a new IntervalIndex with passed location(-s) deleted
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        new_left = self.left.delete(loc)
-        new_right = self.right.delete(loc)
-        result = self._data._shallow_copy(new_left, new_right)
-        return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
         """
@@ -911,7 +883,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return summary + "," + self._format_space()
 
     def _format_attrs(self):
-        attrs = [("closed", repr(self.closed))]
+        attrs = []
         if self.name is not None:
             attrs.append(("name", default_pprint(self.name)))
         attrs.append(("dtype", f"'{self.dtype}'"))
@@ -923,17 +895,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
     # Set Operations
-
-    def _assert_can_do_setop(self, other):
-        super()._assert_can_do_setop(other)
-
-        if isinstance(other, IntervalIndex) and not self._should_compare(other):
-            # GH#19016: ensure set op will not return a prohibited dtype
-            raise TypeError(
-                "can only do set operations between two IntervalIndex "
-                "objects that are closed on the same side "
-                "and have compatible dtypes"
-            )
 
     def _intersection(self, other, sort):
         """
@@ -955,7 +916,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return taken
 
-    def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
+    def _intersection_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does not have any common endpoint,
         no matter left or right.
@@ -978,7 +939,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return self.take(indexer)
 
-    def _intersection_non_unique(self, other: "IntervalIndex") -> "IntervalIndex":
+    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
         Used when the IntervalIndex does have some common endpoints,
         on either sides.
@@ -1026,9 +987,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return setop_check(func)
 
     _union = _setop("union")
-    difference = _setop("difference")
+    _difference = _setop("difference")
 
     # --------------------------------------------------------------------
+
+    def _validate_fill_value(self, value):
+        return self._data._validate_setitem_value(value)
 
     @property
     def _is_all_dates(self) -> bool:
@@ -1117,7 +1081,6 @@ def interval_range(
 
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
-                  closed='right',
                   dtype='interval[int64, right]')
 
     Additionally, datetime-like input is also supported.
@@ -1126,7 +1089,7 @@ def interval_range(
     ...                   end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
                    (2017-01-03, 2017-01-04]],
-                  closed='right', dtype='interval[datetime64[ns], right]')
+                  dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
     endpoints of the individual intervals within the ``IntervalIndex``.  For
@@ -1134,7 +1097,7 @@ def interval_range(
 
     >>> pd.interval_range(start=0, periods=4, freq=1.5)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
-                  closed='right', dtype='interval[float64, right]')
+                  dtype='interval[float64, right]')
 
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
@@ -1143,14 +1106,13 @@ def interval_range(
     ...                   periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
                    (2017-03-01, 2017-04-01]],
-                  closed='right', dtype='interval[datetime64[ns], right]')
+                  dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
 
     >>> pd.interval_range(start=0, end=6, periods=4)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
-              closed='right',
               dtype='interval[float64, right]')
 
     The ``closed`` parameter specifies which endpoints of the individual
@@ -1158,7 +1120,7 @@ def interval_range(
 
     >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
-                  closed='both', dtype='interval[int64, both]')
+                  dtype='interval[int64, both]')
     """
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)
