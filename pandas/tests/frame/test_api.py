@@ -321,12 +321,14 @@ class TestDataFrameMisc:
         result.iloc[key] = 10
         assert obj.iloc[key] == 0
 
-    def test_constructor_expanddim_lookup(self):
-        # GH#33628 accessing _constructor_expanddim should not
-        #  raise NotImplementedError
+    def test_constructor_expanddim(self):
+        # GH#33628 accessing _constructor_expanddim should not raise NotImplementedError
+        # GH38782 pandas has no container higher than DataFrame (two-dim), so
+        # DataFrame._constructor_expand_dim, doesn't make sense, so is removed.
         df = DataFrame()
 
-        with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
+        msg = "'DataFrame' object has no attribute '_constructor_expanddim'"
+        with pytest.raises(AttributeError, match=msg):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
 
     @skip_if_no("jinja2")
