@@ -663,7 +663,8 @@ class ArrayManager(DataManager):
 
         Parameters
         ----------
-        loc : positional location (already bounds checked)
+        loc : integer, slice or boolean mask
+            Positional location (already bounds checked)
         value : array-like
         """
         # single column -> single integer index
@@ -692,11 +693,8 @@ class ArrayManager(DataManager):
             )
         else:
             assert isinstance(loc, np.ndarray)
-            if loc.dtype == "bool":
-                indices = np.nonzero(loc)[0]
-            else:
-                # TODO reachable?
-                indices = loc
+            assert loc.dtype == "bool"
+            indices = np.nonzero(loc)[0]
 
         assert value.ndim == 2
         assert value.shape[0] == len(self._axes[0])
