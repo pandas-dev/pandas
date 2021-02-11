@@ -54,7 +54,6 @@ from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError, SelectionMixin
 import pandas.core.common as common
 from pandas.core.construction import extract_array
-from pandas.core.groupby.base import ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
@@ -89,7 +88,7 @@ if TYPE_CHECKING:
     from pandas.core.internals import Block  # noqa:F401
 
 
-class BaseWindow(ShallowMixin, SelectionMixin):
+class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
     _attributes: List[str] = [
@@ -237,8 +236,12 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
-        self = self._shallow_copy(subset)
-        self._reset_cache()
+        # TODO: Remove once win_type deprecation is enforced
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "win_type", FutureWarning)
+            self = type(self)(
+                subset, **{attr: getattr(self, attr) for attr in self._attributes}
+            )
         if subset.ndim == 2:
             if is_scalar(key) and key in subset or is_list_like(key):
                 self._selection = key
