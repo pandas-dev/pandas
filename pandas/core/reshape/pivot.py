@@ -64,7 +64,7 @@ def pivot_table(
         pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
-            _table = _pivot_table(
+            _table = __internal_pivot_table(
                 data,
                 values=values,
                 index=index,
@@ -82,7 +82,7 @@ def pivot_table(
         table = concat(pieces, keys=keys, axis=1)
         return table.__finalize__(data, method="pivot_table")
 
-    table = _pivot_table(
+    table = __internal_pivot_table(
         data,
         values,
         index,
@@ -97,7 +97,7 @@ def pivot_table(
     return table.__finalize__(data, method="pivot_table")
 
 
-def _pivot_table(
+def __internal_pivot_table(
     data,
     values,
     index,
@@ -109,7 +109,9 @@ def _pivot_table(
     margins_name: str,
     observed: bool,
 ) -> DataFrame:
-
+    """
+    Equivalent of :func:`pandas.pivot_table`, except only allowing non-list ``aggfunc``.
+    """
     keys = index + columns
 
     values_passed = values is not None
