@@ -628,7 +628,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._groupby.indices,
+            groupby_indicies=self._grouping_indices,
             window_indexer=ExpandingIndexer,
         )
         return window_indexer

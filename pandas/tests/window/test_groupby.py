@@ -82,6 +82,9 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = getattr(r, f)()
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(lambda x: getattr(x.rolling(4), f)())
         tm.assert_frame_equal(result, expected)
 
@@ -91,6 +94,9 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = getattr(r, f)(ddof=1)
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
         tm.assert_frame_equal(result, expected)
 
@@ -101,6 +107,9 @@ class TestRolling:
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
         result = r.quantile(0.4, interpolation=interpolation)
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(
             lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
         )
@@ -136,6 +145,9 @@ class TestRolling:
 
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
@@ -643,6 +655,16 @@ class TestRolling:
         )
         tm.assert_index_equal(result.index, expected_index)
 
+    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
+        # GH 39732
+        g = self.frame.groupby("A")
+        expected = g.apply(lambda x: x.rolling(4).sum()).index
+        _ = g.rolling(window=4)
+        result = g.apply(lambda x: x.rolling(4).sum()).index
+        tm.assert_index_equal(result, expected)
+        assert not g.mutated
+        assert not g.grouper.mutated
+
 
 class TestExpanding:
     def setup_method(self):
@@ -656,6 +678,9 @@ class TestExpanding:
         r = g.expanding()
 
         result = getattr(r, f)()
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(lambda x: getattr(x.expanding(), f)())
         tm.assert_frame_equal(result, expected)
 
@@ -665,6 +690,9 @@ class TestExpanding:
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
         tm.assert_frame_equal(result, expected)
 
@@ -675,6 +703,9 @@ class TestExpanding:
         g = self.frame.groupby("A")
         r = g.expanding()
         result = r.quantile(0.4, interpolation=interpolation)
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(
             lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
         )
@@ -714,6 +745,9 @@ class TestExpanding:
 
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
+        # GH 39732
+        g.mutated = True
+        g.grouper.mutated = True
         expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
