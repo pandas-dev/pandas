@@ -6,7 +6,6 @@
 import io
 from typing import Dict, List, Optional, Union
 from urllib.error import HTTPError, URLError
-from warnings import warn
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
@@ -231,10 +230,8 @@ class _EtreeFrameParser(_XMLFrameParser):
     def parse_data(self) -> List[Dict[str, Optional[str]]]:
 
         if self.stylesheet:
-            warn(
-                "To use stylesheet, you need lxml installed. "
-                "Nodes will be parsed on original XML at the xpath.",
-                UserWarning,
+            raise ValueError(
+                "To use stylesheet, you need lxml installed and selected as parser."
             )
 
         self.xml_doc = self._parse_doc()

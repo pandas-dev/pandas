@@ -3012,7 +3012,7 @@ But assiging *any* temporary name to correct URI allows parsing by nodes.
                     namespaces={"pandas": "https://example.com"})
    df
 
-However, if XPath does not reference node names such as default, ``/\*``, then
+However, if XPath does not reference node names such as default, ``/*``, then
 ``namespaces`` is not required.
 
 With `lxml`_ as parser, you can flatten nested XML documents with an XSLT

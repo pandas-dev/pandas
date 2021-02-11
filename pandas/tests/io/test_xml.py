@@ -24,6 +24,7 @@ etree
 [X] - ValueError("names does not match length of child elements in xpath.")
 [X] - TypeError("...is not a valid type for names")
 [X] - ValueError("io is not a url, file, or xml string")
+[X] - ValueError("To use stylesheet, you need lxml installed...")
 []  - URLError      (GENERAL ERROR WITH HTTPError AS SUBCLASS)
 [X] - HTTPError("HTTP Error 404: Not Found")
 []  - OSError        (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
@@ -842,6 +843,16 @@ def test_wrong_stylesheet():
         match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
     ):
         read_xml(kml, stylesheet=xsl)
+
+
+def test_stylesheet_with_etree(datapath):
+    kml = os.path.join("data", "xml", "cta_rail_lines.kml")
+    xsl = os.path.join("data", "xml", "flatten_doc.xsl")
+
+    with pytest.raises(
+        ValueError, match=("To use stylesheet, you need lxml installed")
+    ):
+        read_xml(kml, parser="etree", stylesheet=xsl)
 
 
 @tm.network

@@ -33,12 +33,6 @@ For example:
         storage_options=headers
     )
 
-.. _whatsnew_130.window_method_table:
-
-:class:`Rolling` and :class:`Expanding` now support a ``method`` argument with a
-``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`.
-See ref:`window.overview` for performance and functional benefits. (:issue:`15095`)
-
 .. _whatsnew_130.read_to_xml:
 
 Read and write XML documents

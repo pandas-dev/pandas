@@ -6,7 +6,6 @@ import codecs
 import io
 from typing import Any, Dict, List, Optional, Union
 from urllib.error import HTTPError, URLError
-from warnings import warn
 
 from pandas._typing import FilePathOrBuffer
 from pandas.errors import AbstractMethodError
@@ -252,7 +251,7 @@ class BaseXMLFormatter:
 
                 out_str = None
 
-        except (UnicodeDecodeError, OSError, FileNotFoundError) as e:
+        except (OSError, FileNotFoundError) as e:
             raise e
 
         return out_str
@@ -299,10 +298,8 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             self.out_xml = self.remove_declaration()
 
         if self.stylesheet:
-            warn(
-                "To use stylesheet, you need lxml installed. "
-                "Instead, the non-transformed, original XML is returned.",
-                UserWarning,
+            raise ValueError(
+                "To use stylesheet, you need lxml installed and selected as parser."
             )
 
         return self.out_xml

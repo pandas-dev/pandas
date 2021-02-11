@@ -24,15 +24,15 @@ etree
 [X] - LookupError("unknown encoding")
 [X] - KeyError("...is not included in namespaces")
 [X] - KeyError("no valid column")
-[]  - OSError        (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+[X] - ValueError("To use stylesheet, you need lxml installed...")
+[]  - OSError        (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
 [X] - FileNotFoundError("No such file or directory")
 
 lxml
 [X] - TypeError("...is not a valid type for attr_cols")
 [X] - TypeError("...is not a valid type for elem_cols")
 [X] - LookupError("unknown encoding")
-[]  - UnicodeDecodeError  (NEED NON-UTF-8 STYLESHEET)
-[]  - OSError        (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+[]  - OSError        (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
 [X] - FileNotFoundError("No such file or directory")
 [X] - KeyError("...is not included in namespaces")
 [X] - KeyError("no valid column")
@@ -1151,6 +1151,24 @@ def test_incorrect_xsl_apply(parser):
     with pytest.raises(XSLTApplyError, match=("Cannot resolve URI")):
         with tm.ensure_clean("test.xml") as path:
             geom_df.to_xml(path, stylesheet=xsl)
+
+
+def test_stylesheet_with_etree(datapath):
+    xsl = """\
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:output method="xml" encoding="utf-8" indent="yes" />
+    <xsl:strip-space elements="*"/>
+
+    <xsl:template match="@*|node(*)">
+        <xsl:copy>
+            <xsl:apply-templates select="@*|node()"/>
+        </xsl:copy>
+    </xsl:template>"""
+
+    with pytest.raises(
+        ValueError, match=("To use stylesheet, you need lxml installed")
+    ):
+        geom_df.to_xml(parser="etree", stylesheet=xsl)
 
 
 @td.skip_if_no("lxml")
