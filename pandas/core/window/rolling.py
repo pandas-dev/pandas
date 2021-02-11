@@ -732,7 +732,7 @@ class Window(BaseWindow):
         Provide a window type. If ``None``, all points are evenly weighted.
         See the notes below for further information.
     on : str, optional
-        For a DataFrame, a datetime-like column or MultiIndex level on which
+        For a DataFrame, a datetime-like column or Index level on which
         to calculate the rolling window, rather than the DataFrame's index.
         Provided integer column is ignored and excluded from result since
         an integer index is not used to calculate the rolling window.
