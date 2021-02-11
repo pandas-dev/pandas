@@ -11,9 +11,8 @@ from pandas._libs import internals as libinternals
 from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import find_common_type, maybe_promote
+from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
 from pandas.core.dtypes.common import (
-    get_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -139,8 +138,8 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarra
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = algos.take_1d(mgr.blknos, ax0_indexer, fill_value=-1)
-        blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_nd(mgr.blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_nd(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr.is_single_block:
@@ -225,13 +224,13 @@ class JoinUnit:
 
     @cache_readonly
     def dtype(self):
-        if self.block is None:
+        blk = self.block
+        if blk is None:
             raise AssertionError("Block is None, no dtype")
 
         if not self.needs_filling:
-            return self.block.dtype
-        else:
-            return get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
+            return blk.dtype
+        return ensure_dtype_can_hold_na(blk.dtype)
 
     @cache_readonly
     def is_na(self) -> bool:
