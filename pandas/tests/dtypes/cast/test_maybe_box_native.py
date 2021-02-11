@@ -11,7 +11,7 @@ from pandas import Timedelta, Timestamp
 @pytest.mark.parametrize(
     "obj,expected_dtype",
     [
-        (np.int(4), int),
+        (int(4), int),
         (np.uint(4), int),
         (np.int32(-4), int),
         (np.uint8(4), int),
