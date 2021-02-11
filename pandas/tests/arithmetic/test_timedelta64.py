@@ -1748,7 +1748,9 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
-    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
+    def test_td64arr_floordiv_td64arr_with_nat(
+        self, box_with_array, using_array_manager
+    ):
         # GH#35529
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
@@ -1761,6 +1763,8 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
+        if box is DataFrame and using_array_manager:
+            expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
         result = left // right
 
@@ -2040,7 +2044,9 @@ class TestTimedeltaArraylikeMulDivOps:
         [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_div_numeric_array(self, box_with_array, vector, any_real_dtype):
+    def test_td64arr_div_numeric_array(
+        self, box_with_array, vector, any_real_dtype, using_array_manager
+    ):
         # GH#4521
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
@@ -2071,6 +2077,11 @@ class TestTimedeltaArraylikeMulDivOps:
             result = tdser / vector.astype(object)
             if box_with_array is pd.DataFrame:
                 expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
+                if using_array_manager:
+                    # https://github.com/pandas-dev/pandas/issues/39750
+                    # third column with all-NaT as result doesn't get preserved
+                    # as timedelta64 dtype
+                    result[2] = pd.array(["NaT", "NaT"], dtype="timedelta64[ns]")
             else:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = pd.Index(expected)  # do dtype inference
