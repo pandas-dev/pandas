@@ -1850,25 +1850,13 @@ class ExtensionBlock(Block):
         values = np.atleast_2d(values)
 
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-        ndim = np.ndim(result)
 
         if not is_sparse(self.dtype):
             # shape[0] should be 1 as long as EAs are 1D
+            assert result.shape == (1, len(qs)), result.shape
+            result = type(self.values)._from_factorized(result[0], self.values)
 
-            if result.ndim == 1:
-                # i.e. qs was originally a scalar
-                assert result.shape == (1,), result.shape
-                result = type(self.values)._from_factorized(result, self.values)
-                placement = np.arange(len(result))
-
-            else:
-                assert result.shape == (1, len(qs)), result.shape
-                result = type(self.values)._from_factorized(result[0], self.values)
-                placement = [0]
-        else:
-            placement = np.arange(len(result))
-
-        return make_block(result, placement=placement, ndim=ndim)
+        return make_block(result, placement=self.mgr_locs, ndim=2)
 
 
 class HybridMixin:
