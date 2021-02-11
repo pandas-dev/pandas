@@ -23,12 +23,23 @@ import numpy as np
 from pandas.errors import EmptyDataError, OutOfBoundsDatetime
 
 import pandas as pd
-from pandas import notna
+from pandas import isnull
 
 from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
+
+
+def _parse_datetime(sas_datetime: float, unit: str):
+    if isnull(sas_datetime):
+        return pd.NaT
+
+    if unit == "s":
+        return datetime(1960, 1, 1) + timedelta(seconds=sas_datetime)
+
+    if unit == "d":
+        return datetime(1960, 1, 1) + timedelta(days=sas_datetime)
 
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
@@ -52,22 +63,10 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     try:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
     except OutOfBoundsDatetime:
-        if unit == "s":
-            s_series = sas_datetimes.apply(
-                lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
-                if notna(sas_float)
-                else pd.NaT
-            )
+        if unit in ["s", "d"]:
+            s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
             s_series = cast(pd.Series, s_series)
             return s_series
-        elif unit == "d":
-            d_series = sas_datetimes.apply(
-                lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
-                if notna(sas_float)
-                else pd.NaT
-            )
-            d_series = cast(pd.Series, d_series)
-            return d_series
         else:
             raise ValueError("unit must be 'd' or 's'")
 
