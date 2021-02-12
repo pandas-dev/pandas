@@ -230,6 +230,7 @@ class JoinUnit:
     def is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
         Check that we are all-NA of a type/dtype that is compatible with this dtype.
+        Augments `self.is_na` with an additional check of the type of NA values.
         """
         if not self.is_na:
             return False
