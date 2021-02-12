@@ -35,6 +35,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
+from pandas.core import ops
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
@@ -365,6 +366,37 @@ class BlockManager(DataManager):
             indexer = np.arange(self.shape[0])
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
+
+    def operate_scalar(self, other, op) -> BlockManager:
+        """
+        TODO fill in
+        """
+        # Get the appropriate array-op to apply to each column/block's values.
+        array_op = ops.get_array_op(op)
+        return self.apply(array_op, right=other)
+
+    def operate_array(self, other: ArrayLike, op, axis: int) -> BlockManager:
+        """
+        TODO fill in
+        """
+        array_op = ops.get_array_op(op)
+        if axis == 1:
+            arrays = [
+                array_op(self.iget_values(i), _right) for i, _right in enumerate(other)
+            ]
+        else:
+            arrays = [
+                array_op(self.iget_values(i), other) for i in range(len(self.items))
+            ]
+
+        return create_block_manager_from_arrays(arrays, self.axes[0], self.axes)
+
+    def operate_manager(self, other: BlockManager, op) -> BlockManager:
+        """
+        TODO fill in
+        """
+        array_op = ops.get_array_op(op)
+        return self.operate_blockwise(other, array_op)
 
     def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """

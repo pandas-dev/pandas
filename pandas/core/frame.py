@@ -6091,14 +6091,10 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
-        # Get the appropriate array-op to apply to each column/block's values.
-        array_op = ops.get_array_op(func)
-
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
-            bm = self._mgr.apply(array_op, right=right)
-            return type(self)(bm)
+            bm = self._mgr.operate_scalar(right, func)
 
         elif isinstance(right, DataFrame):
             assert self.index.equals(right.index)
@@ -6108,37 +6104,23 @@ class DataFrame(NDFrame, OpsMixin):
             #  _frame_arith_method_with_reindex
 
             # TODO operate_blockwise expects a manager of the same type
-            bm = self._mgr.operate_blockwise(
-                right._mgr, array_op  # type: ignore[arg-type]
-            )
-            return type(self)(bm)
-
-        elif isinstance(right, Series) and axis == 1:
-            # axis=1 means we want to operate row-by-row
-            assert right.index.equals(self.columns)
-
-            right = right._values
-            # maybe_align_as_frame ensures we do not have an ndarray here
-            assert not isinstance(right, np.ndarray)
-
-            arrays = [
-                array_op(_left, _right)
-                for _left, _right in zip(self._iter_column_arrays(), right)
-            ]
+            bm = self._mgr.operate_manager(right._mgr, func)  # type: ignore[arg-type]
 
         elif isinstance(right, Series):
-            assert right.index.equals(self.index)  # Handle other cases later
-            right = right._values
+            if axis == 1:
+                # axis=1 means we want to operate row-by-row
+                assert right.index.equals(self.columns)
+            else:
+                assert right.index.equals(self.index)  # Handle other cases later
 
-            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
+            right = right._values
+            bm = self._mgr.operate_array(right, func, axis)
 
         else:
             # Remaining cases have less-obvious dispatch rules
             raise NotImplementedError(right)
 
-        return type(self)._from_arrays(
-            arrays, self.columns, self.index, verify_integrity=False
-        )
+        return type(self)(bm)
 
     def _combine_frame(self, other: DataFrame, func, fill_value=None):
         # at this point we have `self._indexed_same(other)`
