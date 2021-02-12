@@ -35,7 +35,6 @@ from pandas._libs.tslibs import (
     conversion,
     iNaT,
     ints_to_pydatetime,
-    tz_compare,
 )
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
 from pandas.util._exceptions import find_stack_level
@@ -499,13 +498,13 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
+def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     """
     Find the minimal dtype that can hold both the given dtype and fill_value.
 
     Parameters
     ----------
-    dtype : np.dtype or ExtensionDtype
+    dtype : np.dtype
     fill_value : scalar, default np.nan
 
     Returns
@@ -567,19 +566,6 @@ def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
                     fill_value = np.timedelta64("NaT", "ns")
                 else:
                     fill_value = fv.to_timedelta64()
-    elif isinstance(dtype, DatetimeTZDtype):
-        if isna(fill_value):
-            fill_value = NaT
-        elif not isinstance(fill_value, datetime):
-            dtype = np.dtype(np.object_)
-        elif fill_value.tzinfo is None:
-            dtype = np.dtype(np.object_)
-        elif not tz_compare(fill_value.tzinfo, dtype.tz):
-            # TODO: sure we want to cast here?
-            dtype = np.dtype(np.object_)
-
-    elif is_extension_array_dtype(dtype) and isna(fill_value):
-        fill_value = dtype.na_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -634,7 +620,7 @@ def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
             fill_value = np.nan
         elif is_integer_dtype(dtype):
-            dtype = np.float64
+            dtype = np.dtype(np.float64)
             fill_value = np.nan
         else:
             dtype = np.dtype(np.object_)
@@ -644,9 +630,7 @@ def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
         dtype = np.dtype(np.object_)
 
     # in case we have a string that looked like a number
-    if is_extension_array_dtype(dtype):
-        pass
-    elif issubclass(np.dtype(dtype).type, (bytes, str)):
+    if issubclass(dtype.type, (bytes, str)):
         dtype = np.dtype(np.object_)
 
     fill_value = _ensure_dtype_type(fill_value, dtype)
