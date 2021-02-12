@@ -8,7 +8,7 @@ from pandas import DataFrame, Series, Timestamp, date_range, to_timedelta
 import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 
-from .pandas_vb_common import numeric_dtypes
+from benchmarks.pandas_vb_common import numeric_dtypes
 
 try:
     import pandas.core.computation.expressions as expr
@@ -494,4 +494,4 @@ class BinaryOpsMultiIndex:
         getattr(self.df, func)(self.arg_df, level=0)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

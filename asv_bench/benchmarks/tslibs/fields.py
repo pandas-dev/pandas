@@ -6,7 +6,7 @@ from pandas._libs.tslibs.fields import (
     get_timedelta_field,
 )
 
-from .tslib import _sizes
+from benchmarks.tslibs.tslib import _sizes
 
 
 class TimeGetTimedeltaField:

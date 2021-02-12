@@ -7,7 +7,7 @@ from odf.text import P
 
 from pandas import DataFrame, ExcelWriter, date_range, read_excel
 
-from ..pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 
 def _generate_dataframe():
@@ -77,4 +77,4 @@ class ReadExcel:
         read_excel(fname, engine=engine)
 
 
-from ..pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

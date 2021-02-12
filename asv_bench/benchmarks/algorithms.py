@@ -6,7 +6,7 @@ from pandas._libs import lib
 
 import pandas as pd
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 for imp in ["pandas.util", "pandas.tools.hashing"]:
     try:
@@ -174,4 +174,4 @@ class SortIntegerArray:
         self.array.argsort()
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

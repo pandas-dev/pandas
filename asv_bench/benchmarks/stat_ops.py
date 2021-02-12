@@ -141,4 +141,4 @@ class Covariance:
         self.s.cov(self.s2)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

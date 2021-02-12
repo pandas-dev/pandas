@@ -3,7 +3,7 @@ import numpy as np
 from pandas import DataFrame, Series, date_range, factorize, read_csv
 from pandas.core.algorithms import take_nd
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 try:
     from pandas import (
@@ -38,7 +38,7 @@ except ImportError:
         return wrapper
 
 
-from .pandas_vb_common import BaseIO  # isort:skip
+from benchmarks.pandas_vb_common import BaseIO  # isort:skip
 
 
 class ParallelGroupbyMethods:
@@ -301,4 +301,4 @@ class ParallelFactorize:
             self.loop()
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

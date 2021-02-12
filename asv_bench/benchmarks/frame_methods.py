@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 
 class GetNumericData:
@@ -685,4 +685,4 @@ class MemoryUsage:
         self.df2.memory_usage(deep=True)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

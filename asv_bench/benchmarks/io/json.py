@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas import DataFrame, concat, date_range, read_json, timedelta_range
 
-from ..pandas_vb_common import BaseIO, tm
+from benchmarks.pandas_vb_common import BaseIO, tm
 
 
 class ReadJSON(BaseIO):
@@ -274,4 +274,4 @@ class ToJSONMem:
             df.to_json()
 
 
-from ..pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

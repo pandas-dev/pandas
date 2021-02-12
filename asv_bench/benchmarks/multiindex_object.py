@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, RangeIndex, date_range
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 
 class GetLoc:
@@ -227,4 +227,4 @@ class SetOperations:
         getattr(self.left, method)(self.right)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

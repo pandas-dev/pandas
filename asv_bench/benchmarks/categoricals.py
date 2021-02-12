@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 try:
     from pandas.api.types import union_categoricals
@@ -358,4 +358,4 @@ class SearchSorted:
         self.c.searchsorted(self.key)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

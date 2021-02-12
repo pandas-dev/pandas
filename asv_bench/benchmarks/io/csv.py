@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas import Categorical, DataFrame, date_range, read_csv, to_datetime
 
-from ..pandas_vb_common import BaseIO, tm
+from benchmarks.pandas_vb_common import BaseIO, tm
 
 
 class ToCSV(BaseIO):
@@ -483,4 +483,4 @@ class ParseDateComparison(StringIORewind):
         to_datetime(df["date"], cache=cache_dates, format="%d-%m-%Y")
 
 
-from ..pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

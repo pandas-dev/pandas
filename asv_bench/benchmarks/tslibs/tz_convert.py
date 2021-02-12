@@ -3,7 +3,7 @@ from pytz import UTC
 
 from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
-from .tslib import _sizes, _tzs
+from benchmarks.tslibs.tslib import _sizes, _tzs
 
 try:
     old_sig = False

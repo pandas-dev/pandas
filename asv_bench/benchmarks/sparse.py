@@ -136,4 +136,4 @@ class ArithmeticBlock:
         self.arr1 / self.arr2
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

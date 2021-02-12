@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, concat, date_range, merge, merge_asof
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 try:
     from pandas import merge_ordered
@@ -389,4 +389,4 @@ class Align:
         self.ts1.align(self.ts2, join="left")
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

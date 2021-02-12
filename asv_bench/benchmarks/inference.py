@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas import Series, to_numeric
 
-from .pandas_vb_common import lib, tm
+from benchmarks.pandas_vb_common import lib, tm
 
 
 class ToNumeric:
@@ -75,4 +75,4 @@ class MaybeConvertNumeric:
         lib.maybe_convert_numeric(data, set(), coerce_numeric=False)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

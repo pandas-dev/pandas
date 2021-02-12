@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas import DatetimeIndex, Index, MultiIndex, Series, Timestamp
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 
 def no_change(arr):
@@ -115,4 +115,4 @@ class MultiIndexConstructor:
         MultiIndex.from_product(self.iterables)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

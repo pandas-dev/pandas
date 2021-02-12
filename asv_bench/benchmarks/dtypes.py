@@ -7,7 +7,7 @@ from pandas import DataFrame
 import pandas._testing as tm
 from pandas.api.types import is_extension_array_dtype, pandas_dtype
 
-from .pandas_vb_common import (
+from benchmarks.pandas_vb_common import (
     datetime_dtypes,
     extension_dtypes,
     lib,
@@ -132,4 +132,4 @@ class CheckDtypes:
         is_extension_array_dtype(self.np_dtype)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

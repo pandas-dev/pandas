@@ -8,7 +8,7 @@ except ImportError:
 
 import pandas as pd
 
-from .tslib import _sizes, _tzs
+from benchmarks.tslibs.tslib import _sizes, _tzs
 
 
 class Normalize:

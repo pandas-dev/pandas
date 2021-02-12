@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 try:
     from pandas.tseries.offsets import Hour, Nano
@@ -163,4 +163,4 @@ class FromArrays:
         )
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -25,7 +25,7 @@ from pandas import (
     period_range,
 )
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
@@ -402,4 +402,4 @@ class ChainIndexing:
                 df2["C"] = 1.0
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

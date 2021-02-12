@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas import Categorical, DataFrame, Series
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 
 class Construction:

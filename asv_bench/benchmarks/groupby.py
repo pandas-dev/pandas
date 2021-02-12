@@ -14,7 +14,7 @@ from pandas import (
     period_range,
 )
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 method_blocklist = {
     "object": {
@@ -758,4 +758,4 @@ class AggEngine:
         self.grouper.agg(function, engine="cython")
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip

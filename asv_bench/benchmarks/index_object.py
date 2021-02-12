@@ -13,7 +13,7 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
+from benchmarks.pandas_vb_common import tm
 
 
 class SetOperations:
@@ -233,4 +233,4 @@ class GC:
             gc.enable()
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from benchmarks.pandas_vb_common import setup  # noqa: F401 isort:skip
