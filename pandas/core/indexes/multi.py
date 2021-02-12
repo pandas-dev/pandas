@@ -2151,9 +2151,6 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    def where(self, cond, other=None):
-        raise NotImplementedError(".where is not supported for MultiIndex operations")
-
     def drop(self, codes, level=None, errors="raise"):
         """
         Make new MultiIndex with passed list of codes deleted
