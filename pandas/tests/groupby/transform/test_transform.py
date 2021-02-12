@@ -777,7 +777,7 @@ def test_transform_ffill():
     expected = DataFrame({"values": [0.0, 0.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
     result = df.groupby("key")["values"].transform("ffill")
-    expected = Series([0.0, 0.0, 1.0, 1.0])
+    expected = Series([0.0, 0.0, 1.0, 1.0], name="values")
     tm.assert_series_equal(result, expected)
 
 
