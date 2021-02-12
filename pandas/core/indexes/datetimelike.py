@@ -231,10 +231,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
-
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return tolerance
+        return super()._convert_tolerance(tolerance, target)
 
     def tolist(self) -> List:
         """
@@ -609,8 +606,21 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_insert_freq(loc, item)
         return result
 
+    def _validate_fill_value(self, value):
+        """
+        Convert value to be insertable to ndarray.
+        """
+        return self._data._validate_setitem_value(value)
+
     # --------------------------------------------------------------------
     # Join/Set Methods
+
+    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
+    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
+    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
+    _left_indexer_unique = _join_i8_wrapper(
+        libjoin.left_join_indexer_unique, with_indexers=False
+    )
 
     def _get_join_freq(self, other):
         """
@@ -784,7 +794,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
-            result = self._shallow_copy(dates)._with_freq("infer")
+            result = type(self)._simple_new(dates, name=self.name)
+            result = result._with_freq("infer")
             return result
         else:
             left, right = other, self
@@ -808,11 +819,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def _union(self, other, sort):
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
+        assert self.dtype == other.dtype
 
-        this, other = self._maybe_utc_convert(other)
-
-        if this._can_fast_union(other):
-            result = this._fast_union(other, sort=sort)
+        if self._can_fast_union(other):
+            result = self._fast_union(other, sort=sort)
             if sort is None:
                 # In the case where sort is None, _can_fast_union
                 #  implies that result.freq should match self.freq
@@ -832,13 +842,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # Join Methods
     _join_precedence = 10
 
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
-
     def join(
         self, other, how: str = "left", level=None, return_indexers=False, sort=False
     ):
@@ -851,9 +854,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
                 pother, how=how, level=level, return_indexers=return_indexers, sort=sort
             )
 
-        this, other = self._maybe_utc_convert(other)
+        self._maybe_utc_convert(other)  # raises if we dont have tzawareness compat
         return Index.join(
-            this,
+            self,
             other,
             how=how,
             level=level,

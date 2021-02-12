@@ -88,6 +88,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
+from pandas._testing.compat import get_dtype  # noqa:F401
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
