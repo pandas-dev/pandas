@@ -48,7 +48,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
@@ -56,6 +56,7 @@ from pandas.core.array_algos.putmask import (
     putmask_smart,
     putmask_without_repeat,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
@@ -79,7 +80,6 @@ from pandas.core.indexers import (
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
-from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
     from pandas import Float64Index, Index
@@ -1298,6 +1298,9 @@ class Block(PandasObject):
 
         cond = _extract_bool_array(cond)
 
+        if is_valid_na_for_dtype(other, self.dtype) and not self.is_object:
+            other = self.fill_value
+
         if cond.ravel("K").all():
             result = values
         else:
@@ -1405,31 +1408,11 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        values = self.get_values()
+        fill_value = self.fill_value
+        values = self.values
+        mask = np.asarray(isna(values))
 
-        is_empty = values.shape[axis] == 0
-
-        if is_empty:
-            # create the array of na_values
-            # 2d len(values) * len(qs)
-            result = np.repeat(
-                np.array([self.fill_value] * len(qs)), len(values)
-            ).reshape(len(values), len(qs))
-        else:
-            # asarray needed for Sparse, see GH#24600
-            mask = np.asarray(isna(values))
-            result = nanpercentile(
-                values,
-                np.array(qs) * 100,
-                axis=axis,
-                na_value=self.fill_value,
-                mask=mask,
-                ndim=values.ndim,
-                interpolation=interpolation,
-            )
-
-            result = np.array(result, copy=False)
-            result = result.T
+        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
 
         return make_block(result, placement=self.mgr_locs, ndim=2)
 
@@ -1860,6 +1843,24 @@ class ExtensionBlock(Block):
         ]
         return blocks, mask
 
+    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
+        # asarray needed for Sparse, see GH#24600
+        mask = np.asarray(isna(self.values))
+        mask = np.atleast_2d(mask)
+
+        values, fill_value = self.values._values_for_factorize()
+
+        values = np.atleast_2d(values)
+
+        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+
+        if not is_sparse(self.dtype):
+            # shape[0] should be 1 as long as EAs are 1D
+            assert result.shape == (1, len(qs)), result.shape
+            result = type(self.values)._from_factorized(result[0], self.values)
+
+        return make_block(result, placement=self.mgr_locs, ndim=2)
+
 
 class HybridMixin:
     """
@@ -2190,22 +2191,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.astype(object).fillna(
             value, limit=limit, inplace=inplace, downcast=downcast
         )
-
-    def quantile(
-        self, qs: Float64Index, interpolation="linear", axis: int = 0
-    ) -> Block:
-        assert axis == 1  # only ever called this way
-        naive = self.values.view("M8[ns]")
-
-        # TODO(EA2D): kludge for 2D block with 1D values
-        naive = naive.reshape(self.shape)
-
-        blk = self.make_block(naive)
-        res_blk = blk.quantile(qs, interpolation=interpolation, axis=axis)
-
-        # TODO(EA2D): ravel is kludge for 2D block with 1D values, assumes column-like
-        aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
-        return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
     def _check_ndim(self, values, ndim):
         """
