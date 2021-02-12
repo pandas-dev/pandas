@@ -173,4 +173,4 @@ class Test2DCompat(base.Dim2CompatTests):
             mark = pytest.mark.xfail(
                 reason="2D support not implemented for ArrowStringArray"
             )
-            request.node.add_param(mark)
+            request.node.add_marker(mark)
