@@ -438,4 +438,3 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         sliced = self._str_map(f_slice, dtype="object")
 
         return np.where(has_prefix, sliced, self)
-
