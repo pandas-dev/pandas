@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.api.types import is_object_dtype, is_string_dtype
+from pandas.api.types import infer_dtype, is_object_dtype, is_string_dtype
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -123,3 +123,11 @@ class BaseDtypeTests(BaseExtensionTests):
         # still testing as good practice to have this working (and it is the
         # only case we can test in general)
         assert dtype._get_common_dtype([dtype]) == dtype
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype(self, data, data_missing, skipna):
+        # only testing that this works without raising an error
+        res = infer_dtype(data, skipna=skipna)
+        assert isinstance(res, str)
+        res = infer_dtype(data_missing, skipna=skipna)
+        assert isinstance(res, str)

@@ -448,6 +448,8 @@ ExtensionArray
 Other
 ^^^^^
 - Bug in :class:`Index` constructor sometimes silently ignorning a specified ``dtype`` (:issue:`38879`)
+- Bug in :func:`pandas.api.types.infer_dtype` not recognizing Series, Index or array with a period dtype (:issue:`23553`)
+- Bug in :func:`pandas.api.types.infer_dtype` raising an error for general :class:`.ExtensionArray` objects. It will now return ``"unknown-array"`` instead of raising (:issue:`37367`)
 - Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
 - Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`)
 - ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
