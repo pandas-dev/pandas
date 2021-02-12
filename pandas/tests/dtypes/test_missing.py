@@ -10,7 +10,7 @@ from pandas._config import config as cf
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT, is_null_datetimelike
 
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 from pandas.core.dtypes.missing import (
     array_equivalent,
@@ -653,3 +653,25 @@ class TestLibMissing:
 
         for value in never_na_vals:
             assert not is_null_datetimelike(value)
+
+    def test_is_matching_na(self, nulls_fixture, nulls_fixture2):
+        left = nulls_fixture
+        right = nulls_fixture2
+
+        assert libmissing.is_matching_na(left, left)
+
+        if left is right:
+            assert libmissing.is_matching_na(left, right)
+        elif is_float(left) and is_float(right):
+            # np.nan vs float("NaN") we consider as matching
+            assert libmissing.is_matching_na(left, right)
+        else:
+            assert not libmissing.is_matching_na(left, right)
+
+    def test_is_matching_na_nan_matches_none(self):
+
+        assert not libmissing.is_matching_na(None, np.nan)
+        assert not libmissing.is_matching_na(np.nan, None)
+
+        assert libmissing.is_matching_na(None, np.nan, nan_matches_none=True)
+        assert libmissing.is_matching_na(np.nan, None, nan_matches_none=True)
