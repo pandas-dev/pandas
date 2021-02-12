@@ -8,7 +8,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import DataFrame

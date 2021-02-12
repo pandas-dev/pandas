@@ -7,7 +7,10 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, PYPY
+from pandas.compat import (
+    IS64,
+    PYPY,
+)
 
 from pandas import (
     CategoricalIndex,

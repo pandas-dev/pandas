@@ -25,7 +25,12 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs import (
+    lib,
+    properties,
+    reshape,
+    tslibs,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
@@ -41,8 +46,15 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, Substitution, doc
-from pandas.util._validators import validate_bool_kwarg, validate_percentile
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_percentile,
+)
 
 from pandas.core.dtypes.cast import (
     convert_dtypes,
@@ -72,7 +84,14 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core import algorithms, base, generic, missing, nanops, ops
+from pandas.core import (
+    algorithms,
+    base,
+    generic,
+    missing,
+    nanops,
+    ops,
+)
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import transform
 from pandas.core.apply import series_apply
@@ -87,7 +106,10 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
+from pandas.core.indexers import (
+    deprecate_ndim_indexing,
+    unpack_1tuple,
+)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     CategoricalIndex,
@@ -104,7 +126,10 @@ from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.internals.construction import sanitize_index
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import ensure_key_mapped, nargsort
+from pandas.core.sorting import (
+    ensure_key_mapped,
+    nargsort,
+)
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -112,7 +137,10 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+    from pandas._typing import (
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+    )
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy

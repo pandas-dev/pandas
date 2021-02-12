@@ -3,7 +3,11 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Interval, IntervalIndex, Series
+from pandas import (
+    Interval,
+    IntervalIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

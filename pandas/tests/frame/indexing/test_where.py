@@ -6,7 +6,14 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 

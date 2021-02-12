@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -18,7 +21,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos, lib
+from pandas._libs import (
+    algos,
+    lib,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -32,12 +38,28 @@ from pandas._libs.tslibs import (
     iNaT,
     to_offset,
 )
-from pandas._libs.tslibs.fields import RoundTo, round_nsint64
+from pandas._libs.tslibs.fields import (
+    RoundTo,
+    round_nsint64,
+)
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
-from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
+from pandas._typing import (
+    DatetimeLikeScalar,
+    Dtype,
+    DtypeObj,
+    NpDtype,
+)
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.errors import (
+    AbstractMethodError,
+    NullFrequencyError,
+    PerformanceWarning,
+)
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    cache_readonly,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -57,22 +79,47 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+)
 
-from pandas.core import nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, isin, unique1d
+from pandas.core import (
+    nanops,
+    ops,
+)
+from pandas.core.algorithms import (
+    checked_add_with_arr,
+    isin,
+    unique1d,
+)
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
+from pandas.core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+    ravel_compat,
+)
 import pandas.core.common as com
-from pandas.core.construction import array, extract_array
-from pandas.core.indexers import check_array_indexer, check_setitem_lengths
+from pandas.core.construction import (
+    array,
+    extract_array,
+)
+from pandas.core.indexers import (
+    check_array_indexer,
+    check_setitem_lengths,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
+from pandas.core.ops.invalid import (
+    invalid_comparison,
+    make_invalid_op,
+)
 
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")

@@ -18,7 +18,12 @@ import shutil
 import sys
 
 import numpy
-from setuptools import Command, Extension, find_packages, setup
+from setuptools import (
+    Command,
+    Extension,
+    find_packages,
+    setup,
+)
 from setuptools.command.build_ext import build_ext as _build_ext
 
 import versioneer
@@ -38,7 +43,10 @@ min_numpy_ver = "1.16.5"
 min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
-    from Cython import Tempita, __version__ as _CYTHON_VERSION
+    from Cython import (
+        Tempita,
+        __version__ as _CYTHON_VERSION,
+    )
     from Cython.Build import cythonize
 
     _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)

@@ -44,7 +44,11 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+    properties,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
@@ -119,16 +123,35 @@ from pandas.core.dtypes.common import (
     is_sequence,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import algorithms, common as com, generic, nanops, ops
+from pandas.core import (
+    algorithms,
+    common as com,
+    generic,
+    nanops,
+    ops,
+)
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result, transform
+from pandas.core.aggregation import (
+    reconstruct_func,
+    relabel_result,
+    transform,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import extract_array, sanitize_masked_array
-from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.construction import (
+    extract_array,
+    sanitize_masked_array,
+)
+from pandas.core.generic import (
+    NDFrame,
+    _shared_docs,
+)
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -138,9 +161,18 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
-from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
-from pandas.core.internals import ArrayManager, BlockManager
+from pandas.core.indexes.multi import (
+    MultiIndex,
+    maybe_droplevels,
+)
+from pandas.core.indexing import (
+    check_bool_indexer,
+    convert_to_index_sliceable,
+)
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
@@ -156,17 +188,30 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
-from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
+from pandas.core.sorting import (
+    get_group_index,
+    lexsort_indexer,
+    nargsort,
+)
 
 from pandas.io.common import get_handle
-from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import BaseInfo, DataFrameInfo
+from pandas.io.formats import (
+    console,
+    format as fmt,
+)
+from pandas.io.formats.info import (
+    BaseInfo,
+    DataFrameInfo,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
     from typing import Literal
 
-    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+    from pandas._typing import (
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+    )
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.resample import Resampler
@@ -7313,7 +7358,10 @@ NaN 12.3   33.0
         dog kg     NaN     2.0
             m      3.0     NaN
         """
-        from pandas.core.reshape.reshape import stack, stack_multiple
+        from pandas.core.reshape.reshape import (
+            stack,
+            stack_multiple,
+        )
 
         if isinstance(level, (tuple, list)):
             result = stack_multiple(self, level, dropna=dropna)

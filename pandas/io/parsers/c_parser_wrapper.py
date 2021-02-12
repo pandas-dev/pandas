@@ -3,7 +3,10 @@ from pandas._typing import FilePathOrBuffer
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
-from pandas.io.parsers.base_parser import ParserBase, is_index_col
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    is_index_col,
+)
 
 
 class CParserWrapper(ParserBase):

@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 
@@ -17,7 +26,12 @@ from pandas._libs import (
 )
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    Shape,
+)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -45,9 +59,21 @@ from pandas.core.dtypes.common import (
     is_sparse,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, PandasDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+    PandasDtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCPandasArray,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
@@ -84,7 +110,10 @@ from pandas.core.indexers import (
 import pandas.core.missing as missing
 
 if TYPE_CHECKING:
-    from pandas import Float64Index, Index
+    from pandas import (
+        Float64Index,
+        Index,
+    )
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 

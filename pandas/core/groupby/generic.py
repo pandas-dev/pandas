@@ -7,7 +7,10 @@ which here returns a DataFrameGroupBy object.
 """
 from __future__ import annotations
 
-from collections import abc, namedtuple
+from collections import (
+    abc,
+    namedtuple,
+)
 import copy
 from functools import partial
 from textwrap import dedent
@@ -32,9 +35,20 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, reduction as libreduction
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
-from pandas.util._decorators import Appender, Substitution, doc
+from pandas._libs import (
+    lib,
+    reduction as libreduction,
+)
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+)
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -52,17 +66,29 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import algorithms, nanops
+from pandas.core import (
+    algorithms,
+    nanops,
+)
 from pandas.core.aggregation import (
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.base import DataError, SpecificationError
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+from pandas.core.base import (
+    DataError,
+    SpecificationError,
+)
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -76,7 +102,11 @@ from pandas.core.groupby.groupby import (
     get_groupby,
     group_selection_context,
 )
-from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    all_indexes_same,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series

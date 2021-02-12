@@ -5,7 +5,11 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import BytesIO, StringIO, TextIOWrapper
+from io import (
+    BytesIO,
+    StringIO,
+    TextIOWrapper,
+)
 import mmap
 import os
 import tarfile
@@ -17,7 +21,10 @@ from pandas.compat import IS64
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
 
 

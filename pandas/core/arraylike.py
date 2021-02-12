@@ -5,7 +5,10 @@ Methods that can be shared by many array-like classes or subclasses:
     ExtensionArray
 """
 import operator
-from typing import Any, Callable
+from typing import (
+    Any,
+    Callable,
+)
 import warnings
 
 import numpy as np
@@ -13,7 +16,10 @@ import numpy as np
 from pandas._libs import lib
 
 from pandas.core.construction import extract_array
-from pandas.core.ops import maybe_dispatch_ufunc_to_dunder_op, roperator
+from pandas.core.ops import (
+    maybe_dispatch_ufunc_to_dunder_op,
+    roperator,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 

@@ -3,15 +3,29 @@ from __future__ import annotations
 from collections import defaultdict
 import copy
 import itertools
-from typing import TYPE_CHECKING, Dict, List, Sequence, cast
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Sequence,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs import internals as libinternals
-from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Manager,
+    Shape,
+)
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
+from pandas.core.dtypes.cast import (
+    ensure_dtype_can_hold_na,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -26,7 +40,10 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+)
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager

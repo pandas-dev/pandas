@@ -8,12 +8,22 @@ import datetime
 from functools import partial
 import hashlib
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Tuple,
+    cast,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
+from pandas._libs import (
+    Timedelta,
+    hashtable as libhashtable,
+    join as libjoin,
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
@@ -22,7 +32,10 @@ from pandas._typing import (
     Suffixes,
 )
 from pandas.errors import MergeError
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -44,10 +57,20 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
-from pandas import Categorical, Index, MultiIndex
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+)
 from pandas.core import groupby
 import pandas.core.algorithms as algos
 import pandas.core.common as com

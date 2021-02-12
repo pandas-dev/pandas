@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.base import registry as ea_registry
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 
 from pandas import (
     Categorical,

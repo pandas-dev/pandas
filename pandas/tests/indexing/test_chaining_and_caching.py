@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, option_context
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    option_context,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 

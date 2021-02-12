@@ -14,7 +14,11 @@ import glob
 import os
 import re
 import sys
-from typing import Iterable, List, Tuple
+from typing import (
+    Iterable,
+    List,
+    Tuple,
+)
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
