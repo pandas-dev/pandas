@@ -7,13 +7,11 @@ import numpy as np
 
 from pandas._typing import ArrayLike, DtypeObj
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_integer_dtype,
     is_sparse,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
@@ -64,11 +62,7 @@ class NullArrayProxy:
             return empty.take(indexer, allow_fill=True)
         else:
             # when introducing missing values, int becomes float, bool becomes object
-            if is_integer_dtype(dtype):
-                dtype = np.dtype("float64")
-            elif is_bool_dtype(dtype):
-                dtype = np.dtype(object)
-
+            dtype = ensure_dtype_can_hold_na(dtype)
             fill_value = na_value_for_dtype(dtype)
             arr = np.empty(self.n, dtype=dtype)
             arr.fill(fill_value)
