@@ -528,10 +528,8 @@ class TestMergeMulti:
         tm.assert_frame_equal(results_merge, expected)
         tm.assert_frame_equal(results_join, expected)
 
-    def test_join_multi_levels(self):
-
-        # GH 3662
-        # merge multi-levels
+    @pytest.fixture
+    def household(self):
         household = DataFrame(
             {
                 "household_id": [1, 2, 3],
@@ -540,6 +538,10 @@ class TestMergeMulti:
             },
             columns=["household_id", "male", "wealth"],
         ).set_index("household_id")
+        return household
+
+    @pytest.fixture
+    def portfolio(self):
         portfolio = DataFrame(
             {
                 "household_id": [1, 2, 2, 3, 3, 3, 4],
@@ -565,7 +567,10 @@ class TestMergeMulti:
             },
             columns=["household_id", "asset_id", "name", "share"],
         ).set_index(["household_id", "asset_id"])
-        result = household.join(portfolio, how="inner")
+        return portfolio
+
+    @pytest.fixture
+    def expected(self):
         expected = (
             DataFrame(
                 {
@@ -601,7 +606,20 @@ class TestMergeMulti:
             .set_index(["household_id", "asset_id"])
             .reindex(columns=["male", "wealth", "name", "share"])
         )
+        return expected
+
+    def test_join_multi_levels(self, portfolio, household, expected):
+        portfolio = portfolio.copy()
+        household = household.copy()
+
+        # GH 3662
+        # merge multi-levels
+        result = household.join(portfolio, how="inner")
         tm.assert_frame_equal(result, expected)
+
+    def test_join_multi_levels_merge_equivalence(self, portfolio, household, expected):
+        portfolio = portfolio.copy()
+        household = household.copy()
 
         # equivalency
         result = merge(
@@ -611,6 +629,10 @@ class TestMergeMulti:
             how="inner",
         ).set_index(["household_id", "asset_id"])
         tm.assert_frame_equal(result, expected)
+
+    def test_join_multi_levels_outer(self, portfolio, household, expected):
+        portfolio = portfolio.copy()
+        household = household.copy()
 
         result = household.join(portfolio, how="outer")
         expected = concat(
@@ -629,6 +651,10 @@ class TestMergeMulti:
             sort=True,
         ).reindex(columns=expected.columns)
         tm.assert_frame_equal(result, expected)
+
+    def test_join_multi_levels_invalid(self, portfolio, household):
+        portfolio = portfolio.copy()
+        household = household.copy()
 
         # invalid cases
         household.index.name = "foo"
