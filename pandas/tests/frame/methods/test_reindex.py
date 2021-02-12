@@ -25,6 +25,28 @@ class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
+    def test_reindex_date_fill_value(self):
+        # passing date to dt64 is deprecated
+        arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "B"], index=range(3))
+
+        ts = df.iloc[0, 0]
+        fv = ts.date()
+
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+
+        expected = DataFrame(
+            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4}
+        )
+        tm.assert_frame_equal(res, expected)
+
+        # same with a datetime-castable str
+        res = df.reindex(
+            index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
+        )
+        tm.assert_frame_equal(res, expected)
+
     def test_reindex_with_multi_index(self):
         # https://github.com/pandas-dev/pandas/issues/29896
         # tests for reindexing a multi-indexed DataFrame with a new MultiIndex
