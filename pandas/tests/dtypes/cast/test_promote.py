@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
@@ -401,6 +402,31 @@ def test_maybe_promote_any_with_datetime64(
     else:
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
+
+    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
+
+
+@pytest.mark.parametrize(
+    "fill_value",
+    [
+        pd.Timestamp("now"),
+        np.datetime64("now"),
+        datetime.datetime.now(),
+        datetime.date.today(),
+    ],
+    ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
+)
+def test_maybe_promote_any_numpy_dtype_with_datetimetz(
+    any_numpy_dtype_reduced, tz_aware_fixture, fill_value
+):
+    dtype = np.dtype(any_numpy_dtype_reduced)
+    fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture)
+
+    fill_value = pd.Series([fill_value], dtype=fill_dtype)[0]
+
+    # filling any numpy dtype with datetimetz casts to object
+    expected_dtype = np.dtype(object)
+    exp_val_for_scalar = fill_value
 
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
