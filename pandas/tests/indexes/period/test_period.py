@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -18,8 +17,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-
-from ..datetimelike import DatetimeLike
+from pandas.tests.indexes.datetimelike import DatetimeLike
 
 
 class TestPeriodIndex(DatetimeLike):
@@ -84,7 +82,7 @@ class TestPeriodIndex(DatetimeLike):
     def test_shallow_copy_empty(self):
         # GH13067
         idx = PeriodIndex([], freq="M")
-        result = idx._shallow_copy()
+        result = idx._view()
         expected = idx
 
         tm.assert_index_equal(result, expected)
@@ -328,10 +326,6 @@ class TestPeriodIndex(DatetimeLike):
     def test_shift(self):
         # This is tested in test_arithmetic
         pass
-
-    @td.skip_if_32bit
-    def test_ndarray_compat_properties(self):
-        super().test_ndarray_compat_properties()
 
     def test_negative_ordinals(self):
         Period(ordinal=-1000, freq="A")

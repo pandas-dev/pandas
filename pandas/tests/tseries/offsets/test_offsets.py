@@ -11,7 +11,7 @@ from pandas._libs.tslibs import NaT, Timestamp, conversion, timezones
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import _get_offset, _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex

@@ -261,7 +261,7 @@ class _Unstacker:
     def get_new_columns(self, value_columns):
         if value_columns is None:
             if self.lift == 0:
-                return self.removed_level._shallow_copy(name=self.removed_name)
+                return self.removed_level._rename(name=self.removed_name)
 
             lev = self.removed_level.insert(0, item=self.removed_level._na_value)
             return lev.rename(self.removed_name)
@@ -629,28 +629,26 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
-        tuples = list(
-            zip(
-                *[
-                    lev.take(level_codes)
-                    for lev, level_codes in zip(
-                        this.columns.levels[:-1], this.columns.codes[:-1]
-                    )
-                ]
-            )
-        )
+        levs = []
+        for lev, level_codes in zip(this.columns.levels[:-1], this.columns.codes[:-1]):
+            if -1 in level_codes:
+                lev = np.append(lev, None)
+            levs.append(np.take(lev, level_codes))
+        tuples = list(zip(*levs))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
     else:
-        new_columns = this.columns.levels[0]._shallow_copy(name=this.columns.names[0])
+        new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
         unique_groups = new_columns
 
     # time to ravel the values
     new_data = {}
     level_vals = this.columns.levels[-1]
     level_codes = sorted(set(this.columns.codes[-1]))
-    level_vals_used = level_vals[level_codes]
+    level_vals_nan = level_vals.insert(len(level_vals), None)
+
+    level_vals_used = np.take(level_vals_nan, level_codes)
     levsize = len(level_codes)
     drop_cols = []
     for key in unique_groups:
@@ -671,7 +669,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
-            chunk.columns = level_vals.take(chunk.columns.codes[-1])
+            chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if frame._is_homogeneous_type and is_extension_array_dtype(

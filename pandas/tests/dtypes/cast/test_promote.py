@@ -7,7 +7,7 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, tz_compare
+from pandas._libs.tslibs import NaT
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -406,50 +406,6 @@ def test_maybe_promote_any_with_datetime64(
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_datetimetz_with_any_numpy_dtype(
-    tz_aware_fixture, any_numpy_dtype_reduced
-):
-    dtype = DatetimeTZDtype(tz=tz_aware_fixture)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
-
-    # create array of given dtype; casts "1" to correct dtype
-    fill_value = np.array([1], dtype=fill_dtype)[0]
-
-    # filling datetimetz with any numpy dtype casts to object
-    expected_dtype = np.dtype(object)
-    exp_val_for_scalar = fill_value
-
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
-def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture, tz_aware_fixture2):
-    dtype = DatetimeTZDtype(tz=tz_aware_fixture)
-    fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture2)
-
-    # create array of given dtype; casts "1" to correct dtype
-    fill_value = pd.Series([10 ** 9], dtype=fill_dtype)[0]
-
-    # filling datetimetz with datetimetz casts to object, unless tz matches
-    exp_val_for_scalar = fill_value
-    if tz_compare(dtype.tz, fill_dtype.tz):
-        expected_dtype = dtype
-    else:
-        expected_dtype = np.dtype(object)
-
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
-@pytest.mark.parametrize("fill_value", [None, np.nan, NaT])
-def test_maybe_promote_datetimetz_with_na(tz_aware_fixture, fill_value):
-
-    dtype = DatetimeTZDtype(tz=tz_aware_fixture)
-
-    expected_dtype = dtype
-    exp_val_for_scalar = NaT
-
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
 @pytest.mark.parametrize(
     "fill_value",
     [
@@ -605,31 +561,3 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, nulls_fi
             exp_val_for_scalar = np.nan
 
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
-@pytest.mark.parametrize("dim", [0, 2, 3])
-def test_maybe_promote_dimensions(any_numpy_dtype_reduced, dim):
-    dtype = np.dtype(any_numpy_dtype_reduced)
-
-    # create 0-dim array of given dtype; casts "1" to correct dtype
-    fill_array = np.array(1, dtype=dtype)
-
-    # expand to desired dimension:
-    for _ in range(dim):
-        fill_array = np.expand_dims(fill_array, 0)
-
-    if dtype != object:
-        # test against 1-dimensional case
-        with pytest.raises(ValueError, match="fill_value must be a scalar"):
-            maybe_promote(dtype, np.array([1], dtype=dtype))
-
-        with pytest.raises(ValueError, match="fill_value must be a scalar"):
-            maybe_promote(dtype, fill_array)
-
-    else:
-        expected_dtype, expected_missing_value = maybe_promote(
-            dtype, np.array([1], dtype=dtype)
-        )
-        result_dtype, result_missing_value = maybe_promote(dtype, fill_array)
-        assert result_dtype == expected_dtype
-        _assert_match(result_missing_value, expected_missing_value)

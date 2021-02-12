@@ -724,7 +724,7 @@ class _MergeOperation:
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame"]:
+    ) -> Tuple[DataFrame, DataFrame]:
 
         columns = left.columns.union(right.columns)
 
@@ -852,13 +852,13 @@ class _MergeOperation:
                     lvals = result[name]._values
                 else:
                     lfill = na_value_for_dtype(take_left.dtype)
-                    lvals = algos.take_1d(take_left, left_indexer, fill_value=lfill)
+                    lvals = algos.take_nd(take_left, left_indexer, fill_value=lfill)
 
                 if take_right is None:
                     rvals = result[name]._values
                 else:
                     rfill = na_value_for_dtype(take_right.dtype)
-                    rvals = algos.take_1d(take_right, right_indexer, fill_value=rfill)
+                    rvals = algos.take_nd(take_right, right_indexer, fill_value=rfill)
 
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
@@ -1232,7 +1232,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+    ) -> Tuple[DataFrame, DataFrame, str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added

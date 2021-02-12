@@ -5,6 +5,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_extension_array_dtype
 
 dtypes = [
     "int64",
@@ -28,7 +29,7 @@ def test_unary_unary(dtype):
 @pytest.mark.parametrize("dtype", dtypes)
 def test_unary_binary(request, dtype):
     # unary input, binary output
-    if pd.api.types.is_extension_array_dtype(dtype) or isinstance(dtype, dict):
+    if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
         request.node.add_marker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple outputs not implemented."
@@ -63,9 +64,9 @@ def test_binary_input_dispatch_binop(dtype):
 @pytest.mark.parametrize("dtype_b", dtypes)
 def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
     if (
-        pd.api.types.is_extension_array_dtype(dtype_a)
+        is_extension_array_dtype(dtype_a)
         or isinstance(dtype_a, dict)
-        or pd.api.types.is_extension_array_dtype(dtype_b)
+        or is_extension_array_dtype(dtype_b)
         or isinstance(dtype_b, dict)
     ):
         request.node.add_marker(
@@ -98,7 +99,7 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
 
 @pytest.mark.parametrize("dtype", dtypes)
 def test_binary_input_aligns_index(request, dtype):
-    if pd.api.types.is_extension_array_dtype(dtype) or isinstance(dtype, dict):
+    if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
         request.node.add_marker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple inputs not implemented."
