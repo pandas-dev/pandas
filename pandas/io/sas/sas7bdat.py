@@ -23,7 +23,7 @@ import numpy as np
 from pandas.errors import EmptyDataError, OutOfBoundsDatetime
 
 import pandas as pd
-from pandas import isnull
+from pandas import isna
 
 from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
@@ -32,7 +32,7 @@ from pandas.io.sas.sasreader import ReaderBase
 
 
 def _parse_datetime(sas_datetime: float, unit: str):
-    if isnull(sas_datetime):
+    if isna(sas_datetime):
         return pd.NaT
 
     if unit == "s":
