@@ -6,7 +6,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import PY38, is_numpy_dev
+import pandas.compat as compat
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -59,7 +59,6 @@ def test_nat_fields(nat, idx):
         assert result is False
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_nat_vector_field_access():
     idx = DatetimeIndex(["1/1/2000", None, None, "1/4/2000"])
 
@@ -135,7 +134,7 @@ def test_round_nat(klass, method, freq):
         pytest.param(
             "fromisocalendar",
             marks=pytest.mark.skipif(
-                not PY38,
+                not compat.PY38,
                 reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
             ),
         ),
@@ -311,7 +310,7 @@ def test_overlap_public_nat_methods(klass, expected):
     # is considered to be with Timestamp and NaT, not Timedelta.
 
     # "fromisocalendar" was introduced in 3.8
-    if klass is Timestamp and not PY38:
+    if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
 
     assert _get_overlap_public_nat_methods(klass) == expected
@@ -582,6 +581,40 @@ def test_nat_comparisons_invalid(other_and_type, symbol_and_op):
     msg = f"'{symbol}' not supported between instances of '{other_type}' and 'NaTType'"
     with pytest.raises(TypeError, match=msg):
         op(other, NaT)
+
+
+def test_compare_date():
+    # GH#39151 comparing NaT with date object is deprecated
+    # See also: tests.scalar.timestamps.test_comparisons::test_compare_date
+
+    dt = Timestamp.now().to_pydatetime().date()
+
+    for left, right in [(NaT, dt), (dt, NaT)]:
+        assert not left == right
+        assert left != right
+
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left < right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left <= right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left > right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left >= right
+
+    # Once the deprecation is enforced, the following assertions
+    #  can be enabled:
+    #    assert not left == right
+    #    assert left != right
+    #
+    #    with pytest.raises(TypeError):
+    #        left < right
+    #    with pytest.raises(TypeError):
+    #        left <= right
+    #    with pytest.raises(TypeError):
+    #        left > right
+    #    with pytest.raises(TypeError):
+    #        left >= right
 
 
 @pytest.mark.parametrize(

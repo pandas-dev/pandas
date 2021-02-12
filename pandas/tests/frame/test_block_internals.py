@@ -18,8 +18,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.internals import ObjectBlock
-from pandas.core.internals.blocks import IntBlock
+from pandas.core.internals import NumericBlock, ObjectBlock
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -352,7 +351,7 @@ class TestDataFrameBlockInternals:
         result = DataFrame({"A": arr})
         expected = DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
-        assert isinstance(result._mgr.blocks[0], IntBlock)
+        assert isinstance(result._mgr.blocks[0], NumericBlock)
 
     def test_add_column_with_pandas_array(self):
         # GH 26390

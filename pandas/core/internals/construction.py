@@ -2,6 +2,8 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
+from __future__ import annotations
+
 from collections import abc
 from typing import (
     TYPE_CHECKING,
@@ -65,8 +67,6 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from numpy.ma.mrecords import MaskedRecords
 
-    from pandas import Series
-
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -108,7 +108,7 @@ def arrays_to_mgr(
 
 
 def masked_rec_array_to_mgr(
-    data: "MaskedRecords", index, columns, dtype: Optional[DtypeObj], copy: bool
+    data: MaskedRecords, index, columns, dtype: Optional[DtypeObj], copy: bool
 ):
     """
     Extract from a masked rec array and create the manager.
@@ -267,7 +267,7 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
     """
-    arrays: Union[Sequence[Any], "Series"]
+    arrays: Union[Sequence[Any], Series]
 
     if columns is not None:
         from pandas.core.series import Series
@@ -645,7 +645,7 @@ def _list_of_series_to_arrays(
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
         values = extract_array(s, extract_numpy=True)
-        aligned_values.append(algorithms.take_1d(values, indexer))
+        aligned_values.append(algorithms.take_nd(values, indexer))
 
     content = np.vstack(aligned_values)
 

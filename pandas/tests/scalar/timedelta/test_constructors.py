@@ -1,4 +1,5 @@
 from datetime import timedelta
+from itertools import product
 
 import numpy as np
 import pytest
@@ -263,6 +264,9 @@ def test_construction_out_of_bounds_td64():
         ("P1W", Timedelta(days=7)),
         ("PT300S", Timedelta(seconds=300)),
         ("P1DT0H0M00000000000S", Timedelta(days=1)),
+        ("PT-6H3M", Timedelta(hours=-6, minutes=3)),
+        ("-PT6H3M", Timedelta(hours=-6, minutes=-3)),
+        ("-PT-6H+3M", Timedelta(hours=6, minutes=-3)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -277,6 +281,8 @@ def test_iso_constructor(fmt, exp):
         "P0DT999H999M999S",
         "P1DT0H0M0.0000000000000S",
         "P1DT0H0M0.S",
+        "P",
+        "-P",
     ],
 )
 def test_iso_constructor_raises(fmt):
@@ -337,3 +343,22 @@ def test_string_with_unit(constructor, value, unit, expectation):
     exp, match = expectation
     with pytest.raises(exp, match=match):
         _ = constructor(value, unit=unit)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "".join(elements)
+        for repetition in (1, 2)
+        for elements in product("+-, ", repeat=repetition)
+    ],
+)
+def test_string_without_numbers(value):
+    # GH39710 Timedelta input string with only symbols and no digits raises an error
+    msg = (
+        "symbols w/o a number"
+        if value != "--"
+        else "only leading negative signs are allowed"
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(value)

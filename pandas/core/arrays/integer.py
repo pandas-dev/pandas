@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, List, Optional, Tuple, Type
 import warnings
 
@@ -21,11 +23,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.numeric import NumericArray, NumericDtype
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
-from .numeric import NumericArray, NumericDtype
 
 
 class _IntegerDtype(NumericDtype):
@@ -55,7 +56,7 @@ class _IntegerDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["IntegerArray"]:
+    def construct_array_type(cls) -> Type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 
@@ -303,14 +304,14 @@ class IntegerArray(NumericArray):
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "IntegerArray":
+    ) -> IntegerArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "IntegerArray":
+    ) -> IntegerArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 

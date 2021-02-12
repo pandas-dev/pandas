@@ -5,6 +5,8 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
+from __future__ import annotations
+
 from collections import abc, namedtuple
 import copy
 from functools import partial
@@ -54,12 +56,11 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, nanops
 from pandas.core.aggregation import (
-    agg_list_like,
-    aggregate,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
+from pandas.core.apply import GroupByApply
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
@@ -564,7 +565,7 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        out = algorithms.take_1d(result._values, ids)
+        out = algorithms.take_nd(result._values, ids)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -677,7 +678,12 @@ class SeriesGroupBy(GroupBy[Series]):
         return result.unstack()
 
     def value_counts(
-        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+        self,
+        normalize=False,
+        sort=True,
+        ascending=False,
+        bins=None,
+        dropna: bool = True,
     ):
 
         from pandas.core.reshape.merge import get_join_indexers
@@ -728,11 +734,16 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, lab = ids[sorter], lab[sorter]
 
         # group boundaries are where group ids change
-        idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
+        idchanges = 1 + np.nonzero(ids[1:] != ids[:-1])[0]
+        idx = np.r_[0, idchanges]
+        if not len(ids):
+            idx = idchanges
 
         # new values are where sorted labels change
         lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
         inc = np.r_[True, lchanges]
+        if not len(lchanges):
+            inc = lchanges
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
 
@@ -950,7 +961,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        result, how = aggregate(self, func, *args, **kwargs)
+        op = GroupByApply(self, func, args, kwargs)
+        result, how = op.agg()
         if how is None:
             return result
 
@@ -970,7 +982,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = agg_list_like(self, [func], _axis=self.axis)
+                    result, _ = GroupByApply(
+                        self, [func], args=(), kwargs={"_axis": self.axis}
+                    ).agg()
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
@@ -1088,11 +1102,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             assert isinstance(result, (Series, DataFrame))  # for mypy
             mgr = result._mgr
             assert isinstance(mgr, BlockManager)
-            assert len(mgr.blocks) == 1
 
             # unwrap DataFrame to get array
-            result = mgr.blocks[0].values
-            return result
+            if len(mgr.blocks) != 1:
+                # We've split an object block! Everything we've assumed
+                # about a single block input returning a single block output
+                # is a lie. See eg GH-39329
+                return mgr.as_array()
+            else:
+                result = mgr.blocks[0].values
+                return result
 
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
@@ -1394,7 +1413,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
-            algorithms.take_1d(result.iloc[:, i].values, ids)
+            algorithms.take_nd(result.iloc[:, i].values, ids)
             for i, _ in enumerate(result.columns)
         ]
 
@@ -1688,7 +1707,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: Sequence["Block"], items: Index) -> DataFrame:
+    def _wrap_agged_blocks(self, blocks: Sequence[Block], items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
