@@ -1,4 +1,5 @@
 minimum_pre_commit_version: 2.9.2
+exclude: ^LICENSES/|\.(html|csv|svg)$
 repos:
 -   repo: https://github.com/python/black
     rev: 20.8b1
@@ -19,18 +20,16 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.6.4
+    rev: 5.7.0
     hooks:
     -   id: isort
-        types: [text] # overwrite upstream `types: [python]`
-        types_or: [python, cython]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.4
+    rev: v2.10.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus]
+        args: [--py37-plus, --keep-runtime-typing]
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.7.0
+    rev: v1.7.1
     hooks:
       - id: rst-backticks
       - id: rst-directive-colons
@@ -61,11 +60,11 @@ repos:
         entry: |
             (?x)
             # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-            from\ pandas\.core\.common\ import|
-            from\ pandas\.core\ import\ common|
+            from\ pandas\.core\.common\ import
+            |from\ pandas\.core\ import\ common
 
             # Check for imports from collections.abc instead of `from collections import abc`
-            from\ collections\.abc\ import
+            |from\ collections\.abc\ import
 
     -   id: non-standard-numpy.random-related-imports
         name: Check for non-standard numpy.random-related imports excluding pandas/_testing.py
@@ -74,8 +73,8 @@ repos:
         entry: |
             (?x)
             # Check for imports from np.random.<method> instead of `from numpy import random` or `from numpy.random import <method>`
-            from\ numpy\ import\ random|
-            from\ numpy.random\ import
+            from\ numpy\ import\ random
+            |from\ numpy.random\ import
         types: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
@@ -83,15 +82,15 @@ repos:
         entry: |
             (?x)
             # Check for imports from pandas._testing instead of `import pandas._testing as tm`
-            from\ pandas\._testing\ import|
-            from\ pandas\ import\ _testing\ as\ tm|
+            from\ pandas\._testing\ import
+            |from\ pandas\ import\ _testing\ as\ tm
 
             # No direct imports from conftest
-            conftest\ import|
-            import\ conftest
+            |conftest\ import
+            |import\ conftest
 
             # Check for use of pandas.testing instead of tm
-            pd\.testing\.
+            |pd\.testing\.
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives
@@ -121,6 +120,19 @@ repos:
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
         types: [python]
         exclude: ^(asv_bench|pandas/tests|doc)/
+    -   id: unwanted-patterns-bare-pytest-raises
+        name: Check for use of bare pytest raises
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
+        types: [python]
+        files: ^pandas/tests/
+        exclude: ^pandas/tests/extension/
+    -   id: unwanted-patters-pytest-xfail
+        name: Check for use of pytest.xfail
+        entry: pytest\.xfail
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
@@ -129,7 +141,7 @@ repos:
         files: ^pandas/tests/
     -   id: FrameOrSeriesUnion
         name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
-        entry: Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]
+        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
         language: pygrep
         types: [python]
         exclude: ^pandas/_typing\.py$
@@ -137,15 +149,20 @@ repos:
         name: Check for use of foo.__class__ instead of type(foo)
         entry: \.__class__
         language: pygrep
-        files: \.(py|pyx)$
+        types_or: [python, cython]
     -   id: unwanted-typing
-        name: Check for use of comment-based annotation syntax and missing error codes
+        name: Check for outdated annotation syntax and missing error codes
         entry: |
             (?x)
-            \#\ type:\ (?!ignore)|
-            \#\ type:\s?ignore(?!\[)
+            \#\ type:\ (?!ignore)
+            |\#\ type:\s?ignore(?!\[)
         language: pygrep
         types: [python]
+    -   id: np-bool
+        name: Check for use of np.bool instead of np.bool_
+        entry: np\.bool[^_8]
+        language: pygrep
+        types_or: [python, cython, rst]
     -   id: no-os-remove
         name: Check code for instances of os.remove
         entry: os\.remove
@@ -154,9 +171,15 @@ repos:
         files: ^pandas/tests/
         exclude: |
             (?x)^
-            pandas/tests/io/excel/test_writers\.py|
-            pandas/tests/io/pytables/common\.py|
-            pandas/tests/io/pytables/test_store\.py$
+            pandas/tests/io/excel/test_writers\.py
+            |pandas/tests/io/pytables/common\.py
+            |pandas/tests/io/pytables/test_store\.py$
+    -   id: no-pandas-api-types
+        name: Check code for instances of pd.api.types
+        entry: (pd|pandas)\.api\.types\.
+        language: pygrep
+        types: [python]
+        files: ^pandas/tests/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
@@ -165,12 +188,21 @@ repos:
     rev: v3.4.0
     hooks:
     -   id: end-of-file-fixer
-        exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$
+        exclude: \.txt$
     -   id: trailing-whitespace
-        exclude: \.(html|svg)$
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.0.0
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^pandas/core/
+        files: ^pandas/
+        exclude: ^pandas/tests/
+-   repo: https://github.com/MarcoGorelli/no-string-hints
+    rev: v0.1.7
+    hooks:
+    -   id: no-string-hints
+-   repo: https://github.com/MarcoGorelli/abs-imports
+    rev: v0.1.2
+    hooks:
+    -   id: abs-imports
+        files: ^pandas/

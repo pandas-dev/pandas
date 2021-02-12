@@ -5,6 +5,7 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
 from typing import List
+import warnings
 
 from pandas._typing import final
 
@@ -27,7 +28,10 @@ class ShallowMixin(PandasObject):
             obj = obj.obj
         for attr in self._attributes:
             if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
+                # TODO: Remove once win_type deprecation is enforced
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "win_type", FutureWarning)
+                    kwargs[attr] = getattr(self, attr)
         return self._constructor(obj, **kwargs)
 
 
@@ -59,7 +63,10 @@ class GotItemMixin(PandasObject):
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
-        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        # TODO: Remove once win_type deprecation is enforced
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "win_type", FutureWarning)
+            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
         # Try to select from a DataFrame, falling back to a Series
         try:

@@ -309,16 +309,18 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
+def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
     if (
         LooseVersion(pyarrow.__version__) < "0.15"
         and LooseVersion(pyarrow.__version__) >= "0.13"
     ):
-        pytest.xfail(
-            "Reading fastparquet with pyarrow in 0.14 fails: "
-            "https://issues.apache.org/jira/browse/ARROW-6492"
+        request.node.add_marker(
+            pytest.mark.xfail(
+                "Reading fastparquet with pyarrow in 0.14 fails: "
+                "https://issues.apache.org/jira/browse/ARROW-6492"
+            )
         )
 
     df = df_cross_compat
@@ -896,7 +898,7 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
         check_round_trip(df, pa, check_dtype=False)
 
-    @td.skip_if_no("pyarrow", min_version="0.17")
+    @td.skip_if_no("pyarrow", min_version="1.0.0")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         df = pd.DataFrame({"a": list(range(0, 3))})
@@ -936,7 +938,8 @@ class TestParquetFastParquet(Base):
 
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-        self.check_error_on_write(df, fp, ValueError, "cannot infer type for")
+        # error from fastparquet -> don't check exact error message
+        self.check_error_on_write(df, fp, ValueError, None)
 
         # mixed
         df = pd.DataFrame({"a": ["a", 1, 2.0]})

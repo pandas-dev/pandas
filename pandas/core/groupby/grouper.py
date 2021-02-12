@@ -2,12 +2,14 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
+from __future__ import annotations
+
 from typing import Dict, Hashable, List, Optional, Set, Tuple
 import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Label, final
+from pandas._typing import FrameOrSeries, final
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -556,13 +558,8 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        # Return a dictionary of {group label: [indices belonging to the group label]}
-        # respecting whether sort was specified
-        codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
-        return {
-            category: np.flatnonzero(codes == i)
-            for i, category in enumerate(Index(uniques))
-        }
+        values = Categorical(self.grouper)
+        return values._reverse_indexer()
 
     @property
     def codes(self) -> np.ndarray:
@@ -621,7 +618,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> Tuple["ops.BaseGrouper", Set[Label], FrameOrSeries]:
+) -> Tuple[ops.BaseGrouper, Set[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -746,7 +743,7 @@ def get_grouper(
         levels = [level] * len(keys)
 
     groupings: List[Grouping] = []
-    exclusions: Set[Label] = set()
+    exclusions: Set[Hashable] = set()
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:

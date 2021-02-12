@@ -131,7 +131,7 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with pytest.raises(RecursionError):
+    with tm.external_error_raised(RecursionError):
         foo()
 
 
@@ -300,7 +300,7 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+test_tuple = collections.namedtuple("test_tuple", ["a", "b", "c"])
 
 
 @pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])
@@ -890,6 +890,19 @@ class TestTypeInference:
 
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series, pd.Index])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype_period_array(self, klass, skipna):
+        # https://github.com/pandas-dev/pandas/issues/23553
+        values = klass(
+            [
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-02", freq="D"),
+                pd.NaT,
+            ]
+        )
+        assert lib.infer_dtype(values, skipna=skipna) == "period"
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(

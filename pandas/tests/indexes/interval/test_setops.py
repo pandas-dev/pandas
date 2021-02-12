@@ -78,13 +78,6 @@ class TestIntervalIndex:
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
-        # GH 26225: duplicate element
-        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
-        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
-        expected = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3)])
-        result = index.intersection(other)
-        tm.assert_index_equal(result, expected)
-
         # GH 26225
         index = IntervalIndex.from_tuples([(0, 3), (0, 2)])
         other = IntervalIndex.from_tuples([(0, 2), (1, 3)])
@@ -116,6 +109,14 @@ class TestIntervalIndex:
 
         other = monotonic_index(300, 314, dtype="uint64", closed=closed)
         result = index.intersection(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_duplicates(self):
+        # GH#38743
+        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
+        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        expected = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
     def test_difference(self, closed, sort):
@@ -161,6 +162,7 @@ class TestIntervalIndex:
         expected = empty_index(dtype="float64", closed=closed)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:'<' not supported between:RuntimeWarning")
     @pytest.mark.parametrize(
         "op_name", ["union", "intersection", "difference", "symmetric_difference"]
     )
@@ -177,21 +179,19 @@ class TestIntervalIndex:
         result = set_op(Index([1, 2, 3]), sort=sort)
         tm.assert_index_equal(result, expected)
 
-        # mixed closed
-        msg = (
-            "can only do set operations between two IntervalIndex objects "
-            "that are closed on the same side and have compatible dtypes"
-        )
+        # mixed closed -> cast to object
         for other_closed in {"right", "left", "both", "neither"} - {closed}:
             other = monotonic_index(0, 11, closed=other_closed)
-            with pytest.raises(TypeError, match=msg):
-                set_op(other, sort=sort)
+            expected = getattr(index.astype(object), op_name)(other, sort=sort)
+            if op_name == "difference":
+                expected = index
+            result = set_op(other, sort=sort)
+            tm.assert_index_equal(result, expected)
 
-        # GH 19016: incompatible dtypes
+        # GH 19016: incompatible dtypes -> cast to object
         other = interval_range(Timestamp("20180101"), periods=9, closed=closed)
-        msg = (
-            "can only do set operations between two IntervalIndex objects "
-            "that are closed on the same side and have compatible dtypes"
-        )
-        with pytest.raises(TypeError, match=msg):
-            set_op(other, sort=sort)
+        expected = getattr(index.astype(object), op_name)(other, sort=sort)
+        if op_name == "difference":
+            expected = index
+        result = set_op(other, sort=sort)
+        tm.assert_index_equal(result, expected)

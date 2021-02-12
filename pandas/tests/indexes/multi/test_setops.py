@@ -221,14 +221,12 @@ def test_difference_sort_incomparable():
     tm.assert_index_equal(result, idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_incomparable_true():
-    # TODO decide on True behaviour
-    # # sort=True, raises
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
     other = pd.MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
 
-    with pytest.raises(TypeError):
+    msg = "The 'sort' keyword only takes the values of None or False; True was passed."
+    with pytest.raises(ValueError, match=msg):
         idx.difference(other, sort=True)
 
 
@@ -485,3 +483,12 @@ def test_intersection_different_names():
     mi2 = MultiIndex.from_arrays([[1], [3]])
     result = mi.intersection(mi2)
     tm.assert_index_equal(result, mi2)
+
+
+def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
+    # GH#38623
+    mi1 = MultiIndex.from_arrays([[3, nulls_fixture, 4, nulls_fixture], [1, 2, 4, 2]])
+    mi2 = MultiIndex.from_arrays([[3, nulls_fixture, 3], [1, 2, 4]])
+    result = mi1.intersection(mi2)
+    expected = MultiIndex.from_arrays([[3.0, nulls_fixture], [1, 2]])
+    tm.assert_index_equal(result, expected)

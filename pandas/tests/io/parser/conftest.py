@@ -97,6 +97,33 @@ def python_parser_only(request):
     return request.param
 
 
+def _get_all_parser_float_precision_combinations():
+    """
+    Return all allowable parser and float precision
+    combinations and corresponding ids.
+    """
+    params = []
+    ids = []
+    for parser, parser_id in zip(_all_parsers, _all_parser_ids):
+        for precision in parser.float_precision_choices:
+            params.append((parser, precision))
+            ids.append(f"{parser_id}-{precision}")
+
+    return {"params": params, "ids": ids}
+
+
+@pytest.fixture(
+    params=_get_all_parser_float_precision_combinations()["params"],
+    ids=_get_all_parser_float_precision_combinations()["ids"],
+)
+def all_parsers_all_precisions(request):
+    """
+    Fixture for all allowable combinations of parser
+    and float precision
+    """
+    return request.param
+
+
 _utf_values = [8, 16, 32]
 
 _encoding_seps = ["", "-", "_"]
@@ -119,5 +146,60 @@ def utf_value(request):
 def encoding_fmt(request):
     """
     Fixture for all possible string formats of a UTF encoding.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ("-1,0", -1.0),
+        ("-1,2e0", -1.2),
+        ("-1e0", -1.0),
+        ("+1e0", 1.0),
+        ("+1e+0", 1.0),
+        ("+1e-1", 0.1),
+        ("+,1e1", 1.0),
+        ("+1,e0", 1.0),
+        ("-,1e1", -1.0),
+        ("-1,e0", -1.0),
+        ("0,1", 0.1),
+        ("1,", 1.0),
+        (",1", 0.1),
+        ("-,1", -0.1),
+        ("1_,", 1.0),
+        ("1_234,56", 1234.56),
+        ("1_234,56e0", 1234.56),
+        # negative cases; must not parse as float
+        ("_", "_"),
+        ("-_", "-_"),
+        ("-_1", "-_1"),
+        ("-_1e0", "-_1e0"),
+        ("_1", "_1"),
+        ("_1,", "_1,"),
+        ("_1,_", "_1,_"),
+        ("_1e0", "_1e0"),
+        ("1,2e_1", "1,2e_1"),
+        ("1,2e1_0", "1,2e1_0"),
+        ("1,_2", "1,_2"),
+        (",1__2", ",1__2"),
+        (",1e", ",1e"),
+        ("-,1e", "-,1e"),
+        ("1_000,000_000", "1_000,000_000"),
+        ("1,e1_2", "1,e1_2"),
+        ("e11,2", "e11,2"),
+        ("1e11,2", "1e11,2"),
+        ("1,2,2", "1,2,2"),
+        ("1,2_1", "1,2_1"),
+        ("1,2e-10e1", "1,2e-10e1"),
+        ("--1,2", "--1,2"),
+        ("1a_2,1", "1a_2,1"),
+        ("1,2E-1", 0.12),
+        ("1,2E1", 12.0),
+    ]
+)
+def numeric_decimal(request):
+    """
+    Fixture for all numeric formats which should get recognized. The first entry
+    represents the value to read while the second represents the expected result.
     """
     return request.param

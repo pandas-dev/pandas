@@ -2,6 +2,7 @@
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
+from __future__ import annotations
 
 from contextlib import contextmanager
 from csv import QUOTE_NONE, QUOTE_NONNUMERIC
@@ -17,6 +18,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -46,7 +48,6 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     IndexLabel,
-    Label,
     StorageOptions,
 )
 
@@ -172,7 +173,7 @@ return_docstring = """
 class CategoricalFormatter:
     def __init__(
         self,
-        categorical: "Categorical",
+        categorical: Categorical,
         buf: Optional[IO[str]] = None,
         length: bool = True,
         na_rep: str = "NaN",
@@ -236,7 +237,7 @@ class CategoricalFormatter:
 class SeriesFormatter:
     def __init__(
         self,
-        series: "Series",
+        series: Series,
         buf: Optional[IO[str]] = None,
         length: Union[bool, str] = True,
         header: bool = True,
@@ -462,7 +463,7 @@ class DataFrameFormatter:
 
     def __init__(
         self,
-        frame: "DataFrame",
+        frame: DataFrame,
         columns: Optional[Sequence[str]] = None,
         col_space: Optional[ColspaceArgType] = None,
         header: Union[bool, Sequence[str]] = True,
@@ -813,7 +814,7 @@ class DataFrameFormatter:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
-    def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
+    def _get_formatted_column_labels(self, frame: DataFrame) -> List[List[str]]:
         from pandas.core.indexes.multi import sparsify_labels
 
         columns = frame.columns
@@ -854,7 +855,7 @@ class DataFrameFormatter:
         # self.str_columns = str_columns
         return str_columns
 
-    def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
+    def _get_formatted_index(self, frame: DataFrame) -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html(). so safe to cast col_space here.
         col_space = {k: cast(int, v) for k, v in self.col_space.items()}
@@ -918,7 +919,7 @@ class DataFrameRenderer:
     Parameters
     ----------
     fmt : DataFrameFormatter
-        Formatter with the formating options.
+        Formatter with the formatting options.
     """
 
     def __init__(self, fmt: DataFrameFormatter):
@@ -1031,7 +1032,7 @@ class DataFrameRenderer:
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         encoding: Optional[str] = None,
         sep: str = ",",
-        columns: Optional[Sequence[Label]] = None,
+        columns: Optional[Sequence[Hashable]] = None,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",
@@ -1501,7 +1502,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
     def __init__(
         self,
-        values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
+        values: Union[np.ndarray, Series, DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
@@ -1637,7 +1638,7 @@ def is_dates_only(
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
     )
@@ -1741,7 +1742,7 @@ def get_format_timedelta64(
 
     consider_values = values_int != iNaT
 
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
     )

@@ -563,6 +563,14 @@ class TestSparseArray:
         with pytest.raises(ValueError, match="Cannot convert non-finite"):
             arr.astype(int)
 
+    def test_astype_copy_false(self):
+        # GH#34456 bug caused by using .view instead of .astype in astype_nansafe
+        arr = SparseArray([1, 2, 3])
+
+        result = arr.astype(float, copy=False)
+        expected = SparseArray([1.0, 2.0, 3.0], fill_value=0.0)
+        tm.assert_sp_array_equal(result, expected)
+
     def test_set_fill_value(self):
         arr = SparseArray([1.0, np.nan, 2.0], fill_value=np.nan)
         arr.fill_value = 2

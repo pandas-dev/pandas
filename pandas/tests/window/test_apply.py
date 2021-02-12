@@ -44,7 +44,7 @@ def test_rolling_apply_with_pandas_objects(window):
     expected = df.iloc[2:].reindex_like(df)
     tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(AttributeError):
+    with tm.external_error_raised(AttributeError):
         df.rolling(window).apply(f, raw=True)
 
 

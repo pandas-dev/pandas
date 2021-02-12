@@ -197,6 +197,117 @@ def test_frame_mixed_depth_get():
     tm.assert_series_equal(result, expected)
 
 
+def test_frame_getitem_nan_multiindex(nulls_fixture):
+    # GH#29751
+    # loc on a multiindex containing nan values
+    n = nulls_fixture  # for code readability
+    cols = ["a", "b", "c"]
+    df = DataFrame(
+        [[11, n, 13], [21, n, 23], [31, n, 33], [41, n, 43]],
+        columns=cols,
+        dtype="int64",
+    ).set_index(["a", "b"])
+
+    idx = (21, n)
+    result = df.loc[:idx]
+    expected = DataFrame(
+        [[11, n, 13], [21, n, 23]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[idx:]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33], [41, n, 43]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    idx1, idx2 = (21, n), (31, n)
+    result = df.loc[idx1:idx2]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "indexer,expected",
+    [
+        (
+            (["b"], ["bar", np.nan]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["a", "b"]),
+            (
+                DataFrame(
+                    [[1, 2, 3], [4, 5, 6]],
+                    columns=MultiIndex.from_tuples(
+                        [("a", "foo"), ("b", "bar"), ("b", np.nan)]
+                    ),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], ["bar"]),
+            (
+                DataFrame(
+                    [[2], [5]],
+                    columns=MultiIndex.from_tuples([("b", "bar")]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], [np.nan]),
+            (
+                DataFrame(
+                    [[3], [6]],
+                    columns=MultiIndex(
+                        codes=[[1], [-1]], levels=[["a", "b"], ["bar", "foo"]]
+                    ),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (("b", np.nan), Series([3, 6], dtype="int64", name=("b", np.nan))),
+    ],
+)
+def test_frame_getitem_nan_cols_multiindex(
+    indexer,
+    expected,
+    nulls_fixture,
+):
+    # Slicing MultiIndex including levels with nan values, for more information
+    # see GH#25154
+    df = DataFrame(
+        [[1, 2, 3], [4, 5, 6]],
+        columns=MultiIndex.from_tuples(
+            [("a", "foo"), ("b", "bar"), ("b", nulls_fixture)]
+        ),
+        dtype="int64",
+    )
+
+    result = df.loc[:, indexer]
+    tm.assert_equal(result, expected)
+
+
 # ----------------------------------------------------------------------------
 # test indexing of DataFrame with multi-level Index with duplicates
 # ----------------------------------------------------------------------------

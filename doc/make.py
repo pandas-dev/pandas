@@ -41,11 +41,14 @@ class DocBuilder:
         self,
         num_jobs=0,
         include_api=True,
+        whatsnew=False,
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
     ):
         self.num_jobs = num_jobs
+        self.include_api = include_api
+        self.whatsnew = whatsnew
         self.verbosity = verbosity
         self.warnings_are_errors = warnings_are_errors
 
@@ -55,6 +58,8 @@ class DocBuilder:
             os.environ["SPHINX_PATTERN"] = single_doc
         elif not include_api:
             os.environ["SPHINX_PATTERN"] = "-api"
+        elif whatsnew:
+            os.environ["SPHINX_PATTERN"] = "whatsnew"
 
         self.single_doc_html = None
         if single_doc and single_doc.endswith(".rst"):
@@ -188,7 +193,14 @@ class DocBuilder:
                 if not row or row[0].strip().startswith("#"):
                     continue
 
-                path = os.path.join(BUILD_PATH, "html", *row[0].split("/")) + ".html"
+                html_path = os.path.join(BUILD_PATH, "html")
+                path = os.path.join(html_path, *row[0].split("/")) + ".html"
+
+                if not self.include_api and (
+                    os.path.join(html_path, "reference") in path
+                    or os.path.join(html_path, "generated") in path
+                ):
+                    continue
 
                 try:
                     title = self._get_page_title(row[1])
@@ -197,11 +209,6 @@ class DocBuilder:
                     # may not be able to read the rst because it has some
                     # sphinx specific stuff
                     title = "this page"
-
-                if os.path.exists(path):
-                    raise RuntimeError(
-                        f"Redirection would overwrite an existing file: {path}"
-                    )
 
                 with open(path, "w") as moved_page_fd:
                     html = f"""\
@@ -232,6 +239,9 @@ class DocBuilder:
                 self._open_browser(self.single_doc_html)
             else:
                 self._add_redirects()
+                if self.whatsnew:
+                    self._open_browser(os.path.join("whatsnew", "index.html"))
+
         return ret_code
 
     def latex(self, force=False):
@@ -300,6 +310,12 @@ def main():
         "--no-api", default=False, help="omit api and autosummary", action="store_true"
     )
     argparser.add_argument(
+        "--whatsnew",
+        default=False,
+        help="only build whatsnew (and api for links)",
+        action="store_true",
+    )
+    argparser.add_argument(
         "--single",
         metavar="FILENAME",
         type=str,
@@ -350,6 +366,7 @@ def main():
     builder = DocBuilder(
         args.num_jobs,
         not args.no_api,
+        args.whatsnew,
         args.single,
         args.verbosity,
         args.warnings_are_errors,

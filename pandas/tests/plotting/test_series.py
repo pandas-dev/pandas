@@ -341,7 +341,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = [f"{s*100:.2f}" for s in series.values / float(series.sum())]
+        pcts = [f"{s*100:.2f}" for s in series.values / series.sum()]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
@@ -751,6 +751,25 @@ class TestSeriesPlots(TestPlotBase):
         df = Series(["a", "b", "c"])
         with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
+
+    @pytest.mark.parametrize(
+        "data, index",
+        [
+            ([1, 2, 3, 4], [3, 2, 1, 0]),
+            ([10, 50, 20, 30], [1910, 1920, 1980, 1950]),
+        ],
+    )
+    def test_plot_order(self, data, index):
+        # GH38865 Verify plot order of a Series
+        ser = Series(data=data, index=index)
+        ax = ser.plot(kind="bar")
+
+        expected = ser.tolist()
+        result = [
+            patch.get_bbox().ymax
+            for patch in sorted(ax.patches, key=lambda patch: patch.get_bbox().xmax)
+        ]
+        assert expected == result
 
     def test_style_single_ok(self):
         s = Series([1, 2])
