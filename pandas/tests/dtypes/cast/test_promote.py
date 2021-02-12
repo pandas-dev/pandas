@@ -7,7 +7,7 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, tz_compare
+from pandas._libs.tslibs import NaT
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -411,50 +411,6 @@ def test_maybe_promote_any_with_datetime64(
 
     with tm.assert_produces_warning(warn, check_stacklevel=False):
         _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
-def test_maybe_promote_datetimetz_with_any_numpy_dtype(
-    tz_aware_fixture, any_numpy_dtype_reduced
-):
-    dtype = DatetimeTZDtype(tz=tz_aware_fixture)
-    fill_dtype = np.dtype(any_numpy_dtype_reduced)
-
-    # create array of given dtype; casts "1" to correct dtype
-    fill_value = np.array([1], dtype=fill_dtype)[0]
-
-    # filling datetimetz with any numpy dtype casts to object
-    expected_dtype = np.dtype(object)
-    exp_val_for_scalar = fill_value
-
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
-def test_maybe_promote_datetimetz_with_datetimetz(tz_aware_fixture, tz_aware_fixture2):
-    dtype = DatetimeTZDtype(tz=tz_aware_fixture)
-    fill_dtype = DatetimeTZDtype(tz=tz_aware_fixture2)
-
-    # create array of given dtype; casts "1" to correct dtype
-    fill_value = pd.Series([10 ** 9], dtype=fill_dtype)[0]
-
-    # filling datetimetz with datetimetz casts to object, unless tz matches
-    exp_val_for_scalar = fill_value
-    if tz_compare(dtype.tz, fill_dtype.tz):
-        expected_dtype = dtype
-    else:
-        expected_dtype = np.dtype(object)
-
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
-
-
-@pytest.mark.parametrize("fill_value", [None, np.nan, NaT])
-def test_maybe_promote_datetimetz_with_na(tz_aware_fixture, fill_value):
-
-    dtype = DatetimeTZDtype(tz=tz_aware_fixture)
-
-    expected_dtype = dtype
-    exp_val_for_scalar = NaT
-
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
 @pytest.mark.parametrize(
