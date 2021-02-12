@@ -1,12 +1,7 @@
 import numpy as np
 
-import pandas.util._test_decorators as td
-
 from pandas import DataFrame, date_range
 import pandas._testing as tm
-
-# TODO(ArrayManager) implement equals
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestEquals:
@@ -16,13 +11,14 @@ class TestEquals:
         df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
         assert df1.equals(df2) is False
 
-    def test_equals_different_blocks(self):
+    def test_equals_different_blocks(self, using_array_manager):
         # GH#9330
         df0 = DataFrame({"A": ["x", "y"], "B": [1, 2], "C": ["w", "z"]})
         df1 = df0.reset_index()[["A", "B", "C"]]
-        # this assert verifies that the above operations have
-        # induced a block rearrangement
-        assert df0._mgr.blocks[0].dtype != df1._mgr.blocks[0].dtype
+        if not using_array_manager:
+            # this assert verifies that the above operations have
+            # induced a block rearrangement
+            assert df0._mgr.blocks[0].dtype != df1._mgr.blocks[0].dtype
 
         # do the real tests
         tm.assert_frame_equal(df0, df1)

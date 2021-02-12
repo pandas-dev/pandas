@@ -35,7 +35,6 @@ from pandas._libs.tslibs import (
     conversion,
     iNaT,
     ints_to_pydatetime,
-    tz_compare,
 )
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
 from pandas.util._exceptions import find_stack_level
@@ -87,7 +86,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -159,7 +158,7 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     -----
     Caller is responsible for checking dtype.kind in ["m", "M"]
     """
-    if is_valid_nat_for_dtype(value, dtype):
+    if is_valid_na_for_dtype(value, dtype):
         # GH#36541: can't fill array directly with pd.NaT
         # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
         # ValueError: cannot convert float NaN to integer
@@ -475,7 +474,8 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
         # upcast (possibly), otherwise we DON't want to upcast (e.g. if we
         # have values, say integers, in the success portion then it's ok to not
         # upcast)
-        new_dtype, _ = maybe_promote(result.dtype, np.nan)
+        new_dtype = ensure_dtype_can_hold_na(result.dtype)
+
         if new_dtype != result.dtype:
             result = result.astype(new_dtype, copy=True)
 
@@ -484,13 +484,27 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return result
 
 
-def maybe_promote(dtype, fill_value=np.nan):
+def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
+    """
+    If we have a dtype that cannot hold NA values, find the best match that can.
+    """
+    if isinstance(dtype, ExtensionDtype):
+        # TODO: ExtensionDtype.can_hold_na?
+        return dtype
+    elif dtype.kind == "b":
+        return np.dtype(object)
+    elif dtype.kind in ["i", "u"]:
+        return np.dtype(np.float64)
+    return dtype
+
+
+def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     """
     Find the minimal dtype that can hold both the given dtype and fill_value.
 
     Parameters
     ----------
-    dtype : np.dtype or ExtensionDtype
+    dtype : np.dtype
     fill_value : scalar, default np.nan
 
     Returns
@@ -505,28 +519,15 @@ def maybe_promote(dtype, fill_value=np.nan):
     ValueError
         If fill_value is a non-scalar and dtype is not object.
     """
-    if not is_scalar(fill_value) and not is_object_dtype(dtype):
+    if not is_scalar(fill_value):
         # with object dtype there is nothing to promote, and the user can
         #  pass pretty much any weird fill_value they like
-        raise ValueError("fill_value must be a scalar")
-
-    # if we passed an array here, determine the fill value by dtype
-    if isinstance(fill_value, np.ndarray):
-        if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
-            fill_value = fill_value.dtype.type("NaT", "ns")
-        else:
-
-            # we need to change to object type as our
-            # fill_value is of object type
-            if fill_value.dtype == np.object_:
-                dtype = np.dtype(np.object_)
-            fill_value = np.nan
-
-        if dtype == np.object_ or dtype.kind in ["U", "S"]:
-            # We treat string-like dtypes as object, and _always_ fill
-            #  with np.nan
-            fill_value = np.nan
-            dtype = np.dtype(np.object_)
+        if not is_object_dtype(dtype):
+            # with object dtype there is nothing to promote, and the user can
+            #  pass pretty much any weird fill_value they like
+            raise ValueError("fill_value must be a scalar")
+        dtype = np.dtype(object)
+        return dtype, fill_value
 
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
@@ -535,7 +536,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
         elif is_integer(fill_value) or (is_float(fill_value) and not isna(fill_value)):
             dtype = np.dtype(np.object_)
-        elif is_valid_nat_for_dtype(fill_value, dtype):
+        elif is_valid_na_for_dtype(fill_value, dtype):
             # e.g. pd.NA, which is not accepted by Timestamp constructor
             fill_value = np.datetime64("NaT", "ns")
         else:
@@ -551,7 +552,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         ):
             # TODO: What about str that can be a timedelta?
             dtype = np.dtype(np.object_)
-        elif is_valid_nat_for_dtype(fill_value, dtype):
+        elif is_valid_na_for_dtype(fill_value, dtype):
             # e.g pd.NA, which is not accepted by the  Timedelta constructor
             fill_value = np.timedelta64("NaT", "ns")
         else:
@@ -565,19 +566,6 @@ def maybe_promote(dtype, fill_value=np.nan):
                     fill_value = np.timedelta64("NaT", "ns")
                 else:
                     fill_value = fv.to_timedelta64()
-    elif is_datetime64tz_dtype(dtype):
-        if isna(fill_value):
-            fill_value = NaT
-        elif not isinstance(fill_value, datetime):
-            dtype = np.dtype(np.object_)
-        elif fill_value.tzinfo is None:
-            dtype = np.dtype(np.object_)
-        elif not tz_compare(fill_value.tzinfo, dtype.tz):
-            # TODO: sure we want to cast here?
-            dtype = np.dtype(np.object_)
-
-    elif is_extension_array_dtype(dtype) and isna(fill_value):
-        fill_value = dtype.na_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -632,7 +620,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
             fill_value = np.nan
         elif is_integer_dtype(dtype):
-            dtype = np.float64
+            dtype = np.dtype(np.float64)
             fill_value = np.nan
         else:
             dtype = np.dtype(np.object_)
@@ -642,9 +630,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         dtype = np.dtype(np.object_)
 
     # in case we have a string that looked like a number
-    if is_extension_array_dtype(dtype):
-        pass
-    elif issubclass(np.dtype(dtype).type, (bytes, str)):
+    if issubclass(dtype.type, (bytes, str)):
         dtype = np.dtype(np.object_)
 
     fill_value = _ensure_dtype_type(fill_value, dtype)
@@ -1331,20 +1317,18 @@ def convert_dtypes(
     return inferred_dtype
 
 
-def maybe_castable(arr: np.ndarray) -> bool:
+def maybe_castable(dtype: np.dtype) -> bool:
     # return False to force a non-fastpath
-
-    assert isinstance(arr, np.ndarray)  # GH 37024
 
     # check datetime64[ns]/timedelta64[ns] are valid
     # otherwise try to coerce
-    kind = arr.dtype.kind
+    kind = dtype.kind
     if kind == "M":
-        return is_datetime64_ns_dtype(arr.dtype)
+        return is_datetime64_ns_dtype(dtype)
     elif kind == "m":
-        return is_timedelta64_ns_dtype(arr.dtype)
+        return is_timedelta64_ns_dtype(dtype)
 
-    return arr.dtype.name not in POSSIBLY_CAST_DTYPES
+    return dtype.name not in POSSIBLY_CAST_DTYPES
 
 
 def maybe_infer_to_datetimelike(

@@ -180,7 +180,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ["_AXIS_NAMES", "_AXIS_NUMBERS", "get_values", "tshift"]
     )
     _metadata: List[str] = []
-    _is_copy = None
+    _is_copy: Optional[weakref.ReferenceType[NDFrame]] = None
     _mgr: Manager
     _attrs: Dict[Optional[Hashable], Any]
     _typ: str
@@ -375,22 +375,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
-    @property
-    def _constructor_sliced(self):
-        """
-        Used when a manipulation result has one lower dimension(s) as the
-        original, such as DataFrame single columns slicing.
-        """
-        raise AbstractMethodError(self)
-
-    @property
-    def _constructor_expanddim(self):
-        """
-        Used when a manipulation result has one higher dimension as the
-        original, such as Series.to_frame()
-        """
-        raise NotImplementedError
-
     # ----------------------------------------------------------------------
     # Internals
 
@@ -405,7 +389,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Axis
     _stat_axis_number = 0
     _stat_axis_name = "index"
-    _ix = None
     _AXIS_ORDERS: List[str]
     _AXIS_TO_AXIS_NUMBER: Dict[Axis, int] = {0: 0, "index": 0, "rows": 0}
     _AXIS_REVERSED: bool
@@ -3831,7 +3814,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return result
 
     @final
-    def _set_is_copy(self, ref, copy: bool_t = True) -> None:
+    def _set_is_copy(self, ref: FrameOrSeries, copy: bool_t = True) -> None:
         if not copy:
             self._is_copy = None
         else:
@@ -8891,32 +8874,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(other, (np.ndarray, ExtensionArray)):
 
             if other.shape != self.shape:
-
-                if self.ndim == 1:
-
-                    icond = cond._values
-
-                    # GH 2745 / GH 4192
-                    # treat like a scalar
-                    if len(other) == 1:
-                        other = other[0]
-
-                    # GH 3235
-                    # match True cond to other
-                    elif len(cond[icond]) == len(other):
-
-                        # try to not change dtype at first
-                        new_other = self._values
-                        new_other = new_other.copy()
-                        new_other[icond] = other
-                        other = new_other
-
-                    else:
-                        raise ValueError(
-                            "Length of replacements must equal series length"
-                        )
-
-                else:
+                if self.ndim != 1:
+                    # In the ndim == 1 case we may have
+                    #  other length 1, which we treat as scalar (GH#2745, GH#4192)
+                    #  or len(other) == icond.sum(), which we treat like
+                    #  __setitem__ (GH#3235)
                     raise ValueError(
                         "other must be the same shape as self when an ndarray"
                     )

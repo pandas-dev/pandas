@@ -53,9 +53,12 @@ Other enhancements
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
-- :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes.
+- :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`)
+- :meth:`.Styler.set_tooltips_class` and :meth:`.Styler.set_table_styles` amended to optionally allow certain css-string input arguments (:issue:`39564`)
+- :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None``. (:issue:`39359`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
+- Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
 
 .. ---------------------------------------------------------------------------
 
@@ -217,7 +220,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
--
+- Accessing ``_constructor_expanddim`` on a :class:`DataFrame` and ``_constructor_sliced`` on a :class:`Series` now raise an ``AttributeError``. Previously a ``NotImplementedError`` was raised (:issue:`38782`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -249,7 +252,10 @@ Performance improvements
 - Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
 - Performance improvement in :meth:`DataFrame.corr` for method=kendall (:issue:`28329`)
-- Performance improvement in :meth:`core.window.Rolling.corr` and :meth:`core.window.Rolling.cov` (:issue:`39388`)
+- Performance improvement in :meth:`core.window.rolling.Rolling.corr` and :meth:`core.window.rolling.Rolling.cov` (:issue:`39388`)
+- Performance improvement in :meth:`core.window.rolling.RollingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` (:issue:`39591`)
+- Performance improvement in :func:`unique` for object data type (:issue:`37615`)
+- Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
 
 .. ---------------------------------------------------------------------------
 
@@ -286,7 +292,7 @@ Timedelta
 ^^^^^^^^^
 - Bug in constructing :class:`Timedelta` from ``np.timedelta64`` objects with non-nanosecond units that are out of bounds for ``timedelta64[ns]`` (:issue:`38965`)
 - Bug in constructing a :class:`TimedeltaIndex` incorrectly accepting ``np.datetime64("NaT")`` objects (:issue:`39462`)
--
+- Bug in constructing :class:`Timedelta` from input string with only symbols and no digits failed to raise an error (:issue:`39710`)
 
 Timezones
 ^^^^^^^^^
@@ -301,6 +307,7 @@ Numeric
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 - Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising ``IndexError`` (:issue:`38932`)
+- Bug in :func:`select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36569`)
 -
 
 Conversion
@@ -328,6 +335,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when setting multiple values to duplicate columns (:issue:`15695`)
 - Bug in :meth:`DataFrame.loc`, :meth:`Series.loc`, :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` returning incorrect elements for non-monotonic :class:`DatetimeIndex` for string slices (:issue:`33146`)
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` with timezone aware indexes raising ``TypeError`` for ``method="ffill"`` and ``method="bfill"`` and specified ``tolerance`` (:issue:`38566`)
+- Bug in :meth:`DataFrame.reindex` with ``datetime64[ns]`` or ``timedelta64[ns]`` incorrectly casting to integers when the ``fill_value`` requires casting to object dtype (:issue:`39755`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` with empty :class:`DataFrame` and specified columns for string indexer and non empty :class:`DataFrame` to set (:issue:`38831`)
 - Bug in :meth:`DataFrame.loc.__setitem__` raising ValueError when expanding unique column for :class:`DataFrame` with duplicate columns (:issue:`38521`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
@@ -335,7 +343,7 @@ Indexing
 - Bug in :meth:`Series.__setitem__` raising ``ValueError`` when setting a :class:`Series` with a scalar indexer (:issue:`38303`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
 - Bug in :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` always raising ``KeyError`` when slicing with existing strings an :class:`Index` with milliseconds (:issue:`33589`)
-- Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
+- Bug in setting ``timedelta64`` or ``datetime64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`, issue:`39619`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
 - Bug in setting ``datetime64`` values into a :class:`Series` with integer-dtype incorrect casting the datetime64 values to integers (:issue:`39266`)
 - Bug in :meth:`Index.get_loc` not raising ``KeyError`` when method is specified for ``NaN`` value when ``NaN`` is not in :class:`Index` (:issue:`39382`)
@@ -407,6 +415,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising ``TypeError`` instead of ``SpecificationError`` when missing keys had mixed dtypes (:issue:`39025`)
 - Bug in :meth:`.DataFrameGroupBy.idxmin` and :meth:`.DataFrameGroupBy.idxmax` with ``ExtensionDtype`` columns (:issue:`38733`)
 - Bug in :meth:`Series.resample` would raise when the index was a :class:`PeriodIndex` consisting of ``NaT`` (:issue:`39227`)
+- Bug in :meth:`core.window.rolling.RollingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.corr` where the groupby column would return 0 instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
+- Bug in :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` where 1 would be returned instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 
 Reshaping
 ^^^^^^^^^
@@ -440,11 +450,14 @@ Other
 - Bug in :class:`Index` constructor sometimes silently ignorning a specified ``dtype`` (:issue:`38879`)
 - Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
 - Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`)
+- ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
+- Bug in :meth:`Series.where` with numeric dtype and ``other = None`` not casting to ``nan`` (:issue:`39761`)
 - :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
 - Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
 - Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
--
--
+- :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
+- Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
+
 
 .. ---------------------------------------------------------------------------
 
