@@ -665,7 +665,7 @@ given by column ``z``. The bins are aggregated with NumPy's ``max`` function.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(1000, 2), columns=["a", "b"])
-   df["b"] = df["b"] = df["b"] + np.arange(1000)
+   df["b"] = df["b"] + np.arange(1000)
    df["z"] = np.random.uniform(0, 3, 1000)
 
    @savefig hexbin_plot_agg.png
