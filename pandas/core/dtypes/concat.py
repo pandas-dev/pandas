@@ -1,7 +1,7 @@
 """
 Utility functions related to concat.
 """
-from typing import cast
+from typing import Any, List, cast
 
 import numpy as np
 
@@ -183,7 +183,7 @@ def concat_compat(to_concat, axis: int = 0):
     return np.concatenate(to_concat, axis=axis)
 
 
-def concat_arrays(to_concat) -> ArrayLike:
+def concat_arrays(to_concat: List[Any]) -> ArrayLike:
     """
     Alternative for concat_compat but specialized for use in the ArrayManager.
 
