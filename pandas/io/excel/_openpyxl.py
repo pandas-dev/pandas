@@ -509,7 +509,7 @@ class OpenpyxlReader(BaseExcelReader):
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
 
-        from openpyxl.cell.cell import TYPE_BOOL, TYPE_ERROR, TYPE_NUMERIC
+        from openpyxl.cell.cell import TYPE_ERROR, TYPE_NUMERIC
 
         if cell.value is None:
             return ""  # compat with xlrd
