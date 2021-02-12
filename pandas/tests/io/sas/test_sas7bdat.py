@@ -315,3 +315,22 @@ def test_max_sas_date_iterator(datapath):
     ]
     for result, expected in zip(results, expected):
         tm.assert_frame_equal(result, expected)
+
+
+def test_null_date(datapath):
+    fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
+    df = pd.read_sas(fname, encoding="utf-8")
+
+    expected = pd.DataFrame(
+        {
+            "datecol": [
+                datetime(9999, 12, 29),
+                pd.NaT,
+            ],
+            "datetimecol": [
+                datetime(9999, 12, 29, 23, 59, 59, 998993),
+                pd.NaT,
+            ],
+        },
+    )
+    tm.assert_frame_equal(df, expected)
