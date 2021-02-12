@@ -513,20 +513,10 @@ class OpenpyxlReader(BaseExcelReader):
 
         if cell.value is None:
             return ""  # compat with xlrd
-        elif cell.is_date:
-            return cell.value
         elif cell.data_type == TYPE_ERROR:
             return np.nan
-        elif cell.data_type == TYPE_BOOL:
-            return bool(cell.value)
-        elif cell.data_type == TYPE_NUMERIC:
-            # GH5394
-            if convert_float:
-                val = int(cell.value)
-                if val == cell.value:
-                    return val
-            else:
-                return float(cell.value)
+        elif not convert_float and cell.data_type == TYPE_NUMERIC:
+            return float(cell.value)
 
         return cell.value
 
