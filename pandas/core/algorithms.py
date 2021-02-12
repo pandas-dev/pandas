@@ -1388,6 +1388,9 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
 
 def _convert_wrapper(f, conv_dtype):
     def wrapper(arr, indexer, out, fill_value=np.nan):
+        if conv_dtype == object:
+            # GH#39755 avoid casting dt64/td64 to integers
+            arr = ensure_wrapped_if_datetimelike(arr)
         arr = arr.astype(conv_dtype)
         f(arr, indexer, out, fill_value=fill_value)
 
@@ -1652,7 +1655,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
-        result = take_1d(
+        result = take_nd(
             arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
         )
     else:
@@ -1662,7 +1665,12 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
 
 def _take_preprocess_indexer_and_fill_value(
-    arr, indexer, axis, out, fill_value, allow_fill
+    arr: np.ndarray,
+    indexer: Optional[np.ndarray],
+    axis: int,
+    out: Optional[np.ndarray],
+    fill_value,
+    allow_fill: bool,
 ):
     mask_info = None
 
@@ -1783,10 +1791,9 @@ def take_nd(
     return out
 
 
-take_1d = take_nd
-
-
-def take_2d_multi(arr, indexer, fill_value=np.nan):
+def take_2d_multi(
+    arr: np.ndarray, indexer: np.ndarray, fill_value=np.nan
+) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
     """
@@ -2169,9 +2176,9 @@ def safe_sort(
         sorter = ensure_platform_int(t.lookup(ordered))
 
     if na_sentinel == -1:
-        # take_1d is faster, but only works for na_sentinels of -1
+        # take_nd is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_codes = take_1d(order2, codes, fill_value=-1)
+        new_codes = take_nd(order2, codes, fill_value=-1)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
         else:
