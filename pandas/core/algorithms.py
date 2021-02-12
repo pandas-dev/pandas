@@ -1388,6 +1388,9 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
 
 def _convert_wrapper(f, conv_dtype):
     def wrapper(arr, indexer, out, fill_value=np.nan):
+        if conv_dtype == object:
+            # GH#39755 avoid casting dt64/td64 to integers
+            arr = ensure_wrapped_if_datetimelike(arr)
         arr = arr.astype(conv_dtype)
         f(arr, indexer, out, fill_value=fill_value)
 
