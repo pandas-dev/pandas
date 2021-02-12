@@ -141,6 +141,7 @@ Other enhancements
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
 - Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
+- :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 
 .. ---------------------------------------------------------------------------
 
