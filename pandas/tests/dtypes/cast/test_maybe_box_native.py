@@ -15,7 +15,7 @@ from pandas import Timedelta, Timestamp
         (np.uint(4), int),
         (np.int32(-4), int),
         (np.uint8(4), int),
-        (np.float(454.98), float),
+        (float(454.98), float),
         (np.float16(0.4), float),
         (np.float64(1.4), float),
         (np.bool_(False), bool),
