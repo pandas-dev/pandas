@@ -60,16 +60,22 @@ class TestFancy:
         idxr = indexer_sli(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = "|".join(
-            [
-                r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
-                "Cannot index with multidimensional key",
-                r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
-                "Index data must be 1-dimensional",
-                "positional indexers are out-of-bounds",
-                "Indexing a MultiIndex with a multidimensional key is not implemented",
-            ]
-        )
+        msgs = []
+        if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
+            msgs.append(r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]")
+        if frame_or_series is Series or indexer_sli is tm.iloc:
+            msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
+        if indexer_sli is tm.loc or (
+            frame_or_series is Series and indexer_sli is tm.setitem
+        ):
+            msgs.append("Cannot index with multidimensional key")
+        if frame_or_series is DataFrame and indexer_sli is tm.setitem:
+            msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
+            msgs.append("Index data must be 1-dimensional")
+        if len(index) == 0 or isinstance(index, pd.MultiIndex):
+            msgs.append("positional indexers are out-of-bounds")
+        msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
         with pytest.raises(potential_errors, match=msg):
@@ -829,53 +835,6 @@ class TestMisc:
         expected = 1
         assert result1 == expected
         assert result2 == expected
-
-
-class TestSeriesNoneCoercion:
-    EXPECTED_RESULTS = [
-        # For numeric series, we should coerce to NaN.
-        ([1, 2, 3], [np.nan, 2, 3]),
-        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
-        # For datetime series, we should coerce to NaT.
-        (
-            [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
-            [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)],
-        ),
-        # For objects, we should preserve the None value.
-        (["foo", "bar", "baz"], [None, "bar", "baz"]),
-    ]
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_setitem(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series[0] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_loc_setitem(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series.loc[0] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_setitem_and_series(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series[start_series == start_series[0]] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_loc_and_series(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series.loc[start_series == start_series[0]] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
 
 
 class TestDataframeNoneCoercion:
