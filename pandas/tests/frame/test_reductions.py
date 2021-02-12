@@ -1145,7 +1145,7 @@ class TestDataFrameAnalytics:
         result = np.any(DataFrame(columns=["a", "b"])).item()
         assert result is False
 
-    def test_any_all_object_bool_only(self, using_array_manager):
+    def test_any_all_object_bool_only(self):
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
         df["C"] = Series([True, True])
@@ -1153,35 +1153,21 @@ class TestDataFrameAnalytics:
         # The underlying bug is in DataFrame._get_bool_data, so we check
         #  that while we're here
         res = df._get_bool_data()
-
-        # With ArrayManager currently don't infer object dtype to be boolean
-        if using_array_manager:
-            expected = df[["C"]]
-        else:
-            expected = df[["B", "C"]]
+        expected = df[["B", "C"]]
         tm.assert_frame_equal(res, expected)
 
         res = df.all(bool_only=True, axis=0)
-        if using_array_manager:
-            expected = Series([True], index=["C"])
-        else:
-            expected = Series([False, True], index=["B", "C"])
+        expected = Series([False, True], index=["B", "C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series
         res = df[["B", "C"]].all(bool_only=True, axis=0)
         tm.assert_series_equal(res, expected)
 
-        if using_array_manager:
-            assert df.all(bool_only=True, axis=None)
-        else:
-            assert not df.all(bool_only=True, axis=None)
+        assert not df.all(bool_only=True, axis=None)
 
         res = df.any(bool_only=True, axis=0)
-        if using_array_manager:
-            expected = Series([True], index=["C"])
-        else:
-            expected = Series([True, True], index=["B", "C"])
+        expected = Series([True, True], index=["B", "C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series

@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
+    is_object_dtype,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
@@ -32,7 +33,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Index, RangeIndex, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import make_block
 
@@ -211,7 +212,7 @@ class ArrayManager(DataManager):
                     result_arrays.append(sanitize_array([res], None))
                 result_indices.append(i)
 
-        index = RangeIndex(1)  # placeholder
+        index = Index._simple_new(np.array([None], dtype=object))  # placeholder
         if ignore_failures:
             indexer = np.array(result_indices)
             columns = self.items[result_indices]
@@ -508,15 +509,19 @@ class ArrayManager(DataManager):
 
     def get_bool_data(self, copy: bool = False) -> ArrayManager:
         """
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
+        Select columns that are bool-dtype and object-dtype columns that are all-bool.
         """
-        mask = np.array([is_bool_dtype(t) for t in self.get_dtypes()], dtype="object")
-        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
+        arrays = []
+        indices = []
+        for i, arr in enumerate(self.arrays):
+            if is_bool_dtype(arr.dtype) or (
+                is_object_dtype(arr.dtype) and lib.is_bool_array(arr)
+            ):
+                arrays.append(arr)
+                indices.append(i)
+
         # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][mask]]
+        new_axes = [self._axes[0], self._axes[1][indices]]
         return type(self)(arrays, new_axes)
 
     def get_numeric_data(self, copy: bool = False) -> ArrayManager:
