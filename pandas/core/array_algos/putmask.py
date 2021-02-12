@@ -1,7 +1,7 @@
 """
 EA-compatible analogue to to np.putmask
 """
-from typing import Any
+from typing import Any, Tuple
 import warnings
 
 import numpy as np
@@ -9,9 +9,15 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.cast import convert_scalar_for_putitemlike, find_common_type
+from pandas.core.dtypes.cast import (
+    convert_scalar_for_putitemlike,
+    find_common_type,
+    infer_dtype_from,
+)
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_list_like
 from pandas.core.dtypes.missing import isna_compat
+
+from pandas.core.arrays import ExtensionArray
 
 
 def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
@@ -22,7 +28,7 @@ def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
     Parameters
     ----------
     mask : np.ndarray[bool]
-        We assume _extract_bool_array has already been called.
+        We assume extract_bool_array has already been called.
     value : Any
     """
 
@@ -152,3 +158,52 @@ def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> No
             raise ValueError("cannot assign mismatch length to masked array")
     else:
         np.putmask(values, mask, new)
+
+
+def validate_putmask(values: ArrayLike, mask: np.ndarray) -> Tuple[np.ndarray, bool]:
+    """
+    Validate mask and check if this putmask operation is a no-op.
+    """
+    mask = extract_bool_array(mask)
+    if mask.shape != values.shape:
+        raise ValueError("putmask: mask and data must be the same size")
+
+    noop = not mask.any()
+    return mask, noop
+
+
+def extract_bool_array(mask: ArrayLike) -> np.ndarray:
+    """
+    If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
+    """
+    if isinstance(mask, ExtensionArray):
+        # We could have BooleanArray, Sparse[bool], ...
+        #  Except for BooleanArray, this is equivalent to just
+        #  np.asarray(mask, dtype=bool)
+        mask = mask.to_numpy(dtype=bool, na_value=False)
+
+    mask = np.asarray(mask, dtype=bool)
+    return mask
+
+
+def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
+    """
+    Parameters
+    ----------
+    values : np.ndarray
+    num_set : int
+        For putmask, this is mask.sum()
+    other : Any
+    """
+    if values.dtype == object:
+        dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+
+        if isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]:
+            # https://github.com/numpy/numpy/issues/12550
+            #  timedelta64 will incorrectly cast to int
+            if not is_list_like(other):
+                other = [other] * num_set
+            else:
+                other = list(other)
+
+    return other
