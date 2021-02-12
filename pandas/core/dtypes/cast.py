@@ -590,24 +590,10 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         return np.dtype(object), fill_value
 
     elif issubclass(dtype.type, np.timedelta64):
-        if (
-            is_integer(fill_value)
-            or is_float(fill_value)
-            or isinstance(fill_value, str)
-        ):
-            # TODO: What about str that can be a timedelta?
-            dtype = np.dtype(np.object_)
-        else:
-            try:
-                fv = Timedelta(fill_value)
-            except ValueError:
-                dtype = np.dtype(np.object_)
-            else:
-                if fv is NaT:
-                    # NaT has no `to_timedelta64` method
-                    fill_value = np.timedelta64("NaT", "ns")
-                else:
-                    fill_value = fv.to_timedelta64()
+        inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
+        if inferred == dtype:
+            return dtype, fv
+        return np.dtype(object), fill_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -763,11 +749,12 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
 
     elif isinstance(val, (np.timedelta64, timedelta)):
         try:
-            val = Timedelta(val).value
+            val = Timedelta(val)
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = np.dtype(object)
         else:
             dtype = np.dtype("m8[ns]")
+            val = np.timedelta64(val.value, "ns")
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
