@@ -615,10 +615,6 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
 
     _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 
-    @property
-    def _constructor(self):
-        return ExpandingGroupby
-
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
