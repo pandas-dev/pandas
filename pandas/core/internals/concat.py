@@ -22,7 +22,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna_all
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, ExtensionArray
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
@@ -381,15 +381,11 @@ def _concatenate_join_units(
         # the non-EA values are 2D arrays with shape (1, n)
         to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
-        if (
-            not isinstance(concat_values, ExtensionArray)
-            or (isinstance(concat_values, DatetimeArray) and concat_values.tz is None)
-            or isinstance(concat_values, TimedeltaArray)
-        ):
+        if not is_extension_array_dtype(concat_values.dtype):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
-            # special case DatetimeArray, which *is* an EA, but is put in a
-            # consolidated 2D block
+            # special case DatetimeArray/TimedeltaArray, which *is* an EA, but
+            # is put in a consolidated 2D block
             concat_values = np.atleast_2d(concat_values)
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
@@ -448,13 +444,7 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:
-        if not isinstance(dtype, np.dtype):
-            # EA dtype
-            pass
-        elif dtype.kind in ["i", "u"]:
-            dtype = np.dtype(np.float64)
-        elif dtype.kind == "b":
-            dtype = np.dtype(object)
+        dtype = ensure_dtype_can_hold_na(dtype)
     return dtype
 
 
