@@ -21,8 +21,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
-
-from . import base
+from pandas.tests.extension import base
 
 
 @pytest.fixture(params=["float", "object"])
@@ -283,10 +282,6 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         self._check_divmod_op(ser, divmod, data, exc=None)
 
-    @pytest.mark.skip("We implement ops")
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     @skip_nested
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
@@ -355,9 +350,9 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
-    @skip_nested
+    @pytest.mark.skip(reason="Incorrect expected.")
     def test_merge(self, data, na_value):
-        # Fails creating expected
+        # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
 
     @skip_nested

@@ -5,8 +5,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
@@ -110,12 +109,6 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         result = s + data
         expected = pd.Series(data + data)
         self.assert_series_equal(result, expected)
-
-    def test_error(self, data, all_arithmetic_operators):
-        # invalid ops
-        op_name = all_arithmetic_operators
-        with pytest.raises(AttributeError):
-            getattr(data, op_name)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):

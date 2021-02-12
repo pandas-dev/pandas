@@ -393,9 +393,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # general, so we can't make the expected. This is tested elsewhere
             raise pytest.skip("Incorrected expected from Series.combine")
 
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
@@ -453,7 +450,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Different repr", strict=True)
+    @pytest.mark.xfail(reason="Different repr")
     def test_array_repr(self, data, size):
         super().test_array_repr(data, size)
 

@@ -32,11 +32,8 @@ from pandas._libs.tslibs import (
     iNaT,
     to_offset,
 )
-from pandas._libs.tslibs.timestamps import (
-    RoundTo,
-    integer_op_not_supported,
-    round_nsint64,
-)
+from pandas._libs.tslibs.fields import RoundTo, round_nsint64
+from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
@@ -60,7 +57,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, isin, unique1d
@@ -425,7 +422,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_obj
 
     def _values_for_factorize(self):
-        return self._ndarray, iNaT
+        # int64 instead of int ensures we have a "view" method
+        return self._ndarray, np.int64(iNaT)
 
     @classmethod
     def _from_factorized(
@@ -496,7 +494,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
-        if is_valid_nat_for_dtype(fill_value, self.dtype):
+        if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
             # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
@@ -560,7 +558,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 msg = self._validation_error_message(value, allow_listlike)
                 raise TypeError(msg) from err
 
-        elif is_valid_nat_for_dtype(value, self.dtype):
+        elif is_valid_na_for_dtype(value, self.dtype):
             # GH#18295
             value = NaT
 
@@ -1606,8 +1604,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             )
 
         values = self.view("i8")
-        result = round_nsint64(values, mode, freq)
-        result = self._maybe_mask_results(result, fill_value=NaT)
+        nanos = to_offset(freq).nanos
+        result = round_nsint64(values, mode, nanos)
+        result = self._maybe_mask_results(result, fill_value=iNaT)
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))

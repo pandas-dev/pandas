@@ -202,11 +202,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(values.dtype, StringDtype):
             return "string"
 
-        try:
-            inferred_dtype = lib.infer_dtype(values, skipna=True)
-        except ValueError:
-            # GH#27571 mostly occurs with ExtensionArray
-            inferred_dtype = None
+        inferred_dtype = lib.infer_dtype(values, skipna=True)
 
         if inferred_dtype not in allowed_types:
             raise AttributeError("Can only use .str accessor with string values!")

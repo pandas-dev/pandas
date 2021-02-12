@@ -14,8 +14,7 @@ from pandas import DataFrame, Index, NaT, Series, date_range, offsets, timedelta
 import pandas._testing as tm
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
-
-from .test_floats import gen_obj
+from pandas.tests.indexing.test_floats import gen_obj
 
 # ------------------------------------------------------------------------
 # Indexing test cases
@@ -55,42 +54,46 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
-    @pytest.mark.parametrize("idxr", [tm.getitem, tm.loc, tm.iloc])
-    def test_getitem_ndarray_3d(self, index, frame_or_series, idxr):
+    def test_getitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
-        idxr = idxr(obj)
+        idxr = indexer_sli(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = "|".join(
-            [
-                r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
-                "Cannot index with multidimensional key",
-                r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
-                "Index data must be 1-dimensional",
-                "positional indexers are out-of-bounds",
-                "Indexing a MultiIndex with a multidimensional key is not implemented",
-            ]
-        )
+        msgs = []
+        if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
+            msgs.append(r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]")
+        if frame_or_series is Series or indexer_sli is tm.iloc:
+            msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
+        if indexer_sli is tm.loc or (
+            frame_or_series is Series and indexer_sli is tm.setitem
+        ):
+            msgs.append("Cannot index with multidimensional key")
+        if frame_or_series is DataFrame and indexer_sli is tm.setitem:
+            msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
+            msgs.append("Index data must be 1-dimensional")
+        if len(index) == 0 or isinstance(index, pd.MultiIndex):
+            msgs.append("positional indexers are out-of-bounds")
+        msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
         with pytest.raises(potential_errors, match=msg):
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
-    def test_setitem_ndarray_3d(self, index, frame_or_series, indexer):
+    def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
-        idxr = indexer(obj)
+        idxr = indexer_sli(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        if indexer.__name__ == "iloc":
+        if indexer_sli.__name__ == "iloc":
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
             isinstance(index, pd.IntervalIndex)
-            and indexer.__name__ == "setitem"
+            and indexer_sli.__name__ == "setitem"
             and obj.ndim == 1
         ):
             err = AttributeError
@@ -834,53 +837,6 @@ class TestMisc:
         assert result2 == expected
 
 
-class TestSeriesNoneCoercion:
-    EXPECTED_RESULTS = [
-        # For numeric series, we should coerce to NaN.
-        ([1, 2, 3], [np.nan, 2, 3]),
-        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
-        # For datetime series, we should coerce to NaT.
-        (
-            [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
-            [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)],
-        ),
-        # For objects, we should preserve the None value.
-        (["foo", "bar", "baz"], [None, "bar", "baz"]),
-    ]
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_setitem(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series[0] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_loc_setitem(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series.loc[0] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_setitem_and_series(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series[start_series == start_series[0]] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_loc_and_series(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series.loc[start_series == start_series[0]] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-
 class TestDataframeNoneCoercion:
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
@@ -948,8 +904,7 @@ class TestDataframeNoneCoercion:
 
 
 class TestDatetimelikeCoercion:
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
-    def test_setitem_dt64_string_scalar(self, tz_naive_fixture, indexer):
+    def test_setitem_dt64_string_scalar(self, tz_naive_fixture, indexer_sli):
         # dispatching _can_hold_element to underling DatetimeArray
         tz = tz_naive_fixture
 
@@ -961,7 +916,7 @@ class TestDatetimelikeCoercion:
         newval = "2018-01-01"
         values._validate_setitem_value(newval)
 
-        indexer(ser)[0] = newval
+        indexer_sli(ser)[0] = newval
 
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
@@ -974,12 +929,11 @@ class TestDatetimelikeCoercion:
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
-    def test_setitem_dt64_string_values(self, tz_naive_fixture, indexer, key, box):
+    def test_setitem_dt64_string_values(self, tz_naive_fixture, indexer_sli, key, box):
         # dispatching _can_hold_element to underling DatetimeArray
         tz = tz_naive_fixture
 
-        if isinstance(key, slice) and indexer is tm.loc:
+        if isinstance(key, slice) and indexer_sli is tm.loc:
             key = slice(0, 1)
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
@@ -990,7 +944,7 @@ class TestDatetimelikeCoercion:
         newvals = box(["2019-01-01", "2010-01-02"])
         values._validate_setitem_value(newvals)
 
-        indexer(ser)[key] = newvals
+        indexer_sli(ser)[key] = newvals
 
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
@@ -1000,8 +954,7 @@ class TestDatetimelikeCoercion:
             assert ser._values is values
 
     @pytest.mark.parametrize("scalar", ["3 Days", offsets.Hour(4)])
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
-    def test_setitem_td64_scalar(self, indexer, scalar):
+    def test_setitem_td64_scalar(self, indexer_sli, scalar):
         # dispatching _can_hold_element to underling TimedeltaArray
         tdi = timedelta_range("1 Day", periods=3)
         ser = Series(tdi)
@@ -1009,17 +962,16 @@ class TestDatetimelikeCoercion:
         values = ser._values
         values._validate_setitem_value(scalar)
 
-        indexer(ser)[0] = scalar
+        indexer_sli(ser)[0] = scalar
         assert ser._values._data is values._data
 
     @pytest.mark.parametrize("box", [list, np.array, pd.array])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
-    def test_setitem_td64_string_values(self, indexer, key, box):
+    def test_setitem_td64_string_values(self, indexer_sli, key, box):
         # dispatching _can_hold_element to underling TimedeltaArray
-        if isinstance(key, slice) and indexer is tm.loc:
+        if isinstance(key, slice) and indexer_sli is tm.loc:
             key = slice(0, 1)
 
         tdi = timedelta_range("1 Day", periods=3)
@@ -1030,7 +982,7 @@ class TestDatetimelikeCoercion:
         newvals = box(["10 Days", "44 hours"])
         values._validate_setitem_value(newvals)
 
-        indexer(ser)[key] = newvals
+        indexer_sli(ser)[key] = newvals
         assert ser._values._data is values._data
 
 
