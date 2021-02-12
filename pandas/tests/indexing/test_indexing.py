@@ -837,53 +837,6 @@ class TestMisc:
         assert result2 == expected
 
 
-class TestSeriesNoneCoercion:
-    EXPECTED_RESULTS = [
-        # For numeric series, we should coerce to NaN.
-        ([1, 2, 3], [np.nan, 2, 3]),
-        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
-        # For datetime series, we should coerce to NaT.
-        (
-            [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
-            [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)],
-        ),
-        # For objects, we should preserve the None value.
-        (["foo", "bar", "baz"], [None, "bar", "baz"]),
-    ]
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_setitem(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series[0] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_loc_setitem(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series.loc[0] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_setitem_and_series(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series[start_series == start_series[0]] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
-    def test_coercion_with_loc_and_series(self, start_data, expected_result):
-        start_series = Series(start_data)
-        start_series.loc[start_series == start_series[0]] = None
-
-        expected_series = Series(expected_result)
-        tm.assert_series_equal(start_series, expected_series)
-
-
 class TestDataframeNoneCoercion:
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.

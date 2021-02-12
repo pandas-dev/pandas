@@ -48,7 +48,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
@@ -1297,6 +1297,9 @@ class Block(PandasObject):
             values = values.T
 
         cond = _extract_bool_array(cond)
+
+        if is_valid_na_for_dtype(other, self.dtype) and not self.is_object:
+            other = self.fill_value
 
         if cond.ravel("K").all():
             result = values
