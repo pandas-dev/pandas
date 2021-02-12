@@ -168,6 +168,9 @@ class TestGroupBy(base.BaseGroupbyTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
-    def arrow_not_supported(self, data):
+    def arrow_not_supported(self, data, request):
         if isinstance(data.dtype, ArrowStringDtype):
-            pytest.xfail(reason="2D support not implemented for ArrowStringArray")
+            mark = pytest.mark.xfail(
+                reason="2D support not implemented for ArrowStringArray"
+            )
+            request.node.add_param(mark)
