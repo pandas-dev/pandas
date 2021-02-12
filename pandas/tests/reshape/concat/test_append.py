@@ -355,8 +355,6 @@ class TestAppend:
 
         # column order is different
         expected = expected[["c", "d", "date", "a", "b"]]
-        dtype = Series([date]).dtype
-        expected["date"] = expected["date"].astype(dtype)
         result = df.append([ser, ser], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
