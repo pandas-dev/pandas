@@ -230,6 +230,7 @@ class JoinUnit:
     def is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
         Check that we are all-NA of a type/dtype that is compatible with this dtype.
+        Augments `self.is_na` with an additional check of the type of NA values.
         """
         if not self.is_na:
             return False
@@ -243,7 +244,7 @@ class JoinUnit:
         if self.dtype.kind == dtype.kind == "M" and not is_dtype_equal(
             self.dtype, dtype
         ):
-            # fill_values match but we should not case self.block.values to dtype
+            # fill_values match but we should not cast self.block.values to dtype
             return False
 
         na_value = self.block.fill_value
