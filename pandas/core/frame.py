@@ -1163,8 +1163,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
-    # overlap with incompatible return types  [misc]
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible return
+    # types
     @overload
     def dot(self, other: Series) -> Series:  # type: ignore[misc]
         ...
@@ -4822,8 +4822,8 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
 
-                # error: Argument 1 to "append" of "list" has incompatible
-                #  type "Union[Index, Series]"; expected "Index"  [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible type
+                #  "Union[Index, Series]"; expected "Index"
                 arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):

@@ -613,9 +613,8 @@ class ExcelFormatter:
                 ""
             ] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
-                # pandas\io\formats\excel.py:618: error: Incompatible types in
-                # assignment (expression has type "Generator[ExcelCell, None,
-                # None]", variable has type "Tuple[]")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "Generator[ExcelCell, None, None]", variable has type "Tuple[]")
                 gen2 = (  # type: ignore[assignment]
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
@@ -819,9 +818,8 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            # pandas\io\formats\excel.py:808: error: Cannot instantiate
-            # abstract class 'ExcelWriter' with abstract attributes 'engine',
-            # 'save', 'supported_extensions' and 'write_cells'  [abstract]
+            # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
+            # attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
             writer = ExcelWriter(  # type: ignore[abstract]
                 writer, engine=engine, storage_options=storage_options
             )
