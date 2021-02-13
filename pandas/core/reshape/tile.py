@@ -41,13 +41,15 @@ def cut(
     ordered: bool = True,
 ):
     """
-    Bin values into discrete intervals.
-
-    Use `cut` when you need to segment and sort data values into bins. This
-    function is also useful for going from a continuous variable to a
-    categorical variable. For example, `cut` could convert ages to groups of
-    age ranges. Supports binning into an equal number of bins, or a
-    pre-specified array of bins.
+    Transforms a variable with a large number of possibly continuous values 
+    into a smaller number of equal-width or predefined intervals, or bins.
+    
+    Use `cut` when you need to place data values into equal-width or predefined 
+    bins. This function is useful for going from a continuous variable to a
+    categorical variable. For example, `cut` could convert a continuous age 
+    variable into age ranges variable. The function supports binning into a 
+    given number of equal-width intervals, or into pre-specified intervals.
+    The intervals can be provided either as intervals or as interval edges.
 
     Parameters
     ----------
@@ -294,11 +296,14 @@ def qcut(
     duplicates: str = "raise",
 ):
     """
-    Quantile-based discretization function.
-
-    Discretize variable into equal-sized buckets based on rank or based
-    on sample quantiles. For example 1000 values for 10 quantiles would
-    produce a Categorical object indicating quantile membership for each data point.
+    Transforms a variable with a large number of possibly continuous values 
+    into a variable with a smaller number of quantile-based intervals, or bins.
+    
+    Use `qcut` when you need to place values into equal (by 
+    the number of placed values) of unequal quantile-based bins. For example, 
+    placing 1000 values into 10 equal bins would result in the lowest 100 values 
+    being assigned to the lowest bin, the next lowest 100 values being assigned 
+    to the next lowest bin, etc. 
 
     Parameters
     ----------
