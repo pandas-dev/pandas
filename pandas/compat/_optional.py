@@ -21,7 +21,7 @@ VERSIONS = {
     "pandas_gbq": "0.12.0",
     "pyarrow": "0.15.0",
     "pytest": "5.0.1",
-    "pyxlsb": "1.0.6",
+    "pyxlsb": "1.0.8",
     "s3fs": "0.4.0",
     "scipy": "1.2.0",
     "sqlalchemy": "1.2.8",

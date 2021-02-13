@@ -39,4 +39,4 @@ dependencies:
   - pyreadstat
   - pip
   - pip:
-    - pyxlsb
+    - pyxlsb>=1.0.8

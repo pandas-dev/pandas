@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 import codecs
 import csv
 from io import StringIO
@@ -217,7 +218,7 @@ def test_null_byte_char(all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
-@td.check_file_leaks
+@td.check_file_leaks()
 def test_open_file(all_parsers):
     # GH 39024
     parser = all_parsers

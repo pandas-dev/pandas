@@ -38,4 +38,4 @@ dependencies:
   - pyarrow=1.0.0
   - pip
   - pip:
-    - pyxlsb
+    - pyxlsb>=1.0.8

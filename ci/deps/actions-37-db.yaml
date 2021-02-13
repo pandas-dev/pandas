@@ -51,4 +51,4 @@ dependencies:
     - brotlipy
     - coverage
     - pandas-datareader
-    - pyxlsb
+    - pyxlsb>=1.0.8

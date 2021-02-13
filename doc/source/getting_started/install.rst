@@ -275,6 +275,17 @@ Dependency                Minimum Version    Notes
 SciPy                     1.12.0             Miscellaneous statistical functions
 numba                     0.46.0             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
+openpyxl                  2.6.0              Reading / writing for xlsx files
+pandas-gbq                0.12.0             Google Big Query access
+psycopg2                  2.7                PostgreSQL engine for sqlalchemy
+pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
+pymysql                   0.8.1              MySQL engine for sqlalchemy
+pyreadstat                                   SPSS files (.sav) reading
+pyxlsb                    1.0.8              Reading for xlsb files
+qtpy                                         Clipboard I/O
+s3fs                      0.4.0              Amazon S3 access
+tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
+>>>>>>> TST: extend check for leaked files
 xarray                    0.12.3             pandas-like API for N-dimensional data
 ========================= ================== =============================================================
 

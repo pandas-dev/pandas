@@ -43,23 +43,9 @@ def read_ext(request):
     return request.param
 
 
+# override auto-fixture to also check connections
 @pytest.fixture(autouse=True)
-def check_for_file_leaks():
-    """
-    Fixture to run around every test to ensure that we are not leaking files.
-
-    See also
-    --------
-    _test_decorators.check_file_leaks
-    """
+def check_for_file_leaks(request):
     # GH#30162
-    psutil = td.safe_import("psutil")
-    if not psutil:
+    with td.check_file_leaks(ignore_connections=False):
         yield
-
-    else:
-        proc = psutil.Process()
-        flist = proc.open_files()
-        yield
-        flist2 = proc.open_files()
-        assert flist == flist2

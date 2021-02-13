@@ -269,7 +269,7 @@ class TestDataFrameMisc:
         _check_f(d.copy(), f)
 
     @async_mark()
-    @td.check_file_leaks
+    @td.check_file_leaks()
     async def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")

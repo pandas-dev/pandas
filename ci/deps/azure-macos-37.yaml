@@ -33,4 +33,4 @@ dependencies:
   - pip:
     - cython>=0.29.21
     - pyreadstat
-    - pyxlsb
+    - pyxlsb>=1.0.8

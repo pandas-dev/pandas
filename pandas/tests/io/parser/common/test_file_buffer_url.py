@@ -417,15 +417,12 @@ def test_file_descriptor_leak(all_parsers):
 
     parser = all_parsers
     with tm.ensure_clean() as path:
-
-        def test():
+        with td.check_file_leaks():
             with pytest.raises(EmptyDataError, match="No columns to parse from file"):
                 parser.read_csv(path)
 
-        td.check_file_leaks(test)()
 
-
-@td.check_file_leaks
+@td.check_file_leaks()
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers

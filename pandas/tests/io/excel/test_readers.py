@@ -797,7 +797,6 @@ class TestReaders:
         tm.assert_frame_equal(expected, actual)
 
     @td.skip_if_no("py.path")
-    @td.check_file_leaks
     def test_read_from_py_localpath(self, read_ext):
 
         # GH12655
@@ -811,7 +810,6 @@ class TestReaders:
 
         tm.assert_frame_equal(expected, actual)
 
-    @td.check_file_leaks
     def test_close_from_py_localpath(self, read_ext):
 
         # GH31467

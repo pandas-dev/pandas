@@ -31,7 +31,7 @@ class TestXport:
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
 
-        with td.file_leak_context():
+        with td.check_file_leaks():
             yield
 
     def test1_basic(self):
@@ -129,10 +129,9 @@ class TestXport:
         numeric_as_float(data_csv)
 
         with open(self.file02, "rb") as fd:
-            with td.file_leak_context():
-                # GH#35693 ensure that if we pass an open file, we
-                #  dont incorrectly close it in read_sas
-                data = read_sas(fd, format="xport")
+            # GH#35693 ensure that if we pass an open file, we
+            #  dont incorrectly close it in read_sas
+            data = read_sas(fd, format="xport")
 
         tm.assert_frame_equal(data, data_csv)
 

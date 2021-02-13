@@ -3266,7 +3266,7 @@ def test_format_percentiles_integer_idx():
     assert result == expected
 
 
-@td.check_file_leaks
+@td.check_file_leaks()
 def test_repr_html_ipython_config(ip):
     code = textwrap.dedent(
         """\

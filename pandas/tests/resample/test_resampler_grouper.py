@@ -23,7 +23,7 @@ test_frame = DataFrame(
 
 
 @async_mark()
-@td.check_file_leaks
+@td.check_file_leaks()
 async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 

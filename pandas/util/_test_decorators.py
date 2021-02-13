@@ -23,14 +23,11 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 import locale
-from typing import (
-    Callable,
-    Optional,
-)
 import warnings
+from contextlib import ContextDecorator
+from distutils.version import LooseVersion
+from typing import Callable, Optional
 
 import numpy as np
 import pytest
@@ -42,11 +39,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat._optional import import_optional_dependency
-
-from pandas.core.computation.expressions import (
-    NUMEXPR_INSTALLED,
-    USE_NUMEXPR,
-)
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
 
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
@@ -245,38 +238,67 @@ def parametrize_fixture_doc(*args):
     return documented_fixture
 
 
-def check_file_leaks(func) -> Callable:
+class check_file_leaks(ContextDecorator):
     """
-    Decorate a test function to check that we are not leaking file descriptors.
+    Use psutil and ResourceWarning to identify forgotten resources.
+
+    ResourceWarnings that contain the string 'ssl' are ignored as they are very likely
+    caused by boto3 (GH#17058).
     """
-    with file_leak_context():
-        return func
 
+    def __init__(self, ignore_connections: bool = False):
+        super().__init__()
+        self.ignore_connections = ignore_connections
 
-@contextmanager
-def file_leak_context():
-    """
-    ContextManager analogue to check_file_leaks.
-    """
-    psutil = safe_import("psutil")
-    if not psutil:
-        yield
-    else:
-        proc = psutil.Process()
-        flist = proc.open_files()
-        conns = proc.connections()
+    def __enter__(self):
+        # catch warnings
+        self.catcher = warnings.catch_warnings(record=True)
+        self.record = self.catcher.__enter__()
 
-        yield
+        # get files and connections
+        self.psutil = safe_import("psutil")
+        if self.psutil:
+            self.proc = self.psutil.Process()
+            self.flist = self.proc.open_files()
+            self.conns = self.proc.connections()
 
-        flist2 = proc.open_files()
-        # on some builds open_files includes file position, which we _dont_
-        #  expect to remain unchanged, so we need to compare excluding that
-        flist_ex = [(x.path, x.fd) for x in flist]
-        flist2_ex = [(x.path, x.fd) for x in flist2]
-        assert flist2_ex == flist_ex, (flist2, flist)
+        return self
 
-        conns2 = proc.connections()
-        assert conns2 == conns, (conns2, conns)
+    def __exit__(self, *exc):
+        self.catcher.__exit__(*exc)
+
+        # re-throw warnings
+        fields = ("category", "source", "filename", "lineno")
+        for message in self.record:
+            warnings.warn_explicit(
+                message.message, **{field: getattr(message, field) for field in fields}
+            )
+
+        # assert no non-ssl ResourceWarnings
+        messages = [
+            warn.message
+            for warn in self.record
+            if issubclass(warn.category, ResourceWarning)
+            and "ssl" not in str(warn.message)
+        ]
+        assert not messages, f"{messages}"
+
+        # psutil
+        if self.psutil:
+            flist2 = self.proc.open_files()
+
+            # on some builds open_files includes file position, which we _dont_
+            # expect to remain unchanged, so we need to compare excluding that
+            flist_ex = {(x.path, x.fd) for x in self.flist}
+            flist2_ex = {(x.path, x.fd) for x in flist2}
+            assert (
+                flist2_ex == flist_ex
+            ), f"{flist_ex - flist2_ex} {flist2_ex - flist_ex}"
+
+            if not self.ignore_connections:
+                conns = set(self.conns)
+                conns2 = set(self.proc.connections())
+                assert conns2 == conns, f"{conns - conns2} {conns2 - conns}"
 
 
 def async_mark():

@@ -524,3 +524,13 @@ def test_bad_encdoing_errors():
     with tm.ensure_clean() as path:
         with pytest.raises(ValueError, match="Invalid value for `encoding_errors`"):
             icom.get_handle(path, "w", errors="bad")
+
+
+def test_resource_warnings():
+    msg = '[ResourceWarning("unclosed file *)]'
+    with tm.ensure_clean("_resource_test") as path:
+        with pytest.raises(AssertionError, match=msg):
+            with td.check_file_leaks():
+                handle = open(path)
+        # prevent the auto fixture from throwing an AssertionError
+        handle.close()
