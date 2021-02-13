@@ -31,6 +31,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -813,8 +814,7 @@ def sanitize_index(data, index: Index):
 
     if isinstance(data, np.ndarray):
 
-        # coerce datetimelike types
-        if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=False)
+        # coerce datetimelike types to ns
+        data = sanitize_to_nanoseconds(data)
 
     return data
