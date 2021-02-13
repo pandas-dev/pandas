@@ -508,8 +508,11 @@ class DataFrame(NDFrame, OpsMixin):
         index: Optional[Axes] = None,
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
-        copy: bool = False,
+        copy: Optional[bool] = None,
     ):
+        orig_copy = copy  # GH#38939
+        copy = copy if copy is not None else False
+
         if data is None:
             data = {}
             copy = True
@@ -520,6 +523,7 @@ class DataFrame(NDFrame, OpsMixin):
             data = data._mgr
 
         if isinstance(data, (BlockManager, ArrayManager)):
+            copy = copy if copy is not None else False
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
@@ -530,6 +534,8 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
+            # GH#38939 de facto copy defaults to False only in non-dict cases
+            copy = orig_copy if orig_copy is not None else True
             mgr = init_dict(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords

@@ -534,7 +534,9 @@ class TestDivisionByZero:
 
     def test_df_mod_zero_df(self):
         # GH#3590, modulo as ints
-        df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
+        # GH#38939 If we dont pass copy=False, df is consolidated and
+        #  result["first"] is float64 instead of int64
+        df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]}, copy=False)
 
         first = Series([0, 0, 0, 0], dtype="int64")
         second = Series([np.nan, np.nan, np.nan, 0])
