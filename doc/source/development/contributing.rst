@@ -604,6 +604,10 @@ reducing the turn-around time for checking your changes.
     python make.py clean
     python make.py --single pandas.DataFrame.join
 
+    # compile whatsnew and API section (to resolve links in the whatsnew)
+    python make.py clean
+    python make.py --whatsnew
+
 For comparison, a full documentation build may take 15 minutes, but a single
 section may take 15 seconds. Subsequent builds, which only process portions
 you have changed, will be faster.
@@ -628,6 +632,17 @@ When pull requests are merged into the pandas ``master`` branch, the main parts 
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
+
+Previewing changes
+------------------
+
+Once, the pull request is submitted, GitHub Actions will automatically build the
+documentation. To view the built site:
+
+#. Wait for the ``CI / Web and docs`` check to complete.
+#. Click ``Details`` next to it.
+#. From the ``Artifacts`` drop-down, click ``docs`` or ``website`` to download
+   the site as a ZIP file.
 
 .. _contributing.code:
 

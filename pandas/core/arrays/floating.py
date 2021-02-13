@@ -23,10 +23,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.numeric import NumericArray, NumericDtype
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
-
-from .numeric import NumericArray, NumericDtype
 
 
 class FloatingDtype(NumericDtype):

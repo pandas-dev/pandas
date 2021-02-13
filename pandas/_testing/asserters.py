@@ -29,7 +29,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import safe_sort, take_1d
+from pandas.core.algorithms import safe_sort, take_nd
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -309,7 +309,7 @@ def assert_index_equal(
         # accept level number only
         unique = index.levels[level]
         level_codes = index.codes[level]
-        filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
+        filled = take_nd(unique._values, level_codes, fill_value=unique._na_value)
         return unique._shallow_copy(filled, name=index.names[level])
 
     if check_less_precise is not no_default:
@@ -459,13 +459,24 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     ):
         # np.nan
         return True
+    elif (
+        isinstance(left_attr, (np.datetime64, np.timedelta64))
+        and isinstance(right_attr, (np.datetime64, np.timedelta64))
+        and type(left_attr) is type(right_attr)
+        and np.isnat(left_attr)
+        and np.isnat(right_attr)
+    ):
+        # np.datetime64("nat") or np.timedelta64("nat")
+        return True
 
     try:
         result = left_attr == right_attr
     except TypeError:
         # datetimetz on rhs may raise TypeError
         result = False
-    if not isinstance(result, bool):
+    if (left_attr is pd.NA) ^ (right_attr is pd.NA):
+        result = False
+    elif not isinstance(result, bool):
         result = result.all()
 
     if result:

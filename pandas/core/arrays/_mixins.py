@@ -387,13 +387,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def value_counts(self, dropna: bool = False):
+    def value_counts(self, dropna: bool = True):
         """
         Return a Series containing counts of unique values.
 
         Parameters
         ----------
-        dropna : bool, default False
+        dropna : bool, default True
             Don't include counts of NA values.
 
         Returns

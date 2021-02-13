@@ -630,7 +630,7 @@ class Base:
     def test_map_dictlike(self, mapper):
 
         index = self.create_index()
-        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+        if isinstance(index, pd.CategoricalIndex):
             pytest.skip(f"skipping tests for {type(index)}")
 
         identity = mapper(index.values, index)
@@ -733,7 +733,7 @@ class Base:
         # GH32669, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
-        shallow_copy = idx._shallow_copy()
+        shallow_copy = idx._view()
 
         assert shallow_copy._cache is idx._cache
 

@@ -161,34 +161,19 @@ class TestSetitemCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "val,exp_dtype",
         [
-            (1, np.int64),
-            (3, np.int64),
-            (1.1, np.float64),
-            (1 + 1j, np.complex128),
+            (1, object),
+            ("3", object),
+            (3, object),
+            (1.1, object),
+            (1 + 1j, object),
             (True, np.bool_),
         ],
     )
-    def test_setitem_series_bool(self, val, exp_dtype, request):
+    def test_setitem_series_bool(self, val, exp_dtype):
         obj = pd.Series([True, False, True, False])
         assert obj.dtype == np.bool_
 
-        mark = None
-        if exp_dtype is np.int64:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be int")
-        elif exp_dtype is np.float64:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
-        elif exp_dtype is np.complex128:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be complex")
-        if mark is not None:
-            request.node.add_marker(mark)
-
-        exp = pd.Series([True, val, True, False])
+        exp = pd.Series([True, val, True, False], dtype=exp_dtype)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -817,10 +802,13 @@ class TestWhereCoercion(CoercionBase):
         result = tdi.where(cond, value)
         tm.assert_index_equal(result, expected)
 
-        msg = "value should be a 'Timedelta', 'NaT', or array of thos"
-        with pytest.raises(TypeError, match=msg):
-            # wrong-dtyped NaT
-            tdi.where(cond, np.datetime64("NaT", "ns"))
+        # wrong-dtyped NaT
+        dtnat = np.datetime64("NaT", "ns")
+        expected = pd.Index([tdi[0], dtnat, dtnat, tdi[3]], dtype=object)
+        assert expected[1] is dtnat
+
+        result = tdi.where(cond, dtnat)
+        tm.assert_index_equal(result, expected)
 
     def test_where_index_period(self):
         dti = pd.date_range("2016-01-01", periods=3, freq="QS")
@@ -840,14 +828,16 @@ class TestWhereCoercion(CoercionBase):
         expected = pd.PeriodIndex([other[0], pi[1], other[2]])
         tm.assert_index_equal(result, expected)
 
-        # Passing a mismatched scalar
-        msg = "value should be a 'Period', 'NaT', or array of those"
-        with pytest.raises(TypeError, match=msg):
-            pi.where(cond, pd.Timedelta(days=4))
+        # Passing a mismatched scalar -> casts to object
+        td = pd.Timedelta(days=4)
+        expected = pd.Index([td, pi[1], td], dtype=object)
+        result = pi.where(cond, td)
+        tm.assert_index_equal(result, expected)
 
-        msg = r"Input has different freq=D from PeriodArray\(freq=Q-DEC\)"
-        with pytest.raises(ValueError, match=msg):
-            pi.where(cond, pd.Period("2020-04-21", "D"))
+        per = pd.Period("2020-04-21", "D")
+        expected = pd.Index([per, pi[1], per], dtype=object)
+        result = pi.where(cond, per)
+        tm.assert_index_equal(result, expected)
 
 
 class TestFillnaSeriesCoercion(CoercionBase):
