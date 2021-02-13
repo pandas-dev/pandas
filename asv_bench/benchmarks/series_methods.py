@@ -135,7 +135,7 @@ class IsInForObjects:
 
 class IsInLongSeriesLookUpDominates:
     params = [
-        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
+        ["int64", "int32", "float64", "float32", "object"],
         [5, 1000],
         ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
