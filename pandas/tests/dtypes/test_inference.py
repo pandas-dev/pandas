@@ -60,6 +60,50 @@ def coerce(request):
     return request.param
 
 
+class MockNumpyLikeArray:
+    """
+    A class which is numpy-like (e.g. Pint's Quantity) but not actually numpy
+
+    The key is that it is not actually a numpy array so
+    ``util.is_array(mock_numpy_like_array_instance)`` returns ``False``. Other
+    important properties are that the class defines a :meth:`__iter__` method
+    (so that ``isinstance(abc.Iterable)`` returns ``True``) and has a
+    :meth:`ndim` property which can be used as a check for whether it is a
+    scalar or not.
+    """
+
+    def __init__(self, values):
+        self._values = values
+
+    def __iter__(self):
+        iter_values = iter(self._values)
+
+        def it_outer():
+            for element in iter_values:
+                yield element
+
+        return it_outer()
+
+    def __len__(self):
+        return len(self._values)
+
+    @property
+    def ndim(self):
+        return self._values.ndim
+
+    @property
+    def dtype(self):
+        return self._values.dtype
+
+    @property
+    def size(self):
+        return self._values.size
+
+    @property
+    def shape(self):
+        return self._values.shape
+
+
 # collect all objects to be tested for list-like-ness; use tuples of objects,
 # whether they are list-like or not (special casing for sets), and their ID
 ll_params = [
@@ -164,6 +208,14 @@ def test_is_array_like():
     assert not inference.is_array_like(())
     assert not inference.is_array_like("foo")
     assert not inference.is_array_like(123)
+
+
+@pytest.mark.parametrize("eg", (
+    np.array(2),
+    MockNumpyLikeArray(np.array(2)),
+))
+def test_assert_almost_equal(eg):
+    tm.assert_almost_equal(eg, eg)
 
 
 @pytest.mark.parametrize(
