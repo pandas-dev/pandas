@@ -312,7 +312,6 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-- Bug in :meth:`DataFrame.to_dict` with ``orient='records'`` now returns python native datetime objects for datetimelike columns (:issue:`21256`)
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
 -
 -
