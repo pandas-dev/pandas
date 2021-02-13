@@ -364,7 +364,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
         try:
-            if is_list_like(values[0]) or hasattr(values[0], "len"):
+            if is_list_like(values[0]):
                 values = np.array([convert(v) for v in values])
             elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
                 # GH#21861
