@@ -41,15 +41,17 @@ def cut(
     ordered: bool = True,
 ):
     """
-    Transforms a variable with a large number of possibly continuous values 
+    Transform a variable with a large number of possibly continuous values
     into a smaller number of equal-width or predefined intervals, or bins.
-    
-    Use `cut` when you need to place data values into equal-width or predefined 
+
+    Use `cut` when you need to place data values into equal-width or predefined
     bins. This function is useful for going from a continuous variable to a
-    categorical variable. For example, `cut` could convert a continuous age 
-    variable into age ranges variable. The function supports binning into a 
+    categorical variable. For example, `cut` could convert a continuous age
+    variable into age ranges variable. The function supports binning into a
     given number of equal-width intervals, or into pre-specified intervals.
     The intervals can be provided either as intervals or as interval edges.
+    The function returns either the interval (bin) for the variable value or its
+    label/number.
 
     Parameters
     ----------
@@ -296,14 +298,15 @@ def qcut(
     duplicates: str = "raise",
 ):
     """
-    Transforms a variable with a large number of possibly continuous values 
+    Transform a variable with a large number of possibly continuous values
     into a variable with a smaller number of quantile-based intervals, or bins.
-    
-    Use `qcut` when you need to place values into equal (by 
-    the number of placed values) of unequal quantile-based bins. For example, 
-    placing 1000 values into 10 equal bins would result in the lowest 100 values 
-    being assigned to the lowest bin, the next lowest 100 values being assigned 
-    to the next lowest bin, etc. 
+
+    Use `qcut` when you need to place values into equal (by
+    the number of placed values) of unequal quantile-based bins. For example,
+    placing 1000 values into 10 equal bins would result in the lowest 100 values
+    being assigned to the lowest bin, the next lowest 100 values being assigned
+    to the next lowest bin, etc. The function returns either the interval (bin)
+    for the variable value or its label/number.
 
     Parameters
     ----------
