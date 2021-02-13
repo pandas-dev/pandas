@@ -1296,33 +1296,6 @@ class Styler:
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
-    @staticmethod
-    def _highlight_null(v, null_color: str) -> str:
-        return f"background-color: {null_color}" if pd.isna(v) else ""
-
-    def highlight_null(
-        self,
-        null_color: str = "red",
-        subset: Optional[IndexLabel] = None,
-    ) -> Styler:
-        """
-        Shade the background ``null_color`` for missing values.
-
-        Parameters
-        ----------
-        null_color : str, default 'red'
-        subset : label or list of labels, default None
-            A valid slice for ``data`` to limit the style application to.
-
-            .. versionadded:: 1.1.0
-
-        Returns
-        -------
-        self : Styler
-        """
-        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
-        return self
-
     def background_gradient(
         self,
         cmap="PuBu",
@@ -1638,6 +1611,34 @@ class Styler:
 
         return self
 
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[IndexLabel] = None,
+    ) -> Styler:
+        """
+        Shade the background ``null_color`` for missing values.
+
+        Parameters
+        ----------
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        self : Styler
+        """
+        return self.apply(
+            _Builtins._highlight_func,
+            axis=None,
+            subset=subset,
+            props=f"background-color: {null_color};",
+            highlight="null",
+        )
+
     def highlight_max(
         self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
     ) -> Styler:
@@ -1658,7 +1659,13 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(subset=subset, color=color, axis=axis, max_=True)
+        return self.apply(
+            _Builtins._highlight_func,
+            axis=axis,
+            subset=subset,
+            props=f"background-color: {color};",
+            highlight="max",
+        )
 
     def highlight_min(
         self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
@@ -1680,43 +1687,13 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(
-            subset=subset, color=color, axis=axis, max_=False
+        return self.apply(
+            _Builtins._highlight_func,
+            axis=axis,
+            subset=subset,
+            props=f"background-color: {color};",
+            highlight="min",
         )
-
-    def _highlight_handler(
-        self,
-        subset=None,
-        color: str = "yellow",
-        axis: Optional[Axis] = None,
-        max_: bool = True,
-    ) -> Styler:
-        subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
-        self.apply(
-            self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
-        )
-        return self
-
-    @staticmethod
-    def _highlight_extrema(
-        data: FrameOrSeries, color: str = "yellow", max_: bool = True
-    ):
-        """
-        Highlight the min or max in a Series or DataFrame.
-        """
-        attr = f"background-color: {color}"
-
-        if max_:
-            extrema = data == np.nanmax(data.to_numpy())
-        else:
-            extrema = data == np.nanmin(data.to_numpy())
-
-        if data.ndim == 1:  # Series from .apply
-            return [attr if v else "" for v in extrema]
-        else:  # DataFrame from .tee
-            return pd.DataFrame(
-                np.where(extrema, attr, ""), index=data.index, columns=data.columns
-            )
 
     @classmethod
     def from_custom_template(cls, searchpath, name):
@@ -1818,6 +1795,26 @@ class Styler:
         ...    .set_caption("Results with minimum conversion highlighted."))
         """
         return com.pipe(self, func, *args, **kwargs)
+
+
+class _Builtins:
+    @staticmethod
+    def _highlight_func(
+        data: FrameOrSeries,
+        props: str = "background-color: yellow;",
+        highlight: str = "max",
+    ):
+        """
+        Highlight the value in a Series or DataFrame by func with css-properties
+        """
+        if highlight == "max":
+            return np.where(data == np.nanmax(data.values), props, "")
+        elif highlight == "min":
+            return np.where(data == np.nanmin(data.values), props, "")
+        elif highlight == "null":
+            return np.where(pd.isna(data).values, props, "")
+        else:
+            raise ValueError("'highlight' must one of 'max', 'min', 'null'")
 
 
 class _Tooltips:
