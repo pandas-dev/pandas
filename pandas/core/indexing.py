@@ -2371,7 +2371,7 @@ def is_label_like(key) -> bool:
     return not isinstance(key, slice) and not is_list_like_indexer(key)
 
 
-def need_slice(obj) -> bool:
+def need_slice(obj: slice) -> bool:
     """
     Returns
     -------
@@ -2425,7 +2425,7 @@ def non_reducing_slice(slice_):
     return tuple(slice_)
 
 
-def maybe_numeric_slice(df, slice_, include_bool: bool = False):
+def maybe_numeric_slice(df: DataFrame, slice_, include_bool: bool = False):
     """
     Want nice defaults for background_gradient that don't break
     with non-numeric data. But if slice_ is passed go with that.
