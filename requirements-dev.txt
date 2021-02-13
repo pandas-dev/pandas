@@ -58,6 +58,7 @@ beautifulsoup4>=4.6.0
 html5lib
 lxml
 openpyxl
+# TODO
 xlrd
 xlsxwriter
 xlwt
