@@ -1782,8 +1782,13 @@ def _take_preprocess_indexer_and_fill_value(
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 mask = indexer == -1
-                needs_masking = mask.any()
-                mask_info = mask, needs_masking
+                # pandas/core/algorithms.py:1785: error: Item "bool" of "Union[Any,
+                # bool]" has no attribute "any"  [union-attr]
+                needs_masking = mask.any()  # type: ignore[union-attr]
+                # pandas/core/algorithms.py:1786: error: Incompatible types in
+                # assignment (expression has type "Tuple[Union[Any, bool], Any]",
+                # variable has type "Optional[Tuple[None, bool]]")  [assignment]
+                mask_info = mask, needs_masking  # type: ignore[assignment]
                 if needs_masking:
                     if out is not None and out.dtype != dtype:
                         raise TypeError("Incompatible type for fill_value")
@@ -1900,7 +1905,9 @@ def take_2d_multi(
 
     row_idx = ensure_int64(row_idx)
     col_idx = ensure_int64(col_idx)
-    indexer = row_idx, col_idx
+    # pandas/core/algorithms.py:1903: error: Incompatible types in assignment
+    # (expression has type "Tuple[Any, Any]", variable has type "ndarray")  [assignment]
+    indexer = row_idx, col_idx  # type: ignore[assignment]
     mask_info = None
 
     # check for promotion based on types only (do this first because

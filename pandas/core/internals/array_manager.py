@@ -873,7 +873,10 @@ class ArrayManager(DataManager):
         assuming shape and indexes have already been checked.
         """
         for left, right in zip(self.arrays, other.arrays):
-            if not array_equals(left, right):
+            # pandas/core/internals/array_manager.py:876: error: Value of type variable
+            # "ArrayLike" of "array_equals" cannot be "Union[Any, ndarray,
+            # ExtensionArray]"  [type-var]
+            if not array_equals(left, right):  # type: ignore[type-var]
                 return False
         else:
             return True

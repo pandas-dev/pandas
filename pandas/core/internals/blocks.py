@@ -432,7 +432,9 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         mask = isna(self.values)
-        mask, noop = validate_putmask(self.values, mask)
+        # pandas/core/internals/blocks.py:435: error: Value of type variable "ArrayLike"
+        # of "validate_putmask" cannot be "Union[ndarray, ExtensionArray]"  [type-var]
+        mask, noop = validate_putmask(self.values, mask)  # type: ignore[type-var]
 
         if limit is not None:
             limit = libalgos.validate_limit(None, limit=limit)
@@ -882,7 +884,12 @@ class Block(PandasObject):
             # in order to avoid repeating the same computations
             mask = ~isna(self.values)
             masks = [
-                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
+                # pandas/core/internals/blocks.py:885: error: Value of type variable
+                # "ArrayLike" of "compare_or_regex_search" cannot be "Union[ndarray,
+                # ExtensionArray]"  [type-var]
+                compare_or_regex_search(  # type: ignore[type-var]
+                    self.values, s[0], regex=regex, mask=mask
+                )
                 for s in pairs
             ]
         else:
@@ -896,7 +903,10 @@ class Block(PandasObject):
                 for s in pairs
             ]
 
-        masks = [extract_bool_array(x) for x in masks]
+        # pandas/core/internals/blocks.py:899: error: Value of type variable "ArrayLike"
+        # of "extract_bool_array" cannot be "Union[ndarray, ExtensionArray, bool]"
+        # [type-var]
+        masks = [extract_bool_array(x) for x in masks]  # type: ignore[type-var]
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
@@ -1025,7 +1035,12 @@ class Block(PandasObject):
                 values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
 
         else:
-            value = setitem_datetimelike_compat(values, len(values[indexer]), value)
+            # pandas/core/internals/blocks.py:1028: error: Argument 1 to
+            # "setitem_datetimelike_compat" has incompatible type "Union[ndarray,
+            # ExtensionArray]"; expected "ndarray"  [arg-type]
+            value = setitem_datetimelike_compat(
+                values, len(values[indexer]), value  # type: ignore[arg-type]
+            )
             values[indexer] = value
 
         if transpose:
@@ -1050,7 +1065,10 @@ class Block(PandasObject):
         List[Block]
         """
         transpose = self.ndim == 2
-        mask, noop = validate_putmask(self.values.T, mask)
+        # pandas/core/internals/blocks.py:1053: error: Value of type variable
+        # "ArrayLike" of "validate_putmask" cannot be "Union[ndarray, ExtensionArray]"
+        # [type-var]
+        mask, noop = validate_putmask(self.values.T, mask)  # type: ignore[type-var]
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
         new_values = self.values  # delay copy if possible.
@@ -1351,7 +1369,10 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        icond, noop = validate_putmask(values, ~cond)
+        # pandas/core/internals/blocks.py:1354: error: Value of type variable
+        # "ArrayLike" of "validate_putmask" cannot be "Union[ndarray, ExtensionArray]"
+        # [type-var]
+        icond, noop = validate_putmask(values, ~cond)  # type: ignore[type-var]
 
         if is_valid_na_for_dtype(other, self.dtype) and not self.is_object:
             other = self.fill_value
@@ -1369,7 +1390,16 @@ class Block(PandasObject):
                 blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
-            alt = setitem_datetimelike_compat(values, icond.sum(), other)
+            # pandas/core/internals/blocks.py:1372: error: Argument 1 to
+            # "setitem_datetimelike_compat" has incompatible type "Union[ndarray,
+            # ExtensionArray]"; expected "ndarray"  [arg-type]
+
+            # pandas/core/internals/blocks.py:1372: error: Argument 2 to
+            # "setitem_datetimelike_compat" has incompatible type "number[Any]";
+            # expected "int"  [arg-type]
+            alt = setitem_datetimelike_compat(
+                values, icond.sum(), other  # type: ignore[arg-type]
+            )
             if alt is not other:
                 result = values.copy()
                 np.putmask(result, icond, alt)
@@ -1460,7 +1490,12 @@ class Block(PandasObject):
         values = self.values
         mask = np.asarray(isna(values))
 
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+        # pandas/core/internals/blocks.py:1463: error: Argument 1 to
+        # "quantile_with_mask" has incompatible type "Union[ndarray, ExtensionArray]";
+        # expected "ndarray"  [arg-type]
+        result = quantile_with_mask(
+            values, mask, fill_value, qs, interpolation, axis  # type: ignore[arg-type]
+        )
 
         return make_block(result, placement=self.mgr_locs, ndim=2)
 

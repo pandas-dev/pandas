@@ -683,14 +683,18 @@ class MultiIndex(Index):
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
                 vals = vals.astype(object)
-            vals = np.array(vals, copy=False)
+            # pandas/core/indexes/multi.py:686: error: Incompatible types in assignment
+            # (expression has type "ndarray", variable has type "Index")  [assignment]
+            vals = np.array(vals, copy=False)  # type: ignore[assignment]
             values.append(vals)
 
         arr = lib.fast_zip(values)
         return arr
 
     @property
-    def values(self) -> np.ndarray:
+    # pandas/core/indexes/multi.py:693: error: Return type "ndarray" of "values"
+    # incompatible with return type "ArrayLike" in supertype "Index"  [override]
+    def values(self) -> np.ndarray:  # type: ignore[override]
         return self._values
 
     @property

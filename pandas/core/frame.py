@@ -3390,7 +3390,10 @@ class DataFrame(NDFrame, OpsMixin):
                     value = value.reindex(cols, axis=1)
 
         # now align rows
-        value = _reindex_for_setitem(value, self.index)
+
+        # pandas/core/frame.py:3393: error: Incompatible types in assignment (expression
+        # has type "ExtensionArray", variable has type "DataFrame")  [assignment]
+        value = _reindex_for_setitem(value, self.index)  # type: ignore[assignment]
         self._set_item_mgr(key, value)
 
     def _iset_item_mgr(self, loc: int, value) -> None:
@@ -3899,9 +3902,17 @@ class DataFrame(NDFrame, OpsMixin):
                 # see https://github.com/numpy/numpy/issues/9464
                 if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
                     converted_dtypes.append(np.int32)
-                    converted_dtypes.append(np.int64)
+                    # pandas/core/frame.py:3902: error: Argument 1 to "append" of "list"
+                    # has incompatible type "Type[signedinteger[Any]]"; expected
+                    # "Type[signedinteger[Any]]"  [arg-type]
+                    converted_dtypes.append(np.int64)  # type: ignore[arg-type]
                 else:
-                    converted_dtypes.append(infer_dtype_from_object(dtype))
+                    # pandas/core/frame.py:3904: error: Argument 1 to "append" of "list"
+                    # has incompatible type "Union[dtype[Any], ExtensionDtype]";
+                    # expected "Type[signedinteger[Any]]"  [arg-type]
+                    converted_dtypes.append(
+                        infer_dtype_from_object(dtype)  # type: ignore[arg-type]
+                    )
             return frozenset(converted_dtypes)
 
         include = check_int_infer_dtype(include)
@@ -4261,8 +4272,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
+            # pandas/core/frame.py:4265: error: Argument 2 to "take_2d_multi" has
+            # incompatible type "Tuple[Any, Any]"; expected "ndarray"  [arg-type]
             new_values = algorithms.take_2d_multi(
-                self.values, indexer, fill_value=fill_value
+                self.values, indexer, fill_value=fill_value  # type: ignore[arg-type]
             )
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
@@ -4947,10 +4960,15 @@ class DataFrame(NDFrame, OpsMixin):
                 arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
-                arrays.append(col)
+                # pandas/core/frame.py:4950: error: Argument 1 to "append" of "list" has
+                # incompatible type "Union[List[Any], ndarray]"; expected "Index"
+                # [arg-type]
+                arrays.append(col)  # type: ignore[arg-type]
                 names.append(None)
             elif isinstance(col, abc.Iterator):
-                arrays.append(list(col))
+                # pandas/core/frame.py:4953: error: Argument 1 to "append" of "list" has
+                # incompatible type "List[Any]"; expected "Index"  [arg-type]
+                arrays.append(list(col))  # type: ignore[arg-type]
                 names.append(None)
             # from here, col can only be a column label
             else:

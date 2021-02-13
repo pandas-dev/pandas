@@ -485,7 +485,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH8628 (PERF): astype category codes instead of astyping array
             try:
                 new_cats = np.asarray(self.categories)
-                new_cats = new_cats.astype(dtype=dtype, copy=copy)
+                # pandas/core/arrays/categorical.py:488: error: Argument "dtype" to
+                # "astype" of "_ArrayOrScalarCommon" has incompatible type
+                # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
+                # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+                # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+                # [arg-type]
+                new_cats = new_cats.astype(
+                    dtype=dtype, copy=copy  # type: ignore[arg-type]
+                )
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,

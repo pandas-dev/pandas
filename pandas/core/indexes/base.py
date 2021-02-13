@@ -4592,7 +4592,9 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        mask, noop = validate_putmask(self._values, mask)
+        # pandas/core/indexes/base.py:4595: error: Value of type variable "ArrayLike" of
+        # "validate_putmask" cannot be "Union[ExtensionArray, ndarray]"  [type-var]
+        mask, noop = validate_putmask(self._values, mask)  # type: ignore[type-var]
         if noop:
             return self.copy()
 
@@ -4608,7 +4610,12 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        converted = setitem_datetimelike_compat(values, mask.sum(), converted)
+        # pandas/core/indexes/base.py:4611: error: Argument 1 to
+        # "setitem_datetimelike_compat" has incompatible type "Union[ExtensionArray,
+        # ndarray]"; expected "ndarray"  [arg-type]
+        converted = setitem_datetimelike_compat(
+            values, mask.sum(), converted  # type: ignore[arg-type]
+        )
         np.putmask(values, mask, converted)
 
         return type(self)._simple_new(values, name=self.name)

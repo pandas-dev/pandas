@@ -562,7 +562,9 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     """
 
     if is_extension_array_dtype(dtype):
-        return dtype.na_value
+        # pandas/core/dtypes/missing.py:565: error: Item "dtype[Any]" of
+        # "Union[dtype[Any], ExtensionDtype]" has no attribute "na_value"  [union-attr]
+        return dtype.na_value  # type: ignore[union-attr]
     elif needs_i8_conversion(dtype):
         return dtype.type("NaT", "ns")
     elif is_float_dtype(dtype):

@@ -1137,7 +1137,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # We've split an object block! Everything we've assumed
                 # about a single block input returning a single block output
                 # is a lie. See eg GH-39329
-                return mgr.as_array()
+
+                # pandas/core/groupby/generic.py:1140: error: Incompatible return value
+                # type (got "ndarray", expected "ExtensionArray")  [return-value]
+                return mgr.as_array()  # type: ignore[return-value]
             else:
                 result = mgr.blocks[0].values
                 return result

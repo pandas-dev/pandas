@@ -496,7 +496,12 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
         new_dtype = ensure_dtype_can_hold_na(result.dtype)
 
         if new_dtype != result.dtype:
-            result = result.astype(new_dtype, copy=True)
+            # pandas/core/dtypes/cast.py:499: error: Argument 1 to "astype" of
+            # "_ArrayOrScalarCommon" has incompatible type "Union[dtype[Any],
+            # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType,
+            # str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+            # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+            result = result.astype(new_dtype, copy=True)  # type: ignore[arg-type]
 
         np.place(result, mask, np.nan)
 
@@ -550,7 +555,10 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
 
     kinds = ["i", "u", "f", "c", "m", "M"]
     if is_valid_na_for_dtype(fill_value, dtype) and dtype.kind in kinds:
-        dtype = ensure_dtype_can_hold_na(dtype)
+        # pandas/core/dtypes/cast.py:553: error: Incompatible types in assignment
+        # (expression has type "Union[dtype[Any], ExtensionDtype]", variable has type
+        # "dtype[Any]")  [assignment]
+        dtype = ensure_dtype_can_hold_na(dtype)  # type: ignore[assignment]
         fv = na_value_for_dtype(dtype)
         return dtype, fv
 

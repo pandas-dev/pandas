@@ -1807,7 +1807,13 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     new_blocks = []
     for dtype, tup_block in grouper:
 
-        values, placement = _stack_arrays(list(tup_block), dtype)
+        # pandas/core/internals/managers.py:1810: error: Argument 2 to "_stack_arrays"
+        # has incompatible type "Union[ExtensionDtype, str, dtype[Any], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]";
+        # expected "dtype[Any]"  [arg-type]
+        values, placement = _stack_arrays(
+            list(tup_block), dtype  # type: ignore[arg-type]
+        )
 
         block = make_block(values, placement=placement, ndim=2)
         new_blocks.append(block)
