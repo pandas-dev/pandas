@@ -536,6 +536,9 @@ class OpenpyxlReader(BaseExcelReader):
         is_readonly = hasattr(sheet, "reset_dimensions")
 
         if is_readonly:
+            # GH 39001
+            # Reading of excel file depends on dimension data being correct but
+            # writers sometimes omit or get it wrong
             sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
