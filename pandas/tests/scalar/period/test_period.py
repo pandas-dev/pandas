@@ -10,7 +10,7 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 
 import pandas as pd
 from pandas import NaT, Period, Timedelta, Timestamp, offsets
@@ -34,9 +34,7 @@ class TestPeriodConstruction:
         i4 = Period("2005", freq="M")
         i5 = Period("2005", freq="m")
 
-        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            i1 != i4
+        assert i1 != i4
         assert i4 == i5
 
         i1 = Period.now("Q")
@@ -1071,11 +1069,9 @@ class TestPeriodComparisons:
         jan = Period("2000-01", "M")
         day = Period("2012-01-01", "D")
 
+        assert not jan == day
+        assert jan != day
         msg = r"Input has different freq=D from Period\(freq=M\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan == day
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan != day
         with pytest.raises(IncompatibleFrequency, match=msg):
             jan < day
         with pytest.raises(IncompatibleFrequency, match=msg):

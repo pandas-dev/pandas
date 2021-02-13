@@ -4,7 +4,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -542,10 +541,16 @@ def test_idxmin_idxmax_returns_int_types(func, values):
         }
     )
     df["c_date"] = pd.to_datetime(df["c_date"])
+    df["c_date_tz"] = df["c_date"].dt.tz_localize("US/Pacific")
+    df["c_timedelta"] = df["c_date"] - df["c_date"].iloc[0]
+    df["c_period"] = df["c_date"].dt.to_period("W")
 
     result = getattr(df.groupby("name"), func)()
 
     expected = DataFrame(values, index=Index(["A", "B"], name="name"))
+    expected["c_date_tz"] = expected["c_date"]
+    expected["c_timedelta"] = expected["c_date"]
+    expected["c_period"] = expected["c_date"]
 
     tm.assert_frame_equal(result, expected)
 
@@ -1015,7 +1020,6 @@ def test_frame_describe_unstacked_format():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 @pytest.mark.filterwarnings(
     "ignore:"
     "indexing past lexsort depth may impact performance:"

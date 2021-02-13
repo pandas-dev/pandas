@@ -152,7 +152,7 @@ class TestSeriesArithmetic:
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
+        msg = "Input has different freq=D from Period\\(freq=A-DEC\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
 

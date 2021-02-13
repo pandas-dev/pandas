@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Optional, Tuple, Type
 import warnings
 
@@ -21,10 +23,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.numeric import NumericArray, NumericDtype
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
-
-from .numeric import NumericArray, NumericDtype
 
 
 class FloatingDtype(NumericDtype):
@@ -45,7 +46,7 @@ class FloatingDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["FloatingArray"]:
+    def construct_array_type(cls) -> Type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 
@@ -242,14 +243,14 @@ class FloatingArray(NumericArray):
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
-    ) -> "FloatingArray":
+    ) -> FloatingArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return FloatingArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype=None, copy: bool = False
-    ) -> "FloatingArray":
+    ) -> FloatingArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 

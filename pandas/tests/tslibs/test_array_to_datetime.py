@@ -6,7 +6,7 @@ import pytest
 import pytz
 
 from pandas._libs import iNaT, tslib
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.compat import np_array_datetime64_compat
 
 from pandas import Timestamp
 import pandas._testing as tm

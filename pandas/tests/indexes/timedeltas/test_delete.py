@@ -1,7 +1,3 @@
-import pytest
-
-from pandas.compat import is_numpy_dev
-
 from pandas import TimedeltaIndex, timedelta_range
 import pandas._testing as tm
 
@@ -64,7 +60,6 @@ class TestTimedeltaIndexDelete:
             assert result.name == expected.name
             assert result.freq == expected.freq
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_delete_doesnt_infer_freq(self):
         # GH#30655 behavior matches DatetimeIndex
 

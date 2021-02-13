@@ -104,7 +104,7 @@ class IndexingMixin:
     """
 
     @property
-    def iloc(self) -> "_iLocIndexer":
+    def iloc(self) -> _iLocIndexer:
         """
         Purely integer-location based indexing for selection by position.
 
@@ -241,7 +241,7 @@ class IndexingMixin:
         return _iLocIndexer("iloc", self)
 
     @property
-    def loc(self) -> "_LocIndexer":
+    def loc(self) -> _LocIndexer:
         """
         Access a group of rows and columns by label(s) or a boolean array.
 
@@ -501,7 +501,7 @@ class IndexingMixin:
         return _LocIndexer("loc", self)
 
     @property
-    def at(self) -> "_AtIndexer":
+    def at(self) -> _AtIndexer:
         """
         Access a single value for a row/column label pair.
 
@@ -550,7 +550,7 @@ class IndexingMixin:
         return _AtIndexer("at", self)
 
     @property
-    def iat(self) -> "_iAtIndexer":
+    def iat(self) -> _iAtIndexer:
         """
         Access a single value for a row/column pair by integer position.
 
@@ -846,6 +846,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
+            if isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in tup
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                raise ValueError("Too many indices")
             if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
@@ -1001,10 +1006,7 @@ class _LocIndexer(_LocationIndexer):
             return False
 
         # just too complicated
-        if any(com.is_bool_indexer(x) for x in tup):
-            return False
-
-        return True
+        return not any(com.is_bool_indexer(x) for x in tup)
 
     def _multi_take(self, tup: Tuple):
         """
@@ -1206,6 +1208,11 @@ class _LocIndexer(_LocationIndexer):
             return {"key": key}
 
         if is_nested_tuple(key, labels):
+            if isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in key
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                raise ValueError("Too many indices")
             return labels.get_locs(key)
 
         elif is_list_like_indexer(key):
@@ -1424,11 +1431,7 @@ class _iLocIndexer(_LocationIndexer):
         if len(key) != self.ndim:
             return False
 
-        for k in key:
-            if not is_integer(k):
-                return False
-
-        return True
+        return all(is_integer(k) for k in key)
 
     def _validate_integer(self, key: int, axis: int) -> None:
         """
@@ -1551,12 +1554,11 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and self.obj._mgr.blocks:
-            if self.ndim > 1:
-                # in case of dict, keys are indices
-                val = list(value.values()) if isinstance(value, dict) else value
-                blk = self.obj._mgr.blocks[0]
-                take_split_path = not blk._can_hold_element(val)
+        if not take_split_path and self.obj._mgr.blocks and self.ndim > 1:
+            # in case of dict, keys are indices
+            val = list(value.values()) if isinstance(value, dict) else value
+            blk = self.obj._mgr.blocks[0]
+            take_split_path = not blk._can_hold_element(val)
 
         # if we have any multi-indexes that have non-trivial slices
         # (not null slices) then we must take the split path, xref
@@ -1850,10 +1852,11 @@ class _iLocIndexer(_LocationIndexer):
                     for i, idx in enumerate(indexer)
                     if i != info_axis
                 )
-                and item_labels.is_unique
             ):
-                self.obj[item_labels[indexer[info_axis]]] = value
-                return
+                selected_item_labels = item_labels[indexer[info_axis]]
+                if len(item_labels.get_indexer_for([selected_item_labels])) == 1:
+                    self.obj[selected_item_labels] = value
+                    return
 
             indexer = maybe_convert_ix(*indexer)
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
@@ -1949,7 +1952,7 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = column_indexer
         return ilocs
 
-    def _align_series(self, indexer, ser: "Series", multiindex_indexer: bool = False):
+    def _align_series(self, indexer, ser: Series, multiindex_indexer: bool = False):
         """
         Parameters
         ----------
@@ -2030,7 +2033,17 @@ class _iLocIndexer(_LocationIndexer):
                         return ser._values.copy()
                     return ser.reindex(ax)._values
 
-        elif is_scalar(indexer):
+        elif is_integer(indexer) and self.ndim == 1:
+            if is_object_dtype(self.obj):
+                return ser
+            ax = self.obj._get_axis(0)
+
+            if ser.index.equals(ax):
+                return ser._values.copy()
+
+            return ser.reindex(ax)._values[indexer]
+
+        elif is_integer(indexer):
             ax = self.obj._get_axis(1)
 
             if ser.index.equals(ax):
@@ -2394,9 +2407,11 @@ def non_reducing_slice(slice_):
         """
         # true when slice does *not* reduce, False when part is a tuple,
         # i.e. MultiIndex slice
-        return (isinstance(part, slice) or is_list_like(part)) and not isinstance(
-            part, tuple
-        )
+        if isinstance(part, tuple):
+            # GH#39421 check for sub-slice:
+            return any((isinstance(s, slice) or is_list_like(s)) for s in part)
+        else:
+            return isinstance(part, slice) or is_list_like(part)
 
     if not is_list_like(slice_):
         if not isinstance(slice_, slice):

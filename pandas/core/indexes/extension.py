@@ -1,11 +1,11 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import Hashable, List, Optional, TypeVar
+from typing import List, TypeVar
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
+from pandas._libs import index as libindex
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -42,7 +42,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     """
     attr = getattr(delegate, name)
 
-    if isinstance(attr, property):
+    if isinstance(attr, property) or type(attr).__name__ == "getset_descriptor":
+        # getset_descriptor i.e. property defined in cython class
         if cache:
 
             def cached(self):
@@ -212,19 +213,6 @@ class ExtensionIndex(Index):
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
 
-    @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self, values: Optional[ExtensionArray] = None, name: Hashable = lib.no_default
-    ):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
-
     @property
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
@@ -270,18 +258,21 @@ class ExtensionIndex(Index):
             # TODO: missing floats, uints
         }[dtype.type]
 
-    def _check_indexing_method(self, method):
-        """
-        Raise if we have a get_indexer `method` that is not supported or valid.
-        """
-        # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
-        if method is None:
-            return
-
     # ---------------------------------------------------------------------
 
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
+
+    def delete(self, loc):
+        """
+        Make new Index with passed location(-s) deleted
+
+        Returns
+        -------
+        new_index : Index
+        """
+        arr = self._data.delete(loc)
+        return type(self)._simple_new(arr, name=self.name)
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat((), {"axis": axis})
@@ -292,13 +283,11 @@ class ExtensionIndex(Index):
         # ExtensionIndex subclasses must override Index.insert
         raise AbstractMethodError(self)
 
-    def _get_unique_index(self, dropna=False):
-        if self.is_unique and not dropna:
+    def _get_unique_index(self):
+        if self.is_unique:
             return self
 
         result = self._data.unique()
-        if dropna and self.hasnans:
-            result = result[~result.isna()]
         return self._shallow_copy(result)
 
     @doc(Index.map)
@@ -359,17 +348,6 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
 
-    def delete(self: _T, loc) -> _T:
-        """
-        Make new Index with passed location(-s) deleted
-
-        Returns
-        -------
-        new_index : Index
-        """
-        arr = self._data.delete(loc)
-        return type(self)._simple_new(arr, name=self.name)
-
     def insert(self: _T, loc: int, item) -> _T:
         """
         Make new Index inserting new item at location. Follows
@@ -394,11 +372,6 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
         new_arr = arr._from_backing_data(new_vals)
         return type(self)._simple_new(new_arr, name=self.name)
-
-    @doc(Index.where)
-    def where(self: _T, cond: np.ndarray, other=None) -> _T:
-        res_values = self._data.where(cond, other)
-        return type(self)._simple_new(res_values, name=self.name)
 
     def putmask(self, mask, value):
         res_values = self._data.copy()
