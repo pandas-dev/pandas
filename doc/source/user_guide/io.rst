@@ -2856,7 +2856,7 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
    Before pandas 1.3.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
    would result in using the ``xlrd`` engine in many cases, including new
    Excel 2007+ (``.xlsx``) files. pandas will now default to using the
-    `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
 
    It is strongly encouraged to install ``openpyxl`` to read Excel 2007+
    (``.xlsx``) files.
