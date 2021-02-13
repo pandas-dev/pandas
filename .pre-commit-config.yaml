@@ -202,7 +202,7 @@ repos:
     hooks:
     -   id: no-string-hints
 -   repo: https://github.com/MarcoGorelli/abs-imports
-    rev: v0.1.3
+    rev: v0.2.0
     hooks:
     -   id: abs-imports
-        args: [--application-directories, '.,./asv_bench']
+        args: [--application-directories, .:asv_bench]

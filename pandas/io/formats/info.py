@@ -20,7 +20,7 @@ from pandas._typing import Dtype, FrameOrSeriesUnion
 
 from pandas.core.indexes.api import Index
 
-from pandas.io.formats import format as fmt
+from pandas.io.formats.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
