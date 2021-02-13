@@ -79,13 +79,15 @@ class MockNumpyLikeArray:
         iter_values = iter(self._values)
 
         def it_outer():
-            for element in iter_values:
-                yield element
+            yield from iter_values
 
         return it_outer()
 
     def __len__(self):
         return len(self._values)
+
+    def __array__(self, t=None):
+        return self._values
 
     @property
     def ndim(self):
@@ -210,10 +212,13 @@ def test_is_array_like():
     assert not inference.is_array_like(123)
 
 
-@pytest.mark.parametrize("eg", (
-    np.array(2),
-    MockNumpyLikeArray(np.array(2)),
-))
+@pytest.mark.parametrize(
+    "eg",
+    (
+        np.array(2),
+        MockNumpyLikeArray(np.array(2)),
+    ),
+)
 def test_assert_almost_equal(eg):
     tm.assert_almost_equal(eg, eg)
 
