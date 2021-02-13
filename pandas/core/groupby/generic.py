@@ -962,11 +962,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func = maybe_mangle_lambdas(func)
 
         op = GroupByApply(self, func, args, kwargs)
-        result, how = op.agg()
-        if how is None:
+        result = op.agg()
+        if result is not None:
             return result
-
-        if result is None:
+        else:
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
@@ -982,7 +981,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result, _ = GroupByApply(
+                    result = GroupByApply(
                         self, [func], args=(), kwargs={"_axis": self.axis}
                     ).agg()
 

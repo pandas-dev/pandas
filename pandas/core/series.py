@@ -3973,7 +3973,7 @@ Keep all original rows and also all original values
             func = dict(kwargs.items())
 
         op = series_apply(self, func, args=args, kwargs=kwargs)
-        result, how = op.agg()
+        result = op.agg()
         if result is None:
 
             # we can be called from an inner function which
