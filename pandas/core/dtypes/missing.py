@@ -424,11 +424,6 @@ def array_equivalent(
     # Slow path when we allow comparing different dtypes.
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
-    try:
-        return np.array_equal(left, right)
-    except:
-        pass
-
     if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
         return _array_equivalent_object(left, right, strict_nan)
 
