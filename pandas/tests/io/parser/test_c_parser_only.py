@@ -305,9 +305,9 @@ def test_grow_boundary_at_cap(c_parser_only):
     parser = c_parser_only
 
     def test_empty_header_read(count):
-        s = StringIO("," * count)
-        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
-        df = parser.read_csv(s)
+        with StringIO("," * count) as s:
+            expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
+            df = parser.read_csv(s)
         tm.assert_frame_equal(df, expected)
 
     for cnt in range(1, 101):
