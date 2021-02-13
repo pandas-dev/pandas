@@ -38,8 +38,11 @@ def _parse_datetime(sas_datetime: float, unit: str):
     if unit == "s":
         return datetime(1960, 1, 1) + timedelta(seconds=sas_datetime)
 
-    if unit == "d":
+    elif unit == "d":
         return datetime(1960, 1, 1) + timedelta(days=sas_datetime)
+
+    else:
+        raise ValueError("unit must be 'd' or 's'")
 
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
@@ -63,12 +66,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     try:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
     except OutOfBoundsDatetime:
-        if unit in ["s", "d"]:
-            s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
-            s_series = cast(pd.Series, s_series)
-            return s_series
-        else:
-            raise ValueError("unit must be 'd' or 's'")
+        s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
+        s_series = cast(pd.Series, s_series)
+        return s_series
 
 
 class _SubheaderPointer:
