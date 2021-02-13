@@ -69,6 +69,7 @@ from pandas._libs cimport util
 from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX, is_nan
 
 from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.period import Period
 
 from pandas._libs.missing cimport (
     C_NA,
@@ -1082,6 +1083,7 @@ _TYPE_MAP = {
     "timedelta64[ns]": "timedelta64",
     "m": "timedelta64",
     "interval": "interval",
+    Period: "period",
 }
 
 # types only exist on certain platform
@@ -1233,8 +1235,8 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base"]:
-        val = getattr(dtype, attr)
+    for attr in ["name", "kind", "base", "type"]:
+        val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
     return None
@@ -1275,6 +1277,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - time
     - period
     - mixed
+    - unknown-array
 
     Raises
     ------
@@ -1287,6 +1290,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'unknown-array' is the catchall for something that *is* an array (has
+      a dtype attribute), but has a dtype unknown to pandas (e.g. external
+      extension array)
 
     Examples
     --------
@@ -1355,12 +1361,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # e.g. categoricals
         dtype = value.dtype
         if not isinstance(dtype, np.dtype):
-            value = _try_infer_map(value.dtype)
-            if value is not None:
-                return value
-
-            # its ndarray-like but we can't handle
-            raise ValueError(f"cannot infer type for {type(value)}")
+            inferred = _try_infer_map(value.dtype)
+            if inferred is not None:
+                return inferred
+            return "unknown-array"
 
         # Unwrap Series/Index
         values = np.asarray(value)
