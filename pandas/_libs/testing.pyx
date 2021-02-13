@@ -14,10 +14,8 @@ from pandas._libs.util cimport (
 )
 
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    isna,
-)
+from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.missing import array_equivalent, isna
 
 
 cdef bint isiterable(obj):
