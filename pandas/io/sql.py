@@ -35,7 +35,7 @@ class DatabaseError(IOError):
 # -----------------------------------------------------------------------------
 # -- Helper functions
 
-_SQLALCHEMY_INSTALLED = None
+_SQLALCHEMY_INSTALLED: Optional[bool] = None
 
 
 def _is_sqlalchemy_connectable(con):

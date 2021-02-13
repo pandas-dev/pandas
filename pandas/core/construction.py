@@ -531,6 +531,11 @@ def _sanitize_ndim(
     elif result.ndim > 1:
         if isinstance(data, np.ndarray):
             raise ValueError("Data must be 1-dimensional")
+        if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
+            # i.e. PandasDtype("O")
+            result = com.asarray_tuplesafe(data, dtype=object)
+            cls = dtype.construct_array_type()
+            result = cls._from_sequence(result, dtype=dtype)
         else:
             result = com.asarray_tuplesafe(data, dtype=dtype)
     return result
@@ -583,9 +588,13 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
         Otherwise an object array is returned.
     """
     # perf shortcut as this is the most common case
-    if isinstance(arr, np.ndarray):
-        if maybe_castable(arr) and not copy and dtype is None:
-            return arr
+    if (
+        isinstance(arr, np.ndarray)
+        and maybe_castable(arr.dtype)
+        and not copy
+        and dtype is None
+    ):
+        return arr
 
     if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
         # create an extension array from its dtype

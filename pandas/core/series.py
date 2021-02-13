@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    pandas_dtype,
     validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
@@ -180,8 +181,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
         RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like
-        and index is None, then the values in the index are used to
-        reindex the Series after it is created using the keys in the data.
+        and index is None, then the keys in the data are used as the index. If the
+        index is not None, the resulting Series is reindexed with the index values.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
@@ -190,6 +191,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         The name to give to the Series.
     copy : bool, default False
         Copy input data.
+
+    Examples
+    --------
+    Constructing Series from a dictionary with an Index specified
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['a', 'b', 'c'])
+    >>> ser
+    a   1
+    b   2
+    c   3
+    dtype: int64
+
+    The keys of the dictionary match with the Index values, hence the Index
+    values have no effect.
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['x', 'y', 'z'])
+    >>> ser
+    x   NaN
+    y   NaN
+    z   NaN
+    dtype: float64
+
+    Note that the Index is first build with the keys from the dictionary.
+    After this the Series is reindexed with the given Index values, hence we
+    get all NaN as a result.
     """
 
     _typ = "series"
@@ -378,7 +406,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(dtype)
+            values = na_value_for_dtype(pandas_dtype(dtype))
             keys = index
         else:
             keys, values = (), []
@@ -403,6 +431,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def _constructor_expanddim(self) -> Type[DataFrame]:
+        """
+        Used when a manipulation result has one higher dimension as the
+        original, such as Series.to_frame()
+        """
         from pandas.core.frame import DataFrame
 
         return DataFrame
@@ -412,7 +444,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index = None
+    _index: Optional[Index] = None
 
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
@@ -1043,17 +1075,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Scalar value.
         takeable : interpret the index as indexers, default False
         """
-        try:
-            if takeable:
-                self._values[label] = value
-            else:
+        if not takeable:
+            try:
                 loc = self.index.get_loc(label)
-                validate_numeric_casting(self.dtype, value)
-                self._values[loc] = value
-        except KeyError:
+            except KeyError:
+                # set using a non-recursive method
+                self.loc[label] = value
+                return
+        else:
+            loc = label
 
-            # set using a non-recursive method
-            self.loc[label] = value
+        self._set_values(loc, value)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -3940,7 +3972,7 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, func, args=args, kwds=kwargs)
+        op = series_apply(self, func, args=args, kwargs=kwargs)
         result, how = op.agg()
         if result is None:
 
@@ -3981,7 +4013,7 @@ Keep all original rows and also all original values
         func: AggFuncType,
         convert_dtype: bool = True,
         args: Tuple[Any, ...] = (),
-        **kwds,
+        **kwargs,
     ) -> FrameOrSeriesUnion:
         """
         Invoke function on values of Series.
@@ -3998,7 +4030,7 @@ Keep all original rows and also all original values
             False, leave as dtype=object.
         args : tuple
             Positional arguments passed to func after the series value.
-        **kwds
+        **kwargs
             Additional keyword arguments passed to func.
 
         Returns
@@ -4079,7 +4111,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        op = series_apply(self, func, convert_dtype, args, kwds)
+        op = series_apply(self, func, convert_dtype, args, kwargs)
         return op.apply()
 
     def _reduce(
@@ -4123,7 +4155,7 @@ Keep all original rows and also all original values
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(
+        new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
         )
         return self._constructor(new_values, index=new_index)
