@@ -2216,10 +2216,7 @@ class DataFrame(NDFrame, OpsMixin):
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
                 raise ValueError(msg)
 
-        # error: Module has no attribute "fromarrays"
-        return np.rec.fromarrays(  # type: ignore[attr-defined]
-            arrays, dtype={"names": names, "formats": formats}
-        )
+        return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
 
     @classmethod
     def _from_arrays(

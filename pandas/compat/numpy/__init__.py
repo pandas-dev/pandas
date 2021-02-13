@@ -6,9 +6,7 @@ import re
 import numpy as np
 
 # numpy versioning
-# pandas\compat\numpy\__init__.py:9: error: Module has no attribute
-# "__version__"; maybe "version"?  [attr-defined]
-_np_version = np.__version__  # type: ignore[attr-defined]
+_np_version = np.__version__
 _nlv = LooseVersion(_np_version)
 np_version_under1p17 = _nlv < LooseVersion("1.17")
 np_version_under1p18 = _nlv < LooseVersion("1.18")

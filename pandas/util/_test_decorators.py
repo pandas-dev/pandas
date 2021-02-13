@@ -201,9 +201,7 @@ def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
-        # pandas\util\_test_decorators.py:193: error: Module has no attribute
-        # "__version__"; maybe "version"?  [attr-defined]
-        np.__version__ < LooseVersion(ver_str),  # type: ignore[attr-defined]
+        np.__version__ < LooseVersion(ver_str),
         *args,
         reason=reason,
     )
