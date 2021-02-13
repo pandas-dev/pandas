@@ -1412,7 +1412,7 @@ def _convert_wrapper(f, conv_dtype):
 
 def _take_2d_multi_object(
     arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value, mask_info
-):
+) -> None:
     # this is not ideal, performance-wise, but it's better than raising
     # an exception (best to optimize in Cython to avoid getting here)
     row_idx, col_idx = indexer
