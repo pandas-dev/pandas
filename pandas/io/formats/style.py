@@ -1640,7 +1640,10 @@ class Styler:
         )
 
     def highlight_max(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
     ) -> Styler:
         """
         Highlight the maximum by shading the background.
@@ -1668,7 +1671,10 @@ class Styler:
         )
 
     def highlight_min(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
     ) -> Styler:
         """
         Highlight the minimum by shading the background.
@@ -1803,7 +1809,7 @@ class _Builtins:
         data: FrameOrSeries,
         props: str = "background-color: yellow;",
         highlight: str = "max",
-    ):
+    ) -> np.ndarray:
         """
         Highlight the value in a Series or DataFrame by func with css-properties
         """
