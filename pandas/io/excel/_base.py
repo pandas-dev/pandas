@@ -130,7 +130,7 @@ engine : str, default None
 
          .. versionadded:: 1.3.0
        - Otherwise ``openpyxl`` will be used.
-       
+
          .. versionchanged:: 1.3.0
 
 converters : dict, default None
