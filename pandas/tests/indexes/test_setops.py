@@ -7,7 +7,6 @@ import pytest
 
 from pandas.core.dtypes.common import is_dtype_equal
 
-import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
