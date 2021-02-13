@@ -34,7 +34,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.fields import RoundTo, round_nsint64
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
-from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
+from pandas._typing import ArrayLike, DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -57,6 +57,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, PeriodDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
 
 from pandas.core import nanops, ops
@@ -381,9 +382,26 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    def view(self, dtype: Optional[Dtype] = None):
+    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         if dtype is None or dtype is self.dtype:
             return type(self)(self._ndarray, dtype=self.dtype)
+
+        if isinstance(dtype, type):
+            # e.g. np.ndarray
+            return self._ndarray.view(dtype)
+
+        dtype = pandas_dtype(dtype)
+        if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
+            cls = dtype.construct_array_type()
+            return cls._simple_new(self.asi8, dtype=dtype)
+        elif dtype == "M8[ns]":
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray._simple_new(self.asi8, dtype=dtype)
+        elif dtype == "m8[ns]":
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._simple_new(self.asi8.view("m8[ns]"), dtype=dtype)
         return self._ndarray.view(dtype=dtype)
 
     # ------------------------------------------------------------------
