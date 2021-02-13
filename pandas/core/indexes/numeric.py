@@ -1,22 +1,19 @@
-from typing import Any
+from typing import Hashable, Optional
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype, DtypeObj, Label
+from pandas._typing import Dtype, DtypeObj
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    is_bool,
-    is_bool_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
-    is_number,
     is_numeric_dtype,
     is_scalar,
     is_signed_integer_dtype,
@@ -25,7 +22,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
@@ -45,12 +41,21 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
     _can_hold_strings = False
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None):
-        cls._validate_dtype(dtype)
+    def __new__(cls, data=None, dtype: Optional[Dtype] = None, copy=False, name=None):
         name = maybe_extract_name(name, data, cls)
 
-        # Coerce to ndarray if not already ndarray or Index
+        subarr = cls._ensure_array(data, dtype, copy)
+        return cls._simple_new(subarr, name=name)
+
+    @classmethod
+    def _ensure_array(cls, data, dtype, copy: bool):
+        """
+        Ensure we have a valid array to pass to _simple_new.
+        """
+        cls._validate_dtype(dtype)
+
         if not isinstance(data, (np.ndarray, Index)):
+            # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
                 raise cls._scalar_data_error(data)
 
@@ -74,7 +79,7 @@ class NumericIndex(Index):
             raise ValueError("Index data must be 1-dimensional")
 
         subarr = np.asarray(subarr)
-        return cls._simple_new(subarr, name=name)
+        return subarr
 
     @classmethod
     def _validate_dtype(cls, dtype: Dtype) -> None:
@@ -106,49 +111,16 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
-        if values is not None and not self._can_hold_na and values.dtype.kind == "f":
+    def _shallow_copy(self, values, name: Hashable = lib.no_default):
+        if not self._can_hold_na and values.dtype.kind == "f":
             name = self.name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
-    @doc(Index._validate_fill_value)
-    def _validate_fill_value(self, value):
-        if is_bool(value) or is_bool_dtype(value):
-            # force conversion to object
-            # so we don't lose the bools
-            raise TypeError
-        elif is_scalar(value) and isna(value):
-            if is_valid_nat_for_dtype(value, self.dtype):
-                value = self._na_value
-                if self.dtype.kind != "f":
-                    # raise so that caller can cast
-                    raise TypeError
-            else:
-                # NaT, np.datetime64("NaT"), np.timedelta64("NaT")
-                raise TypeError
-
-        elif is_scalar(value):
-            if not is_number(value):
-                # e.g. datetime64, timedelta64, datetime, ...
-                raise TypeError
-
-            elif lib.is_complex(value):
-                # at least until we have a ComplexIndx
-                raise TypeError
-
-            elif is_float(value) and self.dtype.kind != "f":
-                if not value.is_integer():
-                    raise TypeError
-                value = int(value)
-
-        return value
-
     def _convert_tolerance(self, tolerance, target):
-        tolerance = np.asarray(tolerance)
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
+        tolerance = super()._convert_tolerance(tolerance, target)
+
         if not np.issubdtype(tolerance.dtype, np.number):
             if tolerance.ndim > 0:
                 raise ValueError(
@@ -362,22 +334,6 @@ class Float64Index(NumericIndex):
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
-    @doc(Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if is_bool(key):
-            # Catch this to avoid accidentally casting to 1.0
-            raise KeyError(key)
-
-        if is_float(key) and np.isnan(key):
-            nan_idxs = self._nan_idxs
-            if not len(nan_idxs):
-                raise KeyError(key)
-            elif len(nan_idxs) == 1:
-                return nan_idxs[0]
-            return nan_idxs
-
-        return super().get_loc(key, method=method, tolerance=tolerance)
-
     # ----------------------------------------------------------------
 
     def _format_native_types(
@@ -394,10 +350,3 @@ class Float64Index(NumericIndex):
             fixed_width=False,
         )
         return formatter.get_result_as_array()
-
-    def __contains__(self, other: Any) -> bool:
-        hash(other)
-        if super().__contains__(other):
-            return True
-
-        return is_float(other) and np.isnan(other) and self.hasnans

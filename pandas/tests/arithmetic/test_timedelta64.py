@@ -16,6 +16,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    offsets,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -30,12 +31,21 @@ def assert_dtype(obj, expected_dtype):
     """
     Helper to check the dtype for a Series, Index, or single-column DataFrame.
     """
-    if isinstance(obj, DataFrame):
-        dtype = obj.dtypes.iat[0]
-    else:
-        dtype = obj.dtype
+    dtype = tm.get_dtype(obj)
 
     assert dtype == expected_dtype
+
+
+def get_expected_name(box, names):
+    if box is DataFrame:
+        # Since we are operating with a DataFrame and a non-DataFrame,
+        # the non-DataFrame is cast to Series and its name ignored.
+        exname = names[0]
+    elif box in [tm.to_array, pd.array]:
+        exname = names[1]
+    else:
+        exname = names[2]
+    return exname
 
 
 # ------------------------------------------------------------------
@@ -70,7 +80,12 @@ class TestTimedelta64ArrayLikeComparisons:
 
     @pytest.mark.parametrize(
         "td_scalar",
-        [timedelta(days=1), Timedelta(days=1), Timedelta(days=1).to_timedelta64()],
+        [
+            timedelta(days=1),
+            Timedelta(days=1),
+            Timedelta(days=1).to_timedelta64(),
+            offsets.Hour(24),
+        ],
     )
     def test_compare_timedeltalike_scalar(self, box_with_array, td_scalar):
         # regression test for GH#5963
@@ -84,7 +99,18 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(actual, expected)
 
-    @pytest.mark.parametrize("invalid", [345600000000000, "a"])
+    @pytest.mark.parametrize(
+        "invalid",
+        [
+            345600000000000,
+            "a",
+            Timestamp.now(),
+            Timestamp.now("UTC"),
+            Timestamp.now().to_datetime64(),
+            Timestamp.now().to_pydatetime(),
+            Timestamp.now().date(),
+        ],
+    )
     def test_td64_comparisons_invalid(self, box_with_array, invalid):
         # GH#13624 for str
         box = box_with_array
@@ -261,7 +287,6 @@ class TestTimedelta64ArithmeticUnsorted:
             tm.assert_index_equal(result, exp)
             assert result.freq == "H"
 
-        idx = TimedeltaIndex(["2H", "4H", "6H", "8H", "10H"], freq="2H", name="x")
         for result in [-idx, np.negative(idx)]:
             assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(
@@ -413,10 +438,6 @@ class TestTimedelta64ArithmeticUnsorted:
         tdi = TimedeltaIndex(["1 days", pd.NaT, "2 days"], name="foo")
         dti = pd.date_range("20130101", periods=3, name="bar")
 
-        # TODO(wesm): unused?
-        # td = Timedelta('1 days')
-        # dt = Timestamp('20130101')
-
         result = tdi - tdi
         expected = TimedeltaIndex(["0 days", pd.NaT, "0 days"], name="foo")
         tm.assert_index_equal(result, expected)
@@ -543,7 +564,6 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = tdi - tdi
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH38630", strict=False)
     def test_tda_add_dt64_object_array(self, box_with_array, tz_naive_fixture):
         # Result should be cast back to DatetimeArray
         box = box_with_array
@@ -555,10 +575,7 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        warn = None
-        if box is not pd.DataFrame or tz_naive_fixture is None:
-            warn = PerformanceWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
 
@@ -671,7 +688,7 @@ class TestAddSubNaTMasking:
         with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
             Timestamp("2000") + pd.to_timedelta(106580, "D")
 
-        _NaT = int(pd.NaT) + 1
+        _NaT = pd.NaT.value + 1
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([106580], "D") + Timestamp("2000")
@@ -1204,19 +1221,12 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
         box = box_with_array
+        exname = get_expected_name(box, names)
 
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
-
-        tdi = TimedeltaIndex(["0 days", "1 day"], name=names[0])
+        tdi = TimedeltaIndex(["0 days", "1 day"], name=names[1])
         tdi = np.array(tdi) if box in [tm.to_array, pd.array] else tdi
-        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
-        expected = Series(
-            [Timedelta(hours=3), Timedelta(days=1, hours=4)], name=names[2]
-        )
+        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[0])
+        expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)], name=exname)
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1230,7 +1240,7 @@ class TestTimedeltaArraylikeAddSubOps:
         assert_dtype(result, "timedelta64[ns]")
 
         expected = Series(
-            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=names[2]
+            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=exname
         )
         expected = tm.box_expected(expected, box)
 
@@ -1310,19 +1320,14 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_add_offset_index(self, names, box_with_array):
         # GH#18849, GH#19744
         box = box_with_array
-
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
         other = np.array(other) if box in [tm.to_array, pd.array] else other
 
         expected = TimedeltaIndex(
-            [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=names[2]
+            [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=exname
         )
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
@@ -1362,13 +1367,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#18824, GH#19744
         box = box_with_array
         xbox = box if box not in [tm.to_array, pd.array] else pd.Index
-        exname = names[2] if box not in [tm.to_array, pd.array] else names[1]
-
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
@@ -1404,15 +1403,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#18849
         box = box_with_array
         box2 = Series if box in [pd.Index, tm.to_array, pd.array] else box
-
-        if box is pd.DataFrame:
-            # Since we are operating with a DataFrame and a non-DataFrame,
-            # the non-DataFrame is cast to Series and its name ignored.
-            exname = names[0]
-        elif box in [tm.to_array, pd.array]:
-            exname = names[1]
-        else:
-            exname = names[2]
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
@@ -2092,11 +2083,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_int_series(self, box_with_array, names, request):
         # GH#19042 test for correct name attachment
         box = box_with_array
-        if box_with_array is pd.DataFrame and names[2] is None:
-            reason = "broadcasts along wrong axis, but doesn't raise"
-            request.node.add_marker(pytest.mark.xfail(reason=reason))
-
-        exname = names[2] if box not in [tm.to_array, pd.array] else names[1]
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(
             ["0days", "1day", "2days", "3days", "4days"], name=names[0]
@@ -2111,11 +2098,8 @@ class TestTimedeltaArraylikeMulDivOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        xbox = (
-            Series
-            if (box is pd.Index or box is tm.to_array or box is pd.array)
-            else box
-        )
+        xbox = get_upcast_box(box, ser)
+
         expected = tm.box_expected(expected, xbox)
 
         result = ser * tdi
@@ -2146,9 +2130,7 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = box
-        if box in [pd.Index, tm.to_array, pd.array] and type(ser) is Series:
-            xbox = Series
+        xbox = get_upcast_box(box, ser)
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)

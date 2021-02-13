@@ -7,8 +7,7 @@ import pytest
 
 import pandas._config.config as cf
 
-from pandas.compat import is_platform_windows
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import is_platform_windows, np_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas import Index, Period, Series, Timestamp, date_range
@@ -54,13 +53,13 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
-    def test_register_by_default(self):
+    def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (
-            "'import matplotlib.units; "
+            "import matplotlib.units; "
             "import pandas as pd; "
             "units = dict(matplotlib.units.registry); "
-            "assert pd.Timestamp in units)'"
+            "assert pd.Timestamp not in units"
         )
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, time, timedelta, tzinfo
 from typing import Optional, Union, cast
 import warnings
@@ -291,7 +293,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @classmethod
     def _simple_new(
         cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
-    ) -> "DatetimeArray":
+    ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         if values.dtype != DT64NS_DTYPE:
             assert values.dtype == "i8"
@@ -572,7 +574,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             data = self.asi8
             length = len(self)
             chunksize = 10000
-            chunks = int(length / chunksize) + 1
+            chunks = (length // chunksize) + 1
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
@@ -1847,12 +1849,12 @@ default 'raise'
             + 1_721_118.5
             + (
                 self.hour
-                + self.minute / 60.0
-                + self.second / 3600.0
-                + self.microsecond / 3600.0 / 1e6
-                + self.nanosecond / 3600.0 / 1e9
+                + self.minute / 60
+                + self.second / 3600
+                + self.microsecond / 3600 / 10 ** 6
+                + self.nanosecond / 3600 / 10 ** 9
             )
-            / 24.0
+            / 24
         )
 
     # -----------------------------------------------------------------
@@ -2077,7 +2079,7 @@ def objects_to_datetime64ns(
             require_iso8601=require_iso8601,
         )
         result = result.reshape(data.shape, order=order)
-    except ValueError as e:
+    except ValueError as err:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
             # If tzaware, these values represent unix timestamps, so we
@@ -2085,7 +2087,7 @@ def objects_to_datetime64ns(
             values = values.reshape(data.shape, order=order)
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
-            raise e
+            raise err
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array

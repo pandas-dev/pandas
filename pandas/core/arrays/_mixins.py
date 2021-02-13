@@ -17,7 +17,7 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
-from pandas.core.algorithms import take, unique
+from pandas.core.algorithms import take, unique, value_counts
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
@@ -275,7 +275,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
-                # TODO: PandasArray didnt used to copy, need tests for this
+                # TODO: PandasArray didn't used to copy, need tests for this
                 new_values = self._from_backing_data(new_values)
             else:
                 # fill with value
@@ -325,7 +325,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
     # __array_function__ methods
 
-    def putmask(self, mask, value):
+    def putmask(self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value) -> None:
         """
         Analogue to np.putmask(self, mask, value)
 
@@ -343,7 +343,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         np.putmask(self._ndarray, mask, value)
 
-    def where(self, mask, value):
+    def where(
+        self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
+    ) -> NDArrayBackedExtensionArrayT:
         """
         Analogue to np.where(mask, self, value)
 
@@ -361,3 +363,41 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
+
+    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc)
+        return self._from_backing_data(res_values)
+
+    # ------------------------------------------------------------------------
+    # Additional array methods
+    #  These are not part of the EA API, but we implement them because
+    #  pandas assumes they're there.
+
+    def value_counts(self, dropna: bool = True):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of NA values.
+
+        Returns
+        -------
+        Series
+        """
+        if self.ndim != 1:
+            raise NotImplementedError
+
+        from pandas import Index, Series
+
+        if dropna:
+            values = self[~self.isna()]._ndarray
+        else:
+            values = self._ndarray
+
+        result = value_counts(values, sort=False, dropna=dropna)
+
+        index_arr = self._from_backing_data(np.asarray(result.index._data))
+        index = Index(index_arr, name=result.index.name)
+        return Series(result._values, index=index, name=result.name)

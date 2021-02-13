@@ -278,7 +278,7 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]])
+@pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
         pd.array(data, dtype="int64")

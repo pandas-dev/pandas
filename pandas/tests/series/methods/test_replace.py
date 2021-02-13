@@ -95,6 +95,8 @@ class TestSeriesReplace:
         expected = ser.ffill()
         result = ser.replace(np.nan)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_datetime64(self):
         # GH 5797
         ser = pd.Series(pd.date_range("20130101", periods=5))
         expected = ser.copy()
@@ -104,6 +106,7 @@ class TestSeriesReplace:
         result = ser.replace(pd.Timestamp("20130103"), pd.Timestamp("20120101"))
         tm.assert_series_equal(result, expected)
 
+    def test_replace_nat_with_tz(self):
         # GH 11792: Test with replacing NaT in a list with tz data
         ts = pd.Timestamp("2015/01/01", tz="UTC")
         s = pd.Series([pd.NaT, pd.Timestamp("2015/01/01", tz="UTC")])
@@ -206,6 +209,15 @@ class TestSeriesReplace:
         s = pd.Series([True, False, True])
         result = s.replace({"asdf": "asdb", True: "yes"})
         expected = pd.Series(["yes", False, "yes"])
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_Int_with_na(self, any_nullable_int_dtype):
+        # GH 38267
+        result = pd.Series([0, None], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, pd.NA], dtype=any_nullable_int_dtype)
+        tm.assert_series_equal(result, expected)
+        result = pd.Series([0, 1], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        result.replace(1, pd.NA, inplace=True)
         tm.assert_series_equal(result, expected)
 
     def test_replace2(self):

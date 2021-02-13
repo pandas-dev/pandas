@@ -50,19 +50,23 @@ class Engine:
         ["int", "float"],
         [np.sum, lambda x: np.sum(x) + 5],
         ["cython", "numba"],
+        ["sum", "max", "min", "median", "mean"],
     )
-    param_names = ["constructor", "dtype", "function", "engine"]
+    param_names = ["constructor", "dtype", "function", "engine", "method"]
 
-    def setup(self, constructor, dtype, function, engine):
+    def setup(self, constructor, dtype, function, engine, method):
         N = 10 ** 3
         arr = (100 * np.random.random(N)).astype(dtype)
         self.data = getattr(pd, constructor)(arr)
 
-    def time_rolling_apply(self, constructor, dtype, function, engine):
+    def time_rolling_apply(self, constructor, dtype, function, engine, method):
         self.data.rolling(10).apply(function, raw=True, engine=engine)
 
-    def time_expanding_apply(self, constructor, dtype, function, engine):
+    def time_expanding_apply(self, constructor, dtype, function, engine, method):
         self.data.expanding().apply(function, raw=True, engine=engine)
+
+    def time_rolling_methods(self, constructor, dtype, function, engine, method):
+        getattr(self.data.rolling(10), method)(engine=engine)
 
 
 class ExpandingMethods:
@@ -136,14 +140,24 @@ class Pairwise:
 
     def setup(self, window, method, pairwise):
         N = 10 ** 4
+        n_groups = 20
+        groups = [i for _ in range(N // n_groups) for i in range(n_groups)]
         arr = np.random.random(N)
         self.df = pd.DataFrame(arr)
+        self.df_group = pd.DataFrame({"A": groups, "B": arr}).groupby("A")
 
     def time_pairwise(self, window, method, pairwise):
         if window is None:
             r = self.df.expanding()
         else:
             r = self.df.rolling(window=window)
+        getattr(r, method)(self.df, pairwise=pairwise)
+
+    def time_groupby(self, window, method, pairwise):
+        if window is None:
+            r = self.df_group.expanding()
+        else:
+            r = self.df_group.rolling(window=window)
         getattr(r, method)(self.df, pairwise=pairwise)
 
 
@@ -171,7 +185,7 @@ class PeakMemFixedWindowMinMax:
     params = ["min", "max"]
 
     def setup(self, operation):
-        N = int(1e6)
+        N = 10 ** 6
         arr = np.random.random(N)
         self.roll = pd.Series(arr).rolling(2)
 
@@ -233,13 +247,26 @@ class GroupbyLargeGroups:
 
     def setup(self):
         N = 100000
-        self.df = pd.DataFrame({"A": [1, 2] * int(N / 2), "B": np.random.randn(N)})
+        self.df = pd.DataFrame({"A": [1, 2] * (N // 2), "B": np.random.randn(N)})
 
     def time_rolling_multiindex_creation(self):
         self.df.groupby("A").rolling(3).mean()
 
 
 class GroupbyEWM:
+
+    params = ["var", "std", "cov", "corr"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        df = pd.DataFrame({"A": range(50), "B": range(50)})
+        self.gb_ewm = df.groupby("A").ewm(com=1.0)
+
+    def time_groupby_method(self, method):
+        getattr(self.gb_ewm, method)()
+
+
+class GroupbyEWMEngine:
 
     params = ["cython", "numba"]
     param_names = ["engine"]
@@ -250,6 +277,24 @@ class GroupbyEWM:
 
     def time_groupby_mean(self, engine):
         self.gb_ewm.mean(engine=engine)
+
+
+def table_method_func(x):
+    return np.sum(x, axis=0) + 1
+
+
+class TableMethod:
+
+    params = ["single", "table"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        self.df = pd.DataFrame(np.random.randn(10, 1000))
+
+    def time_apply(self, method):
+        self.df.rolling(2, method=method).apply(
+            table_method_func, raw=True, engine="numba"
+        )
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

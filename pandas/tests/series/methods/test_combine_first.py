@@ -46,7 +46,7 @@ class TestCombineFirst:
 
         # mixed types
         index = tm.makeStringIndex(20)
-        floats = Series(tm.randn(20), index=index)
+        floats = Series(np.random.randn(20), index=index)
         strings = Series(tm.makeStringIndex(10), index=index[::2])
 
         combined = strings.combine_first(floats)

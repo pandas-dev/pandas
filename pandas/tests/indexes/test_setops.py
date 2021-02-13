@@ -38,31 +38,39 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index, index_fixture2):
+def test_union_different_types(index_flat, index_flat2):
     # This test only considers combinations of indices
     # GH 23525
-    idx1, idx2 = index, index_fixture2
+    idx1 = index_flat
+    idx2 = index_flat2
+
     type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
-    if type_pair in COMPATIBLE_INCONSISTENT_PAIRS:
-        pytest.xfail("This test only considers non compatible indexes.")
-
-    if any(isinstance(idx, pd.MultiIndex) for idx in (idx1, idx2)):
-        pytest.xfail("This test doesn't consider multiindixes.")
-
-    if is_dtype_equal(idx1.dtype, idx2.dtype):
-        pytest.xfail("This test only considers non matching dtypes.")
-
-    # A union with a CategoricalIndex (even as dtype('O')) and a
-    # non-CategoricalIndex can only be made if both indices are monotonic.
-    # This is true before this PR as well.
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
     idx1 = idx1.sort_values()
     idx2 = idx2.sort_values()
 
-    assert idx1.union(idx2).dtype == np.dtype("O")
-    assert idx2.union(idx1).dtype == np.dtype("O")
+    res1 = idx1.union(idx2)
+    res2 = idx2.union(idx1)
+
+    if is_dtype_equal(idx1.dtype, idx2.dtype):
+        assert res1.dtype == idx1.dtype
+        assert res2.dtype == idx1.dtype
+
+    elif type_pair not in COMPATIBLE_INCONSISTENT_PAIRS:
+        # A union with a CategoricalIndex (even as dtype('O')) and a
+        # non-CategoricalIndex can only be made if both indices are monotonic.
+        # This is true before this PR as well.
+        assert res1.dtype == np.dtype("O")
+        assert res2.dtype == np.dtype("O")
+
+    elif idx1.dtype.kind in ["f", "i", "u"] and idx2.dtype.kind in ["f", "i", "u"]:
+        assert res1.dtype == np.dtype("f8")
+        assert res2.dtype == np.dtype("f8")
+
+    else:
+        raise NotImplementedError
 
 
 @pytest.mark.parametrize("idx_fact1,idx_fact2", COMPATIBLE_INCONSISTENT_PAIRS.values())
@@ -248,13 +256,14 @@ class TestSetOps:
         # GH#10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            if is_datetime64tz_dtype(first):
-                with pytest.raises(ValueError, match="Tz-aware"):
-                    # `second.values` casts to tznaive
-                    # TODO: should the symmetric_difference then be the union?
-                    first.symmetric_difference(case)
-                continue
             result = first.symmetric_difference(case)
+
+            if is_datetime64tz_dtype(first):
+                # second.values casts to tznaive
+                expected = first.union(case)
+                tm.assert_index_equal(result, expected)
+                continue
+
             assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
@@ -272,12 +281,12 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_union(self, index, fname, sname, expected_name):
+    def test_corner_union(self, index_flat, fname, sname, expected_name):
         # GH#9943, GH#9862
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
+        index = index_flat
+        if not index.is_unique:
             pytest.skip("Not for MultiIndex or repeated indices")
 
         # Test copy.union(copy)
@@ -318,8 +327,9 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index, fname, sname, expected_name):
-        if isinstance(index, MultiIndex) or not index.is_unique:
+    def test_union_unequal(self, index_flat, fname, sname, expected_name):
+        index = index_flat
+        if not index.is_unique:
             pytest.skip("Not for MultiIndex or repeated indices")
 
         # test copy.union(subset) - need sort for unicode and string
@@ -339,11 +349,11 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_intersect(self, index, fname, sname, expected_name):
+    def test_corner_intersect(self, index_flat, fname, sname, expected_name):
         # GH#35847
         # Test intersections with various name combinations
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
+        index = index_flat
+        if not index.is_unique:
             pytest.skip("Not for MultiIndex or repeated indices")
 
         # Test copy.intersection(copy)
@@ -384,8 +394,9 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index, fname, sname, expected_name):
-        if isinstance(index, MultiIndex) or not index.is_unique:
+    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
+        index = index_flat
+        if not index.is_unique:
             pytest.skip("Not for MultiIndex or repeated indices")
 
         # test copy.intersection(subset) - need sort for unicode and string
@@ -448,7 +459,9 @@ class TestSetOps:
         tm.assert_index_equal(inter, diff, exact=True)
 
 
-@pytest.mark.parametrize("method", ["intersection", "union"])
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
 def test_setop_with_categorical(index, sort, method):
     if isinstance(index, MultiIndex):
         # tested separately in tests.indexes.multi.test_setops
@@ -463,3 +476,19 @@ def test_setop_with_categorical(index, sort, method):
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
     tm.assert_index_equal(result, expected)
+
+
+def test_intersection_duplicates_all_indexes(index):
+    # GH#38743
+    if index.empty:
+        # No duplicates in empty indexes
+        return
+
+    def check_intersection_commutative(left, right):
+        assert left.intersection(right).equals(right.intersection(left))
+
+    idx = index
+    idx_non_unique = idx[[0, 0, 1, 2]]
+
+    check_intersection_commutative(idx, idx_non_unique)
+    assert idx.intersection(idx_non_unique).is_unique

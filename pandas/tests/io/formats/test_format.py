@@ -297,6 +297,9 @@ class TestDataFrameFormatting:
         with option_context("display.max_seq_items", 5):
             assert len(printing.pprint_thing(list(range(1000)))) < 100
 
+        with option_context("display.max_seq_items", 1):
+            assert len(printing.pprint_thing(list(range(1000)))) < 9
+
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == "{1}"
 
@@ -2001,6 +2004,25 @@ c  10  11  12  13  14\
             else:
                 assert ("+10" in line) or skip
             skip = False
+
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
+            (["3.50"], "0    3.50\ndtype: object"),
+            ([1.20, "1.00"], "0     1.2\n1    1.00\ndtype: object"),
+            ([np.nan], "0   NaN\ndtype: float64"),
+            ([None], "0    None\ndtype: object"),
+            (["3.50", np.nan], "0    3.50\n1     NaN\ndtype: object"),
+            ([3.50, np.nan], "0    3.5\n1    NaN\ndtype: float64"),
+            ([3.50, np.nan, "3.50"], "0     3.5\n1     NaN\n2    3.50\ndtype: object"),
+            ([3.50, None, "3.50"], "0     3.5\n1    None\n2    3.50\ndtype: object"),
+        ],
+    )
+    def test_repr_str_float_truncation(self, data, expected):
+        # GH#38708
+        series = Series(data)
+        result = repr(series)
+        assert result == expected
 
     def test_dict_entries(self):
         df = DataFrame({"A": [{"a": 1, "b": 2}]})

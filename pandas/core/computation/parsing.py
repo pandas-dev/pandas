@@ -6,9 +6,7 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import Iterator, Tuple
-
-from pandas._typing import Label
+from typing import Hashable, Iterator, Tuple
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
@@ -35,13 +33,10 @@ def create_valid_python_identifier(name: str) -> str:
 
     # Create a dict with the special characters and their replacement string.
     # EXACT_TOKEN_TYPES contains these special characters
-    # toke.tok_name contains a readable description of the replacement string.
+    # token.tok_name contains a readable description of the replacement string.
     special_characters_replacements = {
         char: f"_{token.tok_name[tokval]}_"
-        # The ignore here is because of a bug in mypy that is resolved in 0.740
-        for char, tokval in (
-            tokenize.EXACT_TOKEN_TYPES.items()  # type: ignore[attr-defined]
-        )
+        for char, tokval in (tokenize.EXACT_TOKEN_TYPES.items())
     }
     special_characters_replacements.update(
         {
@@ -93,7 +88,7 @@ def clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, tokval
 
 
-def clean_column_name(name: "Label") -> "Label":
+def clean_column_name(name: Hashable) -> Hashable:
     """
     Function to emulate the cleaning of a backtick quoted name.
 

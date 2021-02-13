@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    concat,
+    merge,
+)
 import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
 
@@ -693,8 +702,8 @@ class TestJoin:
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
         expected = DataFrame(
             [
-                [pd.Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
-                [pd.Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
+                [Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
+                [Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
             ],
             index=[2, 4],
             columns=["x", "y", "z", "a"],
@@ -814,4 +823,61 @@ def test_join_cross(input_col, output_cols):
     right = DataFrame({input_col: [3, 4]})
     result = left.join(right, how="cross", lsuffix="_x", rsuffix="_y")
     expected = DataFrame({output_cols[0]: [1, 1, 3, 3], output_cols[1]: [3, 4, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_multiindex_one_level(join_type):
+    # GH#36909
+    left = DataFrame(
+        data={"c": 3}, index=pd.MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
+    )
+    right = DataFrame(
+        data={"d": 4}, index=pd.MultiIndex.from_tuples([(2,)], names=("b",))
+    )
+    result = left.join(right, how=join_type)
+    expected = DataFrame(
+        {"c": [3], "d": [4]},
+        index=pd.MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "categories, values",
+    [
+        (["Y", "X"], ["Y", "X", "X"]),
+        ([2, 1], [2, 1, 1]),
+        ([2.5, 1.5], [2.5, 1.5, 1.5]),
+        (
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31")],
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31"), Timestamp("2019-12-31")],
+        ),
+    ],
+)
+def test_join_multiindex_not_alphabetical_categorical(categories, values):
+    # GH#38502
+    left = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(categories, categories=categories),
+            "value": [1, 2],
+        }
+    ).set_index(["first", "second"])
+    right = DataFrame(
+        {
+            "first": ["A", "A", "B"],
+            "second": Categorical(values, categories=categories),
+            "value": [3, 4, 5],
+        }
+    ).set_index(["first", "second"])
+    result = left.join(right, lsuffix="_left", rsuffix="_right")
+
+    expected = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(categories, categories=categories),
+            "value_left": [1, 2],
+            "value_right": [3, 4],
+        }
+    ).set_index(["first", "second"])
     tm.assert_frame_equal(result, expected)

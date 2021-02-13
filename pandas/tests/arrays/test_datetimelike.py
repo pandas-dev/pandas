@@ -5,14 +5,12 @@ import numpy as np
 import pytest
 
 from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
-from pandas.compat.numpy import np_version_under1p18
+from pandas.compat import np_version_under1p18
 
 import pandas as pd
+from pandas import DatetimeIndex, Period, PeriodIndex, TimedeltaIndex
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import Period, PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.arrays import DatetimeArray, PandasArray, PeriodArray, TimedeltaArray
 
 
 # TODO: more freq variants
@@ -84,6 +82,20 @@ class SharedTests:
         # test the index classes while we're at it, GH#23078
         with pytest.raises(ValueError, match="Lengths must match"):
             idx <= idx[[0]]
+
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pd.date_range("2020", periods=3),
+            pd.date_range("2020", periods=3, tz="UTC"),
+            pd.timedelta_range("0 days", periods=3),
+            pd.period_range("2020Q1", periods=3, freq="Q"),
+        ],
+    )
+    def test_compare_with_Categorical(self, result):
+        expected = pd.Categorical(result)
+        assert all(result == expected)
+        assert not any(result != expected)
 
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("as_index", [True, False])
@@ -318,6 +330,19 @@ class SharedTests:
         ):
             arr.searchsorted([str(arr[1]), "baz"])
 
+    def test_getitem_near_implementation_bounds(self):
+        # We only check tz-naive for DTA bc the bounds are slightly different
+        #  for other tzs
+        i8vals = np.asarray([NaT.value + n for n in range(1, 5)], dtype="i8")
+        arr = self.array_cls(i8vals, freq="ns")
+        arr[0]  # should not raise OutOfBoundsDatetime
+
+        index = pd.Index(arr)
+        index[0]  # should not raise OutOfBoundsDatetime
+
+        ser = pd.Series(arr)
+        ser[0]  # should not raise OutOfBoundsDatetime
+
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
         expected = type(arr1d)(arr1d._data[:, np.newaxis], dtype=arr1d.dtype)
@@ -387,6 +412,37 @@ class SharedTests:
         arr[:2] = arr[-2:]
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pd.Index,
+            pd.Series,
+            np.array,
+            list,
+            PandasArray,
+        ],
+    )
+    def test_setitem_object_dtype(self, box, arr1d):
+
+        expected = arr1d.copy()[::-1]
+        if expected.dtype.kind in ["m", "M"]:
+            expected = expected._with_freq(None)
+
+        vals = expected
+        if box is list:
+            vals = list(vals)
+        elif box is np.array:
+            # if we do np.array(x).astype(object) then dt64 and td64 cast to ints
+            vals = np.array(vals.astype(object))
+        elif box is PandasArray:
+            vals = box(np.asarray(vals, dtype=object))
+        else:
+            vals = box(vals).astype(object)
+
+        arr1d[:] = vals
+
+        tm.assert_equal(arr1d, expected)
 
     def test_setitem_strs(self, arr1d, request):
         # Check that we parse strs in both scalar and listlike

@@ -40,23 +40,10 @@ def test_read_xlrd_book(read_ext, frame):
         tm.assert_frame_equal(df, result)
 
 
-# TODO: test for openpyxl as well
-def test_excel_table_sheet_by_index(datapath, read_ext):
-    path = datapath("io", "data", "excel", f"test1{read_ext}")
-    with ExcelFile(path, engine="xlrd") as excel:
-        with pytest.raises(xlrd.XLRDError):
-            pd.read_excel(excel, sheet_name="asdf")
-
-
 def test_excel_file_warning_with_xlsx_file(datapath):
     # GH 29375
     path = datapath("io", "data", "excel", "test1.xlsx")
-    has_openpyxl = (
-        import_optional_dependency(
-            "openpyxl", raise_on_missing=False, on_version="ignore"
-        )
-        is not None
-    )
+    has_openpyxl = import_optional_dependency("openpyxl", errors="ignore") is not None
     if not has_openpyxl:
         with tm.assert_produces_warning(
             FutureWarning,
@@ -72,12 +59,7 @@ def test_excel_file_warning_with_xlsx_file(datapath):
 def test_read_excel_warning_with_xlsx_file(datapath):
     # GH 29375
     path = datapath("io", "data", "excel", "test1.xlsx")
-    has_openpyxl = (
-        import_optional_dependency(
-            "openpyxl", raise_on_missing=False, on_version="ignore"
-        )
-        is not None
-    )
+    has_openpyxl = import_optional_dependency("openpyxl", errors="ignore") is not None
     if not has_openpyxl:
         if xlrd_version >= "2":
             with pytest.raises(

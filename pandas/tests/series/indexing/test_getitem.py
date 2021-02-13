@@ -18,6 +18,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
@@ -121,6 +122,23 @@ class TestSeriesGetitemScalars:
         result = ser[cats[0]]
         assert result == expected
 
+    def test_getitem_str_with_timedeltaindex(self):
+        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        key = "6 days, 23:11:12"
+        indexer = rng.get_loc(key)
+        assert indexer == 133
+
+        result = ser[key]
+        assert result == ser.iloc[133]
+
+        msg = r"^Timedelta\('50 days 00:00:00'\)$"
+        with pytest.raises(KeyError, match=msg):
+            rng.get_loc("50 days")
+        with pytest.raises(KeyError, match=msg):
+            ser["50 days"]
+
 
 class TestSeriesGetitemSlices:
     def test_getitem_partial_str_slice_with_datetimeindex(self):
@@ -203,6 +221,24 @@ class TestSeriesGetitemSlices:
 
         with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
             datetime_series[4.5:10.0]
+
+    def test_getitem_slice_bug(self):
+        ser = Series(range(10), index=list(range(10)))
+        result = ser[-12:]
+        tm.assert_series_equal(result, ser)
+
+        result = ser[-7:]
+        tm.assert_series_equal(result, ser[3:])
+
+        result = ser[:-12]
+        tm.assert_series_equal(result, ser[:0])
+
+    def test_getitem_slice_integers(self):
+        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        result = ser[:4]
+        expected = Series(ser.values[:4], index=[2, 4, 6, 8])
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesGetitemListLike:

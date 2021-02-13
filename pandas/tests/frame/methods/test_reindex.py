@@ -151,7 +151,7 @@ class TestDataFrameSelectReindex:
     def test_reindex_nearest_tz(self, tz_aware_fixture):
         # GH26683
         tz = tz_aware_fixture
-        idx = pd.date_range("2019-01-01", periods=5, tz=tz)
+        idx = date_range("2019-01-01", periods=5, tz=tz)
         df = DataFrame({"x": list(range(5))}, index=idx)
 
         expected = df.head(3)
@@ -176,6 +176,21 @@ class TestDataFrameSelectReindex:
         mask = com.isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
+
+    @pytest.mark.parametrize(
+        "method, exp_values",
+        [("ffill", [0, 1, 2, 3]), ("bfill", [1.0, 2.0, 3.0, np.nan])],
+    )
+    def test_reindex_frame_tz_ffill_bfill(self, frame_or_series, method, exp_values):
+        # GH#38566
+        obj = frame_or_series(
+            [0, 1, 2, 3],
+            index=date_range("2020-01-01 00:00:00", periods=4, freq="H", tz="UTC"),
+        )
+        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="H", tz="UTC")
+        result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
+        expected = frame_or_series(exp_values, index=new_index)
+        tm.assert_equal(result, expected)
 
     def test_reindex_limit(self):
         # GH 28631
@@ -744,7 +759,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_multi_categorical_time(self):
         # https://github.com/pandas-dev/pandas/issues/21390
-        midx = pd.MultiIndex.from_product(
+        midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
                 Categorical(date_range("2012-01-01", periods=3, freq="H")),
@@ -891,3 +906,65 @@ class TestDataFrameSelectReindex:
         result = df.reindex(idx, **kwargs)
         expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "src_idx",
+        [
+            Index([]),
+            CategoricalIndex([]),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "cat_idx",
+        [
+            # No duplicates
+            Index([]),
+            CategoricalIndex([]),
+            Index(["A", "B"]),
+            CategoricalIndex(["A", "B"]),
+            # Duplicates: GH#38906
+            Index(["A", "A"]),
+            CategoricalIndex(["A", "A"]),
+        ],
+    )
+    def test_reindex_empty(self, src_idx, cat_idx):
+        df = DataFrame(columns=src_idx, index=["K"], dtype="f8")
+
+        result = df.reindex(columns=cat_idx)
+        expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]"])
+    def test_reindex_datetimelike_to_object(self, dtype):
+        # GH#39755 dont cast dt64/td64 to ints
+        mi = MultiIndex.from_product([list("ABCDE"), range(2)])
+
+        dti = date_range("2016-01-01", periods=10)
+        fv = np.timedelta64("NaT", "ns")
+        if dtype == "m8[ns]":
+            dti = dti - dti[0]
+            fv = np.datetime64("NaT", "ns")
+
+        ser = Series(dti, index=mi)
+        ser[::3] = pd.NaT
+
+        df = ser.unstack()
+
+        index = df.index.append(Index([1]))
+        columns = df.columns.append(Index(["foo"]))
+
+        res = df.reindex(index=index, columns=columns, fill_value=fv)
+
+        expected = DataFrame(
+            {
+                0: df[0].tolist() + [fv],
+                1: df[1].tolist() + [fv],
+                "foo": np.array(["NaT"] * 6, dtype=fv.dtype),
+            },
+            index=index,
+        )
+        assert (res.dtypes[[0, 1]] == object).all()
+        assert res.iloc[0, 0] is pd.NaT
+        assert res.iloc[-1, 0] is fv
+        assert res.iloc[-1, 1] is fv
+        tm.assert_frame_equal(res, expected)

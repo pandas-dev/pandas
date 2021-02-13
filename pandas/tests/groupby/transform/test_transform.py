@@ -158,15 +158,19 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis_1(transformation_func):
+def test_transform_axis_1(request, transformation_func):
     # GH 36308
+    warn = None
     if transformation_func == "tshift":
-        pytest.xfail("tshift is deprecated")
+        warn = FutureWarning
+
+        request.node.add_marker(pytest.mark.xfail(reason="tshift is deprecated"))
     args = ("ffill",) if transformation_func == "fillna" else ()
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
-    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+    with tm.assert_produces_warning(warn):
+        result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+        expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func == "diff":
         # Result contains nans, so transpose coerces to float
@@ -333,7 +337,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_transformation_func(transformation_func):
+def test_transform_transformation_func(request, transformation_func):
     # GH 30918
     df = DataFrame(
         {
@@ -354,7 +358,7 @@ def test_transform_transformation_func(transformation_func):
             "Current behavior of groupby.tshift is inconsistent with other "
             "transformations. See GH34452 for more details"
         )
-        pytest.xfail(msg)
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
     else:
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
@@ -1038,16 +1042,22 @@ def test_transform_invalid_name_raises():
         Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
     ],
 )
-def test_transform_agg_by_name(reduction_func, obj):
+def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
     g = obj.groupby(np.repeat([0, 1], 3))
 
     if func == "ngroup":  # GH#27468
-        pytest.xfail("TODO: g.transform('ngroup') doesn't work")
-    if func == "size":  # GH#27469
-        pytest.xfail("TODO: g.transform('size') doesn't work")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="TODO: g.transform('ngroup') doesn't work")
+        )
+    if func == "size" and obj.ndim == 2:  # GH#27469
+        request.node.add_marker(
+            pytest.mark.xfail(reason="TODO: g.transform('size') doesn't work")
+        )
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
-        pytest.xfail("TODO: implement SeriesGroupBy.corrwith")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
+        )
 
     args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
 

@@ -3,11 +3,39 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseSetitemTests(BaseExtensionTests):
+    @pytest.fixture(
+        params=[
+            lambda x: x.index,
+            lambda x: list(x.index),
+            lambda x: slice(None),
+            lambda x: slice(0, len(x)),
+            lambda x: range(len(x)),
+            lambda x: list(range(len(x))),
+            lambda x: np.ones(len(x), dtype=bool),
+        ],
+        ids=[
+            "index",
+            "list[index]",
+            "null_slice",
+            "full_slice",
+            "range",
+            "list(range)",
+            "mask",
+        ],
+    )
+    def full_indexer(self, request):
+        """
+        Fixture for an indexer to pass to obj.loc to get/set the full length of the
+        object.
+
+        In some cases, assumes that obj.index is the default RangeIndex.
+        """
+        return request.param
+
     def test_setitem_scalar_series(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
@@ -40,7 +68,7 @@ class BaseSetitemTests(BaseExtensionTests):
             ser[slice(3)] = value
         self.assert_series_equal(ser, original)
 
-    def test_setitem_empty_indxer(self, data, box_in_series):
+    def test_setitem_empty_indexer(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
@@ -251,12 +279,11 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=xpr):
             df["B"] = data[:5]
 
-    @pytest.mark.xfail(reason="GH#20441: setitem on extension types.")
     def test_setitem_tuple_index(self, data):
-        s = pd.Series(data[:2], index=[(0, 0), (0, 1)])
-        expected = pd.Series(data.take([1, 1]), index=s.index)
-        s[(0, 1)] = data[1]
-        self.assert_series_equal(s, expected)
+        ser = pd.Series(data[:2], index=[(0, 0), (0, 1)])
+        expected = pd.Series(data.take([1, 1]), index=ser.index)
+        ser[(0, 0)] = data[1]
+        self.assert_series_equal(ser, expected)
 
     def test_setitem_slice(self, data, box_in_series):
         arr = data[:5].copy()
@@ -282,25 +309,8 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_equal(result, expected)
 
     def test_setitem_slice_mismatch_length_raises(self, data):
-        # This class is a test mixin class, based on which test class it's mixed
-        # with the expected error messages can vary. This regular expression
-        # catches all the variants of those messages. It's formatted as a big OR
-        # statement: /m1|m2|m3|m4/
-
-        msg = (
-            # pandas.core.arrays.period.PeriodArray
-            # pandas.core.arrays.datetimes.DatetimeArray
-            "cannot set using a slice indexer with a different length than the value|"
-            # string_arrow.ArrowStringArray
-            "Length of indexer and values mismatch|"
-            # pandas.tests.extension.decimal.array.DecimalArray
-            "cannot copy sequence with size \\d to array axis with dimension \\d|"
-            # All the rest
-            "could not broadcast input array from "
-            "shape \\(\\d,?\\) into shape \\(\\d,?\\)"
-        )
         arr = data[:5]
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             arr[:1] = arr[:2]
 
     def test_setitem_slice_array(self, data):
@@ -309,17 +319,8 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_extension_array_equal(arr, data[-5:])
 
     def test_setitem_scalar_key_sequence_raise(self, data):
-        # Check the comment on test_setitem_slice_mismatch_length_raises for more info.
-        msg = (
-            # pandas.core.arrays.string_arrow.ArrowStringArray
-            "Must pass scalars with scalar indexer|"
-            # pandas.core.arrays.datetimes.DatetimeArray
-            "Could not convert object to NumPy datetime|"
-            # All the rest
-            "setting an array element with a sequence"
-        )
         arr = data[:5].copy()
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):
@@ -331,30 +332,20 @@ class BaseSetitemTests(BaseExtensionTests):
         assert view1[0] == data[1]
         assert view2[0] == data[1]
 
-    def test_setitem_dataframe_column_with_index(self, data):
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
         df = expected = pd.DataFrame({"data": pd.Series(data)})
         result = pd.DataFrame(index=df.index)
-        result.loc[df.index, "data"] = df["data"]
+
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]
         self.assert_frame_equal(result, expected)
 
-    def test_setitem_dataframe_column_without_index(self, data):
-        # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({"data": pd.Series(data)})
-        result = pd.DataFrame(index=df.index)
-        result.loc[:, "data"] = df["data"]
-        self.assert_frame_equal(result, expected)
-
-    def test_setitem_series_with_index(self, data):
+    def test_setitem_series(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
         ser = expected = pd.Series(data, name="data")
         result = pd.Series(index=ser.index, dtype=object, name="data")
-        result.loc[ser.index] = ser
-        self.assert_series_equal(result, expected)
 
-    def test_setitem_series_without_index(self, data):
-        # https://github.com/pandas-dev/pandas/issues/32395
-        ser = expected = pd.Series(data, name="data")
-        result = pd.Series(index=ser.index, dtype=object, name="data")
-        result.loc[:] = ser
+        key = full_indexer(ser)
+        result.loc[key] = ser
         self.assert_series_equal(result, expected)

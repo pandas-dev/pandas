@@ -29,7 +29,6 @@ method_blocklist = {
         "skew",
         "cumprod",
         "cummax",
-        "rank",
         "pct_change",
         "min",
         "var",
@@ -126,6 +125,9 @@ class Groups:
 
     def time_series_groups(self, data, key):
         self.ser.groupby(self.ser).groups
+
+    def time_series_indices(self, data, key):
+        self.ser.groupby(self.ser).indices
 
 
 class GroupManyLabels:
@@ -625,7 +627,7 @@ class TransformBools:
     def setup(self):
         N = 120000
         transition_points = np.sort(np.random.choice(np.arange(N), 1400))
-        transitions = np.zeros(N, dtype=np.bool)
+        transitions = np.zeros(N, dtype=np.bool_)
         transitions[transition_points] = True
         self.g = transitions.cumsum()
         self.df = DataFrame({"signal": np.random.rand(N)})

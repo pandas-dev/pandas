@@ -1,4 +1,5 @@
 """ parquet compat """
+from __future__ import annotations
 
 from distutils.version import LooseVersion
 import io
@@ -23,7 +24,7 @@ from pandas.io.common import (
 )
 
 
-def get_engine(engine: str) -> "BaseImpl":
+def get_engine(engine: str) -> BaseImpl:
     """ return our implementation """
     if engine == "auto":
         engine = get_option("io.parquet.engine")

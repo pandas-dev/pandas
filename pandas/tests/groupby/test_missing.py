@@ -126,3 +126,12 @@ def test_min_count(func, min_count, value):
     result = getattr(df.groupby("a"), func)(min_count=min_count)
     expected = DataFrame({"b": [value], "c": [np.nan]}, index=Index([1], name="a"))
     tm.assert_frame_equal(result, expected)
+
+
+def test_indicies_with_missing():
+    # GH 9304
+    df = DataFrame({"a": [1, 1, np.nan], "b": [2, 3, 4], "c": [5, 6, 7]})
+    g = df.groupby(["a", "b"])
+    result = g.indices
+    expected = {(1.0, 2): np.array([0]), (1.0, 3): np.array([1])}
+    assert result == expected

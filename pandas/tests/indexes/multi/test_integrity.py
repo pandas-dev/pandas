@@ -137,7 +137,7 @@ def test_dims():
     pass
 
 
-def take_invalid_kwargs():
+def test_take_invalid_kwargs():
     vals = [["A", "B"], [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]]
     idx = MultiIndex.from_product(vals, names=["str", "dt"])
     indices = [1, 2]

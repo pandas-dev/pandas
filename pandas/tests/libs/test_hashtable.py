@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs import hashtable as ht
 
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -30,9 +31,11 @@ def get_allocated_khash_memory():
     "table_type, dtype",
     [
         (ht.PyObjectHashTable, np.object_),
+        (ht.Complex128HashTable, np.complex128),
         (ht.Int64HashTable, np.int64),
         (ht.UInt64HashTable, np.uint64),
         (ht.Float64HashTable, np.float64),
+        (ht.Complex64HashTable, np.complex64),
         (ht.Int32HashTable, np.int32),
         (ht.UInt32HashTable, np.uint32),
         (ht.Float32HashTable, np.float32),
@@ -69,33 +72,36 @@ class TestHashTable:
         assert table.get_item(index + 1) == 41
         assert index + 2 not in table
 
-        with pytest.raises(KeyError) as excinfo:
+        with pytest.raises(KeyError, match=str(index + 2)):
             table.get_item(index + 2)
-        assert str(index + 2) in str(excinfo.value)
 
-    def test_map(self, table_type, dtype):
+    def test_map(self, table_type, dtype, writable):
         # PyObjectHashTable has no map-method
         if table_type != ht.PyObjectHashTable:
             N = 77
             table = table_type()
             keys = np.arange(N).astype(dtype)
             vals = np.arange(N).astype(np.int64) + N
+            keys.flags.writeable = writable
+            vals.flags.writeable = writable
             table.map(keys, vals)
             for i in range(N):
                 assert table.get_item(keys[i]) == i + N
 
-    def test_map_locations(self, table_type, dtype):
+    def test_map_locations(self, table_type, dtype, writable):
         N = 8
         table = table_type()
         keys = (np.arange(N) + N).astype(dtype)
+        keys.flags.writeable = writable
         table.map_locations(keys)
         for i in range(N):
             assert table.get_item(keys[i]) == i
 
-    def test_lookup(self, table_type, dtype):
+    def test_lookup(self, table_type, dtype, writable):
         N = 3
         table = table_type()
         keys = (np.arange(N) + N).astype(dtype)
+        keys.flags.writeable = writable
         table.map_locations(keys)
         result = table.lookup(keys)
         expected = np.arange(N)
@@ -113,7 +119,7 @@ class TestHashTable:
         result = table.lookup(wrong_keys)
         assert np.all(result == -1)
 
-    def test_unique(self, table_type, dtype):
+    def test_unique(self, table_type, dtype, writable):
         if dtype in (np.int8, np.uint8):
             N = 88
         else:
@@ -121,6 +127,7 @@ class TestHashTable:
         table = table_type()
         expected = (np.arange(N) + N).astype(dtype)
         keys = np.repeat(expected, 5)
+        keys.flags.writeable = writable
         unique = table.unique(keys)
         tm.assert_numpy_array_equal(unique, expected)
 
@@ -148,6 +155,39 @@ class TestHashTable:
             del table
             assert get_allocated_khash_memory() == 0
 
+    def test_get_state(self, table_type, dtype):
+        table = table_type(1000)
+        state = table.get_state()
+        assert state["size"] == 0
+        assert state["n_occupied"] == 0
+        assert "n_buckets" in state
+        assert "upper_bound" in state
+
+    def test_no_reallocation(self, table_type, dtype):
+        for N in range(1, 110):
+            keys = np.arange(N).astype(dtype)
+            preallocated_table = table_type(N)
+            n_buckets_start = preallocated_table.get_state()["n_buckets"]
+            preallocated_table.map_locations(keys)
+            n_buckets_end = preallocated_table.get_state()["n_buckets"]
+            # orgininal number of buckets was enough:
+            assert n_buckets_start == n_buckets_end
+            # check with clean table (not too much preallocated)
+            clean_table = table_type()
+            clean_table.map_locations(keys)
+            assert n_buckets_start == clean_table.get_state()["n_buckets"]
+
+
+def test_get_labels_groupby_for_Int64(writable):
+    table = ht.Int64HashTable()
+    vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
+    vals.flags.writeable = writable
+    arr, unique = table.get_labels_groupby(vals)
+    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
+    expected_unique = np.array([1, 2], dtype=np.int64)
+    tm.assert_numpy_array_equal(arr.astype(np.int64), expected_arr)
+    tm.assert_numpy_array_equal(unique, expected_unique)
+
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
@@ -172,11 +212,28 @@ def test_tracemalloc_for_empty_StringHashTable():
         assert get_allocated_khash_memory() == 0
 
 
+def test_no_reallocation_StringHashTable():
+    for N in range(1, 110):
+        keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+        preallocated_table = ht.StringHashTable(N)
+        n_buckets_start = preallocated_table.get_state()["n_buckets"]
+        preallocated_table.map_locations(keys)
+        n_buckets_end = preallocated_table.get_state()["n_buckets"]
+        # orgininal number of buckets was enough:
+        assert n_buckets_start == n_buckets_end
+        # check with clean table (not too much preallocated)
+        clean_table = ht.StringHashTable()
+        clean_table.map_locations(keys)
+        assert n_buckets_start == clean_table.get_state()["n_buckets"]
+
+
 @pytest.mark.parametrize(
     "table_type, dtype",
     [
         (ht.Float64HashTable, np.float64),
         (ht.Float32HashTable, np.float32),
+        (ht.Complex128HashTable, np.complex128),
+        (ht.Complex64HashTable, np.complex64),
     ],
 )
 class TestHashTableWithNans:
@@ -228,9 +285,11 @@ def get_ht_function(fun_name, type_suffix):
     "dtype, type_suffix",
     [
         (np.object_, "object"),
+        (np.complex128, "complex128"),
         (np.int64, "int64"),
         (np.uint64, "uint64"),
         (np.float64, "float64"),
+        (np.complex64, "complex64"),
         (np.int32, "int32"),
         (np.uint32, "uint32"),
         (np.float32, "float32"),
@@ -241,29 +300,42 @@ def get_ht_function(fun_name, type_suffix):
     ],
 )
 class TestHelpFunctions:
-    def test_value_count(self, dtype, type_suffix):
+    def test_value_count(self, dtype, type_suffix, writable):
         N = 43
         value_count = get_ht_function("value_count", type_suffix)
         expected = (np.arange(N) + N).astype(dtype)
         values = np.repeat(expected, 5)
+        values.flags.writeable = writable
         keys, counts = value_count(values, False)
         tm.assert_numpy_array_equal(np.sort(keys), expected)
         assert np.all(counts == 5)
 
-    def test_duplicated_first(self, dtype, type_suffix):
+    def test_value_count_stable(self, dtype, type_suffix, writable):
+        # GH12679
+        value_count = get_ht_function("value_count", type_suffix)
+        values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
+        values.flags.writeable = writable
+        keys, counts = value_count(values, False)
+        tm.assert_numpy_array_equal(keys, values)
+        assert np.all(counts == 1)
+
+    def test_duplicated_first(self, dtype, type_suffix, writable):
         N = 100
         duplicated = get_ht_function("duplicated", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
+        values.flags.writeable = writable
         result = duplicated(values)
         expected = np.ones_like(values, dtype=np.bool_)
         expected[::5] = False
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_yes(self, dtype, type_suffix):
+    def test_ismember_yes(self, dtype, type_suffix, writable):
         N = 127
         ismember = get_ht_function("ismember", type_suffix)
         arr = np.arange(N).astype(dtype)
         values = np.arange(N).astype(dtype)
+        arr.flags.writeable = writable
+        values.flags.writeable = writable
         result = ismember(arr, values)
         expected = np.ones_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
@@ -277,7 +349,7 @@ class TestHelpFunctions:
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_mode(self, dtype, type_suffix):
+    def test_mode(self, dtype, type_suffix, writable):
         if dtype in (np.int8, np.uint8):
             N = 53
         else:
@@ -285,8 +357,26 @@ class TestHelpFunctions:
         mode = get_ht_function("mode", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
+        values.flags.writeable = writable
         result = mode(values, False)
         assert result == 42
+
+    def test_mode_stable(self, dtype, type_suffix, writable):
+        mode = get_ht_function("mode", type_suffix)
+        values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
+        values.flags.writeable = writable
+        keys = mode(values, False)
+        tm.assert_numpy_array_equal(keys, values)
+
+
+def test_modes_with_nans():
+    # GH39007
+    values = np.array([True, pd.NA, np.nan], dtype=np.object_)
+    # pd.Na and np.nan will have the same representative: np.nan
+    # thus we have 2 nans and 1 True
+    modes = ht.mode_object(values, False)
+    assert modes.size == 1
+    assert np.isnan(modes[0])
 
 
 @pytest.mark.parametrize(
@@ -294,6 +384,8 @@ class TestHelpFunctions:
     [
         (np.float64, "float64"),
         (np.float32, "float32"),
+        (np.complex128, "complex128"),
+        (np.complex64, "complex64"),
     ],
 )
 class TestHelpFunctionsWithNans:

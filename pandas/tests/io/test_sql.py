@@ -661,6 +661,12 @@ class _TestSQLApi(PandasSQLTest):
         iris_frame = sql.read_sql_query("SELECT * FROM iris_view", self.conn)
         self._check_iris_loaded_frame(iris_frame)
 
+    def test_read_sql_with_chunksize_no_result(self):
+        query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
+        with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
+        without_batch = sql.read_sql_query(query, self.conn)
+        tm.assert_frame_equal(pd.concat(with_batch), without_batch)
+
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, "test_frame1", self.conn)
         assert sql.has_table("test_frame1", self.conn)
@@ -1160,6 +1166,45 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
         assert isinstance(table.table.c["time"].type, sqltypes.TIMESTAMP)
 
+    @pytest.mark.parametrize(
+        "integer, expected",
+        [
+            ("int8", "SMALLINT"),
+            ("Int8", "SMALLINT"),
+            ("uint8", "SMALLINT"),
+            ("UInt8", "SMALLINT"),
+            ("int16", "SMALLINT"),
+            ("Int16", "SMALLINT"),
+            ("uint16", "INTEGER"),
+            ("UInt16", "INTEGER"),
+            ("int32", "INTEGER"),
+            ("Int32", "INTEGER"),
+            ("uint32", "BIGINT"),
+            ("UInt32", "BIGINT"),
+            ("int64", "BIGINT"),
+            ("Int64", "BIGINT"),
+            (int, "BIGINT" if np.dtype(int).name == "int64" else "INTEGER"),
+        ],
+    )
+    def test_sqlalchemy_integer_mapping(self, integer, expected):
+        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+        df = DataFrame([0, 1], columns=["a"], dtype=integer)
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable("test_type", db, frame=df)
+
+        result = str(table.table.c.a.type)
+        assert result == expected
+
+    @pytest.mark.parametrize("integer", ["uint64", "UInt64"])
+    def test_sqlalchemy_integer_overload_mapping(self, integer):
+        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+        df = DataFrame([0, 1], columns=["a"], dtype=integer)
+        db = sql.SQLDatabase(self.conn)
+        with pytest.raises(
+            ValueError, match="Unsigned 64 bit integer datatype is not supported"
+        ):
+            sql.SQLTable("test_type", db, frame=df)
+
     def test_database_uri_string(self):
 
         # Test read_sql and .to_sql method with a database URI (GH10654)
@@ -1295,7 +1340,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
-        conn = "mysql://root@localhost/pandas_nosetest"
+        conn = "mysql://root@localhost/pandas"
         msg = "Using URI string without sqlalchemy installed"
         with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
@@ -2032,11 +2077,12 @@ class _TestMySQLAlchemy:
     """
 
     flavor = "mysql"
+    port = 3306
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
             connect_args=cls.connect_args,
         )
 
@@ -2101,11 +2147,12 @@ class _TestPostgreSQLAlchemy:
     """
 
     flavor = "postgresql"
+    port = 5432
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+            f"postgresql+{cls.driver}://postgres:postgres@localhost:{cls.port}/pandas"
         )
 
     @classmethod
@@ -2570,7 +2617,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception):
+        with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self):
@@ -2589,7 +2636,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception):
+        with tm.external_error_raised(sqlite3.ProgrammingError):
             tquery("select * from test", con=self.conn)
 
     def test_na_roundtrip(self):
@@ -2721,7 +2768,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
@@ -2741,7 +2788,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
@@ -2855,7 +2902,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="<insert message here>"):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self, request, datapath):
@@ -2876,7 +2923,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="<insert message here>"):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)

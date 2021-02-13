@@ -123,10 +123,12 @@ class TestDatetimeIndexOps:
             ("U", "microsecond"),
         ],
     )
-    def test_resolution(self, tz_naive_fixture, freq, expected):
+    def test_resolution(self, request, tz_naive_fixture, freq, expected):
         tz = tz_naive_fixture
         if freq == "A" and not IS64 and isinstance(tz, tzlocal):
-            pytest.xfail(reason="OverflowError inside tzlocal past 2038")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
+            )
 
         idx = date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
         assert idx.resolution == expected
@@ -314,16 +316,13 @@ class TestDatetimeIndexOps:
         idx = DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
         assert idx._can_hold_na
 
-        tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         assert idx.hasnans is False
-        tm.assert_numpy_array_equal(idx._nan_idxs, np.array([], dtype=np.intp))
 
         idx = DatetimeIndex(["2011-01-01", "NaT"], tz=tz)
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
         assert idx.hasnans is True
-        tm.assert_numpy_array_equal(idx._nan_idxs, np.array([1], dtype=np.intp))
 
     @pytest.mark.parametrize("values", [["20180101", "20180103", "20180105"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "2B", BDay(2), "48H", Hour(48)])

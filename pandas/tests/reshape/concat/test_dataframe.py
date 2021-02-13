@@ -167,14 +167,3 @@ class TestDataFrameConcat:
         # it works
         result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=sort)
         assert list(result.columns) == [("t1", "value"), ("t2", "value")]
-
-    def test_concat_duplicate_indexes(self):
-        # GH#36263 ValueError with non unique indexes
-        df1 = DataFrame([1, 2, 3, 4], index=[0, 1, 1, 4], columns=["a"])
-        df2 = DataFrame([6, 7, 8, 9], index=[0, 0, 1, 3], columns=["b"])
-        result = concat([df1, df2], axis=1)
-        expected = DataFrame(
-            {"a": [1, 1, 2, 3, np.nan, 4], "b": [6, 7, 8, 8, 9, np.nan]},
-            index=Index([0, 0, 1, 1, 3, 4]),
-        )
-        tm.assert_frame_equal(result, expected)

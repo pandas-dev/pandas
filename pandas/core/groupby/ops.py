@@ -5,6 +5,7 @@ These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
+from __future__ import annotations
 
 import collections
 from typing import (
@@ -24,7 +25,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape, final
+from pandas._typing import ArrayLike, F, FrameOrSeries, Shape, final
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -53,6 +54,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import isna, maybe_fill
 
 import pandas.core.algorithms as algorithms
@@ -98,7 +100,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: Sequence["grouper.Grouping"],
+        groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -117,7 +119,7 @@ class BaseGrouper:
         self.dropna = dropna
 
     @property
-    def groupings(self) -> List["grouper.Grouping"]:
+    def groupings(self) -> List[grouper.Grouping]:
         return self._groupings
 
     @property
@@ -133,7 +135,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: FrameOrSeries, axis: int = 0
-    ) -> Iterator[Tuple[Label, FrameOrSeries]]:
+    ) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator
 
@@ -148,7 +150,7 @@ class BaseGrouper:
             yield key, group.__finalize__(data, method="groupby")
 
     @final
-    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
+    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> DataSplitter:
         """
         Returns
         -------
@@ -241,6 +243,11 @@ class BaseGrouper:
     @cache_readonly
     def indices(self):
         """ dict {group name -> group indices} """
+        if len(self.groupings) == 1 and isinstance(
+            self.result_index, ABCCategoricalIndex
+        ):
+            # This shows unused categories in indices GH#38642
+            return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
@@ -254,7 +261,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [ping.name for ping in self.groupings]
 
     @final
@@ -277,8 +284,8 @@ class BaseGrouper:
             return self.groupings[0].groups
         else:
             to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
-            return self.axis.groupby(to_groupby)
+            index = Index(to_groupby)
+            return self.axis.groupby(index)
 
     @final
     @cache_readonly
@@ -495,7 +502,7 @@ class BaseGrouper:
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
         """
-        # TODO: general case implementation overrideable by EAs.
+        # TODO: general case implementation overridable by EAs.
         orig_values = values
 
         if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
@@ -534,7 +541,9 @@ class BaseGrouper:
             result = type(orig_values)._from_sequence(res_values)
             return result
 
-        raise NotImplementedError(values.dtype)
+        raise NotImplementedError(
+            f"function is not implemented for this dtype: {values.dtype}"
+        )
 
     @final
     def _cython_operation(
@@ -897,11 +906,11 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [self.binlabels.name]
 
     @property
-    def groupings(self) -> "List[grouper.Grouping]":
+    def groupings(self) -> List[grouper.Grouping]:
         return [
             grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)
