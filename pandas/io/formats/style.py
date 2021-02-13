@@ -1809,6 +1809,7 @@ class _Builtins:
         data: FrameOrSeries,
         props: str = "background-color: yellow;",
         highlight: str = "max",
+        **kwargs,
     ) -> np.ndarray:
         """
         Highlight the value in a Series or DataFrame by func with css-properties
