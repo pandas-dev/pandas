@@ -209,6 +209,8 @@ def test_is_array_like():
     assert inference.is_array_like(Series([1, 2]))
     assert inference.is_array_like(np.array(["a", "b"]))
     assert inference.is_array_like(Index(["2016-01-01"]))
+    assert inference.is_array_like(np.array([2, 3]))
+    assert inference.is_array_like(MockNumpyLikeArray(np.array([2, 3])))
 
     class DtypeList(list):
         dtype = "special"
@@ -219,6 +221,12 @@ def test_is_array_like():
     assert not inference.is_array_like(())
     assert not inference.is_array_like("foo")
     assert not inference.is_array_like(123)
+
+
+def test_assert_almost_equal():
+    tm.assert_almost_equal(np.array(2), np.array(2))
+    eg = MockNumpyLikeArray(np.array(2))
+    tm.assert_almost_equal(eg, eg)
 
 
 @pytest.mark.parametrize(
