@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
+    is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
@@ -963,9 +964,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         op = GroupByApply(self, func, args, kwargs)
         result = op.agg()
-        if result is not None:
+        if not is_dict_like(func) and result is not None:
             return result
-        else:
+
+        if result is None:
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
