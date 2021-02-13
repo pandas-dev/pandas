@@ -327,9 +327,8 @@ def write_legacy_pickles(output_dir):
 
     pth = f"{platform_name()}.pickle"
 
-    fh = open(os.path.join(output_dir, pth), "wb")
-    pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
-    fh.close()
+    with open(os.path.join(output_dir, pth), "wb") as fh:
+        pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
 
     print(f"created pickle file: {pth}")
 
