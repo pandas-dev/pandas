@@ -722,6 +722,9 @@ class Block(PandasObject):
             values = values.copy()
         return self.make_block_same_class(values, ndim=self.ndim)
 
+    # ---------------------------------------------------------------------
+    # Replace
+
     def replace(
         self,
         to_replace,
@@ -871,6 +874,57 @@ class Block(PandasObject):
                 new_rb.extend(result)
             rb = new_rb
         return rb
+
+    def _replace_coerce(
+        self,
+        to_replace,
+        value,
+        mask: np.ndarray,
+        inplace: bool = True,
+        regex: bool = False,
+    ) -> List[Block]:
+        """
+        Replace value corresponding to the given boolean array with another
+        value.
+
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        mask : np.ndarray[bool]
+            True indicate corresponding element is ignored.
+        inplace : bool, default True
+            Perform inplace modification.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+
+        Returns
+        -------
+        List[Block]
+        """
+        if mask.any():
+            if not regex:
+                nb = self.coerce_to_target_dtype(value)
+                if nb is self and not inplace:
+                    nb = nb.copy()
+                putmask_inplace(nb.values, mask, value)
+                return [nb]
+            else:
+                regex = should_use_regex(regex, to_replace)
+                if regex:
+                    return self._replace_regex(
+                        to_replace,
+                        value,
+                        inplace=inplace,
+                        convert=False,
+                        mask=mask,
+                    )
+                return self.replace(to_replace, value, inplace=inplace, regex=False)
+        return [self]
+
+    # ---------------------------------------------------------------------
 
     def setitem(self, indexer, value):
         """
@@ -1401,55 +1455,6 @@ class Block(PandasObject):
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
 
         return make_block(result, placement=self.mgr_locs, ndim=2)
-
-    def _replace_coerce(
-        self,
-        to_replace,
-        value,
-        mask: np.ndarray,
-        inplace: bool = True,
-        regex: bool = False,
-    ) -> List[Block]:
-        """
-        Replace value corresponding to the given boolean array with another
-        value.
-
-        Parameters
-        ----------
-        to_replace : object or pattern
-            Scalar to replace or regular expression to match.
-        value : object
-            Replacement object.
-        mask : np.ndarray[bool]
-            True indicate corresponding element is ignored.
-        inplace : bool, default True
-            Perform inplace modification.
-        regex : bool, default False
-            If true, perform regular expression substitution.
-
-        Returns
-        -------
-        List[Block]
-        """
-        if mask.any():
-            if not regex:
-                nb = self.coerce_to_target_dtype(value)
-                if nb is self and not inplace:
-                    nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
-                return [nb]
-            else:
-                regex = should_use_regex(regex, to_replace)
-                if regex:
-                    return self._replace_regex(
-                        to_replace,
-                        value,
-                        inplace=inplace,
-                        convert=False,
-                        mask=mask,
-                    )
-                return self.replace(to_replace, value, inplace=inplace, regex=False)
-        return [self]
 
 
 class ExtensionBlock(Block):
