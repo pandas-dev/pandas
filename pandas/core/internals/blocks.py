@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_integer,
     is_list_like,
     is_object_dtype,
     is_sparse,
@@ -442,8 +441,7 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
             putmask_inplace(nb.values, mask, value)
-            # TODO: should be nb._maybe_downcast?
-            return self._maybe_downcast([nb], downcast)
+            return nb._maybe_downcast([nb], downcast)
 
         if noop:
             # we can't process the value, but nothing to do
@@ -2160,10 +2158,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def external_values(self):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
-        if self.is_datetimetz:
-            # avoid FutureWarning in .astype in casting from dt64t to dt64
-            return self.values._data
-        return np.asarray(self.values.astype("datetime64[ns]", copy=False))
+        # avoid FutureWarning in .astype in casting from dt64t to dt64
+        return self.values._data
 
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
@@ -2228,16 +2224,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
     ) -> List[Block]:
-        # TODO(EA2D): if we operated on array_values, TDA.fillna would handle
-        #  raising here.
-        if is_integer(value):
-            # Deprecation GH#24694, GH#19233
-            raise TypeError(
-                "Passing integers to fillna for timedelta64[ns] dtype is no "
-                "longer supported.  To obtain the old behavior, pass "
-                "`pd.Timedelta(seconds=n)` instead."
-            )
-        return super().fillna(value, limit=limit, inplace=inplace, downcast=downcast)
+        values = self.array_values()
+        values = values if inplace else values.copy()
+        new_values = values.fillna(value=value, limit=limit)
+        return [self.make_block_same_class(values=new_values)]
 
 
 class ObjectBlock(Block):
