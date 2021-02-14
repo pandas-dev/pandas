@@ -2075,11 +2075,3 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
-
-
-def convert_tuples_to_css(styles: CSSList) -> str:
-    """
-    Convert CSSList type to string. Used by Excel converter.
-    [('color', 'red'), ('border', '1px solid red')] -> 'color:red;border:1px solid red'
-    """
-    return ";".join([x[0] + ":" + str(x[1]) for x in styles])
