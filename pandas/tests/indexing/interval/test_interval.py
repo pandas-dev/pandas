@@ -31,48 +31,41 @@ class TestIntervalIndex:
         tm.assert_series_equal(expected, indexer_sl(ser)[ser >= 2])
 
     @pytest.mark.parametrize("direction", ["increasing", "decreasing"])
-    def test_nonoverlapping_monotonic(self, direction, closed):
+    def test_nonoverlapping_monotonic(self, direction, closed, indexer_sl):
         tpls = [(0, 1), (2, 3), (4, 5)]
         if direction == "decreasing":
             tpls = tpls[::-1]
 
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
-        s = Series(list("abc"), idx)
+        ser = Series(list("abc"), idx)
 
-        for key, expected in zip(idx.left, s):
+        for key, expected in zip(idx.left, ser):
             if idx.closed_left:
-                assert s[key] == expected
-                assert s.loc[key] == expected
+                assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
-                    s[key]
-                with pytest.raises(KeyError, match=str(key)):
-                    s.loc[key]
+                    indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.right, s):
+        for key, expected in zip(idx.right, ser):
             if idx.closed_right:
-                assert s[key] == expected
-                assert s.loc[key] == expected
+                assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
-                    s[key]
-                with pytest.raises(KeyError, match=str(key)):
-                    s.loc[key]
+                    indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.mid, s):
-            assert s[key] == expected
-            assert s.loc[key] == expected
+        for key, expected in zip(idx.mid, ser):
+            assert indexer_sl(ser)[key] == expected
 
-    def test_non_matching(self, series_with_interval_index):
+    def test_non_matching(self, series_with_interval_index, indexer_sl):
         ser = series_with_interval_index.copy()
 
         # this is a departure from our current
         # indexing scheme, but simpler
         with pytest.raises(KeyError, match=r"^\[-1\]$"):
-            ser.loc[[-1, 3, 4, 5]]
+            indexer_sl(ser)[[-1, 3, 4, 5]]
 
         with pytest.raises(KeyError, match=r"^\[-1\]$"):
-            ser.loc[[-1, 3]]
+            indexer_sl(ser)[[-1, 3]]
 
     @pytest.mark.arm_slow
     def test_large_series(self):

@@ -12,7 +12,7 @@ class TestIntervalIndex:
     def series_with_interval_index(self):
         return Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
-    def test_loc_with_interval(self, series_with_interval_index):
+    def test_loc_with_interval(self, series_with_interval_index, indexer_sl):
 
         # loc with single label / list of labels:
         #   - Intervals: only exact matches
@@ -21,48 +21,27 @@ class TestIntervalIndex:
         ser = series_with_interval_index.copy()
 
         expected = 0
-        result = ser.loc[Interval(0, 1)]
-        assert result == expected
-        result = ser[Interval(0, 1)]
+        result = indexer_sl(ser)[Interval(0, 1)]
         assert result == expected
 
         expected = ser.iloc[3:5]
-        result = ser.loc[[Interval(3, 4), Interval(4, 5)]]
-        tm.assert_series_equal(expected, result)
-        result = ser[[Interval(3, 4), Interval(4, 5)]]
+        result = indexer_sl(ser)[[Interval(3, 4), Interval(4, 5)]]
         tm.assert_series_equal(expected, result)
 
         # missing or not exact
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='left')")):
-            ser.loc[Interval(3, 5, closed="left")]
-
-        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='left')")):
-            ser[Interval(3, 5, closed="left")]
+            indexer_sl(ser)[Interval(3, 5, closed="left")]
 
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
-            ser[Interval(3, 5)]
-
-        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
-            ser.loc[Interval(3, 5)]
-
-        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
-            ser[Interval(3, 5)]
+            indexer_sl(ser)[Interval(3, 5)]
 
         with pytest.raises(
             KeyError, match=re.escape("Interval(-2, 0, closed='right')")
         ):
-            ser.loc[Interval(-2, 0)]
-
-        with pytest.raises(
-            KeyError, match=re.escape("Interval(-2, 0, closed='right')")
-        ):
-            ser[Interval(-2, 0)]
+            indexer_sl(ser)[Interval(-2, 0)]
 
         with pytest.raises(KeyError, match=re.escape("Interval(5, 6, closed='right')")):
-            ser.loc[Interval(5, 6)]
-
-        with pytest.raises(KeyError, match=re.escape("Interval(5, 6, closed='right')")):
-            ser[Interval(5, 6)]
+            indexer_sl(ser)[Interval(5, 6)]
 
     def test_loc_with_scalar(self, series_with_interval_index, indexer_sl):
 
@@ -186,15 +165,15 @@ class TestIntervalIndex:
             with pytest.raises(KeyError, match=msg):
                 ser.loc[1:4]
 
-    def test_non_unique(self):
+    def test_non_unique(self, indexer_sl):
 
         idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])
         ser = Series(range(len(idx)), index=idx)
 
-        result = ser.loc[Interval(1, 3)]
+        result = indexer_sl(ser)[Interval(1, 3)]
         assert result == 0
 
-        result = ser.loc[[Interval(1, 3)]]
+        result = indexer_sl(ser)[[Interval(1, 3)]]
         expected = ser.iloc[0:1]
         tm.assert_series_equal(expected, result)
 
