@@ -527,7 +527,8 @@ class Styler:
                 row_dict["class"] = " ".join(cs)
 
                 row_es.append(row_dict)
-                cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
+                if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
+                    cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
         cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
@@ -736,11 +737,6 @@ class Styler:
         self._compute()
         # TODO: namespace all the pandas keys
         d = self._translate()
-        # filter out empty styles, every cell will have a class
-        # but the list of props may just be [['', '']].
-        # so we have the nested anys below
-        trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
-        d["cellstyle"] = trimmed
         d.update(kwargs)
         return self.template.render(**d)
 
