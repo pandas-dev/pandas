@@ -1931,78 +1931,30 @@ class FloatBlock(NumericBlock):
         return self.make_block(res)
 
 
-class DatetimeLikeBlockMixin(HybridMixin, Block):
-    """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
-
-    @property
-    def _holder(self):
-        return DatetimeArray
-
-    @property
-    def fill_value(self):
-        return np.datetime64("NaT", "ns")
-
-    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
-        """
-        return object dtype as boxed values, such as Timestamps/Timedelta
-        """
-        if is_object_dtype(dtype):
-            # DTA/TDA constructor and astype can handle 2D
-            return self._holder(self.values).astype(object)
-        return self.values
+class HybridBlock(HybridMixin, Block):
+    """
+    Block backed by an NDArrayBackedExtensionArray
+    """
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
         return self.array_values()
 
-    def array_values(self):
-        return self._holder._simple_new(self.values)
+    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
+        """
+        return object dtype as boxed values, such as Timestamps/Timedelta
+        """
+        values = self.array_values()
+        if is_object_dtype(dtype):
+            # DTA/TDA constructor and astype can handle 2D
+            values = values.astype(object)
+        # TODO(EA2D): reshape not needed with 2D EAs
+        return np.asarray(values).reshape(self.shape)
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
         return self.array_values().reshape(self.shape)[key]
-
-    def diff(self, n: int, axis: int = 0) -> List[Block]:
-        """
-        1st discrete difference.
-
-        Parameters
-        ----------
-        n : int
-            Number of periods to diff.
-        axis : int, default 0
-            Axis to diff upon.
-
-        Returns
-        -------
-        A list with a new TimeDeltaBlock.
-
-        Notes
-        -----
-        The arguments here are mimicking shift so they are called correctly
-        by apply.
-        """
-        # TODO(EA2D): reshape not necessary with 2D EAs
-        values = self.array_values().reshape(self.shape)
-
-        new_values = values - values.shift(n, axis=axis)
-        return [
-            TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer, ndim=self.ndim)
-        ]
-
-    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
-        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
-        values = self.array_values()
-        new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        return [self.make_block_same_class(new_values)]
-
-    def to_native_types(self, na_rep="NaT", **kwargs):
-        """ convert to our native types format """
-        arr = self.array_values()
-
-        result = arr._format_native_types(na_rep=na_rep, **kwargs)
-        return self.make_block(result)
 
     def putmask(self, mask, new) -> List[Block]:
         mask = extract_bool_array(mask)
@@ -2031,6 +1983,60 @@ class DatetimeLikeBlockMixin(HybridMixin, Block):
         res_values = res_values.reshape(self.values.shape)
         nb = self.make_block_same_class(res_values)
         return [nb]
+
+    def diff(self, n: int, axis: int = 0) -> List[Block]:
+        """
+        1st discrete difference.
+
+        Parameters
+        ----------
+        n : int
+            Number of periods to diff.
+        axis : int, default 0
+            Axis to diff upon.
+
+        Returns
+        -------
+        A list with a new TimeDeltaBlock.
+
+        Notes
+        -----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
+        # TODO(EA2D): reshape not necessary with 2D EAs
+        values = self.array_values().reshape(self.shape)
+
+        new_values = values - values.shift(n, axis=axis)
+        return [self.make_block(new_values)]
+
+    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
+        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
+        values = self.array_values()
+        new_values = values.shift(periods, fill_value=fill_value, axis=axis)
+        return [self.make_block_same_class(new_values)]
+
+
+class DatetimeLikeBlockMixin(HybridBlock):
+    """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
+
+    @property
+    def _holder(self):
+        return DatetimeArray
+
+    @property
+    def fill_value(self):
+        return np.datetime64("NaT", "ns")
+
+    def array_values(self):
+        return self._holder._simple_new(self.values)
+
+    def to_native_types(self, na_rep="NaT", **kwargs):
+        """ convert to our native types format """
+        arr = self.array_values()
+
+        result = arr._format_native_types(na_rep=na_rep, **kwargs)
+        return self.make_block(result)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
@@ -2125,37 +2131,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
-
-    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
-        """
-        Returns an ndarray of values.
-
-        Parameters
-        ----------
-        dtype : np.dtype
-            Only `object`-like dtypes are respected here (not sure
-            why).
-
-        Returns
-        -------
-        values : ndarray
-            When ``dtype=object``, then and object-dtype ndarray of
-            boxed values is returned. Otherwise, an M8[ns] ndarray
-            is returned.
-
-            DatetimeArray is always 1-d. ``get_values`` will reshape
-            the return value to be the same dimensionality as the
-            block.
-        """
-        values = self.values
-        if is_object_dtype(dtype):
-            values = values.astype(object)
-
-        # TODO(EA2D): reshape unnecessary with 2D EAs
-        # Ensure that our shape is correct for DataFrame.
-        # ExtensionArrays are always 1-D, even in a DataFrame when
-        # the analogous NumPy-backed column would be a 2-D ndarray.
-        return np.asarray(values).reshape(self.shape)
 
     def external_values(self):
         # NB: this is different from np.asarray(self.values), since that
