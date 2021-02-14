@@ -538,9 +538,9 @@ def test_moments_consistency_var_constant(
         # check that variance of constant series is identically 0
         assert not (var_x > 0).any().any()
         expected = x * np.nan
-        expected[count_x >= max(min_periods, 1)] = 0.0
+        expected.mask(count_x >= max(min_periods, 1), 0.0, True)
         if ddof == 1:
-            expected[count_x < 2] = np.nan
+            expected.mask(count_x < 2, np.nan, True)
         tm.assert_equal(var_x, expected)
 
 
@@ -679,7 +679,7 @@ def test_rolling_consistency_constant(consistency_data, window, min_periods, cen
 
         # check mean of constant series
         expected = x * np.nan
-        expected[count_x >= max(min_periods, 1)] = exp
+        expected.mask(count_x >= max(min_periods, 1), exp, True)
         tm.assert_equal(mean_x, expected)
 
         # check correlation of constant series with itself is NaN

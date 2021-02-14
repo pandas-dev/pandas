@@ -337,7 +337,7 @@ class TestDataFrameIndexingWhere:
         do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
-        expected[~do_not_replace] = b
+        expected.mask(~do_not_replace, b, True)
 
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
@@ -347,7 +347,7 @@ class TestDataFrameIndexingWhere:
         do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
-        expected[~do_not_replace] = b
+        expected.mask(~do_not_replace, b, True)
 
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
@@ -368,7 +368,7 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(TypeError, match=msg):
             df > stamp
 
-        result = df[df.iloc[:, :-1] > stamp]
+        result = df.where(df.iloc[:, :-1] > stamp)
 
         expected = df.copy()
         expected.loc[[0, 1], "A"] = np.nan
@@ -379,7 +379,7 @@ class TestDataFrameIndexingWhere:
         # GH 4667
         # setting with None changes dtype
         df = DataFrame({"series": Series(range(10))}).astype(float)
-        df[df > 7] = None
+        df.mask(df > 7, None, True)
         expected = DataFrame(
             {"series": Series([0, 1, 2, 3, 4, 5, 6, 7, np.nan, np.nan])}
         )
@@ -443,7 +443,7 @@ class TestDataFrameIndexingWhere:
         # GH 6345
         expected = DataFrame([[1 + 1j, 2], [np.nan, 4 + 1j]], columns=["a", "b"])
         df = DataFrame([[1 + 1j, 2], [5 + 1j, 4 + 1j]], columns=["a", "b"])
-        df[df.abs() >= 5] = np.nan
+        df.mask(df.abs() >= 5, np.nan, True)
         tm.assert_frame_equal(df, expected)
 
     def test_where_axis(self):

@@ -992,12 +992,12 @@ class TestFrameArithmeticUnsorted:
         filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
-        expected[com.isna(expected)] = None
+        expected.mask(com.isna(expected), None, True)
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df)
         expected = op(filled, filled).astype(object)
-        expected[com.isna(expected)] = None
+        expected.mask(com.isna(expected), None, True)
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df.fillna(7))

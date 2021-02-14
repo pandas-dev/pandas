@@ -323,7 +323,7 @@ class TestDataFrameNonuniqueIndexes:
         result = df[df.C > 6]
         check(result, expected)
 
-    def test_getitem_boolean_frame_with_duplicate_columns(self):
+    def test_boolean_frame_with_duplicate_columns(self):
         dups = ["A", "A", "C", "D"]
 
         # where
@@ -331,13 +331,13 @@ class TestDataFrameNonuniqueIndexes:
             np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"], dtype="float64"
         )
         # `df > 6` is a DataFrame with the same shape+alignment as df
-        expected = df[df > 6]
+        expected = df.where(df > 6)
         expected.columns = dups
         df = DataFrame(np.arange(12).reshape(3, 4), columns=dups, dtype="float64")
-        result = df[df > 6]
+        result = df.where(df > 6)
         check(result, expected)
 
-    def test_getitem_boolean_frame_unaligned_with_duplicate_columns(self):
+    def test_boolean_frame_unaligned_with_duplicate_columns(self):
         # `df.A > 6` is a DataFrame with a different shape from df
         dups = ["A", "A", "C", "D"]
 
@@ -345,7 +345,7 @@ class TestDataFrameNonuniqueIndexes:
         df = DataFrame(np.arange(12).reshape(3, 4), columns=dups, dtype="float64")
         msg = "cannot reindex from a duplicate axis"
         with pytest.raises(ValueError, match=msg):
-            df[df.A > 6]
+            df.where(df.A > 6)
 
     def test_column_dups_indexing(self):
 
@@ -514,7 +514,7 @@ class TestDataFrameNonuniqueIndexes:
         df2 = DataFrame(np.array(data2))
         df = pd.concat([df1, df2], axis=1)
 
-        result = df[df > 2]
+        result = df.where(df > 2)
         expected = DataFrame(
             {i: np.array(col) for i, col in enumerate(expected_data)}
         ).rename(columns={2: 0, 3: 1})

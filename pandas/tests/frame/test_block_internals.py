@@ -101,7 +101,7 @@ class TestDataFrameBlockInternals:
         expected = float_frame.values.copy()
         expected[expected > 1] = 2
 
-        float_frame[float_frame > 1] = 2
+        float_frame.mask(float_frame > 1, 2, True)
         tm.assert_almost_equal(expected, float_frame.values)
 
     def test_constructor_with_convert(self):

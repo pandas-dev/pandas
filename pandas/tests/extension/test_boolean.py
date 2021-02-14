@@ -134,7 +134,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 expected = expected.astype("Float64")
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
-                expected[result.isna()] = np.nan
+                expected.mask(result.isna(), np.nan, True)
             self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):

@@ -332,7 +332,7 @@ def test_count_cross_type():
     )
 
     df = DataFrame(vals, columns=["a", "b", "c", "d"])
-    df[df == 2] = np.nan
+    df.mask(df == 2, np.nan, True)
     expected = df.groupby(["c", "d"]).count()
 
     for t in ["float32", "object"]:

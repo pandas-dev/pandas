@@ -3196,7 +3196,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(key, DataFrame):
             warnings.warn(
                 "Using a DataFrame as an indexer is deprecated "
-                "and will be disallowed in future. Use where instead.",
+                "and will be disallowed in future. Use mask instead.",
                 FutureWarning,
                 stacklevel=2,
             )

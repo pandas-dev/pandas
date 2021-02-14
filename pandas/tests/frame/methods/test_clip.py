@@ -116,9 +116,9 @@ class TestDataFrameClip:
         ub_mask = df >= ub
         mask = ~lb_mask & ~ub_mask
 
-        tm.assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
-        tm.assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
-        tm.assert_frame_equal(clipped_df[mask], df[mask])
+        tm.assert_frame_equal(clipped_df.where(lb_mask), lb.where(lb_mask))
+        tm.assert_frame_equal(clipped_df.where(ub_mask), ub.where(ub_mask))
+        tm.assert_frame_equal(clipped_df.where(mask), df.where(mask))
 
     def test_clip_against_unordered_columns(self):
         # GH#20911

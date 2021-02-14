@@ -451,13 +451,13 @@ class TestDataFrameSetItemCallable:
         tm.assert_frame_equal(df, exp)
 
 
-class TestDataFrameSetItemBooleanMask:
+class TestDataFrameMaskBooleanMask:
     @pytest.mark.parametrize(
         "mask_type",
         [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
         ids=["dataframe", "array"],
     )
-    def test_setitem_boolean_mask(self, mask_type, float_frame):
+    def test_mask_boolean_mask(self, mask_type, float_frame):
 
         # Test for issue #18582
         df = float_frame.copy()
@@ -465,7 +465,7 @@ class TestDataFrameSetItemBooleanMask:
 
         # index with boolean mask
         result = df.copy()
-        result[mask] = np.nan
+        result.mask(mask, np.nan, True)
 
         expected = df.copy()
         expected.values[np.array(mask)] = np.nan

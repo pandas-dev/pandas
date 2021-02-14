@@ -264,30 +264,30 @@ class TestMultiIndexSetItem:
             # GH#33355 dont fall-back to positional when leading level is int
             s[49]
 
-    def test_frame_getitem_setitem_boolean(self, multiindex_dataframe_random_data):
+    def test_frame_where_mask_boolean(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         df = frame.T.copy()
         values = df.values
 
-        result = df[df > 0]
+        result = df.where(df > 0)
         expected = df.where(df > 0)
         tm.assert_frame_equal(result, expected)
 
-        df[df > 0] = 5
+        df.mask(df > 0, 5, True)
         values[values > 0] = 5
         tm.assert_almost_equal(df.values, values)
 
-        df[df == 5] = 0
+        df.mask(df == 5, 0, True)
         values[values == 5] = 0
         tm.assert_almost_equal(df.values, values)
 
         # a df that needs alignment first
-        df[df[:-1] < 0] = 2
+        df.mask(df[:-1] < 0, 2, True)
         np.putmask(values[:-1], values[:-1] < 0, 2)
         tm.assert_almost_equal(df.values, values)
 
-        with pytest.raises(TypeError, match="boolean values only"):
-            df[df * 0] = 2
+        with pytest.raises(TypeError, match="inputs could not be safely coerced"):
+            df.mask(df * 0, 2, True)
 
     def test_frame_getitem_setitem_multislice(self):
         levels = [["t1", "t2"], ["a", "b", "c"]]

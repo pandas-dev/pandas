@@ -236,7 +236,8 @@ class TestDataFrameIndexing:
             return x + 1
 
         df = DataFrame([[-1, 1], [1, -1]])
-        df[df > 0] = inc
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df[df > 0] = inc
 
         expected = DataFrame([[-1, inc], [inc, -1]])
         tm.assert_frame_equal(df, expected)
@@ -259,7 +260,7 @@ class TestDataFrameIndexing:
         result = df["a"].values[0]
         assert result == expected
 
-    def test_getitem_boolean(
+    def test_boolean_indexing(
         self, float_string_frame, mixed_float_frame, mixed_int_frame, datetime_frame
     ):
         # boolean indexing
@@ -278,7 +279,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(subframe_obj, subframe)
 
         with pytest.raises(ValueError, match="Boolean array expected"):
-            datetime_frame[datetime_frame]
+            datetime_frame.where(datetime_frame)
 
         # test that Series work
         indexer_obj = Series(indexer_obj, datetime_frame.index)
@@ -306,7 +307,7 @@ class TestDataFrameIndexing:
                 continue
 
             data = df._get_numeric_data()
-            bif = df[df > 0]
+            bif = df.where(df > 0)
             bifw = DataFrame(
                 {c: np.where(data[c] > 0, data[c], np.nan) for c in data.columns},
                 index=data.index,
@@ -324,7 +325,7 @@ class TestDataFrameIndexing:
                 if bif[c].dtype != bifw[c].dtype:
                     assert bif[c].dtype == df[c].dtype
 
-    def test_getitem_boolean_casting(self, datetime_frame):
+    def test_boolean_casting(self, datetime_frame):
 
         # don't upcast if we don't need to
         df = datetime_frame.copy()
@@ -335,7 +336,7 @@ class TestDataFrameIndexing:
         df["F"] = df["F"].astype("int64")
         df["F1"] = df["F"].copy()
 
-        casted = df[df > 0]
+        casted = df.where(df > 0)
         result = casted.dtypes
         expected = Series(
             [np.dtype("float64")] * 4
@@ -347,7 +348,7 @@ class TestDataFrameIndexing:
 
         # int block splitting
         df.loc[df.index[1:3], ["E1", "F1"]] = 0
-        casted = df[df > 0]
+        casted = df.where(df > 0)
         result = casted.dtypes
         expected = Series(
             [np.dtype("float64")] * 4
@@ -370,16 +371,6 @@ class TestDataFrameIndexing:
         _checkit([True, False, True])
         _checkit([True, True, True])
         _checkit([False, False, False])
-
-    def test_getitem_boolean_iadd(self):
-        arr = np.random.randn(5, 5)
-
-        df = DataFrame(arr.copy(), columns=["A", "B", "C", "D", "E"])
-
-        df[df < 0] += 1
-        arr[arr < 0] += 1
-
-        tm.assert_almost_equal(df.values, arr)
 
     def test_boolean_index_empty_corner(self):
         # #2096
@@ -500,7 +491,7 @@ class TestDataFrameIndexing:
         float_frame["E"][5:10] = np.nan
         assert notna(s[5:10]).all()
 
-    def test_setitem_boolean(self, float_frame):
+    def test_boolean_indexer_assignments(self, float_frame):
         df = float_frame.copy()
         values = float_frame.values
 
@@ -515,38 +506,38 @@ class TestDataFrameIndexing:
         values[values[:, 0] == 4] = 1
         tm.assert_almost_equal(df.values, values)
 
-        df[df > 0] = 5
+        df.mask(df > 0, 5, True)
         values[values > 0] = 5
         tm.assert_almost_equal(df.values, values)
 
-        df[df == 5] = 0
+        df.mask(df == 5, 0, True)
         values[values == 5] = 0
         tm.assert_almost_equal(df.values, values)
 
         # a df that needs alignment first
-        df[df[:-1] < 0] = 2
+        df.mask(df[:-1] < 0, 2, True)
         np.putmask(values[:-1], values[:-1] < 0, 2)
         tm.assert_almost_equal(df.values, values)
 
         # indexed with same shape but rows-reversed df
-        df[df[::-1] == 2] = 3
+        df.mask(df[::-1] == 2, 3, True)
         values[values == 2] = 3
         tm.assert_almost_equal(df.values, values)
 
-        msg = "Must pass DataFrame or 2-d ndarray with boolean values only"
+        msg = "inputs could not be safely coerced"
         with pytest.raises(TypeError, match=msg):
-            df[df * 0] = 2
+            df.mask(df * 0, 2, True)
 
         # index with DataFrame
         mask = df > np.abs(df)
         expected = df.copy()
-        df[df > np.abs(df)] = np.nan
+        df.mask(df > np.abs(df), np.nan, True)
         expected.values[mask.values] = np.nan
         tm.assert_frame_equal(df, expected)
 
         # set from DataFrame
         expected = df.copy()
-        df[df > np.abs(df)] = df * 2
+        df.mask(df > np.abs(df), df * 2, True)
         np.putmask(expected.values, mask.values, df.values * 2)
         tm.assert_frame_equal(df, expected)
 
@@ -733,13 +724,13 @@ class TestDataFrameIndexing:
 
     @pytest.mark.parametrize("dtype", ["float", "int64"])
     @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
-    def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
+    def test_mask_empty_frame_with_boolean(self, dtype, kwargs):
         # see gh-10126
         kwargs["dtype"] = dtype
         df = DataFrame(**kwargs)
 
         df2 = df.copy()
-        df[df > df2] = 47
+        df.mask(df > df2, 47, True)
         tm.assert_frame_equal(df, df2)
 
     def test_setitem_with_empty_listlike(self):
@@ -757,11 +748,11 @@ class TestDataFrameIndexing:
         expected = DataFrame(columns=["foo"]).astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
-    def test_getitem_empty_frame_with_boolean(self):
+    def test_where_empty_frame_with_boolean(self):
         # Test for issue #11859
 
         df = DataFrame()
-        df2 = df[df > 0]
+        df2 = df.where(df > 0)
         tm.assert_frame_equal(df, df2)
 
     def test_getitem_fancy_slice_integers_step(self):
@@ -1554,7 +1545,7 @@ class TestDataFrameIndexing:
         expected = DataFrame(index=idx)
         tm.assert_frame_equal(result, expected)
 
-    def test_setitem_boolean_indexing(self):
+    def test_mask_boolean_indexing(self):
         idx = list(range(3))
         cols = ["A", "B", "C"]
         df1 = DataFrame(
@@ -1572,12 +1563,12 @@ class TestDataFrameIndexing:
             data=np.array([[0.0, 0.5, 1.0], [1.5, 2.0, -1], [-1, -1, -1]], dtype=float),
         )
 
-        df1[df1 > 2.0 * df2] = -1
+        df1.mask(df1 > 2.0 * df2, -1, True)
         tm.assert_frame_equal(df1, expected)
         with pytest.raises(ValueError, match="Item wrong length"):
             df1[df1.index[:-1] > 2] = -1
 
-    def test_getitem_boolean_indexing_mixed(self):
+    def test_mask_boolean_indexing_mixed(self):
         df = DataFrame(
             {
                 0: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
@@ -1609,7 +1600,7 @@ class TestDataFrameIndexing:
 
         # mixed int/float ok
         df2 = df.copy()
-        df2[df2 > 0.3] = 1
+        df2.mask(df2 > 0.3, 1, True)
         expected = df.copy()
         expected.loc[40, 1] = 1
         expected.loc[49, 1] = 1
@@ -1621,7 +1612,7 @@ class TestDataFrameIndexing:
         msg = "not supported between instances|unorderable types"
 
         with pytest.raises(TypeError, match=msg):
-            df[df > 0.3] = 1
+            df.mask(df > 0.3, 1, True)
 
     def test_type_error_multiindex(self):
         # See gh-12218

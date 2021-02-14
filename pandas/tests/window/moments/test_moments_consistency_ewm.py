@@ -127,9 +127,11 @@ def test_ewm_consistency_mean(consistency_data, adjust, ignore_na, min_periods):
     expected = (
         x.multiply(weights).cumsum().divide(weights.cumsum()).fillna(method="ffill")
     )
-    expected[
-        x.expanding().count() < (max(min_periods, 1) if min_periods else 1)
-    ] = np.nan
+    expected.mask(
+        x.expanding().count() < (max(min_periods, 1) if min_periods else 1),
+        np.nan,
+        True,
+    )
     tm.assert_equal(result, expected.astype("float64"))
 
 
@@ -151,7 +153,7 @@ def test_ewm_consistency_consistent(consistency_data, adjust, ignore_na, min_per
 
         # check mean of constant series
         expected = x * np.nan
-        expected[count_x >= max(min_periods, 1)] = exp
+        expected.mask(count_x >= max(min_periods, 1), exp, True)
         tm.assert_equal(mean_x, expected)
 
         # check correlation of constant series with itself is NaN
@@ -179,7 +181,7 @@ def test_ewm_consistency_var_debiasing_factors(
     cum_sum_sq = (weights * weights).cumsum().fillna(method="ffill")
     numerator = cum_sum * cum_sum
     denominator = numerator - cum_sum_sq
-    denominator[denominator <= 0.0] = np.nan
+    denominator.mask(denominator <= 0.0, np.nan, True)
     var_debiasing_factors_x = numerator / denominator
 
     tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
@@ -227,9 +229,9 @@ def test_moments_consistency_var_constant(
         # check that variance of constant series is identically 0
         assert not (var_x > 0).any().any()
         expected = x * np.nan
-        expected[count_x >= max(min_periods, 1)] = 0.0
+        expected.mask(count_x >= max(min_periods, 1), 0.0, True)
         if not bias:
-            expected[count_x < 2] = np.nan
+            expected.mask(count_x < 2, np.nan, True)
         tm.assert_equal(var_x, expected)
 
 
