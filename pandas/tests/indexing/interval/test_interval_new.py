@@ -142,72 +142,49 @@ class TestIntervalIndex:
         with pytest.raises(ValueError, match=msg):
             ser[0 : 4 : Interval(0, 1)]
 
-    def test_loc_with_overlap(self):
+    def test_loc_with_overlap(self, indexer_sl):
 
         idx = IntervalIndex.from_tuples([(1, 5), (3, 7)])
         ser = Series(range(len(idx)), index=idx)
 
         # scalar
         expected = ser
-        result = ser.loc[4]
+        result = indexer_sl(ser)[4]
         tm.assert_series_equal(expected, result)
 
-        result = ser[4]
-        tm.assert_series_equal(expected, result)
-
-        result = ser.loc[[4]]
-        tm.assert_series_equal(expected, result)
-
-        result = ser[[4]]
+        result = indexer_sl(ser)[[4]]
         tm.assert_series_equal(expected, result)
 
         # interval
         expected = 0
-        result = ser.loc[Interval(1, 5)]
-        result == expected
-
-        result = ser[Interval(1, 5)]
+        result = indexer_sl(ser)[Interval(1, 5)]
         result == expected
 
         expected = ser
-        result = ser.loc[[Interval(1, 5), Interval(3, 7)]]
-        tm.assert_series_equal(expected, result)
-
-        result = ser[[Interval(1, 5), Interval(3, 7)]]
+        result = indexer_sl(ser)[[Interval(1, 5), Interval(3, 7)]]
         tm.assert_series_equal(expected, result)
 
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
-            ser.loc[Interval(3, 5)]
+            indexer_sl(ser)[Interval(3, 5)]
 
         with pytest.raises(KeyError, match=r"^\[Interval\(3, 5, closed='right'\)\]$"):
-            ser.loc[[Interval(3, 5)]]
-
-        with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
-            ser[Interval(3, 5)]
-
-        with pytest.raises(KeyError, match=r"^\[Interval\(3, 5, closed='right'\)\]$"):
-            ser[[Interval(3, 5)]]
+            indexer_sl(ser)[[Interval(3, 5)]]
 
         # slices with interval (only exact matches)
         expected = ser
-        result = ser.loc[Interval(1, 5) : Interval(3, 7)]
-        tm.assert_series_equal(expected, result)
-
-        result = ser[Interval(1, 5) : Interval(3, 7)]
+        result = indexer_sl(ser)[Interval(1, 5) : Interval(3, 7)]
         tm.assert_series_equal(expected, result)
 
         msg = "'can only get slices from an IntervalIndex if bounds are"
         " non-overlapping and all monotonic increasing or decreasing'"
         with pytest.raises(KeyError, match=msg):
-            ser.loc[Interval(1, 6) : Interval(3, 8)]
+            indexer_sl(ser)[Interval(1, 6) : Interval(3, 8)]
 
-        with pytest.raises(KeyError, match=msg):
-            ser[Interval(1, 6) : Interval(3, 8)]
-
-        # slices with scalar raise for overlapping intervals
-        # TODO KeyError is the appropriate error?
-        with pytest.raises(KeyError, match=msg):
-            ser.loc[1:4]
+        if indexer_sl is tm.loc:
+            # slices with scalar raise for overlapping intervals
+            # TODO KeyError is the appropriate error?
+            with pytest.raises(KeyError, match=msg):
+                ser.loc[1:4]
 
     def test_non_unique(self):
 
@@ -221,25 +198,21 @@ class TestIntervalIndex:
         expected = ser.iloc[0:1]
         tm.assert_series_equal(expected, result)
 
-    def test_non_unique_moar(self):
+    def test_non_unique_moar(self, indexer_sl):
 
         idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
         ser = Series(range(len(idx)), index=idx)
 
         expected = ser.iloc[[0, 1]]
-        result = ser.loc[Interval(1, 3)]
+        result = indexer_sl(ser)[Interval(1, 3)]
         tm.assert_series_equal(expected, result)
 
         expected = ser
-        result = ser.loc[Interval(1, 3) :]
-        tm.assert_series_equal(expected, result)
-
-        expected = ser
-        result = ser[Interval(1, 3) :]
+        result = indexer_sl(ser)[Interval(1, 3) :]
         tm.assert_series_equal(expected, result)
 
         expected = ser.iloc[[0, 1]]
-        result = ser[[Interval(1, 3)]]
+        result = indexer_sl(ser)[[Interval(1, 3)]]
         tm.assert_series_equal(expected, result)
 
     def test_missing_key_error_message(
