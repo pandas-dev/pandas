@@ -1716,13 +1716,16 @@ def test_pivot_table_values_key_error():
         )
 
 
-def test_empty_dataframe_groupby():
-    # GH8093
+@pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
+def test_empty_dataframe_groupby(keys):
+    # GH8093 & GH39809
     df = DataFrame(columns=["A", "B", "C"])
 
-    result = df.groupby("A").sum()
-    expected = DataFrame(columns=["B", "C"], dtype=np.float64)
-    expected.index.name = "A"
+    result = df.groupby(keys).sum()
+    expected = DataFrame(columns=df.columns.difference(keys))
+    if len(keys) == 1:
+        expected = expected.astype(float)
+        expected.index.name = keys[0]
 
     tm.assert_frame_equal(result, expected)
 

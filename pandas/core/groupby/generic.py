@@ -419,7 +419,11 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_applied_output(
-        self, keys: Index, values: Optional[List[Any]], not_indexed_same: bool = False
+        self,
+        data: Series,
+        keys: Index,
+        values: Optional[List[Any]],
+        not_indexed_same: bool = False,
     ) -> FrameOrSeriesUnion:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -1192,9 +1196,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self.obj._constructor(result, columns=result_columns)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
         if len(keys) == 0:
-            return self.obj._constructor(index=keys)
+            return self.obj._constructor(index=keys, columns=data.columns)
 
         # GH12824
         first_not_none = next(com.not_none(*values), None)

@@ -948,7 +948,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
         return self._wrap_applied_output(
-            keys, values, not_indexed_same=mutated or self.mutated
+            data, keys, values, not_indexed_same=mutated or self.mutated
         )
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -1025,7 +1025,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
     @final
