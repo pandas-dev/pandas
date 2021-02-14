@@ -42,7 +42,9 @@ from pandas.core.generic import NDFrame
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-CSSList = List[Tuple[str, Union[str, int, float]]]
+
+CSSPair = Tuple[str, Union[str, int, float]]
+CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
 CSSStyles = List[Dict[str, CSSProperties]]
 
@@ -404,7 +406,8 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle_map = defaultdict(list)
+        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+
         head = []
 
         for r in range(n_clvls):
@@ -514,7 +517,7 @@ class Styler:
                 }
 
                 # only add an id if the cell has a style
-                props = []
+                props: CSSList = []
                 if self.cell_ids or (r, c) in ctx:
                     row_dict["id"] = "_".join(cs[1:])
                     props.extend(ctx[r, c])
@@ -527,7 +530,7 @@ class Styler:
                 cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
-        cellstyle = [
+        cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in cellstyle_map.items()
         ]
