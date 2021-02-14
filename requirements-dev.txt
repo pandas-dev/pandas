@@ -76,5 +76,5 @@ cftime
 pyreadstat
 tabulate>=0.8.3
 natsort
-git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
-git+https://github.com/numpy/numpydoc
+git+https://github.com/pandas-dev/pydata-sphinx-theme.git@2488b7defbd3d753dd5fcfc890fc4a7e79d25103
+numpydoc < 1.2
