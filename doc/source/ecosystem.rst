@@ -480,8 +480,8 @@ use pint's extension array are then units aware.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``Text Extensions for Pandas <https://ibm.biz/text-extensions-for-pandas>``
-provides extension types to cover common data structures for representing natural language 
-data, plus library integrations that convert the outputs of popular natural language 
+provides extension types to cover common data structures for representing natural language
+data, plus library integrations that convert the outputs of popular natural language
 processing libraries into Pandas DataFrames.
 
 .. _ecosystem.accessors:
