@@ -118,7 +118,7 @@ def cut(
 
     See Also
     --------
-    pandas.qcut : Transform values into quantile-based intervals (bins).
+    qcut : Transform values into quantile-based intervals (bins).
     Categorical : Array type for storing data that come from a
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
@@ -298,7 +298,7 @@ def qcut(
     Transform values into quantile-based intervals (bins).
 
     Use `qcut` when you need to place values into equal (by the number of placed
-    values) of unequal quantile-based bins. For example, placing 1000 values into
+    values) or unequal quantile-based bins. For example, placing 1000 values into
     10 equal bins would result in the lowest 100 values being assigned to the
     lowest bin, the next lowest 100 values being assigned to the next lowest bin,
     etc. The function returns either the interval (bin) for the variable value or
@@ -333,7 +333,7 @@ def qcut(
 
     See Also
     --------
-    pandas.cut : Transform values into pre-defined or equal-width intervals (bins).
+    cut : Transform values into pre-defined or equal-width intervals (bins).
     Categorical : Array type for storing data that come from a
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
