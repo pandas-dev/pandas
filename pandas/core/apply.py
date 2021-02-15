@@ -147,18 +147,14 @@ class Apply(metaclass=abc.ABCMeta):
     def apply(self) -> FrameOrSeriesUnion:
         pass
 
-    def agg(self) -> Tuple[Optional[FrameOrSeriesUnion], Optional[bool]]:
+    def agg(self) -> Optional[FrameOrSeriesUnion]:
         """
         Provide an implementation for the aggregators.
 
         Returns
         -------
-        tuple of result, how.
-
-        Notes
-        -----
-        how can be a string describe the required post-processing, or
-        None if not required.
+        Result of aggregation, or None if agg cannot be performed by
+        this method.
         """
         obj = self.obj
         arg = self.f
@@ -171,23 +167,21 @@ class Apply(metaclass=abc.ABCMeta):
 
         result = self.maybe_apply_str()
         if result is not None:
-            return result, None
+            return result
 
         if is_dict_like(arg):
-            return self.agg_dict_like(_axis), True
+            return self.agg_dict_like(_axis)
         elif is_list_like(arg):
             # we require a list, but not a 'str'
-            return self.agg_list_like(_axis=_axis), None
-        else:
-            result = None
+            return self.agg_list_like(_axis=_axis)
 
         if callable(arg):
             f = obj._get_cython_func(arg)
             if f and not args and not kwargs:
-                return getattr(obj, f)(), None
+                return getattr(obj, f)()
 
         # caller can react
-        return result, True
+        return None
 
     def agg_list_like(self, _axis: int) -> FrameOrSeriesUnion:
         """

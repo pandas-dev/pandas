@@ -510,7 +510,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             return self._apply_tablewise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
-        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
@@ -994,7 +994,7 @@ class Window(BaseWindow):
         axis="",
     )
     def aggregate(self, func, *args, **kwargs):
-        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
 
             # these must apply directly
