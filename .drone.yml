@@ -10,7 +10,7 @@ steps:
   image: python:3.7
   commands:
   - pip install --upgrade pip setuptools
-  - pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis botocore flask moto
+  - pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis
   - python setup.py build_ext -j 4
   - python -m pip install -e . --no-build-isolation --no-use-pep517
   - pytest -m "(not slow and not network and not clipboard and not arm_slow)" -n 2  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas
