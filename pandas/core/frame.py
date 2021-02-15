@@ -7814,6 +7814,12 @@ NaN 12.3   33.0
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
 
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
+
         Examples
         --------
         >>> df = pd.DataFrame([[4, 9]] * 3, columns=['A', 'B'])
@@ -9723,12 +9729,3 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
             "incompatible index of inserted column with frame index"
         ) from err
     return reindexed_value
-
-
-def _maybe_atleast_2d(value):
-    # TODO(EA2D): not needed with 2D EAs
-
-    if is_extension_array_dtype(value):
-        return value
-
-    return np.atleast_2d(np.asarray(value))
