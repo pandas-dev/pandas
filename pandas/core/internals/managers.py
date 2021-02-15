@@ -20,7 +20,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Scalar, Shape
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
@@ -367,9 +367,18 @@ class BlockManager(DataManager):
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
 
-    def operate_scalar(self, other, op) -> BlockManager:
+    def operate_scalar(self, other: Scalar, op) -> BlockManager:
         """
-        TODO fill in
+        Element-wise (arithmetic/comparison/logical) operation with other scalar.
+
+        Parameters
+        ----------
+        other : scalar
+        op : operator function (eg ``operator.add``)
+
+        Returns
+        -------
+        BlockManager
         """
         # Get the appropriate array-op to apply to each column/block's values.
         array_op = ops.get_array_op(op)
@@ -377,14 +386,32 @@ class BlockManager(DataManager):
 
     def operate_array(self, other: ArrayLike, op, axis: int) -> BlockManager:
         """
-        TODO fill in
+        Element-wise (arithmetic/comparison/logical) operation with other array.
+
+        The array is already checked to be of the correct length.
+
+        Parameters
+        ----------
+        other : np.ndarray or ExtensionArray
+        op : operator function (eg ``operator.add``)
+        axis : int
+            Whether to match the array on the index and broadcast along the
+            columns (axis=0) or match the array on the columns and broadcast
+            along the rows (axis=1).
+
+        Returns
+        -------
+        BlockManager
         """
         array_op = ops.get_array_op(op)
         if axis == 1:
+            # match on the columns -> operate on each column array with single
+            # element from other array
             arrays = [
                 array_op(self.iget_values(i), _right) for i, _right in enumerate(other)
             ]
         else:
+            # match on the rows -> operate for each column array with full other array
             arrays = [
                 array_op(self.iget_values(i), other) for i in range(len(self.items))
             ]
@@ -393,15 +420,20 @@ class BlockManager(DataManager):
 
     def operate_manager(self, other: BlockManager, op) -> BlockManager:
         """
-        TODO fill in
+        Element-wise (arithmetic/comparison/logical) operation with other BlockManager.
+
+        The other BlockManager is already aligned with `self`.
+
+        Parameters
+        ----------
+        other : BlockManager
+        op : operator function (eg ``operator.add``)
+
+        Returns
+        -------
+        BlockManager
         """
         array_op = ops.get_array_op(op)
-        return self.operate_blockwise(other, array_op)
-
-    def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
-        """
-        Apply array_op blockwise with another (aligned) BlockManager.
-        """
         return operate_blockwise(self, other, array_op)
 
     def apply(

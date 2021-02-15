@@ -6103,7 +6103,7 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            # TODO operate_blockwise expects a manager of the same type
+            # TODO operate_manager expects a manager of the same type
             bm = self._mgr.operate_manager(right._mgr, func)  # type: ignore[arg-type]
 
         elif isinstance(right, Series):
@@ -6111,7 +6111,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # axis=1 means we want to operate row-by-row
                 assert right.index.equals(self.columns)
             else:
-                assert right.index.equals(self.index)  # Handle other cases later
+                assert right.index.equals(self.index)
 
             right = right._values
             bm = self._mgr.operate_array(right, func, axis)
