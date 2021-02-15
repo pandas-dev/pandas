@@ -100,6 +100,7 @@ from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
+    ensure_wrapped_if_datetimelike,
     extract_array,
     is_empty_data,
     sanitize_array,
@@ -5313,6 +5314,8 @@ Keep all original rows and also all original values
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+        lvalues = ensure_wrapped_if_datetimelike(lvalues)
+        rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
