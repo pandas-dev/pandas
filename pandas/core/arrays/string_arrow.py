@@ -273,7 +273,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             return indices.values, type(self)(encoded.dictionary)
         else:
             np_array = self._data.to_pandas().values
-            return factorize(np_array, na_sentinel=na_sentinel)
+            # error: Incompatible return value type (got "Tuple[Any, Union[Any,
+            # Index]]", expected "Tuple[Any, ExtensionArray]")
+            return factorize(  # type: ignore[return-value]
+                np_array, na_sentinel=na_sentinel
+            )
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> ArrowStringArray:
