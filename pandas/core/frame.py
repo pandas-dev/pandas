@@ -6085,7 +6085,8 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         right : scalar, Series, or DataFrame
         func : arithmetic or comparison operator
-        axis : {None, 0, 1}
+        axis : {0, 1}
+            Only relevant if `right` is a Series.
 
         Returns
         -------
