@@ -373,6 +373,7 @@ class TestChaining:
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df[["c"]][mask] = df[["b"]][mask]
 
+    def test_setting_with_copy_bug_no_warning(self):
         # invalid warning as we are returning a new object
         # GH 8730
         df1 = DataFrame({"x": Series(["a", "b", "c"]), "y": Series(["d", "e", "f"])})

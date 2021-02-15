@@ -125,6 +125,7 @@ class TestFancy:
         expected = pd.Float64Index([1, 2, np.inf])
         tm.assert_index_equal(result, expected)
 
+    def test_inf_upcast_empty(self):
         # Test with np.inf in columns
         df = DataFrame()
         df.loc[0, 0] = 1
@@ -148,6 +149,9 @@ class TestFancy:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("val", [3.14, "wxyz"])
+    def test_setitem_dtype_upcast2(self, val):
+
         # GH10280
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(2, 3),
@@ -155,19 +159,19 @@ class TestFancy:
             columns=["foo", "bar", "baz"],
         )
 
-        for val in [3.14, "wxyz"]:
-            left = df.copy()
-            left.loc["a", "bar"] = val
-            right = DataFrame(
-                [[0, val, 2], [3, 4, 5]],
-                index=list("ab"),
-                columns=["foo", "bar", "baz"],
-            )
+        left = df.copy()
+        left.loc["a", "bar"] = val
+        right = DataFrame(
+            [[0, val, 2], [3, 4, 5]],
+            index=list("ab"),
+            columns=["foo", "bar", "baz"],
+        )
 
-            tm.assert_frame_equal(left, right)
-            assert is_integer_dtype(left["foo"])
-            assert is_integer_dtype(left["baz"])
+        tm.assert_frame_equal(left, right)
+        assert is_integer_dtype(left["foo"])
+        assert is_integer_dtype(left["baz"])
 
+    def test_setitem_dtype_upcast3(self):
         left = DataFrame(
             np.arange(6, dtype="int64").reshape(2, 3) / 10.0,
             index=list("ab"),
@@ -195,6 +199,8 @@ class TestFancy:
         expected = Index(["b", "a", "a"])
         tm.assert_index_equal(result, expected)
 
+    def test_dups_fancy_indexing_across_dtypes(self):
+
         # across dtypes
         df = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]], columns=list("aaaaaaa"))
         df.head()
@@ -208,6 +214,7 @@ class TestFancy:
 
         tm.assert_frame_equal(df, result)
 
+    def test_dups_fancy_indexing_not_in_order(self):
         # GH 3561, dups not in selected order
         df = DataFrame(
             {"test": [5, 7, 9, 11], "test1": [4.0, 5, 6, 7], "other": list("abcd")},
@@ -232,6 +239,8 @@ class TestFancy:
         with pytest.raises(KeyError, match="with any missing labels"):
             df.loc[rows]
 
+    def test_dups_fancy_indexing_only_missing_label(self):
+
         # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
         with pytest.raises(
@@ -244,6 +253,8 @@ class TestFancy:
 
         # ToDo: check_index_type can be True after GH 11497
 
+    def test_dups_fancy_indexing_missing_label(self):
+
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": [0, 1, 2]})
         with pytest.raises(KeyError, match="with any missing labels"):
@@ -252,6 +263,8 @@ class TestFancy:
         df = DataFrame({"A": list("abc")})
         with pytest.raises(KeyError, match="with any missing labels"):
             df.loc[[0, 8, 0]]
+
+    def test_dups_fancy_indexing_non_unique(self):
 
         # non unique with non unique selector
         df = DataFrame({"test": [5, 7, 9, 11]}, index=["A", "A", "B", "C"])
@@ -447,6 +460,7 @@ class TestFancy:
         df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
 
+    def test_multi_assign_broadcasting_rhs(self):
         # broadcasting on the rhs is required
         df = DataFrame(
             {
@@ -781,14 +795,16 @@ class TestMisc:
         tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
-    def test_list_slice(self):
+    @pytest.mark.parametrize("box", [list, Series, np.array])
+    def test_list_slice(self, box):
         # like dataframe getitem
-        slices = [["A"], Series(["A"]), np.array(["A"])]
+        subset = box(["A"])
+
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
-        for subset in slices:
-            result = non_reducing_slice(subset)
-            tm.assert_frame_equal(df.loc[result], df.loc[expected])
+
+        result = non_reducing_slice(subset)
+        tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_maybe_numeric_slice(self):
         df = DataFrame({"A": [1, 2], "B": ["c", "d"], "C": [True, False]})
