@@ -645,7 +645,7 @@ def _list_of_series_to_arrays(
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
         values = extract_array(s, extract_numpy=True)
-        aligned_values.append(algorithms.take_1d(values, indexer))
+        aligned_values.append(algorithms.take_nd(values, indexer))
 
     content = np.vstack(aligned_values)
 
