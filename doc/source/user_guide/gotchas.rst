@@ -178,6 +178,75 @@ To test for membership in the values, use the method :meth:`~pandas.Series.isin`
 For ``DataFrames``, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
 
+.. _udf-mutation:
+
+Mutating with User Defined Function (UDF) methods
+-------------------------------------------------
+
+It is a general rule in programming that one should not mutate a container
+while it is being iterated over. Mutation will invalidate the iterator,
+causing unexpected behavior. Consider the example:
+
+.. ipython:: python
+
+   values = [0, 1, 2, 3, 4, 5]
+   n_removed = 0
+   for k, value in enumerate(values):
+       idx = k - n_removed
+       if value % 2 == 1:
+           del values[idx]
+           n_removed += 1
+       else:
+           values[idx] = value + 1
+   values
+
+One probably would have expected that the result would be ``[1, 3, 5]``.
+When using a pandas method that takes a UDF, internally pandas is often
+iterating over the
+``DataFrame`` or other pandas object. Therefore, if the UDF mutates (changes)
+the ``DataFrame``, unexpected behavior can arise.
+
+Here is a similar example with :meth:`DataFrame.apply`:
+
+.. ipython:: python
+
+   def f(s):
+       s.pop("a")
+       return s
+
+   df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+   try:
+       df.apply(f, axis="columns")
+   except Exception as err:
+       print(repr(err))
+
+To resolve this issue, one can make a copy so that the mutation does
+not apply to the container being iterated over.
+
+.. ipython:: python
+
+   values = [0, 1, 2, 3, 4, 5]
+   n_removed = 0
+   for k, value in enumerate(values.copy()):
+       idx = k - n_removed
+       if value % 2 == 1:
+           del values[idx]
+           n_removed += 1
+       else:
+           values[idx] = value + 1
+   values
+
+.. ipython:: python
+
+   def f(s):
+       s = s.copy()
+       s.pop("a")
+       return s
+
+   df = pd.DataFrame({"a": [1, 2, 3], 'b': [4, 5, 6]})
+   df.apply(f, axis="columns")
+
+
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
 ---------------------------------------------------------
 

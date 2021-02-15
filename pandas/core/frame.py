@@ -7814,6 +7814,12 @@ NaN 12.3   33.0
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
 
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
+
         Examples
         --------
         >>> df = pd.DataFrame([[4, 9]] * 3, columns=['A', 'B'])

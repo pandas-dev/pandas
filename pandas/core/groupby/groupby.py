@@ -344,7 +344,7 @@ The current implementation imposes three requirements on f:
   in the subframe. If f also supports application to the entire subframe,
   then a fast path is used starting from the second chunk.
 * f must not mutate groups. Mutation is not supported and may
-  produce unexpected results.
+  produce unexpected results. See :ref:`udf-mutation` for more details.
 
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
@@ -447,6 +447,10 @@ When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
 {examples}
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
 """
 
 

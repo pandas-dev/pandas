@@ -41,6 +41,10 @@ Notes
 -----
 `agg` is an alias for `aggregate`. Use the alias.
 
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
+
 A passed user-defined-function will be passed a Series for evaluation.
 {examples}"""
 
@@ -295,6 +299,12 @@ See Also
 --------
 {klass}.agg : Only perform aggregating type operations.
 {klass}.apply : Invoke function on a {klass}.
+
+Notes
+-----
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
 
 Examples
 --------
