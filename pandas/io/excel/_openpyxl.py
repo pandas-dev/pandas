@@ -538,19 +538,21 @@ class OpenpyxlReader(BaseExcelReader):
 
         version = LooseVersion(get_version(openpyxl))
 
-        # There is no good way of determining if a sheet is read-only
-        # https://foss.heptapod.net/openpyxl/openpyxl/-/issues/1605
-        is_readonly = hasattr(sheet, "reset_dimensions")
-
-        if version >= "3.0.0" and is_readonly:
+        if version >= "3.0.0" and self.book.read_only:
             sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
+        last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            if not all(cell == "" for cell in converted_row):
+                last_row_with_data = row_number
             data.append(converted_row)
 
-        if version >= "3.0.0" and is_readonly and len(data) > 0:
+        # Trim trailing empty rows
+        data = data[: last_row_with_data + 1]
+
+        if version >= "3.0.0" and self.book.read_only and len(data) > 0:
             # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:

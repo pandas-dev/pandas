@@ -758,7 +758,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    curr_sheet = None
     path = None
 
     @property
@@ -894,8 +893,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__"
-        #  (not iterable)  [attr-defined]
+        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__" (not
+        #  iterable)
         if not any(
             ext in extension
             for extension in cls.supported_extensions  # type: ignore[attr-defined]

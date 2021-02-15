@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections import defaultdict
 import copy
 import itertools
-from typing import TYPE_CHECKING, Dict, List, Sequence, cast
+from typing import TYPE_CHECKING, Dict, List, Sequence
 
 import numpy as np
 
@@ -11,20 +10,16 @@ from pandas._libs import internals as libinternals
 from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import find_common_type, maybe_promote
+from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
 from pandas.core.dtypes.common import (
-    get_dtype,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_extension_array_dtype,
-    is_float_dtype,
-    is_numeric_dtype,
     is_sparse,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import isna_all
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray
@@ -34,7 +29,6 @@ from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
     from pandas import Index
-    from pandas.core.arrays.sparse.dtype import SparseDtype
 
 
 def concatenate_block_managers(
@@ -139,8 +133,8 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarra
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = algos.take_1d(mgr.blknos, ax0_indexer, fill_value=-1)
-        blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_nd(mgr.blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_nd(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr.is_single_block:
@@ -225,13 +219,36 @@ class JoinUnit:
 
     @cache_readonly
     def dtype(self):
-        if self.block is None:
+        blk = self.block
+        if blk is None:
             raise AssertionError("Block is None, no dtype")
 
         if not self.needs_filling:
-            return self.block.dtype
-        else:
-            return get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
+            return blk.dtype
+        return ensure_dtype_can_hold_na(blk.dtype)
+
+    def is_valid_na_for(self, dtype: DtypeObj) -> bool:
+        """
+        Check that we are all-NA of a type/dtype that is compatible with this dtype.
+        Augments `self.is_na` with an additional check of the type of NA values.
+        """
+        if not self.is_na:
+            return False
+        if self.block is None:
+            return True
+
+        if self.dtype == object:
+            values = self.block.values
+            return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
+
+        if self.dtype.kind == dtype.kind == "M" and not is_dtype_equal(
+            self.dtype, dtype
+        ):
+            # fill_values match but we should not cast self.block.values to dtype
+            return False
+
+        na_value = self.block.fill_value
+        return is_valid_na_for_dtype(na_value, dtype)
 
     @cache_readonly
     def is_na(self) -> bool:
@@ -263,7 +280,7 @@ class JoinUnit:
         else:
             fill_value = upcasted_na
 
-            if self.is_na:
+            if self.is_valid_na_for(empty_dtype):
                 blk_dtype = getattr(self.block, "dtype", None)
 
                 if blk_dtype == np.dtype(object):
@@ -277,10 +294,9 @@ class JoinUnit:
                 if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
                     empty_dtype
                 ):
-                    if self.block is None:
-                        # TODO(EA2D): special case unneeded with 2D EAs
-                        i8values = np.full(self.shape[1], fill_value.value)
-                        return DatetimeArray(i8values, dtype=empty_dtype)
+                    # TODO(EA2D): special case unneeded with 2D EAs
+                    i8values = np.full(self.shape[1], fill_value.value)
+                    return DatetimeArray(i8values, dtype=empty_dtype)
                 elif is_categorical_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(blk_dtype):
@@ -296,6 +312,8 @@ class JoinUnit:
                         empty_arr, allow_fill=True, fill_value=fill_value
                     )
                 else:
+                    # NB: we should never get here with empty_dtype integer or bool;
+                    #  if we did, the missing_arr.fill would cast to gibberish
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
@@ -363,14 +381,12 @@ def _concatenate_join_units(
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
         to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
-        concat_values = concat_compat(to_concat, axis=0)
-        if not isinstance(concat_values, ExtensionArray) or (
-            isinstance(concat_values, DatetimeArray) and concat_values.tz is None
-        ):
+        concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
+        if not is_extension_array_dtype(concat_values.dtype):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
-            # special case DatetimeArray, which *is* an EA, but is put in a
-            # consolidated 2D block
+            # special case DatetimeArray/TimedeltaArray, which *is* an EA, but
+            # is put in a consolidated 2D block
             concat_values = np.atleast_2d(concat_values)
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
@@ -420,108 +436,17 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         return empty_dtype
 
     has_none_blocks = any(unit.block is None for unit in join_units)
-    dtypes = [None if unit.block is None else unit.dtype for unit in join_units]
 
-    filtered_dtypes = [
+    dtypes = [
         unit.dtype for unit in join_units if unit.block is not None and not unit.is_na
     ]
-    if not len(filtered_dtypes):
-        filtered_dtypes = [unit.dtype for unit in join_units if unit.block is not None]
-    dtype_alt = find_common_type(filtered_dtypes)
+    if not len(dtypes):
+        dtypes = [unit.dtype for unit in join_units if unit.block is not None]
 
-    upcast_classes = _get_upcast_classes(join_units, dtypes)
-
-    if is_extension_array_dtype(dtype_alt):
-        return dtype_alt
-    elif dtype_alt == object:
-        return dtype_alt
-
-    # TODO: de-duplicate with maybe_promote?
-    # create the result
-    if "extension" in upcast_classes:
-        return np.dtype("object")
-    elif "bool" in upcast_classes:
-        if has_none_blocks:
-            return np.dtype(np.object_)
-        else:
-            return np.dtype(np.bool_)
-    elif "datetimetz" in upcast_classes:
-        # GH-25014. We use NaT instead of iNaT, since this eventually
-        # ends up in DatetimeArray.take, which does not allow iNaT.
-        dtype = upcast_classes["datetimetz"]
-        return dtype[0]
-    elif "datetime" in upcast_classes:
-        return np.dtype("M8[ns]")
-    elif "timedelta" in upcast_classes:
-        return np.dtype("m8[ns]")
-    else:
-        try:
-            common_dtype = np.find_common_type(upcast_classes, [])
-        except TypeError:
-            # At least one is an ExtensionArray
-            return np.dtype(np.object_)
-        else:
-            if is_float_dtype(common_dtype):
-                return common_dtype
-            elif is_numeric_dtype(common_dtype):
-                if has_none_blocks:
-                    return np.dtype(np.float64)
-                else:
-                    return common_dtype
-
-    msg = "invalid dtype determination in get_concat_dtype"
-    raise AssertionError(msg)
-
-
-def _get_upcast_classes(
-    join_units: Sequence[JoinUnit],
-    dtypes: Sequence[DtypeObj],
-) -> Dict[str, List[DtypeObj]]:
-    """Create mapping between upcast class names and lists of dtypes."""
-    upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
-    null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
-    for dtype, unit in zip(dtypes, join_units):
-        if dtype is None:
-            continue
-
-        upcast_cls = _select_upcast_cls_from_dtype(dtype)
-        # Null blocks should not influence upcast class selection, unless there
-        # are only null blocks, when same upcasting rules must be applied to
-        # null upcast classes.
-        if unit.is_na:
-            null_upcast_classes[upcast_cls].append(dtype)
-        else:
-            upcast_classes[upcast_cls].append(dtype)
-
-    if not upcast_classes:
-        upcast_classes = null_upcast_classes
-
-    return upcast_classes
-
-
-def _select_upcast_cls_from_dtype(dtype: DtypeObj) -> str:
-    """Select upcast class name based on dtype."""
-    if is_categorical_dtype(dtype):
-        return "extension"
-    elif is_datetime64tz_dtype(dtype):
-        return "datetimetz"
-    elif is_extension_array_dtype(dtype):
-        return "extension"
-    elif issubclass(dtype.type, np.bool_):
-        return "bool"
-    elif issubclass(dtype.type, np.object_):
-        return "object"
-    elif is_datetime64_dtype(dtype):
-        return "datetime"
-    elif is_timedelta64_dtype(dtype):
-        return "timedelta"
-    elif is_sparse(dtype):
-        dtype = cast("SparseDtype", dtype)
-        return dtype.subtype.name
-    elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
-        return dtype.name
-    else:
-        return "float"
+    dtype = find_common_type(dtypes)
+    if has_none_blocks:
+        dtype = ensure_dtype_can_hold_na(dtype)
+    return dtype
 
 
 def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:

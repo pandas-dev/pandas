@@ -57,7 +57,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, isin, unique1d
@@ -422,7 +422,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_obj
 
     def _values_for_factorize(self):
-        return self._ndarray, iNaT
+        # int64 instead of int ensures we have a "view" method
+        return self._ndarray, np.int64(iNaT)
 
     @classmethod
     def _from_factorized(
@@ -444,8 +445,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            # pandas\core\arrays\datetimelike.py:432: error: Too many arguments
-            # for "object"  [call-arg]
+            # error: Too many arguments for "object"
             other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
@@ -493,11 +493,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
-        if is_valid_nat_for_dtype(fill_value, self.dtype):
+        if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
-            # for "object"  [call-arg]
+            # error: Too many arguments for "object"
             fill_value = self._scalar_type(fill_value)  # type: ignore[call-arg]
         else:
             # only warn if we're not going to raise
@@ -505,8 +504,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                # pandas\core\arrays\datetimelike.py:753: error: Too many
-                # arguments for "object"  [call-arg]
+                # error: Too many arguments for "object"
                 new_fill = self._scalar_type(fill_value)  # type: ignore[call-arg]
 
             # stacklevel here is chosen to be correct when called from
@@ -557,12 +555,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 msg = self._validation_error_message(value, allow_listlike)
                 raise TypeError(msg) from err
 
-        elif is_valid_nat_for_dtype(value, self.dtype):
+        elif is_valid_na_for_dtype(value, self.dtype):
             # GH#18295
             value = NaT
 
         elif isinstance(value, self._recognized_scalars):
-            # error: Too many arguments for "object"  [call-arg]
+            # error: Too many arguments for "object"
             value = self._scalar_type(value)  # type: ignore[call-arg]
 
         else:
@@ -1678,7 +1676,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 # TODO: overload __getitem__, a slice indexer returns same type as self
                 # error: Incompatible types in assignment (expression has type
                 # "Union[DatetimeLikeArrayMixin, Union[Any, Any]]", variable
-                # has type "TimelikeOps")  [assignment]
+                # has type "TimelikeOps")
                 uniques = uniques[::-1]  # type: ignore[assignment]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort

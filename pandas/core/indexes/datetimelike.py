@@ -231,10 +231,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
-
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return tolerance
+        return super()._convert_tolerance(tolerance, target)
 
     def tolist(self) -> List:
         """
@@ -717,7 +714,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left_chunk = left._values[lslice]
             # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
             # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"  [arg-type]
+            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"
             result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
 
         return self._wrap_setop_result(other, result)
@@ -797,7 +794,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
-            result = self._shallow_copy(dates)._with_freq("infer")
+            result = type(self)._simple_new(dates, name=self.name)
+            result = result._with_freq("infer")
             return result
         else:
             left, right = other, self

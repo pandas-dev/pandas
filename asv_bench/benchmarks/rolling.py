@@ -255,6 +255,19 @@ class GroupbyLargeGroups:
 
 class GroupbyEWM:
 
+    params = ["var", "std", "cov", "corr"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        df = pd.DataFrame({"A": range(50), "B": range(50)})
+        self.gb_ewm = df.groupby("A").ewm(com=1.0)
+
+    def time_groupby_method(self, method):
+        getattr(self.gb_ewm, method)()
+
+
+class GroupbyEWMEngine:
+
     params = ["cython", "numba"]
     param_names = ["engine"]
 
