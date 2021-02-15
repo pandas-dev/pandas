@@ -176,7 +176,5 @@ jobs:
       with:
         files: /tmp/test_coverage.xml
         flags: unittests
-        env_vars: OS,PYTHON
         name: codecov-pandas
         fail_ci_if_error: true
-        verbose: true
