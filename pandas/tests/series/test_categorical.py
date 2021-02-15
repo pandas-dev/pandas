@@ -10,13 +10,15 @@ import pandas._testing as tm
 class TestCategoricalSeries:
     def test_setitem_undefined_category_raises(self):
         ser = pd.Series(Categorical(["a", "b", "c"]))
-        msg = r"Cannot setitem on a Categorical with a new category, set the categories first"
+        msg = "Cannot setitem on a Categorical with a new category, "\
+              "set the categories first"
         with pytest.raises(ValueError, match=msg):
             ser.loc[2] = "d"
 
     def test_concat_undefined_category_raises(self):
         ser = pd.Series(Categorical(["a", "b", "c"]))
-        msg = r"Cannot concat on a Categorical with a new category, set the categories first"
+        msg = "Cannot concat on a Categorical with a new category, "\
+              "set the categories first"
         with pytest.raises(ValueError, match=msg):
             ser.loc[3] = "d"
 
@@ -35,7 +37,6 @@ class TestCategoricalSeries:
                 "cat": Categorical(["a", "b", "c", "c"], categories=["a", "b", "c"]),
             }
         )
-
         tm.assert_frame_equal(df, expected)
 
         # Case 2
@@ -63,7 +64,7 @@ class TestCategoricalSeries:
         ser1 = pd.Series(Categorical(["a", "b", "c"]))
         ser2 = pd.Series(Categorical(["a", "b", "c"]))
         arr = [ser1, ser2]
-        assert _can_cast_to_categorical(arr) == True
+        assert _can_cast_to_categorical(arr) is True
 
         # Case 2:
         # Series of non-identical categorical dtype should
@@ -71,7 +72,7 @@ class TestCategoricalSeries:
         ser1 = pd.Series(Categorical(["a", "b", "c"]))
         ser2 = pd.Series(Categorical(["a", "b", "d"]))
         arr = [ser1, ser2]
-        assert _can_cast_to_categorical(arr) == False
+        assert _can_cast_to_categorical(arr) is False
 
         # Concat of a categorical series with a series
         # containing only values identical to the
@@ -81,13 +82,13 @@ class TestCategoricalSeries:
         ser1 = pd.Series(Categorical(["a", "b", "c"]))
         ser2 = pd.Series(["a", "a", "b"])
         arr = [ser1, ser2]
-        assert _can_cast_to_categorical(arr) == True
+        assert _can_cast_to_categorical(arr) is True
 
         # Case 4: For int categorical values
         ser1 = pd.Series(Categorical([1, 2, 3]))
         ser2 = pd.Series([1, 2])
         arr = [ser1, ser2]
-        assert _can_cast_to_categorical(arr) == True
+        assert _can_cast_to_categorical(arr) is True
 
         # The rest should raise because not all values
         # are present in the categorical.
@@ -96,7 +97,8 @@ class TestCategoricalSeries:
         ser1 = pd.Series(Categorical([1, 2, 3]))
         ser2 = pd.Series([3, 4])
         arr = [ser1, ser2]
-        msg = r"Cannot concat on a Categorical with a new category, set the categories first"
+        msg = "Cannot concat on a Categorical with a new category, "\
+              "set the categories first"
         with pytest.raises(ValueError, match=msg):
             _can_cast_to_categorical(arr)
 

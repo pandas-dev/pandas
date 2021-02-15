@@ -91,7 +91,7 @@ def _can_cast_to_categorical(to_cast):
             if (
                 is_categorical_dtype(t)
                 and len(t.categories.values) > 0
-                and any(isna(t.categories.values) == False)
+                and any(~isna(t.categories.values))
             ):
                 categorical_values_dtype = t.categories.values.dtype
                 if all(
@@ -119,7 +119,8 @@ def _can_cast_to_categorical(to_cast):
         for other in to_cast[1:]
     ):
         raise ValueError(
-            "Cannot concat on a Categorical with a new category, set the categories first"
+            "Cannot concat on a Categorical with a new category, "
+            "set the categories first"
         )
 
     return True
