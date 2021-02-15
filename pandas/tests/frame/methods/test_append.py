@@ -159,6 +159,7 @@ class TestDataFrameAppend:
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
         if using_array_manager:
+            # TODO(ArrayManager) decide on exact casting rules in concat
             # With ArrayManager, all-NaN float is not ignored
             expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)

@@ -279,18 +279,28 @@ class TestMerge:
         merged["d"] = "peekaboo"
         assert (right["d"] == "bar").all()
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) join copy behaviour
-    def test_merge_nocopy(self):
+    def test_merge_nocopy(self, using_array_manager):
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
         merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
-        merged["a"] = 6
-        assert (left["a"] == 6).all()
+        if using_array_manager:
+            # With ArrayManager, setting a column doesn't change the values inplace
+            # and thus does not propagate the changes to the original left/right
+            # dataframes -> need to check that no copy was made in a different way
+            # TODO(ArrayManager) we should be able to simplify this with a .loc
+            #  setitem test: merged.loc[0, "a"] = 10; assert left.loc[0, "a"] == 10
+            #  but this currently replaces the array (_setitem_with_indexer_split_path)
+            merged.loc[0, "a"] = 10
+            assert merged._mgr.arrays[0] is left._mgr.arrays[0]
+            assert merged._mgr.arrays[2] is right._mgr.arrays[0]
+        else:
+            merged["a"] = 6
+            assert (left["a"] == 6).all()
 
-        merged["d"] = "peekaboo"
-        assert (right["d"] == "peekaboo").all()
+            merged["d"] = "peekaboo"
+            assert (right["d"] == "peekaboo").all()
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -674,6 +684,7 @@ class TestMerge:
             }
         )
         if using_array_manager:
+            # TODO(ArrayManager) decide on exact casting rules in concat
             expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 

@@ -244,8 +244,6 @@ def concat_arrays(to_concat: List[Any]) -> ArrayLike:
 
     result = np.concatenate(to_concat)
 
-    # TODO(ArrayManager) this is currently inconsistent between Series and DataFrame
-    # so we should decide whether to keep the below special case or remove it
     if len(result) == 0:
         # all empties -> check for bool to not coerce to float
         if len(kinds) != 1:

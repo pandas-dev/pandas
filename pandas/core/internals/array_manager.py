@@ -727,8 +727,8 @@ class ArrayManager(DataManager):
         consolidate: bool = True,
         only_slice: bool = False,
         # ArrayManager specific keywords
-        do_integrity_check=True,
-        use_na_proxy=False,
+        do_integrity_check: bool = True,
+        use_na_proxy: bool = False,
     ) -> T:
         axis = self._normalize_axis(axis)
         return self._reindex_indexer(
@@ -750,8 +750,8 @@ class ArrayManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
-        do_integrity_check=True,
-        use_na_proxy=False,
+        do_integrity_check: bool = True,
+        use_na_proxy: bool = False,
     ) -> T:
         """
         Parameters
@@ -837,9 +837,12 @@ class ArrayManager(DataManager):
 
     def _make_na_array(self, fill_value=None, use_na_proxy=False):
         if use_na_proxy:
+            assert fill_value is None
             return NullArrayProxy(self.shape_proper[0])
+
         if fill_value is None:
             fill_value = np.nan
+
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
         values = np.empty(self.shape_proper[0], dtype=dtype)
         values.fill(fill_value)
