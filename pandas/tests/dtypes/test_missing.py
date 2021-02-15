@@ -9,6 +9,7 @@ from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT, is_null_datetimelike
+from pandas._libs_numba import missing as libmissing_numba
 
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
@@ -605,18 +606,23 @@ class TestLibMissing:
     def test_checknull(self):
         for value in na_vals:
             assert libmissing.checknull(value)
+            assert libmissing_numba.checknull(value)
 
         for value in inf_vals:
             assert not libmissing.checknull(value)
+            assert not libmissing_numba.checknull(value)
 
         for value in int_na_vals:
             assert not libmissing.checknull(value)
+            assert not libmissing_numba.checknull(value)
 
         for value in sometimes_na_vals:
             assert not libmissing.checknull(value)
+            assert not libmissing_numba.checknull(value)
 
         for value in never_na_vals:
             assert not libmissing.checknull(value)
+            assert not libmissing_numba.checknull(value)
 
     def test_checknull_old(self):
         for value in na_vals:

@@ -191,6 +191,7 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
+        "_libs_numba",
         "_np_version_under1p17",
         "_np_version_under1p18",
         "_is_numpy_dev",

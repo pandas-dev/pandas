@@ -10,6 +10,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, Period, iNaT
+import pandas._libs_numba.missing as libmissing_numba
 from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.common import (
@@ -149,7 +150,7 @@ def _isna(obj, inf_as_na: bool = False):
         if inf_as_na:
             return libmissing.checknull_old(obj)
         else:
-            return libmissing.checknull(obj)
+            return libmissing_numba.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
