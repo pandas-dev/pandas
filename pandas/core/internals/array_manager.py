@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, TypeVar,
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib
-from pandas._typing import ArrayLike, DtypeObj, Hashable
+from pandas._typing import ArrayLike, DtypeObj, Hashable, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
@@ -22,6 +22,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
+from pandas.core import ops
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
@@ -187,11 +188,73 @@ class ArrayManager(DataManager):
         indexer = np.arange(self.shape[0])
         return new_mgr, indexer
 
-    def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
+    def operate_scalar(self, other: Scalar, op) -> ArrayManager:
         """
-        Apply array_op blockwise with another (aligned) BlockManager.
+        Element-wise (arithmetic/comparison/logical) operation with other scalar.
+
+        Parameters
+        ----------
+        other : scalar
+        op : operator function (eg ``operator.add``)
+
+        Returns
+        -------
+        ArrayManager
+        """
+        # Get the appropriate array-op to apply to each column/block's values.
+        array_op = ops.get_array_op(op)
+        result_arrays = [array_op(left, other) for left in self.arrays]
+        return type(self)(result_arrays, self._axes)
+
+    def operate_array(self, other: ArrayLike, op, axis: int) -> ArrayManager:
+        """
+        Element-wise (arithmetic/comparison/logical) operation with other array.
+
+        The array is already checked to be of the correct length.
+
+        Parameters
+        ----------
+        other : np.ndarray or ExtensionArray
+        op : operator function (eg ``operator.add``)
+        axis : int
+            Whether to match the array on the index and broadcast along the
+            columns (axis=0) or match the array on the columns and broadcast
+            along the rows (axis=1).
+
+        Returns
+        -------
+        ArrayManager
+        """
+        array_op = ops.get_array_op(op)
+        if axis == 1:
+            # match on the columns -> operate on each column array with single
+            # element from other array
+            result_arrays = [
+                array_op(left, right_scalar)
+                for left, right_scalar in zip(self.arrays, other)
+            ]
+        else:
+            # match on the rows -> operate for each column array with full other array
+            result_arrays = [array_op(left, other) for left in self.arrays]
+        return type(self)(result_arrays, self._axes)
+
+    def operate_manager(self, other: ArrayManager, op) -> ArrayManager:
+        """
+        Element-wise (arithmetic/comparison/logical) operation with other ArrayManager.
+
+        The other ArrayManager is already aligned with `self`.
+
+        Parameters
+        ----------
+        other : ArrayManager
+        op : operator function (eg ``operator.add``)
+
+        Returns
+        -------
+        ArrayManager
         """
         # TODO what if `other` is BlockManager ?
+        array_op = ops.get_array_op(op)
         left_arrays = self.arrays
         right_arrays = other.arrays
         result_arrays = [
