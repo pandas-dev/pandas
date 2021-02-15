@@ -105,13 +105,11 @@ def test_infer_from_scalar_tz(tz, pandas_dtype):
 
     if pandas_dtype:
         exp_dtype = f"datetime64[ns, {tz}]"
-        exp_val = dt.value
     else:
         exp_dtype = np.object_
-        exp_val = dt
 
     assert dtype == exp_dtype
-    assert val == exp_val
+    assert val == dt
 
 
 @pytest.mark.parametrize(

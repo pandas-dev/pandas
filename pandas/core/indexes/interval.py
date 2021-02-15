@@ -533,6 +533,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
             if lib.is_period(key):
                 key_i8 = key.ordinal
+            elif isinstance(key_i8, Timestamp):
+                key_i8 = key_i8.value
+            elif isinstance(key_i8, (np.datetime64, np.timedelta64)):
+                key_i8 = key_i8.view("i8")
         else:
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
