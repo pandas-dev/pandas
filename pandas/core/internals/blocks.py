@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_integer,
     is_list_like,
     is_object_dtype,
     is_sparse,
@@ -434,8 +433,7 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
             putmask_inplace(nb.values, mask, value)
-            # TODO: should be nb._maybe_downcast?
-            return self._maybe_downcast([nb], downcast)
+            return nb._maybe_downcast([nb], downcast)
 
         if noop:
             # we can't process the value, but nothing to do
@@ -714,6 +712,9 @@ class Block(PandasObject):
             values = values.copy()
         return self.make_block_same_class(values, ndim=self.ndim)
 
+    # ---------------------------------------------------------------------
+    # Replace
+
     def replace(
         self,
         to_replace,
@@ -863,6 +864,57 @@ class Block(PandasObject):
                 new_rb.extend(result)
             rb = new_rb
         return rb
+
+    def _replace_coerce(
+        self,
+        to_replace,
+        value,
+        mask: np.ndarray,
+        inplace: bool = True,
+        regex: bool = False,
+    ) -> List[Block]:
+        """
+        Replace value corresponding to the given boolean array with another
+        value.
+
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        mask : np.ndarray[bool]
+            True indicate corresponding element is ignored.
+        inplace : bool, default True
+            Perform inplace modification.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+
+        Returns
+        -------
+        List[Block]
+        """
+        if mask.any():
+            if not regex:
+                nb = self.coerce_to_target_dtype(value)
+                if nb is self and not inplace:
+                    nb = nb.copy()
+                putmask_inplace(nb.values, mask, value)
+                return [nb]
+            else:
+                regex = should_use_regex(regex, to_replace)
+                if regex:
+                    return self._replace_regex(
+                        to_replace,
+                        value,
+                        inplace=inplace,
+                        convert=False,
+                        mask=mask,
+                    )
+                return self.replace(to_replace, value, inplace=inplace, regex=False)
+        return [self]
+
+    # ---------------------------------------------------------------------
 
     def setitem(self, indexer, value):
         """
@@ -1393,55 +1445,6 @@ class Block(PandasObject):
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
 
         return make_block(result, placement=self.mgr_locs, ndim=2)
-
-    def _replace_coerce(
-        self,
-        to_replace,
-        value,
-        mask: np.ndarray,
-        inplace: bool = True,
-        regex: bool = False,
-    ) -> List[Block]:
-        """
-        Replace value corresponding to the given boolean array with another
-        value.
-
-        Parameters
-        ----------
-        to_replace : object or pattern
-            Scalar to replace or regular expression to match.
-        value : object
-            Replacement object.
-        mask : np.ndarray[bool]
-            True indicate corresponding element is ignored.
-        inplace : bool, default True
-            Perform inplace modification.
-        regex : bool, default False
-            If true, perform regular expression substitution.
-
-        Returns
-        -------
-        List[Block]
-        """
-        if mask.any():
-            if not regex:
-                nb = self.coerce_to_target_dtype(value)
-                if nb is self and not inplace:
-                    nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
-                return [nb]
-            else:
-                regex = should_use_regex(regex, to_replace)
-                if regex:
-                    return self._replace_regex(
-                        to_replace,
-                        value,
-                        inplace=inplace,
-                        convert=False,
-                        mask=mask,
-                    )
-                return self.replace(to_replace, value, inplace=inplace, regex=False)
-        return [self]
 
 
 class ExtensionBlock(Block):
@@ -2150,7 +2153,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def external_values(self):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
-        # Avoid FutureWarning in .astype in casting from dt64t to dt64
+        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
         return self.values._data
 
     def fillna(
@@ -2215,16 +2218,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
     ) -> List[Block]:
-        # TODO(EA2D): if we operated on array_values, TDA.fillna would handle
-        #  raising here.
-        if is_integer(value):
-            # Deprecation GH#24694, GH#19233
-            raise TypeError(
-                "Passing integers to fillna for timedelta64[ns] dtype is no "
-                "longer supported.  To obtain the old behavior, pass "
-                "`pd.Timedelta(seconds=n)` instead."
-            )
-        return super().fillna(value, limit=limit, inplace=inplace, downcast=downcast)
+        values = self.array_values()
+        values = values if inplace else values.copy()
+        new_values = values.fillna(value=value, limit=limit)
+        return [self.make_block_same_class(values=new_values)]
 
 
 class ObjectBlock(Block):
