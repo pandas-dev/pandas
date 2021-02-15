@@ -180,6 +180,12 @@ repos:
         language: pygrep
         types: [python]
         files: ^pandas/tests/
+    -   id: title-capitalization
+        name: Validate correct capitalization among titles in documentation
+        entry: python scripts/validate_rst_title_capitalization.py
+        language: python
+        types: [rst]
+        files: ^doc/source/(development|reference)/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
