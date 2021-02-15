@@ -1508,7 +1508,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
 
-                # error: "ArrayLike" has no attribute "view"  [attr-defined]
+                # error: "ArrayLike" has no attribute "view"
                 left = self._combined.view("complex128")  # type:ignore[attr-defined]
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)
