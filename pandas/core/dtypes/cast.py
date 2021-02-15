@@ -1609,22 +1609,6 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     # get unique types (dict.fromkeys is used as order-preserving set())
     types = list(dict.fromkeys(types).keys())
 
-    # If set of dtypes contains only categoricals (with the exception of strings)
-    # then the common dtype will be the categorical (in case it's the only one)
-    is_cat_or_str = lambda x: is_categorical_dtype(x) | is_string_dtype(x)
-    if all(is_cat_or_str(t) for t in types) and not any(
-        is_object_dtype(t) for t in types
-    ):
-        # Should we extend this to use the union of categorical dtypes?
-        cat_dtypes = []
-        for t in types:
-            if is_categorical_dtype(t):
-                cat_dtypes.append(t)
-        if len(cat_dtypes) > 0:
-            dtype_ref = cat_dtypes[0]
-            if all(is_dtype_equal(dtype, dtype_ref) for dtype in cat_dtypes):
-                return dtype_ref
-
     if any(isinstance(t, ExtensionDtype) for t in types):
         for t in types:
             if isinstance(t, ExtensionDtype):

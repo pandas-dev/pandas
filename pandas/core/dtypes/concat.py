@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._typing import ArrayLike, DtypeObj
 
-from pandas.core.dtypes.cast import convert_dtypes, find_common_type
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
@@ -59,6 +60,69 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # numpy's astype cannot handle ExtensionDtypes
         return array(arr, dtype=dtype, copy=False)
     return arr.astype(dtype, copy=False)
+
+
+def _can_cast_to_categorical(to_cast):
+    """
+    Evaluates if a list of arrays can be casted to a single categorical dtype.
+    The categorical dtype to cast to, is determined by any of the arrays which
+    is already of categorical dtype. If no such array exists, or if the existing
+    categorical dtype does not contain any of the unique values of the other arrays,
+    then it will return False.
+
+    Parameters
+    ----------
+    to_cast : array of arrays
+
+    Returns
+    -------
+    True if possible to cast to a single categorical dtype, False otherwise.
+    """
+    if len(to_cast) == 0:
+        raise ValueError("No arrays to cast")
+
+    types = [x.dtype for x in to_cast]
+
+    # If any of the arrays is of categorical dtype, then we will use it as a reference.
+    # If no such array exists, then we just return.
+    if any(is_categorical_dtype(t) for t in types):
+        cat_dtypes = []
+        for t in types:
+            if (
+                is_categorical_dtype(t)
+                and len(t.categories.values) > 0
+                and any(isna(t.categories.values) == False)
+            ):
+                categorical_values_dtype = t.categories.values.dtype
+                if all(
+                    is_categorical_dtype(x) or np.can_cast(categorical_values_dtype, x)
+                    for x in types
+                ):
+                    cat_dtypes.append(t)
+        if len(cat_dtypes) == 0 or any(
+            not is_dtype_equal(dtype, cat_dtypes[0]) for dtype in cat_dtypes[1:]
+        ):
+            return False
+    else:
+        return False
+
+    def categorical_contains_values(categorical_dtype, x):
+        unique_values = np.unique(x[~isna(x)])
+        if any(
+            val not in categorical_dtype.categories for val in unique_values.tolist()
+        ):
+            return False
+        return True
+
+    if not all(
+        categorical_contains_values(to_cast[0].dtype, other) or len(other) == 0
+        for other in to_cast[1:]
+    ):
+        raise ValueError(
+            "Cannot concat on a Categorical with a new category, set the categories first"
+        )
+
+    return True
 
 
 def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
@@ -108,8 +172,17 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
         if not single_dtype:
-            conv_types = [convert_dtypes(x) for x in to_concat]
-            target_dtype = find_common_type(conv_types)
+            # Special case for handling concat with categorical series.
+            # We need to make sure that categorical dtype is preserved
+            # when an array of valid values is given (GH#25383)
+            if (
+                isinstance(to_concat[0], ExtensionArray)
+                and all(x.shape[0] == 1 for x in to_concat[1:])
+                and _can_cast_to_categorical(to_concat)
+            ):
+                target_dtype = to_concat[0].dtype
+            else:
+                target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
         if isinstance(to_concat[0], ExtensionArray):
