@@ -10,15 +10,19 @@ import pandas._testing as tm
 class TestCategoricalSeries:
     def test_setitem_undefined_category_raises(self):
         ser = pd.Series(Categorical(["a", "b", "c"]))
-        msg = "Cannot setitem on a Categorical with a new category, "\
-              "set the categories first"
+        msg = (
+            "Cannot setitem on a Categorical with a new category, "
+            "set the categories first"
+        )
         with pytest.raises(ValueError, match=msg):
             ser.loc[2] = "d"
 
     def test_concat_undefined_category_raises(self):
         ser = pd.Series(Categorical(["a", "b", "c"]))
-        msg = "Cannot concat on a Categorical with a new category, "\
-              "set the categories first"
+        msg = (
+            "Cannot concat on a Categorical with a new category, "
+            "set the categories first"
+        )
         with pytest.raises(ValueError, match=msg):
             ser.loc[3] = "d"
 
@@ -97,8 +101,10 @@ class TestCategoricalSeries:
         ser1 = pd.Series(Categorical([1, 2, 3]))
         ser2 = pd.Series([3, 4])
         arr = [ser1, ser2]
-        msg = "Cannot concat on a Categorical with a new category, "\
-              "set the categories first"
+        msg = (
+            "Cannot concat on a Categorical with a new category, "
+            "set the categories first"
+        )
         with pytest.raises(ValueError, match=msg):
             _can_cast_to_categorical(arr)
 
