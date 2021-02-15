@@ -531,7 +531,7 @@ class OpenpyxlReader(BaseExcelReader):
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
 
-        ifself.book.read_only:
+        if self.book.read_only:
             sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
