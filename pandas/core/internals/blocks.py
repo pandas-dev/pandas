@@ -182,10 +182,17 @@ class Block(PandasObject):
         if ndim is None:
             ndim = values.ndim
 
-        if self._validate_ndim and values.ndim != ndim:
+        if self._validate_ndim:
+            if values.ndim != ndim:
+                raise ValueError(
+                    "Wrong number of dimensions. "
+                    f"values.ndim != ndim [{values.ndim} != {ndim}]"
+                )
+        elif values.ndim > ndim:
+            # ExtensionBlock
             raise ValueError(
                 "Wrong number of dimensions. "
-                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+                f"values.ndim > ndim [{values.ndim} > {ndim}]"
             )
         return ndim
 
@@ -2177,28 +2184,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.astype(object).fillna(
             value, limit=limit, inplace=inplace, downcast=downcast
         )
-
-    def _check_ndim(self, values, ndim):
-        """
-        ndim inference and validation.
-
-        This is overridden by the DatetimeTZBlock to check the case of 2D
-        data (values.ndim == 2), which should only be allowed if ndim is
-        also 2.
-        The case of 1D array is still allowed with both ndim of 1 or 2, as
-        if the case for other EAs. Therefore, we are only checking
-        `values.ndim > ndim` instead of `values.ndim != ndim` as for
-        consolidated blocks.
-        """
-        if ndim is None:
-            ndim = values.ndim
-
-        if values.ndim > ndim:
-            raise ValueError(
-                "Wrong number of dimensions. "
-                f"values.ndim != ndim [{values.ndim} != {ndim}]"
-            )
-        return ndim
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):

@@ -10,6 +10,7 @@ from pandas._libs import lib
 from pandas._typing import Dtype, NpDtype, Scalar
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
@@ -86,6 +87,14 @@ class PandasArray(
             dtype = dtype._dtype
 
         result = np.asarray(scalars, dtype=dtype)
+        if (
+            result.ndim > 1
+            and not hasattr(scalars, "dtype")
+            and (dtype is None or dtype == object)
+        ):
+            # e.g. list-of-tuples
+            result = construct_1d_object_array_from_listlike(scalars)
+
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
