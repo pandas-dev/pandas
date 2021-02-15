@@ -267,6 +267,9 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
         return 0;
     }
     ret = PyObject_GetAttrString(tmp, subAttr);
+    if (ret == 0) {
+	return 0;
+    }
     Py_DECREF(tmp);
 
     return ret;
