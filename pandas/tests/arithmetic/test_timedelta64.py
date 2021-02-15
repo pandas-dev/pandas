@@ -2083,9 +2083,11 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = tm.box_expected(expected, xbox)
 
             if using_array_manager and box_with_array is pd.DataFrame:
-                # https://github.com/pandas-dev/pandas/issues/39750
-                # third column with all-NaT as result doesn't get preserved
-                # as timedelta64 dtype
+                # TODO the behaviour is buggy here (third column with all-NaT
+                # as result doesn't get preserved as timedelta64 dtype).
+                # Reported at https://github.com/pandas-dev/pandas/issues/39750
+                # Changing the expected instead of xfailing to continue to test
+                # the correct behaviour for the other columns
                 expected[2] = Series([pd.NaT, pd.NaT], dtype=object)
 
             tm.assert_equal(result, expected)
