@@ -659,7 +659,10 @@ class ArrayManager(DataManager):
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
-        Set new column in-place (replaces (an) existing column(s)).
+        Set new column(s).
+
+        This changes the ArrayManager in-place, but replaces (an) existing
+        column(s), not changing column values in-place).
 
         Parameters
         ----------
