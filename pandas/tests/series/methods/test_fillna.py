@@ -204,8 +204,9 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        # interpreted as seconds, deprecated
-        with pytest.raises(TypeError, match="Passing integers to fillna"):
+        # interpreted as seconds, no longer supported
+        msg = "value should be a 'Timedelta', 'NaT', or array of those. Got 'int'"
+        with pytest.raises(TypeError, match=msg):
             obj.fillna(1)
 
         result = obj.fillna(Timedelta(seconds=1))
