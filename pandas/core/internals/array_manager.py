@@ -659,24 +659,53 @@ class ArrayManager(DataManager):
 
     def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
-        Set new item in-place. Does not consolidate. Adds new Block if not
-        contained in the current set of items
+        Set new column(s).
+
+        This changes the ArrayManager in-place, but replaces (an) existing
+        column(s), not changing column values in-place).
+
+        Parameters
+        ----------
+        loc : integer, slice or boolean mask
+            Positional location (already bounds checked)
+        value : array-like
         """
+        # single column -> single integer index
         if lib.is_integer(loc):
-            # TODO normalize array -> this should in theory not be needed?
+            # TODO the extract array should in theory not be needed?
             value = extract_array(value, extract_numpy=True)
+
+            # TODO can we avoid needing to unpack this here? That means converting
+            # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
+                assert value.shape[1] == 1
                 value = value[0, :]
 
             assert isinstance(value, (np.ndarray, ExtensionArray))
-            # value = np.asarray(value)
-            # assert isinstance(value, np.ndarray)
+            assert value.ndim == 1
             assert len(value) == len(self._axes[0])
             self.arrays[loc] = value
             return
 
-        # TODO
-        raise Exception
+        # multiple columns -> convert slice or array to integer indices
+        elif isinstance(loc, slice):
+            indices = range(
+                loc.start if loc.start is not None else 0,
+                loc.stop if loc.stop is not None else self.shape_proper[1],
+                loc.step if loc.step is not None else 1,
+            )
+        else:
+            assert isinstance(loc, np.ndarray)
+            assert loc.dtype == "bool"
+            indices = np.nonzero(loc)[0]
+
+        assert value.ndim == 2
+        assert value.shape[0] == len(self._axes[0])
+
+        for value_idx, mgr_idx in enumerate(indices):
+            value_arr = value[:, value_idx]
+            self.arrays[mgr_idx] = value_arr
+        return
 
     def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
         """
