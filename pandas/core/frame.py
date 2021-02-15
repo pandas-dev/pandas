@@ -6076,7 +6076,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _logical_method = _arith_method
 
-    def _dispatch_frame_op(self, right, func, axis: Optional[int] = None):
+    def _dispatch_frame_op(self, right, func, axis: int = 0):
         """
         Evaluate the frame operation func(left, right) by evaluating
         column-by-column, dispatching to the Series implementation.
@@ -6107,12 +6107,7 @@ class DataFrame(NDFrame, OpsMixin):
             bm = self._mgr.operate_manager(right._mgr, func)  # type: ignore[arg-type]
 
         elif isinstance(right, Series):
-            if axis == 1:
-                # axis=1 means we want to operate row-by-row
-                assert right.index.equals(self.columns)
-            else:
-                assert right.index.equals(self.index)
-
+            assert right.index.equals(self._get_axis(axis))
             right = right._values
             bm = self._mgr.operate_array(right, func, axis)
 
