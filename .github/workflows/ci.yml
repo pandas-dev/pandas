@@ -159,3 +159,4 @@ jobs:
         pytest pandas/tests/frame/methods --array-manager
         pytest pandas/tests/frame/test_reductions.py --array-manager
         pytest pandas/tests/reductions/ --array-manager
+        pytest pandas/tests/generic/test_generic.py --array-manager
