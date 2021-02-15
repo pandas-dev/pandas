@@ -1748,6 +1748,35 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
 
     @final
+    @doc(_groupby_agg_method_template, fname="only unique", no=False, mc=-1)
+    def only_unique(self, numeric_only: bool = False, min_count: int = -1):
+        def only_unique_compat(obj: FrameOrSeries, axis: int = 0):
+            def only_unique(x: Series):
+                """Helper function for only unique item."""
+                arr = set(x)
+                if not arr:
+                    return np.nan
+                elif len(arr) == 1:
+                    return next(iter(arr))
+                else:
+                    msg = f"Expected exactly one unique item in series, but got {len(arr)}."
+                    raise ValueError(msg)
+
+            if isinstance(obj, DataFrame):
+                return obj.apply(only_unique, axis=axis)
+            elif isinstance(obj, Series):
+                return only_unique(obj)
+            else:
+                raise TypeError(type(obj))
+
+        return self._agg_general(
+            numeric_only=numeric_only,
+            min_count=min_count,
+            alias="only_unique",
+            npfunc=only_unique_compat,
+        )
+
+    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def ohlc(self) -> DataFrame:
