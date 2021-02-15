@@ -1347,11 +1347,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             def base_formatter(v):
                 assert float_format is not None  # for mypy
-                # pandas\io\formats\format.py:1411: error: "str" not callable
-                # [operator]
-
-                # pandas\io\formats\format.py:1411: error: Unexpected keyword
-                # argument "value" for "__call__" of "EngFormatter"  [call-arg]
+                # error: "str" not callable
+                # error: Unexpected keyword argument "value" for "__call__" of
+                # "EngFormatter"
                 return (
                     float_format(value=v)  # type: ignore[operator,call-arg]
                     if notna(v)
