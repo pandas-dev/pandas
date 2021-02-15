@@ -539,7 +539,9 @@ class TestDivisionByZero:
         # this is technically wrong, as the integer portion is coerced to float
         first = Series([0, 0, 0, 0])
         if not using_array_manager:
-            # BlockManager doesn't preserve dtype per column if possible
+            # INFO(ArrayManager) BlockManager doesn't preserve dtype per column
+            # while ArrayManager performs op column-wisedoes and thus preserves
+            # dtype if possible
             first = first.astype("float64")
         second = Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({"first": first, "second": second})
