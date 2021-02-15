@@ -1759,8 +1759,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 elif len(arr) == 1:
                     return next(iter(arr))
                 else:
-                    msg = f"Expected exactly one unique item in series, but got {len(arr)}."
-                    raise ValueError(msg)
+                    raise ValueError(
+                        "Expected exactly one unique item in series, "
+                        f"but got {len(arr)}."
+                    )
 
             if isinstance(obj, DataFrame):
                 return obj.apply(only_unique, axis=axis)
