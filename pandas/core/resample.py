@@ -96,9 +96,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
         self.as_index = True
         self.exclusions = set()
         self.binner = None
-        # pandas\core\resample.py:96: error: Incompatible types in assignment
-        # (expression has type "None", variable has type "BaseGrouper")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "None", variable
+        # has type "BaseGrouper")
         self.grouper = None  # type: ignore[assignment]
 
         if self.groupby is not None:
@@ -419,8 +418,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
         result : Series or DataFrame
             the result of resample
         """
-        # pandas\core\resample.py:409: error: Cannot determine type of
-        # 'loffset'  [has-type]
+        # error: Cannot determine type of 'loffset'
         needs_offset = (
             isinstance(
                 self.loffset,  # type: ignore[has-type]
@@ -431,8 +429,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
         )
 
         if needs_offset:
-            # pandas\core\resample.py:415: error: Cannot determine type of
-            # 'loffset'  [has-type]
+            # error: Cannot determine type of 'loffset'
             result.index = result.index + self.loffset  # type: ignore[has-type]
 
         self.loffset = None
@@ -869,8 +866,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Standard deviation of values within each group.
         """
         nv.validate_resampler_func("std", args, kwargs)
-        # pandas\core\resample.py:850: error: Unexpected keyword argument
-        # "ddof" for "_downsample"  [call-arg]
+        # error: Unexpected keyword argument "ddof" for "_downsample"
         return self._downsample("std", ddof=ddof)  # type: ignore[call-arg]
 
     def var(self, ddof=1, *args, **kwargs):
@@ -888,8 +884,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Variance of values within each group.
         """
         nv.validate_resampler_func("var", args, kwargs)
-        # pandas\core\resample.py:867: error: Unexpected keyword argument
-        # "ddof" for "_downsample"  [call-arg]
+        # error: Unexpected keyword argument "ddof" for "_downsample"
         return self._downsample("var", ddof=ddof)  # type: ignore[call-arg]
 
     @doc(GroupBy.size)
@@ -948,11 +943,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Return a DataFrame, where the coulmns are groupby columns,
             and the values are its quantiles.
         """
-        # pandas\core\resample.py:920: error: Unexpected keyword argument "q"
-        # for "_downsample"  [call-arg]
-
-        # pandas\core\resample.py:920: error: Too many arguments for
-        # "_downsample"  [call-arg]
+        # error: Unexpected keyword argument "q" for "_downsample"
+        # error: Too many arguments for "_downsample"
         return self._downsample("quantile", q=q, **kwargs)  # type: ignore[call-arg]
 
 
@@ -1005,8 +997,7 @@ class _GroupByMixin(GotItemMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        # pandas\core\resample.py:972: error: Too many arguments for "__init__"
-        # of "object"  [call-arg]
+        # error: Too many arguments for "__init__" of "object"
         super().__init__(None)  # type: ignore[call-arg]
         self._groupby = groupby
         self._groupby.mutated = True
@@ -1070,8 +1061,8 @@ class DatetimeIndexResampler(Resampler):
             return obj
 
         # do we have a regular frequency
-        # pandas\core\resample.py:1037: error: "BaseGrouper" has no
-        # attribute "binlabels"  [attr-defined]
+
+        # error: "BaseGrouper" has no attribute "binlabels"
         if (
             (ax.freq is not None or ax.inferred_freq is not None)
             and len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]

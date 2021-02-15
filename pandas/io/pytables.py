@@ -3410,8 +3410,8 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
-        # and "List[Tuple[str, None]]")
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
+        # "List[Tuple[str, None]]")
         return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):

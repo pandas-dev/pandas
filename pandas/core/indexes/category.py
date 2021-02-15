@@ -318,8 +318,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            # pandas\core\indexes\category.py:315: error: "CategoricalIndex"
-            # has no attribute "ordered"  [attr-defined]
+            # error: "CategoricalIndex" has no attribute "ordered"
             ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
         if self.name is not None:

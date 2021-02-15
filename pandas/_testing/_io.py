@@ -82,9 +82,8 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            # pandas\_testing.py:2331: error: Incompatible types in assignment
-            # (expression has type "List[<nothing>]", variable has type
-            # "Tuple[Any, ...]")
+            # error: Incompatible types in assignment (expression has type
+            # "List[<nothing>]", variable has type "Tuple[Any, ...]")
             args = []  # type: ignore[assignment]
             return dec(f)
         else:
@@ -205,8 +204,7 @@ def network(
         except Exception as err:
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                # pandas\_testing.py:2521: error: "Exception" has no attribute
-                # "reason"
+                # error: "Exception" has no attribute "reason"
                 errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:

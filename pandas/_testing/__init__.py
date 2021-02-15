@@ -559,7 +559,7 @@ def makeCustomIndex(
         "p": makePeriodIndex,
     }.get(idx_type)
     if idx_func:
-        # pandas\_testing.py:2120: error: Cannot call function of unknown type
+        # error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]
         # but we need to fill in the name
         if names:

@@ -71,8 +71,7 @@ class UndefinedVariableError(NameError):
 class Term:
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
-        # pandas\core\computation\ops.py:72: error: Argument 2 for "super" not
-        # an instance of argument 1  [misc]
+        # error: Argument 2 for "super" not an instance of argument 1
         supr_new = super(Term, klass).__new__  # type: ignore[misc]
         return supr_new(klass)
 
@@ -593,7 +592,7 @@ class MathCall(Op):
         self.func = func
 
     def __call__(self, env):
-        # pandas\core\computation\ops.py:592: error: "Op" not callable  [operator]
+        # error: "Op" not callable
         operands = [op(env) for op in self.operands]  # type: ignore[operator]
         with np.errstate(all="ignore"):
             return self.func.func(*operands)
