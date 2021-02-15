@@ -18,7 +18,7 @@ dependencies:
   - lxml
   - matplotlib=3.0.0
   - numpy=1.16.*
-  - openpyxl=2.6.0
+  - openpyxl=3.0.0
   - python-dateutil
   - python-blosc
   - pytz=2017.3
