@@ -88,11 +88,15 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import array_equivalent, is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import array_equivalent, is_valid_na_for_dtype, isna
 
 from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.putmask import (
+    setitem_datetimelike_compat,
+    validate_putmask,
+)
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.arrays.sparse import SparseDtype
@@ -2620,36 +2624,15 @@ class Index(IndexOpsMixin, PandasObject):
             return np.zeros(len(self), dtype=bool)
         return super().duplicated(keep=keep)
 
-    def _get_unique_index(self, dropna: bool = False):
+    def _get_unique_index(self: _IndexT) -> _IndexT:
         """
         Returns an index containing unique values.
 
-        Parameters
-        ----------
-        dropna : bool, default False
-            If True, NaN values are dropped.
-
         Returns
         -------
-        uniques : index
+        Index
         """
-        if self.is_unique and not dropna:
-            return self
-
-        if not self.is_unique:
-            values = self.unique()
-            if not isinstance(self, ABCMultiIndex):
-                # extract an array to pass to _shallow_copy
-                values = values._data
-        else:
-            values = self._values
-
-        if dropna and not isinstance(self, ABCMultiIndex):
-            # isna not defined for MultiIndex
-            if self.hasnans:
-                values = values[~isna(values)]
-
-        return self._shallow_copy(values)
+        return self.unique()
 
     # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
@@ -4295,6 +4278,7 @@ class Index(IndexOpsMixin, PandasObject):
         result += self._engine.sizeof(deep=deep)
         return result
 
+    @final
     def where(self, cond, other=None):
         """
         Replace values where the condition is False.
@@ -4327,6 +4311,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.where(idx.isin(['car', 'train']), 'other')
         Index(['car', 'other', 'train', 'other'], dtype='object')
         """
+        if isinstance(self, ABCMultiIndex):
+            raise NotImplementedError(
+                ".where is not supported for MultiIndex operations"
+            )
         cond = np.asarray(cond, dtype=bool)
         return self.putmask(~cond, other)
 
@@ -4543,13 +4531,11 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        mask = np.asarray(mask, dtype=bool)
-        if mask.shape != self.shape:
-            raise ValueError("putmask: mask and data must be the same size")
-        if not mask.any():
+        mask, noop = validate_putmask(self._values, mask)
+        if noop:
             return self.copy()
 
-        if value is None:
+        if value is None and (self._is_numeric_dtype or self.dtype == object):
             value = self._na_value
         try:
             converted = self._validate_fill_value(value)
@@ -4561,18 +4547,8 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        dtype, _ = infer_dtype_from(converted, pandas_dtype=True)
-        if dtype.kind in ["m", "M"]:
-            # https://github.com/numpy/numpy/issues/12550
-            #  timedelta64 will incorrectly cast to int
-            if not is_list_like(converted):
-                converted = [converted] * mask.sum()
-                values[mask] = converted
-            else:
-                converted = list(converted)
-                np.putmask(values, mask, converted)
-        else:
-            np.putmask(values, mask, converted)
+        converted = setitem_datetimelike_compat(values, mask.sum(), converted)
+        np.putmask(values, mask, converted)
 
         return type(self)._simple_new(values, name=self.name)
 
@@ -5216,7 +5192,7 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        if is_interval_dtype(self.dtype) and is_valid_nat_for_dtype(target, self.dtype):
+        if is_interval_dtype(self.dtype) and is_valid_na_for_dtype(target, self.dtype):
             # e.g. setting NA value into IntervalArray[int64]
             self = cast("IntervalIndex", self)
             return IntervalDtype(np.float64, closed=self.closed)
@@ -5770,7 +5746,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
         item = lib.item_from_zerodim(item)
-        if is_valid_nat_for_dtype(item, self.dtype) and self.dtype != object:
+        if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
             item = self._na_value
 
         try:
@@ -5787,7 +5763,7 @@ class Index(IndexOpsMixin, PandasObject):
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return Index(idx, name=self.name)
 
-    def drop(self, labels, errors: str_t = "raise"):
+    def drop(self: _IndexT, labels, errors: str_t = "raise") -> _IndexT:
         """
         Make new Index with passed list of labels deleted.
 
@@ -6095,14 +6071,14 @@ def ensure_index(
     if hasattr(index_like, "name"):
         # https://github.com/python/mypy/issues/1424
         # error: Item "ExtensionArray" of "Union[ExtensionArray,
-        # Sequence[Any]]" has no attribute "name"  [union-attr]
+        # Sequence[Any]]" has no attribute "name"
         # error: Item "Sequence[Any]" of "Union[ExtensionArray, Sequence[Any]]"
-        # has no attribute "name"  [union-attr]
-        # error: "Sequence[Any]" has no attribute "name"  [attr-defined]
+        # has no attribute "name"
+        # error: "Sequence[Any]" has no attribute "name"
         # error: Item "Sequence[Any]" of "Union[Series, Sequence[Any]]" has no
-        # attribute "name"  [union-attr]
+        # attribute "name"
         # error: Item "Sequence[Any]" of "Union[Any, Sequence[Any]]" has no
-        # attribute "name"  [union-attr]
+        # attribute "name"
         name = index_like.name  # type: ignore[union-attr, attr-defined]
         return Index(index_like, name=name, copy=copy)
 

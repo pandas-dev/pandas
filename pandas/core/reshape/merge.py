@@ -852,13 +852,13 @@ class _MergeOperation:
                     lvals = result[name]._values
                 else:
                     lfill = na_value_for_dtype(take_left.dtype)
-                    lvals = algos.take_1d(take_left, left_indexer, fill_value=lfill)
+                    lvals = algos.take_nd(take_left, left_indexer, fill_value=lfill)
 
                 if take_right is None:
                     rvals = result[name]._values
                 else:
                     rfill = na_value_for_dtype(take_right.dtype)
-                    rvals = algos.take_1d(take_right, right_indexer, fill_value=rfill)
+                    rvals = algos.take_nd(take_right, right_indexer, fill_value=rfill)
 
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
@@ -996,9 +996,8 @@ class _MergeOperation:
         """
         left_keys = []
         right_keys = []
-        # pandas\core\reshape\merge.py:966: error: Need type annotation for
-        # 'join_names' (hint: "join_names: List[<type>] = ...")
-        # [var-annotated]
+        # error: Need type annotation for 'join_names' (hint: "join_names: List[<type>]
+        # = ...")
         join_names = []  # type: ignore[var-annotated]
         right_drop = []
         left_drop = []
