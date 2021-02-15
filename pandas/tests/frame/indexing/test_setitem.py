@@ -2,18 +2,26 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.base import registry as ea_registry
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_object_dtype,
+)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 from pandas import (
     Categorical,
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
+    IntervalIndex,
     NaT,
     Period,
     PeriodIndex,
     Series,
     Timestamp,
+    cut,
     date_range,
     notna,
     period_range,
@@ -394,6 +402,90 @@ class TestDataFrameSetItem:
         msg = "Columns must be same length as key"
         with pytest.raises(ValueError, match=msg):
             df[["a", "b"]] = rhs
+
+    def test_setitem_intervals(self):
+
+        df = DataFrame({"A": range(10)})
+        ser = cut(df["A"], 5)
+        assert isinstance(ser.cat.categories, IntervalIndex)
+
+        # B & D end up as Categoricals
+        # the remainer are converted to in-line objects
+        # contining an IntervalIndex.values
+        df["B"] = ser
+        df["C"] = np.array(ser)
+        df["D"] = ser.values
+        df["E"] = np.array(ser.values)
+
+        assert is_categorical_dtype(df["B"].dtype)
+        assert is_interval_dtype(df["B"].cat.categories)
+        assert is_categorical_dtype(df["D"].dtype)
+        assert is_interval_dtype(df["D"].cat.categories)
+
+        assert is_object_dtype(df["C"])
+        assert is_object_dtype(df["E"])
+
+        # they compare equal as Index
+        # when converted to numpy objects
+        c = lambda x: Index(np.array(x))
+        tm.assert_index_equal(c(df.B), c(df.B))
+        tm.assert_index_equal(c(df.B), c(df.C), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
+        tm.assert_index_equal(c(df.C), c(df.D), check_names=False)
+
+        # B & D are the same Series
+        tm.assert_series_equal(df["B"], df["B"])
+        tm.assert_series_equal(df["B"], df["D"], check_names=False)
+
+        # C & E are the same Series
+        tm.assert_series_equal(df["C"], df["C"])
+        tm.assert_series_equal(df["C"], df["E"], check_names=False)
+
+
+class TestSetitemTZAwareValues:
+    @pytest.fixture
+    def idx(self):
+        naive = DatetimeIndex(["2013-1-1 13:00", "2013-1-2 14:00"], name="B")
+        idx = naive.tz_localize("US/Pacific")
+        return idx
+
+    @pytest.fixture
+    def expected(self, idx):
+        expected = Series(np.array(idx.tolist(), dtype="object"), name="B")
+        assert expected.dtype == idx.dtype
+        return expected
+
+    def test_setitem_dt64series(self, idx, expected):
+        # convert to utc
+        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+        df["B"] = idx
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
+        msg = "do 'idx.tz_convert(None)' before calling"
+        assert msg in str(m[0].message)
+
+        result = df["B"]
+        comp = Series(idx.tz_convert("UTC").tz_localize(None), name="B")
+        tm.assert_series_equal(result, comp)
+
+    def test_setitem_datetimeindex(self, idx, expected):
+        # setting a DataFrame column with a tzaware DTI retains the dtype
+        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+
+        # assign to frame
+        df["B"] = idx
+        result = df["B"]
+        tm.assert_series_equal(result, expected)
+
+    def test_setitem_object_array_of_tzaware_datetimes(self, idx, expected):
+        # setting a DataFrame column with a tzaware DTI retains the dtype
+        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+
+        # object array of datetimes with a tz
+        df["B"] = idx.to_pydatetime()
+        result = df["B"]
+        tm.assert_series_equal(result, expected)
 
 
 class TestDataFrameSetItemWithExpansion:

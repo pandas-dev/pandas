@@ -20,6 +20,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
     MultiIndex,
@@ -48,6 +49,19 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_constructor_from_tzaware_datetimeindex(self):
+        # don't cast a DatetimeIndex WITH a tz, leave as object
+        # GH#6032
+        naive = DatetimeIndex(["2013-1-1 13:00", "2013-1-2 14:00"], name="B")
+        idx = naive.tz_localize("US/Pacific")
+
+        expected = Series(np.array(idx.tolist(), dtype="object"), name="B")
+        assert expected.dtype == idx.dtype
+
+        # convert index to series
+        result = Series(idx)
+        tm.assert_series_equal(result, expected)
+
     def test_array_of_dt64_nat_with_td64dtype_raises(self, frame_or_series):
         # GH#39462
         nat = np.datetime64("NaT", "ns")
