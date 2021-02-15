@@ -228,7 +228,7 @@ def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
     return NotImplemented
 
 
-def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
     """
     Compatibility with numpy ufuncs.
 
@@ -341,9 +341,7 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
             result = result.__finalize__(self)
         return result
 
-    if self.ndim > 1 and (
-        len(inputs) > 1 or ufunc.nout > 1  # type: ignore[attr-defined]
-    ):
+    if self.ndim > 1 and (len(inputs) > 1 or ufunc.nout > 1):
         # Just give up on preserving types in the complex case.
         # In theory we could preserve them for them.
         # * nout>1 is doable if BlockManager.apply took nout and
@@ -367,7 +365,7 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
             # Those can have an axis keyword and thus can't be called block-by-block
             result = getattr(ufunc, method)(np.asarray(inputs[0]), **kwargs)
 
-    if ufunc.nout > 1:  # type: ignore[attr-defined]
+    if ufunc.nout > 1:
         result = tuple(reconstruct(x) for x in result)
     else:
         result = reconstruct(result)

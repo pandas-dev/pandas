@@ -1163,8 +1163,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
-    # overlap with incompatible return types  [misc]
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible return
+    # types
     @overload
     def dot(self, other: Series) -> Series:  # type: ignore[misc]
         ...
@@ -4822,8 +4822,8 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
 
-                # error: Argument 1 to "append" of "list" has incompatible
-                #  type "Union[Index, Series]"; expected "Index"  [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible type
+                #  "Union[Index, Series]"; expected "Index"
                 arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
@@ -9723,12 +9723,3 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
             "incompatible index of inserted column with frame index"
         ) from err
     return reindexed_value
-
-
-def _maybe_atleast_2d(value):
-    # TODO(EA2D): not needed with 2D EAs
-
-    if is_extension_array_dtype(value):
-        return value
-
-    return np.atleast_2d(np.asarray(value))

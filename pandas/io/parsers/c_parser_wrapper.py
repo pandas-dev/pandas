@@ -25,29 +25,23 @@ class CParserWrapper(ParserBase):
         for key in ("storage_options", "encoding", "memory_map", "compression"):
             kwds.pop(key, None)
         if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
-            # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "IO[Any]" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "RawIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "RawIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "BufferedIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "BufferedIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "TextIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "TextIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "TextIOWrapper" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "TextIOWrapper" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "mmap" of "Union[IO[Any],
-            # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]" has
-            # no attribute "mmap"  [union-attr]
+            # error: Item "mmap" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
         try:
