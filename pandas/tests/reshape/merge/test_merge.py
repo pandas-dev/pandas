@@ -292,7 +292,6 @@ class TestMerge:
             # TODO(ArrayManager) we should be able to simplify this with a .loc
             #  setitem test: merged.loc[0, "a"] = 10; assert left.loc[0, "a"] == 10
             #  but this currently replaces the array (_setitem_with_indexer_split_path)
-            merged.loc[0, "a"] = 10
             assert merged._mgr.arrays[0] is left._mgr.arrays[0]
             assert merged._mgr.arrays[2] is right._mgr.arrays[0]
         else:
