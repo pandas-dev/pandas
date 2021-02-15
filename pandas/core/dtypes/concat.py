@@ -244,6 +244,8 @@ def concat_arrays(to_concat: List[Any]) -> ArrayLike:
 
     result = np.concatenate(to_concat)
 
+    # TODO decide on exact behaviour (we shouldn't do this only for empty result)
+    # see https://github.com/pandas-dev/pandas/issues/39817
     if len(result) == 0:
         # all empties -> check for bool to not coerce to float
         if len(kinds) != 1:
