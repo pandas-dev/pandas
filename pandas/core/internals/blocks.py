@@ -128,9 +128,6 @@ class Block(PandasObject):
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
     is_float = False
-    is_datetime = False
-    is_datetimetz = False
-    is_timedelta = False
     is_bool = False
     is_object = False
     is_extension = False
@@ -241,11 +238,6 @@ class Block(PandasObject):
     @property
     def is_categorical(self) -> bool:
         return self._holder is Categorical
-
-    @property
-    def is_datelike(self) -> bool:
-        """ return True if I am a non-datelike """
-        return self.is_datetime or self.is_timedelta
 
     def external_values(self):
         """
@@ -576,7 +568,8 @@ class Block(PandasObject):
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and (self.is_float or self.is_datelike):
+        if downcast is None and self.dtype.kind in ["f", "m", "M"]:
+            # TODO: complex?  more generally, self._can_hold_na?
             return blocks
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
@@ -663,13 +656,12 @@ class Block(PandasObject):
                 raise
 
         newb = self.make_block(new_values)
-        if newb.is_numeric and self.is_numeric:
-            if newb.shape != self.shape:
-                raise TypeError(
-                    f"cannot set astype for copy = [{copy}] for dtype "
-                    f"({self.dtype.name} [{self.shape}]) to different shape "
-                    f"({newb.dtype.name} [{newb.shape}])"
-                )
+        if newb.shape != self.shape:
+            raise TypeError(
+                f"cannot set astype for copy = [{copy}] for dtype "
+                f"({self.dtype.name} [{self.shape}]) to different shape "
+                f"({newb.dtype.name} [{newb.shape}])"
+            )
         return newb
 
     def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
@@ -2118,7 +2110,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     values: DatetimeArray
 
     __slots__ = ()
-    is_datetimetz = True
     is_extension = True
 
     _holder = DatetimeArray
@@ -2196,7 +2187,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def external_values(self):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
-        # avoid FutureWarning in .astype in casting from dt64t to dt64
+        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
         return self.values._data
 
     def fillna(
@@ -2237,7 +2228,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-    is_timedelta = True
     _can_hold_na = True
     is_numeric = False
     _holder = TimedeltaArray
