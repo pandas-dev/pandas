@@ -1631,12 +1631,12 @@ class Styler:
         -------
         self : Styler
         """
+
+        def f(data: DataFrame, props: str) -> np.ndarray:
+            return np.where(pd.isna(data).values, props, "")
+
         return self.apply(
-            _Builtins._highlight_func,
-            axis=None,
-            subset=subset,
-            props=f"background-color: {null_color};",
-            highlight="null",
+            f, axis=None, subset=subset, props=f"background-color: {null_color};"
         )
 
     def highlight_max(
@@ -1662,12 +1662,12 @@ class Styler:
         -------
         self : Styler
         """
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmax(data.values), props, "")
+
         return self.apply(
-            _Builtins._highlight_func,
-            axis=axis,
-            subset=subset,
-            props=f"background-color: {color};",
-            highlight="max",
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
         )
 
     def highlight_min(
@@ -1693,12 +1693,12 @@ class Styler:
         -------
         self : Styler
         """
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmin(data.values), props, "")
+
         return self.apply(
-            _Builtins._highlight_func,
-            axis=axis,
-            subset=subset,
-            props=f"background-color: {color};",
-            highlight="min",
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
         )
 
     @classmethod
@@ -1801,27 +1801,6 @@ class Styler:
         ...    .set_caption("Results with minimum conversion highlighted."))
         """
         return com.pipe(self, func, *args, **kwargs)
-
-
-class _Builtins:
-    @staticmethod
-    def _highlight_func(
-        data: FrameOrSeries,
-        props: str = "background-color: yellow;",
-        highlight: str = "max",
-        **kwargs,
-    ) -> np.ndarray:
-        """
-        Highlight the value in a Series or DataFrame by func with css-properties
-        """
-        if highlight == "max":
-            return np.where(data == np.nanmax(data.values), props, "")
-        elif highlight == "min":
-            return np.where(data == np.nanmin(data.values), props, "")
-        elif highlight == "null":
-            return np.where(pd.isna(data).values, props, "")
-        else:
-            raise ValueError("'highlight' must one of 'max', 'min', 'null'")
 
 
 class _Tooltips:
