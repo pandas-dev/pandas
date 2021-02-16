@@ -1218,7 +1218,7 @@ def _refine_defaults_read(
     # Alias sep -> delimiter.
     if delimiter is None:
         delimiter = sep
-    else:
+    elif sep and (delimiter is not lib.no_default):
         raise ValueError(
             "Specified both delimiter and "
             "sep; you can only specify one."
