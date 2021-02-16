@@ -4,7 +4,10 @@ import warnings
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas import get_option, option_context
+from pandas import (
+    get_option,
+    option_context,
+)
 
 
 def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover

@@ -6,7 +6,10 @@ import pytz
 
 from pandas._libs.tslibs import timezones
 
-from pandas import DataFrame, date_range
+from pandas import (
+    DataFrame,
+    date_range,
+)
 import pandas._testing as tm
 
 

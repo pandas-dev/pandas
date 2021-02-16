@@ -8,7 +8,10 @@ from pandas.compat import np_version_under1p20
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 @pytest.fixture(params=["integer", "block"])

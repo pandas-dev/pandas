@@ -7,7 +7,10 @@ import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -21,7 +24,10 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import nanops, ops
+from pandas.core import (
+    nanops,
+    ops,
+)
 
 
 def _permute(obj):
