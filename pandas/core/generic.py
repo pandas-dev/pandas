@@ -1928,7 +1928,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __array_ufunc__(
         self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
     ):
-        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
+        # pandas/core/generic.py:1931: error: Argument 2 to "array_ufunc" has
+        # incompatible type "Callable[..., Any]"; expected "ufunc"  [arg-type]
+        return arraylike.array_ufunc(
+            self, ufunc, method, *inputs, **kwargs  # type: ignore[arg-type]
+        )
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower

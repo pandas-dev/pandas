@@ -309,7 +309,10 @@ class JoinUnit:
                 elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
-                    cls = empty_dtype.construct_array_type()
+                    # pandas/core/internals/concat.py:312: error: Item "dtype[Any]" of
+                    # "Union[dtype[Any], ExtensionDtype]" has no attribute
+                    # "construct_array_type"  [union-attr]
+                    cls = empty_dtype.construct_array_type()  # type: ignore[union-attr]
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols

@@ -964,7 +964,10 @@ class Block(PandasObject):
                 nb = self.coerce_to_target_dtype(value)
                 if nb is self and not inplace:
                     nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
+                # pandas/core/internals/blocks.py:967: error: Value of type variable
+                # "ArrayLike" of "putmask_inplace" cannot be "Union[ndarray,
+                # ExtensionArray]"  [type-var]
+                putmask_inplace(nb.values, mask, value)  # type: ignore[type-var]
                 return [nb]
             else:
                 regex = should_use_regex(regex, to_replace)

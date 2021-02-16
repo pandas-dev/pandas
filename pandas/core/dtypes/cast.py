@@ -609,7 +609,9 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
                 if fv.tz is None:
                     return dtype, fv.asm8
 
-        return np.dtype(object), fill_value
+        # pandas/core/dtypes/cast.py:612: error: Value of type variable "_DTypeScalar"
+        # of "dtype" cannot be "object"  [type-var]
+        return np.dtype(object), fill_value  # type: ignore[type-var]
 
     elif issubclass(dtype.type, np.timedelta64):
         if (

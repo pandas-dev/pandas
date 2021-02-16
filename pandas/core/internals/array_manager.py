@@ -711,7 +711,10 @@ class ArrayManager(DataManager):
         else:
             assert isinstance(loc, np.ndarray)
             assert loc.dtype == "bool"
-            indices = np.nonzero(loc)[0]
+            # pandas/core/internals/array_manager.py:714: error: Incompatible types in
+            # assignment (expression has type "ndarray", variable has type "range")
+            # [assignment]
+            indices = np.nonzero(loc)[0]  # type: ignore[assignment]
 
         assert value.ndim == 2
         assert value.shape[0] == len(self._axes[0])
