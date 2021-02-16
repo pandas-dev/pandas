@@ -32,6 +32,7 @@ from pandas._typing import (
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
+    Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
@@ -1712,12 +1713,12 @@ class Styler:
         )
 
     def highlight_range(
-            self,
-            subset: Optional[IndexLabel] = None,
-            color: str = "yellow",
-            start: Optional[Any] = None,
-            stop: Optional[Any] = None,
-            props: Optional[str] = None,
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        start: Optional[Any] = None,
+        stop: Optional[Any] = None,
+        props: Optional[str] = None,
     ) -> Styler:
         """
         Highlight a defined range by shading the background, or otherwise.
@@ -1770,10 +1771,10 @@ class Styler:
         """
 
         def f(
-                data: DataFrame,
-                props: str,
-                d: Optional[Scalar] = None,
-                u: Optional[Scalar] = None,
+            data: DataFrame,
+            props: str,
+            d: Optional[Scalar] = None,
+            u: Optional[Scalar] = None,
         ) -> np.ndarray:
             ge_d = data >= d if d is not None else np.full_like(data, True, dtype=bool)
             le_u = data <= u if u is not None else np.full_like(data, True, dtype=bool)
@@ -1784,13 +1785,13 @@ class Styler:
         return self.apply(f, axis=None, subset=subset, props=props, d=start, u=stop)
 
     def highlight_quantile(
-            self,
-            subset: Optional[IndexLabel] = None,
-            color: str = "yellow",
-            q_low: float = 0.0,
-            q_high: float = 1.0,
-            axis: Optional[Axis] = 0,
-            props: Optional[str] = None,
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        q_low: float = 0.0,
+        q_high: float = 1.0,
+        axis: Optional[Axis] = 0,
+        props: Optional[str] = None,
     ) -> Styler:
         """
         Highlight values defined by inclusion in given quantile by shading the
@@ -1834,11 +1835,11 @@ class Styler:
         """
 
         def f(
-                data: FrameOrSeries,
-                props: str,
-                q_low: float = 0,
-                q_high: float = 1,
-                axis_: Optional[Axis] = 0,
+            data: FrameOrSeries,
+            props: str,
+            q_low: float = 0,
+            q_high: float = 1,
+            axis_: Optional[Axis] = 0,
         ):
             if q_low > 0:
                 q, tgt_label = [0, q_low, q_high], 1
