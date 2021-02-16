@@ -1,4 +1,7 @@
-from numpy cimport ndarray, uint8_t
+from numpy cimport (
+    ndarray,
+    uint8_t,
+)
 
 
 cpdef bint is_matching_na(object left, object right, bint nan_matches_none=*)

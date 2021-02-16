@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import Series, TimedeltaIndex, Timestamp, array
+from pandas import (
+    Series,
+    TimedeltaIndex,
+    Timestamp,
+    array,
+)
 import pandas._testing as tm
 
 

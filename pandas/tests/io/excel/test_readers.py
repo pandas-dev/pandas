@@ -1,4 +1,7 @@
-from datetime import datetime, time
+from datetime import (
+    datetime,
+    time,
+)
 from functools import partial
 import os
 from urllib.error import URLError
@@ -10,7 +13,12 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
 

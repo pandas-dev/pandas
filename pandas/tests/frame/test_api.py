@@ -6,10 +6,18 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-from pandas.util._test_decorators import async_mark, skip_if_no
+from pandas.util._test_decorators import (
+    async_mark,
+    skip_if_no,
+)
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range, timedelta_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 

@@ -37,10 +37,17 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCNDFrame,
+    ABCSeries,
+)
 
 from pandas.core.algorithms import safe_sort
-from pandas.core.base import DataError, SpecificationError
+from pandas.core.base import (
+    DataError,
+    SpecificationError,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -48,8 +55,15 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Index, Series
-    from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
+    from pandas import (
+        DataFrame,
+        Index,
+        Series,
+    )
+    from pandas.core.groupby import (
+        DataFrameGroupBy,
+        SeriesGroupBy,
+    )
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
