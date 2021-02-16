@@ -6,6 +6,8 @@ import pytest
 from pandas.core.dtypes.cast import maybe_box_native
 
 from pandas import (
+    Interval,
+    Period,
     Timedelta,
     Timestamp,
 )
@@ -14,6 +16,7 @@ from pandas import (
 @pytest.mark.parametrize(
     "obj,expected_dtype",
     [
+        (b"\x00\x10", bytes),
         (int(4), int),
         (np.uint(4), int),
         (np.int32(-4), int),
@@ -27,6 +30,8 @@ from pandas import (
         (Timestamp("2005-02-25"), Timestamp),
         (np.timedelta64(1, "D"), Timedelta),
         (Timedelta(1, "D"), Timedelta),
+        (Interval(0, 1), Interval),
+        (Period("4Q2005"), Period),
     ],
 )
 def test_maybe_box_native(obj, expected_dtype):
