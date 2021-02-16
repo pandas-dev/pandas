@@ -4,9 +4,14 @@ which has its own directory
 """
 import numpy as np
 
-from pandas._libs.lib import is_list_like, is_scalar
-
-from pandas import NA, NaT
+from pandas._libs.lib import (
+    is_list_like,
+    is_scalar,
+)
+from pandas import (
+    NA,
+    NaT,
+)
 
 # TODO: share with something in pd._testing?
 scalars = [
