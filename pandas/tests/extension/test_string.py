@@ -163,4 +163,14 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestGroupBy(base.BaseGroupbyTests):
-    pass
+    @pytest.fixture(
+        params=[
+            StringDtype,
+            pytest.param(
+                ArrowStringDtype, marks=td.skip_if_no("pyarrow", min_version="2.0.0")
+            ),
+        ]
+    )
+    def dtype(request):
+        # GH#37869 we need pyarrow 2.0+ for some of these tests
+        return request.param()

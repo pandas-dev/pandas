@@ -1,17 +1,30 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List, TypeVar
+from typing import (
+    List,
+    TypeVar,
+)
 
 import numpy as np
 
 from pandas._libs import index as libindex
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
-from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype, pandas_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    is_object_dtype,
+    pandas_dtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray

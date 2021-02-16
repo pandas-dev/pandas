@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 import operator
-from operator import le, lt
+from operator import (
+    le,
+    lt,
+)
 import textwrap
-from typing import Optional, Sequence, Type, TypeVar, cast
+from typing import (
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    cast,
+)
 
 import numpy as np
 
@@ -17,7 +26,11 @@ from pandas._libs.interval import (
     intervals_to_interval_bounds,
 )
 from pandas._libs.missing import NA
-from pandas._typing import ArrayLike, Dtype, NpDtype
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    NpDtype,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -45,10 +58,21 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    notna,
+)
 
-from pandas.core.algorithms import isin, take, value_counts
-from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
+from pandas.core.algorithms import (
+    isin,
+    take,
+    value_counts,
+)
+from pandas.core.arrays.base import (
+    ExtensionArray,
+    _extension_array_shared_docs,
+)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -58,7 +82,10 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
-from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
+from pandas.core.ops import (
+    invalid_comparison,
+    unpack_zerodim_and_defer,
+)
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
