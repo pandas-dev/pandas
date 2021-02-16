@@ -1,11 +1,9 @@
 """
 :mod:`pandas.io.xml` is a module for reading XML.
-
 """
 
 import io
 from typing import Dict, List, Optional, Union
-from urllib.error import HTTPError, URLError
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
@@ -313,11 +311,9 @@ class _EtreeFrameParser(_XMLFrameParser):
                     for el in elems
                 ]
 
-        if self.namespaces:
-            dicts = [
-                {k.split("}")[1] if "}" in k else k: v for k, v in d.items()}
-                for d in dicts
-            ]
+        dicts = [
+            {k.split("}")[1] if "}" in k else k: v for k, v in d.items()} for d in dicts
+        ]
 
         keys = list(dict.fromkeys([k for d in dicts for k in d.keys()]))
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
@@ -375,13 +371,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 )
 
     def _parse_doc(self) -> Union[Element, ElementTree]:
-        from xml.etree.ElementTree import (
-            Element,
-            ElementTree,
-            ParseError,
-            fromstring,
-            parse,
-        )
+        from xml.etree.ElementTree import Element, ElementTree, fromstring, parse
 
         current_doc = self._convert_io(self.io)
         if current_doc:
@@ -393,16 +383,13 @@ class _EtreeFrameParser(_XMLFrameParser):
             raise ValueError("io is not a url, file, or xml string.")
 
         r: Union[Element, ElementTree]
-        try:
-            if is_url(current_doc):
-                with urlopen(current_doc) as f:
-                    r = parse(f)
-            elif is_xml:
-                r = fromstring(current_doc)
-            else:
-                r = parse(current_doc)
-        except (URLError, HTTPError, OSError, FileNotFoundError, ParseError) as e:
-            raise e
+        if is_url(current_doc):
+            with urlopen(current_doc) as f:
+                r = parse(f)
+        elif is_xml:
+            r = fromstring(current_doc)
+        else:
+            r = parse(current_doc)
 
         return r
 
@@ -531,36 +518,29 @@ class _LxmlFrameParser(_XMLFrameParser):
         am ideally flatter xml document for easier parsing and migration
         to Data Frame.
         """
-        from lxml.etree import XSLT, XSLTApplyError, XSLTParseError
+        from lxml.etree import XSLT
 
-        try:
-            transformer = XSLT(self.xsl_doc)
-            new_doc = transformer(self.xml_doc)
-        except (XSLTApplyError, XSLTParseError) as e:
-            raise e
+        transformer = XSLT(self.xsl_doc)
+        new_doc = transformer(self.xml_doc)
 
         return new_doc
 
     def _validate_path(self) -> None:
-        from lxml.etree import XPathEvalError, XPathSyntaxError
 
-        try:
-            elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
-            children = self.xml_doc.xpath(self.xpath + "/*", namespaces=self.namespaces)
-            attrs = self.xml_doc.xpath(self.xpath + "/@*", namespaces=self.namespaces)
+        elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
+        children = self.xml_doc.xpath(self.xpath + "/*", namespaces=self.namespaces)
+        attrs = self.xml_doc.xpath(self.xpath + "/@*", namespaces=self.namespaces)
 
-            if (elems == [] and attrs == [] and children == []) or (
-                elems != [] and attrs == [] and children == []
-            ):
-                raise ValueError(
-                    "xpath does not return any nodes. "
-                    "Be sure row level nodes are in xpath. "
-                    "If document uses namespaces denoted with "
-                    "xmlns, be sure to define namespaces and "
-                    "use them in xpath."
-                )
-        except (XPathEvalError, XPathSyntaxError, TypeError) as e:
-            raise e
+        if (elems == [] and attrs == [] and children == []) or (
+            elems != [] and attrs == [] and children == []
+        ):
+            raise ValueError(
+                "xpath does not return any nodes. "
+                "Be sure row level nodes are in xpath. "
+                "If document uses namespaces denoted with "
+                "xmlns, be sure to define namespaces and "
+                "use them in xpath."
+            )
 
     def _validate_names(self) -> None:
         """
@@ -590,7 +570,7 @@ class _LxmlFrameParser(_XMLFrameParser):
                 )
 
     def _parse_doc(self):
-        from lxml.etree import XML, XMLParser, XMLSyntaxError, parse
+        from lxml.etree import XML, XMLParser, parse
 
         self.raw_doc = self.stylesheet if self.is_style else self.io
 
@@ -603,27 +583,17 @@ class _LxmlFrameParser(_XMLFrameParser):
         else:
             raise ValueError("io is not a url, file, or xml string.")
 
-        try:
-            curr_parser = XMLParser(encoding=self.encoding)
+        curr_parser = XMLParser(encoding=self.encoding)
 
-            if is_url(current_doc):
-                with urlopen(current_doc) as f:
-                    r = parse(f, parser=curr_parser)
-            elif is_xml and isinstance(current_doc, str):
-                r = XML(bytes(current_doc, encoding=self.encoding))
-            elif is_xml and isinstance(current_doc, bytes):
-                r = XML(current_doc)
-            else:
-                r = parse(current_doc, parser=curr_parser)
-        except (
-            LookupError,
-            URLError,
-            HTTPError,
-            OSError,
-            FileNotFoundError,
-            XMLSyntaxError,
-        ) as e:
-            raise e
+        if is_url(current_doc):
+            with urlopen(current_doc) as f:
+                r = parse(f, parser=curr_parser)
+        elif is_xml and isinstance(current_doc, str):
+            r = XML(bytes(current_doc, encoding=self.encoding))
+        elif is_xml and isinstance(current_doc, bytes):
+            r = XML(current_doc)
+        else:
+            r = parse(current_doc, parser=curr_parser)
 
         return r
 

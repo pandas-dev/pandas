@@ -5,7 +5,6 @@
 import codecs
 import io
 from typing import Any, Dict, List, Optional, Union
-from urllib.error import HTTPError, URLError
 
 from pandas._typing import FilePathOrBuffer
 from pandas.errors import AbstractMethodError
@@ -148,10 +147,7 @@ class BaseXMLFormatter:
             * If encoding is not available in codecs.
         """
 
-        try:
-            codecs.lookup(self.encoding)
-        except LookupError as e:
-            raise e
+        codecs.lookup(self.encoding)
 
     def process_dataframe(self) -> Dict[Union[int, str], Dict[str, Any]]:
         """
@@ -244,15 +240,11 @@ class BaseXMLFormatter:
         xml_doc = self.build_tree()
         out_str: Optional[str] = xml_doc.decode(self.encoding).rstrip()
 
-        try:
-            if self.path_or_buffer and isinstance(self.path_or_buffer, str):
-                with open(self.path_or_buffer, "wb") as f:
-                    f.write(xml_doc)
+        if self.path_or_buffer and isinstance(self.path_or_buffer, str):
+            with open(self.path_or_buffer, "wb") as f:
+                f.write(xml_doc)
 
-                out_str = None
-
-        except (OSError, FileNotFoundError) as e:
-            raise e
+            out_str = None
 
         return out_str
 
@@ -315,7 +307,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             if self.prefix:
                 try:
                     uri = f"{{{self.namespaces[self.prefix]}}}"
-                except (KeyError):
+                except KeyError:
                     raise KeyError(f"{self.prefix} is not included in namespaces")
             else:
                 uri = f'{{{self.namespaces[""]}}}'
@@ -452,7 +444,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             if self.prefix:
                 try:
                     uri = f"{{{self.namespaces[self.prefix]}}}"
-                except (KeyError):
+                except KeyError:
                     raise KeyError(f"{self.prefix} is not included in namespaces")
             else:
                 uri = f'{{{self.namespaces[""]}}}'
@@ -554,7 +546,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             * If io object is not readable as string or file-like object.
         """
 
-        from lxml.etree import XML, XMLParser, XMLSyntaxError, parse
+        from lxml.etree import XML, XMLParser, parse
 
         current_doc = self.convert_io()
         if current_doc and isinstance(current_doc, str):
@@ -562,18 +554,15 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         else:
             raise ValueError("stylesheet is not a url, file, or xml string")
 
-        try:
-            curr_parser = XMLParser(encoding=self.encoding)
+        curr_parser = XMLParser(encoding=self.encoding)
 
-            if is_url(current_doc):
-                with urlopen(current_doc) as f:
-                    r = parse(f, parser=curr_parser)
-            elif is_xml:
-                r = XML(bytes(current_doc, encoding=self.encoding))
-            else:
-                r = parse(current_doc, parser=curr_parser)
-        except (LookupError, URLError, HTTPError, OSError, XMLSyntaxError) as e:
-            raise e
+        if is_url(current_doc):
+            with urlopen(current_doc) as f:
+                r = parse(f, parser=curr_parser)
+        elif is_xml:
+            r = XML(bytes(current_doc, encoding=self.encoding))
+        else:
+            r = parse(current_doc, parser=curr_parser)
 
         return r
 
@@ -584,15 +573,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         This method will transform built tree with XSLT script.
         """
 
-        from lxml.etree import XSLT, XSLTApplyError, XSLTParseError
+        from lxml.etree import XSLT
 
         xsl_doc = self.parse_doc()
 
-        try:
-            transformer = XSLT(xsl_doc)
-            new_doc = transformer(self.root)
-
-        except (XSLTApplyError, XSLTParseError) as e:
-            raise e
+        transformer = XSLT(xsl_doc)
+        new_doc = transformer(self.root)
 
         return bytes(new_doc)
