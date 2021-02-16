@@ -1141,7 +1141,8 @@ class TestDataFrameIndexing:
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
-        # rows unaligned
+    def test_setitem_frame_mixed_rows_unaligned(self, float_string_frame):
+        # GH#3216 rows unaligned
         f = float_string_frame.copy()
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
@@ -1154,7 +1155,8 @@ class TestDataFrameIndexing:
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
         )
 
-        # key is unaligned with values
+    def test_setitem_frame_mixed_key_unaligned(self, float_string_frame):
+        # GH#3216 key is unaligned with values
         f = float_string_frame.copy()
         piece = f.loc[f.index[:2], ["A"]]
         piece.index = f.index[-2:]
@@ -1163,7 +1165,8 @@ class TestDataFrameIndexing:
         piece["B"] = np.nan
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
 
-        # ndarray
+    def test_setitem_frame_mixed_ndarray(self, float_string_frame):
+        # GH#3216 ndarray
         f = float_string_frame.copy()
         piece = float_string_frame.loc[f.index[:2], ["A", "B"]]
         key = (f.index[slice(-2, None)], ["A", "B"])
@@ -1498,7 +1501,7 @@ class TestDataFrameIndexing:
         result.loc[bkey] = df.iloc[binds]
         tm.assert_frame_equal(result, df)
 
-    def test_loc_getitem_index_namedtuple(self):  # TODO: frame_or_series, getitem
+    def test_loc_getitem_index_namedtuple(self):
         from collections import namedtuple
 
         IndexType = namedtuple("IndexType", ["a", "b"])

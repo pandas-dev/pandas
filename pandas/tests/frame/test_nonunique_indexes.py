@@ -14,7 +14,7 @@ def check(result, expected=None):
 
 
 class TestDataFrameNonuniqueIndexes:
-    def test_column_dups_operations(self):
+    def test_setattr_columns_vs_construct_with_columns(self):
 
         # assignment
         # GH 3687
@@ -25,6 +25,7 @@ class TestDataFrameNonuniqueIndexes:
         expected = DataFrame(arr, columns=idx)
         check(df, expected)
 
+    def test_setattr_columns_vs_construct_with_columns_datetimeindx(self):
         idx = date_range("20130101", periods=4, freq="Q-NOV")
         df = DataFrame(
             [[1, 1, 1, 5], [1, 1, 2, 5], [2, 1, 3, 5]], columns=["a", "a", "a", "a"]
