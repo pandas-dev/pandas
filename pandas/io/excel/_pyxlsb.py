@@ -1,6 +1,10 @@
 from typing import List
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import BaseExcelReader

@@ -17,9 +17,19 @@ Note that you may need to manually fixup some imports.
 
 import argparse
 import ast
-from typing import MutableMapping, Optional, Sequence, Set
+from typing import (
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+)
 
-from tokenize_rt import Offset, reversed_enumerate, src_to_tokens, tokens_to_src
+from tokenize_rt import (
+    Offset,
+    reversed_enumerate,
+    src_to_tokens,
+    tokens_to_src,
+)
 
 ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
 EXCLUDE = {

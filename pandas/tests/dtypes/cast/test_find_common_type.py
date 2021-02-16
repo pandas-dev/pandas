@@ -9,7 +9,10 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import Categorical, Index
+from pandas import (
+    Categorical,
+    Index,
+)
 
 
 @pytest.mark.parametrize(

@@ -6,7 +6,10 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray, period_array
+from pandas.core.arrays import (
+    PeriodArray,
+    period_array,
+)
 
 
 @pytest.mark.parametrize(

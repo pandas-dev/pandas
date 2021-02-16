@@ -1,5 +1,12 @@
-from collections import OrderedDict, abc
-from datetime import date, datetime, timedelta
+from collections import (
+    OrderedDict,
+    abc,
+)
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 import functools
 import itertools
 import re
@@ -13,7 +20,11 @@ import pytz
 from pandas.compat import np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -33,7 +44,11 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.arrays import IntervalArray, PeriodArray, SparseArray
+from pandas.arrays import (
+    IntervalArray,
+    PeriodArray,
+    SparseArray,
+)
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [

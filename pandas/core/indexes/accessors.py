@@ -19,9 +19,19 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-from pandas.core.base import NoNewAttributesMixin, PandasObject
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 

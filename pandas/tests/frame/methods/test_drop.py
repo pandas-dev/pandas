@@ -7,7 +7,13 @@ from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
