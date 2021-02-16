@@ -1,4 +1,8 @@
-from pandas import Index, Series, date_range
+from pandas import (
+    Index,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 

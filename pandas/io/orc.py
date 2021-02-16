@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import distutils
-from typing import TYPE_CHECKING, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    List,
+    Optional,
+)
 
 from pandas._typing import FilePathOrBuffer
 

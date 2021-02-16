@@ -3,12 +3,19 @@ import warnings
 
 import cython
 
-from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare
+from cpython.object cimport (
+    Py_EQ,
+    Py_NE,
+    PyObject_RichCompare,
+)
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 cnp.import_array()
 
@@ -24,7 +31,10 @@ PyDateTime_IMPORT
 
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.base cimport ABCTimestamp
-from pandas._libs.tslibs.conversion cimport cast_from_unit, precision_from_unit
+from pandas._libs.tslibs.conversion cimport (
+    cast_from_unit,
+    precision_from_unit,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -47,7 +57,11 @@ from pandas._libs.tslibs.util cimport (
     is_integer_object,
     is_timedelta64_object,
 )
-from pandas._libs.tslibs.fields import RoundTo, round_nsint64
+
+from pandas._libs.tslibs.fields import (
+    RoundTo,
+    round_nsint64,
+)
 
 # ----------------------------------------------------------------------
 # Constants
