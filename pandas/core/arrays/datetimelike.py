@@ -559,6 +559,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # GH#18295
             value = NaT
 
+        elif isna(value):
+            # if we are dt64tz and value is dt64("NaT"), dont cast to NaT,
+            #  or else we'll fail to raise in _unbox_scalar
+            msg = self._validation_error_message(value, allow_listlike)
+            raise TypeError(msg)
+
         elif isinstance(value, self._recognized_scalars):
             # error: Too many arguments for "object"
             value = self._scalar_type(value)  # type: ignore[call-arg]
