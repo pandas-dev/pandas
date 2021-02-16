@@ -602,8 +602,7 @@ class StringMethods(NoNewAttributesMixin):
             result = Series(  # type: ignore[assignment]
                 result, dtype=dtype, index=data.index, name=self._orig.name
             )
-            # pandas\core\strings\accessor.py:616: error: "ndarray" has no
-            # attribute "__finalize__"  [attr-defined]
+            # error: "ndarray" has no attribute "__finalize__"
             result = result.__finalize__(  # type: ignore[attr-defined]
                 self._orig, method="str_cat"
             )

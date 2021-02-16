@@ -1515,12 +1515,12 @@ class SQLDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                # pandas/io/sql.py:1502: error: Value expression in dictionary
-                # comprehension has incompatible type "Union[ExtensionDtype, str,
-                # dtype[Any], Type[object], Dict[Optional[Hashable],
-                # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-                # Type[int], Type[complex], Type[bool], Type[object]]]]"; expected type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"  [misc]
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
                 dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)
@@ -1995,12 +1995,12 @@ class SQLiteDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                # pandas/io/sql.py:1970: error: Value expression in dictionary
-                # comprehension has incompatible type "Union[ExtensionDtype, str,
-                # dtype[Any], Type[object], Dict[Optional[Hashable],
-                # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-                # Type[int], Type[complex], Type[bool], Type[object]]]]"; expected type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"  [misc]
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
                 dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)

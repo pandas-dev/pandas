@@ -281,10 +281,9 @@ class UInt64Index(IntegerIndex):
         ):
             dtype = np.uint64
 
-        # pandas/core/indexes/numeric.py:321: error: Argument "dtype" to
-        # "asarray_tuplesafe" has incompatible type
+        # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
         # "Optional[Type[unsignedinteger[Any]]]"; expected "Union[str, dtype[Any],
-        # None]"  [arg-type]
+        # None]"
         return com.asarray_tuplesafe(keyarr, dtype=dtype)  # type: ignore[arg-type]
 
 
@@ -322,9 +321,8 @@ class Float64Index(NumericIndex):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
 
-            # pandas/core/indexes/numeric.py:357: error: Argument 1 to "astype_nansafe"
-            # has incompatible type "Union[ExtensionArray, ndarray]"; expected "ndarray"
-            # [arg-type]
+            # error: Argument 1 to "astype_nansafe" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
             arr = astype_nansafe(self._values, dtype=dtype)  # type: ignore[arg-type]
             return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)

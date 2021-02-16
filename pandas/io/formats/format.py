@@ -1536,9 +1536,8 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
 
-            # pandas/io/formats/format.py:1546: error: Item "ExtensionArray" of
-            # "Union[Any, ExtensionArray]" has no attribute "_internal_get_values"
-            # [union-attr]
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "_internal_get_values"
             array = values._internal_get_values()  # type: ignore[union-attr]
         else:
             array = np.asarray(values)
@@ -1607,33 +1606,23 @@ def format_percentiles(
 
     percentiles = 100 * percentiles
 
-    # pandas/io/formats/format.py:1612: error: Item "List[Union[int, float]]" of
-    # "Union[ndarray, List[Union[int, float]], List[float], List[Union[str, float]]]"
-    # has no attribute "astype"  [union-attr]
-
-    # pandas/io/formats/format.py:1612: error: Item "List[float]" of "Union[ndarray,
-    # List[Union[int, float]], List[float], List[Union[str, float]]]" has no attribute
-    # "astype"  [union-attr]
-
-    # pandas/io/formats/format.py:1612: error: Item "List[Union[str, float]]" of
-    # "Union[ndarray, List[Union[int, float]], List[float], List[Union[str, float]]]"
-    # has no attribute "astype"  [union-attr]
+    # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int, float]],
+    # List[float], List[Union[str, float]]]" has no attribute "astype"
+    # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]], List[float],
+    # List[Union[str, float]]]" has no attribute "astype"
+    # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int, float]],
+    # List[float], List[Union[str, float]]]" has no attribute "astype"
     int_idx = np.isclose(
         percentiles.astype(int), percentiles  # type: ignore[union-attr]
     )
 
     if np.all(int_idx):
-        # pandas/io/formats/format.py:1615: error: Item "List[Union[int, float]]" of
-        # "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
-        # float]]]" has no attribute "astype"  [union-attr]
-
-        # pandas/io/formats/format.py:1615: error: Item "List[float]" of "Union[ndarray,
-        # List[Union[int, float]], List[float], List[Union[str, float]]]" has no
-        # attribute "astype"  [union-attr]
-
-        # pandas/io/formats/format.py:1615: error: Item "List[Union[str, float]]" of
-        # "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
-        # float]]]" has no attribute "astype"  [union-attr]
+        # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int,
+        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
+        # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]],
+        # List[float], List[Union[str, float]]]" has no attribute "astype"
+        # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int,
+        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
         out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
         return [i + "%" for i in out]
 
@@ -1647,21 +1636,16 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    # pandas/io/formats/format.py:1635: error: No overload variant of "__getitem__" of
-    # "list" matches argument type "Union[bool_, ndarray]"  [call-overload]
+    # error: No overload variant of "__getitem__" of "list" matches argument type
+    # "Union[bool_, ndarray]"
     out[int_idx] = (
         percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
     )
 
-    # pandas/io/formats/format.py:1636: error: Item "float" of "Union[Any,
-    # float, str]" has no attribute "round"  [union-attr]
-
-    # pandas/io/formats/format.py:1636: error: Item "str" of "Union[Any, float,
-    # str]" has no attribute "round"  [union-attr]
-
-    # pandas/io/formats/format.py:1636: error: Invalid index type "Union[bool_,
-    # Any]" for "Union[ndarray, List[Union[int, float]], List[float],
-    # List[Union[str, float]]]"; expected type "int"  [index]
+    # error: Item "float" of "Union[Any, float, str]" has no attribute "round"
+    # error: Item "str" of "Union[Any, float, str]" has no attribute "round"
+    # error: Invalid index type "Union[bool_, Any]" for "Union[ndarray, List[Union[int,
+    # float]], List[float], List[Union[str, float]]]"; expected type "int"
     out[~int_idx] = (
         percentiles[~int_idx].round(prec).astype(str)  # type: ignore[union-attr,index]
     )

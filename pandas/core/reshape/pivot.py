@@ -441,11 +441,8 @@ def pivot(
             cols = []
 
         append = index is None
-        # pandas\core\reshape\pivot.py:455: error: Unsupported operand types
-        # for + ("List[Any]" and "ExtensionArray")  [operator]
-
-        # pandas\core\reshape\pivot.py:455: error: Unsupported left operand
-        # type for + ("ExtensionArray")  [operator]
+        # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
+        # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
             cols + columns, append=append  # type: ignore[operator]
         )

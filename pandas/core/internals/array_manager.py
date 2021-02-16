@@ -183,15 +183,8 @@ class ArrayManager(DataManager):
             res_arrays.append(np.array([res]))
 
         index = Index([None])  # placeholder
-        # pandas/core/internals/array_manager.py:186: error: Argument 1 to
-        # "ArrayManager" has incompatible type "List[ndarray]"; expected
-        # "List[Union[ndarray, ExtensionArray]]"  [arg-type]
-
-        # pandas/core/internals/array_manager.py:186: note: "List" is invariant -- see
-        # http://mypy.readthedocs.io/en/latest/common_issues.html#variance
-
-        # pandas/core/internals/array_manager.py:186: note: Consider using "Sequence"
-        # instead, which is covariant
+        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
+        # expected "List[Union[ndarray, ExtensionArray]]"
         new_mgr = type(self)(res_arrays, [index, self.items])  # type: ignore[arg-type]
         indexer = np.arange(self.shape[0])
         return new_mgr, indexer
@@ -284,15 +277,8 @@ class ArrayManager(DataManager):
         if len(result_arrays) == 0:
             return self.make_empty(new_axes)
 
-        # pandas/core/internals/array_manager.py:278: error: Argument 1 to
-        # "ArrayManager" has incompatible type "List[ndarray]"; expected
-        # "List[Union[ndarray, ExtensionArray]]"  [arg-type]
-
-        # pandas/core/internals/array_manager.py:278: note: "List" is invariant -- see
-        # http://mypy.readthedocs.io/en/latest/common_issues.html#variance
-
-        # pandas/core/internals/array_manager.py:278: note: Consider using "Sequence"
-        # instead, which is covariant
+        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
+        # expected "List[Union[ndarray, ExtensionArray]]"
         return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
 
     def apply_with_block(self: T, f, align_keys=None, **kwargs) -> T:
@@ -576,9 +562,8 @@ class ArrayManager(DataManager):
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
-        # pandas/core/internals/array_manager.py:580: error: Incompatible types in
-        # assignment (expression has type "Union[ndarray, ExtensionArray]", variable has
-        # type "ndarray")  [assignment]
+        # error: Incompatible types in assignment (expression has type "Union[ndarray,
+        # ExtensionArray]", variable has type "ndarray")
         for i, arr in enumerate(self.arrays):  # type: ignore[assignment]
             arr = arr.astype(dtype, copy=copy)
             result[:, i] = arr
@@ -630,8 +615,8 @@ class ArrayManager(DataManager):
         result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
-        # pandas/core/internals/array_manager.py:631: error: Incompatible return value
-        # type (got "ndarray", expected "ExtensionArray")  [return-value]
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
         return result  # type: ignore[return-value]
 
     def iget(self, i: int) -> SingleBlockManager:
@@ -649,13 +634,10 @@ class ArrayManager(DataManager):
         """
         Return the data for column i as the values (ndarray or ExtensionArray).
         """
-        # pandas/core/internals/array_manager.py:648: error: Incompatible return value
-        # type (got "Union[ndarray, ExtensionArray]", expected "ExtensionArray")
-        # [return-value]
-
-        # pandas/core/internals/array_manager.py:648: error: Incompatible return value
-        # type (got "Union[ndarray, ExtensionArray]", expected "ndarray")
-        # [return-value]
+        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
+        # expected "ExtensionArray")
+        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
+        # expected "ndarray")
         return self.arrays[i]  # type: ignore[return-value]
 
     def idelete(self, indexer):
@@ -695,9 +677,8 @@ class ArrayManager(DataManager):
             assert isinstance(value, (np.ndarray, ExtensionArray))
             assert value.ndim == 1
             assert len(value) == len(self._axes[0])
-            # pandas/core/internals/array_manager.py:675: error: Invalid index type
-            # "Union[int, slice, ndarray]" for "List[Union[ndarray, ExtensionArray]]";
-            # expected type "int"  [index]
+            # error: Invalid index type "Union[int, slice, ndarray]" for
+            # "List[Union[ndarray, ExtensionArray]]"; expected type "int"
             self.arrays[loc] = value  # type: ignore[index]
             return
 
@@ -711,9 +692,8 @@ class ArrayManager(DataManager):
         else:
             assert isinstance(loc, np.ndarray)
             assert loc.dtype == "bool"
-            # pandas/core/internals/array_manager.py:714: error: Incompatible types in
-            # assignment (expression has type "ndarray", variable has type "range")
-            # [assignment]
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "range")
             indices = np.nonzero(loc)[0]  # type: ignore[assignment]
 
         assert value.ndim == 2
@@ -871,11 +851,10 @@ class ArrayManager(DataManager):
             fill_value = np.nan
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        # pandas/core/internals/array_manager.py:828: error: Argument "dtype" to "empty"
-        # has incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
-        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]]"  [arg-type]
+        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype[Any],
+        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"
         values = np.empty(self.shape_proper[0], dtype=dtype)  # type: ignore[arg-type]
         values.fill(fill_value)
         return values
@@ -886,9 +865,8 @@ class ArrayManager(DataManager):
         assuming shape and indexes have already been checked.
         """
         for left, right in zip(self.arrays, other.arrays):
-            # pandas/core/internals/array_manager.py:876: error: Value of type variable
-            # "ArrayLike" of "array_equals" cannot be "Union[Any, ndarray,
-            # ExtensionArray]"  [type-var]
+            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
+            # "Union[Any, ndarray, ExtensionArray]"
             if not array_equals(left, right):  # type: ignore[type-var]
                 return False
         else:

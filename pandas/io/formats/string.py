@@ -113,13 +113,10 @@ class StringFormatter:
 
         if self.fmt.index:
             idx = strcols.pop(0)
-            # pandas\io\formats\string.py:116: error: Argument 1 to "__call__"
-            # of "_NumberOp" has incompatible type "None"; expected "Union[int,
-            # float, complex, number, bool_]"  [arg-type]
-
-            # pandas\io\formats\string.py:116: error: Incompatible types in
-            # assignment (expression has type "number", variable has type
-            # "Optional[int]")  [assignment]
+            # error: Argument 1 to "__call__" of "_NumberOp" has incompatible type
+            # "None"; expected "Union[int, float, complex, number, bool_]"
+            # error: Incompatible types in assignment (expression has type "number",
+            # variable has type "Optional[int]")
             lwidth -= (  # type: ignore[assignment,arg-type]
                 np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
             )
@@ -130,8 +127,8 @@ class StringFormatter:
         ]
 
         assert lwidth is not None
-        # pandas\io\formats\string.py:124: error: Argument 1 to "_binify" has
-        # incompatible type "List[object]"; expected "List[int]"  [arg-type]
+        # error: Argument 1 to "_binify" has incompatible type "List[object]"; expected
+        # "List[int]"
         col_bins = _binify(col_widths, lwidth)  # type: ignore[arg-type]
         nbins = len(col_bins)
 

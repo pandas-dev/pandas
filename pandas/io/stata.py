@@ -1222,9 +1222,8 @@ class StataReader(StataParser, abc.Iterator):
             if typ <= 2045:
                 return str(typ)
             try:
-                # pandas\io\stata.py:1226: error: Incompatible return value
-                # type (got "Type[number]", expected "Union[str, dtype]")
-                # [return-value]
+                # error: Incompatible return value type (got "Type[number]", expected
+                # "Union[str, dtype]")
                 return self.DTYPE_MAP_XML[typ]  # type: ignore[return-value]
             except KeyError as err:
                 raise ValueError(f"cannot convert stata dtype [{typ}]") from err
@@ -1658,8 +1657,8 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                # pandas\io\stata.py:1677: error: Value of type variable
-                # "_DTypeScalar" of "dtype" cannot be "object"  [type-var]
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
                 if (
                     dtype != np.dtype(object)  # type: ignore[type-var]
                     and dtype != self.dtyplist[i]

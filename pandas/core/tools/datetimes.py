@@ -392,9 +392,8 @@ def _convert_listlike_datetimes(
         arg, _ = maybe_convert_dtype(arg, copy=False)
     except TypeError:
         if errors == "coerce":
-            # pandas\core\tools\datetimes.py:392: error: Incompatible types in
-            # assignment (expression has type "ndarray", variable has type
-            # "ExtensionArray")  [assignment]
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ExtensionArray")
             result = np.array(  # type: ignore[assignment]
                 ["NaT"], dtype="datetime64[ns]"
             ).repeat(len(arg))

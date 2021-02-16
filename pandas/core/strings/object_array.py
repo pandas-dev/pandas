@@ -56,9 +56,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
 
         if not isinstance(arr, np.ndarray):
-            # pandas\core\strings\object_array.py:59: error: Incompatible types
-            # in assignment (expression has type "ndarray", variable has type
-            # "ObjectStringArrayMixin")  [assignment]
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ObjectStringArrayMixin")
             arr = np.asarray(arr, dtype=object)  # type: ignore[assignment]
         mask = isna(arr)
         convert = not np.all(mask)

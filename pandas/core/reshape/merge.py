@@ -2049,31 +2049,25 @@ def _factorize_keys(
         assert isinstance(rk, Categorical)
         # Cast rk to encoding so we can compare codes with lk
 
-        # pandas/core/reshape/merge.py:2035: error: <nothing> has no attribute
-        # "_encode_with_my_categories"  [attr-defined]
+        # error: <nothing> has no attribute "_encode_with_my_categories"
         rk = lk._encode_with_my_categories(rk)  # type: ignore[attr-defined]
 
-        # pandas/core/reshape/merge.py:2037: error: <nothing> has no attribute "codes"
-        # [attr-defined]
+        # error: <nothing> has no attribute "codes"
         lk = ensure_int64(lk.codes)  # type: ignore[attr-defined]
-        # pandas/core/reshape/merge.py:2038: error: "ndarray" has no attribute "codes"
-        # [attr-defined]
+        # error: "ndarray" has no attribute "codes"
         rk = ensure_int64(rk.codes)  # type: ignore[attr-defined]
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
-        # pandas\core\reshape\merge.py:1967: error: Incompatible types in
-        # assignment (expression has type "ndarray", variable has type
-        # "ExtensionArray")  [assignment]
-
-        # pandas/core/reshape/merge.py:2047: error: Item "ndarray" of "Union[Any,
-        # ndarray]" has no attribute "_values_for_factorize"  [union-attr]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
+        # "_values_for_factorize"
         lk, _ = lk._values_for_factorize()  # type: ignore[union-attr,assignment]
 
         # error: Incompatible types in assignment (expression has type
         # "ndarray", variable has type "ExtensionArray")
-
-        # pandas/core/reshape/merge.py:2053: error: Item "ndarray" of "Union[Any,
-        # ndarray]" has no attribute "_values_for_factorize"  [union-attr]
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
+        # "_values_for_factorize"
         rk, _ = rk._values_for_factorize()  # type: ignore[union-attr,assignment]
 
     if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):

@@ -97,11 +97,11 @@ class RangeIndex(Int64Index):
         name=None,
     ):
 
-        # pandas/core/indexes/range.py:95: error: Argument 1 to "_validate_dtype" of
-        # "NumericIndex" has incompatible type "Union[ExtensionDtype, str, dtype[Any],
-        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
-        # None]"; expected "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object]]"  [arg-type]
+        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected
+        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"
         cls._validate_dtype(dtype)  # type: ignore[arg-type]
         name = maybe_extract_name(name, start, cls)
 
@@ -145,11 +145,11 @@ class RangeIndex(Int64Index):
                 f"range, {repr(data)} was passed"
             )
 
-        # pandas/core/indexes/range.py:138: error: Argument 1 to "_validate_dtype" of
-        # "NumericIndex" has incompatible type "Union[ExtensionDtype, str, dtype[Any],
-        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
-        # None]"; expected "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object]]"  [arg-type]
+        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected
+        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"
         cls._validate_dtype(dtype)  # type: ignore[arg-type]
         return cls._simple_new(data, name=name)
 
@@ -889,8 +889,7 @@ class RangeIndex(Int64Index):
             # apply if we have an override
             if step:
                 with np.errstate(all="ignore"):
-                    # pandas\core\indexes\range.py:867: error: "bool" not
-                    # callable  [operator]
+                    # error: "bool" not callable
                     rstep = step(left.step, right)  # type: ignore[operator]
 
                 # we don't have a representable op

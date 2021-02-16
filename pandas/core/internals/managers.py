@@ -803,21 +803,19 @@ class BlockManager(DataManager):
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
 
-                # pandas\core\internals\managers.py:844: error: Item "ndarray"
-                # of "Union[ndarray, ExtensionArray]" has no attribute
-                # "to_numpy"  [union-attr]
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
                     dtype=dtype, na_value=na_value
                 ).reshape(blk.shape)
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    # pandas/core/internals/managers.py:869: error: Argument 1 to
-                    # "astype" of "_ArrayOrScalarCommon" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                    # "Union[dtype[Any], None, type, _SupportsDType, str,
-                    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-                    # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
+                    # Type[object]]"; expected "Union[dtype[Any], None, type,
+                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
                     arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
@@ -851,11 +849,11 @@ class BlockManager(DataManager):
         elif is_dtype_equal(dtype, str):
             dtype = "object"
 
-        # pandas/core/internals/managers.py:902: error: Argument "dtype" to "empty" has
-        # incompatible type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+        # Any]]]"
         result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
 
         itemmask = np.zeros(self.shape[0])
@@ -865,17 +863,15 @@ class BlockManager(DataManager):
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
 
-                # pandas\core\internals\managers.py:889: error: Item "ndarray"
-                # of "Union[ndarray, ExtensionArray]" has no attribute
-                # "to_numpy"  [union-attr]
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
                     dtype=dtype, na_value=na_value
                 )
             else:
-                # pandas/core/internals/managers.py:925: error: Argument 1 to
-                # "get_values" of "Block" has incompatible type "Union[ExtensionDtype,
-                # str, dtype[Any], Type[object], None]"; expected "Union[dtype[Any],
-                # ExtensionDtype, None]"  [arg-type]
+                # error: Argument 1 to "get_values" of "Block" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+                # "Union[dtype[Any], ExtensionDtype, None]"
                 arr = blk.get_values(dtype)  # type: ignore[arg-type]
             result[rl.indexer] = arr
             itemmask[rl.indexer] = 1
@@ -1409,11 +1405,10 @@ class BlockManager(DataManager):
         block_shape[0] = len(placement)
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        # pandas\core\internals\managers.py:1428: error: Argument "dtype" to
-        # "empty" has incompatible type "Union[dtype, ExtensionDtype]";
-        # expected "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any,
-        # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-        # Tuple[Any, Any]]"  [arg-type]
+        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype,
+        # ExtensionDtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
+        # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
         block_values = np.empty(block_shape, dtype=dtype)  # type: ignore[arg-type]
         block_values.fill(fill_value)
         return make_block(block_values, placement=placement, ndim=block_values.ndim)
@@ -1456,9 +1451,8 @@ class BlockManager(DataManager):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            # pandas\core\internals\managers.py:1472: error: Value of type
-            # variable "ArrayLike" of "array_equals" cannot be "Union[ndarray,
-            # ExtensionArray]"  [type-var]
+            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
+            # "Union[ndarray, ExtensionArray]"
             return array_equals(left, right)  # type: ignore[type-var]
 
         return blockwise_all(self, other, array_equals)
@@ -1806,10 +1800,9 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     new_blocks = []
     for dtype, tup_block in grouper:
 
-        # pandas/core/internals/managers.py:1810: error: Argument 2 to "_stack_arrays"
-        # has incompatible type "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]";
-        # expected "dtype[Any]"  [arg-type]
+        # error: Argument 2 to "_stack_arrays" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "dtype[Any]"
         values, placement = _stack_arrays(
             list(tup_block), dtype  # type: ignore[arg-type]
         )
@@ -1893,10 +1886,10 @@ def _merge_blocks(
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        # pandas\core\internals\managers.py:1931: error: List comprehension has
-        # incompatible type List[Union[ndarray, ExtensionArray]]; expected
-        # List[Union[complex, generic, Sequence[Union[int, float, complex, str,
-        # bytes, generic]], Sequence[Sequence[Any]], _SupportsArray]]  [misc]
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[Union[complex, generic, Sequence[Union[int,
+        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # _SupportsArray]]
         new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
 
         argsort = np.argsort(new_mgr_locs)

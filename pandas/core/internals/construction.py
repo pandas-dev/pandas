@@ -296,9 +296,8 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
             ):
                 # GH#1783
 
-                # pandas\core\internals\construction.py:272: error: Value of
-                # type variable "_DTypeScalar" of "dtype" cannot be "object"
-                # [type-var]
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
                 nan_dtype = np.dtype(object)  # type: ignore[type-var]
             else:
                 # error: Incompatible types in assignment (expression has type
@@ -335,8 +334,8 @@ def nested_data_to_arrays(
         columns = data[0]._fields
 
     arrays, columns = to_arrays(data, columns, dtype=dtype)
-    # pandas/core/internals/construction.py:301: error: Value of type variable
-    # "AnyArrayLike" of "ensure_index" cannot be "Optional[Index]"  [type-var]
+    # error: Value of type variable "AnyArrayLike" of "ensure_index" cannot be
+    # "Optional[Index]"
     columns = ensure_index(columns)  # type: ignore[type-var]
 
     if index is None:
@@ -620,19 +619,12 @@ def to_arrays(data, columns, dtype: Optional[DtypeObj] = None):
         data = [tuple(x) for x in data]
         content, columns = _list_to_arrays(data, columns)
 
-    # pandas/core/internals/construction.py:584: error: Incompatible types in assignment
-    # (expression has type "List[ndarray]", variable has type "List[Union[Union[str,
-    # int, float, bool], Union[Any, Any, Any, Any]]]")  [assignment]
-
-    # pandas/core/internals/construction.py:584: note: "List" is invariant -- see
-    # http://mypy.readthedocs.io/en/latest/common_issues.html#variance
-
-    # pandas/core/internals/construction.py:584: note: Consider using "Sequence"
-    # instead, which is covariant
-
-    # pandas/core/internals/construction.py:584: error: Argument 1 to
-    # "_finalize_columns_and_data" has incompatible type "List[Union[Union[str, int,
-    # float, bool], Union[Any, Any, Any, Any]]]"; expected "ndarray"  [arg-type]
+    # error: Incompatible types in assignment (expression has type "List[ndarray]",
+    # variable has type "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
+    # Any]]]")
+    # error: Argument 1 to "_finalize_columns_and_data" has incompatible type
+    # "List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]]"; expected
+    # "ndarray"
     content, columns = _finalize_columns_and_data(  # type: ignore[assignment]
         content, columns, dtype  # type: ignore[arg-type]
     )
@@ -679,10 +671,9 @@ def _list_of_series_to_arrays(
 
     content = np.vstack(aligned_values)
 
-    # pandas/core/internals/construction.py:628: error: Incompatible return value type
-    # (got "Tuple[ndarray, Union[Index, List[Any]]]", expected
-    # "Tuple[List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]],
-    # Union[Index, List[Union[str, int]]]]")  [return-value]
+    # error: Incompatible return value type (got "Tuple[ndarray, Union[Index,
+    # List[Any]]]", expected "Tuple[List[Union[Union[str, int, float, bool], Union[Any,
+    # Any, Any, Any]]], Union[Index, List[Union[str, int]]]]")
     return content, columns  # type: ignore[return-value]
 
 
@@ -730,14 +721,13 @@ def _finalize_columns_and_data(
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
-    # pandas/core/internals/construction.py:675: error: Incompatible types in assignment
-    # (expression has type "List[Any]", variable has type "ndarray")  [assignment]
+    # error: Incompatible types in assignment (expression has type "List[Any]", variable
+    # has type "ndarray")
     content = list(content.T)  # type: ignore[assignment]
 
     try:
-        # pandas/core/internals/construction.py:678: error: Argument 1 to
-        # "_validate_or_indexify_columns" has incompatible type "ndarray"; expected
-        # "List[Any]"  [arg-type]
+        # error: Argument 1 to "_validate_or_indexify_columns" has incompatible type
+        # "ndarray"; expected "List[Any]"
         columns = _validate_or_indexify_columns(
             content, columns  # type: ignore[arg-type]
         )
@@ -746,20 +736,18 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if len(content) and content[0].dtype == np.object_:
-        # pandas/core/internals/construction.py:684: error: Incompatible types in
-        # assignment (expression has type "List[Union[Union[str, int, float, bool],
-        # Union[Any, Any, Any, Any]]]", variable has type "ndarray")  [assignment]
-
-        # pandas/core/internals/construction.py:684: error: Argument 1 to
-        # "_convert_object_array" has incompatible type "ndarray"; expected
-        # "List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]]"
-        # [arg-type]
+        # error: Incompatible types in assignment (expression has type
+        # "List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]]",
+        # variable has type "ndarray")
+        # error: Argument 1 to "_convert_object_array" has incompatible type "ndarray";
+        # expected "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
+        # Any]]]"
         content = _convert_object_array(  # type: ignore[assignment]
             content, dtype=dtype  # type: ignore[arg-type]
         )
-    # pandas/core/internals/construction.py:685: error: Incompatible return value type
-    # (got "Tuple[ndarray, Union[Index, List[Union[str, int]]]]", expected
-    # "Tuple[List[ndarray], Union[Index, List[Union[str, int]]]]")  [return-value]
+    # error: Incompatible return value type (got "Tuple[ndarray, Union[Index,
+    # List[Union[str, int]]]]", expected "Tuple[List[ndarray], Union[Index,
+    # List[Union[str, int]]]]")
     return content, columns  # type: ignore[return-value]
 
 

@@ -105,9 +105,8 @@ def _get_same_shape_values(
 
     # TODO(EA2D): with 2D EAs only this first clause would be needed
     if not (left_ea or right_ea):
-        # pandas\core\internals\ops.py:106: error: Invalid index type
-        # "Tuple[Any, slice]" for "Union[ndarray, ExtensionArray]"; expected
-        # type "Union[int, slice, ndarray]"  [index]
+        # error: Invalid index type "Tuple[Any, slice]" for "Union[ndarray,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         lvals = lvals[rblk.mgr_locs.indexer, :]  # type: ignore[index]
         assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
     elif left_ea and right_ea:
@@ -115,31 +114,25 @@ def _get_same_shape_values(
     elif right_ea:
         # lvals are 2D, rvals are 1D
 
-        # pandas\core\internals\ops.py:112: error: Invalid index type
-        # "Tuple[Any, slice]" for "Union[ndarray, ExtensionArray]"; expected
-        # type "Union[int, slice, ndarray]"  [index]
+        # error: Invalid index type "Tuple[Any, slice]" for "Union[ndarray,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         lvals = lvals[rblk.mgr_locs.indexer, :]  # type: ignore[index]
         assert lvals.shape[0] == 1, lvals.shape
-        # pandas\core\internals\ops.py:114: error: Invalid index type
-        # "Tuple[int, slice]" for "Union[Any, ExtensionArray]"; expected type
-        # "Union[int, slice, ndarray]"  [index]
+        # error: Invalid index type "Tuple[int, slice]" for "Union[Any,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         lvals = lvals[0, :]  # type: ignore[index]
     else:
         # lvals are 1D, rvals are 2D
         assert rvals.shape[0] == 1, rvals.shape
-        # pandas\core\internals\ops.py:118: error: Invalid index type
-        # "Tuple[int, slice]" for "Union[ndarray, ExtensionArray]"; expected
-        # type "Union[int, slice, ndarray]"  [index]
+        # error: Invalid index type "Tuple[int, slice]" for "Union[ndarray,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         rvals = rvals[0, :]  # type: ignore[index]
 
-    # pandas\core\internals\ops.py:120: error: Incompatible return value type
-    # (got "Tuple[Union[ndarray, ExtensionArray], Union[ndarray,
-    # ExtensionArray]]", expected "Tuple[ExtensionArray, ExtensionArray]")
-    # [return-value]
-
-    # pandas\core\internals\ops.py:120: error: Incompatible return value type
-    # (got "Tuple[Union[ndarray, ExtensionArray], Union[ndarray,
-    # ExtensionArray]]", expected "Tuple[ndarray, ndarray]")  [return-value]
+    # error: Incompatible return value type (got "Tuple[Union[ndarray, ExtensionArray],
+    # Union[ndarray, ExtensionArray]]", expected "Tuple[ExtensionArray,
+    # ExtensionArray]")
+    # error: Incompatible return value type (got "Tuple[Union[ndarray, ExtensionArray],
+    # Union[ndarray, ExtensionArray]]", expected "Tuple[ndarray, ndarray]")
     return lvals, rvals  # type: ignore[return-value]
 
 

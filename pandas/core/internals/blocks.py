@@ -239,9 +239,8 @@ class Block(PandasObject):
         """
         The array that Series.array returns. Always an ExtensionArray.
         """
-        # pandas\core\internals\blocks.py:232: error: Argument 1 to
-        # "PandasArray" has incompatible type "Union[ndarray, ExtensionArray]";
-        # expected "Union[ndarray, PandasArray]"  [arg-type]
+        # error: Argument 1 to "PandasArray" has incompatible type "Union[ndarray,
+        # ExtensionArray]"; expected "Union[ndarray, PandasArray]"
         return PandasArray(self.values)  # type: ignore[arg-type]
 
     def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
@@ -251,8 +250,8 @@ class Block(PandasObject):
         """
         if is_object_dtype(dtype):
             return self.values.astype(object)
-        # pandas/core/internals/blocks.py:252: error: Incompatible return value type
-        # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
+        # expected "ndarray")
         return self.values  # type: ignore[return-value]
 
     def get_block_values_for_json(self) -> np.ndarray:
@@ -431,8 +430,8 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         mask = isna(self.values)
-        # pandas/core/internals/blocks.py:435: error: Value of type variable "ArrayLike"
-        # of "validate_putmask" cannot be "Union[ndarray, ExtensionArray]"  [type-var]
+        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
+        # "Union[ndarray, ExtensionArray]"
         mask, noop = validate_putmask(self.values, mask)  # type: ignore[type-var]
 
         if limit is not None:
@@ -636,9 +635,8 @@ class Block(PandasObject):
             # e.g. astype_nansafe can fail on object-dtype of strings
             #  trying to convert to float
             if errors == "ignore":
-                # pandas/core/internals/blocks.py:635: error: Incompatible types in
-                # assignment (expression has type "Union[ndarray, ExtensionArray]",
-                # variable has type "ExtensionArray")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray, ExtensionArray]", variable has type "ExtensionArray")
                 new_values = self.values  # type: ignore[assignment]
             else:
                 raise
@@ -657,32 +655,25 @@ class Block(PandasObject):
         values = self.values
 
         if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-            # pandas/core/internals/blocks.py:653: error: Value of type variable
-            # "ArrayLike" of "astype_dt64_to_dt64tz" cannot be "Union[ndarray,
-            # ExtensionArray]"  [type-var]
-
-            # pandas/core/internals/blocks.py:653: error: Incompatible return value type
-            # (got "DatetimeArray", expected "ndarray")  [return-value]
+            # error: Value of type variable "ArrayLike" of "astype_dt64_to_dt64tz"
+            # cannot be "Union[ndarray, ExtensionArray]"
+            # error: Incompatible return value type (got "DatetimeArray", expected
+            # "ndarray")
             return astype_dt64_to_dt64tz(  # type: ignore[type-var,return-value]
                 values, dtype, copy, via_utc=True
             )
 
         if is_dtype_equal(values.dtype, dtype):
             if copy:
-                # pandas/core/internals/blocks.py:657: error: Incompatible return value
-                # type (got "Union[ndarray, ExtensionArray]", expected "ExtensionArray")
-                # [return-value]
-
-                # pandas/core/internals/blocks.py:657: error: Incompatible return value
-                # type (got "Union[ndarray, ExtensionArray]", expected "ndarray")
-                # [return-value]
+                # error: Incompatible return value type (got "Union[ndarray,
+                # ExtensionArray]", expected "ExtensionArray")
+                # error: Incompatible return value type (got "Union[ndarray,
+                # ExtensionArray]", expected "ndarray")
                 return values.copy()  # type: ignore[return-value]
-            # pandas/core/internals/blocks.py:658: error: Incompatible return value type
-            # (got "Union[ndarray, ExtensionArray]", expected "ExtensionArray")
-            # [return-value]
-
-            # pandas/core/internals/blocks.py:658: error: Incompatible return value type
-            # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+            # error: Incompatible return value type (got "Union[ndarray,
+            # ExtensionArray]", expected "ExtensionArray")
+            # error: Incompatible return value type (got "Union[ndarray,
+            # ExtensionArray]", expected "ndarray")
             return values  # type: ignore[return-value]
 
         if isinstance(values, ExtensionArray):
@@ -691,12 +682,10 @@ class Block(PandasObject):
         else:
             values = astype_nansafe(values, dtype, copy=copy)
 
-        # pandas/core/internals/blocks.py:666: error: Incompatible return value type
-        # (got "Union[ndarray, ExtensionArray]", expected "ExtensionArray")
-        # [return-value]
-
-        # pandas/core/internals/blocks.py:666: error: Incompatible return value type
-        # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
+        # expected "ExtensionArray")
+        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
+        # expected "ndarray")
         return values  # type: ignore[return-value]
 
     def convert(
@@ -784,8 +773,8 @@ class Block(PandasObject):
 
         values = self.values
 
-        # pandas/core/internals/blocks.py:791: error: Value of type variable "ArrayLike"
-        # of "mask_missing" cannot be "Union[ndarray, ExtensionArray]"  [type-var]
+        # error: Value of type variable "ArrayLike" of "mask_missing" cannot be
+        # "Union[ndarray, ExtensionArray]"
         mask = missing.mask_missing(values, to_replace)  # type: ignore[type-var]
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
@@ -842,9 +831,8 @@ class Block(PandasObject):
         rx = re.compile(to_replace)
 
         new_values = self.values if inplace else self.values.copy()
-        # pandas\core\internals\blocks.py:855: error: Value of type variable
-        # "ArrayLike" of "replace_regex" cannot be "Union[ndarray,
-        # ExtensionArray]"  [type-var]
+        # error: Value of type variable "ArrayLike" of "replace_regex" cannot be
+        # "Union[ndarray, ExtensionArray]"
         replace_regex(new_values, rx, value, mask)  # type: ignore[type-var]
 
         block = self.make_block(new_values)
@@ -885,9 +873,8 @@ class Block(PandasObject):
             # in order to avoid repeating the same computations
             mask = ~isna(self.values)
             masks = [
-                # pandas/core/internals/blocks.py:885: error: Value of type variable
-                # "ArrayLike" of "compare_or_regex_search" cannot be "Union[ndarray,
-                # ExtensionArray]"  [type-var]
+                # error: Value of type variable "ArrayLike" of "compare_or_regex_search"
+                # cannot be "Union[ndarray, ExtensionArray]"
                 compare_or_regex_search(  # type: ignore[type-var]
                     self.values, s[0], regex=regex, mask=mask
                 )
@@ -896,17 +883,15 @@ class Block(PandasObject):
         else:
             # GH#38086 faster if we know we dont need to check for regex
 
-            # pandas/core/internals/blocks.py:906: error: Value of type variable
-            # "ArrayLike" of "mask_missing" cannot be "Union[ndarray, ExtensionArray]"
-            # [type-var]
+            # error: Value of type variable "ArrayLike" of "mask_missing" cannot be
+            # "Union[ndarray, ExtensionArray]"
             masks = [
                 missing.mask_missing(self.values, s[0])  # type: ignore[type-var]
                 for s in pairs
             ]
 
-        # pandas/core/internals/blocks.py:899: error: Value of type variable "ArrayLike"
-        # of "extract_bool_array" cannot be "Union[ndarray, ExtensionArray, bool]"
-        # [type-var]
+        # error: Value of type variable "ArrayLike" of "extract_bool_array" cannot be
+        # "Union[ndarray, ExtensionArray, bool]"
         masks = [extract_bool_array(x) for x in masks]  # type: ignore[type-var]
 
         rb = [self if inplace else self.copy()]
@@ -964,9 +949,8 @@ class Block(PandasObject):
                 nb = self.coerce_to_target_dtype(value)
                 if nb is self and not inplace:
                     nb = nb.copy()
-                # pandas/core/internals/blocks.py:967: error: Value of type variable
-                # "ArrayLike" of "putmask_inplace" cannot be "Union[ndarray,
-                # ExtensionArray]"  [type-var]
+                # error: Value of type variable "ArrayLike" of "putmask_inplace" cannot
+                # be "Union[ndarray, ExtensionArray]"
                 putmask_inplace(nb.values, mask, value)  # type: ignore[type-var]
                 return [nb]
             else:
@@ -1040,9 +1024,8 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        # pandas/core/internals/blocks.py:1000: error: Value of type variable
-        # "ArrayLike" of "is_exact_shape_match" cannot be "Union[Any, ndarray,
-        # ExtensionArray]"  [type-var]
+        # error: Value of type variable "ArrayLike" of "is_exact_shape_match" cannot be
+        # "Union[Any, ndarray, ExtensionArray]"
         exact_match = is_exact_shape_match(values, arr_value)  # type: ignore[type-var]
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
@@ -1062,9 +1045,8 @@ class Block(PandasObject):
                 if values.shape[-1] != 1:
                     # shouldn't get here (at least until 2D EAs)
                     raise NotImplementedError
-                # pandas/core/internals/blocks.py:1019: error: Invalid index type
-                # "Tuple[slice, int]" for "Union[ndarray, ExtensionArray]"; expected
-                # type "Union[int, slice, ndarray]"  [index]
+                # error: Invalid index type "Tuple[slice, int]" for "Union[ndarray,
+                # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
                 values = values[:, 0]  # type: ignore[index]
             return self.make_block(Categorical(values, dtype=arr_value.dtype))
 
@@ -1090,9 +1072,8 @@ class Block(PandasObject):
                 values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
 
         else:
-            # pandas/core/internals/blocks.py:1028: error: Argument 1 to
-            # "setitem_datetimelike_compat" has incompatible type "Union[ndarray,
-            # ExtensionArray]"; expected "ndarray"  [arg-type]
+            # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
+            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
             value = setitem_datetimelike_compat(
                 values, len(values[indexer]), value  # type: ignore[arg-type]
             )
@@ -1120,9 +1101,8 @@ class Block(PandasObject):
         List[Block]
         """
         transpose = self.ndim == 2
-        # pandas/core/internals/blocks.py:1053: error: Value of type variable
-        # "ArrayLike" of "validate_putmask" cannot be "Union[ndarray, ExtensionArray]"
-        # [type-var]
+        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
+        # "Union[ndarray, ExtensionArray]"
         mask, noop = validate_putmask(self.values.T, mask)  # type: ignore[type-var]
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
@@ -1136,9 +1116,8 @@ class Block(PandasObject):
             if transpose:
                 new_values = new_values.T
 
-            # pandas/core/internals/blocks.py:1090: error: Argument 1 to
-            # "putmask_without_repeat" has incompatible type "Union[ndarray,
-            # ExtensionArray]"; expected "ndarray"  [arg-type]
+            # error: Argument 1 to "putmask_without_repeat" has incompatible type
+            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
             putmask_without_repeat(new_values, mask, new)  # type: ignore[arg-type]
             return [self]
 
@@ -1384,9 +1363,8 @@ class Block(PandasObject):
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
 
-        # pandas/core/internals/blocks.py:1286: error: Argument 1 to "maybe_upcast" has
-        # incompatible type "Union[ndarray, ExtensionArray]"; expected "ndarray"
-        # [arg-type]
+        # error: Argument 1 to "maybe_upcast" has incompatible type "Union[ndarray,
+        # ExtensionArray]"; expected "ndarray"
         new_values, fill_value = maybe_upcast(
             self.values, fill_value  # type: ignore[arg-type]
         )
@@ -1424,9 +1402,8 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        # pandas/core/internals/blocks.py:1354: error: Value of type variable
-        # "ArrayLike" of "validate_putmask" cannot be "Union[ndarray, ExtensionArray]"
-        # [type-var]
+        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
+        # "Union[ndarray, ExtensionArray]"
         icond, noop = validate_putmask(values, ~cond)  # type: ignore[type-var]
 
         if is_valid_na_for_dtype(other, self.dtype) and not self.is_object:
@@ -1445,13 +1422,10 @@ class Block(PandasObject):
                 blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
-            # pandas/core/internals/blocks.py:1372: error: Argument 1 to
-            # "setitem_datetimelike_compat" has incompatible type "Union[ndarray,
-            # ExtensionArray]"; expected "ndarray"  [arg-type]
-
-            # pandas/core/internals/blocks.py:1372: error: Argument 2 to
-            # "setitem_datetimelike_compat" has incompatible type "number[Any]";
-            # expected "int"  [arg-type]
+            # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
+            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
+            # error: Argument 2 to "setitem_datetimelike_compat" has incompatible type
+            # "number[Any]"; expected "int"
             alt = setitem_datetimelike_compat(
                 values, icond.sum(), other  # type: ignore[arg-type]
             )
@@ -1545,9 +1519,8 @@ class Block(PandasObject):
         values = self.values
         mask = np.asarray(isna(values))
 
-        # pandas/core/internals/blocks.py:1463: error: Argument 1 to
-        # "quantile_with_mask" has incompatible type "Union[ndarray, ExtensionArray]";
-        # expected "ndarray"  [arg-type]
+        # error: Argument 1 to "quantile_with_mask" has incompatible type
+        # "Union[ndarray, ExtensionArray]"; expected "ndarray"
         result = quantile_with_mask(
             values, mask, fill_value, qs, interpolation, axis  # type: ignore[arg-type]
         )
@@ -1617,9 +1590,8 @@ class ExtensionBlock(Block):
             elif isinstance(col, slice):
                 if col != slice(None):
                     raise NotImplementedError(col)
-                # pandas\core\internals\blocks.py:1740: error: Invalid index
-                # type "List[Any]" for "ExtensionArray"; expected type
-                # "Union[int, slice, ndarray]"  [index]
+                # error: Invalid index type "List[Any]" for "ExtensionArray"; expected
+                # type "Union[int, slice, ndarray]"
                 return self.values[[loc]]  # type: ignore[index]
             return self.values[loc]
         else:
@@ -1744,9 +1716,8 @@ class ExtensionBlock(Block):
         values = self.values
         mask = isna(values)
 
-        # pandas\core\internals\blocks.py:1803: error: Incompatible types in
-        # assignment (expression has type "ndarray", variable has type
-        # "ExtensionArray")  [assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
         values = np.asarray(values.astype(object))  # type: ignore[assignment]
         values[mask] = na_rep
 
@@ -1889,9 +1860,8 @@ class ExtensionBlock(Block):
             # we want to replace that with the correct NA value
             # for the type
 
-            # pandas/core/internals/blocks.py:1886: error: Item "dtype[Any]" of
-            # "Union[dtype[Any], ExtensionDtype]" has no attribute "na_value"
-            # [union-attr]
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+            # attribute "na_value"
             other = self.dtype.na_value  # type: ignore[union-attr]
 
         if is_sparse(self.values):
@@ -1996,9 +1966,8 @@ class NumericBlock(Block):
     is_numeric = True
 
     def _can_hold_element(self, element: Any) -> bool:
-        # pandas/core/internals/blocks.py:1972: error: Argument 1 to "can_hold_element"
-        # has incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
-        # "dtype[Any]"  [arg-type]
+        # error: Argument 1 to "can_hold_element" has incompatible type
+        # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
         return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
 
     @property
@@ -2092,8 +2061,8 @@ class DatetimeLikeBlockMixin(HybridMixin, Block):
         if is_object_dtype(dtype):
             # DTA/TDA constructor and astype can handle 2D
             return self._holder(self.values).astype(object)
-        # pandas/core/internals/blocks.py:2039: error: Incompatible return value type
-        # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
+        # expected "ndarray")
         return self.values  # type: ignore[return-value]
 
     def internal_values(self):
@@ -2599,8 +2568,7 @@ def safe_reshape(arr: ArrayLike, new_shape: Shape) -> ArrayLike:
         # Note: this will include TimedeltaArray and tz-naive DatetimeArray
         # TODO(EA2D): special case will be unnecessary with 2D EAs
 
-        # pandas/core/internals/blocks.py:2615: error: Incompatible types in assignment
-        # (expression has type "ndarray", variable has type "ExtensionArray")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
         arr = np.asarray(arr).reshape(new_shape)  # type: ignore[assignment]
     return arr

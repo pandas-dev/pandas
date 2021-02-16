@@ -3067,15 +3067,15 @@ class GenericFixed(Fixed):
             # store as UTC
             # with a zone
 
-            # pandas/io/pytables.py:3045: error: Item "ExtensionArray" of "Union[Any,
-            # ExtensionArray]" has no attribute "asi8"  [union-attr]
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "asi8"
             self._handle.create_array(
                 self.group, key, value.asi8  # type: ignore[union-attr]
             )
 
             node = getattr(self.group, key)
-            # pandas/io/pytables.py:3048: error: Item "ExtensionArray" of "Union[Any,
-            # ExtensionArray]" has no attribute "tz"  [union-attr]
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
         elif is_timedelta64_dtype(value.dtype):
@@ -5148,9 +5148,8 @@ def _get_data_and_dtype_name(data: ArrayLike):
     dtype_name = data.dtype.name.split("[")[0]
 
     if data.dtype.kind in ["m", "M"]:
-        # pandas\io\pytables.py:5117: error: Incompatible types in assignment
-        # (expression has type "ndarray", variable has type "ExtensionArray")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
         data = np.asarray(data.view("i8"))  # type: ignore[assignment]
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?
@@ -5158,9 +5157,8 @@ def _get_data_and_dtype_name(data: ArrayLike):
     elif isinstance(data, PeriodIndex):
         data = data.asi8
 
-    # pandas\io\pytables.py:5124: error: Incompatible types in assignment
-    # (expression has type "ndarray", variable has type "ExtensionArray")
-    # [assignment]
+    # error: Incompatible types in assignment (expression has type "ndarray", variable
+    # has type "ExtensionArray")
     data = np.asarray(data)  # type: ignore[assignment]
     return data, dtype_name
 
