@@ -1221,8 +1221,13 @@ def _refine_defaults_read(
 
     if delim_whitespace and (delimiter is not lib.no_default):
         raise ValueError(
-            "Specified a delimiter with both sep and "
+            "Specified a delimiter with both delimiter and "
             "delim_whitespace=True; you can only specify one."
+        )
+
+    if sep and (delimiter is not lib.no_default):
+        raise ValueError(
+            "Specified both delimiter and sap; you can only specify one."
         )
 
     if delimiter is lib.no_default:
