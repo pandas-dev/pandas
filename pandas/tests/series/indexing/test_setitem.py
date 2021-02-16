@@ -671,6 +671,43 @@ class TestSetitemNATimedelta64Dtype(SetitemCastingEquivalents):
         return 0
 
 
+class TestSetitemNADatetime64Dtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to datetime64 when inserting
+    #  into a datetime64 series.  Others should coerce to object
+    #  and retain their dtypes.
+
+    @pytest.fixture(params=[None, "UTC", "US/Central"])
+    def obj(self, request):
+        tz = request.param
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        return Series(dti)
+
+    @pytest.fixture(
+        params=[NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+    )
+    def val(self, request):
+        return request.param
+
+    @pytest.fixture
+    def is_inplace(self, val, obj):
+        if obj._values.tz is None:
+            # cast to object iff val is timedelta64("NaT")
+            return val is NaT or val.dtype.kind == "M"
+
+        # otherwise we have to exclude tznaive dt64("NaT")
+        return val is NaT
+
+    @pytest.fixture
+    def expected(self, obj, val, is_inplace):
+        dtype = obj.dtype if is_inplace else object
+        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        return expected
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+
 class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
     # GH#24024
     @pytest.fixture
