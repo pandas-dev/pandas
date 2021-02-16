@@ -1,5 +1,12 @@
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -19,8 +26,15 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
     window_apply_parameters,
 )
-from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
-from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    ExpandingIndexer,
+    GroupbyIndexer,
+)
+from pandas.core.window.rolling import (
+    BaseWindowGroupby,
+    RollingAndExpandingMixin,
+)
 
 
 class Expanding(RollingAndExpandingMixin):

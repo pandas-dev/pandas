@@ -3,14 +3,21 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import Optional, Union
+from typing import (
+    Optional,
+    Union,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, TimedeltaConvertibleTypes
+from pandas._typing import (
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    TimedeltaConvertibleTypes,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -35,7 +42,10 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby
+from pandas.core.window.rolling import (
+    BaseWindow,
+    BaseWindowGroupby,
+)
 
 
 def get_center_of_mass(

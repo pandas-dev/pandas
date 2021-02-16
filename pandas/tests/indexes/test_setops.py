@@ -20,7 +20,10 @@ from pandas import (
     UInt64Index,
 )
 import pandas._testing as tm
-from pandas.api.types import is_datetime64tz_dtype, pandas_dtype
+from pandas.api.types import (
+    is_datetime64tz_dtype,
+    pandas_dtype,
+)
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
     (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex),

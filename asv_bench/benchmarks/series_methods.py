@@ -2,7 +2,14 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import Categorical, NaT, Series, date_range
+from pandas.compat.numpy import np_version_under1p20
+
+from pandas import (
+    Categorical,
+    NaT,
+    Series,
+    date_range,
+)
 
 from .pandas_vb_common import tm
 
@@ -143,6 +150,10 @@ class IsInLongSeriesLookUpDominates:
 
     def setup(self, dtype, MaxNumber, series_type):
         N = 10 ** 7
+
+        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
+            raise NotImplementedError
+
         if series_type == "random_hits":
             np.random.seed(42)
             array = np.random.randint(0, MaxNumber, N)
