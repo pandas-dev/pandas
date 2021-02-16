@@ -4,6 +4,8 @@ import inspect
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame, Index, MultiIndex, Series, merge
 import pandas._testing as tm
 
@@ -353,6 +355,7 @@ class TestRename:
         with pytest.raises(TypeError, match=msg):
             df.rename({}, columns={}, index={})
 
+    @td.skip_array_manager_not_yet_implemented
     def test_rename_with_duplicate_columns(self):
         # GH#4403
         df4 = DataFrame(
