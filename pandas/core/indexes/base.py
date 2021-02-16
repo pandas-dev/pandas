@@ -93,6 +93,10 @@ from pandas.core.dtypes.missing import array_equivalent, is_valid_na_for_dtype, 
 from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.putmask import (
+    setitem_datetimelike_compat,
+    validate_putmask,
+)
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.arrays.sparse import SparseDtype
@@ -4274,6 +4278,7 @@ class Index(IndexOpsMixin, PandasObject):
         result += self._engine.sizeof(deep=deep)
         return result
 
+    @final
     def where(self, cond, other=None):
         """
         Replace values where the condition is False.
@@ -4306,6 +4311,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.where(idx.isin(['car', 'train']), 'other')
         Index(['car', 'other', 'train', 'other'], dtype='object')
         """
+        if isinstance(self, ABCMultiIndex):
+            raise NotImplementedError(
+                ".where is not supported for MultiIndex operations"
+            )
         cond = np.asarray(cond, dtype=bool)
         return self.putmask(~cond, other)
 
@@ -4522,10 +4531,8 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        mask = np.asarray(mask, dtype=bool)
-        if mask.shape != self.shape:
-            raise ValueError("putmask: mask and data must be the same size")
-        if not mask.any():
+        mask, noop = validate_putmask(self._values, mask)
+        if noop:
             return self.copy()
 
         if value is None and (self._is_numeric_dtype or self.dtype == object):
@@ -4540,18 +4547,8 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        dtype, _ = infer_dtype_from(converted, pandas_dtype=True)
-        if dtype.kind in ["m", "M"]:
-            # https://github.com/numpy/numpy/issues/12550
-            #  timedelta64 will incorrectly cast to int
-            if not is_list_like(converted):
-                converted = [converted] * mask.sum()
-                values[mask] = converted
-            else:
-                converted = list(converted)
-                np.putmask(values, mask, converted)
-        else:
-            np.putmask(values, mask, converted)
+        converted = setitem_datetimelike_compat(values, mask.sum(), converted)
+        np.putmask(values, mask, converted)
 
         return type(self)._simple_new(values, name=self.name)
 
@@ -6074,14 +6071,14 @@ def ensure_index(
     if hasattr(index_like, "name"):
         # https://github.com/python/mypy/issues/1424
         # error: Item "ExtensionArray" of "Union[ExtensionArray,
-        # Sequence[Any]]" has no attribute "name"  [union-attr]
+        # Sequence[Any]]" has no attribute "name"
         # error: Item "Sequence[Any]" of "Union[ExtensionArray, Sequence[Any]]"
-        # has no attribute "name"  [union-attr]
-        # error: "Sequence[Any]" has no attribute "name"  [attr-defined]
+        # has no attribute "name"
+        # error: "Sequence[Any]" has no attribute "name"
         # error: Item "Sequence[Any]" of "Union[Series, Sequence[Any]]" has no
-        # attribute "name"  [union-attr]
+        # attribute "name"
         # error: Item "Sequence[Any]" of "Union[Any, Sequence[Any]]" has no
-        # attribute "name"  [union-attr]
+        # attribute "name"
         name = index_like.name  # type: ignore[union-attr, attr-defined]
         return Index(index_like, name=name, copy=copy)
 

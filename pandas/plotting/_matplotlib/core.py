@@ -594,17 +594,14 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    # pandas\plotting\_matplotlib\core.py:578: error:
-                    # Incompatible types in assignment (expression has type
+                    # error: Incompatible types in assignment (expression has type
                     # "Iterator[Any]", variable has type "List[Any]")
-                    # [assignment]
                     self.legend_handles = reversed(  # type: ignore[assignment]
                         self.legend_handles
                     )
-                    # pandas\plotting\_matplotlib\core.py:579: error:
-                    # Incompatible types in assignment (expression has type
+                    # error: Incompatible types in assignment (expression has type
                     # "Iterator[Optional[Hashable]]", variable has type
-                    # "List[Optional[Hashable]]")  [assignment]
+                    # "List[Optional[Hashable]]")
                     self.legend_labels = reversed(  # type: ignore[assignment]
                         self.legend_labels
                     )
@@ -1149,10 +1146,9 @@ class LinePlot(MPLPlot):
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            # pandas\plotting\_matplotlib\core.py:1100: error: Incompatible
-            # types in assignment (expression has type "Callable[[Any, Any,
-            # Any, Any, Any, Any, KwArg(Any)], Any]", variable has type
-            # "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
+            # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
             it = self._iter_data()
 
@@ -1601,9 +1597,8 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
-                # types in assignment (expression has type "None", variable has
-                # type "List[Any]")  [assignment]
+                # error: Incompatible types in assignment (expression has type "None",
+                # variable has type "List[Any]")
                 blabels = None  # type: ignore[assignment]
             results = ax.pie(y, labels=blabels, **kwds)
 

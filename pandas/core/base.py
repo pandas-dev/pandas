@@ -97,8 +97,7 @@ class PandasObject(DirNamesMixin):
         either a value or Series of values
         """
         if hasattr(self, "memory_usage"):
-            # pandas\core\base.py:84: error: "PandasObject" has no attribute
-            # "memory_usage"  [attr-defined]
+            # error: "PandasObject" has no attribute "memory_usage"
             mem = self.memory_usage(deep=True)  # type: ignore[attr-defined]
             return int(mem if is_scalar(mem) else mem.sum())
 
@@ -577,8 +576,7 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if is_extension_array_dtype(self.dtype):
-            # pandas\core\base.py:837: error: Too many arguments for "to_numpy"
-            # of "ExtensionArray"  [call-arg]
+            # error: Too many arguments for "to_numpy" of "ExtensionArray"
             return self.array.to_numpy(  # type: ignore[call-arg]
                 dtype, copy=copy, na_value=na_value, **kwargs
             )
@@ -890,13 +888,11 @@ class IndexOpsMixin(OpsMixin):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
 
-                # pandas\core\base.py:893: error: Incompatible types in
-                # assignment (expression has type "Categorical", variable has
-                # type "IndexOpsMixin")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "Categorical", variable has type "IndexOpsMixin")
                 self = cast("Categorical", self)  # type: ignore[assignment]
-                # pandas\core\base.py:894: error: Item "ExtensionArray" of
-                # "Union[ExtensionArray, Any]" has no attribute "map"
-                # [union-attr]
+                # error: Item "ExtensionArray" of "Union[ExtensionArray, Any]" has no
+                # attribute "map"
                 return self._values.map(mapper)  # type: ignore[union-attr]
 
             values = self._values
@@ -914,8 +910,7 @@ class IndexOpsMixin(OpsMixin):
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            # pandas\core\base.py:1142: error: "IndexOpsMixin" has no attribute
-            # "astype"  [attr-defined]
+            # error: "IndexOpsMixin" has no attribute "astype"
             values = self.astype(object)._values  # type: ignore[attr-defined]
             if na_action == "ignore":
                 map_f = lambda values, f: lib.map_infer_mask(
@@ -1153,8 +1148,7 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
-            # pandas\core\base.py:1379: error: "ExtensionArray" has no
-            # attribute "memory_usage"  [attr-defined]
+            # error: "ExtensionArray" has no attribute "memory_usage"
             return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
 
         v = self.array.nbytes
@@ -1289,8 +1283,7 @@ class IndexOpsMixin(OpsMixin):
 
     def drop_duplicates(self, keep="first"):
         duplicated = self.duplicated(keep=keep)
-        # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
-        # indexable  [index]
+        # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep="first"):

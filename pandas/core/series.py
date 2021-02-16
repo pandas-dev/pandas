@@ -444,7 +444,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index = None
+    _index: Optional[Index] = None
 
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
@@ -3973,7 +3973,7 @@ Keep all original rows and also all original values
             func = dict(kwargs.items())
 
         op = series_apply(self, func, args=args, kwargs=kwargs)
-        result, how = op.agg()
+        result = op.agg()
         if result is None:
 
             # we can be called from an inner function which
@@ -4043,6 +4043,12 @@ Keep all original rows and also all original values
         Series.map: For element-wise operations.
         Series.agg: Only perform aggregating type operations.
         Series.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
