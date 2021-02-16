@@ -1646,7 +1646,12 @@ class Styler:
             return np.where(pd.isna(data).values, props, "")
 
         return self.apply(
-            f, axis=None, subset=subset, props=f"background-color: {null_color};"
+            # error: Argument 1 to "apply" of "Styler" has incompatible type
+            # "Callable[[DataFrame, str], ndarray]"; expected "Callable[..., Styler]"
+            f,  # type: ignore[arg-type]
+            axis=None,
+            subset=subset,
+            props=f"background-color: {null_color};",
         )
 
     def highlight_max(
@@ -1677,7 +1682,13 @@ class Styler:
             return np.where(data == np.nanmax(data.values), props, "")
 
         return self.apply(
-            f, axis=axis, subset=subset, props=f"background-color: {color};"
+            # error: Argument 1 to "apply" of "Styler" has incompatible type
+            # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[...,
+            # Styler]"
+            f,  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=f"background-color: {color};",
         )
 
     def highlight_min(
@@ -1708,7 +1719,13 @@ class Styler:
             return np.where(data == np.nanmin(data.values), props, "")
 
         return self.apply(
-            f, axis=axis, subset=subset, props=f"background-color: {color};"
+            # error: Argument 1 to "apply" of "Styler" has incompatible type
+            # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[...,
+            # Styler]"
+            f,  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=f"background-color: {color};",
         )
 
     @classmethod
