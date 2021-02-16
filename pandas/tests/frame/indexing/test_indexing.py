@@ -1146,7 +1146,8 @@ class TestDataFrameIndexing:
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
-        # rows unaligned
+    def test_setitem_frame_mixed_rows_unaligned(self, float_string_frame):
+        # GH#3216 rows unaligned
         f = float_string_frame.copy()
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
@@ -1159,7 +1160,8 @@ class TestDataFrameIndexing:
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
         )
 
-        # key is unaligned with values
+    def test_setitem_frame_mixed_key_unaligned(self, float_string_frame):
+        # GH#3216 key is unaligned with values
         f = float_string_frame.copy()
         piece = f.loc[f.index[:2], ["A"]]
         piece.index = f.index[-2:]
@@ -1168,7 +1170,8 @@ class TestDataFrameIndexing:
         piece["B"] = np.nan
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
 
-        # ndarray
+    def test_setitem_frame_mixed_ndarray(self, float_string_frame):
+        # GH#3216 ndarray
         f = float_string_frame.copy()
         piece = float_string_frame.loc[f.index[:2], ["A", "B"]]
         key = (f.index[slice(-2, None)], ["A", "B"])
@@ -1471,27 +1474,13 @@ class TestDataFrameIndexing:
         result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
-    def test_at_time_between_time_datetimeindex(self):
+    def test_loc_setitem_time_key(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
         df = DataFrame(np.random.randn(len(index), 5), index=index)
         akey = time(12, 0, 0)
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         ainds = [24, 72, 120, 168]
         binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
-
-        result = df.at_time(akey)
-        expected = df.loc[akey]
-        expected2 = df.iloc[ainds]
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, expected2)
-        assert len(result) == 4
-
-        result = df.between_time(bkey.start, bkey.stop)
-        expected = df.loc[bkey]
-        expected2 = df.iloc[binds]
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, expected2)
-        assert len(result) == 12
 
         result = df.copy()
         result.loc[akey] = 0
@@ -1529,26 +1518,11 @@ class TestDataFrameIndexing:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    @pytest.mark.parametrize(
-        "tpl",
-        [
-            (1,),
-            (
-                1,
-                2,
-            ),
-        ],
-    )
+    @pytest.mark.parametrize("tpl", [(1,), (1, 2)])
     def test_loc_getitem_index_single_double_tuples(self, tpl):
         # GH 20991
         idx = Index(
-            [
-                (1,),
-                (
-                    1,
-                    2,
-                ),
-            ],
+            [(1,), (1, 2)],
             name="A",
             tupleize_cols=False,
         )

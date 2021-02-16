@@ -59,6 +59,9 @@ class TestFancy:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_ndarray_1d_2(self):
+        # GH5508
+
         # dtype getting changed?
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
@@ -139,7 +142,7 @@ class TestFancy:
         expected = pd.Float64Index([1, 2, np.inf])
         tm.assert_index_equal(result, expected)
 
-    def test_inf_upcast_empty(self):
+    def test_loc_setitem_with_expasnion_inf_upcast_empty(self):
         # Test with np.inf in columns
         df = DataFrame()
         df.loc[0, 0] = 1
@@ -292,6 +295,8 @@ class TestFancy:
 
         with pytest.raises(KeyError, match="with any missing labels"):
             df.loc[:, ["A", "B", "C"]]
+
+    def test_dups_fancy_indexing3(self):
 
         # GH 6504, multi-axis indexing
         df = DataFrame(
@@ -506,6 +511,7 @@ class TestFancy:
 
         tm.assert_frame_equal(result, df)
 
+    def test_iloc_setitem_custom_object(self):
         # iloc with an object
         class TO:
             def __init__(self, value):
@@ -551,6 +557,9 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df.loc["2011", 0]
 
+    def test_string_slice_empty(self):
+        # GH 14424
+
         df = DataFrame()
         assert not df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
@@ -595,6 +604,7 @@ class TestFancy:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_astype_assignment_full_replacements(self):
         # full replacements / no nans
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
         df.iloc[:, 0] = df["A"].astype(np.int64)
@@ -658,9 +668,9 @@ class TestMisc:
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
         df["a"] = 10
-        tm.assert_frame_equal(
-            DataFrame({0.0: df[0.0], 1.0: df[1.0], "a": [10] * 10}), df
-        )
+
+        expected = DataFrame({0.0: df[0.0], 1.0: df[1.0], "a": [10] * 10})
+        tm.assert_frame_equal(expected, df)
 
     def test_float_index_non_scalar_assignment(self):
         df = DataFrame({"a": [1, 2, 3], "b": [3, 4, 5]}, index=[1.0, 2.0, 3.0])
@@ -745,12 +755,10 @@ class TestMisc:
             assert_slices_equivalent(SLC[idx[13] : idx[9] : -1], SLC[13:8:-1])
             assert_slices_equivalent(SLC[idx[9] : idx[13] : -1], SLC[:0])
 
-    def test_slice_with_zero_step_raises(self):
-        s = Series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, indexer_sl):
+        ser = Series(np.arange(20), index=_mklbl("A", 20))
         with pytest.raises(ValueError, match="slice step cannot be zero"):
-            s[::0]
-        with pytest.raises(ValueError, match="slice step cannot be zero"):
-            s.loc[::0]
+            indexer_sl(ser)[::0]
 
     def test_indexing_assignment_dict_already_exists(self):
         index = Index([-5, 0, 5], name="z")
@@ -935,7 +943,7 @@ class TestDataframeNoneCoercion:
 
 class TestDatetimelikeCoercion:
     def test_setitem_dt64_string_scalar(self, tz_naive_fixture, indexer_sli):
-        # dispatching _can_hold_element to underling DatetimeArray
+        # dispatching _can_hold_element to underlying DatetimeArray
         tz = tz_naive_fixture
 
         dti = date_range("2016-01-01", periods=3, tz=tz)

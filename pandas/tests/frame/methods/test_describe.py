@@ -391,3 +391,14 @@ class TestDataFrameDescribe:
         msg = "exclude must be None when include is 'all'"
         with pytest.raises(ValueError, match=msg):
             df.describe(include="all", exclude=exclude)
+
+    def test_describe_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
+            columns=["bar", "a", "a"],
+            dtype="float64",
+        )
+        result = df.describe()
+        ser = df.iloc[:, 0].describe()
+        expected = pd.concat([ser, ser, ser], keys=df.columns, axis=1)
+        tm.assert_frame_equal(result, expected)
