@@ -436,7 +436,7 @@ def array_equivalent(
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
-        if not (np.prod(left.shape) and np.prod(right.shape)):
+        if not (left.size and right.size):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
