@@ -2,6 +2,8 @@ from typing import Callable
 
 import numpy as np
 
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+
 """
 masked_accumulations.py is for accumulation algorithms using a mask-based approach
 for missing values.
@@ -14,7 +16,6 @@ def _cum_func(
     mask: np.ndarray,
     *,
     skipna: bool = True,
-    min_count: int = 0,
 ):
     """
     Accumulations for 1D masked array.
@@ -30,12 +31,21 @@ def _cum_func(
     skipna : bool, default True
         Whether to skip NA.
     """
+    dtype_info = None
+    if is_float_dtype(values):
+        dtype_info = np.finfo(values.dtype.type)
+    elif is_integer_dtype(values):
+        dtype_info = np.iinfo(values.dtype.type)
+    else:
+        raise NotImplementedError(
+            f"No masked accumulation defined for dtype {values.dtype.type}"
+        )
     try:
         fill_value = {
             np.cumprod: 1,
-            np.maximum.accumulate: values.min(),
+            np.maximum.accumulate: dtype_info.min,
             np.cumsum: 0,
-            np.minimum.accumulate: values.max(),
+            np.minimum.accumulate: dtype_info.max,
         }[func]
     except KeyError:
         raise ValueError(f"No accumulation for {func} implemented on BaseMaskedArray")
