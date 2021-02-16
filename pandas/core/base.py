@@ -21,7 +21,7 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import Dtype, DtypeObj, IndexLabel
+from pandas._typing import Dtype, DtypeObj, FrameOrSeriesUnion, IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -154,14 +154,8 @@ class SelectionMixin:
     Sub-classes need to define: obj, exclusions
     """
 
-    obj: Any  # TODO: refine this type, should NOT be Any
-    """Target object for the selection and aggregation."""
-    # GH 38239
-    # TODO obj here must be typed as FrameOrSeriesUnion,
-    # however this creates multiple mypy errors elsewhere.
-    # Those have to be addressed in a separate PR.
+    obj: FrameOrSeriesUnion
     exclusions: Set[Hashable]
-    """Columns to exclude."""
 
     _selection: Optional[IndexLabel] = None
     _internal_names = ["_cache", "__setstate__"]
