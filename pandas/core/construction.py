@@ -285,21 +285,14 @@ def array(
 
     # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
     # "Union[Sequence[object], ExtensionArray]"
-
     # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
     # "Union[Sequence[object], Index]"
-
-    # pandas\core\construction.py:295: error: Incompatible types in assignment
-    # (expression has type "ExtensionArray", variable has type
-    # "Union[Sequence[object], Index]")  [assignment]
-
-    # pandas\core\construction.py:295: error: Incompatible types in assignment
-    # (expression has type "ExtensionArray", variable has type
-    # "Union[Sequence[object], Series]")  [assignment]
-
-    # pandas\core\construction.py:295: error: Incompatible types in assignment
-    # (expression has type "ExtensionArray", variable has type
-    # "Union[Sequence[object], ndarray]")  [assignment]
+    # error: Incompatible types in assignment (expression has type "ExtensionArray",
+    # variable has type "Union[Sequence[object], Index]")
+    # error: Incompatible types in assignment (expression has type "ExtensionArray",
+    # variable has type "Union[Sequence[object], Series]")
+    # error: Incompatible types in assignment (expression has type "ExtensionArray",
+    # variable has type "Union[Sequence[object], ndarray]")
     data = extract_array(data, extract_numpy=True)  # type: ignore[type-var,assignment]
 
     # this returns None for not-found dtypes.
@@ -551,27 +544,21 @@ def _sanitize_ndim(
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 
-            # pandas/core/construction.py:553: error: Incompatible types in assignment
-            # (expression has type "ndarray", variable has type "ExtensionArray")
-            # [assignment]
-
-            # pandas/core/construction.py:553: error: Argument "dtype" to
-            # "asarray_tuplesafe" has incompatible type "Type[object]"; expected
-            # "Union[str, dtype[Any], None]"  [arg-type]
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ExtensionArray")
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Type[object]"; expected "Union[str, dtype[Any], None]"
             result = com.asarray_tuplesafe(  # type: ignore[assignment]
                 data, dtype=object  # type: ignore[arg-type]
             )
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:
-            # pandas/core/construction.py:553: error: Incompatible types in assignment
-            # (expression has type "ndarray", variable has type "ExtensionArray")
-            # [assignment]
-
-            # pandas/core/construction.py:553: error: Argument "dtype" to
-            # "asarray_tuplesafe" has incompatible type "Union[dtype[Any],
-            # ExtensionDtype, None]"; expected "Union[str, dtype[Any], None]"
-            # [arg-type]
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ExtensionArray")
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
+            # dtype[Any], None]"
             result = com.asarray_tuplesafe(  # type: ignore[assignment]
                 data, dtype=dtype  # type: ignore[arg-type]
             )
@@ -593,11 +580,10 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                # pandas/core/construction.py:572: error: Argument "dtype" to "array"
-                # has incompatible type "Union[dtype[Any], ExtensionDtype, None]";
-                # expected "Union[dtype[Any], None, type, _SupportsDType, str,
-                # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-                # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+                # error: Argument "dtype" to "array" has incompatible type
+                # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
+                # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+                # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
                 data = np.array(data, dtype=dtype, copy=False)  # type: ignore[arg-type]
             result = np.array(data, dtype=object, copy=copy)
     return result
@@ -656,11 +642,10 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
 
-            # pandas\core\construction.py:595: error: Argument 2 to
-            # "maybe_cast_to_integer_array" has incompatible type "Union[dtype,
-            # ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
-            # dtype, Type[str], Type[float], Type[int], Type[complex],
-            # Type[bool], Type[object]]"  [arg-type]
+            # error: Argument 2 to "maybe_cast_to_integer_array" has incompatible type
+            # "Union[dtype, ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
+            # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]"
             maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
             subarr = arr
         else:

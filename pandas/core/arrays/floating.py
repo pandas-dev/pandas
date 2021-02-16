@@ -285,8 +285,8 @@ class FloatingArray(NumericArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            # pandas/core/arrays/floating.py:337: error: Incompatible return value type
-            # (got "ExtensionArray", expected "ndarray")  [return-value]
+            # error: Incompatible return value type (got "ExtensionArray", expected
+            # "ndarray")
             return super().astype(dtype, copy=copy)  # type: ignore[return-value]
 
         # coerce
@@ -294,8 +294,8 @@ class FloatingArray(NumericArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = {"na_value": np.nan}
         elif is_datetime64_dtype(dtype):
-            # pandas/core/arrays/floating.py:397: error: Dict entry 0 has incompatible
-            # type "str": "datetime64"; expected "str": "float"  [dict-item]
+            # error: Dict entry 0 has incompatible type "str": "datetime64"; expected
+            # "str": "float"
             kwargs = {"na_value": np.datetime64("NaT")}  # type: ignore[dict-item]
         else:
             kwargs = {}
@@ -303,8 +303,8 @@ class FloatingArray(NumericArray):
         # error: Argument 2 to "to_numpy" of "BaseMaskedArray" has incompatible
         # type "**Dict[str, float]"; expected "bool"
         data = self.to_numpy(dtype=dtype, **kwargs)  # type: ignore[arg-type]
-        # pandas\core\arrays\floating.py:405: error: Incompatible return value
-        # type (got "ExtensionArray", expected "ndarray")  [return-value]
+        # error: Incompatible return value type (got "ExtensionArray", expected
+        # "ndarray")
         return astype_nansafe(data, dtype, copy=False)  # type: ignore[return-value]
 
     def _values_for_argsort(self) -> np.ndarray:

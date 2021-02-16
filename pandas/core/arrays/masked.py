@@ -147,16 +147,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask)
 
-    # pandas/core/arrays/masked.py:149: error: Argument 1 of "to_numpy" is incompatible
-    # with supertype "ExtensionArray"; supertype defines the argument type as
-    # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-    # Type[complex], Type[bool], Type[object], None]"  [override]
-
-    # pandas/core/arrays/masked.py:149: note: This violates the Liskov substitution
-    # principle
-
-    # pandas/core/arrays/masked.py:149: note: See
-    # https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
     def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,

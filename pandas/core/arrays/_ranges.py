@@ -161,8 +161,8 @@ def _generate_range_overflow_safe_signed(
                 # Putting this into a DatetimeArray/TimedeltaArray
                 #  would incorrectly be interpreted as NaT
                 raise OverflowError
-            # pandas/core/arrays/_ranges.py:164: error: Incompatible return value type
-            # (got "signedinteger[_64Bit]", expected "int")  [return-value]
+            # error: Incompatible return value type (got "signedinteger[_64Bit]",
+            # expected "int")
             return result  # type: ignore[return-value]
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
@@ -178,16 +178,14 @@ def _generate_range_overflow_safe_signed(
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
 
-            # pandas/core/arrays/_ranges.py:178: error: Incompatible types in assignment
-            # (expression has type "unsignedinteger[_64Bit]", variable has type
-            # "signedinteger[_64Bit]")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "unsignedinteger[_64Bit]", variable has type "signedinteger[_64Bit]")
             result = np.uint64(endpoint) + np.uint64(addend)  # type: ignore[assignment]
             i64max = np.uint64(np.iinfo(np.int64).max)
             assert result > i64max
             if result <= i64max + np.uint64(stride):
-                # pandas\core\arrays\_ranges.py:171: error: Incompatible return
-                # value type (got "unsignedinteger", expected "int")
-                # [return-value]
+                # error: Incompatible return value type (got "unsignedinteger", expected
+                # "int")
                 return result  # type: ignore[return-value]
 
     raise OutOfBoundsDatetime(

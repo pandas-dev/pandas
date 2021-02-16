@@ -1928,8 +1928,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __array_ufunc__(
         self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
     ):
-        # pandas/core/generic.py:1931: error: Argument 2 to "array_ufunc" has
-        # incompatible type "Callable[..., Any]"; expected "ufunc"  [arg-type]
+        # error: Argument 2 to "array_ufunc" has incompatible type "Callable[..., Any]";
+        # expected "ufunc"
         return arraylike.array_ufunc(
             self, ufunc, method, *inputs, **kwargs  # type: ignore[arg-type]
         )
@@ -6923,8 +6923,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     f"`limit_direction` must be 'backward' for method `{method}`"
                 )
 
-        # pandas\core\generic.py:7073: error: Value of type variable
-        # "_DTypeScalar" of "dtype" cannot be "object"  [type-var]
+        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
         if obj.ndim == 2 and np.all(
             obj.dtypes == np.dtype(object)  # type: ignore[type-var]
         ):
@@ -8305,8 +8304,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         start_date = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side="right")
-        # pandas/core/generic.py:8502: error: Slice index must be an integer or None
-        # [misc]
+        # error: Slice index must be an integer or None
         return self.iloc[start:]  # type: ignore[misc]
 
     @final
@@ -8898,9 +8896,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                # pandas\core\generic.py:8963: error: Argument 1 to "NDFrame"
-                # has incompatible type "ndarray"; expected "BlockManager"
-                # [arg-type]
+                # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
+                # expected "BlockManager"
                 other = self._constructor(
                     other, **self._construct_axes_dict()  # type: ignore[arg-type]
                 )
@@ -9832,10 +9829,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        # pandas/core/generic.py:9851: error: Argument 1 to "__call__" of "ufunc" has
-        # incompatible type "FrameOrSeries"; expected "Union[Union[int, float, complex,
-        # str, bytes, generic], Sequence[Union[int, float, complex, str, bytes,
-        # generic]], Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "FrameOrSeries"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
         return np.abs(self)  # type: ignore[arg-type]
 
     @final

@@ -549,10 +549,9 @@ class DataFrame(NDFrame, OpsMixin):
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                # pandas/core/frame.py:558: error: Argument "dtype" to "init_ndarray"
-                # has incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                # Type[object], None]"; expected "Union[dtype[Any], ExtensionDtype,
-                # None]"  [arg-type]
+                # error: Argument "dtype" to "init_ndarray" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = init_ndarray(
                     data,
                     index,
@@ -574,14 +573,11 @@ class DataFrame(NDFrame, OpsMixin):
                     data, index, columns, dtype=dtype  # type: ignore[arg-type]
                 )
             elif getattr(data, "name", None) is not None:
-                # pandas\core\frame.py:510: error: Item "ndarray" of
-                # "Union[ndarray, Series, Index]" has no attribute "name"
-                # [union-attr]
-
-                # pandas\core\frame.py:510: error: Argument "dtype" to
-                # "init_dict" has incompatible type "Union[ExtensionDtype, str,
-                # dtype, Type[object], None]"; expected "Union[dtype,
-                # ExtensionDtype, None]"  [arg-type]
+                # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
+                # attribute "name"
+                # error: Argument "dtype" to "init_dict" has incompatible type
+                # "Union[ExtensionDtype, str, dtype, Type[object], None]"; expected
+                # "Union[dtype, ExtensionDtype, None]"
                 mgr = init_dict(
                     {data.name: data},  # type: ignore[union-attr]
                     index,
@@ -609,27 +605,21 @@ class DataFrame(NDFrame, OpsMixin):
                     data = dataclasses_to_dicts(data)
                 if treat_as_nested(data):
                     arrays, columns, index = nested_data_to_arrays(
-                        # pandas/core/frame.py:608: error: Argument 2 to
-                        # "nested_data_to_arrays" has incompatible type
-                        # "Optional[Collection[Any]]"; expected "Optional[Index]"
-                        # [arg-type]
-                        # pandas/core/frame.py:608: error: Argument 3 to
-                        # "nested_data_to_arrays" has incompatible type
-                        # "Optional[Collection[Any]]"; expected "Optional[Index]"
-                        # [arg-type]
-                        # pandas/core/frame.py:608: error: Argument 4 to
-                        # "nested_data_to_arrays" has incompatible type
-                        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                        # expected "Union[dtype[Any], ExtensionDtype, None]"  [arg-type]
+                        # error: Argument 2 to "nested_data_to_arrays" has incompatible
+                        # type "Optional[Collection[Any]]"; expected "Optional[Index]"
+                        # error: Argument 3 to "nested_data_to_arrays" has incompatible
+                        # type "Optional[Collection[Any]]"; expected "Optional[Index]"
+                        # error: Argument 4 to "nested_data_to_arrays" has incompatible
+                        # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                        # None]"; expected "Union[dtype[Any], ExtensionDtype, None]"
                         data,
                         columns,  # type: ignore[arg-type]
                         index,  # type: ignore[arg-type]
                         dtype,  # type: ignore[arg-type]
                     )
-                    # pandas/core/frame.py:610: error: Argument "dtype" to
-                    # "arrays_to_mgr" has incompatible type "Union[ExtensionDtype, str,
-                    # dtype[Any], Type[object], None]"; expected "Union[dtype[Any],
-                    # ExtensionDtype, None]"  [arg-type]
+                    # error: Argument "dtype" to "arrays_to_mgr" has incompatible type
+                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
+                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     mgr = arrays_to_mgr(
                         arrays,
                         columns,
@@ -679,14 +669,12 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
-                # pandas/core/frame.py:653: error: Incompatible types in assignment
-                # (expression has type "ndarray", variable has type
-                # "List[ExtensionArray]")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "List[ExtensionArray]")
                 values = construct_2d_arraylike_from_scalar(  # type: ignore[assignment]
-                    # pandas/core/frame.py:654: error: Argument 4 to
-                    # "construct_2d_arraylike_from_scalar" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                    # "dtype[Any]"  [arg-type]
+                    # error: Argument 4 to "construct_2d_arraylike_from_scalar" has
+                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
+                    # Type[object]]"; expected "dtype[Any]"
                     data,
                     len(index),
                     len(columns),
@@ -1278,8 +1266,8 @@ class DataFrame(NDFrame, OpsMixin):
     def dot(self, other: Union[DataFrame, Index, ArrayLike]) -> DataFrame:
         ...
 
-    # pandas/core/frame.py:1216: error: Overloaded function implementation cannot
-    # satisfy signature 2 due to inconsistencies in how they use type variables  [misc]
+    # error: Overloaded function implementation cannot satisfy signature 2 due to
+    # inconsistencies in how they use type variables
     def dot(  # type: ignore[misc]
         self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
     ) -> FrameOrSeriesUnion:
@@ -2130,8 +2118,8 @@ class DataFrame(NDFrame, OpsMixin):
                 # array of tuples to numpy cols. copy copy copy
                 ix_vals = list(map(np.array, zip(*self.index._values)))
             else:
-                # pandas/core/frame.py:2059: error: List item 0 has incompatible type
-                # "ArrayLike"; expected "ndarray"  [list-item]
+                # error: List item 0 has incompatible type "ArrayLike"; expected
+                # "ndarray"
                 ix_vals = [self.index.values]  # type: ignore[list-item]
 
             arrays = ix_vals + [
@@ -3391,8 +3379,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         # now align rows
 
-        # pandas/core/frame.py:3393: error: Incompatible types in assignment (expression
-        # has type "ExtensionArray", variable has type "DataFrame")  [assignment]
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "DataFrame")
         value = _reindex_for_setitem(value, self.index)  # type: ignore[assignment]
         self._set_item_mgr(key, value)
 
@@ -3902,14 +3890,13 @@ class DataFrame(NDFrame, OpsMixin):
                 # see https://github.com/numpy/numpy/issues/9464
                 if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
                     converted_dtypes.append(np.int32)
-                    # pandas/core/frame.py:3902: error: Argument 1 to "append" of "list"
-                    # has incompatible type "Type[signedinteger[Any]]"; expected
-                    # "Type[signedinteger[Any]]"  [arg-type]
+                    # error: Argument 1 to "append" of "list" has incompatible type
+                    # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
                     converted_dtypes.append(np.int64)  # type: ignore[arg-type]
                 else:
-                    # pandas/core/frame.py:3904: error: Argument 1 to "append" of "list"
-                    # has incompatible type "Union[dtype[Any], ExtensionDtype]";
-                    # expected "Type[signedinteger[Any]]"  [arg-type]
+                    # error: Argument 1 to "append" of "list" has incompatible type
+                    # "Union[dtype[Any], ExtensionDtype]"; expected
+                    # "Type[signedinteger[Any]]"
                     converted_dtypes.append(
                         infer_dtype_from_object(dtype)  # type: ignore[arg-type]
                     )
@@ -4272,8 +4259,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            # pandas/core/frame.py:4265: error: Argument 2 to "take_2d_multi" has
-            # incompatible type "Tuple[Any, Any]"; expected "ndarray"  [arg-type]
+            # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
+            # Any]"; expected "ndarray"
             new_values = algorithms.take_2d_multi(
                 self.values, indexer, fill_value=fill_value  # type: ignore[arg-type]
             )
@@ -4960,14 +4947,13 @@ class DataFrame(NDFrame, OpsMixin):
                 arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
-                # pandas/core/frame.py:4950: error: Argument 1 to "append" of "list" has
-                # incompatible type "Union[List[Any], ndarray]"; expected "Index"
-                # [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible type
+                # "Union[List[Any], ndarray]"; expected "Index"
                 arrays.append(col)  # type: ignore[arg-type]
                 names.append(None)
             elif isinstance(col, abc.Iterator):
-                # pandas/core/frame.py:4953: error: Argument 1 to "append" of "list" has
-                # incompatible type "List[Any]"; expected "Index"  [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible type
+                # "List[Any]"; expected "Index"
                 arrays.append(list(col))  # type: ignore[arg-type]
                 names.append(None)
             # from here, col can only be a column label
@@ -9859,8 +9845,8 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        # pandas/core/frame.py:9718: error: Incompatible return value type (got
-        # "Union[ndarray, Any]", expected "ExtensionArray")  [return-value]
+        # error: Incompatible return value type (got "Union[ndarray, Any]", expected
+        # "ExtensionArray")
         return value._values.copy()  # type: ignore[return-value]
 
     # GH#4107

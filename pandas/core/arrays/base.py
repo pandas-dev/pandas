@@ -369,16 +369,14 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                # pandas/core/arrays/base.py:369: error: "ExtensionArray" has no
-                # attribute "any"  [attr-defined]
+                # error: "ExtensionArray" has no attribute "any"
                 return self.isna().any()  # type: ignore[attr-defined]
             else:
                 return False
         else:
             return (item == self).any()
 
-    # pandas/core/arrays/base.py:375: error: Signature of "__eq__" incompatible with
-    # supertype "object"  [override]
+    # error: Signature of "__eq__" incompatible with supertype "object"
     def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
         """
         Return for `self == other` (element-wise equality).
@@ -429,12 +427,11 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        # pandas/core/arrays/base.py:431: error: Argument "dtype" to "asarray" has
-        # incompatible type "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]";
-        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
-        # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]]"  [arg-type]
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
+        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
         result = np.asarray(self, dtype=dtype)  # type: ignore[arg-type]
         if copy or na_value is not lib.no_default:
             result = result.copy()
@@ -629,8 +626,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        # pandas/core/arrays/base.py:632: error: "ExtensionArray" has no attribute "any"
-        # [attr-defined]
+        # error: "ExtensionArray" has no attribute "any"
         if not skipna and self.isna().any():  # type: ignore[attr-defined]
             raise NotImplementedError
         return nargminmax(self, "argmin")
@@ -655,8 +651,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        # pandas/core/arrays/base.py:656: error: "ExtensionArray" has no attribute "any"
-        # [attr-defined]
+        # error: "ExtensionArray" has no attribute "any"
         if not skipna and self.isna().any():  # type: ignore[attr-defined]
             raise NotImplementedError
         return nargminmax(self, "argmax")
@@ -700,8 +695,7 @@ class ExtensionArray:
                 )
             value = value[mask]
 
-        # pandas\core\arrays\base.py:620: error: "ExtensionArray" has no
-        # attribute "any"  [attr-defined]
+        # error: "ExtensionArray" has no attribute "any"
         if mask.any():  # type: ignore[attr-defined]
             if method is not None:
                 func = get_fill_func(method)
@@ -723,8 +717,7 @@ class ExtensionArray:
         -------
         valid : ExtensionArray
         """
-        # pandas\core\arrays\base.py:641: error: Unsupported operand type for ~
-        # ("ExtensionArray")  [operator]
+        # error: Unsupported operand type for ~ ("ExtensionArray")
         return self[~self.isna()]  # type: ignore[operator]
 
     def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
@@ -1144,9 +1137,8 @@ class ExtensionArray:
         #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
-        # pandas\core\arrays\base.py:1075: error: Incompatible return value
-        # type (got "Union[ExtensionArray, Any]", expected "ndarray")
-        # [return-value]
+        # error: Incompatible return value type (got "Union[ExtensionArray, Any]",
+        # expected "ndarray")
         return self[:]  # type: ignore[return-value]
 
     # ------------------------------------------------------------------------

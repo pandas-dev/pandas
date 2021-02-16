@@ -43,10 +43,10 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
-    # pandas/core/missing.py:44: error: Argument "dtype" to "array" has incompatible
-    # type "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
-    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-    # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+    # error: Argument "dtype" to "array" has incompatible type "Union[dtype[Any],
+    # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+    # _DTypeDict, Tuple[Any, Any]]]"
     values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     na_mask = isna(values_to_mask)
@@ -278,10 +278,10 @@ def interpolate_1d(
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
-        # pandas/core/missing.py:274: error: Argument 1 to "argsort" has incompatible
-        # type "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex,
-        # str, bytes, generic], Sequence[Union[int, float, complex, str, bytes,
-        # generic]], Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        # error: Argument 1 to "argsort" has incompatible type "Union[ExtensionArray,
+        # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
+        # Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
         indexer = np.argsort(inds[valid])  # type: ignore[arg-type]
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
@@ -812,8 +812,7 @@ def _rolling_window(a: np.ndarray, window: int):
     # https://stackoverflow.com/a/6811241
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
-    # pandas\core\missing.py:756: error: Module has no attribute
-    # "stride_tricks"  [attr-defined]
+    # error: Module has no attribute "stride_tricks"
     return np.lib.stride_tricks.as_strided(  # type: ignore[attr-defined]
         a, shape=shape, strides=strides
     )

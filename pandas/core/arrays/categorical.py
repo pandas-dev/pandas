@@ -371,9 +371,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 values = sanitize_array(values, None, dtype=sanitize_dtype)
 
             else:
-                # pandas/core/arrays/categorical.py:372: error: Argument 1 to
-                # "sanitize_to_nanoseconds" has incompatible type "Union[ndarray,
-                # ExtensionArray]"; expected "ndarray"  [arg-type]
+                # error: Argument 1 to "sanitize_to_nanoseconds" has incompatible type
+                # "Union[ndarray, ExtensionArray]"; expected "ndarray"
                 values = sanitize_to_nanoseconds(values)  # type: ignore[arg-type]
 
         if dtype.categories is None:
@@ -400,8 +399,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            # pandas/core/arrays/categorical.py:398: error: Item "ExtensionArray" of
-            # "Union[Any, ExtensionArray]" has no attribute "_codes"  [union-attr]
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "_codes"
             old_codes = extract_array(values)._codes  # type: ignore[union-attr]
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories, copy=copy
@@ -466,17 +465,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
-            # pandas/core/arrays/categorical.py:425: error: Incompatible types in
-            # assignment (expression has type "ndarray", variable has type
-            # "Categorical")  [assignment]
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Categorical")
             result = np.array(  # type: ignore[assignment]
                 self,
-                # pandas/core/arrays/categorical.py:425: error: Argument "dtype" to
-                # "array" has incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
-                # Type[object]]"; expected "Union[dtype[Any], None, type,
-                # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-                # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+                # error: Argument "dtype" to "array" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
+                # Type[int], Type[complex], Type[bool], Type[object]]"; expected
+                # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
+                # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+                # Tuple[Any, Any]]]"
                 dtype=dtype,  # type: ignore[arg-type]
                 copy=copy,
             )
@@ -485,12 +483,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH8628 (PERF): astype category codes instead of astyping array
             try:
                 new_cats = np.asarray(self.categories)
-                # pandas/core/arrays/categorical.py:488: error: Argument "dtype" to
-                # "astype" of "_ArrayOrScalarCommon" has incompatible type
-                # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
-                # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-                # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                # [arg-type]
+                # error: Argument "dtype" to "astype" of "_ArrayOrScalarCommon" has
+                # incompatible type "Union[ExtensionDtype, dtype[Any]]"; expected
+                # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
+                # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+                # Tuple[Any, Any]]]"
                 new_cats = new_cats.astype(
                     dtype=dtype, copy=copy  # type: ignore[arg-type]
                 )
@@ -503,8 +500,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
             result = take_nd(new_cats, libalgos.ensure_platform_int(self._codes))
 
-        # pandas/core/arrays/categorical.py:441: error: Incompatible return value type
-        # (got "Categorical", expected "ndarray")  [return-value]
+        # error: Incompatible return value type (got "Categorical", expected "ndarray")
         return result  # type: ignore[return-value]
 
     @cache_readonly
@@ -2591,8 +2587,7 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     # Only hit here when we've already coerced to object dtypee.
 
     hash_klass, vals = get_data_algo(values)
-    # pandas/core/arrays/categorical.py:2579: error: Value of type variable "ArrayLike"
-    # of "get_data_algo" cannot be "Index"  [type-var]
+    # error: Value of type variable "ArrayLike" of "get_data_algo" cannot be "Index"
     _, cats = get_data_algo(categories)  # type: ignore[type-var]
     t = hash_klass(len(cats))
     t.map_locations(cats)

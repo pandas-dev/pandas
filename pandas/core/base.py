@@ -598,12 +598,11 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        # pandas/core/base.py:616: error: Argument "dtype" to "asarray" has incompatible
-        # type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object], None]"; expected
-        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]]"  [arg-type]
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
+        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
         result = np.asarray(self._values, dtype=dtype)  # type: ignore[arg-type]
         # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
@@ -717,15 +716,14 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # pandas/core/base.py:723: error: "ExtensionArray" has no attribute "any"
-            # [attr-defined]
+            # error: "ExtensionArray" has no attribute "any"
             if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
                 return -1
             else:
                 return delegate.argmax()
         else:
-            # pandas/core/base.py:728: error: Incompatible return value type (got
-            # "Union[int, ndarray]", expected "int")  [return-value]
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
             return nanops.nanargmax(  # type: ignore[return-value]
                 delegate, skipna=skipna
             )
@@ -781,15 +779,14 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # pandas/core/base.py:781: error: "ExtensionArray" has no attribute "any"
-            # [attr-defined]
+            # error: "ExtensionArray" has no attribute "any"
             if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
                 return -1
             else:
                 return delegate.argmin()
         else:
-            # pandas/core/base.py:786: error: Incompatible return value type (got
-            # "Union[int, ndarray]", expected "int")  [return-value]
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
             return nanops.nanargmin(  # type: ignore[return-value]
                 delegate, skipna=skipna
             )
@@ -1317,6 +1314,6 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep="first"):
-        # pandas/core/base.py:1316: error: Value of type variable "ArrayLike" of
-        # "duplicated" cannot be "Union[ExtensionArray, ndarray]"  [type-var]
+        # error: Value of type variable "ArrayLike" of "duplicated" cannot be
+        # "Union[ExtensionArray, ndarray]"
         return duplicated(self._values, keep=keep)  # type: ignore[type-var]

@@ -388,9 +388,8 @@ def _datetimelike_compat(func: F) -> F:
         if datetimelike:
             result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
             if not skipna:
-                # pandas\core\nanops.py:400: error: Argument 3 to
-                # "_mask_datetimelike_result" has incompatible type
-                # "Optional[ndarray]"; expected "ndarray"  [arg-type]
+                # error: Argument 3 to "_mask_datetimelike_result" has incompatible type
+                # "Optional[ndarray]"; expected "ndarray"
                 result = _mask_datetimelike_result(
                     result, axis, mask, orig_values  # type: ignore[arg-type]
                 )
@@ -468,8 +467,8 @@ def nanany(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
-    # pandas\core\nanops.py:443: error: Incompatible return value type (got
-    # "Union[bool_, ndarray]", expected "bool")  [return-value]
+    # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
+    # "bool")
     return values.any(axis)  # type: ignore[return-value]
 
 
@@ -508,8 +507,8 @@ def nanall(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
-    # pandas\core\nanops.py:480: error: Incompatible return value type (got
-    # "Union[bool_, ndarray]", expected "bool")  [return-value]
+    # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
+    # "bool")
     return values.all(axis)  # type: ignore[return-value]
 
 
@@ -558,19 +557,16 @@ def nansum(
         dtype_sum = np.float64  # type: ignore[assignment]
 
     the_sum = values.sum(axis, dtype=dtype_sum)
-    # pandas\core\nanops.py:525: error: Incompatible types in assignment
-    # (expression has type "float", variable has type "Union[number, ndarray]")
-    # [assignment]
-
-    # pandas\core\nanops.py:525: error: Argument 1 to "_maybe_null_out" has
-    # incompatible type "Union[number, ndarray]"; expected "ndarray"
-    # [arg-type]
+    # error: Incompatible types in assignment (expression has type "float", variable has
+    # type "Union[number, ndarray]")
+    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
+    # ndarray]"; expected "ndarray"
     the_sum = _maybe_null_out(  # type: ignore[assignment]
         the_sum, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
     )
 
-    # pandas\core\nanops.py:553: error: Incompatible return value type (got
-    # "Union[number, ndarray]", expected "float")  [return-value]
+    # error: Incompatible return value type (got "Union[number, ndarray]", expected
+    # "float")
     return the_sum  # type: ignore[return-value]
 
 
@@ -633,20 +629,17 @@ def nanmean(
 
     # not using needs_i8_conversion because that includes period
     if dtype.kind in ["m", "M"]:
-        # pandas\core\nanops.py:619: error: Incompatible types in assignment
-        # (expression has type "Type[float64]", variable has type "dtype[Any]")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "Type[float64]",
+        # variable has type "dtype[Any]")
         dtype_sum = np.float64  # type: ignore[assignment]
     elif is_integer_dtype(dtype):
-        # pandas\core\nanops.py:621: error: Incompatible types in assignment
-        # (expression has type "Type[float64]", variable has type "dtype[Any]")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "Type[float64]",
+        # variable has type "dtype[Any]")
         dtype_sum = np.float64  # type: ignore[assignment]
     elif is_float_dtype(dtype):
         dtype_sum = dtype
-        # pandas\core\nanops.py:624: error: Incompatible types in assignment
-        # (expression has type "dtype[Any]", variable has type "Type[float64]")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type "dtype[Any]",
+        # variable has type "Type[float64]")
         dtype_count = dtype  # type: ignore[assignment]
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
@@ -799,13 +792,8 @@ def _get_counts_nanvar(
     """
     dtype = get_dtype(dtype)
     count = _get_counts(value_counts, mask, axis, dtype=dtype)
-    # pandas\core\nanops.py:702: error: Unsupported operand types for - ("int"
-    # and "generic")  [operator]
-
-    # pandas\core\nanops.py:702: error: Unsupported operand types for -
-    # ("float" and "generic")  [operator]
-
-    # pandas\core\nanops.py:702: note: Both left and right operands are unions
+    # error: Unsupported operand types for - ("int" and "generic")
+    # error: Unsupported operand types for - ("float" and "generic")
     d = count - dtype.type(ddof)  # type: ignore[operator]
 
     # always return NaN, never inf
@@ -1062,8 +1050,7 @@ def nanargmax(
     array([2, 2, 1, 1], dtype=int64)
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="-inf", mask=mask)
-    # pandas\core\nanops.py:971: error: Need type annotation for 'result'
-    # [var-annotated]
+    # error: Need type annotation for 'result'
     result = values.argmax(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
@@ -1109,8 +1096,7 @@ def nanargmin(
     array([0, 0, 1, 1], dtype=int64)
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="+inf", mask=mask)
-    # pandas\core\nanops.py:1015: error: Need type annotation for 'result'
-    # [var-annotated]
+    # error: Need type annotation for 'result'
     result = values.argmin(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
@@ -1332,9 +1318,8 @@ def nanprod(
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    # pandas\core\nanops.py:1321: error: Argument 1 to "_maybe_null_out" has
-    # incompatible type "Union[number, ndarray]"; expected "ndarray"
-    # [arg-type]
+    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
+    # ndarray]"; expected "ndarray"
     return _maybe_null_out(
         result, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
     )
@@ -1412,15 +1397,12 @@ def _get_counts(
         # expected "Union[int, float, ndarray]")
         return dtype.type(count)  # type: ignore[return-value]
     try:
-        # pandas\core\nanops.py:1396: error: Incompatible return value type
-        # (got "Union[ndarray, generic]", expected "Union[int, float,
-        # ndarray]")  [return-value]
-
-        # pandas\core\nanops.py:1396: error: Argument 1 to "astype" of
-        # "_ArrayOrScalarCommon" has incompatible type "Union[ExtensionDtype,
-        # dtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
-        # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DtypeDict, Tuple[Any, Any]]"  [arg-type]
+        # error: Incompatible return value type (got "Union[ndarray, generic]", expected
+        # "Union[int, float, ndarray]")
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+        # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+        # List[Any], _DtypeDict, Tuple[Any, Any]]"
         return count.astype(dtype)  # type: ignore[return-value,arg-type]
     except AttributeError:
         # error: Argument "dtype" to "array" has incompatible type

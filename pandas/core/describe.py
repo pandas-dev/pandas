@@ -174,8 +174,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             # when some numerics are found, keep only numerics
             default_include = [np.number]
             if self.datetime_is_numeric:
-                # pandas/core/describe.py:177: error: Argument 1 to "append" of "list"
-                # has incompatible type "str"; expected "Type[number[Any]]"  [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible type "str";
+                # expected "Type[number[Any]]"
                 default_include.append("datetime")  # type: ignore[arg-type]
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
@@ -216,9 +216,9 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """
     from pandas import Series
 
-    # pandas/core/describe.py:217: error: Argument 1 to "format_percentiles" has
-    # incompatible type "Sequence[float]"; expected "Union[ndarray, List[Union[int,
-    # float]], List[float], List[Union[str, float]]]"  [arg-type]
+    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
+    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
+    # float]]]"
     formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
 
     stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
@@ -323,9 +323,9 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
     # GH-30164
     from pandas import Series
 
-    # pandas/core/describe.py:321: error: Argument 1 to "format_percentiles" has
-    # incompatible type "Sequence[float]"; expected "Union[ndarray, List[Union[int,
-    # float]], List[float], List[Union[str, float]]]"  [arg-type]
+    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
+    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
+    # float]]]"
     formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
 
     stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
@@ -382,8 +382,8 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
         The percentiles to include in the output.
     """
     if percentiles is None:
-        # pandas/core/describe.py:377: error: Incompatible return value type (got
-        # "ndarray", expected "Sequence[float]")  [return-value]
+        # error: Incompatible return value type (got "ndarray", expected
+        # "Sequence[float]")
         return np.array([0.25, 0.5, 0.75])  # type: ignore[return-value]
 
     # explicit conversion of `percentiles` to list
@@ -396,8 +396,8 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
     if 0.5 not in percentiles:
         percentiles.append(0.5)
 
-    # pandas/core/describe.py:389: error: Incompatible types in assignment (expression
-    # has type "ndarray", variable has type "Optional[Sequence[float]]")  [assignment]
+    # error: Incompatible types in assignment (expression has type "ndarray", variable
+    # has type "Optional[Sequence[float]]")
     percentiles = np.asarray(percentiles)  # type: ignore[assignment]
 
     # sort and check for duplicates

@@ -316,8 +316,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
-                # pandas\core\series.py:267: error: Argument 1 to "len" has
-                # incompatible type "dtype"; expected "Sized"  [arg-type]
+                # error: Argument 1 to "len" has incompatible type "dtype"; expected
+                # "Sized"
                 if len(data.dtype):  # type: ignore[arg-type]
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
@@ -369,10 +369,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                # pandas/core/series.py:342: error: Argument 3 to "sanitize_array" has
-                # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                # Type[object], None]"; expected "Union[dtype[Any], ExtensionDtype,
-                # None]"  [arg-type]
+                # error: Argument 3 to "sanitize_array" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+                # "Union[dtype[Any], ExtensionDtype, None]"
                 data = sanitize_array(
                     data,
                     index,
@@ -427,9 +426,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # TODO: passing np.float64 to not break anything yet. See GH-17261
 
-        # pandas\core\series.py:375: error: Value of type variable "ArrayLike"
-        # of "create_series_with_explicit_dtype" cannot be "Tuple[Any, ...]"
-        # [type-var]
+        # error: Value of type variable "ArrayLike" of
+        # "create_series_with_explicit_dtype" cannot be "Tuple[Any, ...]"
         s = create_series_with_explicit_dtype(  # type: ignore[type-var]
             values, index=keys, dtype=dtype, dtype_if_empty=np.float64
         )
@@ -1029,9 +1027,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with_engine(self, key, value):
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
-        # pandas\core\series.py:1050: error: Argument 1 to
-        # "validate_numeric_casting" has incompatible type "Union[dtype,
-        # ExtensionDtype]"; expected "dtype"  [arg-type]
+        # error: Argument 1 to "validate_numeric_casting" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "dtype"
         validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
         self._values[loc] = value
 
@@ -2965,9 +2962,8 @@ Keep all original rows and also all original values
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
 
-            # pandas\core\series.py:2978: error: Value of type variable
-            # "ArrayLike" of "maybe_cast_to_extension_array" cannot be
-            # "List[Any]"  [type-var]
+            # error: Value of type variable "ArrayLike" of
+            # "maybe_cast_to_extension_array" cannot be "List[Any]"
             new_values = maybe_cast_to_extension_array(
                 type(self._values), new_values  # type: ignore[type-var]
             )

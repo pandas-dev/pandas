@@ -386,8 +386,8 @@ class BooleanArray(BaseMaskedArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            # pandas/core/arrays/boolean.py:377: error: Incompatible return value type
-            # (got "ExtensionArray", expected "ndarray")  [return-value]
+            # error: Incompatible return value type (got "ExtensionArray", expected
+            # "ndarray")
             return super().astype(dtype, copy)  # type: ignore[return-value]
 
         if is_bool_dtype(dtype):
@@ -395,8 +395,8 @@ class BooleanArray(BaseMaskedArray):
             if self._hasna:
                 raise ValueError("cannot convert float NaN to bool")
             else:
-                # pandas/core/arrays/boolean.py:384: error: Incompatible return value
-                # type (got "ndarray", expected "ExtensionArray")  [return-value]
+                # error: Incompatible return value type (got "ndarray", expected
+                # "ExtensionArray")
                 return self._data.astype(dtype, copy=copy)  # type: ignore[return-value]
 
         # for integer, error if there are missing values
@@ -602,9 +602,8 @@ class BooleanArray(BaseMaskedArray):
         elif op.__name__ in {"xor", "rxor"}:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        # pandas\core\arrays\boolean.py:610: error: Argument 2 to
-        # "BooleanArray" has incompatible type "Optional[Any]"; expected
-        # "ndarray"  [arg-type]
+        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
+        # expected "ndarray"
         return BooleanArray(result, mask)  # type: ignore[arg-type]
 
     def _cmp_method(self, other, op):

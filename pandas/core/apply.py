@@ -843,11 +843,10 @@ class SeriesApply(Apply):
 
         with np.errstate(all="ignore"):
             if isinstance(f, np.ufunc):
-                # pandas/core/apply.py:622: error: Argument 1 to "__call__" of "ufunc"
-                # has incompatible type "Series"; expected "Union[Union[int, float,
-                # complex, str, bytes, generic], Sequence[Union[int, float, complex,
-                # str, bytes, generic]], Sequence[Sequence[Any]], _SupportsArray]"
-                # [arg-type]
+                # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+                # "Series"; expected "Union[Union[int, float, complex, str, bytes,
+                # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+                # Sequence[Sequence[Any]], _SupportsArray]"
                 return f(obj)  # type: ignore[arg-type]
 
             # row-wise access
