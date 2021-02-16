@@ -2,6 +2,8 @@ from datetime import datetime
 
 import numpy as np
 
+from pandas.compat.numpy import np_version_under1p20
+
 from pandas import Categorical, NaT, Series, date_range
 
 from .pandas_vb_common import tm
@@ -135,7 +137,7 @@ class IsInForObjects:
 
 class IsInLongSeriesLookUpDominates:
     params = [
-        ["int64", "int32", "float64", "float32", "object"],
+        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
         [5, 1000],
         ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
@@ -143,6 +145,10 @@ class IsInLongSeriesLookUpDominates:
 
     def setup(self, dtype, MaxNumber, series_type):
         N = 10 ** 7
+
+        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
+            raise NotImplementedError
+
         if series_type == "random_hits":
             np.random.seed(42)
             array = np.random.randint(0, MaxNumber, N)
