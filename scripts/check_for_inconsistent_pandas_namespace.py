@@ -12,14 +12,14 @@ To automatically fixup a given file, you can pass `--replace`, e.g.
 
     python scripts/check_for_inconsistent_pandas_namespace.py test_me.py --replace
 
-Note that you may need to manually fixup some imports.
+though note that you may need to manually fixup some imports and that you will also
+need the additional dependency `tokenize-rt` (which is left out from the pre-commit
+hook so that it uses the same virtualenv as the other local ones).
 """
 
 import argparse
 import ast
-from typing import MutableMapping, Optional, Sequence, Set
-
-from tokenize_rt import Offset, reversed_enumerate, src_to_tokens, tokens_to_src
+from typing import MutableMapping, Optional, Sequence, Set, Tuple
 
 ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
 EXCLUDE = {
@@ -27,6 +27,7 @@ EXCLUDE = {
     "eval",  # built-in, different from `pd.eval`
     "np",  # pd.np is deprecated but still tested
 }
+Offset = Tuple[int, int]
 
 
 class Visitor(ast.NodeVisitor):
@@ -40,13 +41,31 @@ class Visitor(ast.NodeVisitor):
             and node.value.id == "pd"
             and node.attr not in EXCLUDE
         ):
-            self.pandas_namespace[Offset(node.lineno, node.col_offset)] = node.attr
+            self.pandas_namespace[(node.lineno, node.col_offset)] = node.attr
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:
         if node.id not in EXCLUDE:
             self.no_namespace.add(node.id)
         self.generic_visit(node)
+
+
+def replace_inconsistent_pandas_namespace(visitor: Visitor, content: str) -> str:
+    from tokenize_rt import reversed_enumerate, src_to_tokens, tokens_to_src
+
+    tokens = src_to_tokens(content)
+    for n, i in reversed_enumerate(tokens):
+        if (
+            i.offset in visitor.pandas_namespace
+            and visitor.pandas_namespace[i.offset] in visitor.no_namespace
+        ):
+            # Replace `pd`
+            tokens[n] = i._replace(src="")
+            # Replace `.`
+            tokens[n + 1] = tokens[n + 1]._replace(src="")
+
+    new_src: str = tokens_to_src(tokens)
+    return new_src
 
 
 def check_for_inconsistent_pandas_namespace(
@@ -57,29 +76,18 @@ def check_for_inconsistent_pandas_namespace(
     visitor = Visitor()
     visitor.visit(tree)
 
-    tokens = src_to_tokens(content)
-
-    if not visitor.no_namespace.intersection(visitor.pandas_namespace.values()):
+    inconsistencies = visitor.no_namespace.intersection(
+        visitor.pandas_namespace.values()
+    )
+    if not inconsistencies:
         # No inconsistent namespace usage, nothing to replace.
         return content
 
-    for n, i in reversed_enumerate(tokens):
-        if (
-            i.offset in visitor.pandas_namespace
-            and visitor.pandas_namespace[i.offset] in visitor.no_namespace
-        ):
-            if not replace:
-                msg = ERROR_MESSAGE.format(
-                    name=visitor.pandas_namespace[i.offset], path=path
-                )
-                raise RuntimeError(msg)
-            # Replace `pd`
-            tokens[n] = i._replace(src="")
-            # Replace `.`
-            tokens[n + 1] = i._replace(src="")
+    if not replace:
+        msg = ERROR_MESSAGE.format(name=inconsistencies.pop(), path=path)
+        raise RuntimeError(msg)
 
-    new_src: str = tokens_to_src(tokens)
-    return new_src
+    return replace_inconsistent_pandas_namespace(visitor, content)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
