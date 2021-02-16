@@ -2,7 +2,10 @@ from typing import Callable
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 
 """
 masked_accumulations.py is for accumulation algorithms using a mask-based approach
