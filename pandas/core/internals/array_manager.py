@@ -754,10 +754,12 @@ class ArrayManager(DataManager):
         # ignored keywords
         consolidate: bool = True,
         only_slice: bool = False,
+        # ArrayManager specific keywords
+        do_integrity_check: bool = True,
     ) -> T:
         axis = self._normalize_axis(axis)
         return self._reindex_indexer(
-            new_axis, indexer, axis, fill_value, allow_dups, copy
+            new_axis, indexer, axis, fill_value, allow_dups, copy, do_integrity_check
         )
 
     def _reindex_indexer(
@@ -768,6 +770,7 @@ class ArrayManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
+        do_integrity_check: bool = True,
     ) -> T:
         """
         Parameters
@@ -822,7 +825,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axis
 
-        return type(self)(new_arrays, new_axes)
+        return type(self)(new_arrays, new_axes, do_integrity_check=do_integrity_check)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
