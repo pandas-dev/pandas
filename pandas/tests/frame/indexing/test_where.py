@@ -506,6 +506,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [

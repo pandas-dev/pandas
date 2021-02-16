@@ -559,7 +559,7 @@ def test_dt64_series_assign_nat(nat_val, tz, indexer_sli):
     base = Series(dti)
     expected = Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
 
-    should_cast = nat_val is pd.NaT or base.dtype.kind == nat_val.dtype.kind
+    should_cast = nat_val is pd.NaT or base.dtype == nat_val.dtype
     if not should_cast:
         expected = expected.astype(object)
 
