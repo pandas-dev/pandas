@@ -1533,7 +1533,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                     value = iNaT
 
                 # we have an array of datetime or timedeltas & nulls
-                elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
+                elif value.size or not is_dtype_equal(value.dtype, dtype):
                     _disallow_mismatched_datetimelike(value, dtype)
 
                     try:
