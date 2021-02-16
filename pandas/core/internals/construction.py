@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -327,7 +328,13 @@ def init_dict(
 
     if copy:
         # arrays_to_mgr (via form_blocks) won't make copies for EAs
-        arrays = [x if not is_extension_array_dtype(x) else x.copy() for x in arrays]
+        # dtype attr check to exclude EADtype-castable strs
+        arrays = [
+            x
+            if not hasattr(x, "dtype") or not isinstance(x.dtype, ExtensionDtype)
+            else x.copy()
+            for x in arrays
+        ]
         # TODO: can we get rid of the dt64tz special case above?
 
     return arrays_to_mgr(
