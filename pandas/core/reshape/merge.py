@@ -996,9 +996,8 @@ class _MergeOperation:
         """
         left_keys = []
         right_keys = []
-        # pandas\core\reshape\merge.py:966: error: Need type annotation for
-        # 'join_names' (hint: "join_names: List[<type>] = ...")
-        # [var-annotated]
+        # error: Need type annotation for 'join_names' (hint: "join_names: List[<type>]
+        # = ...")
         join_names = []  # type: ignore[var-annotated]
         right_drop = []
         left_drop = []
