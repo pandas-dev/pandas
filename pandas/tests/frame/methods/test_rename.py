@@ -377,7 +377,7 @@ class TestRename:
                 names=["STK_ID", "RPT_Date"],
             ),
         )
-        # TOOD: can we construct this without merge?
+        # TODO: can we construct this without merge?
         k = merge(df4, df5, how="inner", left_index=True, right_index=True)
         result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
         str(result)
