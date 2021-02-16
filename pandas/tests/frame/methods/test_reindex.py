@@ -21,9 +21,68 @@ from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.common as com
 
 
+class TestReindexSetIndex:
+    # Tests that check both reindex and set_index
+
+    def test_dti_set_index_reindex_datetimeindex(self):
+        # GH#6631
+        df = DataFrame(np.random.random(6))
+        idx1 = date_range("2011/01/01", periods=6, freq="M", tz="US/Eastern")
+        idx2 = date_range("2013", periods=6, freq="A", tz="Asia/Tokyo")
+
+        df = df.set_index(idx1)
+        tm.assert_index_equal(df.index, idx1)
+        df = df.reindex(idx2)
+        tm.assert_index_equal(df.index, idx2)
+
+    def test_dti_set_index_reindex_freq_with_tz(self):
+        # GH#11314 with tz
+        index = date_range(
+            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
+        )
+        df = DataFrame(np.random.randn(24, 1), columns=["a"], index=index)
+        new_index = date_range(
+            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
+        )
+
+        result = df.set_index(new_index)
+        assert result.index.freq == index.freq
+
+    def test_set_reset_index_intervalindex(self):
+
+        df = DataFrame({"A": range(10)})
+        ser = pd.cut(df.A, 5)
+        df["B"] = ser
+        df = df.set_index("B")
+
+        df = df.reset_index()
+
+
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
+
+    def test_reindex_date_fill_value(self):
+        # passing date to dt64 is deprecated
+        arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "B"], index=range(3))
+
+        ts = df.iloc[0, 0]
+        fv = ts.date()
+
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+
+        expected = DataFrame(
+            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4}
+        )
+        tm.assert_frame_equal(res, expected)
+
+        # same with a datetime-castable str
+        res = df.reindex(
+            index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
+        )
+        tm.assert_frame_equal(res, expected)
 
     def test_reindex_with_multi_index(self):
         # https://github.com/pandas-dev/pandas/issues/29896
@@ -933,3 +992,38 @@ class TestDataFrameSelectReindex:
         result = df.reindex(columns=cat_idx)
         expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]"])
+    def test_reindex_datetimelike_to_object(self, dtype):
+        # GH#39755 dont cast dt64/td64 to ints
+        mi = MultiIndex.from_product([list("ABCDE"), range(2)])
+
+        dti = date_range("2016-01-01", periods=10)
+        fv = np.timedelta64("NaT", "ns")
+        if dtype == "m8[ns]":
+            dti = dti - dti[0]
+            fv = np.datetime64("NaT", "ns")
+
+        ser = Series(dti, index=mi)
+        ser[::3] = pd.NaT
+
+        df = ser.unstack()
+
+        index = df.index.append(Index([1]))
+        columns = df.columns.append(Index(["foo"]))
+
+        res = df.reindex(index=index, columns=columns, fill_value=fv)
+
+        expected = DataFrame(
+            {
+                0: df[0].tolist() + [fv],
+                1: df[1].tolist() + [fv],
+                "foo": np.array(["NaT"] * 6, dtype=fv.dtype),
+            },
+            index=index,
+        )
+        assert (res.dtypes[[0, 1]] == object).all()
+        assert res.iloc[0, 0] is pd.NaT
+        assert res.iloc[-1, 0] is fv
+        assert res.iloc[-1, 1] is fv
+        tm.assert_frame_equal(res, expected)

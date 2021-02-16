@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import numpy as np
 import pytest
@@ -297,7 +297,12 @@ class SetitemCastingEquivalents:
             # We are not (yet) checking whether setting is inplace or not
             pass
         elif is_inplace:
-            assert obj._values is arr
+            if arr.dtype.kind in ["m", "M"]:
+                # We may not have the same DTA/TDA, but will have the same
+                #  underlying data
+                assert arr._data is obj._values._data
+            else:
+                assert obj._values is arr
         else:
             # otherwise original array should be unchanged
             tm.assert_equal(arr, orig._values)
@@ -635,6 +640,74 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
         return True
 
 
+class TestSetitemNATimedelta64Dtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to timedelta64 when inserting
+    #  into a timedelta64 series.  Others should coerce to object
+    #  and retain their dtypes.
+
+    @pytest.fixture
+    def obj(self):
+        return Series([0, 1, 2], dtype="m8[ns]")
+
+    @pytest.fixture(
+        params=[NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+    )
+    def val(self, request):
+        return request.param
+
+    @pytest.fixture
+    def is_inplace(self, val):
+        # cast to object iff val is datetime64("NaT")
+        return val is NaT or val.dtype.kind == "m"
+
+    @pytest.fixture
+    def expected(self, obj, val, is_inplace):
+        dtype = obj.dtype if is_inplace else object
+        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        return expected
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+
+class TestSetitemNADatetime64Dtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to datetime64 when inserting
+    #  into a datetime64 series.  Others should coerce to object
+    #  and retain their dtypes.
+
+    @pytest.fixture(params=[None, "UTC", "US/Central"])
+    def obj(self, request):
+        tz = request.param
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        return Series(dti)
+
+    @pytest.fixture(
+        params=[NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+    )
+    def val(self, request):
+        return request.param
+
+    @pytest.fixture
+    def is_inplace(self, val, obj):
+        if obj._values.tz is None:
+            # cast to object iff val is timedelta64("NaT")
+            return val is NaT or val.dtype.kind == "M"
+
+        # otherwise we have to exclude tznaive dt64("NaT")
+        return val is NaT
+
+    @pytest.fixture
+    def expected(self, obj, val, is_inplace):
+        dtype = obj.dtype if is_inplace else object
+        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        return expected
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+
 class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
     # GH#24024
     @pytest.fixture
@@ -659,3 +732,33 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
             dtype=object,
         )
         return expected
+
+
+@pytest.mark.parametrize(
+    "obj,expected",
+    [
+        # For numeric series, we should coerce to NaN.
+        (Series([1, 2, 3]), Series([np.nan, 2, 3])),
+        (Series([1.0, 2.0, 3.0]), Series([np.nan, 2.0, 3.0])),
+        # For datetime series, we should coerce to NaT.
+        (
+            Series([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+            Series([NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+        ),
+        # For objects, we should preserve the None value.
+        (Series(["foo", "bar", "baz"]), Series([None, "bar", "baz"])),
+    ],
+)
+class TestSeriesNoneCoercion(SetitemCastingEquivalents):
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def val(self):
+        return None
+
+    @pytest.fixture
+    def is_inplace(self, obj):
+        # This is specific to the 4 cases currently implemented for this class.
+        return obj.dtype.kind != "i"

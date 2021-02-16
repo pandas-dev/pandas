@@ -714,7 +714,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left_chunk = left._values[lslice]
             # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
             # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"  [arg-type]
+            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"
             result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
 
         return self._wrap_setop_result(other, result)

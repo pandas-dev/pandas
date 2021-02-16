@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas.core.algorithms import take_nd, unique
+from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 from pandas.core.indexers import is_valid_positional_slice
@@ -532,6 +533,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
             if lib.is_period(key):
                 key_i8 = key.ordinal
+            elif isinstance(key_i8, Timestamp):
+                key_i8 = key_i8.value
+            elif isinstance(key_i8, (np.datetime64, np.timedelta64)):
+                key_i8 = key_i8.view("i8")
         else:
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
@@ -799,10 +804,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return Index(self._data.length, copy=False)
 
     def putmask(self, mask, value):
-        mask = np.asarray(mask, dtype=bool)
-        if mask.shape != self.shape:
-            raise ValueError("putmask: mask and data must be the same size")
-        if not mask.any():
+        mask, noop = validate_putmask(self._data, mask)
+        if noop:
             return self.copy()
 
         try:

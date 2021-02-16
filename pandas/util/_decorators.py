@@ -78,8 +78,8 @@ def deprecate(
 
         {dedent(doc)}"""
         )
-    # error: Incompatible return value type (got "Callable[[VarArg(Any),
-    # KwArg(Any)], Callable[...,Any]]", expected "Callable[[F], F]")
+    # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
+    # Callable[...,Any]]", expected "Callable[[F], F]")
     return wrapper  # type: ignore[return-value]
 
 
@@ -362,10 +362,10 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
 
         for docstring in docstrings:
             if hasattr(docstring, "_docstring_components"):
-                # error: Item "str" of "Union[str, Callable[..., Any]]" has no
-                # attribute "_docstring_components"  [union-attr]
-                # error: Item "function" of "Union[str, Callable[..., Any]]"
-                # has no attribute "_docstring_components"  [union-attr]
+                # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
+                # "_docstring_components"
+                # error: Item "function" of "Union[str, Callable[..., Any]]" has no
+                # attribute "_docstring_components"
                 docstring_components.extend(
                     docstring._docstring_components  # type: ignore[union-attr]
                 )
