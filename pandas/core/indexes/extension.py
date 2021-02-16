@@ -226,8 +226,8 @@ class ExtensionIndex(Index):
             if result.ndim == 1:
                 return type(self)(result, name=self.name)
             # Unpack to ndarray for MPL compat
-            # pandas\core\indexes\extension.py:220: error: "ExtensionArray" has
-            # no attribute "_data"  [attr-defined]
+
+            # error: "ExtensionArray" has no attribute "_data"
             result = result._data  # type: ignore[attr-defined]
 
         # Includes cases where we get a 2D ndarray back for MPL compat
@@ -263,13 +263,11 @@ class ExtensionIndex(Index):
         # ExtensionIndex subclasses must override Index.insert
         raise AbstractMethodError(self)
 
-    def _get_unique_index(self, dropna=False):
-        if self.is_unique and not dropna:
+    def _get_unique_index(self):
+        if self.is_unique:
             return self
 
         result = self._data.unique()
-        if dropna and self.hasnans:
-            result = result[~result.isna()]
         return self._shallow_copy(result)
 
     @doc(Index.map)
@@ -354,11 +352,6 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
         new_arr = arr._from_backing_data(new_vals)
         return type(self)._simple_new(new_arr, name=self.name)
-
-    @doc(Index.where)
-    def where(self: _T, cond: np.ndarray, other=None) -> _T:
-        res_values = self._data.where(cond, other)
-        return type(self)._simple_new(res_values, name=self.name)
 
     def putmask(self, mask, value):
         res_values = self._data.copy()

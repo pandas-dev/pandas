@@ -158,13 +158,12 @@ class Styler:
         uuid_len: int = 5,
     ):
         # validate ordered args
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("``data`` must be a Series or DataFrame")
-        if data.ndim == 1:
+        if isinstance(data, pd.Series):
             data = data.to_frame()
+        if not isinstance(data, DataFrame):
+            raise TypeError("``data`` must be a Series or DataFrame")
         if not data.index.is_unique or not data.columns.is_unique:
             raise ValueError("style is not supported for non-unique indices.")
-        assert isinstance(data, DataFrame)
         self.data: DataFrame = data
         self.index: pd.Index = data.index
         self.columns: pd.Index = data.columns
@@ -1740,8 +1739,8 @@ class Styler:
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
         # mypy doesn't like dynamically-defined classes
-        # error: Variable "cls" is not valid as a type  [valid-type]
-        # error: Invalid base class "cls"  [misc]
+        # error: Variable "cls" is not valid as a type
+        # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
@@ -2085,6 +2084,6 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
         except IndexError:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
-                f"for example 'attr: val;'. {style} was given."
+                f"for example 'attr: val;'. '{style}' was given."
             )
     return style

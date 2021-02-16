@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
+    is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
@@ -565,7 +566,7 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        out = algorithms.take_1d(result._values, ids)
+        out = algorithms.take_nd(result._values, ids)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -579,6 +580,12 @@ class SeriesGroupBy(GroupBy[Series]):
             To apply to each group. Should return True or False.
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
@@ -962,8 +969,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func = maybe_mangle_lambdas(func)
 
         op = GroupByApply(self, func, args, kwargs)
-        result, how = op.agg()
-        if how is None:
+        result = op.agg()
+        if not is_dict_like(func) and result is not None:
             return result
 
         if result is None:
@@ -982,7 +989,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result, _ = GroupByApply(
+                    result = GroupByApply(
                         self, [func], args=(), kwargs={"_axis": self.axis}
                     ).agg()
 
@@ -1413,7 +1420,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
-            algorithms.take_1d(result.iloc[:, i].values, ids)
+            algorithms.take_nd(result.iloc[:, i].values, ids)
             for i, _ in enumerate(result.columns)
         ]
 
@@ -1505,6 +1512,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------

@@ -1163,8 +1163,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
-    # overlap with incompatible return types  [misc]
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible return
+    # types
     @overload
     def dot(self, other: Series) -> Series:  # type: ignore[misc]
         ...
@@ -3272,7 +3272,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         # now align rows
         value = _reindex_for_setitem(value, self.index)
-        value = value.T
         self._set_item_mgr(key, value)
 
     def _iset_item_mgr(self, loc: int, value) -> None:
@@ -3280,8 +3279,6 @@ class DataFrame(NDFrame, OpsMixin):
         self._clear_item_cache()
 
     def _set_item_mgr(self, key, value):
-        value = _maybe_atleast_2d(value)
-
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:
@@ -3298,7 +3295,6 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _iset_item(self, loc: int, value):
         value = self._sanitize_column(value)
-        value = _maybe_atleast_2d(value)
         self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
@@ -3328,7 +3324,7 @@ class DataFrame(NDFrame, OpsMixin):
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1))
+                    value = np.tile(value, (len(existing_piece.columns), 1)).T
 
         self._set_item_mgr(key, value)
 
@@ -3889,7 +3885,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "'self.flags.allows_duplicate_labels' is False."
             )
         value = self._sanitize_column(value)
-        value = _maybe_atleast_2d(value)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs) -> DataFrame:
@@ -3994,8 +3989,6 @@ class DataFrame(NDFrame, OpsMixin):
                     value = maybe_convert_platform(value)
                 else:
                     value = com.asarray_tuplesafe(value)
-            elif value.ndim == 2:
-                value = value.copy().T
             elif isinstance(value, Index):
                 value = value.copy(deep=True)
             else:
@@ -4828,7 +4821,10 @@ class DataFrame(NDFrame, OpsMixin):
                 names.extend(col.names)
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
-                arrays.append(col)
+
+                # error: Argument 1 to "append" of "list" has incompatible type
+                #  "Union[Index, Series]"; expected "Index"
+                arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
                 arrays.append(col)
@@ -7690,7 +7686,7 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis, *args, **kwargs)
+            result = self._aggregate(func, axis, *args, **kwargs)
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -7724,14 +7720,14 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        result, how = op.agg()
+        result = op.agg()
 
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
             result = result.T if result is not None else result
 
-        return result, how
+        return result
 
     agg = aggregate
 
@@ -7817,6 +7813,12 @@ NaN 12.3   33.0
         DataFrame.applymap: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
@@ -9727,12 +9729,3 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
             "incompatible index of inserted column with frame index"
         ) from err
     return reindexed_value
-
-
-def _maybe_atleast_2d(value):
-    # TODO(EA2D): not needed with 2D EAs
-
-    if is_extension_array_dtype(value):
-        return value
-
-    return np.atleast_2d(np.asarray(value))

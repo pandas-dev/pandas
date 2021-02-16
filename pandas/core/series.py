@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    pandas_dtype,
     validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
@@ -405,7 +406,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(dtype)
+            values = na_value_for_dtype(pandas_dtype(dtype))
             keys = index
         else:
             keys, values = (), []
@@ -443,7 +444,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index = None
+    _index: Optional[Index] = None
 
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
@@ -3972,7 +3973,7 @@ Keep all original rows and also all original values
             func = dict(kwargs.items())
 
         op = series_apply(self, func, args=args, kwargs=kwargs)
-        result, how = op.agg()
+        result = op.agg()
         if result is None:
 
             # we can be called from an inner function which
@@ -4042,6 +4043,12 @@ Keep all original rows and also all original values
         Series.map: For element-wise operations.
         Series.agg: Only perform aggregating type operations.
         Series.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
@@ -4154,7 +4161,7 @@ Keep all original rows and also all original values
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(
+        new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
         )
         return self._constructor(new_values, index=new_index)

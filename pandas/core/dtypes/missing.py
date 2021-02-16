@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_string_like_dtype,
     needs_i8_conversion,
-    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -535,7 +534,7 @@ def maybe_fill(arr, fill_value=np.nan):
     return arr
 
 
-def na_value_for_dtype(dtype, compat: bool = True):
+def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     """
     Return a dtype compat na value
 
@@ -561,7 +560,6 @@ def na_value_for_dtype(dtype, compat: bool = True):
     >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
     numpy.datetime64('NaT')
     """
-    dtype = pandas_dtype(dtype)
 
     if is_extension_array_dtype(dtype):
         return dtype.na_value
@@ -590,7 +588,7 @@ def remove_na_arraylike(arr):
         return arr[notna(np.asarray(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
+def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 
@@ -606,7 +604,11 @@ def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
     if not lib.is_scalar(obj) or not isna(obj):
         return False
     if dtype.kind == "M":
-        return not isinstance(obj, np.timedelta64)
+        if isinstance(dtype, np.dtype):
+            # i.e. not tzaware
+            return not isinstance(obj, np.timedelta64)
+        # we have to rule out tznaive dt64("NaT")
+        return not isinstance(obj, (np.timedelta64, np.datetime64))
     if dtype.kind == "m":
         return not isinstance(obj, np.datetime64)
     if dtype.kind in ["i", "u", "f", "c"]:

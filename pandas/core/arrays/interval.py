@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import NaT
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -23,7 +24,8 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_any_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -43,7 +45,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
 
 from pandas.core.algorithms import isin, take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
@@ -979,7 +981,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
-        elif is_valid_nat_for_dtype(value, self.left.dtype):
+        elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
             left = right = value
         else:
@@ -994,14 +996,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _validate_setitem_value(self, value):
         needs_float_conversion = False
 
-        if is_valid_nat_for_dtype(value, self.left.dtype):
+        if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 needs_float_conversion = True
-            elif is_datetime64_any_dtype(self.dtype.subtype):
+            elif is_datetime64_dtype(self.dtype.subtype):
                 # need proper NaT to set directly on the numpy array
                 value = np.datetime64("NaT")
+            elif is_datetime64tz_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the DatetimeArray array
+                value = NaT
             elif is_timedelta64_dtype(self.dtype.subtype):
                 # need proper NaT to set directly on the numpy array
                 value = np.timedelta64("NaT")
@@ -1508,7 +1513,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
 
-                # error: "ArrayLike" has no attribute "view"  [attr-defined]
+                # error: "ArrayLike" has no attribute "view"
                 left = self._combined.view("complex128")  # type:ignore[attr-defined]
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)
