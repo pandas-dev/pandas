@@ -19,11 +19,18 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import Dtype, DtypeObj, IndexLabel
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+    IndexLabel,
+)
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -32,12 +39,23 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import isna, remove_na_arraylike
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    remove_na_arraylike,
+)
 
 from pandas.core import algorithms
 from pandas.core.accessor import DirNamesMixin
-from pandas.core.algorithms import duplicated, unique1d, value_counts
+from pandas.core.algorithms import (
+    duplicated,
+    unique1d,
+    value_counts,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
