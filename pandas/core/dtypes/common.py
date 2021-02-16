@@ -1707,8 +1707,8 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
 
-        # pandas/core/dtypes/common.py:1704: error: Incompatible return value type (got
-        # "Type[generic]", expected "Union[dtype[Any], ExtensionDtype]")  [return-value]
+        # error: Incompatible return value type (got "Type[generic]", expected
+        # "Union[dtype[Any], ExtensionDtype]")
         return dtype  # type: ignore[return-value]
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
@@ -1717,9 +1717,8 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
-        # pandas/core/dtypes/common.py:1712: error: Incompatible return value type (got
-        # "Union[Type[generic], Type[Any]]", expected "Union[dtype[Any],
-        # ExtensionDtype]")  [return-value]
+        # error: Incompatible return value type (got "Union[Type[generic], Type[Any]]",
+        # expected "Union[dtype[Any], ExtensionDtype]")
         return dtype.type  # type: ignore[return-value]
 
     try:
@@ -1734,9 +1733,8 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:
-            # pandas/core/dtypes/common.py:1726: error: Incompatible return value type
-            # (got "Type[Any]", expected "Union[dtype[Any], ExtensionDtype]")
-            # [return-value]
+            # error: Incompatible return value type (got "Type[Any]", expected
+            # "Union[dtype[Any], ExtensionDtype]")
             return DatetimeTZDtype.type  # type: ignore[return-value]
         elif dtype in ["period"]:
             raise NotImplementedError

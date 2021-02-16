@@ -139,8 +139,7 @@ _index_shared_docs = {}
 str_t = str
 
 
-# pandas\core\indexes\base.py:121: error: Value of type variable "_DTypeScalar"
-# of "dtype" cannot be "object"  [type-var]
+# error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
 _o_dtype = np.dtype(object)  # type: ignore[type-var]
 
 
@@ -354,9 +353,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # should not be coerced
                 # GH 11836
 
-                # pandas/core/indexes/base.py:341: error: Argument 1 to
-                # "_maybe_cast_with_dtype" has incompatible type "Union[ndarray, Index,
-                # Series]"; expected "ndarray"  [arg-type]
+                # error: Argument 1 to "_maybe_cast_with_dtype" has incompatible type
+                # "Union[ndarray, Index, Series]"; expected "ndarray"
                 data = _maybe_cast_with_dtype(
                     data, dtype, copy  # type: ignore[arg-type]
                 )
@@ -366,9 +364,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # maybe coerce to a sub-class
                 arr = data
             else:
-                # pandas/core/indexes/base.py:354: error: Argument "dtype" to
-                # "asarray_tuplesafe" has incompatible type "Type[object]"; expected
-                # "Union[str, dtype[Any], None]"  [arg-type]
+                # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+                # "Type[object]"; expected "Union[str, dtype[Any], None]"
                 arr = com.asarray_tuplesafe(
                     data, dtype=object  # type: ignore[arg-type]
                 )
@@ -406,9 +403,8 @@ class Index(IndexOpsMixin, PandasObject):
                     )
             # other iterable of some kind
 
-            # pandas/core/indexes/base.py:388: error: Argument "dtype" to
-            # "asarray_tuplesafe" has incompatible type "Type[object]"; expected
-            # "Union[str, dtype[Any], None]"  [arg-type]
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Type[object]"; expected "Union[str, dtype[Any], None]"
             subarr = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
@@ -2835,16 +2831,15 @@ class Index(IndexOpsMixin, PandasObject):
                 # <T>   | <T>    -> T
                 # <T>   | <U>    -> object
                 if not (is_integer_dtype(self.dtype) and is_integer_dtype(other.dtype)):
-                    # pandas/core/indexes/base.py:2809: error: Incompatible types in
-                    # assignment (expression has type "str", variable has type
-                    # "Union[dtype[Any], ExtensionDtype]")  [assignment]
+                    # error: Incompatible types in assignment (expression has type
+                    # "str", variable has type "Union[dtype[Any], ExtensionDtype]")
                     dtype = "float64"  # type: ignore[assignment]
                 else:
                     # one is int64 other is uint64
 
-                    # pandas/core/indexes/base.py:2812: error: Incompatible types in
-                    # assignment (expression has type "Type[object]", variable has type
-                    # "Union[dtype[Any], ExtensionDtype]")  [assignment]
+                    # error: Incompatible types in assignment (expression has type
+                    # "Type[object]", variable has type "Union[dtype[Any],
+                    # ExtensionDtype]")
                     dtype = object  # type: ignore[assignment]
 
             left = self.astype(dtype, copy=False)
@@ -3905,16 +3900,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         if return_indexers:
             if join_index is self:
-                # pandas\core\indexes\base.py:3564: error: Incompatible types
-                # in assignment (expression has type "None", variable has type
-                # "ndarray")  [assignment]
+                # error: Incompatible types in assignment (expression has type "None",
+                # variable has type "ndarray")
                 lindexer = None  # type: ignore[assignment]
             else:
                 lindexer = self.get_indexer(join_index)
             if join_index is other:
-                # pandas\core\indexes\base.py:3568: error: Incompatible types
-                # in assignment (expression has type "None", variable has type
-                # "ndarray")  [assignment]
+                # error: Incompatible types in assignment (expression has type "None",
+                # variable has type "ndarray")
                 rindexer = None  # type: ignore[assignment]
             else:
                 rindexer = other.get_indexer(join_index)
@@ -4022,8 +4015,8 @@ class Index(IndexOpsMixin, PandasObject):
         mask = left_idx == -1
         np.putmask(join_index, mask, rvalues.take(right_idx))
 
-        # pandas/core/indexes/base.py:3845: error: Incompatible types in assignment
-        # (expression has type "Index", variable has type "ndarray")  [assignment]
+        # error: Incompatible types in assignment (expression has type "Index", variable
+        # has type "ndarray")
         join_index = self._wrap_joined_index(
             join_index, other  # type: ignore[assignment]
         )
@@ -4204,17 +4197,15 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             elif how == "inner":
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
-                # pandas/core/indexes/base.py:4023: error: Argument 1 to
-                # "_wrap_joined_index" of "Index" has incompatible type "Index";
-                # expected "ndarray"  [arg-type]
+                # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
+                # type "Index"; expected "ndarray"
                 join_index = self._wrap_joined_index(
                     join_index, other  # type: ignore[arg-type]
                 )
             elif how == "outer":
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
-                # pandas/core/indexes/base.py:4026: error: Argument 1 to
-                # "_wrap_joined_index" of "Index" has incompatible type "Index";
-                # expected "ndarray"  [arg-type]
+                # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
+                # type "Index"; expected "ndarray"
                 join_index = self._wrap_joined_index(
                     join_index, other  # type: ignore[arg-type]
                 )
@@ -4227,9 +4218,8 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == "outer":
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
-            # pandas/core/indexes/base.py:4036: error: Argument 1 to
-            # "_wrap_joined_index" of "Index" has incompatible type "Index"; expected
-            # "ndarray"  [arg-type]
+            # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible type
+            # "Index"; expected "ndarray"
             join_index = self._wrap_joined_index(
                 join_index, other  # type: ignore[arg-type]
             )
@@ -4275,11 +4265,10 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        # pandas/core/indexes/base.py:4244: error: Incompatible return value type (got
-        # "Union[ExtensionArray, ndarray]", expected "ExtensionArray")  [return-value]
-
-        # pandas/core/indexes/base.py:4244: error: Incompatible return value type (got
-        # "Union[ExtensionArray, ndarray]", expected "ndarray")  [return-value]
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ExtensionArray")
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
         return self._data  # type: ignore[return-value]
 
     @cache_readonly
@@ -4516,11 +4505,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = getitem(key)
         if not is_scalar(result):
-            # pandas\core\indexes\base.py:4283: error: Argument 1 to "ndim" has
-            # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[Union[int, float, complex, str, bytes, generic],
+            # error: Argument 1 to "ndim" has incompatible type "Union[ExtensionArray,
+            # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
             # Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+            # Sequence[Sequence[Any]], _SupportsArray]"
             if np.ndim(result) > 1:  # type: ignore[arg-type]
                 deprecate_ndim_indexing(result)
                 return result
@@ -4592,8 +4580,8 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        # pandas/core/indexes/base.py:4595: error: Value of type variable "ArrayLike" of
-        # "validate_putmask" cannot be "Union[ExtensionArray, ndarray]"  [type-var]
+        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
+        # "Union[ExtensionArray, ndarray]"
         mask, noop = validate_putmask(self._values, mask)  # type: ignore[type-var]
         if noop:
             return self.copy()
@@ -4610,9 +4598,8 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        # pandas/core/indexes/base.py:4611: error: Argument 1 to
-        # "setitem_datetimelike_compat" has incompatible type "Union[ExtensionArray,
-        # ndarray]"; expected "ndarray"  [arg-type]
+        # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
         converted = setitem_datetimelike_compat(
             values, mask.sum(), converted  # type: ignore[arg-type]
         )
@@ -5479,8 +5466,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        # pandas/core/indexes/base.py:5253: error: Value of type variable "AnyArrayLike"
-        # of "isin" cannot be "Union[ExtensionArray, ndarray]"  [type-var]
+        # error: Value of type variable "AnyArrayLike" of "isin" cannot be
+        # "Union[ExtensionArray, ndarray]"
         return algos.isin(self._values, values)  # type: ignore[type-var]
 
     def _get_string_slice(self, key: str_t):
@@ -5902,9 +5889,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                # pandas\core\indexes\base.py:5393: error: Value of type
-                # variable "ArrayLike" of "comparison_op" cannot be
-                # "Union[ExtensionArray, ndarray]"  [type-var]
+                # error: Value of type variable "ArrayLike" of "comparison_op" cannot be
+                # "Union[ExtensionArray, ndarray]"
                 result = ops.comparison_op(
                     self._values, other, op  # type: ignore[type-var]
                 )
@@ -5980,10 +5966,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # FIXME: docstr inaccurate, args/kwargs not passed
         self._maybe_disable_logical_methods("any")
-        # pandas/core/indexes/base.py:5901: error: Argument 1 to "any" has incompatible
-        # type "ArrayLike"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        # error: Argument 1 to "any" has incompatible type "ArrayLike"; expected
+        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
+        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # _SupportsArray]"
         return np.any(self.values)  # type: ignore[arg-type]
 
     def all(self):
@@ -6042,10 +6028,10 @@ class Index(IndexOpsMixin, PandasObject):
         # FIXME: docstr inaccurate, args/kwargs not passed
 
         self._maybe_disable_logical_methods("all")
-        # pandas/core/indexes/base.py:5959: error: Argument 1 to "all" has incompatible
-        # type "ArrayLike"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        # error: Argument 1 to "all" has incompatible type "ArrayLike"; expected
+        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
+        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # _SupportsArray]"
         return np.all(self.values)  # type: ignore[arg-type]
 
     @final
@@ -6333,9 +6319,8 @@ def _maybe_cast_data_without_dtype(subarr):
 
     if inferred == "integer":
         try:
-            # pandas/core/indexes/base.py:6246: error: Argument 3 to
-            # "_try_convert_to_int_array" has incompatible type "None"; expected
-            # "dtype[Any]"  [arg-type]
+            # error: Argument 3 to "_try_convert_to_int_array" has incompatible type
+            # "None"; expected "dtype[Any]"
             data = _try_convert_to_int_array(
                 subarr, False, None  # type: ignore[arg-type]
             )
@@ -6372,9 +6357,8 @@ def _maybe_cast_data_without_dtype(subarr):
                 pass
 
         elif inferred.startswith("timedelta"):
-            # pandas/core/indexes/base.py:6280: error: Incompatible types in assignment
-            # (expression has type "TimedeltaArray", variable has type "ndarray")
-            # [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "TimedeltaArray", variable has type "ndarray")
             data = TimedeltaArray._from_sequence(  # type: ignore[assignment]
                 subarr, copy=False
             )

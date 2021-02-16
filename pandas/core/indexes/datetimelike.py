@@ -142,8 +142,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # Abstract data attributes
 
     @property
-    # pandas/core/indexes/datetimelike.py:134: error: Return type "ndarray" of "values"
-    # incompatible with return type "ArrayLike" in supertype "Index"  [override]
+    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
+    # in supertype "Index"
     def values(self) -> np.ndarray:  # type: ignore[override]
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
@@ -792,8 +792,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            # pandas/core/indexes/datetimelike.py:798: error: Slice index must be an
-            # integer or None  [misc]
+            # error: Slice index must be an integer or None
             right_chunk = right._values[:loc]  # type: ignore[misc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
@@ -810,8 +809,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            # pandas/core/indexes/datetimelike.py:813: error: Slice index must be an
-            # integer or None  [misc]
+            # error: Slice index must be an integer or None
             right_chunk = right._values[loc:]  # type: ignore[misc]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq

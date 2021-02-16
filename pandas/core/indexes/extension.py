@@ -304,8 +304,8 @@ class ExtensionIndex(Index):
 
     @cache_readonly
     def _isnan(self) -> np.ndarray:
-        # pandas\core\indexes\extension.py:283: error: Incompatible return
-        # value type (got "ExtensionArray", expected "ndarray")  [return-value]
+        # error: Incompatible return value type (got "ExtensionArray", expected
+        # "ndarray")
         return self._data.isna()  # type: ignore[return-value]
 
     @doc(Index.equals)

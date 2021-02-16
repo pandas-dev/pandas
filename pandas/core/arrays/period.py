@@ -1094,11 +1094,9 @@ def _make_field_arrays(*fields):
             elif length is None:
                 length = len(x)
 
-    # pandas\core\arrays\period.py:1101: error: Argument 2 to "repeat" has
-    # incompatible type "Optional[int]"; expected "Union[Union[int,
-    # integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
+    # error: Argument 2 to "repeat" has incompatible type "Optional[int]"; expected
+    # "Union[Union[int, integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
     # integer[Any]]], Sequence[Union[bool, bool_]], Sequence[Sequence[Any]]]"
-    # [arg-type]
     return [
         np.asarray(x)
         if isinstance(x, (np.ndarray, list, ABCSeries))

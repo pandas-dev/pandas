@@ -168,9 +168,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
 
-        # pandas\core\indexes\category.py:181: error: Invalid index type
-        # "Type[generic]" for "Dict[Type[signedinteger[Any]], Any]"; expected
-        # type "Type[signedinteger[Any]]"  [index]
+        # error: Invalid index type "Type[generic]" for "Dict[Type[signedinteger[Any]],
+        # Any]"; expected type "Type[signedinteger[Any]]"
         return {
             np.int8: libindex.Int8Engine,
             np.int16: libindex.Int16Engine,
@@ -476,9 +475,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
-        # pandas/core/indexes/category.py:513: error: Value of type variable "ArrayLike"
-        # of "_get_indexer_non_unique" of "CategoricalIndex" cannot be
-        # "Union[ExtensionArray, ndarray]"  [type-var]
+        # error: Value of type variable "ArrayLike" of "_get_indexer_non_unique" of
+        # "CategoricalIndex" cannot be "Union[ExtensionArray, ndarray]"
         return self._get_indexer_non_unique(target._values)[0]  # type: ignore[type-var]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)

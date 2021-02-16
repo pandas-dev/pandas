@@ -562,8 +562,8 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     """
 
     if is_extension_array_dtype(dtype):
-        # pandas/core/dtypes/missing.py:565: error: Item "dtype[Any]" of
-        # "Union[dtype[Any], ExtensionDtype]" has no attribute "na_value"  [union-attr]
+        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+        # attribute "na_value"
         return dtype.na_value  # type: ignore[union-attr]
     elif needs_i8_conversion(dtype):
         return dtype.type("NaT", "ns")
@@ -649,10 +649,10 @@ def isna_all(arr: ArrayLike) -> bool:
         )
 
     return all(
-        # pandas/core/dtypes/missing.py:648: error: Argument 1 to "__call__" of "ufunc"
-        # has incompatible type "Union[ExtensionArray, Any]"; expected "Union[Union[int,
-        # float, complex, str, bytes, generic], Sequence[Union[int, float, complex, str,
-        # bytes, generic]], Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex, str,
+        # bytes, generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
         checker(arr[i : i + chunk_len]).all()  # type: ignore[arg-type]
         for i in range(0, total_len, chunk_len)
     )

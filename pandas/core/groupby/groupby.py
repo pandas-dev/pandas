@@ -2246,9 +2246,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 inference = "datetime64[ns]"  # type: ignore[assignment]
                 vals = np.asarray(vals).astype(float)
             elif is_timedelta64_dtype(vals.dtype):
-                # pandas\core\groupby\groupby.py:2196: error: Incompatible
-                # types in assignment (expression has type "str", variable has
-                # type "Optional[Type[signedinteger[Any]]]")  [assignment]
+                # error: Incompatible types in assignment (expression has type "str",
+                # variable has type "Optional[Type[signedinteger[Any]]]")
                 inference = "timedelta64[ns]"  # type: ignore[assignment]
                 vals = np.asarray(vals).astype(float)
 

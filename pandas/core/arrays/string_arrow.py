@@ -230,11 +230,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    # pandas/core/arrays/string_arrow.py:233: error: Argument 1 of "to_numpy" is
-    # incompatible with supertype "ExtensionArray"; supertype defines the
-    # argument type as "Union[ExtensionDtype, str, dtype[Any], Type[str],
-    # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    # [override]
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
     def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
@@ -315,9 +313,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                # pandas/core/arrays/string_arrow.py:308: error: Argument 1 to "take" of
-                # "ArrowStringArray" has incompatible type "ndarray"; expected
-                # "Sequence[int]"  [arg-type]
+                # error: Argument 1 to "take" of "ArrowStringArray" has incompatible
+                # type "ndarray"; expected "Sequence[int]"
                 return self.take(item)  # type: ignore[arg-type]
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
@@ -384,10 +381,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = get_fill_func(method)
-                # pandas/core/arrays/string_arrow.py:382: error: Argument 1 to
-                # "to_numpy" of "ArrowStringArray" has incompatible type
-                # "Type[object]"; expected "Union[str, dtype[Any], None]"
-                # [arg-type]
+                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
                 new_values = func(
                     self.to_numpy(object),  # type: ignore[arg-type]
                     limit=limit,
@@ -415,9 +410,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._data.nbytes
 
-    # pandas/core/arrays/string_arrow.py:397: error: Return type "ndarray" of "isna"
-    # incompatible with return type "ArrayLike" in supertype "ExtensionArray"
-    # [override]
+    # error: Return type "ndarray" of "isna" incompatible with return type "ArrayLike"
+    # in supertype "ExtensionArray"
     def isna(self) -> np.ndarray:  # type: ignore[override]
         """
         Boolean NumPy array indicating if each value is missing.
@@ -493,8 +487,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
             # Slice data and insert in-between
             new_data = [
-                # pandas/core/arrays/string_arrow.py:472: error: Slice index must be an
-                # integer or None  [misc]
+                # error: Slice index must be an integer or None
                 *self._data[0:key].chunks,  # type: ignore[misc]
                 pa.array([value], type=pa.string()),
                 *self._data[(key + 1) :].chunks,
@@ -586,9 +579,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if not is_array_like(indices):
             indices_array = np.asanyarray(indices)
         else:
-            # pandas/core/arrays/string_arrow.py:563: error: Incompatible types in
-            # assignment (expression has type "Sequence[int]", variable has type
-            # "ndarray")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "Sequence[int]", variable has type "ndarray")
             indices_array = indices  # type: ignore[assignment]
 
         if len(self._data) == 0 and (indices_array >= 0).any():

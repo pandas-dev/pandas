@@ -736,15 +736,14 @@ class SeriesGroupBy(GroupBy[Series]):
             lab = cut(Series(val), bins, include_lowest=True)
             # error: "ndarray" has no attribute "cat"
             lev = lab.cat.categories  # type: ignore[attr-defined]
-            # pandas/core/groupby/generic.py:719: error: No overload variant of "take"
-            # of "_ArrayOrScalarCommon" matches argument types "Any", "bool",
-            # "Union[Any, float]"  [call-overload]
+            # error: No overload variant of "take" of "_ArrayOrScalarCommon" matches
+            # argument types "Any", "bool", "Union[Any, float]"
             lab = lev.take(  # type: ignore[call-overload]
                 # error: "ndarray" has no attribute "cat"
                 lab.cat.codes,  # type: ignore[attr-defined]
                 allow_fill=True,
-                # pandas/core/groupby/generic.py:722: error: Item "ndarray" of
-                # "Union[ndarray, Index]" has no attribute "_na_value"  [union-attr]
+                # error: Item "ndarray" of "Union[ndarray, Index]" has no attribute
+                # "_na_value"
                 fill_value=lev._na_value,  # type: ignore[union-attr]
             )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
@@ -752,11 +751,8 @@ class SeriesGroupBy(GroupBy[Series]):
         if is_interval_dtype(lab.dtype):
             # TODO: should we do this inside II?
 
-            # pandas\core\groupby\generic.py:727: error: "ndarray" has no
-            # attribute "left"  [attr-defined]
-
-            # pandas\core\groupby\generic.py:727: error: "ndarray" has no
-            # attribute "right"  [attr-defined]
+            # error: "ndarray" has no attribute "left"
+            # error: "ndarray" has no attribute "right"
             sorter = np.lexsort(
                 (lab.left, lab.right, ids)  # type: ignore[attr-defined]
             )
@@ -1145,8 +1141,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # about a single block input returning a single block output
                 # is a lie. See eg GH-39329
 
-                # pandas/core/groupby/generic.py:1140: error: Incompatible return value
-                # type (got "ndarray", expected "ExtensionArray")  [return-value]
+                # error: Incompatible return value type (got "ndarray", expected
+                # "ExtensionArray")
                 return mgr.as_array()  # type: ignore[return-value]
             else:
                 result = mgr.blocks[0].values
@@ -1169,9 +1165,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                # pandas/core/groupby/generic.py:1128: error: Incompatible types in
-                # assignment (expression has type "ExtensionArray", variable has type
-                # "ndarray")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "ExtensionArray", variable has type "ndarray")
                 result = py_fallback(bvalues)  # type: ignore[assignment]
 
             return cast_agg_result(result, bvalues, how)

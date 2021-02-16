@@ -533,9 +533,8 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            # pandas/core/indexes/multi.py:533: error: Incompatible types in assignment
-            # (expression has type "Iterator[Any]", variable has type
-            # "List[Sequence[Optional[Hashable]]]")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "Iterator[Any]", variable has type "List[Sequence[Optional[Hashable]]]")
             arrays = zip(*tuples)  # type: ignore[assignment]
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
@@ -683,8 +682,8 @@ class MultiIndex(Index):
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
                 vals = vals.astype(object)
-            # pandas/core/indexes/multi.py:686: error: Incompatible types in assignment
-            # (expression has type "ndarray", variable has type "Index")  [assignment]
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Index")
             vals = np.array(vals, copy=False)  # type: ignore[assignment]
             values.append(vals)
 
@@ -692,8 +691,8 @@ class MultiIndex(Index):
         return arr
 
     @property
-    # pandas/core/indexes/multi.py:693: error: Return type "ndarray" of "values"
-    # incompatible with return type "ArrayLike" in supertype "Index"  [override]
+    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
+    # in supertype "Index"
     def values(self) -> np.ndarray:  # type: ignore[override]
         return self._values
 
@@ -2177,9 +2176,8 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                # pandas/core/indexes/multi.py:2185: error: Argument "dtype" to
-                # "index_labels_to_array" has incompatible type "Type[object]"; expected
-                # "Union[str, dtype[Any], None]"  [arg-type]
+                # error: Argument "dtype" to "index_labels_to_array" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
                 codes = com.index_labels_to_array(
                     codes, dtype=object  # type: ignore[arg-type]
                 )
@@ -3124,15 +3122,13 @@ class MultiIndex(Index):
                 indexer = codes.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)
-                # pandas\core\indexes\multi.py:2998: error: Incompatible types
-                # in assignment (expression has type "ndarray", variable has
-                # type "Series")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
                 m = np.asarray(m)  # type: ignore[assignment]
 
             else:
-                # pandas\core\indexes\multi.py:3001: error: Incompatible types
-                # in assignment (expression has type "ndarray", variable has
-                # type "Series")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
                 m = np.zeros(len(codes), dtype=bool)  # type: ignore[assignment]
                 m[np.in1d(codes, r, assume_unique=Index(codes).is_unique)] = True
 

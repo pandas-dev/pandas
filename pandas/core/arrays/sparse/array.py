@@ -340,11 +340,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if data is None:
             # TODO: What should the empty dtype be? Object or float?
 
-            # pandas/core/arrays/sparse/array.py:340: error: Argument "dtype" to "array"
-            # has incompatible type "Union[ExtensionDtype, dtype[Any], None]"; expected
-            # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-            # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-            # Any]]]"  [arg-type]
+            # error: Argument "dtype" to "array" has incompatible type
+            # "Union[ExtensionDtype, dtype[Any], None]"; expected "Union[dtype[Any],
+            # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
             data = np.array([], dtype=dtype)  # type: ignore[arg-type]
 
         if not is_array_like(data):
@@ -374,11 +373,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(data, type(self)) and sparse_index is None:
             sparse_index = data._sparse_index
-            # pandas/core/arrays/sparse/array.py:369: error: Argument "dtype" to
-            # "asarray" has incompatible type "Union[ExtensionDtype, dtype[Any],
-            # Type[object], None]"; expected "Union[dtype[Any], None, type,
-            # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-            # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+            # error: Argument "dtype" to "asarray" has incompatible type
+            # "Union[ExtensionDtype, dtype[Any], Type[object], None]"; expected
+            # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+            # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+            # Any]]]"
             sparse_values = np.asarray(
                 data.sp_values, dtype=dtype  # type: ignore[arg-type]
             )
@@ -399,21 +398,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         fill_value = np.datetime64("NaT", "ns")
                 data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
-                # pandas/core/arrays/sparse/array.py:385: error: Argument "dtype" to
-                # "make_sparse" has incompatible type "Union[ExtensionDtype, dtype[Any],
-                # Type[object], None]"; expected "Union[str, dtype[Any], None]"
-                # [arg-type]
+                # error: Argument "dtype" to "make_sparse" has incompatible type
+                # "Union[ExtensionDtype, dtype[Any], Type[object], None]"; expected
+                # "Union[str, dtype[Any], None]"
                 data,
                 kind=kind,
                 fill_value=fill_value,
                 dtype=dtype,  # type: ignore[arg-type]
             )
         else:
-            # pandas/core/arrays/sparse/array.py:388: error: Argument "dtype" to
-            # "asarray" has incompatible type "Union[ExtensionDtype, dtype[Any],
-            # Type[object], None]"; expected "Union[dtype[Any], None, type,
-            # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-            # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+            # error: Argument "dtype" to "asarray" has incompatible type
+            # "Union[ExtensionDtype, dtype[Any], Type[object], None]"; expected
+            # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+            # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+            # Any]]]"
             sparse_values = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
             if len(sparse_values) != sparse_index.npoints:
                 raise AssertionError(
@@ -502,9 +500,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
-                # pandas/core/arrays/sparse/array.py:476: error: Incompatible types in
-                # assignment (expression has type "Type[object]", variable has type
-                # "Union[str, dtype[Any], None]")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "Type[object]", variable has type "Union[str, dtype[Any], None]")
                 dtype = object  # type: ignore[assignment]
 
         out = np.full(self.shape, fill_value, dtype=dtype)
@@ -750,9 +747,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
         codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
-        # pandas/core/arrays/sparse/array.py:722: error: Incompatible types in
-        # assignment (expression has type "SparseArray", variable has type
-        # "Union[ndarray, Index]")  [assignment]
+        # error: Incompatible types in assignment (expression has type "SparseArray",
+        # variable has type "Union[ndarray, Index]")
         uniques = SparseArray(uniques, dtype=self.dtype)  # type: ignore[assignment]
         return codes, uniques
 
@@ -1098,48 +1094,35 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        # pandas/core/arrays/sparse/array.py:1069: error: Item "ExtensionDtype" of
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]" has no attribute
-        # "_subtype_with_str"  [union-attr]
-
-        # pandas/core/arrays/sparse/array.py:1069: error: Item "str" of
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]" has no attribute
-        # "_subtype_with_str"  [union-attr]
-
-        # pandas/core/arrays/sparse/array.py:1069: error: Item "dtype[Any]" of
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]" has no attribute
-        # "_subtype_with_str"  [union-attr]
-
-        # pandas/core/arrays/sparse/array.py:1069: error: Item "ABCMeta" of
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]" has no attribute
-        # "_subtype_with_str"  [union-attr]
-
-        # pandas/core/arrays/sparse/array.py:1069: error: Item "type" of
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]" has no attribute
-        # "_subtype_with_str"  [union-attr]
-
-        # pandas/core/arrays/sparse/array.py:1069: error: Item "None" of
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]" has no attribute
-        # "_subtype_with_str"  [union-attr]
+        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, str, dtype[Any],
+        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
+        # None]" has no attribute "_subtype_with_str"
+        # error: Item "str" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
+        # attribute "_subtype_with_str"
+        # error: Item "dtype[Any]" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
+        # attribute "_subtype_with_str"
+        # error: Item "ABCMeta" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
+        # attribute "_subtype_with_str"
+        # error: Item "type" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
+        # attribute "_subtype_with_str"
+        # error: Item "None" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
+        # attribute "_subtype_with_str"
         subtype = pandas_dtype(dtype._subtype_with_str)  # type: ignore[union-attr]
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
         # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
         sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
-        # pandas\core\arrays\sparse\array.py:1074: error: Non-overlapping
-        # identity check (left operand type: "ExtensionArray", right operand
-        # t...ype: "ndarray")  [comparison-overlap]
+        # error: Non-overlapping identity check (left operand type: "ExtensionArray",
+        # right operand t...ype: "ndarray")
         if sp_values is self.sp_values and copy:  # type: ignore[comparison-overlap]
             sp_values = sp_values.copy()
 
-        # pandas\core\arrays\sparse\array.py:1077: error: Argument 1 to
-        # "_simple_new" of "SparseArray" has incompatible type
-        # "ExtensionArray"; expected "ndarray"  [arg-type]
+        # error: Argument 1 to "_simple_new" of "SparseArray" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
         return self._simple_new(
             sp_values, self.sp_index, dtype  # type: ignore[arg-type]
         )
@@ -1437,10 +1420,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return type(self)(result)
 
     def __abs__(self):
-        # pandas/core/arrays/sparse/array.py:1379: error: Argument 1 to "__call__" of
-        # "ufunc" has incompatible type "SparseArray"; expected "Union[Union[int, float,
-        # complex, str, bytes, generic], Sequence[Union[int, float, complex, str, bytes,
-        # generic]], Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "SparseArray"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
         return np.abs(self)  # type: ignore[arg-type]
 
     # ------------------------------------------------------------------------
@@ -1590,9 +1573,8 @@ def make_sparse(
     index = make_sparse_index(length, indices, kind)
     sparsified_values = arr[mask]
     if dtype is not None:
-        # pandas/core/arrays/sparse/array.py:1528: error: Argument "dtype" to
-        # "astype_nansafe" has incompatible type "Union[str, dtype[Any]]"; expected
-        # "Union[dtype[Any], ExtensionDtype]"  [arg-type]
+        # error: Argument "dtype" to "astype_nansafe" has incompatible type "Union[str,
+        # dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
         sparsified_values = astype_nansafe(
             sparsified_values, dtype=dtype  # type: ignore[arg-type]
         )

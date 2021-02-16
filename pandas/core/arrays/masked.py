@@ -219,9 +219,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            # pandas/core/arrays/masked.py:218: error: Incompatible types in assignment
-            # (expression has type "Type[object]", variable has type "Union[str,
-            # dtype[Any], None]")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
             dtype = object  # type: ignore[assignment]
         if self._hasna:
             if (
@@ -246,11 +245,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if is_dtype_equal(dtype, self.dtype):
             if copy:
-                # pandas/core/arrays/masked.py:242: error: Incompatible return value
-                # type (got "BaseMaskedArray", expected "ndarray")  [return-value]
+                # error: Incompatible return value type (got "BaseMaskedArray", expected
+                # "ndarray")
                 return self.copy()  # type: ignore[return-value]
-            # pandas/core/arrays/masked.py:243: error: Incompatible return value type
-            # (got "BaseMaskedArray", expected "ndarray")  [return-value]
+            # error: Incompatible return value type (got "BaseMaskedArray", expected
+            # "ndarray")
             return self  # type: ignore[return-value]
 
         # if we are astyping to another nullable masked dtype, we can fastpath
@@ -261,8 +260,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
             cls = dtype.construct_array_type()
-            # pandas/core/arrays/masked.py:253: error: Incompatible return value type
-            # (got "BaseMaskedArray", expected "ndarray")  [return-value]
+            # error: Incompatible return value type (got "BaseMaskedArray", expected
+            # "ndarray")
             return cls(data, mask, copy=False)  # type: ignore[return-value]
 
         if isinstance(dtype, ExtensionDtype):
@@ -294,8 +293,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # make this faster by having an optional mask, but not have to change
         # source code using it..
 
-        # pandas\core\arrays\masked.py:249: error: Incompatible return value
-        # type (got "bool_", expected "bool")  [return-value]
+        # error: Incompatible return value type (got "bool_", expected "bool")
         return self._mask.any()  # type: ignore[return-value]
 
     # error: Return type "ndarray" of "isna" incompatible with return type
@@ -346,8 +344,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
-    # pandas/core/arrays/masked.py:356: error: Return type "BooleanArray" of "isin"
-    # incompatible with return type "ndarray" in supertype "ExtensionArray"  [override]
+    # error: Return type "BooleanArray" of "isin" incompatible with return type
+    # "ndarray" in supertype "ExtensionArray"
     def isin(self, values) -> BooleanArray:  # type: ignore[override]
 
         from pandas.core.arrays import BooleanArray
@@ -358,8 +356,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result += self._mask
             else:
                 result *= np.invert(self._mask)
-        # pandas/core/arrays/masked.py:366: error: No overload variant of "zeros_like"
-        # matches argument types "BaseMaskedArray", "Type[bool]"  [call-overload]
+        # error: No overload variant of "zeros_like" matches argument types
+        # "BaseMaskedArray", "Type[bool]"
         mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
         return BooleanArray(result, mask, copy=False)
 

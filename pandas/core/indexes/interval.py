@@ -1190,16 +1190,14 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            # pandas\core\indexes\interval.py:1293: error: Incompatible types
-            # in assignment (expression has type "DatetimeIndex", variable has
-            # type "ndarray")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "DatetimeIndex", variable has type "ndarray")
             breaks = date_range(  # type: ignore[assignment]
                 start=start, end=end, periods=periods, freq=freq
             )
         else:
-            # pandas\core\indexes\interval.py:1295: error: Incompatible types
-            # in assignment (expression has type "TimedeltaIndex", variable has
-            # type "ndarray")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "TimedeltaIndex", variable has type "ndarray")
             breaks = timedelta_range(  # type: ignore[assignment]
                 start=start, end=end, periods=periods, freq=freq
             )
