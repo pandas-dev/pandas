@@ -17,8 +17,8 @@ scalars = [
     "foo",
     b"bar",
     None,
-    np.datetime64(123),
-    np.timedelta64(123),
+    np.datetime64(123, "ns"),
+    np.timedelta64(123, "ns"),
     NaT,
     NA,
 ]
