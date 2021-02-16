@@ -118,6 +118,7 @@ class TestReaders:
         monkeypatch.setattr(pd, "read_excel", func)
 
     def test_engine_used(self, read_ext, engine, monkeypatch):
+        # GH 38884
         def parser(self, *args, **kwargs):
             return self.engine
 
