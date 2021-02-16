@@ -1,16 +1,17 @@
 [build-system]
 # Minimum requirements for the build system to execute.
-# See https://github.com/scipy/scipy/pull/10431 for the AIX issue.
+# See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "setuptools",
+    "setuptools>=38.6.0",
     "wheel",
     "Cython>=0.29.21,<3",  # Note: sync with setup.py
-    "numpy==1.16.5; python_version=='3.7' and platform_system!='AIX'",
-    "numpy==1.17.3; python_version=='3.8' and platform_system!='AIX'",
-    "numpy==1.16.5; python_version=='3.7' and platform_system=='AIX'",
-    "numpy==1.17.3; python_version=='3.8' and platform_system=='AIX'",
+    "numpy==1.16.5; python_version=='3.7'",
+    "numpy==1.17.3; python_version=='3.8'",
     "numpy; python_version>='3.9'",
 ]
+# uncomment to enable pep517 after versioneer problem is fixed.
+# https://github.com/python-versioneer/python-versioneer/issues/193
+# build-backend = "setuptools.build_meta"
 
 [tool.black]
 target-version = ['py37', 'py38']

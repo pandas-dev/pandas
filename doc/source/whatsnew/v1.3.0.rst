@@ -164,6 +164,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | mypy (dev)      | 0.800           |          |    X    |
 +-----------------+-----------------+----------+---------+
+| setuptools      | 38.6.0          |          |    X    |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.

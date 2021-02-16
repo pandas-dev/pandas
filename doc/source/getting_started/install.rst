@@ -219,7 +219,7 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    38.6.0
 `NumPy <https://numpy.org>`__                                    1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
