@@ -22,12 +22,28 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, algos as libalgos, hashtable as htable
+from pandas._libs import (
+    NaT,
+    algos as libalgos,
+    hashtable as htable,
+)
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Dtype, NpDtype, Ordered, Scalar
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    NpDtype,
+    Ordered,
+    Scalar,
+)
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly, deprecate_kwarg
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.util._decorators import (
+    cache_readonly,
+    deprecate_kwarg,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -53,17 +69,40 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    notna,
+)
 
 from pandas.core import ops
-from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import factorize, get_data_algo, take_nd, unique1d
+from pandas.core.algorithms import (
+    factorize,
+    get_data_algo,
+    take_nd,
+    unique1d,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.base import ExtensionArray, NoNewAttributesMixin, PandasObject
+from pandas.core.base import (
+    ExtensionArray,
+    NoNewAttributesMixin,
+    PandasObject,
+)
 import pandas.core.common as com
-from pandas.core.construction import array, extract_array, sanitize_array
+from pandas.core.construction import (
+    array,
+    extract_array,
+    sanitize_array,
+)
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -522,7 +561,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
         """
-        from pandas import Index, to_datetime, to_numeric, to_timedelta
+        from pandas import (
+            Index,
+            to_datetime,
+            to_numeric,
+            to_timedelta,
+        )
 
         cats = Index(inferred_categories)
         known_categories = (
@@ -1435,7 +1479,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         --------
         Series.value_counts
         """
-        from pandas import CategoricalIndex, Series
+        from pandas import (
+            CategoricalIndex,
+            Series,
+        )
 
         code, cat = self._codes, self.categories
         ncat, mask = (len(cat), code >= 0)

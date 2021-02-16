@@ -7,7 +7,10 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import TYPE_CHECKING, Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+)
 import warnings
 
 from pandas._libs.tslibs import BaseOffset
@@ -15,7 +18,10 @@ from pandas._libs.tslibs import BaseOffset
 from pandas import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def load_reduce(self):

@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, Series
+from pandas import (
+    DatetimeIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

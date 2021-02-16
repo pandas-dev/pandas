@@ -6,7 +6,13 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, merge
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    merge,
+)
 import pandas._testing as tm
 
 

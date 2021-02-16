@@ -3,7 +3,10 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
