@@ -183,6 +183,9 @@ testing for membership in the list of column names.
 Mutating with User Defined Function (UDF) methods
 -------------------------------------------------
 
+This section applies to pandas methods that take a UDF. In particular, the methods
+``.apply``, ``.aggregate``, ``.transform``, and ``.filter``.
+
 It is a general rule in programming that one should not mutate a container
 while it is being iterated over. Mutation will invalidate the iterator,
 causing unexpected behavior. Consider the example:
@@ -245,7 +248,6 @@ not apply to the container being iterated over.
 
    df = pd.DataFrame({"a": [1, 2, 3], 'b': [4, 5, 6]})
    df.apply(f, axis="columns")
-
 
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
 ---------------------------------------------------------
