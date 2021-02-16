@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import (
     Interval,
+    NaT,
     Period,
     Timestamp,
     algos as libalgos,
@@ -2088,7 +2089,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     diff = DatetimeBlock.diff
-    fill_value = np.datetime64("NaT", "ns")
+    fill_value = NaT
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
 

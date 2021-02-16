@@ -7686,7 +7686,7 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis, *args, **kwargs)
+            result = self._aggregate(func, axis, *args, **kwargs)
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -7720,14 +7720,14 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        result, how = op.agg()
+        result = op.agg()
 
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
             result = result.T if result is not None else result
 
-        return result, how
+        return result
 
     agg = aggregate
 
@@ -7813,6 +7813,12 @@ NaN 12.3   33.0
         DataFrame.applymap: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
