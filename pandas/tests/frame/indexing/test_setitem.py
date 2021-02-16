@@ -7,7 +7,11 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 
 from pandas import (
     Categorical,

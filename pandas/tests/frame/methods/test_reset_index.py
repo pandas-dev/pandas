@@ -6,7 +6,10 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (

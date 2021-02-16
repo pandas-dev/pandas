@@ -1,4 +1,9 @@
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 import re
 
 import numpy as np

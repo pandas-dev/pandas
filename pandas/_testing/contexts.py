@@ -5,7 +5,11 @@ import random
 from shutil import rmtree
 import string
 import tempfile
-from typing import IO, Any, Union
+from typing import (
+    IO,
+    Any,
+    Union,
+)
 
 import numpy as np
 

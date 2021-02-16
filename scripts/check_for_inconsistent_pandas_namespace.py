@@ -19,7 +19,13 @@ hook so that it uses the same virtualenv as the other local ones).
 
 import argparse
 import ast
-from typing import MutableMapping, Optional, Sequence, Set, Tuple
+from typing import (
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
 EXCLUDE = {
@@ -51,7 +57,11 @@ class Visitor(ast.NodeVisitor):
 
 
 def replace_inconsistent_pandas_namespace(visitor: Visitor, content: str) -> str:
-    from tokenize_rt import reversed_enumerate, src_to_tokens, tokens_to_src
+    from tokenize_rt import (
+        reversed_enumerate,
+        src_to_tokens,
+        tokens_to_src,
+    )
 
     tokens = src_to_tokens(content)
     for n, i in reversed_enumerate(tokens):

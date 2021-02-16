@@ -3,7 +3,10 @@ import pytest
 
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
-from pandas import Timedelta, offsets
+from pandas import (
+    Timedelta,
+    offsets,
+)
 
 
 @pytest.mark.parametrize(
