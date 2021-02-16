@@ -1711,6 +1711,158 @@ class Styler:
             f, axis=axis, subset=subset, props=f"background-color: {color};"
         )
 
+    def highlight_range(
+            self,
+            subset: Optional[IndexLabel] = None,
+            color: str = "yellow",
+            start: Optional[Any] = None,
+            stop: Optional[Any] = None,
+            props: Optional[str] = None,
+    ) -> Styler:
+        """
+        Highlight a defined range by shading the background, or otherwise.
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color added to CSS style.
+        start : scalar or datetime-like, default None
+            Left bound for defining the range (inclusive).
+        stop : scalar or datetime-like, default None
+            Right bound for defining the range (inclusive)
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_max:
+        Styler.highlight_min:
+        Styler.highlight_quantile:
+
+        Notes
+        -----
+        If ``start`` is ``None`` only the right bound is applied.
+        If ``stop`` is ``None`` only the left bound is applied. If both are ``None``
+        all values are highlighted.
+
+        This function only works with compatible ``dtypes``. For example a datetime-like
+        region can only use equivalent datetime-like ``start`` and ``stop`` arguments.
+        Use ``subset`` to control regions which have multiple ``dtypes``.
+
+        Examples
+        --------
+        Using datetimes
+
+        >>> df = pd.DataFrame({'dates': pd.date_range(start='2021-01-01', periods=10)})
+        >>> df.style.highlight_range(start=pd.to_datetime('2021-01-05'))
+
+        Using ``props`` instead of default background shading
+
+        >>> df = pd.DataFrame([[1,2], [3,4]])
+        >>> df.style.highlight_range(start=2, stop=3, props='font-weight:bold;')
+        """
+
+        def f(
+                data: DataFrame,
+                props: str,
+                d: Optional[Scalar] = None,
+                u: Optional[Scalar] = None,
+        ) -> np.ndarray:
+            ge_d = data >= d if d is not None else np.full_like(data, True, dtype=bool)
+            le_u = data <= u if u is not None else np.full_like(data, True, dtype=bool)
+            return np.where(ge_d & le_u, props, "")
+
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(f, axis=None, subset=subset, props=props, d=start, u=stop)
+
+    def highlight_quantile(
+            self,
+            subset: Optional[IndexLabel] = None,
+            color: str = "yellow",
+            q_low: float = 0.0,
+            q_high: float = 1.0,
+            axis: Optional[Axis] = 0,
+            props: Optional[str] = None,
+    ) -> Styler:
+        """
+        Highlight values defined by inclusion in given quantile by shading the
+        background, or otherwise.
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color added to CSS style.
+        q_low : float, default 0
+            Left bound for the target quantile range (exclusive if not 0).
+        q_high : float, default 1
+            Right bound for the target quantile range (inclusive)
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_max:
+        Styler.highlight_min:
+        Styler.highlight_range:
+
+        Notes
+        -----
+        This function only works with consistent ``dtypes`` within the ``subset``.
+        For example a mixture of datetime-like and float items will raise errors.
+
+        This method uses ``pandas.qcut`` to implement the quantile labelling of data
+        values.
+        """
+
+        def f(
+                data: FrameOrSeries,
+                props: str,
+                q_low: float = 0,
+                q_high: float = 1,
+                axis_: Optional[Axis] = 0,
+        ):
+            if q_low > 0:
+                q, tgt_label = [0, q_low, q_high], 1
+            else:
+                q, tgt_label = [0, q_high], 0
+            if axis_ is None:
+                shape = data.values.shape
+                labels = pd.qcut(data.values.ravel(), q=q, labels=False).reshape(shape)
+            else:
+                labels = pd.qcut(data, q=q, labels=False)
+            return np.where(labels == tgt_label, props, "")
+
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(
+            f,
+            axis=axis,
+            subset=subset,
+            props=props,
+            q_low=q_low,
+            q_high=q_high,
+            axis_=axis,
+        )
+
     @classmethod
     def from_custom_template(cls, searchpath, name):
         """
