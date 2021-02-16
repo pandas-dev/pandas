@@ -8,11 +8,22 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, PY38, is_platform_windows
+from pandas.compat import (
+    IS64,
+    PY38,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    compat,
+    read_json,
+)
 import pandas._testing as tm
 
 pytestmark = td.skip_array_manager_not_yet_implemented
