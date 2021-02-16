@@ -1,4 +1,7 @@
-from datetime import date
+from datetime import (
+    date,
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -9,6 +12,7 @@ from pandas import (
     MultiIndex,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     period_range,
@@ -49,19 +53,6 @@ class TestSetitemDT64Values:
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
 
-    def test_setitem_with_different_tz_casts_to_object(self):
-        # GH#24024
-        ser = Series(date_range("2000", periods=2, tz="US/Central"))
-        ser[0] = Timestamp("2000", tz="US/Eastern")
-        expected = Series(
-            [
-                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
-                Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
-            ],
-            dtype=object,
-        )
-        tm.assert_series_equal(ser, expected)
-
     def test_setitem_tuple_with_datetimetz_values(self):
         # GH#20441
         arr = date_range("2017", periods=4, tz="US/Eastern")
@@ -71,18 +62,6 @@ class TestSetitemDT64Values:
         result[(0, 1)] = np.nan
         expected.iloc[0] = np.nan
         tm.assert_series_equal(result, expected)
-
-
-class TestSetitemPeriodDtype:
-    @pytest.mark.parametrize("na_val", [None, np.nan])
-    def test_setitem_na_period_dtype_casts_to_nat(self, na_val):
-        ser = Series(period_range("2000-01-01", periods=10, freq="D"))
-
-        ser[3] = na_val
-        assert ser[3] is NaT
-
-        ser[3:5] = na_val
-        assert ser[4] is NaT
 
 
 class TestSetitemScalarIndexer:
@@ -123,6 +102,21 @@ class TestSetitemSlices:
 
         with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
             datetime_series[4.5:10.0] = 0
+
+    def test_setitem_slice(self):
+        ser = Series(range(10), index=list(range(10)))
+        ser[-12:] = 0
+        assert (ser == 0).all()
+
+        ser[:-12] = 5
+        assert (ser == 0).all()
+
+    def test_setitem_slice_integers(self):
+        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        ser[:4] = 0
+        assert (ser[:4] == 0).all()
+        assert not (ser[4:] == 0).any()
 
 
 class TestSetitemBooleanMask:
@@ -258,29 +252,6 @@ class TestSetitemCallable:
 
 
 class TestSetitemCasting:
-    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-    def test_setitem_dt64_into_int_series(self, dtype):
-        # dont cast dt64 to int when doing this setitem
-        orig = Series([1, 2, 3])
-
-        val = np.datetime64("2021-01-18 13:25:00", "ns")
-        if dtype == "m8[ns]":
-            val = val - val
-
-        ser = orig.copy()
-        ser[:-1] = val
-        expected = Series([val, val, 3], dtype=object)
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser[0], type(val))
-
-        ser = orig.copy()
-        ser[:-1] = [val, val]
-        tm.assert_series_equal(ser, expected)
-
-        ser = orig.copy()
-        ser[:-1] = np.array([val, val])
-        tm.assert_series_equal(ser, expected)
-
     @pytest.mark.parametrize("unique", [True, False])
     @pytest.mark.parametrize("val", [3, 3.0, "3"], ids=type)
     def test_setitem_non_bool_into_bool(self, val, indexer_sli, unique):
@@ -307,57 +278,76 @@ class SetitemCastingEquivalents:
         - the setitem does not expand the obj
     """
 
-    @pytest.fixture(params=[np.nan, np.float64("NaN")])
-    def val(self, request):
+    @pytest.fixture
+    def is_inplace(self):
         """
-        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
-        attribute.
+        Indicate that we are not (yet) checking whether or not setting is inplace.
         """
-        return request.param
+        return None
 
-    def check_indexer(self, obj, key, expected, val, indexer):
+    def check_indexer(self, obj, key, expected, val, indexer, is_inplace):
+        orig = obj
         obj = obj.copy()
+        arr = obj._values
+
         indexer(obj)[key] = val
         tm.assert_series_equal(obj, expected)
 
-    def test_int_key(self, obj, key, expected, val, indexer_sli):
+        self._check_inplace(is_inplace, orig, arr, obj)
+
+    def _check_inplace(self, is_inplace, orig, arr, obj):
+        if is_inplace is None:
+            # We are not (yet) checking whether setting is inplace or not
+            pass
+        elif is_inplace:
+            if arr.dtype.kind in ["m", "M"]:
+                # We may not have the same DTA/TDA, but will have the same
+                #  underlying data
+                assert arr._data is obj._values._data
+            else:
+                assert obj._values is arr
+        else:
+            # otherwise original array should be unchanged
+            tm.assert_equal(arr, orig._values)
+
+    def test_int_key(self, obj, key, expected, val, indexer_sli, is_inplace):
         if not isinstance(key, int):
             return
 
-        self.check_indexer(obj, key, expected, val, indexer_sli)
+        self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
 
         if indexer_sli is tm.loc:
-            self.check_indexer(obj, key, expected, val, tm.at)
+            self.check_indexer(obj, key, expected, val, tm.at, is_inplace)
         elif indexer_sli is tm.iloc:
-            self.check_indexer(obj, key, expected, val, tm.iat)
+            self.check_indexer(obj, key, expected, val, tm.iat, is_inplace)
 
         rng = range(key, key + 1)
-        self.check_indexer(obj, rng, expected, val, indexer_sli)
+        self.check_indexer(obj, rng, expected, val, indexer_sli, is_inplace)
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently
             slc = slice(key, key + 1)
-            self.check_indexer(obj, slc, expected, val, indexer_sli)
+            self.check_indexer(obj, slc, expected, val, indexer_sli, is_inplace)
 
         ilkey = [key]
-        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+        self.check_indexer(obj, ilkey, expected, val, indexer_sli, is_inplace)
 
         indkey = np.array(ilkey)
-        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+        self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
-    def test_slice_key(self, obj, key, expected, val, indexer_sli):
+    def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
             return
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently
-            self.check_indexer(obj, key, expected, val, indexer_sli)
+            self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
 
         ilkey = list(range(len(obj)))[key]
-        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+        self.check_indexer(obj, ilkey, expected, val, indexer_sli, is_inplace)
 
         indkey = np.array(ilkey)
-        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+        self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
     def test_mask_key(self, obj, key, expected, val, indexer_sli):
         # setitem with boolean mask
@@ -368,13 +358,18 @@ class SetitemCastingEquivalents:
         indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
-    def test_series_where(self, obj, key, expected, val):
+    def test_series_where(self, obj, key, expected, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
+        orig = obj
         obj = obj.copy()
+        arr = obj._values
+
         res = obj.where(~mask, val)
         tm.assert_series_equal(res, expected)
+
+        self._check_inplace(is_inplace, orig, arr, obj)
 
     def test_index_where(self, obj, key, expected, val, request):
         if Index(obj).dtype != obj.dtype:
@@ -489,6 +484,28 @@ class TestSetitemWithExpansion:
         result = series["timestamp"]
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "td",
+        [
+            Timedelta("9 days"),
+            Timedelta("9 days").to_timedelta64(),
+            Timedelta("9 days").to_pytimedelta(),
+        ],
+    )
+    def test_append_timedelta_does_not_cast(self, td):
+        # GH#22717 inserting a Timedelta should _not_ cast to int64
+        expected = Series(["x", td], index=[0, "td"], dtype=object)
+
+        ser = Series(["x"])
+        ser["td"] = td
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+        ser = Series(["x"])
+        ser.loc["td"] = Timedelta("9 days")
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
@@ -519,7 +536,7 @@ def test_setitem_slice_into_readonly_backing_data():
     assert not array.any()
 
 
-class TestSetitemCastingEquivalentsTimedelta64IntoNumeric:
+class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
     # timedelta64 should not be treated as integers when setting into
     #  numeric Series
 
@@ -527,7 +544,7 @@ class TestSetitemCastingEquivalentsTimedelta64IntoNumeric:
     def val(self):
         td = np.timedelta64(4, "ns")
         return td
-        return np.full((1,), td)
+        # TODO: could also try np.full((1,), td)
 
     @pytest.fixture(params=[complex, int, float])
     def dtype(self, request):
@@ -551,91 +568,200 @@ class TestSetitemCastingEquivalentsTimedelta64IntoNumeric:
     def key(self):
         return 0
 
-    def check_indexer(self, obj, key, expected, val, indexer):
-        orig = obj
-        obj = obj.copy()
-        arr = obj._values
+    @pytest.fixture
+    def is_inplace(self):
+        """
+        Indicate we do _not_ expect the setting to be done inplace.
+        """
+        return False
 
-        indexer(obj)[key] = val
-        tm.assert_series_equal(obj, expected)
 
-        tm.assert_equal(arr, orig._values)  # original  array is unchanged
+class TestSetitemDT64IntoInt(SetitemCastingEquivalents):
+    # GH#39619 dont cast dt64 to int when doing this setitem
 
-    def test_int_key(self, obj, key, expected, val, indexer_sli):
-        if not isinstance(key, int):
-            return
+    @pytest.fixture(params=["M8[ns]", "m8[ns]"])
+    def dtype(self, request):
+        return request.param
 
-        self.check_indexer(obj, key, expected, val, indexer_sli)
+    @pytest.fixture
+    def scalar(self, dtype):
+        val = np.datetime64("2021-01-18 13:25:00", "ns")
+        if dtype == "m8[ns]":
+            val = val - val
+        return val
 
-        rng = range(key, key + 1)
-        self.check_indexer(obj, rng, expected, val, indexer_sli)
+    @pytest.fixture
+    def expected(self, scalar):
+        expected = Series([scalar, scalar, 3], dtype=object)
+        assert isinstance(expected[0], type(scalar))
+        return expected
 
-        if indexer_sli is not tm.loc:
-            # Note: no .loc because that handles slice edges differently
-            slc = slice(key, key + 1)
-            self.check_indexer(obj, slc, expected, val, indexer_sli)
+    @pytest.fixture
+    def obj(self):
+        return Series([1, 2, 3])
 
-        ilkey = [key]
-        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+    @pytest.fixture
+    def key(self):
+        return slice(None, -1)
 
-        indkey = np.array(ilkey)
-        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+    @pytest.fixture(params=[None, list, np.array])
+    def val(self, scalar, request):
+        box = request.param
+        if box is None:
+            return scalar
+        return box([scalar, scalar])
 
-    def test_slice_key(self, obj, key, expected, val, indexer_sli):
-        if not isinstance(key, slice):
-            return
+    @pytest.fixture
+    def is_inplace(self):
+        return False
 
-        if indexer_sli is not tm.loc:
-            # Note: no .loc because that handles slice edges differently
-            self.check_indexer(obj, key, expected, val, indexer_sli)
 
-        ilkey = list(range(len(obj)))[key]
-        self.check_indexer(obj, ilkey, expected, val, indexer_sli)
+class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
+    # Setting compatible NA values into Series with PeriodDtype
 
-        indkey = np.array(ilkey)
-        self.check_indexer(obj, indkey, expected, val, indexer_sli)
+    @pytest.fixture
+    def expected(self, key):
+        exp = Series(period_range("2000-01-01", periods=10, freq="D"))
+        exp._values.view("i8")[key] = NaT.value
+        assert exp[key] is NaT or all(x is NaT for x in exp[key])
+        return exp
 
-    def test_mask_key(self, obj, key, expected, val, indexer_sli):
-        # setitem with boolean mask
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
+    @pytest.fixture
+    def obj(self):
+        return Series(period_range("2000-01-01", periods=10, freq="D"))
 
-        self.check_indexer(obj, mask, expected, val, indexer_sli)
+    @pytest.fixture(params=[3, slice(3, 5)])
+    def key(self, request):
+        return request.param
 
-    def test_series_where(self, obj, key, expected, val):
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
+    @pytest.fixture(params=[None, np.nan])
+    def val(self, request):
+        return request.param
 
-        orig = obj
-        obj = obj.copy()
-        arr = obj._values
-        res = obj.where(~mask, val)
-        tm.assert_series_equal(res, expected)
+    @pytest.fixture
+    def is_inplace(self):
+        return True
 
-        tm.assert_equal(arr, orig._values)  # original  array is unchanged
 
-    def test_index_where(self, obj, key, expected, val, request):
-        if Index(obj).dtype != obj.dtype:
-            pytest.skip("test not applicable for this dtype")
+class TestSetitemNATimedelta64Dtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to timedelta64 when inserting
+    #  into a timedelta64 series.  Others should coerce to object
+    #  and retain their dtypes.
 
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
+    @pytest.fixture
+    def obj(self):
+        return Series([0, 1, 2], dtype="m8[ns]")
 
-        if obj.dtype == bool and not mask.all():
-            # When mask is all True, casting behavior does not apply
-            msg = "Index/Series casting behavior inconsistent GH#38692"
-            mark = pytest.mark.xfail(reason=msg)
-            request.node.add_marker(mark)
+    @pytest.fixture(
+        params=[NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+    )
+    def val(self, request):
+        return request.param
 
-        res = Index(obj).where(~mask, val)
-        tm.assert_index_equal(res, Index(expected))
+    @pytest.fixture
+    def is_inplace(self, val):
+        # cast to object iff val is datetime64("NaT")
+        return val is NaT or val.dtype.kind == "m"
 
-    def test_index_putmask(self, obj, key, expected, val):
-        if Index(obj).dtype != obj.dtype:
-            pytest.skip("test not applicable for this dtype")
+    @pytest.fixture
+    def expected(self, obj, val, is_inplace):
+        dtype = obj.dtype if is_inplace else object
+        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        return expected
 
-        mask = np.zeros(obj.shape, dtype=bool)
-        mask[key] = True
+    @pytest.fixture
+    def key(self):
+        return 0
 
-        res = Index(obj).putmask(mask, val)
-        tm.assert_index_equal(res, Index(expected))
+
+class TestSetitemNADatetime64Dtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to datetime64 when inserting
+    #  into a datetime64 series.  Others should coerce to object
+    #  and retain their dtypes.
+
+    @pytest.fixture(params=[None, "UTC", "US/Central"])
+    def obj(self, request):
+        tz = request.param
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        return Series(dti)
+
+    @pytest.fixture(
+        params=[NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+    )
+    def val(self, request):
+        return request.param
+
+    @pytest.fixture
+    def is_inplace(self, val, obj):
+        if obj._values.tz is None:
+            # cast to object iff val is timedelta64("NaT")
+            return val is NaT or val.dtype.kind == "M"
+
+        # otherwise we have to exclude tznaive dt64("NaT")
+        return val is NaT
+
+    @pytest.fixture
+    def expected(self, obj, val, is_inplace):
+        dtype = obj.dtype if is_inplace else object
+        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        return expected
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+
+class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
+    # GH#24024
+    @pytest.fixture
+    def obj(self):
+        return Series(date_range("2000", periods=2, tz="US/Central"))
+
+    @pytest.fixture
+    def val(self):
+        return Timestamp("2000", tz="US/Eastern")
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def expected(self):
+        expected = Series(
+            [
+                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
+                Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
+            ],
+            dtype=object,
+        )
+        return expected
+
+
+@pytest.mark.parametrize(
+    "obj,expected",
+    [
+        # For numeric series, we should coerce to NaN.
+        (Series([1, 2, 3]), Series([np.nan, 2, 3])),
+        (Series([1.0, 2.0, 3.0]), Series([np.nan, 2.0, 3.0])),
+        # For datetime series, we should coerce to NaT.
+        (
+            Series([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+            Series([NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+        ),
+        # For objects, we should preserve the None value.
+        (Series(["foo", "bar", "baz"]), Series([None, "bar", "baz"])),
+    ],
+)
+class TestSeriesNoneCoercion(SetitemCastingEquivalents):
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def val(self):
+        return None
+
+    @pytest.fixture
+    def is_inplace(self, obj):
+        # This is specific to the 4 cases currently implemented for this class.
+        return obj.dtype.kind != "i"

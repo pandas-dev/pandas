@@ -21,7 +21,12 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, DtypeObj, Manager, Scalar
+from pandas._typing import (
+    Axis,
+    DtypeObj,
+    Manager,
+    Scalar,
+)
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -49,9 +54,15 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
-from pandas.core import algorithms, common as com
+from pandas.core import (
+    algorithms,
+    common as com,
+)
 from pandas.core.arrays import Categorical
-from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.construction import (
+    extract_array,
+    sanitize_array,
+)
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     Index,
@@ -154,7 +165,10 @@ def mgr_to_mgr(mgr, typ: str):
     Convert to specific type of Manager. Does not copy if the type is already
     correct. Does not guarantee a copy otherwise.
     """
-    from pandas.core.internals import ArrayManager, BlockManager
+    from pandas.core.internals import (
+        ArrayManager,
+        BlockManager,
+    )
 
     new_mgr: Manager
 
@@ -645,7 +659,7 @@ def _list_of_series_to_arrays(
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
         values = extract_array(s, extract_numpy=True)
-        aligned_values.append(algorithms.take_1d(values, indexer))
+        aligned_values.append(algorithms.take_nd(values, indexer))
 
     content = np.vstack(aligned_values)
 

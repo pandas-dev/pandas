@@ -1,15 +1,23 @@
-from typing import Any, Hashable, Optional
+from typing import (
+    Hashable,
+    Optional,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype, DtypeObj
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
-    is_bool,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -25,7 +33,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import (
+    Index,
+    maybe_extract_name,
+)
 
 _num_index_shared_docs = {}
 
@@ -112,17 +123,16 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Hashable = lib.no_default):
-        if values is not None and not self._can_hold_na and values.dtype.kind == "f":
+    def _shallow_copy(self, values, name: Hashable = lib.no_default):
+        if not self._can_hold_na and values.dtype.kind == "f":
             name = self.name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
     def _convert_tolerance(self, tolerance, target):
-        tolerance = np.asarray(tolerance)
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
+        tolerance = super()._convert_tolerance(tolerance, target)
+
         if not np.issubdtype(tolerance.dtype, np.number):
             if tolerance.ndim > 0:
                 raise ValueError(
@@ -336,13 +346,6 @@ class Float64Index(NumericIndex):
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
-    @doc(Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if is_bool(key):
-            # Catch this to avoid accidentally casting to 1.0
-            raise KeyError(key)
-        return super().get_loc(key, method=method, tolerance=tolerance)
-
     # ----------------------------------------------------------------
 
     def _format_native_types(
@@ -359,10 +362,3 @@ class Float64Index(NumericIndex):
             fixed_width=False,
         )
         return formatter.get_result_as_array()
-
-    def __contains__(self, other: Any) -> bool:
-        hash(other)
-        if super().__contains__(other):
-            return True
-
-        return is_float(other) and np.isnan(other) and self.hasnans

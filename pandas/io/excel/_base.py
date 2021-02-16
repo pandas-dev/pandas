@@ -7,24 +7,53 @@ import inspect
 from io import BytesIO
 import os
 from textwrap import fill
-from typing import Any, Dict, Mapping, Optional, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Mapping,
+    Optional,
+    Union,
+    cast,
+)
 import warnings
 import zipfile
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
-from pandas.compat._optional import get_version, import_optional_dependency
+from pandas._typing import (
+    Buffer,
+    DtypeArg,
+    FilePathOrBuffer,
+    StorageOptions,
+)
+from pandas.compat._optional import (
+    get_version,
+    import_optional_dependency,
+)
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
-from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_float,
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
+from pandas.io.common import (
+    IOHandles,
+    get_handle,
+    stringify_path,
+    validate_header_arg,
+)
 from pandas.io.excel._util import (
     fill_mi_header,
     get_default_engine,
@@ -758,7 +787,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    curr_sheet = None
     path = None
 
     @property
@@ -894,8 +922,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__"
-        #  (not iterable)  [attr-defined]
+        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__" (not
+        #  iterable)
         if not any(
             ext in extension
             for extension in cls.supported_extensions  # type: ignore[attr-defined]
@@ -1069,26 +1097,37 @@ class ExcelFile:
 
             xlrd_version = LooseVersion(get_version(xlrd))
 
-        if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-            ext = "xls"
-        else:
-            ext = inspect_excel_format(
-                content_or_path=path_or_buffer, storage_options=storage_options
-            )
-
+        ext = None
         if engine is None:
+            # Only determine ext if it is needed
+            if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+                ext = "xls"
+            else:
+                ext = inspect_excel_format(
+                    content_or_path=path_or_buffer, storage_options=storage_options
+                )
+
             # ext will always be valid, otherwise inspect_excel_format would raise
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
-        if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
-            if xlrd_version >= "2":
+        if engine == "xlrd" and xlrd_version is not None:
+            if ext is None:
+                # Need ext to determine ext in order to raise/warn
+                if isinstance(path_or_buffer, xlrd.Book):
+                    ext = "xls"
+                else:
+                    ext = inspect_excel_format(
+                        path_or_buffer, storage_options=storage_options
+                    )
+
+            if ext != "xls" and xlrd_version >= "2":
                 raise ValueError(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install openpyxl instead."
                 )
-            else:
+            elif ext != "xls":
                 caller = inspect.stack()[1]
                 if (
                     caller.filename.endswith(

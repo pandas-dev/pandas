@@ -1,5 +1,9 @@
 """ test label based indexing with loc """
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 from io import StringIO
 import re
 
@@ -29,7 +33,10 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.core.indexing import IndexingError, _one_ellipsis_message
+from pandas.core.indexing import (
+    IndexingError,
+    _one_ellipsis_message,
+)
 from pandas.tests.indexing.common import Base
 
 

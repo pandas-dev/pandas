@@ -16,7 +16,10 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    PandasDtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -350,9 +353,9 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
-    @skip_nested
+    @pytest.mark.skip(reason="Incorrect expected.")
     def test_merge(self, data, na_value):
-        # Fails creating expected
+        # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
 
     @skip_nested

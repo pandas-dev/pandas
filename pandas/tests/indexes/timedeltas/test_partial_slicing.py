@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas import Series, timedelta_range
+from pandas import (
+    Series,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 

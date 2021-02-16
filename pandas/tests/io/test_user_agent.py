@@ -209,16 +209,16 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
-    if parquet_engine is None:
-        df_http = read_method(f"http://localhost:{port}")
-    else:
-        df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-    server.shutdown()
-    server.server_close()
-    server_thread.join()
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
+        if parquet_engine is None:
+            df_http = read_method(f"http://localhost:{port}")
+        else:
+            df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
     assert not df_http.empty
 
 
@@ -255,25 +255,25 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
 
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
 
-    if parquet_engine is None:
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options={"User-Agent": custom_user_agent},
-        )
-    else:
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options={"User-Agent": custom_user_agent},
-            engine=parquet_engine,
-        )
-    server.shutdown()
+        if parquet_engine is None:
+            df_http = read_method(
+                f"http://localhost:{port}",
+                storage_options={"User-Agent": custom_user_agent},
+            )
+        else:
+            df_http = read_method(
+                f"http://localhost:{port}",
+                storage_options={"User-Agent": custom_user_agent},
+                engine=parquet_engine,
+            )
+        server.shutdown()
 
-    server.server_close()
-    server_thread.join()
+        server.server_close()
+        server_thread.join()
 
     tm.assert_frame_equal(df_true, df_http)
 
@@ -291,17 +291,17 @@ def test_server_and_all_custom_headers(responder, read_method, port):
         "User-Agent": custom_user_agent,
         "Auth": custom_auth_token,
     }
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
 
-    df_http = read_method(
-        f"http://localhost:{port}",
-        storage_options=storage_options,
-    )
-    server.shutdown()
-    server.server_close()
-    server_thread.join()
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options=storage_options,
+        )
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()

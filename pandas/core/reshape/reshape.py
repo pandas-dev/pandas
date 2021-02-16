@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import itertools
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
@@ -28,7 +32,10 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -261,7 +268,7 @@ class _Unstacker:
     def get_new_columns(self, value_columns):
         if value_columns is None:
             if self.lift == 0:
-                return self.removed_level._shallow_copy(name=self.removed_name)
+                return self.removed_level._rename(name=self.removed_name)
 
             lev = self.removed_level.insert(0, item=self.removed_level._na_value)
             return lev.rename(self.removed_name)
@@ -639,7 +646,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
     else:
-        new_columns = this.columns.levels[0]._shallow_copy(name=this.columns.names[0])
+        new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
         unique_groups = new_columns
 
     # time to ravel the values

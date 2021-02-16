@@ -4,12 +4,22 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-from typing import Dict, Hashable, List, Optional, Set, Tuple
+from typing import (
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+)
 import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, final
+from pandas._typing import (
+    FrameOrSeries,
+    final,
+)
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -22,12 +32,22 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
-from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.groupby.categorical import (
+    recode_for_groupby,
+    recode_from_groupby,
+)
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -281,9 +301,8 @@ class Grouper:
         a tuple of binner, grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # pandas\core\groupby\grouper.py:310: error: Value of type variable
-        # "FrameOrSeries" of "get_grouper" cannot be "Optional[Any]"
-        # [type-var]
+        # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
+        # "Optional[Any]"
         self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
             self.obj,
             [self.key],
@@ -370,8 +389,7 @@ class Grouper:
     @final
     @property
     def groups(self):
-        # pandas\core\groupby\grouper.py:382: error: Item "None" of
-        # "Optional[Any]" has no attribute "groups"  [union-attr]
+        # error: Item "None" of "Optional[Any]" has no attribute "groups"
         return self.grouper.groups  # type: ignore[union-attr]
 
     @final
