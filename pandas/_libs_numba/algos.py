@@ -36,7 +36,8 @@
 
 # cnp.import_array()
 
-# cimport pandas._libs.util as util
+import pandas._libs_numba.util as util
+
 # from pandas._libs.khash cimport (
 #     kh_destroy_int64,
 #     kh_get_int64,
@@ -503,30 +504,30 @@
 #     uint8_t
 
 
-# def validate_limit(nobs: int, limit=None) -> int:
-#     """
-#     Check that the `limit` argument is a positive integer.
+def validate_limit(nobs: int, limit=None) -> int:
+    """
+    Check that the `limit` argument is a positive integer.
 
-#     Parameters
-#     ----------
-#     nobs : int
-#     limit : object
+    Parameters
+    ----------
+    nobs : int
+    limit : object
 
-#     Returns
-#     -------
-#     int
-#         The limit.
-#     """
-#     if limit is None:
-#         lim = nobs
-#     else:
-#         if not util.is_integer_object(limit):
-#             raise ValueError('Limit must be an integer')
-#         if limit < 1:
-#             raise ValueError('Limit must be greater than 0')
-#         lim = limit
+    Returns
+    -------
+    int
+        The limit.
+    """
+    if limit is None:
+        lim = nobs
+    else:
+        if not util.is_integer_object(limit):
+            raise ValueError("Limit must be an integer")
+        if limit < 1:
+            raise ValueError("Limit must be greater than 0")
+        lim = limit
 
-#     return lim
+    return lim
 
 
 # @cython.boundscheck(False)
@@ -586,32 +587,28 @@
 #     return indexer
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
-#     cdef:
-#         Py_ssize_t i, N
-#         algos_t val
-#         int lim, fill_count = 0
+def pad_inplace(values, mask, limit=None):
 
-#     N = len(values)
+    fill_count = 0
 
-#     # GH#2778
-#     if N == 0:
-#         return
+    N = len(values)
 
-#     lim = validate_limit(N, limit)
+    # GH#2778
+    if N == 0:
+        return
 
-#     val = values[0]
-#     for i in range(N):
-#         if mask[i]:
-#             if fill_count >= lim:
-#                 continue
-#             fill_count += 1
-#             values[i] = val
-#         else:
-#             fill_count = 0
-#             val = values[i]
+    lim = validate_limit(N, limit)
+
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
 
 
 # @cython.boundscheck(False)

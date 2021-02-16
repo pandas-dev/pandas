@@ -1,6 +1,8 @@
 """
 missing types & inference
 """
+from __future__ import annotations
+
 from functools import partial
 
 import numpy as np
@@ -54,7 +56,7 @@ nan_checker = np.isnan
 INF_AS_NA = False
 
 
-def isna(obj):
+def isna(obj: object):
     """
     Detect missing values for an array-like object.
 
@@ -137,7 +139,7 @@ def isna(obj):
 isnull = isna
 
 
-def _isna(obj, inf_as_na: bool = False):
+def _isna(obj: object, inf_as_na: bool = False):
     """
     Detect missing values, treating None, NaN or NA as null. Infinite
     values will also be treated as null if inf_as_na is True.
@@ -206,7 +208,7 @@ def _use_inf_as_na(key):
         globals()["INF_AS_NA"] = False
 
 
-def _isna_ndarraylike(obj, inf_as_na: bool = False):
+def _isna_ndarraylike(obj: object, inf_as_na: bool = False):
     """
     Return an array indicating which values of the input array are NaN / NA.
 

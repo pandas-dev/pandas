@@ -19,6 +19,7 @@ from pandas._libs import (
     algos,
     lib,
 )
+from pandas._libs_numba import algos as algos_numba
 from pandas._typing import (
     ArrayLike,
     Axis,
@@ -694,7 +695,7 @@ def _fillna_prep(values, mask=None):
 
 def _pad_1d(values, limit=None, mask=None):
     values, mask = _fillna_prep(values, mask)
-    algos.pad_inplace(values, mask, limit=limit)
+    algos_numba.pad_inplace(values, mask, limit=limit)
     return values
 
 
