@@ -167,7 +167,10 @@ class TestGrouping:
 
         # GH 7885
         # with level and freq specified in a pd.Grouper
-        from datetime import date, timedelta
+        from datetime import (
+            date,
+            timedelta,
+        )
 
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())

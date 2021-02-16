@@ -7,16 +7,34 @@ These should not depend on core.internals.
 from __future__ import annotations
 
 from collections import abc
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    OutOfBoundsDatetime,
+)
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype, registry
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    registry,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
@@ -49,7 +67,11 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas import ExtensionArray, Index, Series
+    from pandas import (
+        ExtensionArray,
+        Index,
+        Series,
+    )
 
 
 def array(

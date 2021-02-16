@@ -4,7 +4,14 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas import NA, DatetimeIndex, Index, NaT, Timestamp, date_range
+from pandas import (
+    NA,
+    DatetimeIndex,
+    Index,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 

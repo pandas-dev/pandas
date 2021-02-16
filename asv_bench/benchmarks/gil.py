@@ -1,6 +1,12 @@
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, factorize, read_csv
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    factorize,
+    read_csv,
+)
 from pandas.core.algorithms import take_nd
 
 from .pandas_vb_common import tm

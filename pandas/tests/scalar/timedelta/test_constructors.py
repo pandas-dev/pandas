@@ -6,7 +6,11 @@ import pytest
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 
-from pandas import Timedelta, offsets, to_timedelta
+from pandas import (
+    Timedelta,
+    offsets,
+    to_timedelta,
+)
 
 
 def test_construction():

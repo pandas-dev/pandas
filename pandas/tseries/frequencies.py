@@ -4,7 +4,10 @@ import warnings
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
-from pandas._libs.tslibs import Timestamp, tzconversion
+from pandas._libs.tslibs import (
+    Timestamp,
+    tzconversion,
+)
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTH_ALIASES,
@@ -12,7 +15,10 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
-from pandas._libs.tslibs.fields import build_field_sarray, month_position_check
+from pandas._libs.tslibs.fields import (
+    build_field_sarray,
+    month_position_check,
+)
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
     Day,

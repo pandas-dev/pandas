@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    isna,
+)
 import pandas._testing as tm
 
 

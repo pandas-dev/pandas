@@ -2,15 +2,28 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
 
-from pandas._typing import Dtype, DtypeObj
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -20,7 +33,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas.core.arrays.sparse.array import SparseArray

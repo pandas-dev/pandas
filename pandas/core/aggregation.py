@@ -32,8 +32,14 @@ from pandas._typing import (
     FrameOrSeriesUnion,
 )
 
-from pandas.core.dtypes.common import is_dict_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_dict_like,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.algorithms import safe_sort
 from pandas.core.base import SpecificationError

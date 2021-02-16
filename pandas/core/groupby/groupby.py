@@ -10,7 +10,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import datetime
-from functools import partial, wraps
+from functools import (
+    partial,
+    wraps,
+)
 import inspect
 from textwrap import dedent
 import types
@@ -37,7 +40,10 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import (
+    Timestamp,
+    lib,
+)
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     F,
@@ -50,7 +56,12 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -64,17 +75,35 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, DatetimeArray
-from pandas.core.base import DataError, PandasObject, SelectionMixin
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+)
+from pandas.core.base import (
+    DataError,
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, numba_, ops
-from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.groupby import (
+    base,
+    numba_,
+    ops,
+)
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE

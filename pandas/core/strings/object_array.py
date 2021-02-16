@@ -1,6 +1,12 @@
 import re
 import textwrap
-from typing import Optional, Pattern, Set, Union, cast
+from typing import (
+    Optional,
+    Pattern,
+    Set,
+    Union,
+    cast,
+)
 import unicodedata
 import warnings
 
@@ -9,9 +15,15 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import Dtype, Scalar
+from pandas._typing import (
+    Dtype,
+    Scalar,
+)
 
-from pandas.core.dtypes.common import is_re, is_scalar
+from pandas.core.dtypes.common import (
+    is_re,
+    is_scalar,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
