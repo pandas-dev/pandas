@@ -68,7 +68,7 @@ class TestIntervalIndex:
             indexer_sl(ser)[[-1, 3]]
 
     @pytest.mark.arm_slow
-    def test_getitem_large_series(self):
+    def test_loc_getitem_large_series(self):
         ser = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))
         )

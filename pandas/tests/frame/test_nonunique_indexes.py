@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 
 
@@ -157,90 +157,6 @@ class TestDataFrameNonuniqueIndexes:
         )
         check(df, expected)
 
-    def test_values_with_duplicate_columns(self):
-        # values
-        df = DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=["x", "x"])
-        result = df.values
-        expected = np.array([[1, 2.5], [3, 4.5]])
-        assert (result == expected).all().all()
-
-    def test_rename_with_duplicate_columns(self):
-        # rename, GH 4403
-        df4 = DataFrame(
-            {"RT": [0.0454], "TClose": [22.02], "TExg": [0.0422]},
-            index=MultiIndex.from_tuples(
-                [(600809, 20130331)], names=["STK_ID", "RPT_Date"]
-            ),
-        )
-
-        df5 = DataFrame(
-            {
-                "RPT_Date": [20120930, 20121231, 20130331],
-                "STK_ID": [600809] * 3,
-                "STK_Name": ["饡驦", "饡驦", "饡驦"],
-                "TClose": [38.05, 41.66, 30.01],
-            },
-            index=MultiIndex.from_tuples(
-                [(600809, 20120930), (600809, 20121231), (600809, 20130331)],
-                names=["STK_ID", "RPT_Date"],
-            ),
-        )
-
-        k = pd.merge(df4, df5, how="inner", left_index=True, right_index=True)
-        result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
-        str(result)
-        result.dtypes
-
-        expected = DataFrame(
-            [[0.0454, 22.02, 0.0422, 20130331, 600809, "饡驦", 30.01]],
-            columns=[
-                "RT",
-                "TClose",
-                "TExg",
-                "RPT_Date",
-                "STK_ID",
-                "STK_Name",
-                "QT_Close",
-            ],
-        ).set_index(["STK_ID", "RPT_Date"], drop=False)
-        tm.assert_frame_equal(result, expected)
-
-    def test_reindex_with_duplicate_columns(self):
-
-        # reindex is invalid!
-        df = DataFrame(
-            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
-        )
-        msg = "cannot reindex from a duplicate axis"
-        with pytest.raises(ValueError, match=msg):
-            df.reindex(columns=["bar"])
-        with pytest.raises(ValueError, match=msg):
-            df.reindex(columns=["bar", "foo"])
-
-    def test_drop_with_duplicate_columns(self):
-
-        # drop
-        df = DataFrame(
-            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
-        )
-        result = df.drop(["a"], axis=1)
-        expected = DataFrame([[1], [1], [1]], columns=["bar"])
-        check(result, expected)
-        result = df.drop("a", axis=1)
-        check(result, expected)
-
-    def test_describe_with_duplicate_columns(self):
-        # describe
-        df = DataFrame(
-            [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
-            columns=["bar", "a", "a"],
-            dtype="float64",
-        )
-        result = df.describe()
-        s = df.iloc[:, 0].describe()
-        expected = pd.concat([s, s, s], keys=df.columns, axis=1)
-        check(result, expected)
-
     def test_column_dups_indexes(self):
         # check column dups with index equal and not equal to df's index
         df = DataFrame(
@@ -257,17 +173,6 @@ class TestDataFrameNonuniqueIndexes:
             )
             this_df["A"] = index
             check(this_df, expected_df)
-
-    def test_arithmetic_with_dups(self):
-
-        # operations
-        for op in ["__add__", "__mul__", "__sub__", "__truediv__"]:
-            df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
-            expected = getattr(df, op)(df)
-            expected.columns = ["A", "A"]
-            df.columns = ["A", "A"]
-            result = getattr(df, op)(df)
-            check(result, expected)
 
     def test_changing_dtypes_with_duplicate_columns(self):
         # multiple assignments that change dtypes
@@ -322,16 +227,6 @@ class TestDataFrameNonuniqueIndexes:
         df.columns = ["A", "A", "B", "C"]
 
         result = df.dropna(subset=["A", "C"], how="all")
-        tm.assert_frame_equal(result, expected)
-
-    def test_column_dups_indexing(self):
-
-        # dup aligning operations should work
-        # GH 5185
-        df1 = DataFrame([1, 2, 3, 4, 5], index=[1, 2, 1, 2, 3])
-        df2 = DataFrame([1, 2, 3], index=[1, 2, 3])
-        expected = DataFrame([0, 2, 0, 2, 2], index=[1, 1, 2, 2, 3])
-        result = df1.sub(df2)
         tm.assert_frame_equal(result, expected)
 
     def test_dup_columns_comparisons(self):
