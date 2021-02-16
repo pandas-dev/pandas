@@ -5,7 +5,10 @@ import pytest
 
 from pandas.core.dtypes.cast import maybe_box_native
 
-from pandas import Timedelta, Timestamp
+from pandas import (
+    Timedelta,
+    Timestamp,
+)
 
 
 @pytest.mark.parametrize(
