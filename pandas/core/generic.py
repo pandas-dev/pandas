@@ -10305,6 +10305,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def block_accum_func(blk_values):
             values = blk_values.T if hasattr(blk_values, "T") else blk_values
 
+            from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+            values = ensure_wrapped_if_datetimelike(values)
+
             if isinstance(values, ExtensionArray):
                 result = values._accumulate(name, skipna=skipna, **kwargs)
             else:

@@ -64,6 +64,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
+from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 import pandas.core.common as com
@@ -1186,6 +1187,72 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
+
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> DatetimeLikeArrayT:
+
+        data = self._data.copy()
+
+        if name in {"cummin", "cummax"}:
+            op = getattr(datetimelike_accumulations, name)
+            data = op(data, skipna=skipna, **kwargs)
+
+            return type(self)._simple_new(data, freq=self.freq, dtype=self.dtype)
+
+        raise NotImplementedError(
+            f"Accumlation {name} not implemented for {type(self)}"
+        )
+
+        # func_map = {'cumprod' : np.cumprod, 'cummax':np.maximum.accumulate,
+        # 'cumsum': np.cumsum, 'cummim':np.minimum.accumulate }
+        # accum_func = func_map[name]
+
+        # freq = self._freq
+
+        # mask_a, mask_b = {
+        # np.cumprod: (1.0, np.nan),
+        # np.maximum.accumulate: (-np.inf, np.nan),
+        # np.cumsum: (0.0, np.nan),
+        # np.minimum.accumulate: (np.inf, np.nan),
+        # }[accum_func]
+
+        # values = self._data
+        # # GH#30460, GH#29058
+        # # numpy 1.18 started sorting NaTs at the end instead of beginning,
+        # #  so we need to work around to maintain backwards-consistency.
+        # #orig_dtype = values.dtype
+
+        # # We need to define mask before masking NaTs
+        # mask = isna(values)
+
+        # if accum_func == np.minimum.accumulate:
+        #     # Note: the accum_func comparison fails as an "is" comparison
+        #     y = values.view("i8")
+        #     y[mask] = np.iinfo(np.int64).max
+        #     changed = True
+        # else:
+        #     y = values
+        #     changed = False
+
+        # result = accum_func(y.view("i8"), axis=0)
+        # if skipna:
+        #     result[mask] = iNaT
+        # elif accum_func == np.minimum.accumulate:
+        #     # Restore NaTs that we masked previously
+        #     nz = (~np.asarray(mask)).nonzero()[0]
+        #     if len(nz):
+        #         # everything up to the first non-na entry stays NaT
+        #         result[: nz[0]] = iNaT
+
+        # if changed:
+        #     # restore NaT elements
+        #     y[mask] = iNaT  # TODO: could try/finally for this?
+
+        #     # DatetimeArray
+        # result = type(self)._simple_new(  # type: ignore[attr-defined]
+        #         result,
+        #     )
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):

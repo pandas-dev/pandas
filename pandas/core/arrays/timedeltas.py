@@ -47,6 +47,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import IntegerArray, datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
@@ -389,6 +390,24 @@ class TimedeltaArray(dtl.TimelikeOps):
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)
+
+    # ----------------------------------------------------------------
+    # Accumulations
+
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> TimedeltaArray:
+
+        data = self._data.copy()
+
+        if name in {"cumsum", "cumsum"}:
+            op = getattr(datetimelike_accumulations, name)
+            data = op(data, skipna=skipna, **kwargs)
+
+            return type(self)._simple_new(data, freq=None, dtype=self.dtype)
+
+        else:
+            return super()._accumulate(name, skipna=skipna, **kwargs)
 
     # ----------------------------------------------------------------
     # Rendering Methods
