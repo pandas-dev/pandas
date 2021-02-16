@@ -316,7 +316,11 @@ class JoinUnit:
                 if is_datetime64tz_dtype(empty_dtype):
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
-                    return DatetimeArray(i8values, dtype=empty_dtype)
+                    # error: Incompatible return value type (got "DatetimeArray",
+                    # expected "ndarray")
+                    return DatetimeArray(  # type: ignore[return-value]
+                        i8values, dtype=empty_dtype
+                    )
                 elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
