@@ -9,8 +9,15 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
-from pandas._libs.tslibs import NaT, Period, iNaT
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._libs.tslibs import (
+    NaT,
+    Period,
+    iNaT,
+)
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,

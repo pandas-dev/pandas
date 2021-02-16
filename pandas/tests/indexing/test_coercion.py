@@ -1,11 +1,17 @@
 from datetime import timedelta
 import itertools
-from typing import Dict, List
+from typing import (
+    Dict,
+    List,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm

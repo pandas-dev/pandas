@@ -1,7 +1,13 @@
 import textwrap
-from typing import List, Set
+from typing import (
+    List,
+    Set,
+)
 
-from pandas._libs import NaT, lib
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas.errors import InvalidIndexError
 
 from pandas.core.indexes.base import (

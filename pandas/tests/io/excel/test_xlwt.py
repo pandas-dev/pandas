@@ -1,10 +1,17 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, options
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    options,
+)
 import pandas._testing as tm
 
-from pandas.io.excel import ExcelWriter, _XlwtWriter
+from pandas.io.excel import (
+    ExcelWriter,
+    _XlwtWriter,
+)
 
 xlwt = pytest.importorskip("xlwt")
 

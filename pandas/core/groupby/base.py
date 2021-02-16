@@ -9,7 +9,10 @@ import warnings
 
 from pandas._typing import final
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_scalar,
+)
 
 from pandas.core.base import PandasObject
 

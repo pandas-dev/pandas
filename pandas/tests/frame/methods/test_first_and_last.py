@@ -3,7 +3,10 @@ Note: includes tests for `last`
 """
 import pytest
 
-from pandas import DataFrame, bdate_range
+from pandas import (
+    DataFrame,
+    bdate_range,
+)
 import pandas._testing as tm
 
 

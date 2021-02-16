@@ -1,6 +1,13 @@
-from datetime import timedelta, timezone
+from datetime import (
+    timedelta,
+    timezone,
+)
 
-from cpython.datetime cimport datetime, timedelta, tzinfo
+from cpython.datetime cimport (
+    datetime,
+    timedelta,
+    tzinfo,
+)
 
 # dateutil compat
 
@@ -24,7 +31,10 @@ from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from pandas._libs.tslibs.util cimport get_nat, is_integer_object
+from pandas._libs.tslibs.util cimport (
+    get_nat,
+    is_integer_object,
+)
 
 
 cdef int64_t NPY_NAT = get_nat()

@@ -1,11 +1,17 @@
 """
 Ops for masked arrays.
 """
-from typing import Optional, Union
+from typing import (
+    Optional,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 
 
 def kleene_or(

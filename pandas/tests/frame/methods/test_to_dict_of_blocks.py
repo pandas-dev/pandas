@@ -2,7 +2,10 @@ import numpy as np
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 import pandas._testing as tm
 from pandas.core.arrays import PandasArray
 

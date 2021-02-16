@@ -1,9 +1,20 @@
-from abc import ABC, abstractmethod
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from collections import abc
 import functools
 from io import StringIO
 from itertools import islice
-from typing import Any, Callable, Mapping, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -18,11 +29,25 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments, doc
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
-from pandas.core.dtypes.common import ensure_str, is_period_dtype
+from pandas.core.dtypes.common import (
+    ensure_str,
+    is_period_dtype,
+)
 
-from pandas import DataFrame, MultiIndex, Series, isna, notna, to_datetime
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    isna,
+    notna,
+    to_datetime,
+)
 from pandas.core import generic
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.generic import NDFrame
@@ -37,7 +62,10 @@ from pandas.io.common import (
     stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
-from pandas.io.json._table_schema import build_table_schema, parse_table_schema
+from pandas.io.json._table_schema import (
+    build_table_schema,
+    parse_table_schema,
+)
 from pandas.io.parsers.readers import validate_integer
 
 loads = json.loads

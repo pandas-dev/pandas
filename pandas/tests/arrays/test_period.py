@@ -9,7 +9,10 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray, period_array
+from pandas.core.arrays import (
+    PeriodArray,
+    period_array,
+)
 
 # ----------------------------------------------------------------------------
 # Dtype

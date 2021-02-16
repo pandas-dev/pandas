@@ -2,7 +2,11 @@ import re
 
 import pytest
 
-from pandas._libs.tslibs import Timedelta, offsets, to_offset
+from pandas._libs.tslibs import (
+    Timedelta,
+    offsets,
+    to_offset,
+)
 
 
 @pytest.mark.parametrize(

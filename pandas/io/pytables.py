@@ -6,7 +6,10 @@ from __future__ import annotations
 
 from contextlib import suppress
 import copy
-from datetime import date, tzinfo
+from datetime import (
+    date,
+    tzinfo,
+)
 import itertools
 import os
 import re
@@ -29,11 +32,23 @@ import warnings
 
 import numpy as np
 
-from pandas._config import config, get_option
+from pandas._config import (
+    config,
+    get_option,
+)
 
-from pandas._libs import lib, writers as libwriters
+from pandas._libs import (
+    lib,
+    writers as libwriters,
+)
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, DtypeArg, FrameOrSeries, FrameOrSeriesUnion, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -65,18 +80,32 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    PeriodArray,
+)
 import pandas.core.common as com
-from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.computation.pytables import (
+    PyTablesExpr,
+    maybe_expression,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 from pandas.core.internals import BlockManager
 
 from pandas.io.common import stringify_path
-from pandas.io.formats.printing import adjoin, pprint_thing
+from pandas.io.formats.printing import (
+    adjoin,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from tables import Col, File, Node
+    from tables import (
+        Col,
+        File,
+        Node,
+    )
 
     from pandas.core.internals import Block
 

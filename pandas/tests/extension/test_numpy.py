@@ -16,7 +16,10 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    PandasDtype,
+)
 
 import pandas as pd
 import pandas._testing as tm

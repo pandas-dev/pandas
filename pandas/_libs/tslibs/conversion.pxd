@@ -1,5 +1,12 @@
-from cpython.datetime cimport datetime, tzinfo
-from numpy cimport int32_t, int64_t, ndarray
+from cpython.datetime cimport (
+    datetime,
+    tzinfo,
+)
+from numpy cimport (
+    int32_t,
+    int64_t,
+    ndarray,
+)
 
 from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 

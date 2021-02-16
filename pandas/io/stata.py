@@ -36,8 +36,16 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import Buffer, CompressionOptions, FilePathOrBuffer, StorageOptions
-from pandas.util._decorators import Appender, doc
+from pandas._typing import (
+    Buffer,
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,

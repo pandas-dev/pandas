@@ -15,10 +15,21 @@ import pytz
 
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    NaT,
+    Series,
+    Timedelta,
+    date_range,
+)
 import pandas._testing as tm
 
 pytestmark = td.skip_array_manager_not_yet_implemented

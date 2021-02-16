@@ -5,27 +5,54 @@ from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+)
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import DtypeArg, FilePathOrBuffer, StorageOptions, Union
-from pandas.errors import AbstractMethodError, ParserWarning
+from pandas._typing import (
+    DtypeArg,
+    FilePathOrBuffer,
+    StorageOptions,
+    Union,
+)
+from pandas.errors import (
+    AbstractMethodError,
+    ParserWarning,
+)
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_file_like, is_float, is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_file_like,
+    is_float,
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 
 from pandas.io.common import validate_header_arg
-from pandas.io.parsers.base_parser import ParserBase, is_index_col, parser_defaults
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    is_index_col,
+    parser_defaults,
+)
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-from pandas.io.parsers.python_parser import FixedWidthFieldParser, PythonParser
+from pandas.io.parsers.python_parser import (
+    FixedWidthFieldParser,
+    PythonParser,
+)
 
 _doc_read_csv_and_table = (
     r"""

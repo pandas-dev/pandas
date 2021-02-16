@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from functools import wraps
-from typing import Any, Optional, Sequence, Type, TypeVar, Union
+from typing import (
+    Any,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -9,7 +16,10 @@ from pandas._libs import lib
 from pandas._typing import Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -17,7 +27,11 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
-from pandas.core.algorithms import take, unique, value_counts
+from pandas.core.algorithms import (
+    take,
+    unique,
+    value_counts,
+)
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
@@ -389,7 +403,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         if self.ndim != 1:
             raise NotImplementedError
 
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
 
         if dropna:
             values = self[~self.isna()]._ndarray

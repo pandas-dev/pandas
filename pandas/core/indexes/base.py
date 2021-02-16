@@ -25,19 +25,40 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, index as libindex, lib
+from pandas._libs import (
+    algos as libalgos,
+    index as libindex,
+    lib,
+)
 import pandas._libs.join as libjoin
-from pandas._libs.lib import is_datetime_array, no_default
+from pandas._libs.lib import (
+    is_datetime_array,
+    no_default,
+)
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
 )
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Shape, final
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    Shape,
+    final,
+)
 from pandas.compat.numpy import function as nv
-from pandas.errors import DuplicateLabelError, InvalidIndexError
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.errors import (
+    DuplicateLabelError,
+    InvalidIndexError,
+)
+from pandas.util._decorators import (
+    Appender,
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -88,26 +109,45 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_dict_like
-from pandas.core.dtypes.missing import array_equivalent, is_valid_na_for_dtype, isna
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+    is_valid_na_for_dtype,
+    isna,
+)
 
-from pandas.core import missing, ops
+from pandas.core import (
+    missing,
+    ops,
+)
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
     validate_putmask,
 )
-from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+from pandas.core.arrays.datetimes import (
+    tz_to_dtype,
+    validate_tz_from_dtype,
+)
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.base import IndexOpsMixin, PandasObject
+from pandas.core.base import (
+    IndexOpsMixin,
+    PandasObject,
+)
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.sorting import ensure_key_mapped, nargsort
+from pandas.core.sorting import (
+    ensure_key_mapped,
+    nargsort,
+)
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -119,7 +159,13 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import CategoricalIndex, IntervalIndex, MultiIndex, RangeIndex, Series
+    from pandas import (
+        CategoricalIndex,
+        IntervalIndex,
+        MultiIndex,
+        RangeIndex,
+        Series,
+    )
     from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 

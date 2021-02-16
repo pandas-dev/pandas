@@ -1,8 +1,14 @@
 import cython
 from cython import Py_ssize_t
 
-from libc.math cimport fabs, sqrt
-from libc.stdlib cimport free, malloc
+from libc.math cimport (
+    fabs,
+    sqrt,
+)
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 from libc.string cimport memmove
 
 import numpy as np
@@ -46,7 +52,10 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
-from pandas._libs.util cimport get_nat, numeric
+from pandas._libs.util cimport (
+    get_nat,
+    numeric,
+)
 
 import pandas._libs.missing as missing
 

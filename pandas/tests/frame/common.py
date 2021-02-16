@@ -1,6 +1,9 @@
 from typing import List
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 
 
 def _check_mixed_float(df, dtype=None):

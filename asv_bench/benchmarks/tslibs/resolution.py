@@ -17,9 +17,15 @@ for unit in tr.params[0]:
             df.loc[key] = (val.average, val.stdev)
 
 """
-from datetime import timedelta, timezone
+from datetime import (
+    timedelta,
+    timezone,
+)
 
-from dateutil.tz import gettz, tzlocal
+from dateutil.tz import (
+    gettz,
+    tzlocal,
+)
 import numpy as np
 import pytz
 

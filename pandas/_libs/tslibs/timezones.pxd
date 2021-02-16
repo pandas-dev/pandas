@@ -1,4 +1,8 @@
-from cpython.datetime cimport datetime, timedelta, tzinfo
+from cpython.datetime cimport (
+    datetime,
+    timedelta,
+    tzinfo,
+)
 
 
 cdef tzinfo utc_pytz

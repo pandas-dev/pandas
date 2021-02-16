@@ -3,7 +3,13 @@ from datetime import datetime
 import numpy as np
 
 import pandas as pd
-from pandas import Period, Series, date_range, period_range, to_datetime
+from pandas import (
+    Period,
+    Series,
+    date_range,
+    period_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 

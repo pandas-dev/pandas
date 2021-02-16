@@ -6,7 +6,10 @@ from typing import Type
 import pytest
 
 import pandas as pd
-from pandas.api.extensions import ExtensionDtype, register_extension_dtype
+from pandas.api.extensions import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
 

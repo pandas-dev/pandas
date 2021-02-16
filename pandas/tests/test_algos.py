@@ -5,7 +5,10 @@ import struct
 import numpy as np
 import pytest
 
-from pandas._libs import algos as libalgos, hashtable as ht
+from pandas._libs import (
+    algos as libalgos,
+    hashtable as ht,
+)
 from pandas.compat import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 

@@ -1,18 +1,35 @@
 import contextlib
 import datetime as pydt
-from datetime import datetime, timedelta, tzinfo
+from datetime import (
+    datetime,
+    timedelta,
+    tzinfo,
+)
 import functools
-from typing import Any, Dict, List, Optional, Tuple
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
-from matplotlib.ticker import AutoLocator, Formatter, Locator
+from matplotlib.ticker import (
+    AutoLocator,
+    Formatter,
+    Locator,
+)
 from matplotlib.transforms import nonsingular
 import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Timestamp, to_offset
+from pandas._libs.tslibs import (
+    Timestamp,
+    to_offset,
+)
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
 
@@ -24,10 +41,18 @@ from pandas.core.dtypes.common import (
     is_nested_list_like,
 )
 
-from pandas import Index, Series, get_option
+from pandas import (
+    Index,
+    Series,
+    get_option,
+)
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import Period, PeriodIndex, period_range
+from pandas.core.indexes.period import (
+    Period,
+    PeriodIndex,
+    period_range,
+)
 import pandas.core.tools.datetimes as tools
 
 # constants

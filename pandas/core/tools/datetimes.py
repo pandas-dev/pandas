@@ -35,7 +35,11 @@ from pandas._libs.tslibs.parsing import (  # noqa
     guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import AnyArrayLike, ArrayLike, Timezone
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Timezone,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -49,10 +53,16 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import notna
 
-from pandas.arrays import DatetimeArray, IntegerArray
+from pandas.arrays import (
+    DatetimeArray,
+    IntegerArray,
+)
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 from pandas.core.arrays.datetimes import (
@@ -882,7 +892,11 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     -------
     Series
     """
-    from pandas import DataFrame, to_numeric, to_timedelta
+    from pandas import (
+        DataFrame,
+        to_numeric,
+        to_timedelta,
+    )
 
     arg = DataFrame(arg)
     if not arg.columns.is_unique:

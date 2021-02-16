@@ -1,4 +1,9 @@
-from typing import Any, Hashable, List, Optional
+from typing import (
+    Any,
+    Hashable,
+    List,
+    Optional,
+)
 import warnings
 
 import numpy as np
@@ -7,22 +12,42 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Dtype
-from pandas.util._decorators import Appender, doc
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+)
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    notna,
+)
 
 from pandas.core import accessor
-from pandas.core.arrays.categorical import Categorical, contains
+from pandas.core.arrays.categorical import (
+    Categorical,
+    contains,
+)
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    maybe_extract_name,
+)
+from pandas.core.indexes.extension import (
+    NDArrayBackedExtensionIndex,
+    inherit_names,
+)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})

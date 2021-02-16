@@ -1,7 +1,10 @@
 """
 EA-compatible analogue to to np.putmask
 """
-from typing import Any, Tuple
+from typing import (
+    Any,
+    Tuple,
+)
 import warnings
 
 import numpy as np
@@ -14,7 +17,11 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
 )
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_list_like
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+    is_list_like,
+)
 from pandas.core.dtypes.missing import isna_compat
 
 from pandas.core.arrays import ExtensionArray

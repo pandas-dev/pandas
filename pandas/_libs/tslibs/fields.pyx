@@ -9,13 +9,22 @@ from cython import Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int8_t, int32_t, int64_t, ndarray, uint32_t
+from numpy cimport (
+    int8_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint32_t,
+)
 
 cnp.import_array()
 
 from pandas._config.localization import set_locale
 
-from pandas._libs.tslibs.ccalendar import DAYS_FULL, MONTHS_FULL
+from pandas._libs.tslibs.ccalendar import (
+    DAYS_FULL,
+    MONTHS_FULL,
+)
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,

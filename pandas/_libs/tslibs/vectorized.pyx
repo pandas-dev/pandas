@@ -1,21 +1,40 @@
 import cython
 
-from cpython.datetime cimport date, datetime, time, tzinfo
+from cpython.datetime cimport (
+    date,
+    datetime,
+    time,
+    tzinfo,
+)
 
 import numpy as np
 
-from numpy cimport int64_t, intp_t, ndarray
+from numpy cimport (
+    int64_t,
+    intp_t,
+    ndarray,
+)
 
 from .conversion cimport normalize_i8_stamp
 
 from .dtypes import Resolution
 
-from .nattype cimport NPY_NAT, c_NaT as NaT
-from .np_datetime cimport dt64_to_dtstruct, npy_datetimestruct
+from .nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
+from .np_datetime cimport (
+    dt64_to_dtstruct,
+    npy_datetimestruct,
+)
 from .offsets cimport to_offset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
-from .timezones cimport get_dst_info, is_tzlocal, is_utc
+from .timezones cimport (
+    get_dst_info,
+    is_tzlocal,
+    is_utc,
+)
 from .tzconversion cimport tz_convert_utc_to_tzlocal
 
 # -------------------------------------------------------------------------

@@ -2,31 +2,53 @@ from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
-from typing import Dict, List, Type
+from typing import (
+    Dict,
+    List,
+    Type,
+)
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows, np_version_under1p17
+from pandas.compat import (
+    is_platform_windows,
+    np_version_under1p17,
+)
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_list_like,
+    is_scalar,
+)
 
 import pandas as pd
-from pandas import DataFrame, Series, compat, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    compat,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.computation import pytables
 from pandas.core.computation.check import NUMEXPR_VERSION
-from pandas.core.computation.engines import ENGINES, NumExprClobberingError
+from pandas.core.computation.engines import (
+    ENGINES,
+    NumExprClobberingError,
+)
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
     PythonExprVisitor,
 )
-from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
+from pandas.core.computation.expressions import (
+    NUMEXPR_INSTALLED,
+    USE_NUMEXPR,
+)
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
     SPECIAL_CASE_ARITH_OPS_SYMS,

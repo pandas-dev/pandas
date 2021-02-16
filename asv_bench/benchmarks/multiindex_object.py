@@ -2,7 +2,12 @@ import string
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, RangeIndex, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    RangeIndex,
+    date_range,
+)
 
 from .pandas_vb_common import tm
 

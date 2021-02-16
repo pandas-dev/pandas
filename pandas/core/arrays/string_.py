@@ -1,14 +1,28 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Type,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import Dtype, Scalar
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    Dtype,
+    Scalar,
+)
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -21,7 +35,11 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import FloatingArray, IntegerArray, PandasArray
+from pandas.core.arrays import (
+    FloatingArray,
+    IntegerArray,
+    PandasArray,
+)
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -385,7 +403,11 @@ class StringArray(PandasArray):
     _str_na_value = StringDtype.na_value
 
     def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
-        from pandas.arrays import BooleanArray, IntegerArray, StringArray
+        from pandas.arrays import (
+            BooleanArray,
+            IntegerArray,
+            StringArray,
+        )
         from pandas.core.arrays.string_ import StringDtype
 
         if dtype is None:

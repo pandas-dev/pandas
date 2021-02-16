@@ -1,5 +1,9 @@
 """ test label based indexing with loc """
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 from io import StringIO
 import re
 

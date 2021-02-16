@@ -3,7 +3,11 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-from pandas import DataFrame, DatetimeIndex, Series
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.window import Expanding
 

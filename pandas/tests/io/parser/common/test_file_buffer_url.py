@@ -2,14 +2,20 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 import platform
 from urllib.error import URLError
 
 import pytest
 
-from pandas.errors import EmptyDataError, ParserError
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame

@@ -3,7 +3,13 @@ from datetime import date
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalDtype, CategoricalIndex, Index, IntervalIndex
+from pandas import (
+    Categorical,
+    CategoricalDtype,
+    CategoricalIndex,
+    Index,
+    IntervalIndex,
+)
 import pandas._testing as tm
 
 

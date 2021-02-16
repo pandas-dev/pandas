@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame, Series, _testing as tm, concat, read_hdf
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    _testing as tm,
+    concat,
+    read_hdf,
+)
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,

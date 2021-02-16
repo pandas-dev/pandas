@@ -4,10 +4,18 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, iNaT
+from pandas._libs.tslibs import (
+    NaT,
+    iNaT,
+)
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, offsets, to_timedelta
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    offsets,
+    to_timedelta,
+)
 import pandas._testing as tm
 
 

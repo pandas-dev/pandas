@@ -6,11 +6,18 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, to_offset
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    to_offset,
+)
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
 import pandas as pd
-from pandas import DatetimeIndex, Timestamp, date_range
+from pandas import (
+    DatetimeIndex,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 

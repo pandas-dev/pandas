@@ -14,13 +14,24 @@ Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
 from collections import abc
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import struct
-from typing import IO, Any, Union, cast
+from typing import (
+    IO,
+    Any,
+    Union,
+    cast,
+)
 
 import numpy as np
 
-from pandas.errors import EmptyDataError, OutOfBoundsDatetime
+from pandas.errors import (
+    EmptyDataError,
+    OutOfBoundsDatetime,
+)
 
 import pandas as pd
 from pandas import isna

@@ -2,7 +2,10 @@
 
 import numpy as np
 
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 # Cython routines for window indexers
 

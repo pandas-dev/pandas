@@ -11,9 +11,17 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.errors import EmptyDataError, ParserError
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 
-from pandas import DataFrame, Index, Series, compat
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    compat,
+)
 import pandas._testing as tm
 
 from pandas.io.parsers import TextFileReader

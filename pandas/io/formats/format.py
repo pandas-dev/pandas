@@ -5,7 +5,10 @@ and latex files. This module also applies to display formatting.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from csv import QUOTE_NONE, QUOTE_NONNUMERIC
+from csv import (
+    QUOTE_NONE,
+    QUOTE_NONNUMERIC,
+)
 import decimal
 from functools import partial
 from io import StringIO
@@ -33,11 +36,19 @@ from unicodedata import east_asian_width
 
 import numpy as np
 
-from pandas._config.config import get_option, set_option
+from pandas._config.config import (
+    get_option,
+    set_option,
+)
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
-from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    iNaT,
+)
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
@@ -66,23 +77,39 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    PeriodIndex,
+    ensure_index,
+)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import stringify_path
-from pandas.io.formats.printing import adjoin, justify, pprint_thing
+from pandas.io.formats.printing import (
+    adjoin,
+    justify,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Series
+    from pandas import (
+        Categorical,
+        DataFrame,
+        Series,
+    )
 
 
 common_docstring = """
@@ -989,7 +1016,10 @@ class DataFrameRenderer:
         render_links : bool, default False
             Convert URLs to HTML links.
         """
-        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
+        from pandas.io.formats.html import (
+            HTMLFormatter,
+            NotebookFormatter,
+        )
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
 

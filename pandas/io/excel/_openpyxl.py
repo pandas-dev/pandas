@@ -1,14 +1,26 @@
 from __future__ import annotations
 
 import mmap
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Optional,
+)
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.excel._base import BaseExcelReader, ExcelWriter
+from pandas.io.excel._base import (
+    BaseExcelReader,
+    ExcelWriter,
+)
 from pandas.io.excel._util import validate_freeze_panes
 
 if TYPE_CHECKING:
@@ -215,7 +227,10 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         fill : openpyxl.styles.Fill
         """
-        from openpyxl.styles import GradientFill, PatternFill
+        from openpyxl.styles import (
+            GradientFill,
+            PatternFill,
+        )
 
         _pattern_fill_key_map = {
             "patternType": "fill_type",
@@ -508,7 +523,10 @@ class OpenpyxlReader(BaseExcelReader):
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
 
-        from openpyxl.cell.cell import TYPE_ERROR, TYPE_NUMERIC
+        from openpyxl.cell.cell import (
+            TYPE_ERROR,
+            TYPE_NUMERIC,
+        )
 
         if cell.value is None:
             return ""  # compat with xlrd

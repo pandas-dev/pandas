@@ -1,5 +1,8 @@
 try:
-    from pandas._libs.tslibs import is_date_array_normalized, normalize_i8_timestamps
+    from pandas._libs.tslibs import (
+        is_date_array_normalized,
+        normalize_i8_timestamps,
+    )
 except ImportError:
     from pandas._libs.tslibs.conversion import (
         normalize_i8_timestamps,
@@ -8,7 +11,10 @@ except ImportError:
 
 import pandas as pd
 
-from .tslib import _sizes, _tzs
+from .tslib import (
+    _sizes,
+    _tzs,
+)
 
 
 class Normalize:

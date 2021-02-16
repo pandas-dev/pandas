@@ -18,7 +18,11 @@ The SQL tests are broken down in different classes:
 """
 
 import csv
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 from io import StringIO
 import sqlite3
 import warnings
@@ -26,7 +30,10 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -44,7 +51,10 @@ from pandas import (
 import pandas._testing as tm
 
 import pandas.io.sql as sql
-from pandas.io.sql import read_sql_query, read_sql_table
+from pandas.io.sql import (
+    read_sql_query,
+    read_sql_table,
+)
 
 try:
     import sqlalchemy

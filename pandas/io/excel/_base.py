@@ -7,24 +7,53 @@ import inspect
 from io import BytesIO
 import os
 from textwrap import fill
-from typing import Any, Dict, Mapping, Optional, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Mapping,
+    Optional,
+    Union,
+    cast,
+)
 import warnings
 import zipfile
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
-from pandas.compat._optional import get_version, import_optional_dependency
+from pandas._typing import (
+    Buffer,
+    DtypeArg,
+    FilePathOrBuffer,
+    StorageOptions,
+)
+from pandas.compat._optional import (
+    get_version,
+    import_optional_dependency,
+)
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
-from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_float,
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
+from pandas.io.common import (
+    IOHandles,
+    get_handle,
+    stringify_path,
+    validate_header_arg,
+)
 from pandas.io.excel._util import (
     fill_mi_header,
     get_default_engine,

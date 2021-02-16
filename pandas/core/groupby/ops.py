@@ -22,10 +22,20 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, lib
+from pandas._libs import (
+    NaT,
+    iNaT,
+    lib,
+)
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Shape, final
+from pandas._typing import (
+    ArrayLike,
+    F,
+    FrameOrSeries,
+    Shape,
+    final,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -55,15 +65,25 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex
-from pandas.core.dtypes.missing import isna, maybe_fill
+from pandas.core.dtypes.missing import (
+    isna,
+    maybe_fill,
+)
 
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, grouper
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.groupby import (
+    base,
+    grouper,
+)
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    ensure_index,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,

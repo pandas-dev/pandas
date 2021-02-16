@@ -1,4 +1,7 @@
-from datetime import datetime, time
+from datetime import (
+    datetime,
+    time,
+)
 
 import numpy as np
 import pytest
@@ -6,7 +9,11 @@ import pytest
 from pandas._libs.tslibs import timezones
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 

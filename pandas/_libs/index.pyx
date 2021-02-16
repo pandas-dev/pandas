@@ -28,7 +28,10 @@ from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 
-from pandas._libs import algos, hashtable as _hash
+from pandas._libs import (
+    algos,
+    hashtable as _hash,
+)
 from pandas._libs.missing import checknull
 
 

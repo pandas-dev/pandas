@@ -5,10 +5,18 @@ import os
 import platform
 import struct
 import sys
-from typing import Dict, Optional, Union
+from typing import (
+    Dict,
+    Optional,
+    Union,
+)
 
 from pandas._typing import JSONSerializable
-from pandas.compat._optional import VERSIONS, get_version, import_optional_dependency
+from pandas.compat._optional import (
+    VERSIONS,
+    get_version,
+    import_optional_dependency,
+)
 
 
 def _get_commit_hash() -> Optional[str]:

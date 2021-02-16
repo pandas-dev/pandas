@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Index, MultiIndex, NaT
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    NaT,
+)
 import pandas._testing as tm
 
 

@@ -6,9 +6,15 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
+from pandas.tests.io.pytables.common import (
+    ensure_clean_path,
+    ensure_clean_store,
+)
 
 from pandas.io.pytables import read_hdf
 

@@ -1,4 +1,9 @@
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -6,10 +11,20 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, bdate_range, date_range, notna
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Timestamp,
+    bdate_range,
+    date_range,
+    notna,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, CDay
+from pandas.tseries.offsets import (
+    BDay,
+    CDay,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 

@@ -5,7 +5,12 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 from decimal import Decimal
 from fractions import Fraction
 from io import StringIO
@@ -16,7 +21,10 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference

@@ -4,10 +4,24 @@ retrieval and to reduce dependency on DB-specific API.
 """
 
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 from functools import partial
 import re
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Union, cast, overload
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+    overload,
+)
 import warnings
 
 import numpy as np
@@ -15,11 +29,18 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_dict_like,
+    is_list_like,
+)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import (
+    DataFrame,
+    Series,
+)
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
 
@@ -1036,7 +1057,11 @@ class SQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import Column, PrimaryKeyConstraint, Table
+        from sqlalchemy import (
+            Column,
+            PrimaryKeyConstraint,
+            Table,
+        )
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1186,7 +1211,14 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
+        from sqlalchemy.types import (
+            TIMESTAMP,
+            Boolean,
+            Date,
+            DateTime,
+            Float,
+            Integer,
+        )
 
         if isinstance(sqltype, Float):
             return float
@@ -1517,7 +1549,10 @@ class SQLDatabase(PandasSQL):
             else:
                 dtype = cast(dict, dtype)
 
-            from sqlalchemy.types import TypeEngine, to_instance
+            from sqlalchemy.types import (
+                TypeEngine,
+                to_instance,
+            )
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):

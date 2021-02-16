@@ -4,9 +4,17 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    timedelta_range,
+    to_timedelta,
+)
 import pandas._testing as tm
-from pandas.core.arrays.timedeltas import TimedeltaArray, sequence_to_td64ns
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArray,
+    sequence_to_td64ns,
+)
 
 
 class TestTimedeltaIndex:

@@ -16,9 +16,15 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
+from pandas.tests.io.pytables.common import (
+    ensure_clean_path,
+    ensure_clean_store,
+)
 
-from pandas.io.pytables import Term, _maybe_adjust_name
+from pandas.io.pytables import (
+    Term,
+    _maybe_adjust_name,
+)
 
 pytestmark = pytest.mark.single
 

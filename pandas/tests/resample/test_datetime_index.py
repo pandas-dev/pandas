@@ -10,12 +10,25 @@ from pandas._libs import lib
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Series, Timedelta, Timestamp, isna, notna
+from pandas import (
+    DataFrame,
+    Series,
+    Timedelta,
+    Timestamp,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import Period, period_range
-from pandas.core.resample import DatetimeIndex, _get_timestamp_range_edges
+from pandas.core.indexes.period import (
+    Period,
+    period_range,
+)
+from pandas.core.resample import (
+    DatetimeIndex,
+    _get_timestamp_range_edges,
+)
 
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import Minute

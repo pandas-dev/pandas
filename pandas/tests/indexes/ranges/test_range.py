@@ -4,7 +4,12 @@ import pytest
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+)
 import pandas._testing as tm
 from pandas.tests.indexes.test_numeric import Numeric
 

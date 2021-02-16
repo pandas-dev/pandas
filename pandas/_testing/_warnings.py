@@ -1,6 +1,12 @@
 from contextlib import contextmanager
 import re
-from typing import Optional, Sequence, Type, Union, cast
+from typing import (
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 
 
@@ -163,7 +169,10 @@ def _is_unexpected_warning(
 def _assert_raised_with_correct_stacklevel(
     actual_warning: warnings.WarningMessage,
 ) -> None:
-    from inspect import getframeinfo, stack
+    from inspect import (
+        getframeinfo,
+        stack,
+    )
 
     caller = getframeinfo(stack()[4][0])
     msg = (

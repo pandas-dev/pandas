@@ -2,12 +2,18 @@
 Assertion helpers and base class for offsets tests
 """
 from datetime import datetime
-from typing import Optional, Type
+from typing import (
+    Optional,
+    Type,
+)
 
 from dateutil.tz.tz import tzlocal
 import pytest
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timestamp,
+)
 from pandas._libs.tslibs.offsets import (
     FY5253,
     BusinessHour,

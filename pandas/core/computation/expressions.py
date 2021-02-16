@@ -6,7 +6,11 @@ Offer fast expression evaluation through numexpr
 
 """
 import operator
-from typing import List, Optional, Set
+from typing import (
+    List,
+    Optional,
+    Set,
+)
 import warnings
 
 import numpy as np

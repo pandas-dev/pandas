@@ -16,7 +16,10 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype

@@ -6,7 +6,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, isna
+from pandas import (
+    DataFrame,
+    Series,
+    isna,
+)
 import pandas._testing as tm
 
 

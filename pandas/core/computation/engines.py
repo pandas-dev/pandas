@@ -3,10 +3,19 @@ Engine classes for :func:`~pandas.eval`
 """
 
 import abc
-from typing import Dict, Type
+from typing import (
+    Dict,
+    Type,
+)
 
-from pandas.core.computation.align import align_terms, reconstruct_object
-from pandas.core.computation.ops import MATHOPS, REDUCTIONS
+from pandas.core.computation.align import (
+    align_terms,
+    reconstruct_object,
+)
+from pandas.core.computation.ops import (
+    MATHOPS,
+    REDUCTIONS,
+)
 
 import pandas.io.formats.printing as printing
 

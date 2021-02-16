@@ -1,7 +1,10 @@
 """ generic tests from the Datetimelike class """
 import pytest
 
-from pandas import DatetimeIndex, date_range
+from pandas import (
+    DatetimeIndex,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.indexes.datetimelike import DatetimeLike
 

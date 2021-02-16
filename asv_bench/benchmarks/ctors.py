@@ -1,6 +1,12 @@
 import numpy as np
 
-from pandas import DatetimeIndex, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 
 from .pandas_vb_common import tm
 

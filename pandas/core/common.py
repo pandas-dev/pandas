@@ -4,7 +4,10 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
-from collections import abc, defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import contextlib
 from functools import partial
 import inspect
@@ -25,7 +28,12 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, NpDtype, Scalar, T
+from pandas._typing import (
+    AnyArrayLike,
+    NpDtype,
+    Scalar,
+    T,
+)
 from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -35,9 +43,17 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+from pandas.core.dtypes.missing import (  # noqa
+    isna,
+    isnull,
+    notnull,
+)
 
 
 class SettingWithCopyError(ValueError):

@@ -2,7 +2,12 @@ import cython
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int32_t, int64_t, intp_t, ndarray
+from numpy cimport (
+    int32_t,
+    int64_t,
+    intp_t,
+    ndarray,
+)
 
 cnp.import_array()
 

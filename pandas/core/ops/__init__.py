@@ -6,7 +6,11 @@ This is not a public API.
 from __future__ import annotations
 
 import operator
-from typing import TYPE_CHECKING, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Set,
+)
 import warnings
 
 import numpy as np
@@ -15,8 +19,14 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:
 from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_array_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -37,7 +47,11 @@ from pandas.core.ops.docstrings import (
     make_flex_doc,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
-from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
+from pandas.core.ops.mask_ops import (  # noqa: F401
+    kleene_and,
+    kleene_or,
+    kleene_xor,
+)
 from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
 from pandas.core.ops.roperator import (  # noqa:F401
     radd,
@@ -55,7 +69,10 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 # -----------------------------------------------------------------------------
 # constants

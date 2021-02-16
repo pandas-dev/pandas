@@ -5,7 +5,13 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.window.common import flex_binary_moment
 

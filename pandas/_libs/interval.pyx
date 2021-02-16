@@ -1,7 +1,13 @@
 import numbers
-from operator import le, lt
+from operator import (
+    le,
+    lt,
+)
 
-from cpython.datetime cimport PyDateTime_IMPORT, PyDelta_Check
+from cpython.datetime cimport (
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+)
 
 PyDateTime_IMPORT
 

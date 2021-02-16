@@ -1,5 +1,8 @@
 import calendar
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -9,7 +12,12 @@ import pytz
 
 from pandas.errors import OutOfBoundsDatetime
 
-from pandas import Period, Timedelta, Timestamp, compat
+from pandas import (
+    Period,
+    Timedelta,
+    Timestamp,
+    compat,
+)
 
 from pandas.tseries import offsets
 

@@ -8,7 +8,11 @@ from pandas._libs.missing import is_matching_na
 
 from pandas.core.dtypes.common import is_float
 
-from pandas import Index, MultiIndex, Series
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

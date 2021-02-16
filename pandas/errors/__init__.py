@@ -6,7 +6,10 @@ Expose public exceptions & warnings
 
 from pandas._config.config import OptionError
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, OutOfBoundsTimedelta
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 
 class NullFrequencyError(ValueError):

@@ -2,7 +2,10 @@
 
 import calendar
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import locale
 
 from dateutil.parser import parse
@@ -12,7 +15,10 @@ import pytest
 import pytz
 
 from pandas._libs import tslib
-from pandas._libs.tslibs import iNaT, parsing
+from pandas._libs.tslibs import (
+    iNaT,
+    parsing,
+)
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 

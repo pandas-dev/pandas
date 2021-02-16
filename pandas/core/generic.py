@@ -33,7 +33,12 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
+from pandas._libs.tslibs import (
+    Period,
+    Tick,
+    Timestamp,
+    to_offset,
+)
 from pandas._typing import (
     Axis,
     CompressionOptions,
@@ -57,9 +62,18 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError, InvalidIndexError
-from pandas.util._decorators import doc, rewrite_axis_style_signature
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.errors import (
+    AbstractMethodError,
+    InvalidIndexError,
+)
+from pandas.util._decorators import (
+    doc,
+    rewrite_axis_style_signature,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -82,16 +96,33 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import arraylike, indexing, missing, nanops
+from pandas.core import (
+    arraylike,
+    indexing,
+    missing,
+    nanops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.base import (
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
-from pandas.core.construction import create_series_with_explicit_dtype, extract_array
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+)
 from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
@@ -103,16 +134,27 @@ from pandas.core.indexes.api import (
     RangeIndex,
     ensure_index,
 )
-from pandas.core.internals import ArrayManager, BlockManager
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
-from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
+from pandas.core.window import (
+    Expanding,
+    ExponentialMovingWindow,
+    Rolling,
+    Window,
+)
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.format import DataFrameFormatter, DataFrameRenderer
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    DataFrameRenderer,
+)
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:

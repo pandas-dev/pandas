@@ -3,7 +3,13 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Index,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 

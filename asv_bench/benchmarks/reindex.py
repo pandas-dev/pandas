@@ -1,8 +1,18 @@
 import numpy as np
 
-from pandas import DataFrame, Index, MultiIndex, Series, date_range, period_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    period_range,
+)
 
-from .pandas_vb_common import lib, tm
+from .pandas_vb_common import (
+    lib,
+    tm,
+)
 
 
 class Reindex:

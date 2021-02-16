@@ -7,7 +7,14 @@ import pytz
 
 from pandas.compat import is_platform_little_endian
 
-from pandas import CategoricalIndex, DataFrame, Index, Interval, RangeIndex, Series
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    Interval,
+    RangeIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

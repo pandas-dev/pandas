@@ -3,8 +3,19 @@ Core eval alignment algorithms.
 """
 from __future__ import annotations
 
-from functools import partial, wraps
-from typing import TYPE_CHECKING, Dict, Optional, Sequence, Tuple, Type, Union
+from functools import (
+    partial,
+    wraps,
+)
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -12,7 +23,10 @@ import numpy as np
 from pandas._typing import FrameOrSeries
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com

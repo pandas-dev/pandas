@@ -9,7 +9,10 @@ import pytest
 
 from pandas.errors import DtypeWarning
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
 
 

@@ -3,10 +3,20 @@
 """
 
 import ast
-from functools import partial, reduce
+from functools import (
+    partial,
+    reduce,
+)
 from keyword import iskeyword
 import tokenize
-from typing import Callable, Optional, Set, Tuple, Type, TypeVar
+from typing import (
+    Callable,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -31,7 +41,10 @@ from pandas.core.computation.ops import (
     UndefinedVariableError,
     is_term,
 )
-from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
+from pandas.core.computation.parsing import (
+    clean_backtick_quoted_toks,
+    tokenize_string,
+)
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing

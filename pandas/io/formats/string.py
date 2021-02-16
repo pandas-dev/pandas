@@ -2,7 +2,11 @@
 Module for formatting output data in console (to string).
 """
 from shutil import get_terminal_size
-from typing import Iterable, List, Optional
+from typing import (
+    Iterable,
+    List,
+    Optional,
+)
 
 import numpy as np
 

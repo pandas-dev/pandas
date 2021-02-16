@@ -1,4 +1,7 @@
-from typing import Optional, Tuple
+from typing import (
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 

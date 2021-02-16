@@ -8,7 +8,12 @@ from libcpp.deque cimport deque
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float32_t, float64_t, int64_t, ndarray
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int64_t,
+    ndarray,
+)
 
 cnp.import_array()
 

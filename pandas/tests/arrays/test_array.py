@@ -21,8 +21,15 @@ from pandas.arrays import (
     StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays import PandasArray, period_array
-from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
+from pandas.core.arrays import (
+    PandasArray,
+    period_array,
+)
+from pandas.tests.extension.decimal import (
+    DecimalArray,
+    DecimalDtype,
+    to_decimal,
+)
 
 
 @pytest.mark.parametrize(

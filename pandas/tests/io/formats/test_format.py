@@ -18,7 +18,10 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2445,7 +2448,10 @@ class TestSeriesFormatting:
 
     def test_timedelta64(self):
 
-        from datetime import datetime, timedelta
+        from datetime import (
+            datetime,
+            timedelta,
+        )
 
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 

@@ -1,11 +1,20 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 from io import StringIO
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    bdate_range,
+)
 import pandas._testing as tm
 
 

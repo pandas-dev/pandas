@@ -3,7 +3,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import Series, _testing as tm
+from pandas import (
+    Series,
+    _testing as tm,
+)
 
 
 def test_title():

@@ -1,16 +1,28 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
+from pandas.core.indexes.period import (
+    PeriodIndex,
+    period_range,
+)
 from pandas.core.indexes.timedeltas import timedelta_range
 
-from pandas.tseries.offsets import BDay, Minute
+from pandas.tseries.offsets import (
+    BDay,
+    Minute,
+)
 
 DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
 PERIOD_RANGE = (period_range, "pi", datetime(2005, 1, 1), datetime(2005, 1, 10))

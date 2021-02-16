@@ -1,5 +1,8 @@
 import abc
-from typing import Pattern, Union
+from typing import (
+    Pattern,
+    Union,
+)
 
 import numpy as np
 

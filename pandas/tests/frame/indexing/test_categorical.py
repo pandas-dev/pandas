@@ -4,7 +4,12 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 msg1 = "Cannot setitem on a Categorical with a new category, set the categories first"

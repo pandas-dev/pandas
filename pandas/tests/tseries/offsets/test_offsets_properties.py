@@ -9,7 +9,11 @@ tests, or when trying to pin down the bugs exposed by the tests below.
 """
 import warnings
 
-from hypothesis import assume, given, strategies as st
+from hypothesis import (
+    assume,
+    given,
+    strategies as st,
+)
 from hypothesis.errors import Flaky
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones

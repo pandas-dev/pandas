@@ -4,10 +4,17 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, get_option, read_clipboard
+from pandas import (
+    DataFrame,
+    get_option,
+    read_clipboard,
+)
 import pandas._testing as tm
 
-from pandas.io.clipboard import clipboard_get, clipboard_set
+from pandas.io.clipboard import (
+    clipboard_get,
+    clipboard_set,
+)
 
 
 def build_kwargs(sep, excel):

@@ -1,6 +1,9 @@
 from functools import partial
 from importlib import reload
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 from pathlib import Path
 import re

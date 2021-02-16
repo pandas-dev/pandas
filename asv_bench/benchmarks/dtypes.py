@@ -5,7 +5,10 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.api.types import is_extension_array_dtype, pandas_dtype
+from pandas.api.types import (
+    is_extension_array_dtype,
+    pandas_dtype,
+)
 
 from .pandas_vb_common import (
     datetime_dtypes,

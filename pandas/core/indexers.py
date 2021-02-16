@@ -8,7 +8,11 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Any, AnyArrayLike, ArrayLike
+from pandas._typing import (
+    Any,
+    AnyArrayLike,
+    ArrayLike,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -18,7 +22,10 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 if TYPE_CHECKING:
     from pandas.core.frame import DataFrame

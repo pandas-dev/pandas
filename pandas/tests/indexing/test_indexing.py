@@ -7,12 +7,26 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 
 import pandas as pd
-from pandas import DataFrame, Index, NaT, Series, date_range, offsets, timedelta_range
+from pandas import (
+    DataFrame,
+    Index,
+    NaT,
+    Series,
+    date_range,
+    offsets,
+    timedelta_range,
+)
 import pandas._testing as tm
-from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
+from pandas.core.indexing import (
+    maybe_numeric_slice,
+    non_reducing_slice,
+)
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 

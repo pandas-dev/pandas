@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, Index
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Index,
+)
 
 
 class TestEquals:

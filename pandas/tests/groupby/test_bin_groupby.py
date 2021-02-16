@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas._libs import lib, reduction as libreduction
+from pandas._libs import (
+    lib,
+    reduction as libreduction,
+)
 
 import pandas as pd
 from pandas import Series

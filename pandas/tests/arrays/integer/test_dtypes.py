@@ -5,7 +5,10 @@ from pandas.core.dtypes.generic import ABCIndex
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.integer import Int8Dtype, UInt32Dtype
+from pandas.core.arrays.integer import (
+    Int8Dtype,
+    UInt32Dtype,
+)
 
 
 def test_dtypes(dtype):

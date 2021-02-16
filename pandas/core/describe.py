@@ -5,14 +5,29 @@ Method NDFrame.describe() delegates actual execution to function describe_ndfram
 """
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, List, Optional, Sequence, Union, cast
+from abc import (
+    ABC,
+    abstractmethod,
+)
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Hashable
+from pandas._typing import (
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Hashable,
+)
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -27,7 +42,10 @@ from pandas.core.reshape.concat import concat
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def describe_ndframe(

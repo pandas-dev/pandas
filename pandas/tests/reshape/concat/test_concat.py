@@ -1,4 +1,7 @@
-from collections import abc, deque
+from collections import (
+    abc,
+    deque,
+)
 from decimal import Decimal
 from warnings import catch_warnings
 
@@ -6,7 +9,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype

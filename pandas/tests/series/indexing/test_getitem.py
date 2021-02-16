@@ -1,12 +1,19 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import conversion, timezones
+from pandas._libs.tslibs import (
+    conversion,
+    timezones,
+)
 
 import pandas as pd
 from pandas import (

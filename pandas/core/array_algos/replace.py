@@ -3,11 +3,19 @@ Methods used by Block.replace and related methods.
 """
 import operator
 import re
-from typing import Any, Optional, Pattern, Union
+from typing import (
+    Any,
+    Optional,
+    Pattern,
+    Union,
+)
 
 import numpy as np
 
-from pandas._typing import ArrayLike, Scalar
+from pandas._typing import (
+    ArrayLike,
+    Scalar,
+)
 
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,

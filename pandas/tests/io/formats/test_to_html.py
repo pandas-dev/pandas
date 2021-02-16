@@ -6,7 +6,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, option_context
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    option_context,
+)
 import pandas._testing as tm
 
 import pandas.io.formats.format as fmt

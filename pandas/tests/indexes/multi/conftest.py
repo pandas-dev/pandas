@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 
 
 # Note: identical the the "multi" entry in the top-level "index" fixture

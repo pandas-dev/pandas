@@ -2,7 +2,10 @@ from distutils.version import LooseVersion
 
 import pytest
 
-from pandas.compat._optional import get_version, import_optional_dependency
+from pandas.compat._optional import (
+    get_version,
+    import_optional_dependency,
+)
 
 pytestmark = [
     pytest.mark.filterwarnings(

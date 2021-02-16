@@ -1,6 +1,14 @@
 from collections import defaultdict
 import datetime
-from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
@@ -55,7 +63,11 @@ class ODSWriter(ExcelWriter):
         """
         Write the frame cells using odf
         """
-        from odf.table import Table, TableCell, TableRow
+        from odf.table import (
+            Table,
+            TableCell,
+            TableRow,
+        )
         from odf.text import P
 
         sheet_name = self._get_sheet_name(sheet_name)

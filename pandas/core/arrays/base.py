@@ -25,12 +25,22 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike, Dtype, Shape
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    Shape,
+)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
@@ -41,13 +51,24 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import factorize_array, isin, unique
+from pandas.core.algorithms import (
+    factorize_array,
+    isin,
+    unique,
+)
 from pandas.core.missing import get_fill_func
-from pandas.core.sorting import nargminmax, nargsort
+from pandas.core.sorting import (
+    nargminmax,
+    nargsort,
+)
 
 _extension_array_shared_docs: Dict[str, str] = {}
 

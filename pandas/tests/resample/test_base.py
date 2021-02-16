@@ -3,7 +3,12 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, PeriodIndex, Series
+from pandas import (
+    DataFrame,
+    NaT,
+    PeriodIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper

@@ -10,7 +10,10 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas import DataFrame, read_csv
+from pandas import (
+    DataFrame,
+    read_csv,
+)
 import pandas._testing as tm
 
 

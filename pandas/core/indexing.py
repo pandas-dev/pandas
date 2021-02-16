@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Hashable, List, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -10,7 +18,10 @@ from pandas._config.config import option_context
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.errors import AbstractMethodError, InvalidIndexError
+from pandas.errors import (
+    AbstractMethodError,
+    InvalidIndexError,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -26,8 +37,15 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
-from pandas.core.dtypes.missing import infer_fill_value, isna
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCMultiIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    infer_fill_value,
+    isna,
+)
 
 import pandas.core.common as com
 from pandas.core.construction import array as pd_array
@@ -40,7 +58,10 @@ from pandas.core.indexers import (
 from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 # "null slice"
 _NS = slice(None, None)

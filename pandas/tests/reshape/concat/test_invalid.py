@@ -3,7 +3,11 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, concat, read_csv
+from pandas import (
+    DataFrame,
+    concat,
+    read_csv,
+)
 import pandas._testing as tm
 
 

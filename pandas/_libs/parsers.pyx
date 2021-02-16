@@ -1,22 +1,36 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
-from csv import QUOTE_MINIMAL, QUOTE_NONE, QUOTE_NONNUMERIC
+from csv import (
+    QUOTE_MINIMAL,
+    QUOTE_NONE,
+    QUOTE_NONNUMERIC,
+)
 from errno import ENOENT
 import sys
 import time
 import warnings
 
 from libc.stdlib cimport free
-from libc.string cimport strcasecmp, strlen, strncpy
+from libc.string cimport (
+    strcasecmp,
+    strlen,
+    strncpy,
+)
 
 import cython
 from cython import Py_ssize_t
 
 from cpython.bytes cimport PyBytes_AsString
-from cpython.exc cimport PyErr_Fetch, PyErr_Occurred
+from cpython.exc cimport (
+    PyErr_Fetch,
+    PyErr_Occurred,
+)
 from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
-from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
+from cpython.unicode cimport (
+    PyUnicode_AsUTF8String,
+    PyUnicode_Decode,
+)
 
 
 cdef extern from "Python.h":
@@ -26,12 +40,22 @@ cdef extern from "Python.h":
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray, uint8_t, uint64_t
+from numpy cimport (
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint64_t,
+)
 
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX
+from pandas._libs.util cimport (
+    INT64_MAX,
+    INT64_MIN,
+    UINT64_MAX,
+)
 
 import pandas._libs.lib as lib
 
@@ -62,7 +86,12 @@ from pandas._libs.khash cimport (
     khiter_t,
 )
 
-from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
+from pandas.errors import (
+    DtypeWarning,
+    EmptyDataError,
+    ParserError,
+    ParserWarning,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,

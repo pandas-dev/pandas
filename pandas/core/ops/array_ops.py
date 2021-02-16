@@ -10,8 +10,16 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
-from pandas._typing import ArrayLike, Shape
+from pandas._libs import (
+    Timedelta,
+    Timestamp,
+    lib,
+    ops as libops,
+)
+from pandas._typing import (
+    ArrayLike,
+    Shape,
+)
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -27,8 +35,15 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
@@ -420,7 +435,10 @@ def _maybe_upcast_for_op(obj, shape: Shape):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
 
     if type(obj) is timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta

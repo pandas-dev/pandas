@@ -4,7 +4,12 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, bdate_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    bdate_range,
+)
 import pandas._testing as tm
 from pandas.core import ops
 

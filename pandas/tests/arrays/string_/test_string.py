@@ -9,7 +9,10 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringDtype,
+)
 
 skip_if_no_pyarrow = td.skip_if_no("pyarrow", min_version="1.0.0")
 

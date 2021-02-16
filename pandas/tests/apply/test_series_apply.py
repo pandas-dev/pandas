@@ -1,4 +1,7 @@
-from collections import Counter, defaultdict
+from collections import (
+    Counter,
+    defaultdict,
+)
 from itertools import chain
 
 import numpy as np
@@ -7,7 +10,15 @@ import pytest
 from pandas.core.dtypes.common import is_number
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, timedelta_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+    isna,
+    timedelta_range,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 

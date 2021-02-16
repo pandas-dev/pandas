@@ -13,7 +13,12 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCMultiIndex,
+    ABCSeries,
+)
 
 # 16 byte long hashing key
 _default_hash_key = "0123456789123456"
@@ -155,7 +160,10 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     elif not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
 
-    from pandas import Categorical, MultiIndex
+    from pandas import (
+        Categorical,
+        MultiIndex,
+    )
 
     if not isinstance(vals, ABCMultiIndex):
         vals = MultiIndex.from_tuples(vals)
@@ -270,7 +278,11 @@ def hash_array(
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
-            from pandas import Categorical, Index, factorize
+            from pandas import (
+                Categorical,
+                Index,
+                factorize,
+            )
 
             codes, categories = factorize(vals, sort=False)
             cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)

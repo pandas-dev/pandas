@@ -2,7 +2,10 @@ import cython
 from cython import Py_ssize_t
 
 from cython cimport floating
-from libc.stdlib cimport free, malloc
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
@@ -27,9 +30,16 @@ from numpy.math cimport NAN
 cnp.import_array()
 
 from pandas._libs.algos cimport swap
-from pandas._libs.util cimport get_nat, numeric
+from pandas._libs.util cimport (
+    get_nat,
+    numeric,
+)
 
-from pandas._libs.algos import groupsort_indexer, rank_1d, take_2d_axis1_float64_float64
+from pandas._libs.algos import (
+    groupsort_indexer,
+    rank_1d,
+    take_2d_axis1_float64_float64,
+)
 
 from pandas._libs.missing cimport checknull
 

@@ -26,16 +26,25 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 import locale
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
+from pandas.core.computation.expressions import (
+    NUMEXPR_INSTALLED,
+    USE_NUMEXPR,
+)
 
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):

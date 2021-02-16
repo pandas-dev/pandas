@@ -1,7 +1,10 @@
 """
 Templating for ops docstrings
 """
-from typing import Dict, Optional
+from typing import (
+    Dict,
+    Optional,
+)
 
 
 def make_flex_doc(op_name: str, typ: str) -> str:

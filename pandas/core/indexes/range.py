@@ -3,7 +3,14 @@ from __future__ import annotations
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import TYPE_CHECKING, Any, Hashable, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+)
 import warnings
 
 import numpy as np
@@ -12,7 +19,10 @@ from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.common import (
@@ -31,7 +41,10 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
-from pandas.core.indexes.numeric import Float64Index, Int64Index
+from pandas.core.indexes.numeric import (
+    Float64Index,
+    Int64Index,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:

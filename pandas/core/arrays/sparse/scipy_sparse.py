@@ -3,7 +3,10 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 
 

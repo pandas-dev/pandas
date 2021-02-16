@@ -1,7 +1,12 @@
 """Common utilities for Numba operations"""
 from distutils.version import LooseVersion
 import types
-from typing import Callable, Dict, Optional, Tuple
+from typing import (
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 

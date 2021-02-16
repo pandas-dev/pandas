@@ -1,10 +1,20 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer, FixedForwardWindowIndexer
-from pandas.core.window.indexers import ExpandingIndexer, VariableOffsetWindowIndexer
+from pandas.api.indexers import (
+    BaseIndexer,
+    FixedForwardWindowIndexer,
+)
+from pandas.core.window.indexers import (
+    ExpandingIndexer,
+    VariableOffsetWindowIndexer,
+)
 
 from pandas.tseries.offsets import BusinessDay
 

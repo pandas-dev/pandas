@@ -16,7 +16,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import algos, hashtable, lib
+from pandas._libs import (
+    algos,
+    hashtable,
+    lib,
+)
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import IndexKeyFunc
 

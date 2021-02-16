@@ -4,7 +4,12 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, IntervalIndex, Timestamp
+from pandas import (
+    CategoricalIndex,
+    Index,
+    IntervalIndex,
+    Timestamp,
+)
 import pandas._testing as tm
 
 

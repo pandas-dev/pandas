@@ -5,7 +5,14 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, array, concat, merge
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    array,
+    concat,
+    merge,
+)
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 import pandas.core.common as com

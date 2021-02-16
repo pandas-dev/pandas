@@ -1,8 +1,14 @@
 import numpy as np
 
-from pandas import Series, to_numeric
+from pandas import (
+    Series,
+    to_numeric,
+)
 
-from .pandas_vb_common import lib, tm
+from .pandas_vb_common import (
+    lib,
+    tm,
+)
 
 
 class ToNumeric:

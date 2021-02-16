@@ -1,8 +1,15 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-from datetime import datetime, time, timedelta
-from itertools import product, starmap
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
+from itertools import (
+    product,
+    starmap,
+)
 import operator
 import warnings
 
@@ -28,7 +35,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,

@@ -1,9 +1,17 @@
-from datetime import datetime, timezone
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import numpy as np
 import pytest
 
-from pandas import CategoricalDtype, DataFrame, Series, Timestamp
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 

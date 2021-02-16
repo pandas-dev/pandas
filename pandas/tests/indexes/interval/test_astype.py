@@ -3,7 +3,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+)
 
 from pandas import (
     CategoricalIndex,

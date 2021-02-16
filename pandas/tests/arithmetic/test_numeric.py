@@ -5,7 +5,10 @@ from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
-from typing import Any, List
+from typing import (
+    Any,
+    List,
+)
 
 import numpy as np
 import pytest

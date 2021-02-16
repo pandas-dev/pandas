@@ -1,7 +1,17 @@
 from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import Any, Callable, List, Mapping, Optional, Tuple, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa

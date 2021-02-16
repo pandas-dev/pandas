@@ -6,10 +6,27 @@ import codecs
 from collections import abc
 import dataclasses
 import gzip
-from io import BufferedIOBase, BytesIO, RawIOBase, StringIO, TextIOWrapper
+from io import (
+    BufferedIOBase,
+    BytesIO,
+    RawIOBase,
+    StringIO,
+    TextIOWrapper,
+)
 import mmap
 import os
-from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union, cast
+from typing import (
+    IO,
+    Any,
+    AnyStr,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 from urllib.parse import (
     urljoin,
     urlparse as parse_url,
@@ -28,7 +45,10 @@ from pandas._typing import (
     FilePathOrBuffer,
     StorageOptions,
 )
-from pandas.compat import get_lzma_file, import_lzma
+from pandas.compat import (
+    get_lzma_file,
+    import_lzma,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
@@ -325,7 +345,10 @@ def _get_filepath_or_buffer(
         err_types_to_retry_with_anon: List[Any] = []
         try:
             import_optional_dependency("botocore")
-            from botocore.exceptions import ClientError, NoCredentialsError
+            from botocore.exceptions import (
+                ClientError,
+                NoCredentialsError,
+            )
 
             err_types_to_retry_with_anon = [
                 ClientError,

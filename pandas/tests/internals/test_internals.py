@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 import re
 
@@ -23,8 +26,16 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
-from pandas.core.internals import BlockManager, SingleBlockManager, make_block
+from pandas.core.arrays import (
+    DatetimeArray,
+    SparseArray,
+    TimedeltaArray,
+)
+from pandas.core.internals import (
+    BlockManager,
+    SingleBlockManager,
+    make_block,
+)
 
 
 @pytest.fixture

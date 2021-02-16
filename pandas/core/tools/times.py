@@ -1,11 +1,20 @@
-from datetime import datetime, time
-from typing import List, Optional
+from datetime import (
+    datetime,
+    time,
+)
+from typing import (
+    List,
+    Optional,
+)
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
 
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import notna
 
 

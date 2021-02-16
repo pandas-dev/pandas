@@ -1,8 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import pytest
 
-from pandas import DatetimeIndex, NaT, Timestamp
+from pandas import (
+    DatetimeIndex,
+    NaT,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
