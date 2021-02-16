@@ -158,11 +158,9 @@ engine : str, default None
          ``pyxlsb`` will be used.
 
          .. versionadded:: 1.3.0
-       - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
-         then ``openpyxl`` will be used.
-       - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
-       - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised. This
-         case will raise a ``ValueError`` in a future version of pandas.
+       - Otherwise ``openpyxl`` will be used.
+
+         .. versionchanged:: 1.3.0
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -1026,7 +1024,7 @@ class ExcelFile:
     Parameters
     ----------
     path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
-        a file-like object, xlrd workbook or openpypl workbook.
+        a file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
@@ -1140,9 +1138,7 @@ class ExcelFile:
                     stacklevel = 2
                 warnings.warn(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                    f"only the xls format is supported. As a result, the "
-                    f"openpyxl engine will be used if it is installed and the "
-                    f"engine argument is not specified. Install "
+                    f"only the xls format is supported. Install "
                     f"openpyxl instead.",
                     FutureWarning,
                     stacklevel=stacklevel,

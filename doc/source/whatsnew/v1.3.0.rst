@@ -8,6 +8,16 @@ including other versions of pandas.
 
 {{ header }}
 
+.. warning::
+
+   When reading new Excel 2007+ (``.xlsx``) files, the default argument
+   ``engine=None`` to :func:`~pandas.read_excel` will now result in using the
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_ engine in all cases
+   when the option :attr:`io.excel.xlsx.reader` is set to ``"auto"``.
+   Previously, some cases would use the
+   `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ engine instead. See
+   :ref:`What's new 1.2.0 <whatsnew_120>` for background on this change.
+
 .. ---------------------------------------------------------------------------
 
 Enhancements

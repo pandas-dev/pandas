@@ -125,6 +125,30 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
+    def test_engine_used(self, read_ext, engine, monkeypatch):
+        # GH 38884
+        def parser(self, *args, **kwargs):
+            return self.engine
+
+        monkeypatch.setattr(pd.ExcelFile, "parse", parser)
+
+        expected_defaults = {
+            "xlsx": "openpyxl",
+            "xlsm": "openpyxl",
+            "xlsb": "pyxlsb",
+            "xls": "xlrd",
+            "ods": "odf",
+        }
+
+        with open("test1" + read_ext, "rb") as f:
+            result = pd.read_excel(f)
+
+        if engine is not None:
+            expected = engine
+        else:
+            expected = expected_defaults[read_ext[1:]]
+        assert result == expected
+
     def test_usecols_int(self, read_ext, df_ref):
         df_ref = df_ref.reindex(columns=["A", "B", "C"])
 
@@ -1171,6 +1195,24 @@ class TestExcelFileRead:
         func = partial(pd.ExcelFile, engine=engine)
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
+
+    def test_engine_used(self, read_ext, engine, monkeypatch):
+        expected_defaults = {
+            "xlsx": "openpyxl",
+            "xlsm": "openpyxl",
+            "xlsb": "pyxlsb",
+            "xls": "xlrd",
+            "ods": "odf",
+        }
+
+        with pd.ExcelFile("test1" + read_ext) as excel:
+            result = excel.engine
+
+        if engine is not None:
+            expected = engine
+        else:
+            expected = expected_defaults[read_ext[1:]]
+        assert result == expected
 
     def test_excel_passes_na(self, read_ext):
         with pd.ExcelFile("test4" + read_ext) as excel:
