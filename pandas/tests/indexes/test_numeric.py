@@ -6,7 +6,14 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    UInt64Index,
+)
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 

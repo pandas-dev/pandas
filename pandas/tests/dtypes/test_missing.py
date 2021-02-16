@@ -8,11 +8,21 @@ import pytest
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import iNaT, is_null_datetimelike
+from pandas._libs.tslibs import (
+    iNaT,
+    is_null_datetimelike,
+)
 from pandas._libs_numba import missing as libmissing_numba
 
-from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.common import (
+    is_float,
+    is_scalar,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -23,7 +33,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
+from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    NaT,
+    Series,
+    TimedeltaIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 now = pd.Timestamp.now()

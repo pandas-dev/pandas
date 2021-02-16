@@ -19,7 +19,7 @@ dependencies:
   - numba=0.46.0
   - numexpr=2.6.8
   - numpy=1.16.5
-  - openpyxl=2.6.0
+  - openpyxl=3.0.0
   - pytables=3.5.1
   - python-dateutil=2.7.3
   - pytz=2017.3

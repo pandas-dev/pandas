@@ -1,14 +1,24 @@
 from __future__ import annotations
 
 import operator
-from operator import le, lt
+from operator import (
+    le,
+    lt,
+)
 import textwrap
-from typing import Optional, Sequence, Type, TypeVar, cast
+from typing import (
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    cast,
+)
 
 import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import NaT
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -16,14 +26,19 @@ from pandas._libs.interval import (
     intervals_to_interval_bounds,
 )
 from pandas._libs.missing import NA
-from pandas._typing import ArrayLike, Dtype, NpDtype
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    NpDtype,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_any_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -43,10 +58,21 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    notna,
+)
 
-from pandas.core.algorithms import isin, take, value_counts
-from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
+from pandas.core.algorithms import (
+    isin,
+    take,
+    value_counts,
+)
+from pandas.core.arrays.base import (
+    ExtensionArray,
+    _extension_array_shared_docs,
+)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -56,7 +82,10 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
-from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
+from pandas.core.ops import (
+    invalid_comparison,
+    unpack_zerodim_and_defer,
+)
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
@@ -999,9 +1028,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 needs_float_conversion = True
-            elif is_datetime64_any_dtype(self.dtype.subtype):
+            elif is_datetime64_dtype(self.dtype.subtype):
                 # need proper NaT to set directly on the numpy array
                 value = np.datetime64("NaT")
+            elif is_datetime64tz_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the DatetimeArray array
+                value = NaT
             elif is_timedelta64_dtype(self.dtype.subtype):
                 # need proper NaT to set directly on the numpy array
                 value = np.timedelta64("NaT")

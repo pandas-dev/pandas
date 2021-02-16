@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import TYPE_CHECKING, Iterator, List, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Iterator,
+    List,
+    Tuple,
+)
 
 import numpy as np
 

@@ -2,7 +2,10 @@ import datetime
 import hashlib
 import os
 import time
-from warnings import catch_warnings, simplefilter
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 
 import numpy as np
 import pytest
@@ -38,7 +41,10 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
 
-from pandas.io.pytables import HDFStore, read_hdf
+from pandas.io.pytables import (
+    HDFStore,
+    read_hdf,
+)
 
 pytestmark = pytest.mark.single
 
