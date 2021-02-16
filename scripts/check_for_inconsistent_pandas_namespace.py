@@ -86,7 +86,7 @@ def check_for_inconsistent_pandas_namespace(
             # Replace `pd`
             tokens[n] = i._replace(src="")
             # Replace `.`
-            tokens[n + 1] = tokens[n+1]._replace(src="")
+            tokens[n + 1] = tokens[n + 1]._replace(src="")
 
     new_src: str = tokens_to_src(tokens)
     return new_src
