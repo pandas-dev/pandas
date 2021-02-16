@@ -169,12 +169,12 @@ def maybe_box_native(value: Scalar) -> Scalar:
     """
     if is_datetime_or_timedelta_dtype(value):
         value = maybe_box_datetimelike(value)
-    elif is_float_dtype(value):
+    elif is_float(value):
         value = float(value)
-    elif is_integer_dtype(value):
+    elif is_integer(value):
         with suppress(ValueError, TypeError):
             value = int(value)
-    elif is_bool_dtype(value):
+    elif is_bool(value):
         value = bool(value)
     return value
 
