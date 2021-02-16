@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 import re
 
@@ -23,8 +26,16 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
-from pandas.core.internals import BlockManager, SingleBlockManager, make_block
+from pandas.core.arrays import (
+    DatetimeArray,
+    SparseArray,
+    TimedeltaArray,
+)
+from pandas.core.internals import (
+    BlockManager,
+    SingleBlockManager,
+    make_block,
+)
 
 
 @pytest.fixture
@@ -1233,8 +1244,8 @@ class TestCanHoldElement:
         if inplace:
             # assertion here implies setting was done inplace
 
-            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]"
-            #  has no attribute "blocks"  [union-attr]
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
+            #  attribute "blocks"
             assert df._mgr.blocks[0].values is arr  # type:ignore[union-attr]
         else:
             assert df.dtypes[0] == object

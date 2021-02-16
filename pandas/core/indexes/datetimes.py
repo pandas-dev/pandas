@@ -1,13 +1,29 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    tzinfo,
+)
 import operator
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Tuple,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
+from pandas._libs import (
+    NaT,
+    Period,
+    Timestamp,
+    index as libindex,
+    lib,
+)
 from pandas._libs.tslibs import (
     Resolution,
     ints_to_pydatetime,
@@ -16,9 +32,15 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import Dtype, DtypeObj
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -28,15 +50,27 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
-from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
+from pandas.core.arrays.datetimes import (
+    DatetimeArray,
+    tz_to_dtype,
+)
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, get_unanimous_names, maybe_extract_name
+from pandas.core.indexes.base import (
+    Index,
+    get_unanimous_names,
+    maybe_extract_name,
+)
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Float64Index, PeriodIndex, TimedeltaIndex
+    from pandas import (
+        DataFrame,
+        Float64Index,
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 
 def _new_DatetimeIndex(cls, d):

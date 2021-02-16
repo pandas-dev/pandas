@@ -27,19 +27,30 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, IndexLabel
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
 
 import pandas as pd
-from pandas.api.types import is_dict_like, is_list_like
+from pandas.api.types import (
+    is_dict_like,
+    is_list_like,
+)
 from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
+from pandas.core.indexing import (
+    maybe_numeric_slice,
+    non_reducing_slice,
+)
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
@@ -158,13 +169,12 @@ class Styler:
         uuid_len: int = 5,
     ):
         # validate ordered args
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("``data`` must be a Series or DataFrame")
-        if data.ndim == 1:
+        if isinstance(data, pd.Series):
             data = data.to_frame()
+        if not isinstance(data, DataFrame):
+            raise TypeError("``data`` must be a Series or DataFrame")
         if not data.index.is_unique or not data.columns.is_unique:
             raise ValueError("style is not supported for non-unique indices.")
-        assert isinstance(data, DataFrame)
         self.data: DataFrame = data
         self.index: pd.Index = data.index
         self.columns: pd.Index = data.columns
@@ -1740,8 +1750,8 @@ class Styler:
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
         # mypy doesn't like dynamically-defined classes
-        # error: Variable "cls" is not valid as a type  [valid-type]
-        # error: Invalid base class "cls"  [misc]
+        # error: Variable "cls" is not valid as a type
+        # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)

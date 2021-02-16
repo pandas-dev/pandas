@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import Index, Series, array as pd_array, date_range
+from pandas import (
+    Index,
+    Series,
+    array as pd_array,
+    date_range,
+)
 import pandas._testing as tm
 
 
