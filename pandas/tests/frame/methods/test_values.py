@@ -55,6 +55,12 @@ class TestDataFrameValues:
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_values_with_duplicate_columns(self):
+        df = DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=["x", "x"])
+        result = df.values
+        expected = np.array([[1, 2.5], [3, 4.5]])
+        assert (result == expected).all().all()
+
     @pytest.mark.parametrize("constructor", [date_range, period_range])
     def test_values_casts_datetimelike_to_object(self, constructor):
         series = Series(constructor("2000-01-01", periods=10, freq="D"))
