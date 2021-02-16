@@ -542,56 +542,6 @@ def test_setitem_td64_non_nano():
     tm.assert_series_equal(ser, expected)
 
 
-@pytest.mark.parametrize(
-    "nat_val",
-    [
-        pd.NaT,
-        np.timedelta64("NaT", "ns"),
-        np.datetime64("NaT", "ns"),
-    ],
-)
-@pytest.mark.parametrize("tz", [None, "UTC"])
-def test_dt64_series_assign_nat(nat_val, tz, indexer_sli):
-    # some nat-like values should be cast to datetime64 when inserting
-    #  into a datetime64 series.  Others should coerce to object
-    #  and retain their dtypes.
-    dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-    base = Series(dti)
-    expected = Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
-
-    should_cast = nat_val is pd.NaT or base.dtype == nat_val.dtype
-    if not should_cast:
-        expected = expected.astype(object)
-
-    ser = base.copy(deep=True)
-    indexer_sli(ser)[0] = nat_val
-    tm.assert_series_equal(ser, expected)
-
-
-@pytest.mark.parametrize(
-    "nat_val",
-    [
-        pd.NaT,
-        np.timedelta64("NaT", "ns"),
-        np.datetime64("NaT", "ns"),
-    ],
-)
-def test_td64_series_assign_nat(nat_val, indexer_sli):
-    # some nat-like values should be cast to timedelta64 when inserting
-    #  into a timedelta64 series.  Others should coerce to object
-    #  and retain their dtypes.
-    base = Series([0, 1, 2], dtype="m8[ns]")
-    expected = Series([pd.NaT, 1, 2], dtype="m8[ns]")
-
-    should_cast = nat_val is pd.NaT or base.dtype == nat_val.dtype
-    if not should_cast:
-        expected = expected.astype(object)
-
-    ser = base.copy(deep=True)
-    indexer_sli(ser)[0] = nat_val
-    tm.assert_series_equal(ser, expected)
-
-
 def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
