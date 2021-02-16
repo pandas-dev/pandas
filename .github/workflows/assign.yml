@@ -1,3 +1,4 @@
+# deprecated in favor of /assign
 name: Assign
 on:
   issue_comment:

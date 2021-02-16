@@ -31,13 +31,13 @@ comment letting others know they are working on an issue. While this is ok, you 
 check each issue individually, and it's not possible to find the unassigned ones.
 
 For this reason, we implemented a workaround consisting of adding a comment with the exact
-text ``take``. When you do it, a GitHub action will automatically assign you the issue
+text ``/assign``. When you do it, a GitHub action will automatically assign you the issue
 (this will take seconds, and may require refreshing the page to see it).
 By doing this, it's possible to filter the list of issues and find only the unassigned ones.
 
 So, a good way to find an issue to start contributing to pandas is to check the list of
 `unassigned good first issues <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22+no%3Aassignee>`_
-and assign yourself one you like by writing a comment with the exact text ``take``.
+and assign yourself one you like by writing a comment with the exact text ``/assign``.
 
 If for whatever reason you are not able to continue working with the issue, please try to
 unassign it, so other people know it's available again. You can check the list of

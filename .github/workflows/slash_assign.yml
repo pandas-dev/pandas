@@ -1,0 +1,32 @@
+# https://github.com/JasonEtco/slash-assign-action#usage
+name: Slash assign
+
+on:
+  schedule:
+    - cron: 0 0 * * *
+  issue_comment:
+    types: [created]
+
+jobs:
+  slash_assign:
+    if: >
+      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/assign')) ||
+      github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      # not yet published
+      # https://github.com/JasonEtco/slash-assign-action/issues/1
+      - name: Check out GitHub Action
+        uses: actions/checkout@v2
+        with:
+          repository: JasonEtco/slash-assign-action
+          ref: 842404647dfd10109c8c4feb3e776807eb5e2071
+          path: .github/actions/slash-assign-action
+      - name: Compile the Action
+        run: |
+          npm install
+          npm run build
+        working-directory: .github/actions/slash-assign-action
+
+      - name: Assign the user or unassign stale assignments
+        uses: ./.github/actions/slash-assign-action
