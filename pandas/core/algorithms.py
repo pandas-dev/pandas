@@ -2313,9 +2313,7 @@ def _sort_mixed(values):
     return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
 
-# pandas\core\algorithms.py:2217: error: "ndarray" expects no type arguments,
-# but 1 given  [type-arg]
-def _sort_tuples(values: np.ndarray[tuple]):  # type: ignore[type-arg]
+def _sort_tuples(values: np.ndarray):
     """
     Convert array of tuples (1d) to array or array (2d).
     We need to keep the columns separately as they contain different types and

@@ -226,8 +226,8 @@ class ExtensionIndex(Index):
             if result.ndim == 1:
                 return type(self)(result, name=self.name)
             # Unpack to ndarray for MPL compat
-            # pandas\core\indexes\extension.py:220: error: "ExtensionArray" has
-            # no attribute "_data"  [attr-defined]
+
+            # error: "ExtensionArray" has no attribute "_data"
             result = result._data  # type: ignore[attr-defined]
 
         # Includes cases where we get a 2D ndarray back for MPL compat

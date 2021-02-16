@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
+    is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
@@ -586,6 +587,12 @@ class SeriesGroupBy(GroupBy[Series]):
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
 
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
+
         Examples
         --------
         >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
@@ -991,8 +998,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func = maybe_mangle_lambdas(func)
 
         op = GroupByApply(self, func, args, kwargs)
-        result, how = op.agg()
-        if how is None:
+        result = op.agg()
+        if not is_dict_like(func) and result is not None:
             return result
 
         if result is None:
@@ -1011,7 +1018,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result, _ = GroupByApply(
+                    result = GroupByApply(
                         self, [func], args=(), kwargs={"_axis": self.axis}
                     ).agg()
 
@@ -1540,6 +1547,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------

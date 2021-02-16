@@ -295,9 +295,7 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
-                    empty_dtype
-                ):
+                if is_datetime64tz_dtype(empty_dtype):
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
                     # pandas/core/internals/concat.py:303: error: Incompatible return
@@ -311,11 +309,8 @@ class JoinUnit:
                 elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
-                    # pandas\core\internals\concat.py:260: error: Item
-                    # "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has
-                    # no attribute "construct_array_type"  [union-attr]
-                    tmp = empty_dtype.construct_array_type()  # type: ignore[union-attr]
-                    missing_arr = tmp._from_sequence([], dtype=empty_dtype)
+                    cls = empty_dtype.construct_array_type()
+                    missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
                     empty_arr = -1 * np.ones((nrows,), dtype=np.intp)

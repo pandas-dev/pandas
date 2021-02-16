@@ -4955,8 +4955,8 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
 
-                # error: Argument 1 to "append" of "list" has incompatible
-                #  type "Union[Index, Series]"; expected "Index"  [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible type
+                #  "Union[Index, Series]"; expected "Index"
                 arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
@@ -7831,7 +7831,7 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis, *args, **kwargs)
+            result = self._aggregate(func, axis, *args, **kwargs)
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -7865,14 +7865,14 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        result, how = op.agg()
+        result = op.agg()
 
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
             result = result.T if result is not None else result
 
-        return result, how
+        return result
 
     agg = aggregate
 
@@ -7958,6 +7958,12 @@ NaN 12.3   33.0
         DataFrame.applymap: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
@@ -9870,12 +9876,3 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
             "incompatible index of inserted column with frame index"
         ) from err
     return reindexed_value
-
-
-def _maybe_atleast_2d(value):
-    # TODO(EA2D): not needed with 2D EAs
-
-    if is_extension_array_dtype(value):
-        return value
-
-    return np.atleast_2d(np.asarray(value))

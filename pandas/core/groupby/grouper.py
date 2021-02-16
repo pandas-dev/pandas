@@ -281,9 +281,8 @@ class Grouper:
         a tuple of binner, grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # pandas\core\groupby\grouper.py:310: error: Value of type variable
-        # "FrameOrSeries" of "get_grouper" cannot be "Optional[Any]"
-        # [type-var]
+        # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
+        # "Optional[Any]"
         self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
             self.obj,
             [self.key],
@@ -370,8 +369,7 @@ class Grouper:
     @final
     @property
     def groups(self):
-        # pandas\core\groupby\grouper.py:382: error: Item "None" of
-        # "Optional[Any]" has no attribute "groups"  [union-attr]
+        # error: Item "None" of "Optional[Any]" has no attribute "groups"
         return self.grouper.groups  # type: ignore[union-attr]
 
     @final

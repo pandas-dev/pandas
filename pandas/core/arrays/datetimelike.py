@@ -448,8 +448,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            # pandas\core\arrays\datetimelike.py:432: error: Too many arguments
-            # for "object"  [call-arg]
+            # error: Too many arguments for "object"
             other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
@@ -500,8 +499,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
-            # for "object"  [call-arg]
+            # error: Too many arguments for "object"
             fill_value = self._scalar_type(fill_value)  # type: ignore[call-arg]
         else:
             # only warn if we're not going to raise
@@ -509,8 +507,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                # pandas\core\arrays\datetimelike.py:753: error: Too many
-                # arguments for "object"  [call-arg]
+                # error: Too many arguments for "object"
                 new_fill = self._scalar_type(fill_value)  # type: ignore[call-arg]
 
             # stacklevel here is chosen to be correct when called from
@@ -565,8 +562,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # GH#18295
             value = NaT
 
+        elif isna(value):
+            # if we are dt64tz and value is dt64("NaT"), dont cast to NaT,
+            #  or else we'll fail to raise in _unbox_scalar
+            msg = self._validation_error_message(value, allow_listlike)
+            raise TypeError(msg)
+
         elif isinstance(value, self._recognized_scalars):
-            # error: Too many arguments for "object"  [call-arg]
+            # error: Too many arguments for "object"
             value = self._scalar_type(value)  # type: ignore[call-arg]
 
         else:
@@ -1691,7 +1694,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 # TODO: overload __getitem__, a slice indexer returns same type as self
                 # error: Incompatible types in assignment (expression has type
                 # "Union[DatetimeLikeArrayMixin, Union[Any, Any]]", variable
-                # has type "TimelikeOps")  [assignment]
+                # has type "TimelikeOps")
                 uniques = uniques[::-1]  # type: ignore[assignment]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
