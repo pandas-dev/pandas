@@ -40,19 +40,6 @@ class TestStyler:
             ),
         ]
 
-        def bar_grad(a=None, b=None, c=None, d=None):
-            ret = [("width", "10em"), ("height", "80%")]
-            if all(x is None for x in [a, b, c, d]):
-                return ret
-            return ret + [
-                (
-                    "background",
-                    f"linear-gradient(90deg,{','.join(x for x in [a, b, c, d] if x)})",
-                )
-            ]
-
-        self.bar_grad = bar_grad
-
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
         with pytest.raises(TypeError, match=msg):
@@ -515,6 +502,19 @@ class TestStyler:
             {"props": [("color", "red")], "selectors": ["row0_col0", "row1_col0"]}
         ]
         assert result == expected
+
+    @staticmethod
+    def bar_grad(a=None, b=None, c=None, d=None):
+        """Used in multiple tests to simplify formatting of expected result"""
+        ret = [("width", "10em"), ("height", "80%")]
+        if all(x is None for x in [a, b, c, d]):
+            return ret
+        return ret + [
+            (
+                "background",
+                f"linear-gradient(90deg,{','.join(x for x in [a, b, c, d] if x)})",
+            )
+        ]
 
     def test_bar_align_left(self):
         df = DataFrame({"A": [0, 1, 2]})
