@@ -1,11 +1,21 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, Series, Timestamp, date_range, period_range
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
 class TestDataFrameValues:
+    @td.skip_array_manager_invalid_test
     def test_values(self, float_frame):
         float_frame.values[:, 0] = 5.0
         assert (float_frame.values[:, 0] == 5).all()

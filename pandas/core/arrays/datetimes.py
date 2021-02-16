@@ -1,10 +1,24 @@
-from datetime import datetime, time, timedelta, tzinfo
-from typing import Optional, Union, cast
+from __future__ import annotations
+
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+    tzinfo,
+)
+from typing import (
+    Optional,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslib
+from pandas._libs import (
+    lib,
+    tslib,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -45,7 +59,11 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndex, ABCPandasArray, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCPandasArray,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
@@ -54,7 +72,11 @@ from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
-from pandas.tseries.offsets import BDay, Day, Tick
+from pandas.tseries.offsets import (
+    BDay,
+    Day,
+    Tick,
+)
 
 _midnight = time(0, 0)
 
@@ -291,7 +313,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @classmethod
     def _simple_new(
         cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
-    ) -> "DatetimeArray":
+    ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         if values.dtype != DT64NS_DTYPE:
             assert values.dtype == "i8"
@@ -462,10 +484,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _unbox_scalar(self, value, setitem: bool = False) -> np.datetime64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
-        if not isna(value):
-            self._check_compatible_with(value, setitem=setitem)
-            return value.asm8
-        return np.datetime64(value.value, "ns")
+        self._check_compatible_with(value, setitem=setitem)
+        return value.asm8
 
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)

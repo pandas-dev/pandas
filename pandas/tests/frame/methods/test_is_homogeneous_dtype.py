@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame
+import pandas.util._test_decorators as td
+
+from pandas import (
+    Categorical,
+    DataFrame,
+)
+
+# _is_homogeneous_type always returns True for ArrayManager
+pytestmark = td.skip_array_manager_invalid_test
 
 
 @pytest.mark.parametrize(

@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_under1p17
+from pandas.compat import np_version_under1p17
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 

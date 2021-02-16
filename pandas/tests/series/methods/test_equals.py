@@ -1,9 +1,18 @@
 from contextlib import nullcontext
+import copy
 
 import numpy as np
 import pytest
 
-from pandas import MultiIndex, Series
+from pandas._libs.missing import is_matching_na
+
+from pandas.core.dtypes.common import is_float
+
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -65,3 +74,54 @@ def test_equals_false_negative():
     assert s1.equals(s4)
     assert s1.equals(s5)
     assert s5.equals(s6)
+
+
+def test_equals_matching_nas():
+    # matching but not identical NAs
+    left = Series([np.datetime64("NaT")], dtype=object)
+    right = Series([np.datetime64("NaT")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
+
+    left = Series([np.timedelta64("NaT")], dtype=object)
+    right = Series([np.timedelta64("NaT")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
+
+    left = Series([np.float64("NaN")], dtype=object)
+    right = Series([np.float64("NaN")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
+
+
+def test_equals_mismatched_nas(nulls_fixture, nulls_fixture2):
+    # GH#39650
+    left = nulls_fixture
+    right = nulls_fixture2
+    if hasattr(right, "copy"):
+        right = right.copy()
+    else:
+        right = copy.copy(right)
+
+    ser = Series([left], dtype=object)
+    ser2 = Series([right], dtype=object)
+
+    if is_matching_na(left, right):
+        assert ser.equals(ser2)
+    elif (left is None and is_float(right)) or (right is None and is_float(left)):
+        assert ser.equals(ser2)
+    else:
+        assert not ser.equals(ser2)
+
+
+def test_equals_none_vs_nan():
+    # GH#39650
+    ser = Series([1, None], dtype=object)
+    ser2 = Series([1, np.nan], dtype=object)
+
+    assert ser.equals(ser2)
+    assert Index(ser).equals(Index(ser2))
+    assert ser.array.equals(ser2.array)

@@ -1,9 +1,18 @@
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
+from pandas._libs import (
+    lib,
+    tslibs,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -40,12 +49,18 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCTimedeltaIndex,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import IntegerArray, datetimelike as dtl
+from pandas.core.arrays import (
+    IntegerArray,
+    datetimelike as dtl,
+)
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -206,7 +221,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _simple_new(
         cls, values, freq: Optional[BaseOffset] = None, dtype=TD64NS_DTYPE
-    ) -> "TimedeltaArray":
+    ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
         if values.dtype != TD64NS_DTYPE:
@@ -222,7 +237,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _from_sequence(
         cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
-    ) -> "TimedeltaArray":
+    ) -> TimedeltaArray:
         if dtype:
             _validate_td64_dtype(dtype)
 
@@ -239,7 +254,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         copy: bool = False,
         freq=lib.no_default,
         unit=None,
-    ) -> "TimedeltaArray":
+    ) -> TimedeltaArray:
         if dtype:
             _validate_td64_dtype(dtype)
 
@@ -417,7 +432,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         Add a Period object.
         """
         # We will wrap in a PeriodArray and defer to the reversed operation
-        from .period import PeriodArray
+        from pandas.core.arrays.period import PeriodArray
 
         i8vals = np.broadcast_to(other.ordinal, self.shape)
         oth = PeriodArray(i8vals, freq=other.freq)
@@ -467,7 +482,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             ) from err
 
     @unpack_zerodim_and_defer("__mul__")
-    def __mul__(self, other) -> "TimedeltaArray":
+    def __mul__(self, other) -> TimedeltaArray:
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
             result = self._data * other
@@ -743,15 +758,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         res2 = other - res1 * self
         return res1, res2
 
-    def __neg__(self) -> "TimedeltaArray":
+    def __neg__(self) -> TimedeltaArray:
         if self.freq is not None:
             return type(self)(-self._data, freq=-self.freq)
         return type(self)(-self._data)
 
-    def __pos__(self) -> "TimedeltaArray":
+    def __pos__(self) -> TimedeltaArray:
         return type(self)(self._data, freq=self.freq)
 
-    def __abs__(self) -> "TimedeltaArray":
+    def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved
         return type(self)(np.abs(self._data))
 

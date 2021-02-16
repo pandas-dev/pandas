@@ -8,11 +8,21 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
-from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
+from pandas.core.computation.expressions import (
+    _MIN_ELEMENTS,
+    NUMEXPR_INSTALLED,
+)
+from pandas.tests.frame.common import (
+    _check_mixed_float,
+    _check_mixed_int,
+)
 
 
 class DummyElement:
@@ -972,7 +982,7 @@ class TestFrameArithmeticUnsorted:
 
         result = ts + ts[::2]
         expected = ts + ts
-        expected.values[1::2] = np.nan
+        expected.iloc[1::2] = np.nan
         tm.assert_frame_equal(result, expected)
 
         half = ts[::2]

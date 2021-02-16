@@ -1,7 +1,18 @@
 import numpy as np
 
-from pandas import Period, Series, Timedelta, Timestamp, date_range
+import pandas.util._test_decorators as td
+
+from pandas import (
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
+
+# TODO(ArrayManager) quantile is needed for describe()
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestSeriesDescribe:

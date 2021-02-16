@@ -5,7 +5,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
 from pandas.errors import ParserError
 
 import pandas as pd
@@ -182,7 +181,6 @@ class TestDataFrameToCSV:
 
         tm.assert_frame_equal(df[cols], rs_c, check_names=False)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_to_csv_new_dupe_cols(self):
         import pandas as pd
 

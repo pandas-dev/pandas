@@ -88,6 +88,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
+from pandas._testing.compat import get_dtype  # noqa:F401
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
@@ -98,10 +99,18 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
 
 if TYPE_CHECKING:
-    from pandas import PeriodIndex, TimedeltaIndex
+    from pandas import (
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 _N = 30
 _K = 4
@@ -558,7 +567,7 @@ def makeCustomIndex(
         "p": makePeriodIndex,
     }.get(idx_type)
     if idx_func:
-        # pandas\_testing.py:2120: error: Cannot call function of unknown type
+        # error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]
         # but we need to fill in the name
         if names:
@@ -679,7 +688,7 @@ def makeCustomDataframe(
     # 4-level multindex on rows with names provided, 2-level multindex
     # on columns with default labels and default names.
     >> a=makeCustomDataframe(5,3,r_idx_nlevels=4,
-                             r_idx_names=["FEE","FI","FO","FAM"],
+                             r_idx_names=["FEE","FIH","FOH","FUM"],
                              c_idx_nlevels=2)
 
     >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
@@ -977,3 +986,11 @@ def loc(x):
 
 def iloc(x):
     return x.iloc
+
+
+def at(x):
+    return x.at
+
+
+def iat(x):
+    return x.iat

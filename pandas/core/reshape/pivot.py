@@ -16,17 +16,34 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, IndexLabel
-from pandas.util._decorators import Appender, Substitution
+from pandas._typing import (
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_list_like,
+    is_scalar,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
-from pandas.core.indexes.api import Index, MultiIndex, get_objs_combined_axis
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    get_objs_combined_axis,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
@@ -50,7 +67,7 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-) -> "DataFrame":
+) -> DataFrame:
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -428,7 +445,7 @@ def pivot(
     index: Optional[IndexLabel] = None,
     columns: Optional[IndexLabel] = None,
     values: Optional[IndexLabel] = None,
-) -> "DataFrame":
+) -> DataFrame:
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
@@ -475,7 +492,7 @@ def crosstab(
     margins_name: str = "All",
     dropna: bool = True,
     normalize=False,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an

@@ -1,5 +1,14 @@
-from datetime import datetime, timedelta, tzinfo
-from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
+from datetime import (
+    datetime,
+    timedelta,
+    tzinfo,
+)
+from io import (
+    BufferedIOBase,
+    RawIOBase,
+    TextIOBase,
+    TextIOWrapper,
+)
 from mmap import mmap
 from os import PathLike
 from typing import (
@@ -29,7 +38,11 @@ import numpy as np
 if TYPE_CHECKING:
     from typing import final
 
-    from pandas._libs import Period, Timedelta, Timestamp
+    from pandas._libs import (
+        Period,
+        Timedelta,
+        Timestamp,
+    )
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -37,8 +50,15 @@ if TYPE_CHECKING:
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame  # noqa: F401
-    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
+    from pandas.core.groupby.generic import (
+        DataFrameGroupBy,
+        SeriesGroupBy,
+    )
     from pandas.core.indexes.base import Index
+    from pandas.core.internals import (
+        ArrayManager,
+        BlockManager,
+    )
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow
@@ -90,7 +110,7 @@ Shape = Tuple[int, ...]
 Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
-Axes = Collection
+Axes = Collection[Any]
 
 # dtypes
 NpDtype = Union[str, np.dtype]
@@ -159,3 +179,6 @@ FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
+
+# internals
+Manager = Union["ArrayManager", "BlockManager"]

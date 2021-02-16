@@ -6,10 +6,14 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
+from __future__ import annotations
 
 from contextlib import contextmanager
 import datetime
-from functools import partial, wraps
+from functools import (
+    partial,
+    wraps,
+)
 import inspect
 from textwrap import dedent
 import types
@@ -36,7 +40,10 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import (
+    Timestamp,
+    lib,
+)
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     F,
@@ -44,11 +51,17 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     IndexLabel,
     Scalar,
+    T,
     final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -62,17 +75,35 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, DatetimeArray
-from pandas.core.base import DataError, PandasObject, SelectionMixin
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+)
+from pandas.core.base import (
+    DataError,
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, numba_, ops
-from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.groupby import (
+    base,
+    numba_,
+    ops,
+)
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
@@ -342,7 +373,7 @@ The current implementation imposes three requirements on f:
   in the subframe. If f also supports application to the entire subframe,
   then a fast path is used starting from the second chunk.
 * f must not mutate groups. Mutation is not supported and may
-  produce unexpected results.
+  produce unexpected results. See :ref:`udf-mutation` for more details.
 
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
@@ -445,6 +476,10 @@ When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
 {examples}
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
 """
 
 
@@ -475,7 +510,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "BaseGroupBy") -> Iterator["BaseGroupBy"]:
+def group_selection_context(groupby: BaseGroupBy) -> Iterator[BaseGroupBy]:
     """
     Set / reset the group_selection_context.
     """
@@ -520,7 +555,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level: Optional[IndexLabel] = None,
-        grouper: Optional["ops.BaseGrouper"] = None,
+        grouper: Optional[ops.BaseGrouper] = None,
         exclusions: Optional[Set[Hashable]] = None,
         selection: Optional[IndexLabel] = None,
         as_index: bool = True,
@@ -723,8 +758,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     def _set_result_index_ordered(
-        self, result: "OutputFrameOrSeries"
-    ) -> "OutputFrameOrSeries":
+        self, result: OutputFrameOrSeries
+    ) -> OutputFrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -789,7 +824,12 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         ),
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return com.pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
@@ -1364,7 +1404,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Type["Series"]:
+    def _obj_1d_constructor(self) -> Type[Series]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -3057,7 +3097,7 @@ def get_groupby(
     by: Optional[_KeysArgType] = None,
     axis: int = 0,
     level=None,
-    grouper: "Optional[ops.BaseGrouper]" = None,
+    grouper: Optional[ops.BaseGrouper] = None,
     exclusions=None,
     selection=None,
     as_index: bool = True,

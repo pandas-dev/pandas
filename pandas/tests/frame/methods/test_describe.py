@@ -1,9 +1,20 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
+
+# TODO(ArrayManager) quantile is needed for describe()
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestDataFrameDescribe:
@@ -360,6 +371,15 @@ class TestDataFrameDescribe:
                 "max",
             ],
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_describe_does_not_raise_error_for_dictlike_elements(self):
+        # GH#32409
+        df = DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
+        expected = DataFrame(
+            {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
+        )
+        result = df.describe()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("exclude", ["x", "y", ["x", "y"], ["x", "z"]])

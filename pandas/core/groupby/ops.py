@@ -5,6 +5,7 @@ These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
+from __future__ import annotations
 
 import collections
 from typing import (
@@ -21,10 +22,20 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, lib
+from pandas._libs import (
+    NaT,
+    iNaT,
+    lib,
+)
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Shape, final
+from pandas._typing import (
+    ArrayLike,
+    F,
+    FrameOrSeries,
+    Shape,
+    final,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -54,15 +65,25 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex
-from pandas.core.dtypes.missing import isna, maybe_fill
+from pandas.core.dtypes.missing import (
+    isna,
+    maybe_fill,
+)
 
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, grouper
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.groupby import (
+    base,
+    grouper,
+)
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    ensure_index,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -99,7 +120,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: Sequence["grouper.Grouping"],
+        groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -118,7 +139,7 @@ class BaseGrouper:
         self.dropna = dropna
 
     @property
-    def groupings(self) -> List["grouper.Grouping"]:
+    def groupings(self) -> List[grouper.Grouping]:
         return self._groupings
 
     @property
@@ -149,7 +170,7 @@ class BaseGrouper:
             yield key, group.__finalize__(data, method="groupby")
 
     @final
-    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
+    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> DataSplitter:
         """
         Returns
         -------
@@ -540,7 +561,9 @@ class BaseGrouper:
             result = type(orig_values)._from_sequence(res_values)
             return result
 
-        raise NotImplementedError(values.dtype)
+        raise NotImplementedError(
+            f"function is not implemented for this dtype: {values.dtype}"
+        )
 
     @final
     def _cython_operation(
@@ -907,7 +930,7 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels.name]
 
     @property
-    def groupings(self) -> "List[grouper.Grouping]":
+    def groupings(self) -> List[grouper.Grouping]:
         return [
             grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
             for lvl, name in zip(self.levels, self.names)

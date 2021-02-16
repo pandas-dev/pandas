@@ -1,12 +1,24 @@
+from __future__ import annotations
+
 import operator
-from operator import le, lt
+from operator import (
+    le,
+    lt,
+)
 import textwrap
-from typing import Optional, Sequence, Type, TypeVar, cast
+from typing import (
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    cast,
+)
 
 import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import NaT
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -14,14 +26,19 @@ from pandas._libs.interval import (
     intervals_to_interval_bounds,
 )
 from pandas._libs.missing import NA
-from pandas._typing import ArrayLike, Dtype, NpDtype
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    NpDtype,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_any_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -41,10 +58,21 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    notna,
+)
 
-from pandas.core.algorithms import isin, take, value_counts
-from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
+from pandas.core.algorithms import (
+    isin,
+    take,
+    value_counts,
+)
+from pandas.core.arrays.base import (
+    ExtensionArray,
+    _extension_array_shared_docs,
+)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -54,7 +82,10 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
-from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
+from pandas.core.ops import (
+    invalid_comparison,
+    unpack_zerodim_and_defer,
+)
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
@@ -861,7 +892,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def isna(self) -> np.ndarray:
         return isna(self._left)
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
+    def shift(self, periods: int = 1, fill_value: object = None) -> IntervalArray:
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -955,19 +986,29 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # list-like of intervals
         try:
             array = IntervalArray(value)
-            # TODO: self._check_closed_matches(array, name="value")
+            self._check_closed_matches(array, name="value")
             value_left, value_right = array.left, array.right
         except TypeError as err:
             # wrong type: not interval or NA
             msg = f"'value' should be an interval type, got {type(value)} instead."
             raise TypeError(msg) from err
+
+        try:
+            self.left._validate_fill_value(value_left)
+        except (ValueError, TypeError) as err:
+            msg = (
+                "'value' should be a compatible interval type, "
+                f"got {type(value)} instead."
+            )
+            raise TypeError(msg) from err
+
         return value_left, value_right
 
     def _validate_scalar(self, value):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
-        elif is_valid_nat_for_dtype(value, self.left.dtype):
+        elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
             left = right = value
         else:
@@ -982,23 +1023,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _validate_setitem_value(self, value):
         needs_float_conversion = False
 
-        if is_valid_nat_for_dtype(value, self.left.dtype):
+        if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 needs_float_conversion = True
-            elif is_datetime64_any_dtype(self.dtype.subtype):
+            elif is_datetime64_dtype(self.dtype.subtype):
                 # need proper NaT to set directly on the numpy array
                 value = np.datetime64("NaT")
+            elif is_datetime64tz_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the DatetimeArray array
+                value = NaT
             elif is_timedelta64_dtype(self.dtype.subtype):
                 # need proper NaT to set directly on the numpy array
                 value = np.timedelta64("NaT")
             value_left, value_right = value, value
 
-        elif is_interval_dtype(value) or isinstance(value, Interval):
+        elif isinstance(value, Interval):
             # scalar interval
             self._check_closed_matches(value, name="value")
             value_left, value_right = value.left, value.right
+            self.left._validate_fill_value(value_left)
+            self.left._validate_fill_value(value_right)
 
         else:
             return self._validate_listlike(value)
@@ -1007,7 +1053,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of each interval.
 
@@ -1399,6 +1445,25 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     # ---------------------------------------------------------------------
 
+    def putmask(self, mask: np.ndarray, value) -> None:
+        value_left, value_right = self._validate_setitem_value(value)
+
+        if isinstance(self._left, np.ndarray):
+            np.putmask(self._left, mask, value_left)
+            np.putmask(self._right, mask, value_right)
+        else:
+            self._left.putmask(mask, value_left)
+            self._right.putmask(mask, value_right)
+
+    def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
+        if isinstance(self._left, np.ndarray):
+            new_left = np.delete(self._left, loc)
+            new_right = np.delete(self._right, loc)
+        else:
+            new_left = self._left.delete(loc)
+            new_right = self._right.delete(loc)
+        return self._shallow_copy(left=new_left, right=new_right)
+
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
     def repeat(self, repeats, axis=None):
         nv.validate_repeat((), {"axis": axis})
@@ -1475,7 +1540,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
 
-                # error: "ArrayLike" has no attribute "view"  [attr-defined]
+                # error: "ArrayLike" has no attribute "view"
                 left = self._combined.view("complex128")  # type:ignore[attr-defined]
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)

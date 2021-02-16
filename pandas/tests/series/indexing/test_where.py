@@ -1,12 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, isna
+from pandas import (
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -349,7 +352,6 @@ def test_where_dups():
     tm.assert_series_equal(comb, expected)
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_where_numeric_with_string():
     # GH 9280
     s = Series([1, 2, 3])

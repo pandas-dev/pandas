@@ -1,0 +1,17 @@
+name: Build pandas
+description: Rebuilds the C extensions and installs pandas
+runs:
+  using: composite
+  steps:
+
+    - name: Environment Detail
+      run: |
+        conda info
+        conda list
+      shell: bash -l {0}
+
+    - name: Build Pandas
+      run: |
+        python setup.py build_ext -j 2
+        python -m pip install -e . --no-build-isolation --no-use-pep517
+      shell: bash -l {0}

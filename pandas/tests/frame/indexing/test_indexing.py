@@ -1,11 +1,15 @@
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 import re
 
 import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer
 
@@ -255,8 +259,6 @@ class TestDataFrameIndexing:
     )
     def test_setitem_same_column(self, cols, values, expected):
         # GH 23239
-        if cols == ["C", "D", "D", "a"] and is_numpy_dev:
-            pytest.skip("GH#39089 Numpy changed dtype inference")
         df = DataFrame([values], columns=cols)
         df["a"] = df["a"]
         result = df["a"].values[0]
@@ -1733,34 +1735,6 @@ class TestDataFrameIndexingUInt64:
                 index=["A", "B", "C"],
             ),
         )
-
-
-@pytest.mark.parametrize(
-    "src_idx",
-    [
-        Index([]),
-        pd.CategoricalIndex([]),
-    ],
-)
-@pytest.mark.parametrize(
-    "cat_idx",
-    [
-        # No duplicates
-        Index([]),
-        pd.CategoricalIndex([]),
-        Index(["A", "B"]),
-        pd.CategoricalIndex(["A", "B"]),
-        # Duplicates: GH#38906
-        Index(["A", "A"]),
-        pd.CategoricalIndex(["A", "A"]),
-    ],
-)
-def test_reindex_empty(src_idx, cat_idx):
-    df = DataFrame(columns=src_idx, index=["K"], dtype="f8")
-
-    result = df.reindex(columns=cat_idx)
-    expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
-    tm.assert_frame_equal(result, expected)
 
 
 def test_object_casting_indexing_wraps_datetimelike():

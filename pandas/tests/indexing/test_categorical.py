@@ -322,6 +322,7 @@ class TestCategoricalIndex:
         with pytest.raises(KeyError, match=re.escape(msg)):
             df.loc[["a", "x"]]
 
+    def test_loc_listlike_dtypes_duplicated_categories_and_codes(self):
         # duplicated categories and codes
         index = CategoricalIndex(["a", "b", "a"])
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=index)
@@ -341,9 +342,11 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
+        msg = "The following labels were missing: Index(['x'], dtype='object')"
         with pytest.raises(KeyError, match=re.escape(msg)):
             df.loc[["a", "x"]]
 
+    def test_loc_listlike_dtypes_unused_category(self):
         # contains unused category
         index = CategoricalIndex(["a", "b", "a", "c"], categories=list("abcde"))
         df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=index)
@@ -363,6 +366,7 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
+        msg = "The following labels were missing: Index(['x'], dtype='object')"
         with pytest.raises(KeyError, match=re.escape(msg)):
             df.loc[["a", "x"]]
 
@@ -404,6 +408,8 @@ class TestCategoricalIndex:
         exp_columns = CategoricalIndex(list("XY"), categories=["X", "Y", "Z"])
         expect = DataFrame(df.loc[:, ["X", "Y"]], index=cdf.index, columns=exp_columns)
         tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
+
+    def test_ix_categorical_index_non_unique(self):
 
         # non-unique
         df = DataFrame(np.random.randn(3, 3), index=list("ABA"), columns=list("XYX"))
