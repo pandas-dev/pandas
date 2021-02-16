@@ -172,8 +172,7 @@ def maybe_box_native(value: Scalar) -> Scalar:
     elif is_float(value):
         value = float(value)
     elif is_integer(value):
-        with suppress(ValueError, TypeError):
-            value = int(value)
+        value = int(value)
     elif is_bool(value):
         value = bool(value)
     return value
