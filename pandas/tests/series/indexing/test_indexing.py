@@ -5,8 +5,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_scalar
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -21,8 +19,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-
-from pandas.tseries.offsets import BDay
 
 
 def test_basic_indexing():
@@ -58,18 +54,6 @@ def test_basic_getitem_with_labels(datetime_series):
     tm.assert_series_equal(result, expected)
 
 
-def test_basic_getitem_with_integer_labels():
-    # integer indexes, be careful
-    ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
-    inds = [0, 2, 5, 7, 8]
-    arr_inds = np.array([0, 2, 5, 7, 8])
-    with pytest.raises(KeyError, match="with any missing labels"):
-        ser[inds]
-
-    with pytest.raises(KeyError, match="with any missing labels"):
-        ser[arr_inds]
-
-
 def test_basic_getitem_dt64tz_values():
 
     # GH12089
@@ -98,24 +82,7 @@ def test_getitem_setitem_ellipsis():
     assert (result == 5).all()
 
 
-def test_getitem_missing(datetime_series):
-    # missing
-    d = datetime_series.index[0] - BDay()
-    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
-    with pytest.raises(KeyError, match=msg):
-        datetime_series[d]
-
-
-def test_getitem_fancy(string_series, object_series):
-    slice1 = string_series[[1, 2, 3]]
-    slice2 = object_series[[1, 2, 3]]
-    assert string_series.index[2] == slice1.index[1]
-    assert object_series.index[2] == slice2.index[1]
-    assert string_series[2] == slice1[1]
-    assert object_series[2] == slice2[1]
-
-
-def test_type_promotion():
+def test_setitem_with_expansion_type_promotion():
     # GH12599
     s = Series(dtype=object)
     s["a"] = Timestamp("2016-01-01")
@@ -157,11 +124,6 @@ def test_getitem_setitem_integers():
     tm.assert_almost_equal(s["a"], 5)
 
 
-def test_getitem_box_float64(datetime_series):
-    value = datetime_series[5]
-    assert isinstance(value, np.float64)
-
-
 def test_series_box_timestamp():
     rng = pd.date_range("20090415", "20090519", freq="B")
     ser = Series(rng)
@@ -189,49 +151,26 @@ def test_series_box_timedelta():
     assert isinstance(ser.iloc[4], Timedelta)
 
 
-def test_getitem_ambiguous_keyerror():
-    s = Series(range(10), index=list(range(0, 20, 2)))
+def test_getitem_ambiguous_keyerror(indexer_sl):
+    ser = Series(range(10), index=list(range(0, 20, 2)))
     with pytest.raises(KeyError, match=r"^1$"):
-        s[1]
-    with pytest.raises(KeyError, match=r"^1$"):
-        s.loc[1]
+        indexer_sl(ser)[1]
 
 
-def test_getitem_unordered_dup():
-    obj = Series(range(5), index=["c", "a", "a", "b", "b"])
-    assert is_scalar(obj["c"])
-    assert obj["c"] == 0
-
-
-def test_getitem_dups_with_missing():
+def test_getitem_dups_with_missing(indexer_sl):
     # breaks reindex, so need to use .loc internally
     # GH 4246
-    s = Series([1, 2, 3, 4], ["foo", "bar", "foo", "bah"])
+    ser = Series([1, 2, 3, 4], ["foo", "bar", "foo", "bah"])
     with pytest.raises(KeyError, match="with any missing labels"):
-        s.loc[["foo", "bar", "bah", "bam"]]
-
-    with pytest.raises(KeyError, match="with any missing labels"):
-        s[["foo", "bar", "bah", "bam"]]
+        indexer_sl(ser)[["foo", "bar", "bah", "bam"]]
 
 
-def test_getitem_dups():
-    s = Series(range(5), index=["A", "A", "B", "C", "C"], dtype=np.int64)
-    expected = Series([3, 4], index=["C", "C"], dtype=np.int64)
-    result = s["C"]
-    tm.assert_series_equal(result, expected)
-
-
-def test_setitem_ambiguous_keyerror():
+def test_setitem_ambiguous_keyerror(indexer_sl):
     s = Series(range(10), index=list(range(0, 20, 2)))
 
     # equivalent of an append
     s2 = s.copy()
-    s2[1] = 5
-    expected = s.append(Series([5], index=[1]))
-    tm.assert_series_equal(s2, expected)
-
-    s2 = s.copy()
-    s2.loc[1] = 5
+    indexer_sl(s2)[1] = 5
     expected = s.append(Series([5], index=[1]))
     tm.assert_series_equal(s2, expected)
 
@@ -314,13 +253,10 @@ def test_basic_getitem_setitem_corner(datetime_series):
 
 
 @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
-def test_setitem_with_tz(tz):
+def test_setitem_with_tz(tz, indexer_sli):
     orig = Series(pd.date_range("2016-01-01", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"
 
-    # scalar
-    s = orig.copy()
-    s[1] = Timestamp("2011-01-01", tz=tz)
     exp = Series(
         [
             Timestamp("2016-01-01 00:00", tz=tz),
@@ -328,15 +264,11 @@ def test_setitem_with_tz(tz):
             Timestamp("2016-01-01 02:00", tz=tz),
         ]
     )
-    tm.assert_series_equal(s, exp)
 
-    s = orig.copy()
-    s.loc[1] = Timestamp("2011-01-01", tz=tz)
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s.iloc[1] = Timestamp("2011-01-01", tz=tz)
-    tm.assert_series_equal(s, exp)
+    # scalar
+    ser = orig.copy()
+    indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+    tm.assert_series_equal(ser, exp)
 
     # vector
     vals = Series(
@@ -345,7 +277,6 @@ def test_setitem_with_tz(tz):
     )
     assert vals.dtype == f"datetime64[ns, {tz}]"
 
-    s[[1, 2]] = vals
     exp = Series(
         [
             Timestamp("2016-01-01 00:00", tz=tz),
@@ -353,26 +284,18 @@ def test_setitem_with_tz(tz):
             Timestamp("2012-01-01 00:00", tz=tz),
         ]
     )
-    tm.assert_series_equal(s, exp)
 
-    s = orig.copy()
-    s.loc[[1, 2]] = vals
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s.iloc[[1, 2]] = vals
-    tm.assert_series_equal(s, exp)
+    ser = orig.copy()
+    indexer_sli(ser)[[1, 2]] = vals
+    tm.assert_series_equal(ser, exp)
 
 
-def test_setitem_with_tz_dst():
+def test_setitem_with_tz_dst(indexer_sli):
     # GH XXX TODO: fill in GH ref
     tz = "US/Eastern"
     orig = Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"
 
-    # scalar
-    s = orig.copy()
-    s[1] = Timestamp("2011-01-01", tz=tz)
     exp = Series(
         [
             Timestamp("2016-11-06 00:00-04:00", tz=tz),
@@ -380,15 +303,11 @@ def test_setitem_with_tz_dst():
             Timestamp("2016-11-06 01:00-05:00", tz=tz),
         ]
     )
-    tm.assert_series_equal(s, exp)
 
-    s = orig.copy()
-    s.loc[1] = Timestamp("2011-01-01", tz=tz)
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s.iloc[1] = Timestamp("2011-01-01", tz=tz)
-    tm.assert_series_equal(s, exp)
+    # scalar
+    ser = orig.copy()
+    indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+    tm.assert_series_equal(ser, exp)
 
     # vector
     vals = Series(
@@ -397,7 +316,6 @@ def test_setitem_with_tz_dst():
     )
     assert vals.dtype == f"datetime64[ns, {tz}]"
 
-    s[[1, 2]] = vals
     exp = Series(
         [
             Timestamp("2016-11-06 00:00", tz=tz),
@@ -405,15 +323,10 @@ def test_setitem_with_tz_dst():
             Timestamp("2012-01-01 00:00", tz=tz),
         ]
     )
-    tm.assert_series_equal(s, exp)
 
-    s = orig.copy()
-    s.loc[[1, 2]] = vals
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s.iloc[[1, 2]] = vals
-    tm.assert_series_equal(s, exp)
+    ser = orig.copy()
+    indexer_sli(ser)[[1, 2]] = vals
+    tm.assert_series_equal(ser, exp)
 
 
 def test_categorical_assigning_ops():
@@ -451,19 +364,6 @@ def test_setitem_nan_into_categorical():
     exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
     ser[1] = np.nan
     tm.assert_series_equal(ser, exp)
-
-
-def test_getitem_categorical_str():
-    # GH#31765
-    ser = Series(range(5), index=Categorical(["a", "b", "c", "a", "b"]))
-    result = ser["a"]
-    expected = ser.iloc[[0, 3]]
-    tm.assert_series_equal(result, expected)
-
-    # Check the intermediate steps work as expected
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.index.get_value(ser, "a")
-    tm.assert_series_equal(result, expected)
 
 
 def test_slice(string_series, object_series):

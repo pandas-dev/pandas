@@ -1466,27 +1466,13 @@ class TestDataFrameIndexing:
         result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
-    def test_at_time_between_time_datetimeindex(self):
+    def test_loc_setitem_time_key(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
         df = DataFrame(np.random.randn(len(index), 5), index=index)
         akey = time(12, 0, 0)
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         ainds = [24, 72, 120, 168]
         binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
-
-        result = df.at_time(akey)
-        expected = df.loc[akey]
-        expected2 = df.iloc[ainds]
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, expected2)
-        assert len(result) == 4
-
-        result = df.between_time(bkey.start, bkey.stop)
-        expected = df.loc[bkey]
-        expected2 = df.iloc[binds]
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, expected2)
-        assert len(result) == 12
 
         result = df.copy()
         result.loc[akey] = 0
@@ -1512,7 +1498,7 @@ class TestDataFrameIndexing:
         result.loc[bkey] = df.iloc[binds]
         tm.assert_frame_equal(result, df)
 
-    def test_loc_getitem_index_namedtuple(self):
+    def test_loc_getitem_index_namedtuple(self):  # TODO: frame_or_series, getitem
         from collections import namedtuple
 
         IndexType = namedtuple("IndexType", ["a", "b"])
@@ -1524,26 +1510,11 @@ class TestDataFrameIndexing:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    @pytest.mark.parametrize(
-        "tpl",
-        [
-            (1,),
-            (
-                1,
-                2,
-            ),
-        ],
-    )
+    @pytest.mark.parametrize("tpl", [(1,), (1, 2)])
     def test_loc_getitem_index_single_double_tuples(self, tpl):
         # GH 20991
         idx = Index(
-            [
-                (1,),
-                (
-                    1,
-                    2,
-                ),
-            ],
+            [(1,), (1, 2)],
             name="A",
             tupleize_cols=False,
         )
