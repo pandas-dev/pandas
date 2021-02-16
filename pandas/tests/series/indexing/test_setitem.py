@@ -167,15 +167,6 @@ class TestSetitemBooleanMask:
         expected = Series(["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.parametrize("value", [None, NaT, np.nan])
-    def test_setitem_boolean_td64_values_cast_na(self, value):
-        # GH#18586
-        series = Series([0, 1, 2], dtype="timedelta64[ns]")
-        mask = series == series[0]
-        series[mask] = value
-        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
-        tm.assert_series_equal(series, expected)
-
     def test_setitem_boolean_nullable_int_types(self, any_nullable_numeric_dtype):
         # GH: 26468
         ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
@@ -644,6 +635,7 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     # some nat-like values should be cast to datetime64/timedelta64 when
     #  inserting into a datetime64/timedelta64 series.  Others should coerce
     #  to object and retain their dtypes.
+    # GH#18586 for td64 and boolean mask case
 
     @pytest.fixture(
         params=["m8[ns]", "M8[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Central]"]
@@ -659,7 +651,13 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
         return Series(idx)
 
     @pytest.fixture(
-        params=[NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+        params=[
+            None,
+            np.nan,
+            NaT,
+            np.timedelta64("NaT", "ns"),
+            np.datetime64("NaT", "ns"),
+        ]
     )
     def val(self, request):
         return request.param
@@ -669,7 +667,7 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
         # td64   -> cast to object iff val is datetime64("NaT")
         # dt64   -> cast to object iff val is timedelta64("NaT")
         # dt64tz -> cast to object with anything _but_ NaT
-        return val is NaT or obj.dtype == val.dtype
+        return val is NaT or val is None or val is np.nan or obj.dtype == val.dtype
 
     @pytest.fixture
     def expected(self, obj, val, is_inplace):
