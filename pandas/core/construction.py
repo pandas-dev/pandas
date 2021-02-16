@@ -7,16 +7,34 @@ These should not depend on core.internals.
 from __future__ import annotations
 
 from collections import abc
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    OutOfBoundsDatetime,
+)
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype, registry
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    registry,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
@@ -49,7 +67,11 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas import ExtensionArray, Index, Series
+    from pandas import (
+        ExtensionArray,
+        Index,
+        Series,
+    )
 
 
 def array(
@@ -531,6 +553,11 @@ def _sanitize_ndim(
     elif result.ndim > 1:
         if isinstance(data, np.ndarray):
             raise ValueError("Data must be 1-dimensional")
+        if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
+            # i.e. PandasDtype("O")
+            result = com.asarray_tuplesafe(data, dtype=object)
+            cls = dtype.construct_array_type()
+            result = cls._from_sequence(result, dtype=dtype)
         else:
             result = com.asarray_tuplesafe(data, dtype=dtype)
     return result
@@ -583,9 +610,13 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
         Otherwise an object array is returned.
     """
     # perf shortcut as this is the most common case
-    if isinstance(arr, np.ndarray):
-        if maybe_castable(arr) and not copy and dtype is None:
-            return arr
+    if (
+        isinstance(arr, np.ndarray)
+        and maybe_castable(arr.dtype)
+        and not copy
+        and dtype is None
+    ):
+        return arr
 
     if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
         # create an extension array from its dtype

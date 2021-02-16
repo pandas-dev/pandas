@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from importlib import reload
 import string
 import sys
@@ -340,6 +343,11 @@ class TestAstype:
         if former_encoding is not None and former_encoding != "utf-8":
             reload(sys)
             sys.setdefaultencoding(former_encoding)
+
+    def test_astype_bytes(self):
+        # GH#39474
+        result = Series(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes == np.dtype("S3")
 
 
 class TestAstypeCategorical:

@@ -1,11 +1,12 @@
 import pandas._libs.parsers as parsers
 from pandas._typing import FilePathOrBuffer
 
-from pandas.core.dtypes.common import is_integer
-
 from pandas.core.indexes.api import ensure_index_from_sequences
 
-from pandas.io.parsers.base_parser import ParserBase, is_index_col
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    is_index_col,
+)
 
 
 class CParserWrapper(ParserBase):
@@ -19,7 +20,6 @@ class CParserWrapper(ParserBase):
         kwds["allow_leading_cols"] = self.index_col is not False
 
         # GH20529, validate usecol arg before TextReader
-        self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
         # open handles
@@ -28,29 +28,23 @@ class CParserWrapper(ParserBase):
         for key in ("storage_options", "encoding", "memory_map", "compression"):
             kwds.pop(key, None)
         if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
-            # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "IO[Any]" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "RawIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "RawIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "BufferedIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "BufferedIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "TextIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "TextIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "TextIOWrapper" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "TextIOWrapper" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "mmap" of "Union[IO[Any],
-            # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]" has
-            # no attribute "mmap"  [union-attr]
+            # error: Item "mmap" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
         try:
@@ -134,12 +128,8 @@ class CParserWrapper(ParserBase):
                     self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
-                # pandas\io\parsers.py:1997: error: Argument 1 to "len" has
-                # incompatible type "Optional[Any]"; expected "Sized"
-                # [arg-type]
-                self.index_names = [None] * len(
-                    self.index_names  # type: ignore[arg-type]
-                )
+                assert self.index_names is not None
+                self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 
@@ -159,58 +149,11 @@ class CParserWrapper(ParserBase):
         Currently, any column that is involved with date parsing will not
         undergo such conversions.
         """
-        names = self.orig_names
-        if self.usecols_dtype == "integer":
-            # A set of integers will be converted to a list in
-            # the correct order every single time.
-            usecols = list(self.usecols)
-            usecols.sort()
-        elif callable(self.usecols) or self.usecols_dtype not in ("empty", None):
-            # The names attribute should have the correct columns
-            # in the proper order for indexing with parse_dates.
-            usecols = self.names[:]
-        else:
-            # Usecols is empty.
-
-            # pandas\io\parsers.py:2030: error: Incompatible types in
-            # assignment (expression has type "None", variable has type
-            # "List[Any]")  [assignment]
-            usecols = None  # type: ignore[assignment]
-
-        def _set(x):
-            if usecols is not None and is_integer(x):
-                x = usecols[x]
-
-            if not is_integer(x):
-                # assert for mypy, names is List or None, None would error when calling
-                # .index()
-                assert names is not None
-                x = names.index(x)
-
-            self._reader.set_noconvert(x)
-
-        if isinstance(self.parse_dates, list):
-            for val in self.parse_dates:
-                if isinstance(val, list):
-                    for k in val:
-                        _set(k)
-                else:
-                    _set(val)
-
-        elif isinstance(self.parse_dates, dict):
-            for val in self.parse_dates.values():
-                if isinstance(val, list):
-                    for k in val:
-                        _set(k)
-                else:
-                    _set(val)
-
-        elif self.parse_dates:
-            if isinstance(self.index_col, list):
-                for k in self.index_col:
-                    _set(k)
-            elif self.index_col is not None:
-                _set(self.index_col)
+        assert self.orig_names is not None
+        col_indices = [self.orig_names.index(x) for x in self.names]
+        noconvert_columns = self._set_noconvert_dtype_columns(col_indices, self.names)
+        for col in noconvert_columns:
+            self._reader.set_noconvert(col)
 
     def set_error_bad_lines(self, status):
         self._reader.set_error_bad_lines(int(status))

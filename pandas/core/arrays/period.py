@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
-from typing import Any, Callable, List, Optional, Sequence, Type, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -20,7 +28,10 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas._libs.tslibs.offsets import Tick, delta_to_tick
+from pandas._libs.tslibs.offsets import (
+    Tick,
+    delta_to_tick,
+)
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
@@ -29,8 +40,15 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import AnyArrayLike, Dtype, NpDtype
-from pandas.util._decorators import cache_readonly, doc
+from pandas._typing import (
+    AnyArrayLike,
+    Dtype,
+    NpDtype,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -38,6 +56,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
+    is_integer_dtype,
     is_period_dtype,
     pandas_dtype,
 )
@@ -48,7 +67,10 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
@@ -897,7 +919,7 @@ def period_array(
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
         data = list(data)
 
-    data = np.asarray(data)
+    arrdata = np.asarray(data)
 
     dtype: Optional[PeriodDtype]
     if freq:
@@ -905,10 +927,15 @@ def period_array(
     else:
         dtype = None
 
-    if is_float_dtype(data) and len(data) > 0:
+    if is_float_dtype(arrdata) and len(arrdata) > 0:
         raise TypeError("PeriodIndex does not allow floating point in construction")
 
-    data = ensure_object(data)
+    if is_integer_dtype(arrdata.dtype):
+        arr = arrdata.astype(np.int64, copy=False)
+        ordinals = libperiod.from_ordinals(arr, freq)
+        return PeriodArray(ordinals, dtype=dtype)
+
+    data = ensure_object(arrdata)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
 

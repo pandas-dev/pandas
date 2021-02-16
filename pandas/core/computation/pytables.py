@@ -3,24 +3,42 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 
-from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
 import pandas.core.common as com
-from pandas.core.computation import expr, ops, scope as _scope
+from pandas.core.computation import (
+    expr,
+    ops,
+    scope as _scope,
+)
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import UndefinedVariableError, is_term
+from pandas.core.computation.ops import (
+    UndefinedVariableError,
+    is_term,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+from pandas.io.formats.printing import (
+    pprint_thing,
+    pprint_thing_encoded,
+)
 
 
 class PyTablesScope(_scope.Scope):
@@ -210,12 +228,10 @@ class BinOp(ops.BinOp):
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
-            result = metadata.searchsorted(v, side="left")
-
-            # result returns 0 if v is first element or if v is not in metadata
-            # check that metadata contains v
-            if not result and v not in metadata:
+            if v not in metadata:
                 result = -1
+            else:
+                result = metadata.searchsorted(v, side="left")
             return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))

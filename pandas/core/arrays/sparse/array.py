@@ -6,16 +6,32 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 import pandas._libs.sparse as splib
-from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
+from pandas._libs.sparse import (
+    BlockIndex,
+    IntIndex,
+    SparseIndex,
+)
 from pandas._libs.tslibs import NaT
-from pandas._typing import Dtype, NpDtype, Scalar
+from pandas._typing import (
+    Dtype,
+    NpDtype,
+    Scalar,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -37,8 +53,15 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
@@ -46,7 +69,10 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.construction import (
+    extract_array,
+    sanitize_array,
+)
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
@@ -382,6 +408,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         stacklevel=2,
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
+                    if fill_value is NaT:
+                        fill_value = np.datetime64("NaT", "ns")
                 data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value, dtype=dtype
@@ -723,20 +751,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         uniques = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques
 
-    def value_counts(self, dropna=True):
+    def value_counts(self, dropna: bool = True):
         """
         Returns a Series containing counts of unique values.
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN, even if NaN is in sp_values.
 
         Returns
         -------
         counts : Series
         """
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
 
         keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps

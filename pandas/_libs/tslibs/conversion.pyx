@@ -2,7 +2,12 @@ import cython
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int32_t, int64_t, intp_t, ndarray
+from numpy cimport (
+    int32_t,
+    int64_t,
+    intp_t,
+    ndarray,
+)
 
 cnp.import_array()
 
@@ -224,7 +229,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     ivalues = arr.view(np.int64).ravel("K")
 
-    result = np.empty(shape, dtype=DT64NS_DTYPE)
+    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
     iresult = result.ravel("K").view(np.int64)
 
     if len(iresult) == 0:

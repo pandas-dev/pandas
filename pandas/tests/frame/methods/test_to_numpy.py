@@ -2,7 +2,10 @@ import numpy as np
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Timestamp
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
