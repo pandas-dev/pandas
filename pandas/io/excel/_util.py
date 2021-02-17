@@ -68,13 +68,6 @@ def get_default_engine(ext, mode="reader"):
             _default_writers["xlsx"] = "xlsxwriter"
         return _default_writers[ext]
     else:
-        if (
-            import_optional_dependency("openpyxl", errors="ignore") is None
-            and import_optional_dependency("xlrd", errors="ignore") is not None
-        ):
-            # if no openpyxl but xlrd installed, return xlrd
-            # the version is handled elsewhere
-            _default_readers["xlsx"] = "xlrd"
         return _default_readers[ext]
 
 
