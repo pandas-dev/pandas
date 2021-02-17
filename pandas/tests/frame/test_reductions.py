@@ -285,7 +285,10 @@ class TestDataFrameAnalytics:
         assert_stat_op_api("median", float_frame, float_string_frame)
 
         try:
-            from scipy.stats import kurtosis, skew  # noqa:F401
+            from scipy.stats import (  # noqa:F401
+                kurtosis,
+                skew,
+            )
 
             assert_stat_op_api("skew", float_frame, float_string_frame)
             assert_stat_op_api("kurt", float_frame, float_string_frame)
@@ -368,7 +371,10 @@ class TestDataFrameAnalytics:
         )
 
         try:
-            from scipy import kurtosis, skew  # noqa:F401
+            from scipy import (  # noqa:F401
+                kurtosis,
+                skew,
+            )
 
             assert_stat_op_calc("skew", skewness, float_frame_with_na)
             assert_stat_op_calc("kurt", kurt, float_frame_with_na)
