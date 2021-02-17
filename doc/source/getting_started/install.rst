@@ -255,8 +255,8 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
-Miscellaneous Enhancments
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Visualization & computation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
