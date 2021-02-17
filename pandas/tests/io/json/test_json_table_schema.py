@@ -745,6 +745,9 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_comprehensive(self):
         df = DataFrame(
             {
