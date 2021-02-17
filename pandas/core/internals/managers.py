@@ -38,7 +38,9 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
+    is_datetime64tz_dtype,
     is_dtype_equal,
+    is_ea_dtype,
     is_extension_array_dtype,
     is_list_like,
 )
@@ -69,6 +71,7 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
+    block_shape,
     extend_blocks,
     get_block_type,
     make_block,
@@ -310,6 +313,16 @@ class BlockManager(DataManager):
             state = state[3]["0.14.1"]
             self.axes = [ensure_index(ax) for ax in state["axes"]]
             ndim = len(self.axes)
+
+            for blk in state["blocks"]:
+                vals = blk["values"]
+                if is_datetime64tz_dtype(vals.dtype):
+                    # older versions will hold in DatetimeIndex instead of DTA
+                    vals = extract_array(vals, extract_numpy=True)
+                    if vals.ndim == 1 and ndim == 2:
+                        vals = vals.reshape(1, -1)
+                        blk["values"] = vals
+
             self.blocks = tuple(
                 unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
                 for b in state["blocks"]
@@ -1029,7 +1042,7 @@ class BlockManager(DataManager):
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
-        value_is_extension_type = is_extension_array_dtype(value)
+        value_is_extension_type = is_ea_dtype(value)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1165,7 +1178,7 @@ class BlockManager(DataManager):
 
         if value.ndim == 2:
             value = value.T
-        elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+        elif value.ndim == self.ndim - 1:
             # TODO(EA2D): special case not needed with 2D EAs
             value = safe_reshape(value, (1,) + value.shape)
 
@@ -1715,7 +1728,12 @@ def _form_blocks(arrays, names: Index, axes: List[Index]) -> List[Block]:
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            make_block(array, klass=DatetimeTZBlock, placement=i, ndim=2)
+            make_block(
+                block_shape(extract_array(array), 2),
+                klass=DatetimeTZBlock,
+                placement=i,
+                ndim=2,
+            )
             for i, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1864,7 +1882,13 @@ def _merge_blocks(
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = np.vstack([b.values for b in blocks])
+
+        if isinstance(blocks[0].dtype, np.dtype):
+            new_values = np.vstack([b.values for b in blocks])
+        else:
+            new_values = blocks[0].values._concat_same_type(
+                [b.values for b in blocks], axis=0
+            )
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]

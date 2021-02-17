@@ -63,6 +63,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_scalar,
     is_signed_integer_dtype,
+    is_strict_ea,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
@@ -1779,6 +1780,11 @@ def take_nd(
 
     if isinstance(arr, ABCExtensionArray):
         # Check for EA to catch DatetimeArray, TimedeltaArray
+        if not is_strict_ea(arr):
+            # i.e. DatetimeArray, TimedeltaArray
+            return arr.take(
+                indexer, axis=axis, fill_value=fill_value, allow_fill=allow_fill
+            )
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = extract_array(arr)

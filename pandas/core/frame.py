@@ -110,6 +110,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_dict_like,
     is_dtype_equal,
+    is_ea_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -121,6 +122,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    is_strict_ea,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
@@ -752,10 +754,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if isinstance(self._mgr, ArrayManager):
             return False
-        if self._mgr.any_extension_types:
-            # TODO(EA2D) special case would be unnecessary with 2D EAs
+        blocks = self._mgr.blocks
+        if len(blocks) != 1:
             return False
-        return len(self._mgr.blocks) == 1
+
+        dtype = blocks[0].dtype
+        # TODO(EA2D) special case would be unnecessary with 2D EAs
+        return not is_ea_dtype(dtype)
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -2981,9 +2986,23 @@ class DataFrame(NDFrame, OpsMixin):
         # construct the args
 
         dtypes = list(self.dtypes)
-        if self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0]):
+        if self._mgr.nblocks == 1 and not is_strict_ea(self._mgr.blocks[0].values):
+            # Note: tests pass without this, but this improves perf quite a bit.
+            # TODO: something like frame.values but that _may_ give an EA
+            blk = self._mgr.blocks[0]
+            new_values = blk.values
+            if copy:
+                new_values = new_values.copy()
+            result = self._constructor(
+                new_values, index=self.columns, columns=self.index
+            )
+
+        elif (
+            self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
+        ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
+
             arr_type = dtype.construct_array_type()
             values = self.values
 
@@ -2991,6 +3010,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = self._constructor(
                 dict(zip(self.index, new_values)), index=self.columns
             )
+            # TODO: what if index is non-unique? (not specific to EA2D)
 
         else:
             new_values = self.values.T
@@ -9021,6 +9041,8 @@ NaN 12.3   33.0
 
         def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
+                if not is_strict_ea(values):
+                    return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)

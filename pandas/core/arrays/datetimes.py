@@ -616,6 +616,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         elif is_datetime64_ns_dtype(dtype):
             return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
 
+        elif self.tz is None and is_datetime64_dtype(dtype) and dtype != self.dtype:
+            # unit conversion
+            return self._data.astype(dtype)
+
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)

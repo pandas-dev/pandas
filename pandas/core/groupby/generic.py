@@ -65,6 +65,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_numeric_dtype,
     is_scalar,
+    is_strict_ea,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
@@ -82,10 +83,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.arrays import (
-    Categorical,
-    ExtensionArray,
-)
+from pandas.core.arrays import Categorical
 from pandas.core.base import (
     DataError,
     SpecificationError,
@@ -1115,7 +1113,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             obj: FrameOrSeriesUnion
 
             # call our grouper again with only this block
-            if isinstance(bvalues, ExtensionArray):
+            if is_strict_ea(bvalues):
                 # TODO(EA2D): special case not needed with 2D EAs
                 obj = Series(bvalues)
             else:

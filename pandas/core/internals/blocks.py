@@ -26,7 +26,6 @@ from pandas._libs import (
     writers,
 )
 from pandas._libs.internals import BlockPlacement
-from pandas._libs.tslibs import conversion
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -51,10 +50,12 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
+    is_ea_dtype,
     is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
     is_sparse,
+    is_strict_ea,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -112,7 +113,6 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
-    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
 class Block(PandasObject):
@@ -276,7 +276,7 @@ class Block(PandasObject):
         """
         if is_object_dtype(dtype):
             return self.values.astype(object)
-        return self.values
+        return np.asarray(self.values)
 
     def get_block_values_for_json(self) -> np.ndarray:
         """
@@ -308,7 +308,7 @@ class Block(PandasObject):
         if placement is None:
             placement = self.mgr_locs
         if self.is_extension:
-            values = _block_shape(values, ndim=self.ndim)
+            values = block_shape(values, ndim=self.ndim)
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
@@ -434,7 +434,10 @@ class Block(PandasObject):
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
-                vals = result[i]
+                if not is_strict_ea(result):
+                    vals = result[i : i + 1]
+                else:
+                    vals = result[i]
                 block = self.make_block(values=vals, placement=[loc])
                 nbs.append(block)
             return nbs
@@ -533,7 +536,7 @@ class Block(PandasObject):
             else:
                 # Put back the dimension that was taken from it and make
                 # a block out of the result.
-                nv = _block_shape(nv, ndim=self.ndim)
+                nv = block_shape(nv, ndim=self.ndim)
                 block = self.make_block(values=nv, placement=ref_loc)
             return block
 
@@ -673,6 +676,15 @@ class Block(PandasObject):
 
     def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
         values = self.values
+
+        if (
+            values.dtype.kind in ["m", "M"]
+            and dtype.kind in ["i", "u"]
+            and dtype.itemsize != 8
+        ):
+            # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
+            msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
+            raise TypeError(msg)
 
         if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
             return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
@@ -987,11 +999,6 @@ class Block(PandasObject):
         if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
-
-        if self.dtype.kind in ["m", "M"]:
-            arr = self.array_values().T
-            arr[indexer] = value
-            return self
 
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
@@ -1524,9 +1531,8 @@ class ExtensionBlock(Block):
                 ndim = 2
         super().__init__(values, placement, ndim=ndim)
 
-        if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(EA2D): check unnecessary with 2D EAs
-            raise AssertionError("block.size != values.size")
+        if self.ndim == 2 and len(self.mgr_locs) > 1:
+            raise ValueError("need to split... for now")
 
     @property
     def shape(self) -> Shape:
@@ -1640,8 +1646,8 @@ class ExtensionBlock(Block):
         be a compatible shape.
         """
         if not self._can_hold_element(value):
-            # This is only relevant for DatetimeTZBlock, which has a
-            #  non-trivial `_can_hold_element`.
+            # This is only relevant for DatetimeTZBlock, ObjectValuesExtensionBlock,
+            #  which has a non-trivial `_can_hold_element`.
             # https://github.com/pandas-dev/pandas/issues/24020
             # Need a dedicated setitem until GH#24020 (type promotion in setitem
             #  for extension arrays) is designed and implemented.
@@ -1873,9 +1879,13 @@ class ExtensionBlock(Block):
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
 
         if not is_sparse(self.dtype):
-            # shape[0] should be 1 as long as EAs are 1D
-            assert result.shape == (1, len(qs)), result.shape
-            result = type(self.values)._from_factorized(result[0], self.values)
+            if self.values.ndim == 1:
+                # shape[0] should be 1 as long as EAs are 1D
+                assert result.shape == (1, len(qs)), result.shape
+                result = type(self.values)._from_factorized(result[0], self.values)
+            else:
+                # NDArrayBackedExtensionBlock, e.g. DatetimeTZBlock
+                result = type(self.values)._from_factorized(result, self.values)
 
         return make_block(result, placement=self.mgr_locs, ndim=2)
 
@@ -1965,28 +1975,11 @@ class FloatBlock(NumericBlock):
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
     """
-    Block backed by an NDArrayBackedExtensionArray
+    Block backed by an NDarrayBackedExtensionArray, supporting 2D values.
     """
 
-    def internal_values(self):
-        # Override to return DatetimeArray and TimedeltaArray
-        return self.array_values()
-
-    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
-        """
-        return object dtype as boxed values, such as Timestamps/Timedelta
-        """
-        values = self.array_values()
-        if is_object_dtype(dtype):
-            # DTA/TDA constructor and astype can handle 2D
-            values = values.astype(object)
-        # TODO(EA2D): reshape not needed with 2D EAs
-        return np.asarray(values).reshape(self.shape)
-
-    def iget(self, key):
-        # GH#31649 we need to wrap scalars in Timestamp/Timedelta
-        # TODO(EA2D): this can be removed if we ever have 2D EA
-        return self.array_values().reshape(self.shape)[key]
+    def array_values(self):
+        return self.values
 
     def putmask(self, mask, new) -> List[Block]:
         mask = extract_bool_array(mask)
@@ -1994,27 +1987,46 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         if not self._can_hold_element(new):
             return self.astype(object).putmask(mask, new)
 
-        # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.array_values().reshape(self.shape)
-        arr = cast("NDArrayBackedExtensionArray", arr)
+        arr = self.values
         arr.T.putmask(mask, new)
         return [self]
 
     def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
-        # TODO(EA2D): reshape unnecessary with 2D EAs
-        arr = self.array_values().reshape(self.shape)
-
-        cond = extract_bool_array(cond)
+        arr = self.values
 
         try:
             res_values = arr.T.where(cond, other).T
         except (ValueError, TypeError):
-            return super().where(other, cond, errors=errors, axis=axis)
+            return Block.where(self, other, cond, errors=errors, axis=axis)
 
-        # TODO(EA2D): reshape not needed with 2D EAs
-        res_values = res_values.reshape(self.values.shape)
         nb = self.make_block_same_class(res_values)
         return [nb]
+
+    @property
+    def is_view(self) -> bool:
+        """ return a boolean if I am possibly a view """
+        # check the ndarray values of the DatetimeIndex values
+        return self.values._data.base is not None
+
+    def setitem(self, indexer, value):
+        if not self._can_hold_element(value):
+            # TODO: general case needs casting logic.
+            return self.astype(object).setitem(indexer, value)
+
+        transpose = self.ndim == 2
+
+        values = self.values
+        if transpose:
+            values = values.T
+        values[indexer] = value
+        return self
+
+    def delete(self, loc) -> None:
+        """
+        Delete given loc(-s) from block in-place.
+        """
+        self.values = self.values.delete(loc, 0)
+        self.mgr_locs = self.mgr_locs.delete(loc)
 
     def diff(self, n: int, axis: int = 0) -> List[Block]:
         """
@@ -2036,22 +2048,37 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         The arguments here are mimicking shift so they are called correctly
         by apply.
         """
-        # TODO(EA2D): reshape not necessary with 2D EAs
-        values = self.array_values().reshape(self.shape)
+        values = self.values
 
         new_values = values - values.shift(n, axis=axis)
         return [self.make_block(new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
-        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
-        values = self.array_values().reshape(self.shape)
+        values = self.values
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return [self.make_block_same_class(new_values)]
+
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List[Block]:
+
+        if not self._can_hold_element(value) and self.dtype.kind != "m":
+            # We support filling a DatetimeTZ with a `value` whose timezone
+            #  is different by coercing to object.
+            # TODO: don't special-case td64
+            return self.astype(object).fillna(value, limit, inplace, downcast)
+
+        values = self.values
+        values = values if inplace else values.copy()
+        new_values = values.fillna(value=value, limit=limit)
+        return [self.make_block_same_class(values=new_values)]
 
 
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
+    is_numeric = False
+    _can_hold_na = True
     _dtype: np.dtype
     _holder: Type[Union[DatetimeArray, TimedeltaArray]]
 
@@ -2072,29 +2099,29 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
         Overridden by DatetimeTZBlock.
         """
-        if values.dtype != cls._dtype:
+        if cls.fill_value is not NaT and values.dtype != cls._dtype:
             # non-nano we will convert to nano
             if values.dtype.kind != cls._dtype.kind:
                 # caller is responsible for ensuring td64/dt64 dtype
                 raise TypeError(values.dtype)  # pragma: no cover
 
-            values = cls._holder._from_sequence(values)._data
+            values = cls._holder._from_sequence(values)
 
-        if isinstance(values, cls._holder):
-            values = values._data
+        if not isinstance(values, cls._holder):
+            values = cls._holder(values)
 
-        assert isinstance(values, np.ndarray), type(values)
         return values
-
-    def array_values(self):
-        return self._holder._simple_new(self.values)
 
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
-        arr = self.array_values()
-
+        arr = self.values
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         return self.make_block(result)
+
+    def external_values(self):
+        # NB: for dt64tz this is different from np.asarray(self.values),
+        #  since that return an object-dtype ndarray of Timestamps.
+        return self.values._data
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
@@ -2104,103 +2131,41 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
     _dtype = fill_value.dtype
     _holder = DatetimeArray
 
-    @property
-    def _can_hold_na(self):
-        return True
 
-    def set_inplace(self, locs, values):
-        """
-        See Block.set.__doc__
-        """
-        values = conversion.ensure_datetime64ns(values, copy=False)
-
-        self.values[locs] = values
-
-
-class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
+class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
     """ implement a datetime64 block with a tz attribute """
 
     values: DatetimeArray
 
     __slots__ = ()
     is_extension = True
+    _validate_ndim = True
+    _can_consolidate = True
 
     _holder = DatetimeArray
-
-    internal_values = Block.internal_values
-    _can_hold_element = DatetimeBlock._can_hold_element
-    to_native_types = DatetimeBlock.to_native_types
-    diff = DatetimeBlock.diff
     fill_value = NaT
-    where = DatetimeBlock.where
-    putmask = DatetimeLikeBlockMixin.putmask
 
-    array_values = ExtensionBlock.array_values
+    get_values = Block.get_values
+    set_inplace = Block.set_inplace
+    iget = Block.iget
+    _slice = Block._slice
+    shape = Block.shape
+    __init__ = Block.__init__
+    take_nd = Block.take_nd
+    _unstack = Block._unstack
 
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Input validation for values passed to __init__. Ensure that
-        we have datetime64TZ, coercing if necessary.
-
-        Parameters
-        ----------
-        values : array-like
-            Must be convertible to datetime64
-
-        Returns
-        -------
-        values : DatetimeArray
-        """
-        if not isinstance(values, cls._holder):
-            values = cls._holder(values)
-
-        if values.tz is None:
-            raise ValueError("cannot create a DatetimeTZBlock without a tz")
-
-        return values
-
-    @property
-    def is_view(self) -> bool:
-        """ return a boolean if I am possibly a view """
-        # check the ndarray values of the DatetimeIndex values
-        return self.values._data.base is not None
-
-    def external_values(self):
-        # NB: this is different from np.asarray(self.values), since that
-        #  return an object-dtype ndarray of Timestamps.
-        # Avoid FutureWarning in .astype in casting from dt64tz to dt64
-        return self.values._data
-
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> List[Block]:
-        # We support filling a DatetimeTZ with a `value` whose timezone
-        # is different by coercing to object.
-        if self._can_hold_element(value):
-            return super().fillna(value, limit, inplace, downcast)
-
-        # different timezones, or a non-tz
-        return self.astype(object).fillna(
-            value, limit=limit, inplace=inplace, downcast=downcast
-        )
+    # TODO: we still share these with ExtensionBlock (and not DatetimeBlock)
+    # ['interpolate', 'quantile']
+    # [x for x in dir(DatetimeTZBlock) if hasattr(ExtensionBlock, x)
+    #  and getattr(DatetimeTZBlock, x) is getattr(ExtensionBlock, x)
+    #  and getattr(ExtensionBlock, x) is not getattr(Block, x)]
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-    _can_hold_na = True
-    is_numeric = False
     _holder = TimedeltaArray
     fill_value = np.timedelta64("NaT", "ns")
     _dtype = fill_value.dtype
-
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> List[Block]:
-        values = self.array_values()
-        values = values if inplace else values.copy()
-        new_values = values.fillna(value=value, limit=limit)
-        return [self.make_block_same_class(values=new_values)]
 
 
 class ObjectBlock(Block):
@@ -2277,7 +2242,8 @@ class ObjectBlock(Block):
             if isinstance(values, np.ndarray):
                 # TODO(EA2D): allow EA once reshape is supported
                 values = values.reshape(shape)
-
+            if isinstance(values, ABCIndex):
+                values = values._data
             return values
 
         if self.ndim == 2:
@@ -2408,6 +2374,10 @@ def make_block(
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)
+        placement = BlockPlacement(placement)
+        if len(placement) == 1 and values.ndim == 1 and (ndim is None or ndim == 2):
+            # TODO: unnecessary after https://github.com/apache/arrow/pull/8957
+            values = values.reshape(1, -1)
 
     return klass(values, ndim=ndim, placement=placement)
 
@@ -2431,11 +2401,11 @@ def extend_blocks(result, blocks=None) -> List[Block]:
     return blocks
 
 
-def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
+def block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     """ guarantee the shape of the values to be at least 1 d """
     if values.ndim < ndim:
         shape = values.shape
-        if not is_extension_array_dtype(values.dtype):
+        if not is_strict_ea(values):
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
@@ -2459,8 +2429,10 @@ def safe_reshape(arr: ArrayLike, new_shape: Shape) -> ArrayLike:
     -------
     np.ndarray or ExtensionArray
     """
-    if not is_extension_array_dtype(arr.dtype):
+    if not is_ea_dtype(arr.dtype):
         # Note: this will include TimedeltaArray and tz-naive DatetimeArray
         # TODO(EA2D): special case will be unnecessary with 2D EAs
-        arr = np.asarray(arr).reshape(new_shape)
+        arr = extract_array(arr, extract_numpy=True).reshape(new_shape)
+        if type(arr).__name__ == "PandasArray":
+            arr = arr.to_numpy()
     return arr

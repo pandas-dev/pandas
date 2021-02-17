@@ -40,6 +40,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
+    is_ea_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
@@ -58,7 +59,10 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -70,6 +74,7 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     union_indexes,
 )
+from pandas.core.internals.blocks import block_shape
 from pandas.core.internals.managers import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -210,7 +215,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    if is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
+    if is_ea_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -225,9 +230,18 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
 
         return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
-    # by definition an array here
-    # the dtypes will be coerced to a single dtype
-    values = _prep_ndarray(values, copy=copy)
+    if is_datetime64tz_dtype(values):
+        # TODO: combine into _prep_ndarray?
+        values = extract_array(values, extract_numpy=True)
+        if copy:
+            values = values.copy()
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+
+    else:
+        # by definition an array here
+        # the dtypes will be coerced to a single dtype
+        values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         try:
@@ -254,10 +268,12 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         if values.ndim == 2 and values.shape[0] != 1:
             # transpose and separate blocks
 
+            # TODO: do this in one go
             dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
+            dvals_list = [extract_array(x, extract_numpy=True) for x in dvals_list]
+            # TODO: unpack DatetimeIndex directly in maybe_infer_to_datetimelike
             for n in range(len(dvals_list)):
-                if isinstance(dvals_list[n], np.ndarray):
-                    dvals_list[n] = dvals_list[n].reshape(1, -1)
+                dvals_list[n] = dvals_list[n].reshape(1, -1)
 
             from pandas.core.internals.blocks import make_block
 
@@ -270,6 +286,10 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
             block_values = [datelike_vals]
+            block_values = [extract_array(x, extract_numpy=True) for x in block_values]
+            if values.ndim == 2:
+                block_values = [block_shape(x, 2) for x in block_values]
+
     else:
         block_values = [values]
 
@@ -288,7 +308,6 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
 
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
-
         missing = arrays.isna()
         if index is None:
             # GH10856
@@ -356,7 +375,12 @@ def treat_as_nested(data) -> bool:
     """
     Check if we should use nested_data_to_arrays.
     """
-    return len(data) > 0 and is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1
+    return (
+        len(data) > 0
+        and is_list_like(data[0])
+        and getattr(data[0], "ndim", 1) == 1
+        and not (isinstance(data, ExtensionArray) and data.ndim == 2)
+    )
 
 
 # ---------------------------------------------------------------------

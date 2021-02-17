@@ -171,6 +171,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         new_data = self._ndarray.T
         return self._from_backing_data(new_data)
 
+    def swapaxes(self, axis1, axis2):
+        res_values = self._ndarray.swapaxes(axis1, axis2)
+        return self._from_backing_data(res_values)
+
     # ------------------------------------------------------------------------
 
     def equals(self, other) -> bool:
@@ -287,7 +291,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
+                func = missing.get_fill_func(method, ndim=self.ndim)
                 new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
                 # TODO: PandasArray didn't used to copy, need tests for this
                 new_values = self._from_backing_data(new_values)
@@ -378,8 +382,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
 
-    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
-        res_values = np.delete(self._ndarray, loc)
+    def delete(
+        self: NDArrayBackedExtensionArrayT, loc, axis: int = 0
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc, axis=axis)
         return self._from_backing_data(res_values)
 
     # ------------------------------------------------------------------------

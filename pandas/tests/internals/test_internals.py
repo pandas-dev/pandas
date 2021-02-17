@@ -124,6 +124,8 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
         values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)
+        if len(shape) == 2:
+            values = values._data.reshape(1, -1)
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
     elif typestr in ("category",):
@@ -425,7 +427,11 @@ class TestBlockManager:
             # copy assertion we either have a None for a base or in case of
             # some blocks it is an array (e.g. datetimetz), but was copied
             tm.assert_equal(cp_blk.values, blk.values)
-            if not isinstance(cp_blk.values, np.ndarray):
+            if isinstance(cp_blk.values, DatetimeArray):
+                assert (
+                    cp_blk.values._data.base is None and blk.values._data.base is None
+                ) or (cp_blk.values._data.base is not blk.values._data.base)
+            elif not isinstance(cp_blk.values, np.ndarray):
                 assert cp_blk.values._data.base is not blk.values._data.base
             else:
                 assert cp_blk.values.base is None and blk.values.base is None
@@ -490,7 +496,7 @@ class TestBlockManager:
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
 
         t = np.dtype(t)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
             tmgr = mgr.astype(t, errors="ignore")
         assert tmgr.iget(2).dtype.type == t
         assert tmgr.iget(4).dtype.type == t
@@ -563,10 +569,10 @@ class TestBlockManager:
         assert new_mgr.iget(8).dtype == np.float16
 
     def test_invalid_ea_block(self):
-        with pytest.raises(AssertionError, match="block.size != values.size"):
+        with pytest.raises(ValueError, match="need to split"):
             create_mgr("a: category; b: category")
 
-        with pytest.raises(AssertionError, match="block.size != values.size"):
+        with pytest.raises(ValueError, match="need to split"):
             create_mgr("a: category2; b: category2")
 
     def test_interleave(self):

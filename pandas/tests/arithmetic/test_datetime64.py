@@ -1020,10 +1020,7 @@ class TestDatetime64Arithmetic:
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        warn = None
-        if box_with_array is not pd.DataFrame or tz_naive_fixture is None:
-            warn = PerformanceWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
 
@@ -1525,10 +1522,7 @@ class TestDatetime64DateOffsetArithmetic:
         if box_other:
             other = tm.box_expected(other, box_with_array)
 
-        warn = PerformanceWarning
-        if box_with_array is pd.DataFrame and tz is not None:
-            warn = None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)
 
         tm.assert_equal(res, expected)
@@ -2469,18 +2463,14 @@ class TestDatetimeIndexArithmetic:
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        warn = PerformanceWarning
-        if box_with_array is pd.DataFrame and tz is not None:
-            warn = None
-
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr - other
         tm.assert_equal(result, expected)
 

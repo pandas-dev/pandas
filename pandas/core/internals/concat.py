@@ -27,8 +27,10 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
+    is_ea_dtype,
     is_extension_array_dtype,
     is_sparse,
+    is_strict_ea,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import (
@@ -108,9 +110,14 @@ def concatenate_block_managers(
                 values = np.concatenate(vals, axis=blk.ndim - 1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals)
-                if not isinstance(values, ExtensionArray):
-                    values = values.reshape(1, len(values))
+                if all(x.ndim == blk.ndim for x in vals):
+                    # i.e. DTA/TDA
+                    values = concat_compat(vals, axis=blk.ndim - 1)
+                else:
+                    values = concat_compat(vals)
+
+                if not is_strict_ea(values) and blk.ndim == 2 and values.ndim == 1:
+                    values = values.reshape(1, -1)
 
             if blk.values.dtype == values.dtype:
                 # Fast-path
@@ -118,11 +125,8 @@ def concatenate_block_managers(
             else:
                 b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
-            b = make_block(
-                _concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement,
-                ndim=len(axes),
-            )
+            new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            b = make_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
     return BlockManager(blocks, axes)
@@ -310,12 +314,11 @@ class JoinUnit:
                         fill_value = None
 
                 if is_datetime64tz_dtype(empty_dtype):
-                    # TODO(EA2D): special case unneeded with 2D EAs
-                    i8values = np.full(self.shape[1], fill_value.value)
+                    i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
                 elif is_extension_array_dtype(blk_dtype):
                     pass
-                elif is_extension_array_dtype(empty_dtype):
+                elif is_ea_dtype(empty_dtype):
                     cls = empty_dtype.construct_array_type()
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
@@ -378,6 +381,7 @@ def _concatenate_join_units(
         ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
         for ju in join_units
     ]
+    ndim = max(x.ndim for x in to_concat)
 
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
@@ -390,17 +394,24 @@ def _concatenate_join_units(
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
+
     elif any(isinstance(t, ExtensionArray) for t in to_concat):
+        # TODO(EA2D): special case not needed if all EAs used HybridBlocks
+        # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
+        to_concat = [t if is_strict_ea(t) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
-        if not is_extension_array_dtype(concat_values.dtype):
+        # TODO: what if we have dt64tz blocks with more than 1 column?
+
+        if concat_values.ndim < ndim and not is_strict_ea(concat_values):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
-            # special case DatetimeArray/TimedeltaArray, which *is* an EA, but
-            # is put in a consolidated 2D block
-            concat_values = np.atleast_2d(concat_values)
+            # special case DatetimeArray, which *is* an EA, but is put in a
+            # consolidated 2D block
+            # TODO(EA2D): we could just get this right within concat_compat
+            concat_values = concat_values.reshape(1, -1)
+
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
