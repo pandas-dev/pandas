@@ -2122,6 +2122,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
     __slots__ = ()
     is_extension = True
+    _can_hold_na = True
+    is_numeric = False
 
     _holder = DatetimeArray
 

@@ -756,7 +756,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(blocks) != 1:
             return False
 
-        return not self._mgr.any_extension_type
+        return not self._mgr.any_extension_types
 
     # ----------------------------------------------------------------------
     # Rendering Methods
