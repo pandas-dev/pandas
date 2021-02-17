@@ -411,7 +411,7 @@ class TestPeriodIndex(DatetimeLike):
         result = Index(periods)
         assert isinstance(result, PeriodIndex)
 
-    def test_append_concat(self):
+    def test_append_concat(self):  # TODO: pd.concat test
         # #1815
         d1 = date_range("12/31/1990", "12/31/1999", freq="A-DEC")
         d2 = date_range("12/31/2000", "12/31/2009", freq="A-DEC")
@@ -441,13 +441,6 @@ class TestPeriodIndex(DatetimeLike):
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
-
-    def test_insert(self):
-        # GH 18295 (test missing)
-        expected = PeriodIndex(["2017Q1", NaT, "2017Q2", "2017Q3", "2017Q4"], freq="Q")
-        for na in (np.nan, NaT, None):
-            result = period_range("2017Q1", periods=4, freq="Q").insert(1, na)
-            tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "msg, key",
