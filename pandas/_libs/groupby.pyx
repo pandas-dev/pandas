@@ -742,11 +742,11 @@ def _group_mean_1d(floating[:] out,
                 sumx[lab] = t
 
         for i in range(ncounts):
-                count = nobs[i]
-                if nobs[i] == 0:
-                    out[i] = NAN
-                else:
-                    out[i] = sumx[i] / count
+            count = nobs[i]
+            if nobs[i] == 0:
+                out[i] = NAN
+            else:
+                out[i] = sumx[i] / count
 
 
 group_mean_1d_float32 = _group_mean_1d['float']
