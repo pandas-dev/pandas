@@ -423,7 +423,7 @@ latex_documents = [
 if include_api:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
-        "matplotlib": ("https://matplotlib.org/", None),
+        "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
         "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
