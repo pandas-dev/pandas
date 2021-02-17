@@ -1,13 +1,29 @@
 """
 Routines for filling missing data.
 """
+from __future__ import annotations
+
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Set,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import algos, lib
-from pandas._typing import ArrayLike, Axis, DtypeObj
+from pandas._libs import (
+    algos,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Axis,
+    DtypeObj,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -158,7 +174,7 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues: "Index",
+    xvalues: Index,
     yvalues: np.ndarray,
     method: Optional[str] = "linear",
     limit: Optional[int] = None,

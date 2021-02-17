@@ -6,7 +6,14 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    UInt64Index,
+)
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
@@ -204,12 +211,17 @@ class TestFloat64Index(Numeric):
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
-        msg = (
-            "String dtype not supported, "
-            "you may need to explicitly cast to a numeric type"
+
+        # 2021-02-1 we get ValueError in numpy 1.20, but not on all builds
+        msg = "|".join(
+            [
+                "String dtype not supported, you may need to explicitly cast ",
+                "could not convert string to float: 'a'",
+            ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises((TypeError, ValueError), match=msg):
             Float64Index(["a", "b", 0.0])
+
         msg = r"float\(\) argument must be a string or a number, not 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             Float64Index([Timestamp("20130101")])

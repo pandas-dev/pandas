@@ -1,11 +1,17 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -31,12 +37,21 @@ def assert_dtype(obj, expected_dtype):
     """
     Helper to check the dtype for a Series, Index, or single-column DataFrame.
     """
-    if isinstance(obj, DataFrame):
-        dtype = obj.dtypes.iat[0]
-    else:
-        dtype = obj.dtype
+    dtype = tm.get_dtype(obj)
 
     assert dtype == expected_dtype
+
+
+def get_expected_name(box, names):
+    if box is DataFrame:
+        # Since we are operating with a DataFrame and a non-DataFrame,
+        # the non-DataFrame is cast to Series and its name ignored.
+        exname = names[0]
+    elif box in [tm.to_array, pd.array]:
+        exname = names[1]
+    else:
+        exname = names[2]
+    return exname
 
 
 # ------------------------------------------------------------------
@@ -679,7 +694,7 @@ class TestAddSubNaTMasking:
         with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
             Timestamp("2000") + pd.to_timedelta(106580, "D")
 
-        _NaT = int(pd.NaT) + 1
+        _NaT = pd.NaT.value + 1
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([106580], "D") + Timestamp("2000")
@@ -1212,19 +1227,12 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
         box = box_with_array
+        exname = get_expected_name(box, names)
 
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
-
-        tdi = TimedeltaIndex(["0 days", "1 day"], name=names[0])
+        tdi = TimedeltaIndex(["0 days", "1 day"], name=names[1])
         tdi = np.array(tdi) if box in [tm.to_array, pd.array] else tdi
-        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
-        expected = Series(
-            [Timedelta(hours=3), Timedelta(days=1, hours=4)], name=names[2]
-        )
+        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[0])
+        expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)], name=exname)
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1238,7 +1246,7 @@ class TestTimedeltaArraylikeAddSubOps:
         assert_dtype(result, "timedelta64[ns]")
 
         expected = Series(
-            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=names[2]
+            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=exname
         )
         expected = tm.box_expected(expected, box)
 
@@ -1318,19 +1326,14 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_add_offset_index(self, names, box_with_array):
         # GH#18849, GH#19744
         box = box_with_array
-
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
         other = np.array(other) if box in [tm.to_array, pd.array] else other
 
         expected = TimedeltaIndex(
-            [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=names[2]
+            [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=exname
         )
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
@@ -1370,13 +1373,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#18824, GH#19744
         box = box_with_array
         xbox = box if box not in [tm.to_array, pd.array] else pd.Index
-        exname = names[2] if box not in [tm.to_array, pd.array] else names[1]
-
-        if box is pd.DataFrame and names[1] != names[0]:
-            pytest.skip(
-                "Name propagation for DataFrame does not behave like "
-                "it does for Index/Series"
-            )
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
@@ -1412,15 +1409,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#18849
         box = box_with_array
         box2 = Series if box in [pd.Index, tm.to_array, pd.array] else box
-
-        if box is pd.DataFrame:
-            # Since we are operating with a DataFrame and a non-DataFrame,
-            # the non-DataFrame is cast to Series and its name ignored.
-            exname = names[0]
-        elif box in [tm.to_array, pd.array]:
-            exname = names[1]
-        else:
-            exname = names[2]
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
@@ -1765,7 +1754,9 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
-    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
+    def test_td64arr_floordiv_td64arr_with_nat(
+        self, box_with_array, using_array_manager
+    ):
         # GH#35529
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
@@ -1778,6 +1769,11 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
+        if box is DataFrame and using_array_manager:
+            # INFO(ArrayManager) floorfiv returns integer, and ArrayManager
+            # performs ops column-wise and thus preserves int64 dtype for
+            # columns without missing values
+            expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
         result = left // right
 
@@ -2057,7 +2053,9 @@ class TestTimedeltaArraylikeMulDivOps:
         [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_div_numeric_array(self, box_with_array, vector, any_real_dtype):
+    def test_td64arr_div_numeric_array(
+        self, box_with_array, vector, any_real_dtype, using_array_manager
+    ):
         # GH#4521
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
@@ -2092,6 +2090,15 @@ class TestTimedeltaArraylikeMulDivOps:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
+
+            if using_array_manager and box_with_array is pd.DataFrame:
+                # TODO the behaviour is buggy here (third column with all-NaT
+                # as result doesn't get preserved as timedelta64 dtype).
+                # Reported at https://github.com/pandas-dev/pandas/issues/39750
+                # Changing the expected instead of xfailing to continue to test
+                # the correct behaviour for the other columns
+                expected[2] = Series([pd.NaT, pd.NaT], dtype=object)
+
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
@@ -2100,11 +2107,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_int_series(self, box_with_array, names, request):
         # GH#19042 test for correct name attachment
         box = box_with_array
-        if box_with_array is pd.DataFrame and names[2] is None:
-            reason = "broadcasts along wrong axis, but doesn't raise"
-            request.node.add_marker(pytest.mark.xfail(reason=reason))
-
-        exname = names[2] if box not in [tm.to_array, pd.array] else names[1]
+        exname = get_expected_name(box, names)
 
         tdi = TimedeltaIndex(
             ["0days", "1day", "2days", "3days", "4days"], name=names[0]
@@ -2119,11 +2122,8 @@ class TestTimedeltaArraylikeMulDivOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        xbox = (
-            Series
-            if (box is pd.Index or box is tm.to_array or box is pd.array)
-            else box
-        )
+        xbox = get_upcast_box(box, ser)
+
         expected = tm.box_expected(expected, xbox)
 
         result = ser * tdi
@@ -2154,9 +2154,7 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = box
-        if box in [pd.Index, tm.to_array, pd.array] and type(ser) is Series:
-            xbox = Series
+        xbox = get_upcast_box(box, ser)
 
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)

@@ -4,7 +4,12 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, bdate_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    bdate_range,
+)
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -286,7 +291,6 @@ class TestSeriesLogicalOps:
                 marks=pytest.mark.xfail(
                     reason="GH#22092 Index __and__ returns Index intersection",
                     raises=AssertionError,
-                    strict=True,
                 ),
             ),
             pytest.param(
@@ -294,7 +298,6 @@ class TestSeriesLogicalOps:
                 marks=pytest.mark.xfail(
                     reason="GH#22092 Index __or__ returns Index union",
                     raises=AssertionError,
-                    strict=True,
                 ),
             ),
         ],

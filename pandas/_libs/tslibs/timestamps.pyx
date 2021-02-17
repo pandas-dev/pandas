@@ -8,10 +8,17 @@ shadows the python class, where we do any heavy lifting.
 """
 import warnings
 
+cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int8_t, int64_t, ndarray, uint8_t
+from numpy cimport (
+    int8_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
 
@@ -25,7 +32,16 @@ from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     time,
     tzinfo as tzinfo_type,
 )
-from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+    PyObject_RichCompareBool,
+)
 
 PyDateTime_IMPORT
 
@@ -45,9 +61,17 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-from pandas._libs.tslibs.fields import get_date_name_field, get_start_end_field
+from pandas._libs.tslibs.fields import (
+    RoundTo,
+    get_date_name_field,
+    get_start_end_field,
+    round_nsint64,
+)
 
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     cmp_scalar,
@@ -58,8 +82,14 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.offsets cimport is_offset_object, to_offset
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds, is_any_td_scalar
+from pandas._libs.tslibs.offsets cimport (
+    is_offset_object,
+    to_offset,
+)
+from pandas._libs.tslibs.timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from pandas._libs.tslibs.timedeltas import Timedelta
 
@@ -97,115 +127,6 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     ts_base.nanosecond = dts.ps // 1000
 
     return ts_base
-
-
-class RoundTo:
-    """
-    enumeration defining the available rounding modes
-
-    Attributes
-    ----------
-    MINUS_INFTY
-        round towards -∞, or floor [2]_
-    PLUS_INFTY
-        round towards +∞, or ceil [3]_
-    NEAREST_HALF_EVEN
-        round to nearest, tie-break half to even [6]_
-    NEAREST_HALF_MINUS_INFTY
-        round to nearest, tie-break half to -∞ [5]_
-    NEAREST_HALF_PLUS_INFTY
-        round to nearest, tie-break half to +∞ [4]_
-
-
-    References
-    ----------
-    .. [1] "Rounding - Wikipedia"
-           https://en.wikipedia.org/wiki/Rounding
-    .. [2] "Rounding down"
-           https://en.wikipedia.org/wiki/Rounding#Rounding_down
-    .. [3] "Rounding up"
-           https://en.wikipedia.org/wiki/Rounding#Rounding_up
-    .. [4] "Round half up"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_up
-    .. [5] "Round half down"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_down
-    .. [6] "Round half to even"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
-    """
-    @property
-    def MINUS_INFTY(self) -> int:
-        return 0
-
-    @property
-    def PLUS_INFTY(self) -> int:
-        return 1
-
-    @property
-    def NEAREST_HALF_EVEN(self) -> int:
-        return 2
-
-    @property
-    def NEAREST_HALF_PLUS_INFTY(self) -> int:
-        return 3
-
-    @property
-    def NEAREST_HALF_MINUS_INFTY(self) -> int:
-        return 4
-
-
-cdef inline _floor_int64(values, unit):
-    return values - np.remainder(values, unit)
-
-cdef inline _ceil_int64(values, unit):
-    return values + np.remainder(-values, unit)
-
-cdef inline _rounddown_int64(values, unit):
-    return _ceil_int64(values - unit//2, unit)
-
-cdef inline _roundup_int64(values, unit):
-    return _floor_int64(values + unit//2, unit)
-
-
-def round_nsint64(values, mode, freq):
-    """
-    Applies rounding mode at given frequency
-
-    Parameters
-    ----------
-    values : :obj:`ndarray`
-    mode : instance of `RoundTo` enumeration
-    freq : str, obj
-
-    Returns
-    -------
-    :obj:`ndarray`
-    """
-
-    unit = to_offset(freq).nanos
-
-    if mode == RoundTo.MINUS_INFTY:
-        return _floor_int64(values, unit)
-    elif mode == RoundTo.PLUS_INFTY:
-        return _ceil_int64(values, unit)
-    elif mode == RoundTo.NEAREST_HALF_MINUS_INFTY:
-        return _rounddown_int64(values, unit)
-    elif mode == RoundTo.NEAREST_HALF_PLUS_INFTY:
-        return _roundup_int64(values, unit)
-    elif mode == RoundTo.NEAREST_HALF_EVEN:
-        # for odd unit there is no need of a tie break
-        if unit % 2:
-            return _rounddown_int64(values, unit)
-        quotient, remainder = np.divmod(values, unit)
-        mask = np.logical_or(
-            remainder > (unit // 2),
-            np.logical_and(remainder == (unit // 2), quotient % 2)
-        )
-        quotient[mask] += 1
-        return quotient * unit
-
-    # if/elif above should catch all rounding modes defined in enum 'RoundTo':
-    # if flow of control arrives here, it is a bug
-    raise ValueError("round_nsint64 called with an unrecognized rounding mode")
 
 
 # ----------------------------------------------------------------------
@@ -256,6 +177,9 @@ cdef class _Timestamp(ABCTimestamp):
             try:
                 ots = type(self)(other)
             except ValueError:
+                if is_datetime64_object(other):
+                    # cast non-nano dt64 to pydatetime
+                    other = other.astype(object)
                 return self._compare_outside_nanorange(other, op)
 
         elif is_array(other):
@@ -310,12 +234,23 @@ cdef class _Timestamp(ABCTimestamp):
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
         cdef:
-            datetime dtval = self.to_pydatetime()
+            datetime dtval = self.to_pydatetime(warn=False)
 
         if not self._can_compare(other):
             return NotImplemented
 
-        return PyObject_RichCompareBool(dtval, other, op)
+        if self.nanosecond == 0:
+            return PyObject_RichCompareBool(dtval, other, op)
+
+        # otherwise we have dtval < self
+        if op == Py_NE:
+            return True
+        if op == Py_EQ:
+            return False
+        if op == Py_LE or op == Py_LT:
+            return other.year <= self.year
+        if op == Py_GE or op == Py_GT:
+            return other.year >= self.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
@@ -1119,6 +1054,9 @@ class Timestamp(_Timestamp):
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
+        cdef:
+            int64_t nanos = to_offset(freq).nanos
+
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -1127,7 +1065,7 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = round_nsint64(value, mode, freq)[0]
+        r = round_nsint64(value, mode, nanos)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(
@@ -1531,11 +1469,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
-# the smallest value we could actually represent is
-#   INT64_MIN + 1 == -9223372036854775807
-# but to allow overflow free conversion with a microsecond resolution
-# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9_223_372_036_854_775_000
+cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
 
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)

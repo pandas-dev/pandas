@@ -1,7 +1,10 @@
 """ test the scalar Timestamp """
 
 import calendar
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import locale
 import unicodedata
 
@@ -9,13 +12,23 @@ from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
-from pytz import timezone, utc
+from pytz import (
+    timezone,
+    utc,
+)
 
-from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
-from pandas.compat.numpy import np_datetime64_compat
+from pandas._libs.tslibs.timezones import (
+    dateutil_gettz as gettz,
+    get_timezone,
+)
+from pandas.compat import np_datetime64_compat
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Timedelta, Timestamp
+from pandas import (
+    NaT,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 
 from pandas.tseries import offsets
@@ -529,17 +542,20 @@ class TestTimestampConversion:
         # by going from nanoseconds to microseconds.
         exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            assert (
-                Timestamp(Timestamp.max.to_pydatetime()).value / 1000
-                == Timestamp.max.value / 1000
-            )
+            pydt_max = Timestamp.max.to_pydatetime()
+
+        assert Timestamp(pydt_max).value / 1000 == Timestamp.max.value / 1000
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            assert (
-                Timestamp(Timestamp.min.to_pydatetime()).value / 1000
-                == Timestamp.min.value / 1000
-            )
+            pydt_min = Timestamp.min.to_pydatetime()
+
+        # The next assertion can be enabled once GH#39221 is merged
+        #  assert pydt_min < Timestamp.min  # this is bc nanos are dropped
+        tdus = timedelta(microseconds=1)
+        assert pydt_min + tdus > Timestamp.min
+
+        assert Timestamp(pydt_min + tdus).value / 1000 == Timestamp.min.value / 1000
 
     def test_to_period_tz_warning(self):
         # GH#21333 make sure a warning is issued when timezone

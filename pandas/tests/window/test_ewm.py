@@ -3,7 +3,12 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.window import ExponentialMovingWindow
 

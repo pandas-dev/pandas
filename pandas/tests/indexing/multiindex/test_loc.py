@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -255,7 +260,7 @@ class TestMultiIndexLoc:
     def test_loc_getitem_nested_indexer(self, indexer_type_1, indexer_type_2):
         # GH #19686
         # .loc should work with nested indexers which can be
-        # any list-like objects (see `pandas.api.types.is_list_like`) or slices
+        # any list-like objects (see `is_list_like` (`pandas.api.types`)) or slices
 
         def convert_nested_indexer(indexer_type, keys):
             if indexer_type == np.ndarray:

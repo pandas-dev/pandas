@@ -1,4 +1,9 @@
-from typing import Any, Hashable, List, Optional
+from typing import (
+    Any,
+    Hashable,
+    List,
+    Optional,
+)
 import warnings
 
 import numpy as np
@@ -7,22 +12,42 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Dtype
-from pandas.util._decorators import Appender, doc
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+)
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    notna,
+)
 
 from pandas.core import accessor
-from pandas.core.arrays.categorical import Categorical, contains
+from pandas.core.arrays.categorical import (
+    Categorical,
+    contains,
+)
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    maybe_extract_name,
+)
+from pandas.core.indexes.extension import (
+    NDArrayBackedExtensionIndex,
+    inherit_names,
+)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
@@ -214,13 +239,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    # error: Argument 1 of "_shallow_copy" is incompatible with supertype
-    #  "ExtensionIndex"; supertype defines the argument type as
-    #  "Optional[ExtensionArray]"  [override]
     @doc(Index._shallow_copy)
-    def _shallow_copy(  # type:ignore[override]
+    def _shallow_copy(
         self,
-        values: Optional[Categorical] = None,
+        values: Categorical,
         name: Hashable = no_default,
     ):
         name = self.name if name is no_default else name
@@ -321,8 +343,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            # pandas\core\indexes\category.py:315: error: "CategoricalIndex"
-            # has no attribute "ordered"  [attr-defined]
+            # error: "CategoricalIndex" has no attribute "ordered"
             ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
         if self.name is not None:
@@ -351,7 +372,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
-        if is_valid_nat_for_dtype(key, self.categories.dtype):
+        if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
 
         return contains(self, key, container=self._engine)
@@ -468,7 +489,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._data._unbox_scalar(key)
 
     def _get_indexer(
-        self, target: "Index", method=None, limit=None, tolerance=None
+        self, target: Index, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
 
         if self.equals(target):
@@ -605,7 +626,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: List["Index"], name: Hashable) -> Index:
+    def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
             codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])

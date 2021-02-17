@@ -5,7 +5,12 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import Timedelta, merge_asof, read_csv, to_datetime
+from pandas import (
+    Timedelta,
+    merge_asof,
+    read_csv,
+    to_datetime,
+)
 import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
 
