@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -753,6 +754,7 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.skipif(is_numpy_dev, reason="DeprecationWarning")
     def test_comprehensive(self):
         df = DataFrame(
             {
