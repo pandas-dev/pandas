@@ -328,40 +328,40 @@ class TestDatetime64SeriesComparison:
             box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
         )
 
-        ser = Series([Timestamp("2000-01-29 01:59:00"), "NaT"])
+        ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), "NaT"])
         ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser
-        expected = tm.box_expected([False, True], xbox)
+        expected = tm.box_expected([False, False, True], xbox)
         tm.assert_equal(result, expected)
 
         warn = FutureWarning if box_with_array is pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
             result = ser != ser[0]
-        expected = tm.box_expected([False, True], xbox)
+        expected = tm.box_expected([False, True, True], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
-            result = ser != ser[1]
-        expected = tm.box_expected([True, True], xbox)
+            result = ser != ser[2]
+        expected = tm.box_expected([True, True, True], xbox)
         tm.assert_equal(result, expected)
 
         result = ser == ser
-        expected = tm.box_expected([True, False], xbox)
+        expected = tm.box_expected([True, True, False], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
             result = ser == ser[0]
-        expected = tm.box_expected([True, False], xbox)
+        expected = tm.box_expected([True, False, False], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
-            result = ser == ser[1]
-        expected = tm.box_expected([False, False], xbox)
+            result = ser == ser[2]
+        expected = tm.box_expected([False, False, False], xbox)
         tm.assert_equal(result, expected)
 
 
@@ -1283,7 +1283,7 @@ class TestDatetime64DateOffsetArithmetic:
             ]
         )
         vec = tm.box_expected(vec, box_with_array)
-        vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
+        vec_items = vec.iloc[0] if box_with_array is pd.DataFrame else vec
 
         # DateOffset relativedelta fastpath
         relative_kwargs = [
@@ -1408,7 +1408,7 @@ class TestDatetime64DateOffsetArithmetic:
             ]
         )
         vec = tm.box_expected(vec, box_with_array)
-        vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
+        vec_items = vec.iloc[0] if box_with_array is pd.DataFrame else vec
 
         offset_cls = getattr(pd.offsets, cls_name)
 
