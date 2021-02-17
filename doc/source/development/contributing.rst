@@ -199,7 +199,7 @@ The above can be simplified to::
 
     git checkout -b shiny-new-feature
 
-This changes your working directory to the shiny-new-feature branch.  Keep any
+This changes your working directory to the shiny-new-feature branch. Keep any
 changes in this branch specific to one bug or feature so it is clear
 what the branch brings to pandas. You can have many shiny-new-features
 and switch in between them using the git checkout command.
