@@ -4069,7 +4069,6 @@ class DataFrame(NDFrame, OpsMixin):
             For further details see
             :ref:`Looking up values by index/column labels <indexing.lookup>`.
 
-
         Parameters
         ----------
         row_labels : sequence
