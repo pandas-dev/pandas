@@ -11,7 +11,10 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
+from pandas.core.dtypes.common import (
+    is_period_dtype,
+    needs_i8_conversion,
+)
 
 import pandas as pd
 from pandas import (
@@ -108,7 +111,10 @@ class TestCommon:
         assert index.names == [name]
 
     def test_copy_and_deepcopy(self, index_flat):
-        from copy import copy, deepcopy
+        from copy import (
+            copy,
+            deepcopy,
+        )
 
         index = index_flat
 

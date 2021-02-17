@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from io import StringIO
 import itertools
 
@@ -18,7 +21,10 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.internals import NumericBlock, ObjectBlock
+from pandas.core.internals import (
+    NumericBlock,
+    ObjectBlock,
+)
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure

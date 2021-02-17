@@ -2,27 +2,45 @@ from __future__ import annotations
 
 import copy
 import itertools
-from typing import TYPE_CHECKING, Dict, List, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Sequence,
+)
 
 import numpy as np
 
 from pandas._libs import internals as libinternals
-from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Manager,
+    Shape,
+)
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
+from pandas.core.dtypes.cast import (
+    ensure_dtype_can_hold_na,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna_all
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna_all,
+)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+)
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
@@ -291,20 +309,15 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
-                    empty_dtype
-                ):
+                if is_datetime64tz_dtype(empty_dtype):
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
-                elif is_categorical_dtype(blk_dtype):
-                    pass
                 elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
-                    missing_arr = empty_dtype.construct_array_type()._from_sequence(
-                        [], dtype=empty_dtype
-                    )
+                    cls = empty_dtype.construct_array_type()
+                    missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
                     empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
