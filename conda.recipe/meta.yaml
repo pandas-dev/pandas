@@ -19,7 +19,7 @@ requirements:
     - pip
     - cython
     - numpy
-    - setuptools >=3.3
+    - setuptools >=38.6.0
     - python-dateutil >=2.7.3
     - pytz
   run:

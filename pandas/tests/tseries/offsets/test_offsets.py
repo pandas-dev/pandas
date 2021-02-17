@@ -1,22 +1,41 @@
 """
 Tests of pandas.tseries.offsets
 """
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
+from datetime import (
+    datetime,
+    timedelta,
+)
+from typing import (
+    Dict,
+    List,
+    Tuple,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, Timestamp, conversion, timezones
+from pandas._libs.tslibs import (
+    NaT,
+    Timestamp,
+    conversion,
+    timezones,
+)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import _get_offset, _offset_map
+from pandas._libs.tslibs.offsets import (
+    _get_offset,
+    _offset_map,
+)
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import Base, WeekDay, assert_offset_equal
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    WeekDay,
+    assert_offset_equal,
+)
 
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (

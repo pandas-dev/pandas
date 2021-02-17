@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 

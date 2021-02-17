@@ -6,7 +6,13 @@ import pytest
 from pandas.compat import is_platform_little_endian
 
 import pandas as pd
-from pandas import DataFrame, HDFStore, Series, _testing as tm, read_hdf
+from pandas import (
+    DataFrame,
+    HDFStore,
+    Series,
+    _testing as tm,
+    read_hdf,
+)
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
@@ -15,7 +21,11 @@ from pandas.tests.io.pytables.common import (
 )
 
 from pandas.io import pytables as pytables
-from pandas.io.pytables import ClosedFileError, PossibleDataLossError, Term
+from pandas.io.pytables import (
+    ClosedFileError,
+    PossibleDataLossError,
+    Term,
+)
 
 pytestmark = pytest.mark.single
 
