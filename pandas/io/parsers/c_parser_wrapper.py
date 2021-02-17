@@ -3,7 +3,10 @@ from pandas._typing import FilePathOrBuffer
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
-from pandas.io.parsers.base_parser import ParserBase, is_index_col
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    is_index_col,
+)
 
 
 class CParserWrapper(ParserBase):
@@ -25,29 +28,23 @@ class CParserWrapper(ParserBase):
         for key in ("storage_options", "encoding", "memory_map", "compression"):
             kwds.pop(key, None)
         if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
-            # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "IO[Any]" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "RawIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "RawIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "BufferedIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "BufferedIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "TextIOBase" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "TextIOBase" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "TextIOWrapper" of
-            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+            # error: Item "TextIOWrapper" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
 
-            # pandas\io\parsers.py:1861: error: Item "mmap" of "Union[IO[Any],
-            # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]" has
-            # no attribute "mmap"  [union-attr]
+            # error: Item "mmap" of "Union[IO[Any], RawIOBase, BufferedIOBase,
+            # TextIOBase, TextIOWrapper, mmap]" has no attribute "mmap"
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
         try:
@@ -131,12 +128,8 @@ class CParserWrapper(ParserBase):
                     self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
-                # pandas\io\parsers.py:1997: error: Argument 1 to "len" has
-                # incompatible type "Optional[Any]"; expected "Sized"
-                # [arg-type]
-                self.index_names = [None] * len(
-                    self.index_names  # type: ignore[arg-type]
-                )
+                assert self.index_names is not None
+                self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 

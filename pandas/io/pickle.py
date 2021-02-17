@@ -3,7 +3,11 @@ import pickle
 from typing import Any
 import warnings
 
-from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 

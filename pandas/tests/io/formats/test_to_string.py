@@ -5,7 +5,12 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, option_context, to_datetime
+from pandas import (
+    DataFrame,
+    Series,
+    option_context,
+    to_datetime,
+)
 
 
 def test_repr_embedded_ndarray():

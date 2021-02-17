@@ -2,7 +2,14 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import Categorical, NaT, Series, date_range
+from pandas.compat.numpy import np_version_under1p20
+
+from pandas import (
+    Categorical,
+    NaT,
+    Series,
+    date_range,
+)
 
 from .pandas_vb_common import tm
 
@@ -108,8 +115,8 @@ class IsInForObjects:
         self.vals_short = np.arange(2).astype(object)
         self.vals_long = np.arange(10 ** 5).astype(object)
         # because of nans floats are special:
-        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(object)
-        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(object)
+        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float_)).astype(object)
+        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float_).astype(object)
 
     def time_isin_nans(self):
         # if nan-objects are different objects,
@@ -143,6 +150,10 @@ class IsInLongSeriesLookUpDominates:
 
     def setup(self, dtype, MaxNumber, series_type):
         N = 10 ** 7
+
+        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
+            raise NotImplementedError
+
         if series_type == "random_hits":
             np.random.seed(42)
             array = np.random.randint(0, MaxNumber, N)

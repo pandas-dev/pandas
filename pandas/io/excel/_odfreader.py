@@ -1,8 +1,15 @@
-from typing import List, cast
+from typing import (
+    List,
+    cast,
+)
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -57,12 +64,14 @@ class ODFReader(BaseExcelReader):
     def get_sheet_by_index(self, index: int):
         from odf.table import Table
 
+        self.raise_if_bad_sheet_by_index(index)
         tables = self.book.getElementsByType(Table)
         return tables[index]
 
     def get_sheet_by_name(self, name: str):
         from odf.table import Table
 
+        self.raise_if_bad_sheet_by_name(name)
         tables = self.book.getElementsByType(Table)
 
         for table in tables:
@@ -76,7 +85,11 @@ class ODFReader(BaseExcelReader):
         """
         Parse an ODF Table into a list of lists
         """
-        from odf.table import CoveredTableCell, TableCell, TableRow
+        from odf.table import (
+            CoveredTableCell,
+            TableCell,
+            TableRow,
+        )
 
         covered_cell_name = CoveredTableCell().qname
         table_cell_name = TableCell().qname

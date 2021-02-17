@@ -6,13 +6,16 @@ from typing import Type
 import pytest
 
 import pandas as pd
-from pandas.api.extensions import ExtensionDtype, register_extension_dtype
+from pandas.api.extensions import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
 
 import pyarrow as pa  # isort:skip
 
-from .arrays import ArrowExtensionArray  # isort:skip
+from pandas.tests.extension.arrow.arrays import ArrowExtensionArray  # isort:skip
 
 
 @register_extension_dtype

@@ -2,7 +2,14 @@
 from __future__ import annotations
 
 from math import ceil
-from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import matplotlib.table
@@ -12,15 +19,33 @@ import numpy as np
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.plotting._matplotlib import compat
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
+
+
+def do_adjust_figure(fig: Figure):
+    """Whether fig has constrained_layout enabled."""
+    if not hasattr(fig, "get_constrained_layout"):
+        return False
+    return not fig.get_constrained_layout()
+
+
+def maybe_adjust_figure(fig: Figure, *args, **kwargs):
+    """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
+    if do_adjust_figure(fig):
+        fig.subplots_adjust(*args, **kwargs)
 
 
 def format_date_labels(ax: Axes, rot):
@@ -29,7 +54,7 @@ def format_date_labels(ax: Axes, rot):
         label.set_ha("right")
         label.set_rotation(rot)
     fig = ax.get_figure()
-    fig.subplots_adjust(bottom=0.2)
+    maybe_adjust_figure(fig, bottom=0.2)
 
 
 def table(

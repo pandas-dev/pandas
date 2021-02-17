@@ -2,7 +2,10 @@
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
 """
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import logging
 
 import numpy as np
@@ -250,7 +253,8 @@ class TestS3:
             Bucket="pandas-test", Key="tips.csv"
         )
 
-        result = read_csv(BytesIO(s3_object["Body"].read()), encoding="utf8")
+        with BytesIO(s3_object["Body"].read()) as buffer:
+            result = read_csv(buffer, encoding="utf8")
         assert isinstance(result, DataFrame)
         assert not result.empty
 
