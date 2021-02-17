@@ -52,6 +52,7 @@ _results_for_groupbys_with_missing_categories = {
     "max": np.NaN,
     "mean": np.NaN,
     "median": np.NaN,
+    "mode": np.NaN,
     "min": np.NaN,
     "nth": np.NaN,
     "nunique": 0,
