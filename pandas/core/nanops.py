@@ -1,15 +1,32 @@
 import functools
 import itertools
 import operator
-from typing import Any, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Timedelta, iNaT, lib
-from pandas._typing import ArrayLike, Dtype, DtypeObj, F, Scalar
+from pandas._libs import (
+    NaT,
+    Timedelta,
+    iNaT,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    F,
+    Scalar,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -30,7 +47,11 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+    notna,
+)
 
 from pandas.core.construction import extract_array
 

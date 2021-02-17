@@ -4,10 +4,12 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestDataFrameQuantile:
@@ -547,6 +549,14 @@ class TestQuantileExtensionDtype:
             ),
             pd.period_range("2016-01-01", periods=9, freq="D"),
             pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
+            pytest.param(
+                pd.array(np.arange(9), dtype="Int64"),
+                marks=pytest.mark.xfail(reason="doesnt implement from_factorized"),
+            ),
+            pytest.param(
+                pd.array(np.arange(9), dtype="Float64"),
+                marks=pytest.mark.xfail(reason="doesnt implement from_factorized"),
+            ),
         ],
         ids=lambda x: str(x.dtype),
     )

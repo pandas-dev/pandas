@@ -6,7 +6,14 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -499,6 +506,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [

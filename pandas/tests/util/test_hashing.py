@@ -2,10 +2,18 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
-from pandas.util import hash_array, hash_pandas_object
+from pandas.util import (
+    hash_array,
+    hash_pandas_object,
+)
 
 
 @pytest.fixture(

@@ -12,7 +12,10 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError, ParserError
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
