@@ -128,7 +128,7 @@ class FrameWithFrameWide:
         n_rows, n_cols = shape
 
         if op is operator.floordiv:
-            # floordiv is much slower as the other operations -> use less data
+            # floordiv is much slower than the other operations -> use less data
             n_rows = n_rows // 10
 
         # construct dataframe with 2 blocks
