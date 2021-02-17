@@ -1,15 +1,26 @@
 from __future__ import annotations
 
-from distutils.version import LooseVersion
 import mmap
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Optional,
+)
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
-from pandas.compat._optional import get_version, import_optional_dependency
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+    StorageOptions,
+)
+from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.excel._base import BaseExcelReader, ExcelWriter
+from pandas.io.excel._base import (
+    BaseExcelReader,
+    ExcelWriter,
+)
 from pandas.io.excel._util import validate_freeze_panes
 
 if TYPE_CHECKING:
@@ -216,7 +227,10 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         fill : openpyxl.styles.Fill
         """
-        from openpyxl.styles import GradientFill, PatternFill
+        from openpyxl.styles import (
+            GradientFill,
+            PatternFill,
+        )
 
         _pattern_fill_key_map = {
             "patternType": "fill_type",
@@ -509,36 +523,23 @@ class OpenpyxlReader(BaseExcelReader):
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
 
-        from openpyxl.cell.cell import TYPE_BOOL, TYPE_ERROR, TYPE_NUMERIC
+        from openpyxl.cell.cell import (
+            TYPE_ERROR,
+            TYPE_NUMERIC,
+        )
 
         if cell.value is None:
             return ""  # compat with xlrd
-        elif cell.is_date:
-            return cell.value
         elif cell.data_type == TYPE_ERROR:
             return np.nan
-        elif cell.data_type == TYPE_BOOL:
-            return bool(cell.value)
-        elif cell.data_type == TYPE_NUMERIC:
-            # GH5394
-            if convert_float:
-                val = int(cell.value)
-                if val == cell.value:
-                    return val
-            else:
-                return float(cell.value)
+        elif not convert_float and cell.data_type == TYPE_NUMERIC:
+            return float(cell.value)
 
         return cell.value
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
-        # GH 39001
-        # Reading of excel file depends on dimension data being correct but
-        # writers sometimes omit or get it wrong
-        import openpyxl
 
-        version = LooseVersion(get_version(openpyxl))
-
-        if version >= "3.0.0" and self.book.read_only:
+        if self.book.read_only:
             sheet.reset_dimensions()
 
         data: List[List[Scalar]] = []
@@ -552,7 +553,7 @@ class OpenpyxlReader(BaseExcelReader):
         # Trim trailing empty rows
         data = data[: last_row_with_data + 1]
 
-        if version >= "3.0.0" and self.book.read_only and len(data) > 0:
+        if self.book.read_only and len(data) > 0:
             # With dimension reset, openpyxl no longer pads rows
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:

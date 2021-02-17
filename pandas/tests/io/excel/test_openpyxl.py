@@ -1,16 +1,16 @@
-from distutils.version import LooseVersion
 from pathlib import Path
 
 import numpy as np
 import pytest
 
-from pandas.compat._optional import get_version
-
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
+from pandas.io.excel import (
+    ExcelWriter,
+    _OpenpyxlWriter,
+)
 
 openpyxl = pytest.importorskip("openpyxl")
 
@@ -157,10 +157,6 @@ def test_read_with_bad_dimension(
     datapath, ext, header, expected_data, filename, read_only, request
 ):
     # GH 38956, 39001 - no/incorrect dimension information
-    version = LooseVersion(get_version(openpyxl))
-    if (read_only or read_only is None) and version < "3.0.0":
-        msg = "openpyxl read-only sheet is incorrect when dimension data is wrong"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
     path = datapath("io", "data", "excel", f"{filename}{ext}")
     if read_only is None:
         result = pd.read_excel(path, header=header)
@@ -195,10 +191,6 @@ def test_append_mode_file(ext):
 @pytest.mark.parametrize("read_only", [True, False, None])
 def test_read_with_empty_trailing_rows(datapath, ext, read_only, request):
     # GH 39181
-    version = LooseVersion(get_version(openpyxl))
-    if (read_only or read_only is None) and version < "3.0.0":
-        msg = "openpyxl read-only sheet is incorrect when dimension data is wrong"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
     path = datapath("io", "data", "excel", f"empty_trailing_rows{ext}")
     if read_only is None:
         result = pd.read_excel(path)

@@ -8,7 +8,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import DataFrame
@@ -759,8 +763,7 @@ class TestTableOrientReader:
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
-                # 'H': pd.date_range('2016-01-01', freq='d', periods=4,
-                #                   tz='US/Central'),
+                "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
                 "I": [True, False, False, True],
             },
             index=pd.Index(range(4), name="idx"),
