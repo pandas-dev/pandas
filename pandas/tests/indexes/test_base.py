@@ -573,25 +573,19 @@ class TestIndex(Base):
         with pytest.raises(TypeError, match=msg):
             right.asof(left)
 
-    def test_asof_datetime_partial(self):
-        index = date_range("2010-01-01", periods=2, freq="m")
-        expected = Timestamp("2010-02-28")
-        result = index.asof("2010-02")
-        assert result == expected
-        assert not isinstance(result, Index)
-
-    def test_nanosecond_index_access(self):
-        s = Series([Timestamp("20130101")]).values.view("i8")[0]
+    # TODO: this tests Series.asof
+    def test_asof_nanosecond_index_access(self):
+        s = Timestamp("20130101").value
         r = DatetimeIndex([s + 50 + i for i in range(100)])
-        x = Series(np.random.randn(100), index=r)
+        ser = Series(np.random.randn(100), index=r)
 
-        first_value = x.asof(x.index[0])
+        first_value = ser.asof(ser.index[0])
 
         # this does not yet work, as parsing strings is done via dateutil
         # assert first_value == x['2013-01-01 00:00:00.000000050+0000']
 
         expected_ts = np_datetime64_compat("2013-01-01 00:00:00.000000050+0000", "ns")
-        assert first_value == x[Timestamp(expected_ts)]
+        assert first_value == ser[Timestamp(expected_ts)]
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_booleanindex(self, index):
@@ -634,110 +628,6 @@ class TestIndex(Base):
         msg = r"arrays used as indices must be of integer \(or boolean\) type"
         with pytest.raises(IndexError, match=msg):
             index[empty_farr]
-
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_intersection(self, index, sort):
-        first = index[:20]
-        second = index[:10]
-        intersect = first.intersection(second, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(intersect, second.sort_values())
-        assert tm.equalContents(intersect, second)
-
-        # Corner cases
-        inter = first.intersection(first, sort=sort)
-        assert inter is first
-
-    @pytest.mark.parametrize(
-        "index2,keeps_name",
-        [
-            (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
-            (Index([3, 4, 5, 6, 7], name="other"), False),  # drop diff names
-            (Index([3, 4, 5, 6, 7]), False),
-        ],
-    )
-    def test_intersection_name_preservation(self, index2, keeps_name, sort):
-        index1 = Index([1, 2, 3, 4, 5], name="index")
-        expected = Index([3, 4, 5])
-        result = index1.intersection(index2, sort)
-
-        if keeps_name:
-            expected.name = "index"
-
-        assert result.name == expected.name
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    @pytest.mark.parametrize(
-        "first_name,second_name,expected_name",
-        [("A", "A", "A"), ("A", "B", None), (None, "B", None)],
-    )
-    def test_intersection_name_preservation2(
-        self, index, first_name, second_name, expected_name, sort
-    ):
-        first = index[5:20]
-        second = index[:10]
-        first.name = first_name
-        second.name = second_name
-        intersect = first.intersection(second, sort=sort)
-        assert intersect.name == expected_name
-
-    def test_chained_union(self, sort):
-        # Chained unions handles names correctly
-        i1 = Index([1, 2], name="i1")
-        i2 = Index([5, 6], name="i2")
-        i3 = Index([3, 4], name="i3")
-        union = i1.union(i2.union(i3, sort=sort), sort=sort)
-        expected = i1.union(i2, sort=sort).union(i3, sort=sort)
-        tm.assert_index_equal(union, expected)
-
-        j1 = Index([1, 2], name="j1")
-        j2 = Index([], name="j2")
-        j3 = Index([], name="j3")
-        union = j1.union(j2.union(j3, sort=sort), sort=sort)
-        expected = j1.union(j2, sort=sort).union(j3, sort=sort)
-        tm.assert_index_equal(union, expected)
-
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_union(self, index, sort):
-        first = index[5:20]
-        second = index[:10]
-        everything = index[:20]
-
-        union = first.union(second, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(union, everything.sort_values())
-        assert tm.equalContents(union, everything)
-
-    @pytest.mark.parametrize("klass", [np.array, Series, list])
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_union_from_iterables(self, index, klass, sort):
-        # GH 10149
-        first = index[5:20]
-        second = index[:10]
-        everything = index[:20]
-
-        case = klass(second.values)
-        result = first.union(case, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, everything.sort_values())
-        assert tm.equalContents(result, everything)
-
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_union_identity(self, index, sort):
-        first = index[5:20]
-
-        union = first.union(first, sort=sort)
-        # i.e. identity is not preserved when sort is True
-        assert (union is first) is (not sort)
-
-        # This should no longer be the same object, since [] is not consistent,
-        # both objects will be recast to dtype('O')
-        union = first.union([], sort=sort)
-        assert (union is first) is (not sort)
-
-        union = Index([]).union(first, sort=sort)
-        assert (union is first) is (not sort)
 
     def test_union_dt_as_obj(self, sort):
         # TODO: Replace with fixturesult
@@ -1776,11 +1666,6 @@ class TestMixedIntIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index([1, 2, 3]).dropna(how="xxx")
 
-    def test_get_combined_index(self):
-        result = _get_combined_index([])
-        expected = Index([])
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize(
         "index",
         [
@@ -1812,16 +1697,6 @@ class TestMixedIntIndex(Base):
         msg = "^'str' object cannot be interpreted as an integer$"
         with pytest.raises(TypeError, match=msg):
             bytes(index)
-
-    def test_intersect_str_dates(self):
-        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
-
-        index1 = Index(dt_dates, dtype=object)
-        index2 = Index(["aa"], dtype=object)
-        result = index2.intersection(index1)
-
-        expected = Index([], dtype=object)
-        tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
     def test_index_with_tuple_bool(self):
@@ -1866,6 +1741,11 @@ class TestIndexUtils:
         ]
         result = ensure_index(intervals)
         expected = Index(intervals, dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    def test_get_combined_index(self):
+        result = _get_combined_index([])
+        expected = Index([])
         tm.assert_index_equal(result, expected)
 
 

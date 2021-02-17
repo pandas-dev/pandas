@@ -2,16 +2,18 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
+from datetime import datetime
+
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_dtype_equal
 
-import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
+    Index,
     Int64Index,
     MultiIndex,
     RangeIndex,
@@ -113,8 +115,8 @@ def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
 def test_union_dtypes(left, right, expected, names):
     left = pandas_dtype(left)
     right = pandas_dtype(right)
-    a = pd.Index([], dtype=left, name=names[0])
-    b = pd.Index([], dtype=right, name=names[1])
+    a = Index([], dtype=left, name=names[0])
+    b = Index([], dtype=right, name=names[1])
     result = a.union(b)
     assert result.dtype == expected
     assert result.name == names[2]
@@ -141,10 +143,10 @@ def test_dunder_inplace_setops_deprecated(index):
 @pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])
 def test_intersection_duplicates(values):
     # GH#31326
-    a = pd.Index(values)
-    b = pd.Index([3, 3])
+    a = Index(values)
+    b = Index([3, 3])
     result = a.intersection(b)
-    expected = pd.Index([3])
+    expected = Index([3])
     tm.assert_index_equal(result, expected)
 
 
@@ -495,3 +497,121 @@ def test_intersection_duplicates_all_indexes(index):
 
     check_intersection_commutative(idx, idx_non_unique)
     assert idx.intersection(idx_non_unique).is_unique
+
+
+class TestSetOpsUnsorted:
+    # These may eventually belong in a dtype-specific test_setops, or
+    #  parametrized over a more general fixture
+    def test_intersect_str_dates(self):
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
+
+        index1 = Index(dt_dates, dtype=object)
+        index2 = Index(["aa"], dtype=object)
+        result = index2.intersection(index1)
+
+        expected = Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("index", ["string"], indirect=True)
+    def test_intersection(self, index, sort):
+        first = index[:20]
+        second = index[:10]
+        intersect = first.intersection(second, sort=sort)
+        if sort is None:
+            tm.assert_index_equal(intersect, second.sort_values())
+        assert tm.equalContents(intersect, second)
+
+        # Corner cases
+        inter = first.intersection(first, sort=sort)
+        assert inter is first
+
+    @pytest.mark.parametrize(
+        "index2,keeps_name",
+        [
+            (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
+            (Index([3, 4, 5, 6, 7], name="other"), False),  # drop diff names
+            (Index([3, 4, 5, 6, 7]), False),
+        ],
+    )
+    def test_intersection_name_preservation(self, index2, keeps_name, sort):
+        index1 = Index([1, 2, 3, 4, 5], name="index")
+        expected = Index([3, 4, 5])
+        result = index1.intersection(index2, sort)
+
+        if keeps_name:
+            expected.name = "index"
+
+        assert result.name == expected.name
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("index", ["string"], indirect=True)
+    @pytest.mark.parametrize(
+        "first_name,second_name,expected_name",
+        [("A", "A", "A"), ("A", "B", None), (None, "B", None)],
+    )
+    def test_intersection_name_preservation2(
+        self, index, first_name, second_name, expected_name, sort
+    ):
+        first = index[5:20]
+        second = index[:10]
+        first.name = first_name
+        second.name = second_name
+        intersect = first.intersection(second, sort=sort)
+        assert intersect.name == expected_name
+
+    def test_chained_union(self, sort):
+        # Chained unions handles names correctly
+        i1 = Index([1, 2], name="i1")
+        i2 = Index([5, 6], name="i2")
+        i3 = Index([3, 4], name="i3")
+        union = i1.union(i2.union(i3, sort=sort), sort=sort)
+        expected = i1.union(i2, sort=sort).union(i3, sort=sort)
+        tm.assert_index_equal(union, expected)
+
+        j1 = Index([1, 2], name="j1")
+        j2 = Index([], name="j2")
+        j3 = Index([], name="j3")
+        union = j1.union(j2.union(j3, sort=sort), sort=sort)
+        expected = j1.union(j2, sort=sort).union(j3, sort=sort)
+        tm.assert_index_equal(union, expected)
+
+    @pytest.mark.parametrize("index", ["string"], indirect=True)
+    def test_union(self, index, sort):
+        first = index[5:20]
+        second = index[:10]
+        everything = index[:20]
+
+        union = first.union(second, sort=sort)
+        if sort is None:
+            tm.assert_index_equal(union, everything.sort_values())
+        assert tm.equalContents(union, everything)
+
+    @pytest.mark.parametrize("klass", [np.array, Series, list])
+    @pytest.mark.parametrize("index", ["string"], indirect=True)
+    def test_union_from_iterables(self, index, klass, sort):
+        # GH 10149
+        first = index[5:20]
+        second = index[:10]
+        everything = index[:20]
+
+        case = klass(second.values)
+        result = first.union(case, sort=sort)
+        if sort is None:
+            tm.assert_index_equal(result, everything.sort_values())
+        assert tm.equalContents(result, everything)
+
+    @pytest.mark.parametrize("index", ["string"], indirect=True)
+    def test_union_identity(self, index, sort):
+        first = index[5:20]
+
+        union = first.union(first, sort=sort)
+        # i.e. identity is not preserved when sort is True
+        assert (union is first) is (not sort)
+
+        # This should no longer be the same object, since [] is not consistent,
+        # both objects will be recast to dtype('O')
+        union = first.union([], sort=sort)
+        assert (union is first) is (not sort)
+
+        union = Index([]).union(first, sort=sort)
+        assert (union is first) is (not sort)
