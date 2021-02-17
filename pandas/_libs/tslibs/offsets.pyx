@@ -1838,12 +1838,11 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     DateOffset that just needs a month.
     """
+    
     _attributes = tuple(["n", "normalize", "month"])
 
-    # _default_month: int  # FIXME: python annotation here breaks things
-
     cdef readonly:
-        int month
+        int month, _default_month, _period_dtype_code
 
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
@@ -1853,6 +1852,8 @@ cdef class YearOffset(SingleConstructorOffset):
 
         if month < 1 or month > 12:
             raise ValueError("Month must go from 1 to 12")
+            
+        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
 
     cpdef __setstate__(self, state):
         self.month = state.pop("month")
@@ -1865,8 +1866,11 @@ cdef class YearOffset(SingleConstructorOffset):
         kwargs = {}
         if suffix:
             kwargs["month"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._default_month is not None:
+                kwargs["month"] = cls._default_month
         return cls(**kwargs)
-
+    
     @property
     def rule_code(self) -> str:
         month = MONTH_ALIASES[self.month]
@@ -1902,14 +1906,96 @@ cdef class YearOffset(SingleConstructorOffset):
         )
         return shifted
 
-
-cdef class BYearEnd(YearOffset):
+    
+cdef class YearBegin(YearOffset):
     """
-    DateOffset increments between the last business day of the year.
+    DateOffset increments between calendar year begin dates.
+    
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import YearBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + YearBegin()
+    Timestamp('2021-01-01 05:01:15')
+    >>> ts + YearBegin(normalize = True)
+    Timestamp('2021-01-01 00:00:00')
+    >>> ts + YearBegin()._from_name('APR')
+    Timestamp('2021-04-01 05:01:15')
+    """
+
+    _outputName = "YearBegin"
+    _default_month = 1
+    _prefix = "AS"
+    _day_opt = "start"
+    
+
+cdef class YearEnd(YearOffset):
+    """
+    DateOffset increments between calendar year ends.
+    
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import YearEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + YearEnd()
+    Timestamp('2020-12-31 05:01:15')
+    >>> ts + YearEnd(normalize = True)
+    Timestamp('2020-12-31 00:00:00')
+    >>> ts + YearEnd()._from_name('AUG')
+    Timestamp('2020-08-31 05:01:15')
+    """
+
+    _outputName = "YearEnd"
+    _default_month = 12
+    _prefix = "A"
+    _day_opt = "end"
+    
+    
+cdef class BYearBegin(YearOffset):
+    """
+    DateOffset increments between the first business day of the year.
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearEnd
+    >>> from pandas.tseries.offsets import BYearBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BYearBegin()
+    Timestamp('2021-01-01 05:01:15')
+    >>> ts - BYearBegin()
+    Timestamp('2020-01-01 05:01:15')
+    >>> ts + BYearBegin(-1)
+    Timestamp('2020-01-01 05:01:15')
+    >>> ts + BYearBegin(2)
+    Timestamp('2022-01-03 05:01:15')
+    """
+
+    _outputName = "BusinessYearBegin"
+    _default_month = 1
+    _prefix = "BAS"
+    _day_opt = "business_start"
+    
+
+cdef class BYearEnd(YearOffset):
+    """
+    DateOffset increments between the last business days of offset years.
+    Here, the year is a period of 12 consecutive calendar months
+    (January - December by default). The "month" parameter allows custom setting 
+    of the final month in a year (and correspondingly - the year start month). 
+    
+    Parameters
+    ----------
+    n : int, default 1
+        Number of years to offset.
+    normalize: bool, default False
+        If true, the time component of the resulting date-time is converted to 
+        00:00:00, i.e. midnight (the start, not the end of date-time).
+    month: int, default 12
+        The calendar month number (12 for December) of the ending month 
+        in a custom-defined year to be used as offset.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import BYearEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts - BYearEnd()
     Timestamp('2019-12-31 05:01:15')
@@ -1927,60 +2013,7 @@ cdef class BYearEnd(YearOffset):
     _default_month = 12
     _prefix = "BA"
     _day_opt = "business_end"
-
-
-cdef class BYearBegin(YearOffset):
-    """
-    DateOffset increments between the first business day of the year.
-
-    Examples
-    --------
-    >>> from pandas.tseries.offset import BYearBegin
-    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BYearBegin()
-    Timestamp('2021-01-01 05:01:15')
-    >>> ts - BYearBegin()
-    Timestamp('2020-01-01 05:01:15')
-    >>> ts + BYearBegin(-1)
-    Timestamp('2020-01-01 05:01:15')
-    >>> ts + BYearBegin(2)
-    Timestamp('2022-01-03 05:01:15')
-    """
-
-    _outputName = "BusinessYearBegin"
-    _default_month = 1
-    _prefix = "BAS"
-    _day_opt = "business_start"
-
-
-cdef class YearEnd(YearOffset):
-    """
-    DateOffset increments between calendar year ends.
-    """
-
-    _default_month = 12
-    _prefix = "A"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
-
-
-cdef class YearBegin(YearOffset):
-    """
-    DateOffset increments between calendar year begin dates.
-    """
-
-    _default_month = 1
-    _prefix = "AS"
-    _day_opt = "start"
-
+    
 
 # ----------------------------------------------------------------------
 # Quarter-Based Offset Classes
@@ -1991,19 +2024,21 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME: python annotations here breaks things
-    # _default_starting_month: int
-    # _from_name_starting_month: int
 
     cdef readonly:
-        int startingMonth
+        int startingMonth, _default_month, _period_dtype_code
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
-
-        if startingMonth is None:
-            startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+       
+        if startingMonth is not None:
+            if startingMonth < 1 or startingMonth > 12:
+                raise ValueError("Month must go from 1 to 12") 
+            self.startingMonth = startingMonth
+        else:
+            self.startingMonth = self._default_month
+        
+        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
 
     cpdef __setstate__(self, state):
         self.startingMonth = state.pop("startingMonth")
@@ -2016,8 +2051,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
         if suffix:
             kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
         else:
-            if cls._from_name_starting_month is not None:
-                kwargs["startingMonth"] = cls._from_name_starting_month
+            if cls._default_month is not None:
+                kwargs["startingMonth"] = cls._default_month
         return cls(**kwargs)
 
     @property
@@ -2070,7 +2105,7 @@ cdef class BQuarterEnd(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterEnd
+    >>> from pandas.tseries.offsets import BQuarterEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterEnd()
     Timestamp('2020-06-30 05:01:15')
@@ -2081,9 +2116,9 @@ cdef class BQuarterEnd(QuarterOffset):
     >>> ts + BQuarterEnd(startingMonth=2)
     Timestamp('2020-05-29 05:01:15')
     """
+    
     _output_name = "BusinessQuarterEnd"
-    _default_starting_month = 3
-    _from_name_starting_month = 12
+    _default_month = 3
     _prefix = "BQ"
     _day_opt = "business_end"
 
@@ -2098,20 +2133,20 @@ cdef class BQuarterBegin(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterBegin
+    >>> from pandas.tseries.offsets import BQuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterBegin()
-    Timestamp('2020-06-01 05:01:15')
+    Timestamp('2020-07-01 05:01:15')
     >>> ts + BQuarterBegin(2)
-    Timestamp('2020-09-01 05:01:15')
+    Timestamp('2020-10-01 05:01:15')
     >>> ts + BQuarterBegin(startingMonth=2)
     Timestamp('2020-08-03 05:01:15')
     >>> ts + BQuarterBegin(-1)
-    Timestamp('2020-03-02 05:01:15')
+    Timestamp('2020-04-01 05:01:15')
     """
+    
     _output_name = "BusinessQuarterBegin"
-    _default_starting_month = 3
-    _from_name_starting_month = 1
+    _default_month = 1
     _prefix = "BQS"
     _day_opt = "business_start"
 
@@ -2123,19 +2158,25 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
+    
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import QuarterEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + QuarterEnd(2)
+    Timestamp('2020-09-30 05:01:15')
+    >>> ts + QuarterEnd()._from_name('JUN')
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + QuarterEnd(1, normalize = True)
+    Timestamp('2020-06-30 00:00:00')
+    >>> ts + QuarterEnd(-2, startingMonth = 2)
+    Timestamp('2019-11-30 05:01:15')
     """
-    _default_starting_month = 3
+    
+    _output_name = "QuarterEnd"
+    _default_month = 3
     _prefix = "Q"
     _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, startingMonth=None):
-        # Because QuarterEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        QuarterOffset.__init__(self, n, normalize, startingMonth)
-        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
 
 
 cdef class QuarterBegin(QuarterOffset):
@@ -2145,9 +2186,23 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+            
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import QuarterBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + QuarterBegin()._from_name('MAR')
+    Timestamp('2020-06-01 05:01:15')
+    >>> ts + QuarterBegin()
+    Timestamp('2020-07-01 05:01:15')
+    >>> ts + QuarterBegin(2)
+    Timestamp('2020-10-01 05:01:15')
+    >>> ts + QuarterBegin(2, startingMonth = 2)
+    Timestamp('2020-11-01 05:01:15')
     """
-    _default_starting_month = 3
-    _from_name_starting_month = 1
+    
+    _output_name = "QuarterBegin"
+    _default_month = 1
     _prefix = "QS"
     _day_opt = "start"
 
@@ -2156,6 +2211,11 @@ cdef class QuarterBegin(QuarterOffset):
 # Month-Based Offset Classes
 
 cdef class MonthOffset(SingleConstructorOffset):
+    cdef readonly:
+        int _period_dtype_code
+        
+    _period_dtype_code = PeriodDtypeCode.M
+    
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -2184,41 +2244,23 @@ cdef class MonthOffset(SingleConstructorOffset):
 
         BaseOffset.__setstate__(self, state)
 
-
-cdef class MonthEnd(MonthOffset):
-    """
-    DateOffset of one month end.
-    """
-    _period_dtype_code = PeriodDtypeCode.M
-    _prefix = "M"
-    _day_opt = "end"
-
-
+        
 cdef class MonthBegin(MonthOffset):
     """
     DateOffset of one month at beginning.
     """
+
     _prefix = "MS"
     _day_opt = "start"
-
-
-cdef class BusinessMonthEnd(MonthOffset):
+        
+        
+cdef class MonthEnd(MonthOffset):
     """
-    DateOffset increments between the last business day of the month
-
-    Examples
-    --------
-    >>> from pandas.tseries.offset import BMonthEnd
-    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthEnd()
-    Timestamp('2020-05-29 05:01:15')
-    >>> ts + BMonthEnd(2)
-    Timestamp('2020-06-30 05:01:15')
-    >>> ts + BMonthEnd(-2)
-    Timestamp('2020-03-31 05:01:15')
+    DateOffset of one month end.
     """
-    _prefix = "BM"
-    _day_opt = "business_end"
+
+    _prefix = "M"
+    _day_opt = "end"
 
 
 cdef class BusinessMonthBegin(MonthOffset):
@@ -2236,8 +2278,29 @@ cdef class BusinessMonthBegin(MonthOffset):
     >>> ts + BMonthBegin(-3)
     Timestamp('2020-03-02 05:01:15')
     """
+    
     _prefix = "BMS"
     _day_opt = "business_start"
+
+
+cdef class BusinessMonthEnd(MonthOffset):
+    """
+    DateOffset increments between the last business day of the month
+
+    Examples
+    --------
+    >>> from pandas.tseries.offset import BMonthEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BMonthEnd()
+    Timestamp('2020-05-29 05:01:15')
+    >>> ts + BMonthEnd(2)
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + BMonthEnd(-2)
+    Timestamp('2020-03-31 05:01:15')
+    """
+    
+    _prefix = "BM"
+    _day_opt = "business_end"
 
 
 # ---------------------------------------------------------------------
