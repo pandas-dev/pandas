@@ -3,31 +3,59 @@ Experimental manager based on storing a collection of 1D arrays
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, lib
-from pandas._typing import ArrayLike, DtypeObj, Hashable
+from pandas._libs import lib
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Hashable,
+)
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import array_equals, isna
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    PandasDtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    array_equals,
+    isna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+)
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import make_block
 
@@ -377,28 +405,9 @@ class ArrayManager(DataManager):
         )
 
     def fillna(self, value, limit, inplace: bool, downcast) -> ArrayManager:
-        # TODO implement downcast
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        def array_fillna(array, value, limit, inplace):
-
-            mask = isna(array)
-            if limit is not None:
-                limit = libalgos.validate_limit(None, limit=limit)
-                mask[mask.cumsum() > limit] = False
-
-            # TODO could optimize for arrays that cannot hold NAs
-            # (like _can_hold_na on Blocks)
-            if not inplace:
-                array = array.copy()
-
-            # np.putmask(array, mask, value)
-            if np.any(mask):
-                # TODO allow invalid value if there is nothing to fill?
-                array[mask] = value
-            return array
-
-        return self.apply(array_fillna, value=value, limit=limit, inplace=inplace)
+        return self.apply_with_block(
+            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     def downcast(self) -> ArrayManager:
         return self.apply_with_block("downcast")
@@ -454,7 +463,7 @@ class ArrayManager(DataManager):
 
     @property
     def is_numeric_mixed_type(self) -> bool:
-        return False
+        return all(is_numeric_dtype(t) for t in self.get_dtypes())
 
     @property
     def any_extension_types(self) -> bool:

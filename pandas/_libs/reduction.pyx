@@ -1,17 +1,29 @@
 from copy import copy
 
-from libc.stdlib cimport free, malloc
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 cnp.import_array()
 
-from pandas._libs.util cimport is_array, set_array_not_contiguous
+from pandas._libs.util cimport (
+    is_array,
+    set_array_not_contiguous,
+)
 
-from pandas._libs.lib import is_scalar, maybe_convert_objects
+from pandas._libs.lib import (
+    is_scalar,
+    maybe_convert_objects,
+)
 
 
 cpdef check_result_array(object obj, Py_ssize_t cnt):

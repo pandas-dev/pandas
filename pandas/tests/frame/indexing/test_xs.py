@@ -3,7 +3,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, IndexSlice, MultiIndex, Series, concat
+from pandas import (
+    DataFrame,
+    Index,
+    IndexSlice,
+    MultiIndex,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 
