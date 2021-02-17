@@ -756,9 +756,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(blocks) != 1:
             return False
 
-        dtype = blocks[0].dtype
-        # TODO(EA2D): special case would be unnecessary with 2D EAs
-        return isinstance(dtype, np.dtype)  # i.e. not ExtensionDtype
+        return not self._mgr.any_extension_type
 
     # ----------------------------------------------------------------------
     # Rendering Methods
