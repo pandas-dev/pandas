@@ -127,6 +127,10 @@ class FrameWithFrameWide:
         #  b) appreciably bigger than single columns
         n_rows, n_cols = shape
 
+        if op is operator.floordiv:
+            # floordiv is much slower as the other operations -> use less data
+            n_rows = n_rows // 10
+
         # construct dataframe with 2 blocks
         arr1 = np.random.randn(n_rows, n_cols // 2).astype("f8")
         arr2 = np.random.randn(n_rows, n_cols // 2).astype("f4")
