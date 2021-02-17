@@ -6,7 +6,11 @@ Offer fast expression evaluation through numexpr
 
 """
 import operator
-from typing import List, Optional, Set
+from typing import (
+    List,
+    Optional,
+    Set,
+)
 import warnings
 
 import numpy as np
@@ -76,7 +80,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     if op_str is not None:
 
         # required min elements (otherwise we are adding overhead)
-        if np.prod(a.shape) > _MIN_ELEMENTS:
+        if a.size > _MIN_ELEMENTS:
             # check for dtype compatibility
             dtypes: Set[str] = set()
             for o in [a, b]:

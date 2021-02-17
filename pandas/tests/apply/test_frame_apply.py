@@ -8,7 +8,14 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    notna,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.tests.frame.common import zip_frames

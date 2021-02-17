@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Dict, Hashable, List, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Set,
+)
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
@@ -22,7 +29,10 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def scatter_matrix(
