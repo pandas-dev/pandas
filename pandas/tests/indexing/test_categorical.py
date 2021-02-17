@@ -450,30 +450,16 @@ class TestCategoricalIndex:
 
     def test_loc_and_at_with_categorical_index(self):
         # GH 20629
-        s = Series([1, 2, 3], index=CategoricalIndex(["A", "B", "C"]))
-        assert s.loc["A"] == 1
-        assert s.at["A"] == 1
         df = DataFrame(
             [[1, 2], [3, 4], [5, 6]], index=CategoricalIndex(["A", "B", "C"])
         )
+
+        s = df[0]
+        assert s.loc["A"] == 1
+        assert s.at["A"] == 1
+
         assert df.loc["B", 1] == 4
         assert df.at["B", 1] == 4
-
-    def test_indexing_with_category(self):
-
-        # https://github.com/pandas-dev/pandas/issues/12564
-        # consistent result if comparing as Dataframe
-
-        cat = DataFrame({"A": ["foo", "bar", "baz"]})
-        exp = DataFrame({"A": [True, False, False]})
-
-        res = cat[["A"]] == "foo"
-        tm.assert_frame_equal(res, exp)
-
-        cat["A"] = cat["A"].astype("category")
-
-        res = cat[["A"]] == "foo"
-        tm.assert_frame_equal(res, exp)
 
     @pytest.mark.parametrize(
         "idx_values",
@@ -501,7 +487,7 @@ class TestCategoricalIndex:
             pd.timedelta_range(start="1d", periods=3).array,
         ],
     )
-    def test_loc_with_non_string_categories(self, idx_values, ordered):
+    def test_loc_getitem_with_non_string_categories(self, idx_values, ordered):
         # GH-17569
         cat_idx = CategoricalIndex(idx_values, ordered=ordered)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
