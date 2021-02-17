@@ -34,7 +34,6 @@ from pandas._libs.algos import groupsort_indexer, rank_1d, take_2d_axis1_float64
 
 from pandas._libs.missing cimport checknull
 
-include "groupby_mode_helper.pxi"
 
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max

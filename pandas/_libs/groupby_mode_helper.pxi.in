@@ -81,31 +81,31 @@ dtypes = [#('complex128', 'complex128', 'khcomplex128_t',
 
 {{for dtype, ttype, c_type, to_c_type, to_dtype in dtypes}}
 
-#@cython.wraparound(False)
-#@cython.boundscheck(False)
-#cdef {{c_type}} calc_mode_{{dtype}}(kh_{{ttype}}_t *table):
-#    cdef:
-#        {{c_type}} mode
-#        {{c_type}} val
-#        int count, max_count = 0
-#        khiter_t k
-#
-#
-#    for k in range(table.n_buckets):
-#        if kh_exist_{{ttype}}(table, k):
-#            count = table.vals[k]
-#            {{if dtype != 'object'}}
-#            val = table.keys[k]
-#            if count == max_count and val < mode:
-#            {{else}}
-#            val = <object>table.keys[k]
-#            if count == max_count:
-#            {{endif}}
-#                mode = val
-#            elif count > max_count:
-#                mode = val
-#                max_count = count
-#    return mode
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef {{c_type}} calc_mode_{{dtype}}(kh_{{ttype}}_t *table):
+    cdef:
+        {{c_type}} mode
+        {{c_type}} val
+        int count, max_count = 0
+        khiter_t k
+
+    for k in range(table.n_buckets):
+        if kh_exist_{{ttype}}(table, k):
+            count = table.vals[k]
+            {{if dtype != 'object'}}
+            val = table.keys[k]
+            if count == max_count and val < mode:
+            {{else}}
+            val = <object>table.keys[k]
+            if count == max_count:
+            {{endif}}
+                mode = val
+            elif count > max_count:
+                mode = val
+                max_count = count
+    return mode
 
 
 @cython.wraparound(False)
@@ -124,29 +124,19 @@ def group_mode_{{dtype}}(ndarray[{{c_type}}, ndim=1] out,
         int64_t lab, curr_label = -1
         kh_{{ttype}}_t *table
         khiter_t k
-        int count, max_count = 0, ret = 0
-        {{c_type}} val, mode
+        int ret = 0
+        {{c_type}} mode
 
     table = kh_init_{{ttype}}()
     {{if dtype != 'object'}}
-    # Fix NOGIL later with nogil:
+    #TODO: Fix NOGIL later
+    #with nogil:
     for i in range(N):
         lab = labels[i]
         if lab < 0: # NaN case
             continue
         if lab != curr_label and curr_label != -1:
-            for k in range(table.n_buckets):
-                if kh_exist_{{ttype}}(table, k):
-                    count = table.vals[k]
-                    val = table.keys[k]
-                    if count == max_count and val < mode:
-                        mode = val
-                    elif count > max_count:
-                        mode = val
-                        max_count = count
-
-            #out[curr_label] = calc_mode_{{dtype}}(table)
-            out[curr_label] = mode
+            out[curr_label] = calc_mode_{{dtype}}(table)
             # Reset variables
             max_count = 0
             table = kh_init_{{ttype}}()
@@ -162,34 +152,14 @@ def group_mode_{{dtype}}(ndarray[{{c_type}}, ndim=1] out,
                 table.vals[k] = 1
         curr_label = lab
     # Calc mode for the last group
-    for k in range(table.n_buckets):
-        if kh_exist_{{ttype}}(table, k):
-            count = table.vals[k]
-            val = table.keys[k]
-            if count == max_count and val < mode:
-                mode = val
-            elif count > max_count:
-                mode = val
-                max_count = count
-    #out[lab] = calc_mode_{{dtype}}(table)
-    out[curr_label] = mode
+    out[curr_label] = calc_mode_{{dtype}}(table)
     {{else}}
     for i in range(N):
         lab = labels[i]
         if lab < 0: # NaN case
             continue
         if lab != curr_label and curr_label != -1:
-            for k in range(table.n_buckets):
-                if kh_exist_{{ttype}}(table, k):
-                    count = table.vals[k]
-                    val = <object>table.keys[k]
-                    if count == max_count:
-                        mode = val
-                    elif count > max_count:
-                        mode = val
-                        max_count = count
-            #out[curr_label] = calc_mode_{{dtype}}(table)
-            out[curr_label] = mode
+            out[curr_label] = calc_mode_{{dtype}}(table)
             # Reset variables
             table = kh_init_{{ttype}}()
 
@@ -202,16 +172,7 @@ def group_mode_{{dtype}}(ndarray[{{c_type}}, ndim=1] out,
                 k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
                 table.vals[k] = 1
         curr_label = lab
-    for k in range(table.n_buckets):
-        if kh_exist_{{ttype}}(table, k):
-            count = table.vals[k]
-            val = <object>table.keys[k]
-            if count == max_count:
-                mode = val
-            elif count > max_count:
-                mode = val
-                max_count = count
-    out[curr_label] = mode
+    out[curr_label] = calc_mode_{{dtype}}(table)
     {{endif}}
     kh_destroy_{{ttype}}(table)
 {{endfor}}
