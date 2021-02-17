@@ -121,7 +121,6 @@ def cut(
     qcut : Transform values into quantile-based intervals (bins).
     Categorical : Array type for storing data that come from a
         fixed set of values.
-    Series : One-dimensional array with axis labels (including time series).
     IntervalIndex : Immutable Index implementing an ordered, sliceable set.
 
     Notes
@@ -336,11 +335,14 @@ def qcut(
     cut : Transform values into pre-defined or equal-width intervals (bins).
     Categorical : Array type for storing data that come from a
         fixed set of values.
-    Series : One-dimensional array with axis labels (including time series).
 
     Notes
     -----
-    Out of bounds values will be NA in the resulting Categorical object
+    Out of bounds values will be NA in the resulting Categorical object.
+    
+    More information on the discretization of continuous features can be
+    found `here
+    <https://en.wikipedia.org/wiki/Discretization_of_continuous_features>`__.
 
     Examples
     --------
