@@ -5,7 +5,6 @@ from datetime import (
 )
 from io import StringIO
 import math
-import operator
 import re
 
 import numpy as np
@@ -755,123 +754,6 @@ class TestIndex(Base):
         result = left.append(right)
         assert result.name == expected
 
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    @pytest.mark.parametrize("second_name,expected", [(None, None), ("name", "name")])
-    def test_difference_name_preservation(self, index, second_name, expected, sort):
-        first = index[5:20]
-        second = index[:10]
-        answer = index[10:20]
-
-        first.name = "name"
-        second.name = second_name
-        result = first.difference(second, sort=sort)
-
-        assert tm.equalContents(result, answer)
-
-        if expected is None:
-            assert result.name is None
-        else:
-            assert result.name == expected
-
-    def test_difference_empty_arg(self, index, sort):
-        first = index[5:20]
-        first.name = "name"
-        result = first.difference([], sort)
-
-        tm.assert_index_equal(result, first)
-
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_difference_identity(self, index, sort):
-        first = index[5:20]
-        first.name = "name"
-        result = first.difference(first, sort)
-
-        assert len(result) == 0
-        assert result.name == first.name
-
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_difference_sort(self, index, sort):
-        first = index[5:20]
-        second = index[:10]
-
-        result = first.difference(second, sort)
-        expected = index[10:20]
-
-        if sort is None:
-            expected = expected.sort_values()
-
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
-    def test_difference_incomparable(self, opname):
-        a = Index([3, Timestamp("2000"), 1])
-        b = Index([2, Timestamp("1999"), 1])
-        op = operator.methodcaller(opname, b)
-
-        with tm.assert_produces_warning(RuntimeWarning):
-            # sort=None, the default
-            result = op(a)
-        expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
-        if opname == "difference":
-            expected = expected[:2]
-        tm.assert_index_equal(result, expected)
-
-        # sort=False
-        op = operator.methodcaller(opname, b, sort=False)
-        result = op(a)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.xfail(reason="Not implemented")
-    @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
-    def test_difference_incomparable_true(self, opname):
-        # TODO decide on True behaviour
-        # # sort=True, raises
-        a = Index([3, Timestamp("2000"), 1])
-        b = Index([2, Timestamp("1999"), 1])
-        op = operator.methodcaller(opname, b, sort=True)
-
-        with pytest.raises(TypeError, match="Cannot compare"):
-            op(a)
-
-    def test_symmetric_difference_mi(self, sort):
-        index1 = MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3]))
-        index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
-        result = index1.symmetric_difference(index2, sort=sort)
-        expected = MultiIndex.from_tuples([("bar", 2), ("baz", 3), ("bar", 3)])
-        if sort is None:
-            expected = expected.sort_values()
-        tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
-
-    @pytest.mark.parametrize(
-        "index2,expected",
-        [
-            (Index([0, 1, np.nan]), Index([2.0, 3.0, 0.0])),
-            (Index([0, 1]), Index([np.nan, 2.0, 3.0, 0.0])),
-        ],
-    )
-    def test_symmetric_difference_missing(self, index2, expected, sort):
-        # GH 13514 change: {nan} - {nan} == {}
-        # (GH 6444, sorting of nans, is no longer an issue)
-        index1 = Index([1, np.nan, 2, 3])
-
-        result = index1.symmetric_difference(index2, sort=sort)
-        if sort is None:
-            expected = expected.sort_values()
-        tm.assert_index_equal(result, expected)
-
-    def test_symmetric_difference_non_index(self, sort):
-        index1 = Index([1, 2, 3, 4], name="index1")
-        index2 = np.array([2, 3, 4, 5])
-        expected = Index([1, 5])
-        result = index1.symmetric_difference(index2, sort=sort)
-        assert tm.equalContents(result, expected)
-        assert result.name == "index1"
-
-        result = index1.symmetric_difference(index2, result_name="new_name", sort=sort)
-        assert tm.equalContents(result, expected)
-        assert result.name == "new_name"
-
     def test_is_mixed_deprecated(self):
         # GH#32922
         index = self.create_index()
@@ -925,7 +807,7 @@ class TestIndex(Base):
             assert index.is_all_dates is expected
 
     def test_summary(self, index):
-        self._check_method_works(Index._summary, index)
+        index._summary()
 
     def test_summary_bug(self):
         # GH3869`
@@ -987,9 +869,6 @@ class TestIndex(Base):
     def test_logical_compat(self, op):
         index = self.create_index()
         assert getattr(index, op)() == getattr(index.values, op)()
-
-    def _check_method_works(self, method, index):
-        method(index)
 
     @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
     def test_drop_by_str_label(self, index):
