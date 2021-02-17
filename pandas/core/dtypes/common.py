@@ -2,14 +2,26 @@
 Common type operations.
 """
 
-from typing import Any, Callable, Union
+from typing import (
+    Any,
+    Callable,
+    Union,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import Interval, Period, algos
+from pandas._libs import (
+    Interval,
+    Period,
+    algos,
+)
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj, Optional
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Optional,
+)
 
 from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
@@ -19,7 +31,10 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCCategorical,
+    ABCIndex,
+)
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
@@ -639,6 +654,19 @@ def is_dtype_equal(source, target) -> bool:
     >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
+    if isinstance(target, str):
+        if not isinstance(source, str):
+            # GH#38516 ensure we get the same behavior from
+            #  is_dtype_equal(CDT, "category") and CDT == "category"
+            try:
+                src = get_dtype(source)
+                if isinstance(src, ExtensionDtype):
+                    return src == target
+            except (TypeError, AttributeError):
+                return False
+    elif isinstance(source, str):
+        return is_dtype_equal(target, source)
+
     try:
         source = get_dtype(source)
         target = get_dtype(target)
@@ -1382,14 +1410,14 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         return False
     try:
         dtype = get_dtype(arr_or_dtype)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
     if isinstance(arr_or_dtype, CategoricalDtype):
         arr_or_dtype = arr_or_dtype.categories
         # now we use the special definition for Index
 
-    if isinstance(arr_or_dtype, ABCIndexClass):
+    if isinstance(arr_or_dtype, ABCIndex):
 
         # TODO(jreback)
         # we don't have a boolean Index class
@@ -1397,7 +1425,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # guess this
         return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
-        return getattr(arr_or_dtype, "dtype", arr_or_dtype)._is_boolean
+        return getattr(dtype, "_is_boolean", False)
 
     return issubclass(dtype.type, np.bool_)
 
@@ -1513,7 +1541,25 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     False
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-    return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
+    if isinstance(dtype, ExtensionDtype):
+        return True
+    elif isinstance(dtype, np.dtype):
+        return False
+    else:
+        return registry.find(dtype) is not None
+
+
+def is_ea_or_datetimelike_dtype(dtype: Optional[DtypeObj]) -> bool:
+    """
+    Check for ExtensionDtype, datetime64 dtype, or timedelta64 dtype.
+
+    Notes
+    -----
+    Checks only for dtype objects, not dtype-castable strings or types.
+    """
+    return isinstance(dtype, ExtensionDtype) or (
+        isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]
+    )
 
 
 def is_complex_dtype(arr_or_dtype) -> bool:
@@ -1651,7 +1697,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     return condition(tipo)
 
 
-def infer_dtype_from_object(dtype):
+def infer_dtype_from_object(dtype) -> DtypeObj:
     """
     Get a numpy dtype.type-style object for a dtype object.
 
@@ -1698,7 +1744,7 @@ def infer_dtype_from_object(dtype):
         elif dtype in ["period"]:
             raise NotImplementedError
 
-        if dtype == "datetime" or dtype == "timedelta":
+        if dtype in ["datetime", "timedelta"]:
             dtype += "64"
         try:
             return infer_dtype_from_object(getattr(np, dtype))
@@ -1733,7 +1779,7 @@ def _validate_date_like_dtype(dtype) -> None:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
         raise TypeError(e) from e
-    if typ != "generic" and typ != "ns":
+    if typ not in ["generic", "ns"]:
         raise ValueError(
             f"{repr(dtype.name)} is too specific of a frequency, "
             f"try passing {repr(dtype.type.__name__)}"

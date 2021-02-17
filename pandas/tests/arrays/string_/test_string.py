@@ -5,23 +5,20 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.common import is_dtype_equal
+
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringDtype,
+)
 
 skip_if_no_pyarrow = td.skip_if_no("pyarrow", min_version="1.0.0")
 
 
 @pytest.fixture(
-    params=[
-        # pandas\tests\arrays\string_\test_string.py:16: error: List item 1 has
-        # incompatible type "ParameterSet"; expected
-        # "Sequence[Collection[object]]"  [list-item]
-        "string",
-        pytest.param(
-            "arrow_string", marks=skip_if_no_pyarrow
-        ),  # type:ignore[list-item]
-    ]
+    params=["string", pytest.param("arrow_string", marks=skip_if_no_pyarrow)]
 )
 def dtype(request):
     return request.param
@@ -124,14 +121,22 @@ def test_string_methods(input, method, dtype, request):
 def test_astype_roundtrip(dtype, request):
     if dtype == "arrow_string":
         reason = "ValueError: Could not convert object to NumPy datetime"
-        mark = pytest.mark.xfail(reason=reason)
+        mark = pytest.mark.xfail(reason=reason, raises=ValueError)
+        request.node.add_marker(mark)
+    else:
+        mark = pytest.mark.xfail(
+            reason="GH#36153 casting from StringArray to dt64 fails", raises=ValueError
+        )
         request.node.add_marker(mark)
 
-    s = pd.Series(pd.date_range("2000", periods=12))
-    s[0] = None
+    ser = pd.Series(pd.date_range("2000", periods=12))
+    ser[0] = None
 
-    result = s.astype(dtype).astype("datetime64[ns]")
-    tm.assert_series_equal(result, s)
+    casted = ser.astype(dtype)
+    assert is_dtype_equal(casted.dtype, dtype)
+
+    result = casted.astype("datetime64[ns]")
+    tm.assert_series_equal(result, ser)
 
 
 def test_add(dtype, request):
@@ -366,6 +371,15 @@ def test_astype_int(dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_astype_float(any_float_allowed_nullable_dtype):
+    # Don't compare arrays (37974)
+    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
+
+    result = ser.astype(any_float_allowed_nullable_dtype)
+    expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
@@ -478,11 +492,23 @@ def test_value_counts_na(dtype, request):
 
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", pd.NA, "b"], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_with_normalize(dtype, request):
+    if dtype == "arrow_string":
+        reason = "TypeError: boolean value of NA is ambiguous"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 
 

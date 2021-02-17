@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import re
 
 import numpy as np
@@ -20,6 +23,28 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+
+dti4 = date_range("2016-01-01", periods=4)
+dti = dti4[:-1]
+rng = pd.Index(range(3))
+
+
+@pytest.fixture(
+    params=[
+        dti,
+        dti.tz_localize("UTC"),
+        dti.to_period("W"),
+        dti - dti[0],
+        rng,
+        pd.Index([1, 2, 3]),
+        pd.Index([2.0, 3.0, 4.0]),
+        pd.Index([4, 5, 6], dtype="u8"),
+        pd.IntervalIndex.from_breaks(dti4),
+    ]
+)
+def non_comparable_idx(request):
+    # All have length 3
+    return request.param
 
 
 class TestGetItem:
@@ -438,6 +463,44 @@ class TestGetIndexer:
         result = pi.get_indexer_non_unique(pi2)[0]
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_mismatched_dtype_different_length(self, non_comparable_idx):
+        # without method we arent checking inequalities, so get all-missing
+        #  but do not raise
+        dti = date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+
+        other = non_comparable_idx
+
+        res = pi[:-1].get_indexer(other)
+        expected = -np.ones(other.shape, dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_mismatched_dtype_with_method(self, non_comparable_idx, method):
+        dti = date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+
+        other = non_comparable_idx
+
+        msg = re.escape(f"Cannot compare dtypes {pi.dtype} and {other.dtype}")
+        with pytest.raises(TypeError, match=msg):
+            pi.get_indexer(other, method=method)
+
+        for dtype in ["object", "category"]:
+            other2 = other.astype(dtype)
+            if dtype == "object" and isinstance(other, PeriodIndex):
+                continue
+            # Two different error message patterns depending on dtypes
+            msg = "|".join(
+                re.escape(msg)
+                for msg in (
+                    f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
+                    " not supported between instances of ",
+                )
+            )
+            with pytest.raises(TypeError, match=msg):
+                pi.get_indexer(other2, method=method)
+
     def test_get_indexer_non_unique(self):
         # GH 17717
         p1 = Period("2017-09-02")
@@ -543,30 +606,42 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         pi = period_range("20130101", periods=5, freq="D")
 
-        i2 = PeriodIndex([NaT, NaT] + pi[2:].tolist(), freq="D")
+        tail = pi[2:].tolist()
+        i2 = PeriodIndex([NaT, NaT] + tail, freq="D")
+        mask = notna(i2)
 
-        msg = "value should be a 'Period', 'NaT', or array of those"
-        with pytest.raises(TypeError, match=msg):
-            pi.where(notna(i2), i2.asi8)
+        result = pi.where(mask, i2.asi8)
+        expected = pd.Index([NaT.value, NaT.value] + tail, dtype=object)
+        assert isinstance(expected[0], int)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            pi.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+        tdi = i2.asi8.view("timedelta64[ns]")
+        expected = pd.Index([tdi[0], tdi[1]] + tail, dtype=object)
+        assert isinstance(expected[0], np.timedelta64)
+        result = pi.where(mask, tdi)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            pi.where(notna(i2), i2.to_timestamp("S"))
+        dti = i2.to_timestamp("S")
+        expected = pd.Index([dti[0], dti[1]] + tail, dtype=object)
+        assert expected[0] is NaT
+        result = pi.where(mask, dti)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            # non-matching scalar
-            pi.where(notna(i2), Timedelta(days=4))
+        td = Timedelta(days=4)
+        expected = pd.Index([td, td] + tail, dtype=object)
+        assert expected[0] == td
+        result = pi.where(mask, td)
+        tm.assert_index_equal(result, expected)
 
     def test_where_mismatched_nat(self):
         pi = period_range("20130101", periods=5, freq="D")
         cond = np.array([True, False, True, True, False])
 
-        msg = "value should be a 'Period', 'NaT', or array of those"
-        with pytest.raises(TypeError, match=msg):
-            # wrong-dtyped NaT
-            pi.where(cond, np.timedelta64("NaT", "ns"))
+        tdnat = np.timedelta64("NaT", "ns")
+        expected = pd.Index([pi[0], tdnat, pi[2], pi[3], tdnat], dtype=object)
+        assert expected[1] is tdnat
+        result = pi.where(cond, tdnat)
+        tm.assert_index_equal(result, expected)
 
 
 class TestTake:

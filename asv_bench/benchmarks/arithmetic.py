@@ -4,7 +4,13 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, to_timedelta
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    to_timedelta,
+)
 import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -122,8 +128,8 @@ class FrameWithFrameWide:
         n_rows = 500
 
         # construct dataframe with 2 blocks
-        arr1 = np.random.randn(n_rows, int(n_cols / 2)).astype("f8")
-        arr2 = np.random.randn(n_rows, int(n_cols / 2)).astype("f4")
+        arr1 = np.random.randn(n_rows, n_cols // 2).astype("f8")
+        arr2 = np.random.randn(n_rows, n_cols // 2).astype("f4")
         df = pd.concat(
             [pd.DataFrame(arr1), pd.DataFrame(arr2)], axis=1, ignore_index=True
         )
@@ -131,9 +137,9 @@ class FrameWithFrameWide:
         df._consolidate_inplace()
 
         # TODO: GH#33198 the setting here shoudlnt need two steps
-        arr1 = np.random.randn(n_rows, int(n_cols / 4)).astype("f8")
-        arr2 = np.random.randn(n_rows, int(n_cols / 2)).astype("i8")
-        arr3 = np.random.randn(n_rows, int(n_cols / 4)).astype("f8")
+        arr1 = np.random.randn(n_rows, n_cols // 4).astype("f8")
+        arr2 = np.random.randn(n_rows, n_cols // 2).astype("i8")
+        arr3 = np.random.randn(n_rows, n_cols // 4).astype("f8")
         df2 = pd.concat(
             [pd.DataFrame(arr1), pd.DataFrame(arr2), pd.DataFrame(arr3)],
             axis=1,

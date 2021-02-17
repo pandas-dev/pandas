@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range, period_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -94,7 +99,7 @@ class TestPeriodIndex:
     def test_maybe_cast_slice_bound(self, make_range, frame_or_series):
         idx = make_range(start="2013/10/01", freq="D", periods=10)
 
-        obj = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
+        obj = DataFrame({"units": [100 + i for i in range(10)]}, index=idx)
         if frame_or_series is not DataFrame:
             obj = obj["units"]
 

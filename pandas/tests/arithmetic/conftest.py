@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
+from pandas import (
+    Float64Index,
+    Int64Index,
+    RangeIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 # ------------------------------------------------------------------
@@ -18,18 +23,6 @@ def id_func(x):
 
 
 # ------------------------------------------------------------------
-@pytest.fixture(
-    params=[
-        ("foo", None, None),
-        ("Egon", "Venkman", None),
-        ("NCC1701D", "NCC1701D", "NCC1701D"),
-    ]
-)
-def names(request):
-    """
-    A 3-tuple of names, the first two for operands, the last for a result.
-    """
-    return request.param
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])

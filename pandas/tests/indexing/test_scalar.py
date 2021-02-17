@@ -1,10 +1,19 @@
 """ test scalar indexing, including at and iat """
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -268,35 +277,41 @@ def test_at_with_tuple_index_set():
     assert series.at[1, 2] == 3
 
 
-def test_multiindex_at_get():
-    # GH 26989
-    # DataFrame.at and DataFrame.loc getter works with MultiIndex
-    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
-    assert df.index.nlevels == 2
-    assert df.at[(1, 3), "a"] == 1
-    assert df.loc[(1, 3), "a"] == 1
+class TestMultiIndexScalar:
+    def test_multiindex_at_get(self):
+        # GH 26989
+        # DataFrame.at and DataFrame.loc getter works with MultiIndex
+        df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+        assert df.index.nlevels == 2
+        assert df.at[(1, 3), "a"] == 1
+        assert df.loc[(1, 3), "a"] == 1
 
-    # Series.at and Series.loc getter works with MultiIndex
-    series = df["a"]
-    assert series.index.nlevels == 2
-    assert series.at[1, 3] == 1
-    assert series.loc[1, 3] == 1
+        # Series.at and Series.loc getter works with MultiIndex
+        series = df["a"]
+        assert series.index.nlevels == 2
+        assert series.at[1, 3] == 1
+        assert series.loc[1, 3] == 1
 
+    def test_multiindex_at_set(self):
+        # GH 26989
+        # DataFrame.at and DataFrame.loc setter works with MultiIndex
+        df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+        assert df.index.nlevels == 2
+        df.at[(1, 3), "a"] = 3
+        assert df.at[(1, 3), "a"] == 3
+        df.loc[(1, 3), "a"] = 4
+        assert df.loc[(1, 3), "a"] == 4
 
-def test_multiindex_at_set():
-    # GH 26989
-    # DataFrame.at and DataFrame.loc setter works with MultiIndex
-    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
-    assert df.index.nlevels == 2
-    df.at[(1, 3), "a"] = 3
-    assert df.at[(1, 3), "a"] == 3
-    df.loc[(1, 3), "a"] = 4
-    assert df.loc[(1, 3), "a"] == 4
+        # Series.at and Series.loc setter works with MultiIndex
+        series = df["a"]
+        assert series.index.nlevels == 2
+        series.at[1, 3] = 5
+        assert series.at[1, 3] == 5
+        series.loc[1, 3] = 6
+        assert series.loc[1, 3] == 6
 
-    # Series.at and Series.loc setter works with MultiIndex
-    series = df["a"]
-    assert series.index.nlevels == 2
-    series.at[1, 3] = 5
-    assert series.at[1, 3] == 5
-    series.loc[1, 3] = 6
-    assert series.loc[1, 3] == 6
+    def test_multiindex_at_get_one_level(self):
+        # GH#38053
+        s2 = Series((0, 1), index=[[False, True]])
+        result = s2.at[False]
+        assert result == 0

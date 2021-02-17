@@ -1,4 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 from functools import partial
 from operator import attrgetter
 
@@ -7,12 +11,25 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    conversion,
+)
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets, to_datetime
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Timestamp,
+    date_range,
+    offsets,
+    to_datetime,
+)
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    period_array,
+)
 
 
 class TestDatetimeIndex:
@@ -98,6 +115,17 @@ class TestDatetimeIndex:
 
         with pytest.raises(TypeError, match=msg):
             to_datetime(pd.TimedeltaIndex(data))
+
+    def test_constructor_from_sparse_array(self):
+        # https://github.com/pandas-dev/pandas/issues/35843
+        values = [
+            Timestamp("2012-05-01T01:00:00.000000"),
+            Timestamp("2016-05-01T01:00:00.000000"),
+        ]
+        arr = pd.arrays.SparseArray(values)
+        result = Index(arr)
+        expected = DatetimeIndex(values)
+        tm.assert_index_equal(result, expected)
 
     def test_construction_caching(self):
 
@@ -363,7 +391,9 @@ class TestDatetimeIndex:
         assert result.tz is None
 
         # all NaT with tz
-        result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
+        with tm.assert_produces_warning(FutureWarning):
+            # subclass-specific kwargs to pd.Index
+            result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
         exp = DatetimeIndex([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
 
         tm.assert_index_equal(result, exp, exact=True)
@@ -451,16 +481,18 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
-            Index(
-                [
-                    pd.NaT,
-                    Timestamp("2011-01-01 10:00"),
-                    pd.NaT,
-                    Timestamp("2011-01-02 10:00", tz="US/Eastern"),
-                ],
-                tz="Asia/Tokyo",
-                name="idx",
-            )
+            with tm.assert_produces_warning(FutureWarning):
+                # subclass-specific kwargs to pd.Index
+                Index(
+                    [
+                        pd.NaT,
+                        Timestamp("2011-01-01 10:00"),
+                        pd.NaT,
+                        Timestamp("2011-01-02 10:00", tz="US/Eastern"),
+                    ],
+                    tz="Asia/Tokyo",
+                    name="idx",
+                )
 
     def test_construction_base_constructor(self):
         arr = [Timestamp("2011-01-01"), pd.NaT, Timestamp("2011-01-03")]

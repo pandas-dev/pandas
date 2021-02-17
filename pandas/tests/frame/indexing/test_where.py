@@ -6,7 +6,14 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -356,11 +363,11 @@ class TestDataFrameIndexingWhere:
 
         # GH 3311
         df = DataFrame(
-            dict(
-                A=date_range("20130102", periods=5),
-                B=date_range("20130104", periods=5),
-                C=np.random.randn(5),
-            )
+            {
+                "A": date_range("20130102", periods=5),
+                "B": date_range("20130104", periods=5),
+                "C": np.random.randn(5),
+            }
         )
 
         stamp = datetime(2013, 1, 3)
@@ -499,6 +506,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -618,7 +626,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
+    @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
         df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
@@ -653,3 +661,34 @@ class TestDataFrameIndexingWhere:
         expected.loc[0, :] = np.nan
 
         tm.assert_equal(result, expected)
+
+    def test_where_ea_other(self):
+        # GH#38729/GH#38742
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        arr = pd.array([7, pd.NA, 9])
+        ser = Series(arr)
+        mask = np.ones(df.shape, dtype=bool)
+        mask[1, :] = False
+
+        # TODO: ideally we would get Int64 instead of object
+        result = df.where(mask, ser, axis=0)
+        expected = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        ser2 = Series(arr[:2], index=["A", "B"])
+        expected = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
+        expected["B"] = expected["B"].astype(object)
+        result = df.where(mask, ser2, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_where_try_cast_deprecated(frame_or_series):
+    obj = DataFrame(np.random.randn(4, 3))
+    if frame_or_series is not DataFrame:
+        obj = obj[0]
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        # try_cast keyword deprecated
+        obj.where(mask, -1, try_cast=False)

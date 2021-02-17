@@ -10,12 +10,25 @@ from pandas._libs import lib
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Series, Timedelta, Timestamp, isna, notna
+from pandas import (
+    DataFrame,
+    Series,
+    Timedelta,
+    Timestamp,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import Period, period_range
-from pandas.core.resample import DatetimeIndex, _get_timestamp_range_edges
+from pandas.core.indexes.period import (
+    Period,
+    period_range,
+)
+from pandas.core.resample import (
+    DatetimeIndex,
+    _get_timestamp_range_edges,
+)
 
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import Minute
@@ -124,7 +137,9 @@ def test_resample_integerarray():
 
     result = ts.resample("3T").mean()
     expected = Series(
-        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64"
+        [1, 4, 7],
+        index=pd.date_range("1/1/2000", periods=3, freq="3T"),
+        dtype="Float64",
     )
     tm.assert_series_equal(result, expected)
 
@@ -770,8 +785,9 @@ def test_resample_bad_origin(origin):
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
     msg = (
-        "'origin' should be equal to 'epoch', 'start', 'start_day' or "
-        f"should be a Timestamp convertible type. Got '{origin}' instead."
+        "'origin' should be equal to 'epoch', 'start', 'start_day', "
+        "'end', 'end_day' or should be a Timestamp convertible type. Got "
+        f"'{origin}' instead."
     )
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", origin=origin)
@@ -1273,7 +1289,7 @@ def test_resample_timegrouper():
     dates3 = [pd.NaT] + dates1 + [pd.NaT]
 
     for dates in [dates1, dates2, dates3]:
-        df = DataFrame(dict(A=dates, B=np.arange(len(dates))))
+        df = DataFrame({"A": dates, "B": np.arange(len(dates))})
         result = df.set_index("A").resample("M").count()
         exp_idx = DatetimeIndex(
             ["2014-07-31", "2014-08-31", "2014-09-30", "2014-10-31", "2014-11-30"],
@@ -1288,7 +1304,9 @@ def test_resample_timegrouper():
         result = df.groupby(Grouper(freq="M", key="A")).count()
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(dict(A=dates, B=np.arange(len(dates)), C=np.arange(len(dates))))
+        df = DataFrame(
+            {"A": dates, "B": np.arange(len(dates)), "C": np.arange(len(dates))}
+        )
         result = df.set_index("A").resample("M").count()
         expected = DataFrame(
             {"B": [1, 0, 2, 2, 1], "C": [1, 0, 2, 2, 1]},
@@ -1728,7 +1746,7 @@ def test_resample_apply_product():
     index = date_range(start="2012-01-31", freq="M", periods=12)
 
     ts = Series(range(12), index=index)
-    df = DataFrame(dict(A=ts, B=ts + 2))
+    df = DataFrame({"A": ts, "B": ts + 2})
     result = df.resample("Q").apply(np.product)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),

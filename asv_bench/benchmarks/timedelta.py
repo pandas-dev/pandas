@@ -5,7 +5,12 @@ benchmarks.tslibs.timedelta for benchmarks that rely only on tslibs.
 
 import numpy as np
 
-from pandas import DataFrame, Series, timedelta_range, to_timedelta
+from pandas import (
+    DataFrame,
+    Series,
+    timedelta_range,
+    to_timedelta,
+)
 
 
 class ToTimedelta:
@@ -74,7 +79,7 @@ class TimedeltaIndexing:
         self.index.get_loc(self.timedelta)
 
     def time_shallow_copy(self):
-        self.index._shallow_copy()
+        self.index._view()
 
     def time_series_loc(self):
         self.series.loc[self.timedelta]

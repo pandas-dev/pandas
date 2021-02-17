@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import abc
 from datetime import datetime
 from functools import partial
@@ -5,6 +7,7 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Hashable,
     List,
     Optional,
     Tuple,
@@ -32,7 +35,11 @@ from pandas._libs.tslibs.parsing import (  # noqa
     guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import ArrayLike, Label, Timezone
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Timezone,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -46,10 +53,16 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import notna
 
-from pandas.arrays import DatetimeArray, IntegerArray
+from pandas.arrays import (
+    DatetimeArray,
+    IntegerArray,
+)
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 from pandas.core.arrays.datetimes import (
@@ -68,7 +81,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, ArrayLike, "Series"]
+ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
@@ -122,7 +135,7 @@ def should_cache(
             return False
 
         if len(arg) <= 5000:
-            check_count = int(len(arg) * 0.1)
+            check_count = len(arg) // 10
         else:
             check_count = 500
     else:
@@ -145,7 +158,7 @@ def _maybe_cache(
     format: Optional[str],
     cache: bool,
     convert_listlike: Callable,
-) -> "Series":
+) -> Series:
     """
     Create a cache of unique dates from an array of dates
 
@@ -181,7 +194,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: Optional[bool] = None, name: Label = None
+    dt_array: ArrayLike, utc: Optional[bool] = None, name: Hashable = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -211,9 +224,9 @@ def _box_as_indexlike(
 
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
-    cache_array: "Series",
+    cache_array: Series,
     name: Optional[str] = None,
-) -> "Index":
+) -> Index:
     """
     Convert array of dates with a cache and wrap the result in an Index.
 
@@ -267,7 +280,7 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
 def _convert_listlike_datetimes(
     arg,
     format: Optional[str],
-    name: Label = None,
+    name: Hashable = None,
     tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
     errors: Optional[str] = None,
@@ -568,13 +581,13 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Union[DatetimeScalar, "NaTType"]:
+) -> Union[DatetimeScalar, NaTType]:
     ...
 
 
 @overload
 def to_datetime(
-    arg: "Series",
+    arg: Series,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -585,7 +598,7 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> "Series":
+) -> Series:
     ...
 
 
@@ -618,7 +631,7 @@ def to_datetime(
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> Union[DatetimeIndex, "Series", DatetimeScalar, "NaTType"]:
+) -> Union[DatetimeIndex, Series, DatetimeScalar, NaTType]:
     """
     Convert argument to datetime.
 
@@ -879,7 +892,11 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     -------
     Series
     """
-    from pandas import DataFrame, to_numeric, to_timedelta
+    from pandas import (
+        DataFrame,
+        to_numeric,
+        to_timedelta,
+    )
 
     arg = DataFrame(arg)
     if not arg.columns.is_unique:

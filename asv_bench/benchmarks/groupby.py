@@ -29,7 +29,6 @@ method_blocklist = {
         "skew",
         "cumprod",
         "cummax",
-        "rank",
         "pct_change",
         "min",
         "var",
@@ -126,6 +125,9 @@ class Groups:
 
     def time_series_groups(self, data, key):
         self.ser.groupby(self.ser).groups
+
+    def time_series_indices(self, data, key):
+        self.ser.groupby(self.ser).indices
 
 
 class GroupManyLabels:
@@ -459,6 +461,29 @@ class GroupByMethods:
         self.as_field_method()
 
 
+class GroupByCythonAgg:
+    """
+    Benchmarks specifically targetting our cython aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    param_names = ["dtype", "method"]
+    params = [
+        ["float64"],
+        ["sum", "prod", "min", "max", "mean", "median", "var", "first", "last"],
+    ]
+
+    def setup(self, dtype, method):
+        N = 1_000_000
+        df = DataFrame(np.random.randn(N, 10), columns=list("abcdefghij"))
+        df["key"] = np.random.randint(0, 100, size=N)
+        self.df = df
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method)
+
+
 class RankWithTies:
     # GH 21237
     param_names = ["dtype", "tie_method"]
@@ -625,7 +650,7 @@ class TransformBools:
     def setup(self):
         N = 120000
         transition_points = np.sort(np.random.choice(np.arange(N), 1400))
-        transitions = np.zeros(N, dtype=np.bool)
+        transitions = np.zeros(N, dtype=np.bool_)
         transitions[transition_points] = True
         self.g = transitions.cumsum()
         self.df = DataFrame({"signal": np.random.rand(N)})

@@ -1,4 +1,6 @@
 """ miscellaneous sorting / groupby utilities """
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -14,7 +16,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import algos, hashtable, lib
+from pandas._libs import (
+    algos,
+    hashtable,
+    lib,
+)
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import IndexKeyFunc
 
@@ -31,14 +37,13 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
-    from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
 
 
 def get_indexer_indexer(
-    target: "Index",
+    target: Index,
     level: Union[str, int, List[str], List[int]],
     ascending: bool,
     kind: str,
@@ -55,7 +60,7 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional
@@ -391,7 +396,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values: "ExtensionArray", method: str) -> int:
+def nargminmax(values, method: str):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -406,25 +411,21 @@ def nargminmax(values: "ExtensionArray", method: str) -> int:
     int
     """
     assert method in {"argmax", "argmin"}
+    func = np.argmax if method == "argmax" else np.argmin
 
-    mask = np.asarray(values.isna())
-    if mask.all():
-        # Use same exception message we would get from numpy
-        raise ValueError(f"attempt to get {method} of an empty sequence")
+    mask = np.asarray(isna(values))
+    values = values._values_for_argsort()
 
-    if method == "argmax":
-        # Use argsort with ascending=False so that if more than one entry
-        #  achieves the maximum, we take the first such occurence.
-        sorters = values.argsort(ascending=False)
-    else:
-        sorters = values.argsort(ascending=True)
+    idx = np.arange(len(values))
+    non_nans = values[~mask]
+    non_nan_idx = idx[~mask]
 
-    return sorters[0]
+    return non_nan_idx[func(non_nans)]
 
 
 def _ensure_key_mapped_multiindex(
-    index: "MultiIndex", key: Callable, level=None
-) -> "MultiIndex":
+    index: MultiIndex, key: Callable, level=None
+) -> MultiIndex:
     """
     Returns a new MultiIndex in which key has been applied
     to all levels specified in level (or all levels if level
@@ -468,9 +469,7 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    labels = type(index).from_arrays(mapped)
-
-    return labels
+    return type(index).from_arrays(mapped)
 
 
 def ensure_key_mapped(values, key: Optional[Callable], levels=None):
@@ -520,7 +519,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 def get_flattened_list(
     comp_ids: np.ndarray,
     ngroups: int,
-    levels: Iterable["Index"],
+    levels: Iterable[Index],
     labels: Iterable[np.ndarray],
 ) -> List[Tuple]:
     """Map compressed group id -> key tuple."""
@@ -535,7 +534,7 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List["Index"]
+    label_list: List[np.ndarray], keys: List[Index]
 ) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
@@ -547,8 +546,7 @@ def get_indexer_dict(
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
-        # When all keys are nan and dropna=True, indices_fast can't handle this
-        # and the return is empty anyway
+        # Short-circuit, lib.indices_fast will return the same
         return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)
@@ -599,7 +597,7 @@ def compress_group_index(group_index, sort: bool = True):
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
-    size_hint = min(len(group_index), hashtable.SIZE_HINT_LIMIT)
+    size_hint = len(group_index)
     table = hashtable.Int64HashTable(size_hint)
 
     group_index = ensure_int64(group_index)

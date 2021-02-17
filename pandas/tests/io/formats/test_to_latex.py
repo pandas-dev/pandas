@@ -5,7 +5,10 @@ from textwrap import dedent
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 from pandas.io.formats.format import DataFrameFormatter
@@ -92,7 +95,7 @@ class TestToLatex:
 
     @pytest.mark.parametrize(
         "bad_column_format",
-        [5, 1.2, ["l", "r"], ("r", "c"), {"r", "c", "l"}, dict(a="r", b="l")],
+        [5, 1.2, ["l", "r"], ("r", "c"), {"r", "c", "l"}, {"a": "r", "b": "l"}],
     )
     def test_to_latex_bad_column_format(self, bad_column_format):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})

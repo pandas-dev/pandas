@@ -18,7 +18,10 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -296,6 +299,9 @@ class TestDataFrameFormatting:
 
         with option_context("display.max_seq_items", 5):
             assert len(printing.pprint_thing(list(range(1000)))) < 100
+
+        with option_context("display.max_seq_items", 1):
+            assert len(printing.pprint_thing(list(range(1000)))) < 9
 
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == "{1}"
@@ -2002,6 +2008,25 @@ c  10  11  12  13  14\
                 assert ("+10" in line) or skip
             skip = False
 
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
+            (["3.50"], "0    3.50\ndtype: object"),
+            ([1.20, "1.00"], "0     1.2\n1    1.00\ndtype: object"),
+            ([np.nan], "0   NaN\ndtype: float64"),
+            ([None], "0    None\ndtype: object"),
+            (["3.50", np.nan], "0    3.50\n1     NaN\ndtype: object"),
+            ([3.50, np.nan], "0    3.5\n1    NaN\ndtype: float64"),
+            ([3.50, np.nan, "3.50"], "0     3.5\n1     NaN\n2    3.50\ndtype: object"),
+            ([3.50, None, "3.50"], "0     3.5\n1    None\n2    3.50\ndtype: object"),
+        ],
+    )
+    def test_repr_str_float_truncation(self, data, expected):
+        # GH#38708
+        series = Series(data)
+        result = repr(series)
+        assert result == expected
+
     def test_dict_entries(self):
         df = DataFrame({"A": [{"a": 1, "b": 2}]})
 
@@ -2423,7 +2448,10 @@ class TestSeriesFormatting:
 
     def test_timedelta64(self):
 
-        from datetime import datetime, timedelta
+        from datetime import (
+            datetime,
+            timedelta,
+        )
 
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
@@ -2908,11 +2936,11 @@ class TestFloatArrayFormatter:
         with pd.option_context("display.precision", 4):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
-            df = DataFrame(dict(x=[12345.6789]))
+            df = DataFrame({"x": [12345.6789]})
             assert str(df) == "            x\n0  12345.6789"
-            df = DataFrame(dict(x=[2e6]))
+            df = DataFrame({"x": [2e6]})
             assert str(df) == "           x\n0  2000000.0"
-            df = DataFrame(dict(x=[12345.6789, 2e6]))
+            df = DataFrame({"x": [12345.6789, 2e6]})
             assert str(df) == "            x\n0  1.2346e+04\n1  2.0000e+06"
 
 

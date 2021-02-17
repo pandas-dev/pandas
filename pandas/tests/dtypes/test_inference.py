@@ -5,7 +5,12 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 from decimal import Decimal
 from fractions import Fraction
 from io import StringIO
@@ -16,7 +21,10 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -66,9 +74,9 @@ ll_params = [
     ([1], True, "list"),
     ([], True, "list-empty"),
     ((1,), True, "tuple"),
-    (tuple(), True, "tuple-empty"),
+    ((), True, "tuple-empty"),
     ({"a": 1}, True, "dict"),
-    (dict(), True, "dict-empty"),
+    ({}, True, "dict-empty"),
     ({"a", 1}, "set", "set"),
     (set(), "set", "set-empty"),
     (frozenset({"a", 1}), "set", "frozenset"),
@@ -131,7 +139,7 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with pytest.raises(RecursionError):
+    with tm.external_error_raised(RecursionError):
         foo()
 
 
@@ -161,7 +169,7 @@ def test_is_array_like():
     assert inference.is_array_like(DtypeList())
 
     assert not inference.is_array_like([1, 2, 3])
-    assert not inference.is_array_like(tuple())
+    assert not inference.is_array_like(())
     assert not inference.is_array_like("foo")
     assert not inference.is_array_like(123)
 
@@ -300,7 +308,7 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+test_tuple = collections.namedtuple("test_tuple", ["a", "b", "c"])
 
 
 @pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])
@@ -326,7 +334,7 @@ def test_is_hashable():
         def __hash__(self):
             raise TypeError("Not hashable")
 
-    hashable = (1, 3.14, np.float64(3.14), "a", tuple(), (1,), HashableClass())
+    hashable = (1, 3.14, np.float64(3.14), "a", (), (1,), HashableClass())
     not_hashable = ([], UnhashableClass1())
     abc_hashable_not_really_hashable = (([],), UnhashableClass2())
 
@@ -890,6 +898,19 @@ class TestTypeInference:
 
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series, pd.Index])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype_period_array(self, klass, skipna):
+        # https://github.com/pandas-dev/pandas/issues/23553
+        values = klass(
+            [
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-02", freq="D"),
+                pd.NaT,
+            ]
+        )
+        assert lib.infer_dtype(values, skipna=skipna) == "period"
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(
@@ -1489,7 +1510,7 @@ def test_datetimeindex_from_empty_datetime64_array():
 def test_nan_to_nat_conversions():
 
     df = DataFrame(
-        dict({"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")})
+        {"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")}
     )
     df.iloc[3:6, :] = np.nan
     result = df.loc[4, "B"]

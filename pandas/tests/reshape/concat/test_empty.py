@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, concat, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    concat,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -26,7 +32,7 @@ class TestEmptyConcat:
         # empty as first element with time series
         # GH3259
         df = DataFrame(
-            dict(A=range(10000)), index=date_range("20130101", periods=10000, freq="s")
+            {"A": range(10000)}, index=date_range("20130101", periods=10000, freq="s")
         )
         empty = DataFrame()
         result = concat([df, empty], axis=1)

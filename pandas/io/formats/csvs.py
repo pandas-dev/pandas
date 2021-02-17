@@ -2,9 +2,21 @@
 Module for formatting output data into CSV files.
 """
 
+from __future__ import annotations
+
 import csv as csvlib
 import os
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Hashable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Union,
+)
 
 import numpy as np
 
@@ -14,13 +26,12 @@ from pandas._typing import (
     FilePathOrBuffer,
     FloatFormatType,
     IndexLabel,
-    Label,
     StorageOptions,
 )
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
 )
@@ -37,10 +48,10 @@ if TYPE_CHECKING:
 class CSVFormatter:
     def __init__(
         self,
-        formatter: "DataFrameFormatter",
+        formatter: DataFrameFormatter,
         path_or_buf: FilePathOrBuffer[str] = "",
         sep: str = ",",
-        cols: Optional[Sequence[Label]] = None,
+        cols: Optional[Sequence[Hashable]] = None,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
@@ -82,7 +93,7 @@ class CSVFormatter:
         return self.fmt.na_rep
 
     @property
-    def float_format(self) -> Optional["FloatFormatType"]:
+    def float_format(self) -> Optional[FloatFormatType]:
         return self.fmt.float_format
 
     @property
@@ -101,7 +112,7 @@ class CSVFormatter:
         if index_label is not False:
             if index_label is None:
                 return self._get_index_label_from_obj()
-            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
+            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndex)):
                 # given a string for a DF with Index
                 return [index_label]
         return index_label
@@ -129,7 +140,9 @@ class CSVFormatter:
     def has_mi_columns(self) -> bool:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
-    def _initialize_columns(self, cols: Optional[Sequence[Label]]) -> Sequence[Label]:
+    def _initialize_columns(
+        self, cols: Optional[Sequence[Hashable]]
+    ) -> Sequence[Hashable]:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
@@ -137,7 +150,7 @@ class CSVFormatter:
                 raise TypeError(msg)
 
         if cols is not None:
-            if isinstance(cols, ABCIndexClass):
+            if isinstance(cols, ABCIndex):
                 cols = cols._format_native_types(**self._number_format)
             else:
                 cols = list(cols)
@@ -146,7 +159,7 @@ class CSVFormatter:
         # update columns to include possible multiplicity of dupes
         # and make sure cols is just a list of labels
         new_cols = self.obj.columns
-        if isinstance(new_cols, ABCIndexClass):
+        if isinstance(new_cols, ABCIndex):
             return new_cols._format_native_types(**self._number_format)
         else:
             return list(new_cols)
@@ -159,13 +172,13 @@ class CSVFormatter:
     @property
     def _number_format(self) -> Dict[str, Any]:
         """Dictionary used for storing number formatting settings."""
-        return dict(
-            na_rep=self.na_rep,
-            float_format=self.float_format,
-            date_format=self.date_format,
-            quoting=self.quoting,
-            decimal=self.decimal,
-        )
+        return {
+            "na_rep": self.na_rep,
+            "float_format": self.float_format,
+            "date_format": self.date_format,
+            "quoting": self.quoting,
+            "decimal": self.decimal,
+        }
 
     @property
     def data_index(self) -> Index:
@@ -188,14 +201,14 @@ class CSVFormatter:
 
     @property
     def _has_aliases(self) -> bool:
-        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndexClass))
+        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
 
     @property
     def _need_to_save_header(self) -> bool:
         return bool(self._has_aliases or self.header)
 
     @property
-    def write_cols(self) -> Sequence[Label]:
+    def write_cols(self) -> Sequence[Hashable]:
         if self._has_aliases:
             assert not isinstance(self.header, bool)
             if len(self.header) != len(self.cols):
@@ -208,8 +221,8 @@ class CSVFormatter:
             return self.cols
 
     @property
-    def encoded_labels(self) -> List[Label]:
-        encoded_labels: List[Label] = []
+    def encoded_labels(self) -> List[Hashable]:
+        encoded_labels: List[Hashable] = []
 
         if self.index and self.index_label:
             assert isinstance(self.index_label, Sequence)
@@ -259,7 +272,7 @@ class CSVFormatter:
             for row in self._generate_multiindex_header_rows():
                 self.writer.writerow(row)
 
-    def _generate_multiindex_header_rows(self) -> Iterator[List[Label]]:
+    def _generate_multiindex_header_rows(self) -> Iterator[List[Hashable]]:
         columns = self.obj.columns
         for i in range(columns.nlevels):
             # we need at least 1 index column to write our col names
@@ -282,7 +295,7 @@ class CSVFormatter:
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
-        chunks = int(nrows / self.chunksize) + 1
+        chunks = (nrows // self.chunksize) + 1
         for i in range(chunks):
             start_i = i * self.chunksize
             end_i = min(start_i + self.chunksize, nrows)

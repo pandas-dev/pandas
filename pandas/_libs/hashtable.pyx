@@ -1,19 +1,44 @@
 cimport cython
-from cpython.mem cimport PyMem_Free, PyMem_Malloc
-from cpython.ref cimport Py_INCREF, PyObject
-from libc.stdlib cimport free, malloc
+from cpython.mem cimport (
+    PyMem_Free,
+    PyMem_Malloc,
+)
+from cpython.ref cimport (
+    Py_INCREF,
+    PyObject,
+)
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, ndarray, uint8_t, uint32_t
+from numpy cimport (
+    float64_t,
+    ndarray,
+    uint8_t,
+    uint32_t,
+)
 from numpy.math cimport NAN
 
 cnp.import_array()
 
 
 from pandas._libs cimport util
-from pandas._libs.khash cimport KHASH_TRACE_DOMAIN, kh_str_t, khiter_t
+from pandas._libs.khash cimport (
+    KHASH_TRACE_DOMAIN,
+    are_equivalent_float32_t,
+    are_equivalent_float64_t,
+    are_equivalent_khcomplex64_t,
+    are_equivalent_khcomplex128_t,
+    kh_needed_n_buckets,
+    kh_str_t,
+    khcomplex64_t,
+    khcomplex128_t,
+    khiter_t,
+)
 from pandas._libs.missing cimport checknull
 
 
@@ -142,7 +167,7 @@ def unique_label_indices(const int64_t[:] labels):
         ndarray[int64_t, ndim=1] arr
         Int64VectorData *ud = idx.data
 
-    kh_resize_int64(table, min(n, SIZE_HINT_LIMIT))
+    kh_resize_int64(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     with nogil:
         for i in range(n):

@@ -3,10 +3,18 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError, PerformanceWarning
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 
 import pandas as pd
-from pandas import Categorical, Index, MultiIndex, date_range
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -526,7 +534,7 @@ class TestGetLoc:
         xp = 0
         assert rs == xp
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="2"):
             index.get_loc(2)
 
     def test_get_loc_level(self):

@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 m = 50
@@ -86,5 +89,5 @@ def test_multiindex_get_loc(lexsort_depth, key, frame):
             df = frame.sort_values(by=cols[:lexsort_depth])
 
         mi = df.set_index(cols[:-1])
-        assert not mi.index.lexsort_depth < lexsort_depth
+        assert not mi.index._lexsort_depth < lexsort_depth
         validate(mi, df, key)

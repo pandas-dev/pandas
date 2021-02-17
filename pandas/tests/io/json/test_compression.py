@@ -5,6 +5,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+pytestmark = td.skip_array_manager_not_yet_implemented
+
 
 def test_compression_roundtrip(compression):
     df = pd.DataFrame(
@@ -65,8 +67,10 @@ def test_chunksize_with_compression(compression):
         df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
         df.to_json(path, orient="records", lines=True, compression=compression)
 
-        res = pd.read_json(path, lines=True, chunksize=1, compression=compression)
-        roundtripped_df = pd.concat(res)
+        with pd.read_json(
+            path, lines=True, chunksize=1, compression=compression
+        ) as res:
+            roundtripped_df = pd.concat(res)
         tm.assert_frame_equal(df, roundtripped_df)
 
 

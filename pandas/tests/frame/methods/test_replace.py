@@ -1,13 +1,23 @@
 from datetime import datetime
 from io import StringIO
 import re
-from typing import Dict, List, Union
+from typing import (
+    Dict,
+    List,
+    Union,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -1123,7 +1133,7 @@ class TestDataFrameReplace:
         tm.assert_series_equal(result, expected)
 
     def test_replace_dict_tuple_list_ordering_remains_the_same(self):
-        df = DataFrame(dict(A=[np.nan, 1]))
+        df = DataFrame({"A": [np.nan, 1]})
         res1 = df.replace(to_replace={np.nan: 0, 1: -1e8})
         res2 = df.replace(to_replace=(1, np.nan), value=[-1e8, 0])
         res3 = df.replace(to_replace=[1, np.nan], value=[-1e8, 0])
@@ -1587,7 +1597,6 @@ class TestDataFrameReplace:
 
     @pytest.mark.xfail(
         reason="category dtype gets changed to object type after replace, see #35268",
-        strict=True,
     )
     def test_replace_dict_category_type(self, input_category_df, expected_category_df):
         """
@@ -1636,3 +1645,10 @@ class TestDataFrameReplace:
         result = df1.replace(columns_values_map)
         expected = DataFrame({"positive": np.ones(3)})
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_bytes(self, frame_or_series):
+        # GH#38900
+        obj = frame_or_series(["o"]).astype("|S")
+        expected = obj.copy()
+        obj = obj.replace({None: np.nan})
+        tm.assert_equal(obj, expected)

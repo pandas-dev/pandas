@@ -4,7 +4,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT
+from pandas import (
+    DataFrame,
+    NaT,
+)
 import pandas._testing as tm
 
 
@@ -459,3 +462,12 @@ def test_drop_duplicates_series_vs_dataframe(keep):
         dropped_frame = df[[column]].drop_duplicates(keep=keep)
         dropped_series = df[column].drop_duplicates(keep=keep)
         tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
+
+
+@pytest.mark.parametrize("arg", [[1], 1, "True", [], 0])
+def test_drop_duplicates_non_boolean_ignore_index(arg):
+    # GH#38274
+    df = DataFrame({"a": [1, 2, 1, 3]})
+    msg = '^For argument "ignore_index" expected type bool, received type .*.$'
+    with pytest.raises(ValueError, match=msg):
+        df.drop_duplicates(ignore_index=arg)

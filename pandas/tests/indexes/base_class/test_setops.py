@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series
+from pandas import (
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 
@@ -141,7 +144,7 @@ class TestIndexSetOps:
 
     @pytest.mark.parametrize(
         "index2,expected_arr",
-        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B", "A"])],
+        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B"])],
     )
     def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
         # non-monotonic non-unique

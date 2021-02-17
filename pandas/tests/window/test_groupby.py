@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, to_datetime
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    to_datetime,
+)
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 from pandas.core.groupby.groupby import get_groupby
@@ -109,6 +117,9 @@ class TestRolling:
             return getattr(x.rolling(4), f)(self.frame)
 
         expected = g.apply(func)
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
+        expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = getattr(r.B, f)(pairwise=True)
@@ -418,12 +429,23 @@ class TestRolling:
         # GH 36197
         expected = DataFrame({"s1": []})
         result = expected.groupby("s1").rolling(window=1).sum()
-        expected.index = MultiIndex.from_tuples([], names=["s1", None])
+        # GH-38057 from_tuples gives empty object dtype, we now get float/int levels
+        # expected.index = MultiIndex.from_tuples([], names=["s1", None])
+        expected.index = MultiIndex.from_product(
+            [Index([], dtype="float64"), Index([], dtype="int64")], names=["s1", None]
+        )
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
-        expected.index = MultiIndex.from_tuples([], names=["s1", "s2", None])
+        expected.index = MultiIndex.from_product(
+            [
+                Index([], dtype="float64"),
+                Index([], dtype="float64"),
+                Index([], dtype="int64"),
+            ],
+            names=["s1", "s2", None],
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_rolling_string_index(self):
@@ -567,6 +589,60 @@ class TestRolling:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_rolling_resulting_multiindex(self):
+        # a few different cases checking the created MultiIndex of the result
+        # https://github.com/pandas-dev/pandas/pull/38057
+
+        # grouping by 1 columns -> 2-level MI as result
+        df = DataFrame({"a": np.arange(8.0), "b": [1, 2] * 4})
+        result = df.groupby("b").rolling(3).mean()
+        expected_index = MultiIndex.from_tuples(
+            [(1, 0), (1, 2), (1, 4), (1, 6), (2, 1), (2, 3), (2, 5), (2, 7)],
+            names=["b", None],
+        )
+        tm.assert_index_equal(result.index, expected_index)
+
+        # grouping by 2 columns -> 3-level MI as result
+        df = DataFrame({"a": np.arange(12.0), "b": [1, 2] * 6, "c": [1, 2, 3, 4] * 3})
+        result = df.groupby(["b", "c"]).rolling(2).sum()
+        expected_index = MultiIndex.from_tuples(
+            [
+                (1, 1, 0),
+                (1, 1, 4),
+                (1, 1, 8),
+                (1, 3, 2),
+                (1, 3, 6),
+                (1, 3, 10),
+                (2, 2, 1),
+                (2, 2, 5),
+                (2, 2, 9),
+                (2, 4, 3),
+                (2, 4, 7),
+                (2, 4, 11),
+            ],
+            names=["b", "c", None],
+        )
+        tm.assert_index_equal(result.index, expected_index)
+
+        # grouping with 1 level on dataframe with 2-level MI -> 3-level MI as result
+        df = DataFrame({"a": np.arange(8.0), "b": [1, 2] * 4, "c": [1, 2, 3, 4] * 2})
+        df = df.set_index("c", append=True)
+        result = df.groupby("b").rolling(3).mean()
+        expected_index = MultiIndex.from_tuples(
+            [
+                (1, 0, 1),
+                (1, 2, 3),
+                (1, 4, 1),
+                (1, 6, 3),
+                (2, 1, 2),
+                (2, 3, 4),
+                (2, 5, 2),
+                (2, 7, 4),
+            ],
+            names=["b", None, "c"],
+        )
+        tm.assert_index_equal(result.index, expected_index)
+
 
 class TestExpanding:
     def setup_method(self):
@@ -615,6 +691,13 @@ class TestExpanding:
             return getattr(x.expanding(), f)(self.frame)
 
         expected = g.apply(func)
+        # GH 39591: groupby.apply returns 1 instead of nan for windows
+        # with all nan values
+        null_idx = list(range(20, 61)) + list(range(72, 113))
+        expected.iloc[null_idx, 1] = np.nan
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
+        expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = getattr(r.B, f)(pairwise=True)

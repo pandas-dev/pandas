@@ -4,9 +4,16 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -154,6 +161,7 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_drop_multiindex_not_lexsorted(self):
         # GH#11640
 
@@ -162,7 +170,7 @@ class TestDataFrameDrop:
             [("a", ""), ("b1", "c1"), ("b2", "c2")], names=["b", "c"]
         )
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        assert lexsorted_df.columns.is_lexsorted()
+        assert lexsorted_df.columns._is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(
@@ -172,7 +180,7 @@ class TestDataFrameDrop:
             index="a", columns=["b", "c"], values="d"
         )
         not_lexsorted_df = not_lexsorted_df.reset_index()
-        assert not not_lexsorted_df.columns.is_lexsorted()
+        assert not not_lexsorted_df.columns._is_lexsorted()
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -441,3 +449,21 @@ class TestDataFrameDrop:
             # Perform operation and check result
             getattr(y, operation)(1)
             tm.assert_frame_equal(df, expected)
+
+    def test_drop_with_non_unique_multiindex(self):
+        # GH#36293
+        mi = MultiIndex.from_arrays([["x", "y", "x"], ["i", "j", "i"]])
+        df = DataFrame([1, 2, 3], index=mi)
+        result = df.drop(index="x")
+        expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
+        )
+        result = df.drop(["a"], axis=1)
+        expected = DataFrame([[1], [1], [1]], columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+        result = df.drop("a", axis=1)
+        tm.assert_frame_equal(result, expected)

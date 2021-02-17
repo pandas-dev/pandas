@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -217,26 +223,48 @@ class TestDataFrameSortValues:
         sorted_df = df.sort_values(by="sort_col", kind="mergesort", ascending=False)
         tm.assert_frame_equal(df, sorted_df)
 
-    def test_sort_values_stable_descending_multicolumn_sort(self):
+    @pytest.mark.parametrize(
+        "expected_idx_non_na, ascending",
+        [
+            [
+                [3, 4, 5, 0, 1, 8, 6, 9, 7, 10, 13, 14],
+                [True, True],
+            ],
+            [
+                [0, 3, 4, 5, 1, 8, 6, 7, 10, 13, 14, 9],
+                [True, False],
+            ],
+            [
+                [9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0],
+                [False, True],
+            ],
+            [
+                [7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5],
+                [False, False],
+            ],
+        ],
+    )
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_values_stable_multicolumn_sort(
+        self, expected_idx_non_na, ascending, na_position
+    ):
+        # GH#38426 Clarify sort_values with mult. columns / labels is stable
         df = DataFrame(
-            {"A": [1, 2, np.nan, 1, 6, 8, 4], "B": [9, np.nan, 5, 2, 5, 4, 5]}
+            {
+                "A": [1, 2, np.nan, 1, 1, 1, 6, 8, 4, 8, 8, np.nan, np.nan, 8, 8],
+                "B": [9, np.nan, 5, 2, 2, 2, 5, 4, 5, 3, 4, np.nan, np.nan, 4, 4],
+            }
         )
-        # test stable mergesort
-        expected = DataFrame(
-            {"A": [np.nan, 8, 6, 4, 2, 1, 1], "B": [5, 4, 5, 5, np.nan, 2, 9]},
-            index=[2, 5, 4, 6, 1, 3, 0],
+        # All rows with NaN in col "B" only have unique values in "A", therefore,
+        # only the rows with NaNs in "A" have to be treated individually:
+        expected_idx = (
+            [11, 12, 2] + expected_idx_non_na
+            if na_position == "first"
+            else expected_idx_non_na + [2, 11, 12]
         )
+        expected = df.take(expected_idx)
         sorted_df = df.sort_values(
-            ["A", "B"], ascending=[0, 1], na_position="first", kind="mergesort"
-        )
-        tm.assert_frame_equal(sorted_df, expected)
-
-        expected = DataFrame(
-            {"A": [np.nan, 8, 6, 4, 2, 1, 1], "B": [5, 4, 5, 5, np.nan, 9, 2]},
-            index=[2, 5, 4, 6, 1, 0, 3],
-        )
-        sorted_df = df.sort_values(
-            ["A", "B"], ascending=[0, 0], na_position="first", kind="mergesort"
+            ["A", "B"], ascending=ascending, na_position=na_position
         )
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -301,15 +329,15 @@ class TestDataFrameSortValues:
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT))
+        int_values = (2, int(NaT.value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
-            dict(int=int_values, float=float_values), columns=["int", "float"]
+            {"int": int_values, "float": float_values}, columns=["int", "float"]
         )
 
         df_reversed = DataFrame(
-            dict(int=int_values[::-1], float=float_values[::-1]),
+            {"int": int_values[::-1], "float": float_values[::-1]},
             columns=["int", "float"],
             index=[1, 0],
         )
@@ -329,12 +357,12 @@ class TestDataFrameSortValues:
         # and now check if NaT is still considered as "na" for datetime64
         # columns:
         df = DataFrame(
-            dict(datetime=[Timestamp("2016-01-01"), NaT], float=float_values),
+            {"datetime": [Timestamp("2016-01-01"), NaT], "float": float_values},
             columns=["datetime", "float"],
         )
 
         df_reversed = DataFrame(
-            dict(datetime=[NaT, Timestamp("2016-01-01")], float=float_values[::-1]),
+            {"datetime": [NaT, Timestamp("2016-01-01")], "float": float_values[::-1]},
             columns=["datetime", "float"],
             index=[1, 0],
         )
@@ -543,6 +571,27 @@ class TestDataFrameSortValues:
         )
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_item_cache(self, using_array_manager):
+        # previous behavior incorrect retained an invalid _item_cache entry
+        df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+        df["D"] = df["A"] * 2
+        ser = df["A"]
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
+
+        df.sort_values(by="A")
+        ser.values[0] = 99
+
+        assert df.iloc[0, 0] == df["A"][0]
+
+    def test_sort_values_reshaping(self):
+        # GH 39426
+        values = list(range(21))
+        expected = DataFrame([values], columns=values)
+        df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
+
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)

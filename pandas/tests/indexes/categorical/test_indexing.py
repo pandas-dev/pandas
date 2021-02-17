@@ -1,8 +1,15 @@
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
-from pandas import CategoricalIndex, Index, IntervalIndex, Timestamp
+from pandas import (
+    CategoricalIndex,
+    Index,
+    IntervalIndex,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -204,18 +211,19 @@ class TestGetIndexer:
         with pytest.raises(ValueError, match="Invalid fill method"):
             idx.get_indexer(idx, method="invalid")
 
-    def test_get_indexer_non_unique(self):
+    def test_get_indexer_requires_unique(self):
         np.random.seed(123456789)
 
         ci = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         oidx = Index(np.array(ci))
 
+        msg = "Reindexing only valid with uniquely valued Index objects"
+
         for n in [1, 2, 5, len(ci)]:
             finder = oidx[np.random.randint(0, len(ci), size=n)]
-            expected = oidx.get_indexer_non_unique(finder)[0]
 
-            actual = ci.get_indexer(finder)
-            tm.assert_numpy_array_equal(expected, actual)
+            with pytest.raises(InvalidIndexError, match=msg):
+                ci.get_indexer(finder)
 
         # see gh-17323
         #
@@ -224,19 +232,27 @@ class TestGetIndexer:
         # respect duplicates instead of taking
         # the fast-track path.
         for finder in [list("aabbca"), list("aababca")]:
-            expected = oidx.get_indexer_non_unique(finder)[0]
 
-            actual = ci.get_indexer(finder)
-            tm.assert_numpy_array_equal(expected, actual)
+            with pytest.raises(InvalidIndexError, match=msg):
+                ci.get_indexer(finder)
 
-    def test_get_indexer(self):
+    def test_get_indexer_non_unique(self):
 
         idx1 = CategoricalIndex(list("aabcde"), categories=list("edabc"))
         idx2 = CategoricalIndex(list("abf"))
 
         for indexer in [idx2, list("abf"), Index(list("abf"))]:
-            r1 = idx1.get_indexer(idx2)
-            tm.assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
+            msg = "Reindexing only valid with uniquely valued Index objects"
+            with pytest.raises(InvalidIndexError, match=msg):
+                idx1.get_indexer(idx2)
+
+            r1, _ = idx1.get_indexer_non_unique(idx2)
+            expected = np.array([0, 1, 2, -1], dtype=np.intp)
+            tm.assert_almost_equal(r1, expected)
+
+    def test_get_indexer_method(self):
+        idx1 = CategoricalIndex(list("aabcde"), categories=list("edabc"))
+        idx2 = CategoricalIndex(list("abf"))
 
         msg = "method pad not yet implemented for CategoricalIndex"
         with pytest.raises(NotImplementedError, match=msg):
@@ -294,10 +310,11 @@ class TestWhere:
         ci = CategoricalIndex(["a", "b", "c", "d"])
         mask = np.array([True, False, True, False])
 
-        msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
-            ci.where(mask, 2)
+        result = ci.where(mask, 2)
+        expected = Index(["a", 2, "c", 2], dtype=object)
+        tm.assert_index_equal(result, expected)
 
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             # Test the Categorical method directly
             ci._data.where(mask, 2)

@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -44,7 +47,7 @@ def test_constructor(frame_or_series):
 
     # GH 13383
 
-    msg = "window must be non-negative"
+    msg = "window must be an integer 0 or greater"
 
     with pytest.raises(ValueError, match=msg):
         c(-1)
@@ -1085,8 +1088,15 @@ def test_groupby_rolling_nan_included():
     result = df.groupby("group", dropna=False).rolling(1, min_periods=1).mean()
     expected = DataFrame(
         {"B": [0.0, 2.0, 3.0, 1.0, 4.0]},
-        index=MultiIndex.from_tuples(
-            [("g1", 0), ("g1", 2), ("g2", 3), (np.nan, 1), (np.nan, 4)],
+        # GH-38057 from_tuples puts the NaNs in the codes, result expects them
+        # to be in the levels, at the moment
+        # index=MultiIndex.from_tuples(
+        #     [("g1", 0), ("g1", 2), ("g2", 3), (np.nan, 1), (np.nan, 4)],
+        #     names=["group", None],
+        # ),
+        index=MultiIndex(
+            [["g1", "g2", np.nan], [0, 1, 2, 3, 4]],
+            [[0, 0, 1, 2, 2], [0, 2, 3, 1, 4]],
             names=["group", None],
         ),
     )
@@ -1095,11 +1105,13 @@ def test_groupby_rolling_nan_included():
 
 @pytest.mark.parametrize("method", ["skew", "kurt"])
 def test_rolling_skew_kurt_numerical_stability(method):
-    # GH: 6929
-    s = Series(np.random.rand(10))
-    expected = getattr(s.rolling(3), method)()
-    s = s + 50000
-    result = getattr(s.rolling(3), method)()
+    # GH#6929
+    ser = Series(np.random.rand(10))
+    ser_copy = ser.copy()
+    expected = getattr(ser.rolling(3), method)()
+    tm.assert_series_equal(ser, ser_copy)
+    ser = ser + 50000
+    result = getattr(ser.rolling(3), method)()
     tm.assert_series_equal(result, expected)
 
 
@@ -1116,3 +1128,8 @@ def test_rolling_skew_kurt_large_value_range(method, values):
     result = getattr(s.rolling(4), method)()
     expected = Series([np.nan] * 3 + values)
     tm.assert_series_equal(result, expected)
+
+
+def test_invalid_method():
+    with pytest.raises(ValueError, match="method must be 'table' or 'single"):
+        Series(range(1)).rolling(1, method="foo")

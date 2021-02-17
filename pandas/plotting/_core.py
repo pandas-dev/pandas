@@ -1,13 +1,30 @@
+from __future__ import annotations
+
 import importlib
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from pandas._config import get_option
 
-from pandas._typing import Label
-from pandas.util._decorators import Appender, Substitution
+from pandas._typing import IndexLabel
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
-from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.base import PandasObject
 
@@ -99,8 +116,8 @@ def hist_series(
 
 
 def hist_frame(
-    data: "DataFrame",
-    column: Union[Label, Sequence[Label]] = None,
+    data: DataFrame,
+    column: IndexLabel = None,
     by=None,
     grid: bool = True,
     xlabelsize: Optional[int] = None,
@@ -422,7 +439,9 @@ _bar_or_line_doc = """
             - A sequence of color strings referred to by name, RGB or RGBA
                 code, which will be used for each column recursively. For
                 instance ['green','yellow'] each column's %(kind)s will be filled in
-                green or yellow, alternatively.
+                green or yellow, alternatively. If there is only a single column to
+                be plotted, then only the first color from the color list will be
+                used.
 
             - A dict of the form {column name : color}, so that each column will be
                 colored accordingly. For example, if your columns are called `a` and
@@ -628,8 +647,8 @@ class PlotAccessor(PandasObject):
         - 'density' : same as 'kde'
         - 'area' : area plot
         - 'pie' : pie plot
-        - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot.
+        - 'scatter' : scatter plot (DataFrame only)
+        - 'hexbin' : hexbin plot (DataFrame only)
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool, default False

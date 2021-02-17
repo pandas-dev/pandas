@@ -4,7 +4,13 @@ import pytest
 from pandas.errors import UnsortedIndexError
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
@@ -144,9 +150,9 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # not lexsorted
-        assert df.index.lexsort_depth == 2
+        assert df.index._lexsort_depth == 2
         df = df.sort_index(level=1, axis=0)
-        assert df.index.lexsort_depth == 0
+        assert df.index._lexsort_depth == 0
 
         msg = (
             "MultiIndex slicing requires the index to be "
@@ -778,4 +784,50 @@ class TestMultiIndexSlicers:
 
         result = df.loc[tslice_]
         expected = DataFrame({("b", "d"): [4, 1]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "slice_",
+        [
+            pd.IndexSlice[:, :],
+            # check cols
+            pd.IndexSlice[:, pd.IndexSlice[["a"]]],  # inferred deeper need list
+            pd.IndexSlice[:, pd.IndexSlice[["a"], ["c"]]],  # inferred deeper need list
+            pd.IndexSlice[:, pd.IndexSlice["a", "c", :]],
+            pd.IndexSlice[:, pd.IndexSlice["a", :, "e"]],
+            pd.IndexSlice[:, pd.IndexSlice[:, "c", "e"]],
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d"], :]],  # check list
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], :]],  # allow missing
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], "e"]],  # no slice
+            # check rows
+            pd.IndexSlice[pd.IndexSlice[["U"]], :],  # inferred deeper need list
+            pd.IndexSlice[pd.IndexSlice[["U"], ["W"]], :],  # inferred deeper need list
+            pd.IndexSlice[pd.IndexSlice["U", "W", :], :],
+            pd.IndexSlice[pd.IndexSlice["U", :, "Y"], :],
+            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], :],
+            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z"]], :],  # check list
+            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # allow missing
+            pd.IndexSlice[pd.IndexSlice["U", "W", ["Y", "Z", "-"]], :],  # no slice
+            # check simultaneous
+            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], pd.IndexSlice["a", "c", :]],
+        ],
+    )
+    def test_non_reducing_multi_slice_on_multiindex(self, slice_):
+        # GH 33562
+        cols = pd.MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
+        idxs = pd.MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
+        df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
+
+        expected = df.loc[slice_]
+        result = df.loc[non_reducing_slice(slice_)]
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_slice_negative_stepsize(self):
+        # GH#38071
+        mi = MultiIndex.from_product([["a", "b"], [0, 1]])
+        df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=mi)
+        result = df.loc[("a", slice(None, None, -1)), :]
+        expected = DataFrame(
+            [[3, 4], [1, 2]], index=MultiIndex.from_tuples([("a", 1), ("a", 0)])
+        )
         tm.assert_frame_equal(result, expected)

@@ -9,6 +9,8 @@ from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
 
+pytestmark = pytest.mark.slow
+
 
 @td.skip_if_no_mpl
 class TestDataFramePlotsGroupby(TestPlotBase):

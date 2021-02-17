@@ -1,11 +1,17 @@
-from copy import copy, deepcopy
+from copy import (
+    copy,
+    deepcopy,
+)
 
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -305,14 +311,14 @@ class Generic:
         # GH11382
 
         # small
-        shape = [int(2e3)] + ([1] * (self._ndim - 1))
+        shape = [2000] + ([1] * (self._ndim - 1))
         small = self._construct(shape, dtype="int8", value=1)
         self._compare(small.truncate(), small)
         self._compare(small.truncate(before=0, after=3e3), small)
         self._compare(small.truncate(before=-1, after=2e3), small)
 
         # big
-        shape = [int(2e6)] + ([1] * (self._ndim - 1))
+        shape = [2_000_000] + ([1] * (self._ndim - 1))
         big = self._construct(shape, dtype="int8", value=1)
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)

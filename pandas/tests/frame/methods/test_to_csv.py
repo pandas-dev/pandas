@@ -38,7 +38,7 @@ MIXED_INT_DTYPES = [
 
 class TestDataFrameToCSV:
     def read_csv(self, path, **kwargs):
-        params = dict(index_col=0, parse_dates=True)
+        params = {"index_col": 0, "parse_dates": True}
         params.update(**kwargs)
 
         return pd.read_csv(path, **params)
@@ -248,10 +248,10 @@ class TestDataFrameToCSV:
 
         # s3=make_dtnjat_arr(chunksize+5,0)
         with tm.ensure_clean("1.csv") as pth:
-            df = DataFrame(dict(a=s1, b=s2))
+            df = DataFrame({"a": s1, "b": s2})
             df.to_csv(pth, chunksize=chunksize)
 
-            recons = self.read_csv(pth)._convert(datetime=True, coerce=True)
+            recons = self.read_csv(pth).apply(to_datetime)
             tm.assert_frame_equal(df, recons, check_names=False)
 
     @pytest.mark.slow
@@ -260,7 +260,7 @@ class TestDataFrameToCSV:
             df, r_dtype=None, c_dtype=None, rnlvl=None, cnlvl=None, dupe_col=False
         ):
 
-            kwargs = dict(parse_dates=False)
+            kwargs = {"parse_dates": False}
             if cnlvl:
                 if rnlvl is not None:
                     kwargs["index_col"] = list(range(rnlvl))
@@ -291,7 +291,7 @@ class TestDataFrameToCSV:
                 recons.index = ix
                 recons = recons.iloc[:, rnlvl - 1 :]
 
-            type_map = dict(i="i", f="f", s="O", u="O", dt="O", p="O")
+            type_map = {"i": "i", "f": "f", "s": "O", "u": "O", "dt": "O", "p": "O"}
             if r_dtype:
                 if r_dtype == "u":  # unicode
                     r_dtype = "O"
@@ -738,7 +738,7 @@ class TestDataFrameToCSV:
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
         # dtype
-        dtypes = dict()
+        dtypes = {}
         for n, dtype in [
             ("float", np.float64),
             ("int", np.int64),

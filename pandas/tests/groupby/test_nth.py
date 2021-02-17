@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -99,6 +106,26 @@ def test_first_last_with_None(method):
     result = getattr(groups, method)()
 
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("method", ["first", "last"])
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
+            DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
+        ),
+        (
+            DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
+            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
+        ),
+    ],
+)
+def test_first_last_with_None_expanded(method, df, expected):
+    # GH 32800, 38286
+    result = getattr(df.groupby("id"), method)()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_first_last_nth_dtypes(df_mixed_floats):

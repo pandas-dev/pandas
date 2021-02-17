@@ -9,11 +9,17 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
 
 from pandas.io.formats.printing import pprint_thing
+
+pytestmark = pytest.mark.slow
 
 
 @td.skip_if_no_mpl
@@ -33,7 +39,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             }
         )
 
-    @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
@@ -72,7 +77,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             for ax in axes:
                 assert ax.get_legend() is None
 
-    @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
         df = DataFrame(np.random.rand(10, 3), index=idx)
@@ -190,7 +194,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             == testdata["datetime_mixed_tz"].values
         ).all()
 
-    @pytest.mark.slow
     def test_subplots_layout_multi_column(self):
         # GH 6667
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
@@ -219,12 +222,15 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=3, layout=(4, 1))
         assert axes.shape == (4, 1)
 
-        with pytest.raises(ValueError):
+        msg = "Layout of 1x1 must be larger than required size 3"
+
+        with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(1, 1))
-        with pytest.raises(ValueError):
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(-1, -1))
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs, expected_axes_num, expected_layout, expected_shape",
         [
@@ -246,7 +252,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         )
         assert axes.shape == expected_shape
 
-    @pytest.mark.slow
     def test_subplots_warnings(self):
         # GH 9464
         with tm.assert_produces_warning(None):
@@ -258,7 +263,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             )
             df.plot(subplots=True, layout=(3, 2))
 
-    @pytest.mark.slow
     def test_subplots_multiple_axes(self):
         # GH 5353, 6970, GH 7069
         fig, axes = self.plt.subplots(2, 3)
@@ -276,7 +280,9 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
         tm.close()
 
-        with pytest.raises(ValueError):
+        msg = "The number of passed axes must be 3, the same as the output plot"
+
+        with pytest.raises(ValueError, match=msg):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             df.plot(subplots=True, ax=axes)
@@ -358,7 +364,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         for ax in axes.ravel():
             self._check_visible(ax.get_yticklabels(), visible=True)
 
-    @pytest.mark.slow
     def test_subplots_dup_columns(self):
         # GH 10962
         df = DataFrame(np.random.rand(5, 5), columns=list("aaaaa"))
@@ -380,7 +385,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert len(ax.lines) == 0
         assert len(ax.right_ax.lines) == 5
 
-    @pytest.mark.slow
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
@@ -391,7 +395,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         ax = df.plot.bar(grid=True, log=True)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
 
-    @pytest.mark.slow
     def test_bar_log_subplots(self):
         expected = np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
 
@@ -402,7 +405,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
         tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
 
-    @pytest.mark.slow
     def test_boxplot_subplots_return_type(self):
         df = self.hist_df
 
@@ -422,7 +424,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
                 check_ax_title=False,
             )
 
-    @pytest.mark.slow
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657
         import matplotlib.pyplot as plt
@@ -485,6 +486,19 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
         tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
 
+    def test_subplots_constrained_layout(self):
+        # GH 25261
+        idx = date_range(start="now", periods=10)
+        df = DataFrame(np.random.rand(10, 3), index=idx)
+        kwargs = {}
+        if hasattr(self.plt.Figure, "get_constrained_layout"):
+            kwargs["constrained_layout"] = True
+        fig, axes = self.plt.subplots(2, **kwargs)
+        with tm.assert_produces_warning(None):
+            df.plot(ax=axes[0])
+            with tm.ensure_clean(return_filelike=True) as path:
+                self.plt.savefig(path)
+
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
         [
@@ -513,38 +527,37 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert all(ax.get_ylabel() == str(new_label) for ax in axes)
         assert all(ax.get_xlabel() == str(new_label) for ax in axes)
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs",
         [
             # stacked center
-            dict(kind="bar", stacked=True),
-            dict(kind="bar", stacked=True, width=0.9),
-            dict(kind="barh", stacked=True),
-            dict(kind="barh", stacked=True, width=0.9),
+            {"kind": "bar", "stacked": True},
+            {"kind": "bar", "stacked": True, "width": 0.9},
+            {"kind": "barh", "stacked": True},
+            {"kind": "barh", "stacked": True, "width": 0.9},
             # center
-            dict(kind="bar", stacked=False),
-            dict(kind="bar", stacked=False, width=0.9),
-            dict(kind="barh", stacked=False),
-            dict(kind="barh", stacked=False, width=0.9),
+            {"kind": "bar", "stacked": False},
+            {"kind": "bar", "stacked": False, "width": 0.9},
+            {"kind": "barh", "stacked": False},
+            {"kind": "barh", "stacked": False, "width": 0.9},
             # subplots center
-            dict(kind="bar", subplots=True),
-            dict(kind="bar", subplots=True, width=0.9),
-            dict(kind="barh", subplots=True),
-            dict(kind="barh", subplots=True, width=0.9),
+            {"kind": "bar", "subplots": True},
+            {"kind": "bar", "subplots": True, "width": 0.9},
+            {"kind": "barh", "subplots": True},
+            {"kind": "barh", "subplots": True, "width": 0.9},
             # align edge
-            dict(kind="bar", stacked=True, align="edge"),
-            dict(kind="bar", stacked=True, width=0.9, align="edge"),
-            dict(kind="barh", stacked=True, align="edge"),
-            dict(kind="barh", stacked=True, width=0.9, align="edge"),
-            dict(kind="bar", stacked=False, align="edge"),
-            dict(kind="bar", stacked=False, width=0.9, align="edge"),
-            dict(kind="barh", stacked=False, align="edge"),
-            dict(kind="barh", stacked=False, width=0.9, align="edge"),
-            dict(kind="bar", subplots=True, align="edge"),
-            dict(kind="bar", subplots=True, width=0.9, align="edge"),
-            dict(kind="barh", subplots=True, align="edge"),
-            dict(kind="barh", subplots=True, width=0.9, align="edge"),
+            {"kind": "bar", "stacked": True, "align": "edge"},
+            {"kind": "bar", "stacked": True, "width": 0.9, "align": "edge"},
+            {"kind": "barh", "stacked": True, "align": "edge"},
+            {"kind": "barh", "stacked": True, "width": 0.9, "align": "edge"},
+            {"kind": "bar", "stacked": False, "align": "edge"},
+            {"kind": "bar", "stacked": False, "width": 0.9, "align": "edge"},
+            {"kind": "barh", "stacked": False, "align": "edge"},
+            {"kind": "barh", "stacked": False, "width": 0.9, "align": "edge"},
+            {"kind": "bar", "subplots": True, "align": "edge"},
+            {"kind": "bar", "subplots": True, "width": 0.9, "align": "edge"},
+            {"kind": "barh", "subplots": True, "align": "edge"},
+            {"kind": "barh", "subplots": True, "width": 0.9, "align": "edge"},
         ],
     )
     def test_bar_align_multiple_columns(self, kwargs):
@@ -552,23 +565,21 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
         self._check_bar_alignment(df, **kwargs)
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs",
         [
-            dict(kind="bar", stacked=False),
-            dict(kind="bar", stacked=True),
-            dict(kind="barh", stacked=False),
-            dict(kind="barh", stacked=True),
-            dict(kind="bar", subplots=True),
-            dict(kind="barh", subplots=True),
+            {"kind": "bar", "stacked": False},
+            {"kind": "bar", "stacked": True},
+            {"kind": "barh", "stacked": False},
+            {"kind": "barh", "stacked": True},
+            {"kind": "bar", "subplots": True},
+            {"kind": "barh", "subplots": True},
         ],
     )
     def test_bar_align_single_column(self, kwargs):
         df = DataFrame(np.random.randn(5))
         self._check_bar_alignment(df, **kwargs)
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs",
         [
@@ -584,7 +595,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         df = DataFrame(np.random.randn(5, 5))
         self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
-    @pytest.mark.slow
     def test_bar_barwidth_position_int(self):
         # GH 12979
         df = DataFrame(np.random.randn(5, 5))

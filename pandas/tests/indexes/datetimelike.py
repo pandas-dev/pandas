@@ -5,11 +5,18 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .common import Base
+from pandas.tests.indexes.common import Base
 
 
 class DatetimeLike(Base):
+    def test_argsort_matches_array(self):
+        rng = self.create_index()
+        rng = rng.insert(1, pd.NaT)
+
+        result = rng.argsort()
+        expected = rng._data.argsort()
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_can_hold_identifiers(self):
         idx = self.create_index()
         key = idx[0]
@@ -110,9 +117,9 @@ class DatetimeLike(Base):
         result = index.where(mask, [str(index[0])])
         tm.assert_index_equal(result, expected)
 
-        msg = "value should be a '.*', 'NaT', or array of those"
-        with pytest.raises(TypeError, match=msg):
-            index.where(mask, "foo")
+        expected = index.astype(object).where(mask, "foo")
+        result = index.where(mask, "foo")
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            index.where(mask, ["foo"])
+        result = index.where(mask, ["foo"])
+        tm.assert_index_equal(result, expected)

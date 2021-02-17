@@ -3,7 +3,13 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, concat, isna, notna
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
@@ -18,8 +24,8 @@ def scoreatpercentile(a, per):
         retval = values[-1]
 
     else:
-        qlow = float(idx) / float(values.shape[0] - 1)
-        qhig = float(idx + 1) / float(values.shape[0] - 1)
+        qlow = idx / (values.shape[0] - 1)
+        qhig = (idx + 1) / (values.shape[0] - 1)
         vlow = values[idx]
         vhig = values[idx + 1]
         retval = vlow + (vhig - vlow) * (per - qlow) / (qhig - qlow)

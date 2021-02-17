@@ -31,7 +31,7 @@ namespace:
 * :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
-**Note:** Developers can check out `pandas/core/config.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config.py>`_ for more information.
+**Note:** Developers can check out `pandas/core/config_init.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config_init.py>`_ for more information.
 
 All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
 and so passing in a substring will work - as long as it is unambiguous:
@@ -432,6 +432,16 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      dollar symbol.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
+
+                                                     .. deprecated:: 1.2.0
+
+                                                        As `xlwt <https://pypi.org/project/xlwt/>`__
+                                                        package is no longer maintained, the ``xlwt``
+                                                        engine will be removed in a future version of
+                                                        pandas. Since this is the only engine in pandas
+                                                        that supports writing to ``.xls`` files,
+                                                        this option will also be removed.
+
 io.excel.xlsm.writer                    openpyxl     The default Excel writer engine for
                                                      'xlsm' files. Available options:
                                                      'openpyxl' (the default).

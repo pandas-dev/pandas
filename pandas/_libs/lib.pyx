@@ -14,10 +14,16 @@ from cpython.datetime cimport (
 )
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
-from cpython.object cimport Py_EQ, PyObject_RichCompareBool
+from cpython.object cimport (
+    Py_EQ,
+    PyObject_RichCompareBool,
+)
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
-from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
+from cpython.tuple cimport (
+    PyTuple_New,
+    PyTuple_SET_ITEM,
+)
 
 PyDateTime_IMPORT
 
@@ -66,19 +72,30 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 from pandas._libs cimport util
-from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX, is_nan
+from pandas._libs.util cimport (
+    INT64_MAX,
+    INT64_MIN,
+    UINT64_MAX,
+    is_nan,
+)
 
 from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.period import Period
 
 from pandas._libs.missing cimport (
     C_NA,
     checknull,
+    is_matching_na,
     is_null_datetime64,
     is_null_timedelta64,
     isnaobj,
 )
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT, checknull_with_nat
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+    checknull_with_nat,
+)
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
@@ -584,8 +601,10 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                     return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
-            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            elif not (
+                PyObject_RichCompareBool(x, y, Py_EQ)
+                or is_matching_na(x, y, nan_matches_none=True)
+            ):
                 return False
         except ValueError:
             # Avoid raising ValueError when comparing Numpy arrays to other types
@@ -888,12 +907,17 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
     k = len(keys)
 
-    if n == 0:
+    # Start at the first non-null entry
+    j = 0
+    for j in range(0, n):
+        if labels[j] != -1:
+            break
+    else:
         return result
+    cur = labels[j]
+    start = j
 
-    start = 0
-    cur = labels[0]
-    for i in range(1, n):
+    for i in range(j+1, n):
         lab = labels[i]
 
         if lab != cur:
@@ -1074,6 +1098,7 @@ _TYPE_MAP = {
     "timedelta64[ns]": "timedelta64",
     "m": "timedelta64",
     "interval": "interval",
+    Period: "period",
 }
 
 # types only exist on certain platform
@@ -1225,8 +1250,8 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base"]:
-        val = getattr(dtype, attr)
+    for attr in ["name", "kind", "base", "type"]:
+        val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
     return None
@@ -1267,6 +1292,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - time
     - period
     - mixed
+    - unknown-array
 
     Raises
     ------
@@ -1279,6 +1305,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'unknown-array' is the catchall for something that *is* an array (has
+      a dtype attribute), but has a dtype unknown to pandas (e.g. external
+      extension array)
 
     Examples
     --------
@@ -1313,7 +1342,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     'boolean'
 
     >>> infer_dtype([True, False, np.nan])
-    'mixed'
+    'boolean'
 
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
@@ -1347,12 +1376,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # e.g. categoricals
         dtype = value.dtype
         if not isinstance(dtype, np.dtype):
-            value = _try_infer_map(value.dtype)
-            if value is not None:
-                return value
-
-            # its ndarray-like but we can't handle
-            raise ValueError(f"cannot infer type for {type(value)}")
+            inferred = _try_infer_map(value.dtype)
+            if inferred is not None:
+                return inferred
+            return "unknown-array"
 
         # Unwrap Series/Index
         values = np.asarray(value)
@@ -1483,7 +1510,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     return "mixed"
 
 
-def infer_datetimelike_array(arr: object) -> object:
+def infer_datetimelike_array(arr: ndarray[object]) -> str:
     """
     Infer if we have a datetime or timedelta array.
     - date: we have *only* date and maybe strings, nulls
@@ -1496,7 +1523,7 @@ def infer_datetimelike_array(arr: object) -> object:
 
     Parameters
     ----------
-    arr : object array
+    arr : ndarray[object]
 
     Returns
     -------

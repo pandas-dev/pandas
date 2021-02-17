@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -132,10 +137,10 @@ class TestDataFrameDiff:
     def test_diff_timedelta(self):
         # GH#4533
         df = DataFrame(
-            dict(
-                time=[Timestamp("20130101 9:01"), Timestamp("20130101 9:02")],
-                value=[1.0, 2.0],
-            )
+            {
+                "time": [Timestamp("20130101 9:01"), Timestamp("20130101 9:02")],
+                "value": [1.0, 2.0],
+            }
         )
 
         res = df.diff()
