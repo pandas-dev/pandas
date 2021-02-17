@@ -702,6 +702,64 @@ group_mean_float64 = _group_mean['double']
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def _group_mean_transposed(floating[:, :] out,
+                           int64_t[:] counts,
+                           ndarray[floating, ndim=2] values,
+                           const int64_t[:] labels,
+                           Py_ssize_t min_count=-1):
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        floating val, count, y, t
+        floating[:, :] sumx, compensation
+        int64_t[:, :] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    # if len_values != len_labels:
+    #     raise ValueError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+    sumx = np.zeros_like(out)
+    compensation = np.zeros_like(out)
+
+    K, N = (<object>values).shape
+
+    if N != len_labels:
+        raise ValueError("len(index) != len(labels)")
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[j, i]
+                # not nan
+                if val == val:
+                    nobs[j, lab] += 1
+                    y = val - compensation[j, lab]
+                    t = sumx[j, lab] + y
+                    compensation[j, lab] = t - sumx[j, lab] - y
+                    sumx[j, lab] = t
+
+        for i in range(ncounts):
+            for j in range(K):
+                count = nobs[j, i]
+                if nobs[j, i] == 0:
+                    out[j, i] = NAN
+                else:
+                    out[j, i] = sumx[j, i] / count
+
+
+group_mean_transposed_float32 = _group_mean_transposed['float']
+group_mean_transposed_float64 = _group_mean_transposed['double']
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def _group_mean_1d(floating[:] out,
                    int64_t[:] counts,
                    ndarray[floating, ndim=1] values,
