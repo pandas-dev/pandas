@@ -434,11 +434,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.asarray(self, dtype=dtype)
 
     def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
+        # We handle datetime64, datetime64tz, timedelta64, and period
+        #  dtypes here. Everything else we pass through to the underlying
+        #  ndarray.
         if dtype is None or dtype is self.dtype:
             return type(self)(self._ndarray, dtype=self.dtype)
 
         if isinstance(dtype, type):
-            # e.g. np.ndarray
+            # we sometimes pass non-dtype objects, e.g np.ndarray;
+            #  pass those through to the underlying ndarray
             return self._ndarray.view(dtype)
 
         dtype = pandas_dtype(dtype)
