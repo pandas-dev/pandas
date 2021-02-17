@@ -994,7 +994,7 @@ class Block(PandasObject):
             arr_value = value
         else:
             is_ea_value = False
-            arr_value = np.array(value)
+            arr_value = np.asarray(value)
 
         if transpose:
             values = values.T

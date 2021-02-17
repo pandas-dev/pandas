@@ -2081,6 +2081,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
+            assert tm.get_dtype(expected) == "m8[ns]"
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
