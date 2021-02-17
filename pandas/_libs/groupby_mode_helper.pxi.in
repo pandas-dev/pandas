@@ -86,7 +86,7 @@ dtypes = [#('complex128', 'complex128', 'khcomplex128_t',
 @cython.boundscheck(False)
 cdef {{c_type}} calc_mode_{{dtype}}(kh_{{ttype}}_t *table):
     cdef:
-        {{c_type}} mode
+        {{c_type}} mode = 0 # fix annoying uninitialized warning
         {{c_type}} val
         int count, max_count = 0
         khiter_t k
@@ -125,7 +125,6 @@ def group_mode_{{dtype}}(ndarray[{{c_type}}, ndim=1] out,
         kh_{{ttype}}_t *table
         khiter_t k
         int ret = 0
-        {{c_type}} mode
 
     table = kh_init_{{ttype}}()
     {{if dtype != 'object'}}
