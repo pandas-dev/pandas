@@ -29,7 +29,7 @@ scalars = [
     NA,
 ]
 zero_dims = [np.array("123")]
-listlikes = [np.array([1, 2, 3]), {0: "foo"}, set([1, 2, 3]), [1, 2, 3], (1, 2, 3)]
+listlikes = [np.array([1, 2, 3]), {0: 1}, {1, 2, 3}, [1, 2, 3], (1, 2, 3)]
 
 
 class ScalarListLike:
