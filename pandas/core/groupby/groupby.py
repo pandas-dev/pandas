@@ -1548,6 +1548,35 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
+    def mode(self, dropna=True, numeric_only=False):
+        """
+        Compute mode of groups, excluding missing values. If a group has
+        multiple modes, the smallest mode will be used.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Do not use NaNs in mode calculation
+        numeric_only: bool, default False
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
+        Returns
+        -------
+        Series or DataFrame
+            Mode of values within each group.
+        """
+        # Note: get_cythonized_result iterates in python, slow for many columns?
+        return self._get_cythonized_result(
+            "group_mode",
+            aggregate=True,
+            numeric_only=numeric_only,
+            needs_values=True,
+            dropna=dropna,
+        )
+
+    @final
+    @Substitution(name="groupby")
+    @Appender(_common_see_also)
     def std(self, ddof: int = 1):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2552,7 +2581,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     def _get_cythonized_result(
         self,
         how: str,
-        cython_dtype: np.dtype,
+        cython_dtype: np.dtype = None,
         aggregate: bool = False,
         numeric_only: bool = True,
         needs_counts: bool = False,
@@ -2633,12 +2662,18 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         labels, _, ngroups = grouper.group_info
         output: Dict[base.OutputKey, np.ndarray] = {}
-        base_func = getattr(libgroupby, how)
+        if cython_dtype is not None:
+            base_func = getattr(libgroupby, how)
 
         error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             values = obj._values
+            if cython_dtype is None:
+                cython_dtype = values.dtype
+                # We also need to get the specific function for that dtype
+                how += f"_{cython_dtype}"
+                base_func = getattr(libgroupby, how)
 
             if numeric_only and not is_numeric_dtype(values):
                 continue

@@ -1,6 +1,7 @@
 import cython
 from cython import Py_ssize_t
 
+from cpython.ref cimport PyObject
 from cython cimport floating
 from libc.stdlib cimport free, malloc
 
@@ -33,6 +34,7 @@ from pandas._libs.algos import groupsort_indexer, rank_1d, take_2d_axis1_float64
 
 from pandas._libs.missing cimport checknull
 
+include "groupby_mode_helper.pxi"
 
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max
@@ -46,6 +48,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_NEAREST,
     INTERPOLATION_MIDPOINT
 
+include "groupby_mode_helper.pxi"
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:

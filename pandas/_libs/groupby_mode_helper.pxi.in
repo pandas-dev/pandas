@@ -1,0 +1,217 @@
+{{py:
+
+# name
+cimported_types = [#'complex64',
+                   #'complex128',
+                   'float32',
+                   'float64',
+                   'int8',
+                   'int16',
+                   'int32',
+                   'int64',
+                   'pymap',
+                   'str',
+                   'strbox',
+                   'uint8',
+                   'uint16',
+                   'uint32',
+                   'uint64']
+}}
+
+{{for name in cimported_types}}
+from pandas._libs.khash cimport (
+    kh_destroy_{{name}},
+    kh_exist_{{name}},
+    kh_get_{{name}},
+    kh_init_{{name}},
+    kh_put_{{name}},
+    kh_resize_{{name}},
+    kh_{{name}}_t,
+)
+
+{{endfor}}
+
+from pandas._libs.khash cimport (
+    #khcomplex64_t,
+    #khcomplex128_t,
+    khiter_t,
+)
+
+from pandas._libs.hashtable import (
+    # NaN checking
+    #is_nan_khcomplex128_t,
+    #is_nan_khcomplex64_t,
+    is_nan_float64_t,
+    is_nan_float32_t,
+    is_nan_int64_t,
+    is_nan_int32_t,
+    is_nan_int16_t,
+    is_nan_int8_t,
+    is_nan_uint64_t,
+    is_nan_uint32_t,
+    is_nan_uint16_t,
+    is_nan_uint8_t,
+    # Casting
+    #to_complex64,
+    #to_complex128,
+    #to_khcomplex128_t,
+    #to_khcomplex64_t,
+)
+
+{{py:
+# TODO: add complex64 and complex128 (requires comparisons between complex numbers)
+# dtype, ttype, c_type, to_c_type, to_dtype
+dtypes = [#('complex128', 'complex128', 'khcomplex128_t',
+          #               'to_khcomplex128_t', 'to_complex128'),
+          #('complex64', 'complex64', 'khcomplex64_t',
+          #              'to_khcomplex64_t', 'to_complex64'),
+          ('float64', 'float64', 'float64_t', '', ''),
+          ('float32', 'float32', 'float32_t', '', ''),
+          ('uint64', 'uint64', 'uint64_t', '', ''),
+          ('uint32', 'uint32', 'uint32_t', '', ''),
+          ('uint16', 'uint16', 'uint16_t', '', ''),
+          ('uint8', 'uint8', 'uint8_t', '', ''),
+          ('object', 'pymap', 'object', '', ''),
+          ('int64', 'int64', 'int64_t', '', ''),
+          ('int32', 'int32', 'int32_t', '', ''),
+          ('int16', 'int16', 'int16_t', '', ''),
+          ('int8', 'int8', 'int8_t', '', '')]
+
+}}
+
+{{for dtype, ttype, c_type, to_c_type, to_dtype in dtypes}}
+
+#@cython.wraparound(False)
+#@cython.boundscheck(False)
+#cdef {{c_type}} calc_mode_{{dtype}}(kh_{{ttype}}_t *table):
+#    cdef:
+#        {{c_type}} mode
+#        {{c_type}} val
+#        int count, max_count = 0
+#        khiter_t k
+#
+#
+#    for k in range(table.n_buckets):
+#        if kh_exist_{{ttype}}(table, k):
+#            count = table.vals[k]
+#            {{if dtype != 'object'}}
+#            val = table.keys[k]
+#            if count == max_count and val < mode:
+#            {{else}}
+#            val = <object>table.keys[k]
+#            if count == max_count:
+#            {{endif}}
+#                mode = val
+#            elif count > max_count:
+#                mode = val
+#                max_count = count
+#    return mode
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def group_mode_{{dtype}}(ndarray[{{c_type}}, ndim=1] out,
+                         ndarray[{{c_type}}, ndim=1] values,
+                         ndarray[int64_t, ndim=1] labels,
+                         bint dropna = True):
+    """
+    Calculates the mode of each group.
+    If multimodal returns the smallest mode in each group if numeric.
+    For all other datatypes, returns a mode.
+    """
+    cdef:
+        Py_ssize_t i, N = len(values)
+        int64_t lab, curr_label = -1
+        kh_{{ttype}}_t *table
+        khiter_t k
+        int count, max_count = 0, ret = 0
+        {{c_type}} val, mode
+
+    table = kh_init_{{ttype}}()
+    {{if dtype != 'object'}}
+    # Fix NOGIL later with nogil:
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0: # NaN case
+            continue
+        if lab != curr_label and curr_label != -1:
+            for k in range(table.n_buckets):
+                if kh_exist_{{ttype}}(table, k):
+                    count = table.vals[k]
+                    val = table.keys[k]
+                    if count == max_count and val < mode:
+                        mode = val
+                    elif count > max_count:
+                        mode = val
+                        max_count = count
+
+            #out[curr_label] = calc_mode_{{dtype}}(table)
+            out[curr_label] = mode
+            # Reset variables
+            max_count = 0
+            table = kh_init_{{ttype}}()
+
+        val = {{to_c_type}}(values[i])
+
+        if not is_nan_{{c_type}}(val) or not dropna:
+            k = kh_get_{{ttype}}(table, val)
+            if k != table.n_buckets:
+                table.vals[k] += 1
+            else:
+                k = kh_put_{{ttype}}(table, val, &ret)
+                table.vals[k] = 1
+        curr_label = lab
+    # Calc mode for the last group
+    for k in range(table.n_buckets):
+        if kh_exist_{{ttype}}(table, k):
+            count = table.vals[k]
+            val = table.keys[k]
+            if count == max_count and val < mode:
+                mode = val
+            elif count > max_count:
+                mode = val
+                max_count = count
+    #out[lab] = calc_mode_{{dtype}}(table)
+    out[curr_label] = mode
+    {{else}}
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0: # NaN case
+            continue
+        if lab != curr_label and curr_label != -1:
+            for k in range(table.n_buckets):
+                if kh_exist_{{ttype}}(table, k):
+                    count = table.vals[k]
+                    val = <object>table.keys[k]
+                    if count == max_count:
+                        mode = val
+                    elif count > max_count:
+                        mode = val
+                        max_count = count
+            #out[curr_label] = calc_mode_{{dtype}}(table)
+            out[curr_label] = mode
+            # Reset variables
+            table = kh_init_{{ttype}}()
+
+        val = values[i]
+        if not checknull(val) or not dropna:
+            k = kh_get_{{ttype}}(table, <PyObject*>val)
+            if k != table.n_buckets:
+                table.vals[k] += 1
+            else:
+                k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
+                table.vals[k] = 1
+        curr_label = lab
+    for k in range(table.n_buckets):
+        if kh_exist_{{ttype}}(table, k):
+            count = table.vals[k]
+            val = <object>table.keys[k]
+            if count == max_count:
+                mode = val
+            elif count > max_count:
+                mode = val
+                max_count = count
+    out[curr_label] = mode
+    {{endif}}
+    kh_destroy_{{ttype}}(table)
+{{endfor}}

@@ -50,6 +50,10 @@ except ImportError:
 
 _pxi_dep_template = {
     "algos": ["_libs/algos_common_helper.pxi.in", "_libs/algos_take_helper.pxi.in"],
+    "groupby": [
+        "_libs/groupby_mode_helper.pxi.in",
+        "_libs/khash_for_primitive_helper.pxi.in",
+    ],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
@@ -524,7 +528,14 @@ ext_data = {
         "include": klib_include,
         "depends": _pxi_dep["algos"],
     },
-    "_libs.groupby": {"pyxfile": "_libs/groupby"},
+    "_libs.groupby": {
+        "pyxfile": "_libs/groupby",
+        "include": klib_include,
+        "depends": (
+            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
+            + _pxi_dep["groupby"]
+        ),
+    },
     "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",

@@ -380,3 +380,25 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
 
     result = grouped["col"].aggregate(op_name)
     assert result.dtype == expected_dtype
+
+
+def test_mode_numeric():
+    data = {
+        "A": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1.0, np.nan, np.nan],
+        "B": ["A", "B"] * 6,
+        "C": [2, 4, 3, 1, 2, 3, 4, 5, 2, 7, 9, 9],
+    }
+    df = DataFrame(data)
+    df.drop(columns="B", inplace=True)
+    # Group by 1 column
+    result = df.groupby("A").mode()
+    exp = DataFrame({"C": [1, 2]}, index=Series([0.0, 1.0], name="A"))
+    tm.assert_frame_equal(result, exp)
+    # Group by 2 column
+    df = DataFrame(data)
+    result = df.groupby(by=["A", "B"]).mode()
+    exp = DataFrame(
+        {"C": [3, 1, 2, 7]},
+        index=pd.MultiIndex.from_product([[0.0, 1.0], ["A", "B"]], names=["A", "B"]),
+    )
+    tm.assert_frame_equal(result, exp)
