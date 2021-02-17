@@ -75,16 +75,16 @@ def concatenate_array_managers(
             )
         mgrs.append(mgr)
 
-    # concatting along the rows -> concat the reindexed arrays
-    # TODO(ArrayManager) doesn't yet preserve the correct dtype
     if concat_axis == 1:
+        # concatting along the rows -> concat the reindexed arrays
+        # TODO(ArrayManager) doesn't yet preserve the correct dtype
         arrays = [
             concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
         return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
-    # concatting along the columns -> combine reindexed arrays in a single manager
     else:
+        # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
         return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
@@ -107,6 +107,7 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
+    # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         return concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 

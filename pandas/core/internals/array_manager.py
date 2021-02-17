@@ -756,6 +756,7 @@ class ArrayManager(DataManager):
         self: T,
         new_axis,
         indexer,
+        *,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
