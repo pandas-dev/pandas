@@ -5,7 +5,11 @@ Routines for casting.
 from __future__ import annotations
 
 from contextlib import suppress
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -24,7 +28,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslib
+from pandas._libs import (
+    lib,
+    tslib,
+)
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -36,7 +43,13 @@ from pandas._libs.tslibs import (
     iNaT,
     ints_to_pydatetime,
 )
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    Scalar,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -95,7 +108,10 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.core.arrays import DatetimeArray, ExtensionArray
+    from pandas.core.arrays import (
+        DatetimeArray,
+        ExtensionArray,
+    )
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -387,7 +403,10 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     """
     from pandas.core.arrays.boolean import BooleanDtype
     from pandas.core.arrays.floating import Float64Dtype
-    from pandas.core.arrays.integer import Int64Dtype, _IntegerDtype
+    from pandas.core.arrays.integer import (
+        Int64Dtype,
+        _IntegerDtype,
+    )
 
     if how in ["add", "cumsum", "sum", "prod"]:
         if dtype == np.dtype(bool):
@@ -590,24 +609,10 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         return np.dtype(object), fill_value
 
     elif issubclass(dtype.type, np.timedelta64):
-        if (
-            is_integer(fill_value)
-            or is_float(fill_value)
-            or isinstance(fill_value, str)
-        ):
-            # TODO: What about str that can be a timedelta?
-            dtype = np.dtype(np.object_)
-        else:
-            try:
-                fv = Timedelta(fill_value)
-            except ValueError:
-                dtype = np.dtype(np.object_)
-            else:
-                if fv is NaT:
-                    # NaT has no `to_timedelta64` method
-                    fill_value = np.timedelta64("NaT", "ns")
-                else:
-                    fill_value = fv.to_timedelta64()
+        inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
+        if inferred == dtype:
+            return dtype, fv
+        return np.dtype(object), fill_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -763,11 +768,12 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
 
     elif isinstance(val, (np.timedelta64, timedelta)):
         try:
-            val = Timedelta(val).value
+            val = Timedelta(val)
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = np.dtype(object)
         else:
             dtype = np.dtype("m8[ns]")
+            val = np.timedelta64(val.value, "ns")
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
@@ -1527,7 +1533,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                     value = iNaT
 
                 # we have an array of datetime or timedeltas & nulls
-                elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
+                elif value.size or not is_dtype_equal(value.dtype, dtype):
                     _disallow_mismatched_datetimelike(value, dtype)
 
                     try:

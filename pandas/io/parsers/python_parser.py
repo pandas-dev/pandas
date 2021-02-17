@@ -1,19 +1,39 @@
-from collections import abc, defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import csv
 from io import StringIO
 import re
 import sys
-from typing import DefaultDict, Iterator, List, Optional, Set, Tuple, cast
+from typing import (
+    DefaultDict,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    cast,
+)
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import FilePathOrBuffer, Union
-from pandas.errors import EmptyDataError, ParserError
+from pandas._typing import (
+    FilePathOrBuffer,
+    Union,
+)
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 
 from pandas.core.dtypes.common import is_integer
 
-from pandas.io.parsers.base_parser import ParserBase, parser_defaults
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    parser_defaults,
+)
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
