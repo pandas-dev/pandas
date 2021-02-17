@@ -141,6 +141,7 @@ reduction_kernels = frozenset(
         "mad",
         "max",
         "mean",
+        "mode",
         "median",
         "min",
         "ngroup",

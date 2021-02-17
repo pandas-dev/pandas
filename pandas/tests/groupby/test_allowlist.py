@@ -285,6 +285,7 @@ def test_tab_completion(mframe):
         "mean",
         "median",
         "min",
+        "mode",
         "ngroups",
         "nth",
         "ohlc",
