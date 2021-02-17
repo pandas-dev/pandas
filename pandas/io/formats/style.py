@@ -1859,9 +1859,10 @@ class Styler:
         color : str, default 'yellow'
             Background color to use for highlighting
         q_low : float, default 0
-            Left bound for the target quantile range (exclusive if not 0).
+            Left bound, in [0, q_high), for the target quantile range (exclusive if not
+            0).
         q_high : float, default 1
-            Right bound for the target quantile range (inclusive)
+            Right bound, in (q_low, 1], for the target quantile range (inclusive)
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -1876,14 +1877,17 @@ class Styler:
 
         See Also
         --------
-        Styler.highlight_max:
-        Styler.highlight_min:
-        Styler.highlight_range:
+        Styler.highlight_null: Highlight missing values with a style
+        Styler.highlight_max: Highlight the maximum with a style
+        Styler.highlight_min: Highlight the minimum with a style
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style
+        Styler.highlight_range: Highlight a defined range with a style
 
         Notes
         -----
-        This function only works with consistent ``dtypes`` within the ``subset``.
-        For example a mixture of datetime-like and float items will raise errors.
+        This function only works with consistent ``dtypes`` within the ``subset`` or
+        ``axis``. For example a mixture of datetime-like and float items will raise
+        errors.
 
         This method uses ``pandas.qcut`` to implement the quantile labelling of data
         values.
