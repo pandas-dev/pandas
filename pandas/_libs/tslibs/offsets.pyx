@@ -1840,7 +1840,8 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     
     _attributes = tuple(["n", "normalize", "month"])
-    cdef int _default_month, _period_dtype_code
+    _default_month = 1
+    cdef int _period_dtype_code
 
     cdef readonly:
         int month
@@ -2028,7 +2029,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       startingMonth vs month attr names are resolved
     
     _attributes = tuple(["n", "normalize", "startingMonth"])
-    cdef int _default_month, _period_dtype_code
+    _default_month = 1
+    cdef int _period_dtype_code
 
     cdef readonly:
         int startingMonth
