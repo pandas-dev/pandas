@@ -762,6 +762,25 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO(EA2D) special case would be unnecessary with 2D EAs
         return not is_ea_dtype(dtype)
 
+    @property
+    def _values_compat(self) -> ArrayLike:
+        """
+        Analogue to ._values that may return a 2D ExtensionArray.
+        """
+        mgr = self._mgr
+        if isinstance(mgr, ArrayManager):
+            return self._values
+
+        blocks = mgr.blocks
+        if len(blocks) != 1:
+            return self._values
+
+        arr = blocks[0].values
+        if arr.ndim == 1:
+            # non-2D ExtensionArray
+            return self._values
+        return arr.T
+
     # ----------------------------------------------------------------------
     # Rendering Methods
 
@@ -2986,13 +3005,13 @@ class DataFrame(NDFrame, OpsMixin):
         # construct the args
 
         dtypes = list(self.dtypes)
-        if self._mgr.nblocks == 1 and not is_strict_ea(self._mgr.blocks[0].values):
+
+        if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
-            # TODO: something like frame.values but that _may_ give an EA
-            blk = self._mgr.blocks[0]
-            new_values = blk.values
+            new_values = self._values_compat.T
             if copy:
                 new_values = new_values.copy()
+
             result = self._constructor(
                 new_values, index=self.columns, columns=self.index
             )
