@@ -752,10 +752,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if isinstance(self._mgr, ArrayManager):
             return False
-        if self._mgr.any_extension_types:
-            # TODO(EA2D) special case would be unnecessary with 2D EAs
+        blocks = self._mgr.blocks
+        if len(blocks) != 1:
             return False
-        return len(self._mgr.blocks) == 1
+
+        dtype = blocks[0].dtype
+        # TODO(EA2D): special case would be unnecessary with 2D EAs
+        return isinstance(dtype, np.dtype)  # i.e. not ExtensionDtype
 
     # ----------------------------------------------------------------------
     # Rendering Methods
