@@ -1049,8 +1049,10 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
         # exclude zero-dimensional numpy arrays, effectively scalars
-        # and not (hasattr(obj, "ndim") and obj.ndim == 0)
         and not cnp.PyArray_IsZeroDim(obj)
+        # extra check for numpy-like objects which aren't captured by
+        # the above
+        and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
     )
