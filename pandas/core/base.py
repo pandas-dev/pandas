@@ -24,7 +24,7 @@ import pandas._libs.lib as lib
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    FrameOrSeriesUnion, 
+    FrameOrSeriesUnion,
     IndexLabel,
 )
 from pandas.compat import PYPY
