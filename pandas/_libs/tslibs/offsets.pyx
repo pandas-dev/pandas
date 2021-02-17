@@ -1840,9 +1840,11 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     
     _attributes = tuple(["n", "normalize", "month"])
+    _default_month = 1
+    _period_dtype_code = None
 
     cdef readonly:
-        int month, _default_month, _period_dtype_code
+        int month
 
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
@@ -2019,14 +2021,19 @@ cdef class BYearEnd(YearOffset):
 # Quarter-Based Offset Classes
 
 cdef class QuarterOffset(SingleConstructorOffset):
-    _attributes = tuple(["n", "normalize", "startingMonth"])
+    """
+    The baseline quarterly DateOffset that just needs a month.
+    """
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
-
+    
+    _attributes = tuple(["n", "normalize", "startingMonth"])
+    _default_month = 1
+    _period_dtype_code = None
 
     cdef readonly:
-        int startingMonth, _default_month, _period_dtype_code
+        int startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
@@ -2211,9 +2218,6 @@ cdef class QuarterBegin(QuarterOffset):
 # Month-Based Offset Classes
 
 cdef class MonthOffset(SingleConstructorOffset):
-    cdef readonly:
-        int _period_dtype_code
-        
     _period_dtype_code = PeriodDtypeCode.M
     
     def is_on_offset(self, dt: datetime) -> bool:
