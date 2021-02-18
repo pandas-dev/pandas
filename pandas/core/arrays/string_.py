@@ -166,7 +166,7 @@ class StringDtype(ExtensionDtype):
         -------
         type
         """
-        from .string_arrow import ArrowStringArray
+        from pandas.core.arrays.string_arrow import ArrowStringArray
 
         if self.storage == "python":
             return StringArray
@@ -184,7 +184,7 @@ class StringDtype(ExtensionDtype):
         """
         import pyarrow
 
-        from .string_arrow import ArrowStringArray
+        from pandas.core.arrays.string_arrow import ArrowStringArray
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
