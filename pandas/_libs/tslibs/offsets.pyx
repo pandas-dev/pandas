@@ -1992,10 +1992,10 @@ cdef class BYearEnd(YearOffset):
     ----------
     n : int, default 1
         Number of years to offset.
-    normalize: bool, default False
+    normalize : bool, default False
         If true, the time component of the resulting date-time is converted to
         00:00:00, i.e. midnight (the start, not the end of date-time).
-    month: int, default 12
+    month : int, default 12
         The calendar month number (12 for December) of the ending month
         in a custom-defined year to be used as offset.
 
@@ -2261,7 +2261,7 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
     """
 
-    _period_dtype_code = None
+    del(_period_dtype_code)
     _prefix = "MS"
     _day_opt = "start"
 
