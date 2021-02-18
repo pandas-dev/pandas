@@ -1849,16 +1849,12 @@ class Styler:
             d: Optional[Union[Scalar, Sequence]] = None,
             u: Optional[Union[Scalar, Sequence]] = None,
         ) -> np.ndarray:
-            d = (
-                np.asarray(d).reshape(data.shape)
-                if (np.iterable(d) and not isinstance(d, str))
-                else d
-            )
-            u = (
-                np.asarray(u).reshape(data.shape)
-                if (np.iterable(u) and not isinstance(u, str))
-                else u
-            )
+            def realign(x):
+                if np.iterable(x) and not isinstance(x, str):
+                    return np.asarray(x).reshape(data.shape)
+                return x
+
+            d, u = realign(d), realign(u)
             ge_d = data >= d if d is not None else np.full_like(data, True, dtype=bool)
             le_u = data <= u if u is not None else np.full_like(data, True, dtype=bool)
             return np.where(ge_d & le_u, props, "")
