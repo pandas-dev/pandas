@@ -1237,39 +1237,6 @@ class TestStyler:
         result = self.df.style.highlight_max().render()
         assert result.count("#") == len(self.df.columns)
 
-    @pytest.mark.parametrize(
-        "f",
-        [
-            {"f": "highlight_min", "kw": {"axis": 1, "subset": pd.IndexSlice[1, :]}},
-            {"f": "highlight_max", "kw": {"axis": 0, "subset": [0]}},
-            {
-                "f": "highlight_quantile",
-                "kw": {"axis": None, "q_low": 0.6, "q_high": 0.8},
-            },
-            {"f": "highlight_range", "kw": {"subset": [0]}},
-        ],
-    )
-    @pytest.mark.parametrize(
-        "df",
-        [
-            DataFrame([[0, 1], [2, 3]], dtype=int),
-            DataFrame([[0, 1], [2, 3]], dtype=float),
-            DataFrame([[0, 1], [2, 3]], dtype="datetime64[ns]"),
-            DataFrame([[0, 1], [2, 3]], dtype=str),
-            DataFrame([[0, 1], [2, 3]], dtype="timedelta64[ns]"),
-        ],
-    )
-    def test_all_highlight_dtypes(self, f, df):
-        func = f["f"]
-        if func == "highlight_quantile" and isinstance(df.iloc[0, 0], str):
-            return None  # quantile incompatible with str
-        elif func == "highlight_range":
-            f["kw"]["start"] = df.iloc[1, 0]  # set the range low for testing
-
-        expected = {(1, 0): ["background-color: yellow"]}
-        result = getattr(df.style, func)(**f["kw"])._compute().ctx
-        assert result == expected
-
     @pytest.mark.parametrize("f", ["highlight_min", "highlight_max"])
     def test_highlight_minmax_basic(self, f):
         expected = {
@@ -1339,6 +1306,39 @@ class TestStyler:
             (1, 0): ["background-color: yellow"],
         }
         result = self.df.style.highlight_quantile(**kwargs)._compute().ctx
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "f",
+        [
+            {"f": "highlight_min", "kw": {"axis": 1, "subset": pd.IndexSlice[1, :]}},
+            {"f": "highlight_max", "kw": {"axis": 0, "subset": [0]}},
+            {
+                "f": "highlight_quantile",
+                "kw": {"axis": None, "q_low": 0.6, "q_high": 0.8},
+            },
+            {"f": "highlight_range", "kw": {"subset": [0]}},
+        ],
+    )
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame([[0, 1], [2, 3]], dtype=int),
+            DataFrame([[0, 1], [2, 3]], dtype=float),
+            DataFrame([[0, 1], [2, 3]], dtype="datetime64[ns]"),
+            DataFrame([[0, 1], [2, 3]], dtype=str),
+            DataFrame([[0, 1], [2, 3]], dtype="timedelta64[ns]"),
+        ],
+    )
+    def test_all_highlight_dtypes(self, f, df):
+        func = f["f"]
+        if func == "highlight_quantile" and isinstance(df.iloc[0, 0], str):
+            return None  # quantile incompatible with str
+        elif func == "highlight_range":
+            f["kw"]["start"] = df.iloc[1, 0]  # set the range low for testing
+
+        expected = {(1, 0): ["background-color: yellow"]}
+        result = getattr(df.style, func)(**f["kw"])._compute().ctx
         assert result == expected
 
     def test_export(self):
