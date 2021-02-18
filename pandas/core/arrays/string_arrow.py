@@ -31,7 +31,6 @@ from pandas.core.dtypes.missing import isna
 from pandas.api.types import (
     is_array_like,
     is_bool_dtype,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_scalar,
@@ -284,9 +283,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         ).to_pandas()
         if indices.dtype.kind == "f":
             indices[np.isnan(indices)] = na_sentinel
-            indices = indices.astype(int)
-        if not is_int64_dtype(indices):
-            indices = indices.astype(np.int64)
+        indices = indices.astype(np.int64, copy=False)
 
         if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
