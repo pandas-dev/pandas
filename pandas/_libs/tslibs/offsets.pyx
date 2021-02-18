@@ -2040,7 +2040,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
        
         if startingMonth is not None:
             if isinstance(startingMonth, str):
-                startingMonth = MONTH_TO_CAL_NUM[suffix]
+                startingMonth = MONTH_TO_CAL_NUM[startingMonth]
             if startingMonth < 1 or startingMonth > 12:
                 raise ValueError("Month must go from 1 to 12.") 
             self.startingMonth = startingMonth
