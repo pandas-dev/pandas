@@ -1849,11 +1849,14 @@ cdef class YearOffset(SingleConstructorOffset):
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
 
-        month = month if month is not None else self._default_month
-        self.month = month
-
-        if month < 1 or month > 12:
-            raise ValueError("Month must go from 1 to 12.")
+        if month is not None:
+            if isinstance(month, str):
+                month = MONTH_TO_CAL_NUM[month]
+            if month < 1 or month > 12:
+                raise ValueError("Month must go from 1 to 12.") 
+            self.month = month
+        else:
+            self.month = self._default_month
             
         self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
 
