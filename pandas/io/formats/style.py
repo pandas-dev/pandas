@@ -1645,7 +1645,6 @@ class Styler:
 
             .. versionadded:: 1.3.0
 
-
         Returns
         -------
         self : Styler
