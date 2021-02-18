@@ -2132,7 +2132,7 @@ cdef class QuarterBegin(QuarterOffset):
     """
 
     _output_name = "QuarterBegin"
-    _default_month = 1
+    _default_month = 3 #1
     _prefix = "QS"
     _day_opt = "start"
 
@@ -2188,7 +2188,7 @@ cdef class BQuarterBegin(QuarterOffset):
     """
 
     _output_name = "BusinessQuarterBegin"
-    _default_month = 1
+    _default_month = 3 #1
     _prefix = "BQS"
     _day_opt = "business_start"
 
@@ -2261,6 +2261,7 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
     """
 
+    _period_dtype_code = None
     _prefix = "MS"
     _day_opt = "start"
 
