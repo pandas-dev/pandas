@@ -2228,7 +2228,7 @@ cdef class BQuarterEnd(QuarterOffset):
     """
 
     _output_name = "BusinessQuarterEnd"
-    _default_month = 3
+    _default_month = 12  # Should be 3
     _prefix = "BQ"
     _day_opt = "business_end"
 
