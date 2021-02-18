@@ -2065,8 +2065,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
         if suffix:
             kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
         else:
-            if cls._default_month is not None:
-                kwargs["startingMonth"] = cls._default_month
+            if cls._from_name_starting_month is not None:
+                kwargs["startingMonth"] = cls._from_name_starting_month
         return cls(**kwargs)
 
     @property
@@ -2129,19 +2129,9 @@ cdef class QuarterBegin(QuarterOffset):
 
     _output_name = "QuarterBegin"
     _default_month = 3  # should be 1
+    _from_name_starting_month = 1
     _prefix = "QS"
     _day_opt = "start"
-    _from_name_starting_month = 1
-
-    @classmethod
-    def _from_name(cls, suffix=None):
-        kwargs = {}
-        if suffix:
-            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
-        else:
-            if cls._from_name_starting_month is not None:
-                kwargs["startingMonth"] = cls._from_name_starting_month
-        return cls(**kwargs)
 
 
 cdef class QuarterEnd(QuarterOffset):
@@ -2190,19 +2180,9 @@ cdef class BQuarterBegin(QuarterOffset):
 
     _output_name = "BusinessQuarterBegin"
     _default_month = 3  # Should be 1
+    _from_name_starting_month = 1
     _prefix = "BQS"
     _day_opt = "business_start"
-    _from_name_starting_month = 1
-
-    @classmethod
-    def _from_name(cls, suffix=None):
-        kwargs = {}
-        if suffix:
-            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
-        else:
-            if cls._from_name_starting_month is not None:
-                kwargs["startingMonth"] = cls._from_name_starting_month
-        return cls(**kwargs)
 
 
 cdef class BQuarterEnd(QuarterOffset):
@@ -2228,7 +2208,8 @@ cdef class BQuarterEnd(QuarterOffset):
     """
 
     _output_name = "BusinessQuarterEnd"
-    _default_month = 12  # Should be 3
+    _default_month = 3
+    _from_name_starting_month = 12
     _prefix = "BQ"
     _day_opt = "business_end"
 
