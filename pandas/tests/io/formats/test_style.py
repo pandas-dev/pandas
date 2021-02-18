@@ -1309,6 +1309,9 @@ class TestStyler:
             {"start": -9, "stop": 9, "subset": ["A"]},  # test subset effective
             {"start": 0},  # test no stop
             {"stop": 1, "subset": ["A"]},  # test no start
+            {"start": [0, 1], "axis": 0},  # test start as sequence
+            {"start": DataFrame([[0, 1], [1, 1]]), "axis": None},  # test axis with seq
+            {"start": 0, "stop": [0, 1], "axis": 0},  # test sequence stop
         ],
     )
     def test_highlight_range(self, kwargs):

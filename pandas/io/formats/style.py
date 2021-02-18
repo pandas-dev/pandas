@@ -1766,8 +1766,9 @@ class Styler:
         self,
         subset: Optional[IndexLabel] = None,
         color: str = "yellow",
-        start: Optional[Any] = None,
-        stop: Optional[Any] = None,
+        axis: Optional[Axis] = 0,
+        start: Optional[Union[Scalar, Sequence]] = None,
+        stop: Optional[Union[Scalar, Sequence]] = None,
         props: Optional[str] = None,
     ) -> Styler:
         """
@@ -1781,9 +1782,13 @@ class Styler:
             A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
             Background color to use for highlighting.
-        start : scalar or datetime-like, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
+        start : scalar or datetime-like, or sequence or array-like, default None
             Left bound for defining the range (inclusive).
-        stop : scalar or datetime-like, default None
+        stop : scalar or datetime-like, or sequence or array-like, default None
             Right bound for defining the range (inclusive)
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
@@ -1807,6 +1812,10 @@ class Styler:
         If ``stop`` is ``None`` only the left bound is applied. If both are ``None``
         all values are highlighted.
 
+        ``axis`` is only needed if ``start`` or ``stop`` are provide as a sequence or
+        an array-like object for aligning the shapes. If ``start`` and ``stop`` are
+        both scalars then all ``axis`` inputs will give the same result.
+
         This function only works with compatible ``dtypes``. For example a datetime-like
         region can only use equivalent datetime-like ``start`` and ``stop`` arguments.
         Use ``subset`` to control regions which have multiple ``dtypes``.
@@ -1818,25 +1827,45 @@ class Styler:
         >>> df = pd.DataFrame({'dates': pd.date_range(start='2021-01-01', periods=10)})
         >>> df.style.highlight_range(start=pd.to_datetime('2021-01-05'))
 
-        Using ``props`` instead of default background shading
+        Basic usage
 
         >>> df = pd.DataFrame([[1,2], [3,4]])
-        >>> df.style.highlight_range(start=2, stop=3, props='font-weight:bold;')
+        >>> df.style.highlight_range(start=1, stop=3)
+
+        Using ``props`` instead of default background coloring
+
+        >>> df.style.highlight_range(start=1, stop=3, props='font-weight:bold;')
+
+        Using ``start`` and ``stop`` sequences or array-like objects with ``axis``
+
+        >>> df.style.highlight_range(start=[0.9, 2.9], stop=[1.1, 3.1], axis=0)
+        >>> df.style.highlight_range(start=[0.9, 2.9], stop=[1.1, 3.1], axis=1)
+        >>> df.style.highlight_range(start=pd.DataFrame([[1,2],[10,4]]), axis=None)
         """
 
         def f(
             data: DataFrame,
             props: str,
-            d: Optional[Scalar] = None,
-            u: Optional[Scalar] = None,
+            d: Optional[Union[Scalar, Sequence]] = None,
+            u: Optional[Union[Scalar, Sequence]] = None,
         ) -> np.ndarray:
+            d = (
+                np.asarray(d).reshape(data.shape)
+                if (np.iterable(d) and not isinstance(d, str))
+                else d
+            )
+            u = (
+                np.asarray(u).reshape(data.shape)
+                if (np.iterable(u) and not isinstance(u, str))
+                else u
+            )
             ge_d = data >= d if d is not None else np.full_like(data, True, dtype=bool)
             le_u = data <= u if u is not None else np.full_like(data, True, dtype=bool)
             return np.where(ge_d & le_u, props, "")
 
         if props is None:
             props = f"background-color: {color};"
-        return self.apply(f, axis=None, subset=subset, props=props, d=start, u=stop)
+        return self.apply(f, axis=axis, subset=subset, props=props, d=start, u=stop)
 
     def highlight_quantile(
         self,
