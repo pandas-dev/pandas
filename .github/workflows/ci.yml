@@ -153,6 +153,7 @@ jobs:
       run: |
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
+        pytest pandas/tests/groupby/aggregate/ --array-manager
 
         # indexing iset related (temporary since other tests don't pass yet)
         pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_multi_index --array-manager

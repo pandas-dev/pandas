@@ -302,7 +302,7 @@ class ArrayManager(DataManager):
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
                 arr = arr._data  # type: ignore[union-attr]
-            elif arr.dtype.kind == "m":
+            elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
                 # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
                 arr = arr._data  # type: ignore[union-attr]
             if isinstance(arr, np.ndarray):

@@ -33,7 +33,10 @@ from pandas.core.groupby.groupby import DataError
         "max",
     ],
 )
-def test_cythonized_aggers(op_name):
+def test_cythonized_aggers(op_name, using_array_manager):
+    if using_array_manager and op_name in {"count", "sem"}:
+        # TODO(ArrayManager) groupby count/sem
+        pytest.skip("ArrayManager groupby count/sem not yet implemented")
     data = {
         "A": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1.0, np.nan, np.nan],
         "B": ["A", "B"] * 6,
@@ -265,7 +268,7 @@ def test_cython_with_timestamp_and_nat(op, data):
         "cummax",
     ],
 )
-def test_read_only_buffer_source_agg(agg):
+def test_read_only_buffer_source_agg(agg, using_array_manager):
     # https://github.com/pandas-dev/pandas/issues/36014
     df = DataFrame(
         {
@@ -273,7 +276,10 @@ def test_read_only_buffer_source_agg(agg):
             "species": ["setosa", "setosa", "setosa", "setosa", "setosa"],
         }
     )
-    df._mgr.blocks[0].values.flags.writeable = False
+    if using_array_manager:
+        df._mgr.arrays[0].flags.writeable = False
+    else:
+        df._mgr.blocks[0].values.flags.writeable = False
 
     result = df.groupby(["species"]).agg({"sepal_length": agg})
     expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})
