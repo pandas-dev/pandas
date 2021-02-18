@@ -25,7 +25,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -314,8 +313,6 @@ class JoinUnit:
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
-                elif is_categorical_dtype(blk_dtype):
-                    pass
                 elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):

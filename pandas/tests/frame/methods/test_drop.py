@@ -457,3 +457,13 @@ class TestDataFrameDrop:
         result = df.drop(index="x")
         expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
         tm.assert_frame_equal(result, expected)
+
+    def test_drop_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
+        )
+        result = df.drop(["a"], axis=1)
+        expected = DataFrame([[1], [1], [1]], columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+        result = df.drop("a", axis=1)
+        tm.assert_frame_equal(result, expected)
