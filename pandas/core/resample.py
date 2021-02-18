@@ -86,6 +86,8 @@ from pandas.tseries.offsets import (
     Tick,
 )
 
+from pandas.core.reshape.concat import concat
+
 _shared_docs_kwargs: Dict[str, str] = {}
 
 
@@ -859,6 +861,11 @@ class Resampler(BaseGroupBy, ShallowMixin):
         Interpolate values according to different methods.
         """
         result = self._upsample("asfreq")
+        if isinstance(result.index, DatetimeIndex):
+            obj = self._selected_obj
+            tmp = concat([obj, result]).sort_index().interpolate(method='time')
+            tmp = tmp[result.index]
+            result[...] = tmp[~tmp.index.duplicated(keep='first')]
         return result.interpolate(
             method=method,
             axis=axis,
