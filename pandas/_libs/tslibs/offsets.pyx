@@ -2270,7 +2270,7 @@ cdef class MonthEnd(MonthOffset):
     DateOffset of one month end.
     """
 
-    _period_dtype_code = M
+    _period_dtype_code = PeriodDtypeCode.M
     _prefix = "M"
     _day_opt = "end"
 
@@ -2311,7 +2311,7 @@ cdef class BusinessMonthEnd(MonthOffset):
     Timestamp('2020-03-31 05:01:15')
     """
 
-    _period_dtype_code = M
+    _period_dtype_code = PeriodDtypeCode.M
     _prefix = "BM"
     _day_opt = "business_end"
 
