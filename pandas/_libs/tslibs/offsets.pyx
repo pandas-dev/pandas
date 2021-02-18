@@ -2225,7 +2225,7 @@ cdef class BQuarterEnd(QuarterOffset):
 # Month-Based Offset Classes
 
 cdef class MonthOffset(SingleConstructorOffset):
-    _period_dtype_code = PeriodDtypeCode.M
+    # _period_dtype_code = PeriodDtypeCode.M
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -2261,7 +2261,6 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
     """
 
-    del(_period_dtype_code)
     _prefix = "MS"
     _day_opt = "start"
 
@@ -2271,6 +2270,7 @@ cdef class MonthEnd(MonthOffset):
     DateOffset of one month end.
     """
 
+    _period_dtype_code = M
     _prefix = "M"
     _day_opt = "end"
 
@@ -2311,6 +2311,7 @@ cdef class BusinessMonthEnd(MonthOffset):
     Timestamp('2020-03-31 05:01:15')
     """
 
+    _period_dtype_code = M
     _prefix = "BM"
     _day_opt = "business_end"
 
