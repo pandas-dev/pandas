@@ -604,11 +604,16 @@ reducing the turn-around time for checking your changes.
     python make.py clean
     python make.py --single pandas.DataFrame.join
 
+    # compile whatsnew and API section (to resolve links in the whatsnew)
+    python make.py clean
+    python make.py --whatsnew
+
 For comparison, a full documentation build may take 15 minutes, but a single
 section may take 15 seconds. Subsequent builds, which only process portions
 you have changed, will be faster.
 
-You can also specify to use multiple cores to speed up the documentation build::
+The build will automatically use the number of cores available on your machine
+to speed up the documentation build. You can override this::
 
     python make.py html --num-jobs 4
 

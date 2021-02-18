@@ -44,7 +44,13 @@ __version__ = "1.7.0"
 
 import contextlib
 import ctypes
-from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
+from ctypes import (
+    c_size_t,
+    c_wchar,
+    c_wchar_p,
+    get_errno,
+    sizeof,
+)
 import distutils.spawn
 import os
 import platform

@@ -1,15 +1,35 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import (
+    datetime,
+    timedelta,
+)
+from typing import (
+    Any,
+    Optional,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
-from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
-from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import Dtype, DtypeObj
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
+from pandas._libs.tslibs import (
+    BaseOffset,
+    Period,
+    Resolution,
+    Tick,
+)
+from pandas._libs.tslibs.parsing import (
+    DateParseError,
+    parse_time_string,
+)
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
@@ -33,7 +53,10 @@ import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.datetimes import DatetimeIndex, Index
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    Index,
+)
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 
@@ -166,21 +189,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return DatetimeIndex._simple_new(arr, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported  [misc]
+    # error: Decorated property not supported
     @property  # type:ignore[misc]
     @doc(PeriodArray.second.fget)
     def second(self) -> Int64Index:

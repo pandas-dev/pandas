@@ -5,7 +5,10 @@ import warnings
 
 import pytest
 
-from pandas.errors import DtypeWarning, PerformanceWarning
+from pandas.errors import (
+    DtypeWarning,
+    PerformanceWarning,
+)
 
 import pandas._testing as tm
 

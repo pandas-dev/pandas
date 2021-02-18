@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Series, concat
+from pandas import (
+    Series,
+    concat,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels

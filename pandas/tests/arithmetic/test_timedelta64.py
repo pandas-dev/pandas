@@ -1,11 +1,17 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -1748,7 +1754,9 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
-    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
+    def test_td64arr_floordiv_td64arr_with_nat(
+        self, box_with_array, using_array_manager
+    ):
         # GH#35529
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
@@ -1761,6 +1769,11 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
+        if box is DataFrame and using_array_manager:
+            # INFO(ArrayManager) floorfiv returns integer, and ArrayManager
+            # performs ops column-wise and thus preserves int64 dtype for
+            # columns without missing values
+            expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
         result = left // right
 
@@ -2040,7 +2053,9 @@ class TestTimedeltaArraylikeMulDivOps:
         [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_div_numeric_array(self, box_with_array, vector, any_real_dtype):
+    def test_td64arr_div_numeric_array(
+        self, box_with_array, vector, any_real_dtype, using_array_manager
+    ):
         # GH#4521
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
@@ -2075,6 +2090,15 @@ class TestTimedeltaArraylikeMulDivOps:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
+
+            if using_array_manager and box_with_array is pd.DataFrame:
+                # TODO the behaviour is buggy here (third column with all-NaT
+                # as result doesn't get preserved as timedelta64 dtype).
+                # Reported at https://github.com/pandas-dev/pandas/issues/39750
+                # Changing the expected instead of xfailing to continue to test
+                # the correct behaviour for the other columns
+                expected[2] = Series([pd.NaT, pd.NaT], dtype=object)
+
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
