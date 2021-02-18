@@ -99,10 +99,18 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
 
 if TYPE_CHECKING:
-    from pandas import PeriodIndex, TimedeltaIndex
+    from pandas import (
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 _N = 30
 _K = 4
@@ -207,8 +215,10 @@ def box_expected(expected, box_cls, transpose=True):
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
-            #  vectors of the same length.
+            #  vectors of the same length. But convert to two rows to avoid
+            #  single-row special cases in datetime arithmetic
             expected = expected.T
+            expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)

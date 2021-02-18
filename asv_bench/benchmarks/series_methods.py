@@ -4,7 +4,12 @@ import numpy as np
 
 from pandas.compat.numpy import np_version_under1p20
 
-from pandas import Categorical, NaT, Series, date_range
+from pandas import (
+    Categorical,
+    NaT,
+    Series,
+    date_range,
+)
 
 from .pandas_vb_common import tm
 

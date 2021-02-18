@@ -3,15 +3,34 @@ Experimental manager based on storing a collection of 1D arrays
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import NaT, lib
-from pandas._typing import ArrayLike, DtypeObj, Hashable
+from pandas._libs import (
+    NaT,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Hashable,
+)
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dtype_equal,
@@ -20,9 +39,18 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import array_equals, isna
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    PandasDtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    array_equals,
+    isna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
@@ -33,7 +61,10 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+)
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import make_block
 

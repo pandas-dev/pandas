@@ -3,7 +3,10 @@ import pytest
 
 from pandas._libs import iNaT
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype, needs_i8_conversion
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    needs_i8_conversion,
+)
 
 import pandas as pd
 import pandas._testing as tm

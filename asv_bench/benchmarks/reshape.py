@@ -4,7 +4,13 @@ import string
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    date_range,
+    melt,
+    wide_to_long,
+)
 from pandas.api.types import CategoricalDtype
 
 

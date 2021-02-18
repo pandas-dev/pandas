@@ -1,7 +1,10 @@
 """
 Tests for CBMonthEnd CBMonthBegin, SemiMonthEnd, and SemiMonthBegin in offsets
 """
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -15,7 +18,12 @@ from pandas._libs.tslibs.offsets import (
     SemiMonthEnd,
 )
 
-from pandas import DatetimeIndex, Series, _testing as tm, date_range
+from pandas import (
+    DatetimeIndex,
+    Series,
+    _testing as tm,
+    date_range,
+)
 from pandas.tests.tseries.offsets.common import (
     Base,
     assert_is_on_offset,

@@ -30,7 +30,10 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_value,
+    get_timedelta64_value,
+)
 
 # ----------------------------------------------------------------------
 # Constants
