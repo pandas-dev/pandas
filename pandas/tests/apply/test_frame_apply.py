@@ -1101,7 +1101,6 @@ class TestInferOutputShape:
 
 class TestDataFrameAggregate:
     def test_agg_transform(self, axis, float_frame):
-        float_frame = float_frame.head()
         other_axis = 1 if axis in {0, "index"} else 0
 
         with np.errstate(all="ignore"):
@@ -1125,16 +1124,11 @@ class TestDataFrameAggregate:
                 expected.index = pd.MultiIndex.from_product(
                     [float_frame.index, ["sqrt"]]
                 )
-            print("result")
-            print(result)
-            print('expected')
-            print(expected)
             tm.assert_frame_equal(result, expected)
 
             # multiple items in list
             # these are in the order as if we are applying both
             # functions per series and then concatting
-            print('marker')
             result = float_frame.apply([np.abs, np.sqrt], axis=axis)
             expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
             if axis in {0, "index"}:
@@ -1145,10 +1139,6 @@ class TestDataFrameAggregate:
                 expected.index = pd.MultiIndex.from_product(
                     [float_frame.index, ["absolute", "sqrt"]]
                 )
-            print()
-            print(result)
-            print()
-            print(expected)
             tm.assert_frame_equal(result, expected)
 
     def test_transform_and_agg_err(self, axis, float_frame):
@@ -1156,13 +1146,13 @@ class TestDataFrameAggregate:
         msg = "cannot combine transform and aggregation operations"
         with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
-                print(float_frame.agg(["max", "sqrt"], axis=axis))
+                float_frame.agg(["max", "sqrt"], axis=axis)
 
         df = DataFrame({"A": range(5), "B": 5})
 
         def f():
             with np.errstate(all="ignore"):
-                print(df.agg({"A": ["abs", "sum"], "B": ["mean", "max"]}, axis=axis))
+                df.agg({"A": ["abs", "sum"], "B": ["mean", "max"]}, axis=axis)
 
     def test_demo(self):
         # demonstration tests
