@@ -1,4 +1,7 @@
-from typing import Union, cast
+from typing import (
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -29,7 +32,10 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import safe_sort, take_nd
+from pandas.core.algorithms import (
+    safe_sort,
+    take_nd,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,

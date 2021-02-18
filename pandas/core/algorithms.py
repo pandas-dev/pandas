@@ -6,13 +6,34 @@ from __future__ import annotations
 
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
-from warnings import catch_warnings, simplefilter, warn
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
+from warnings import (
+    catch_warnings,
+    simplefilter,
+    warn,
+)
 
 import numpy as np
 
-from pandas._libs import algos, hashtable as htable, iNaT, lib
-from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
+from pandas._libs import (
+    algos,
+    hashtable as htable,
+    iNaT,
+    lib,
+)
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    DtypeObj,
+    FrameOrSeriesUnion,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -57,7 +78,10 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
 from pandas.core.construction import (
     array,
@@ -67,8 +91,16 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Index, Series
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
+    from pandas import (
+        Categorical,
+        DataFrame,
+        Index,
+        Series,
+    )
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
 
 _shared_docs: Dict[str, str] = {}
 

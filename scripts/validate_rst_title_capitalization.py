@@ -14,7 +14,11 @@ From the command-line:
 import argparse
 import re
 import sys
-from typing import Iterable, List, Tuple
+from typing import (
+    Iterable,
+    List,
+    Tuple,
+)
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",

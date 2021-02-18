@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import inspect
 from itertools import permutations
 
@@ -640,6 +643,18 @@ class TestDataFrameSelectReindex:
         msg = "cannot reindex from a duplicate axis"
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
+
+    def test_reindex_with_duplicate_columns(self):
+
+        # reindex is invalid!
+        df = DataFrame(
+            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
+        )
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=["bar"])
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=["bar", "foo"])
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
