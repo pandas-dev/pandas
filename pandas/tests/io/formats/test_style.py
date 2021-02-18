@@ -258,8 +258,8 @@ class TestStyler:
             ],
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "blank", "type": "th", "value": ""},
-                {"class": "blank", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": ""},
+                {"class": "blank col1", "type": "th", "value": ""},
             ],
         ]
 
@@ -297,7 +297,7 @@ class TestStyler:
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
                 {"class": "index_name level1", "type": "th", "value": "B"},
-                {"class": "blank", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": ""},
             ],
         ]
 
@@ -1398,7 +1398,7 @@ class TestStyler:
         expected = [
             {"class": "index_name level0", "value": "idx_level_0", "type": "th"},
             {"class": "index_name level1", "value": "idx_level_1", "type": "th"},
-            {"class": "blank", "value": "", "type": "th"},
+            {"class": "blank col0", "value": "", "type": "th"},
         ]
 
         assert head == expected

@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -19,24 +25,20 @@ class TestDatetimeIndex:
         df.iloc[1, 1] = pd.NaT
         df.iloc[1, 2] = pd.NaT
 
+        expected = Series(
+            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
+            index=list("ABC"),
+            dtype="object",
+            name=1,
+        )
+
         # indexing
         result = df.iloc[1]
-        expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
-            index=list("ABC"),
-            dtype="object",
-            name=1,
-        )
         tm.assert_series_equal(result, expected)
         result = df.loc[1]
-        expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
-            index=list("ABC"),
-            dtype="object",
-            name=1,
-        )
         tm.assert_series_equal(result, expected)
 
+    def test_indexing_fast_xs(self):
         # indexing - fast_xs
         df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC")})
         result = df.iloc[5]
@@ -53,6 +55,7 @@ class TestDatetimeIndex:
         expected = df.iloc[4:]
         tm.assert_frame_equal(result, expected)
 
+    def test_setitem_with_expansion(self):
         # indexing - setting an element
         df = DataFrame(
             data=pd.to_datetime(["2015-03-30 20:12:32", "2015-03-12 00:11:11"]),
@@ -216,12 +219,14 @@ class TestDatetimeIndex:
         expected = DataFrame(-1, index=index, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
-    def test_loc_setitem_with_existing_dst(self):
+    def test_loc_setitem_with_expansion_and_existing_dst(self):
         # GH 18308
         start = Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
         end = Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
         ts = Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
         idx = pd.date_range(start, end, closed="left", freq="H")
+        assert ts not in idx  # i.e. result.loc setitem is with-expansion
+
         result = DataFrame(index=idx, columns=["value"])
         result.loc[ts, "value"] = 12
         expected = DataFrame(
@@ -234,21 +239,23 @@ class TestDatetimeIndex:
 
     def test_getitem_millisecond_resolution(self, frame_or_series):
         # GH#33589
+
+        keys = [
+            "2017-10-25T16:25:04.151",
+            "2017-10-25T16:25:04.252",
+            "2017-10-25T16:50:05.237",
+            "2017-10-25T16:50:05.238",
+        ]
         obj = frame_or_series(
             [1, 2, 3, 4],
-            index=[
-                Timestamp("2017-10-25T16:25:04.151"),
-                Timestamp("2017-10-25T16:25:04.252"),
-                Timestamp("2017-10-25T16:50:05.237"),
-                Timestamp("2017-10-25T16:50:05.238"),
-            ],
+            index=[Timestamp(x) for x in keys],
         )
-        result = obj["2017-10-25T16:25:04.252":"2017-10-25T16:50:05.237"]
+        result = obj[keys[1] : keys[2]]
         expected = frame_or_series(
             [2, 3],
             index=[
-                Timestamp("2017-10-25T16:25:04.252"),
-                Timestamp("2017-10-25T16:50:05.237"),
+                Timestamp(keys[1]),
+                Timestamp(keys[2]),
             ],
         )
         tm.assert_equal(result, expected)
