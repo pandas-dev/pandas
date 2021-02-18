@@ -1851,10 +1851,11 @@ cdef class YearOffset(SingleConstructorOffset):
 
         if month is not None:
             if isinstance(month, str):
-                month = MONTH_TO_CAL_NUM[month]
-            if month < 1 or month > 12:
+                self.month = MONTH_TO_CAL_NUM[month]
+            elif month >= 1 and month <= 12:
+                self.month = month
+            else:
                 raise ValueError("Month must go from 1 to 12.") 
-            self.month = month
         else:
             self.month = self._default_month
             
@@ -2043,10 +2044,11 @@ cdef class QuarterOffset(SingleConstructorOffset):
        
         if startingMonth is not None:
             if isinstance(startingMonth, str):
-                startingMonth = MONTH_TO_CAL_NUM[startingMonth]
-            if startingMonth < 1 or startingMonth > 12:
+                self.startingMonth = MONTH_TO_CAL_NUM[startingMonth]
+            elif startingMonth >= 1 and startingMonth <= 12:
+                self.startingMonth = startingMonth
+            else:
                 raise ValueError("Month must go from 1 to 12.") 
-            self.startingMonth = startingMonth
         else:
             self.startingMonth = self._default_month
         
