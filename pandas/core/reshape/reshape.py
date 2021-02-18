@@ -19,6 +19,7 @@ from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
+    is_ea_dtype,
     is_extension_array_dtype,
     is_integer,
     is_integer_dtype,
@@ -435,13 +436,13 @@ def unstack(obj, level, fill_value=None):
             f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
         )
     else:
-        if is_extension_array_dtype(obj.dtype):
+        if is_ea_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
         unstacker = _Unstacker(
             obj.index, level=level, constructor=obj._constructor_expanddim
         )
         return unstacker.get_result(
-            obj.values, value_columns=None, fill_value=fill_value
+            obj._values, value_columns=None, fill_value=fill_value
         )
 
 
