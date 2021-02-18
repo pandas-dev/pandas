@@ -2123,10 +2123,6 @@ cdef class QuarterBegin(QuarterOffset):
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + QuarterBegin()._from_name('MAR')
     Timestamp('2020-06-01 05:01:15')
-    >>> ts + QuarterBegin()
-    Timestamp('2020-07-01 05:01:15')
-    >>> ts + QuarterBegin(2)
-    Timestamp('2020-10-01 05:01:15')
     >>> ts + QuarterBegin(2, startingMonth = 2)
     Timestamp('2020-11-01 05:01:15')
     """
@@ -2135,6 +2131,17 @@ cdef class QuarterBegin(QuarterOffset):
     _default_month = 3  # should be 1
     _prefix = "QS"
     _day_opt = "start"
+    _from_name_starting_month = 1
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._from_name_starting_month is not None:
+                kwargs["startingMonth"] = cls._from_name_starting_month
+        return cls(**kwargs)
 
 
 cdef class QuarterEnd(QuarterOffset):
@@ -2177,20 +2184,25 @@ cdef class BQuarterBegin(QuarterOffset):
     --------
     >>> from pandas.tseries.offsets import BQuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BQuarterBegin()
-    Timestamp('2020-07-01 05:01:15')
-    >>> ts + BQuarterBegin(2)
-    Timestamp('2020-10-01 05:01:15')
     >>> ts + BQuarterBegin(startingMonth=2)
     Timestamp('2020-08-03 05:01:15')
-    >>> ts + BQuarterBegin(-1)
-    Timestamp('2020-04-01 05:01:15')
     """
 
     _output_name = "BusinessQuarterBegin"
     _default_month = 3  # Should be 1
     _prefix = "BQS"
     _day_opt = "business_start"
+    _from_name_starting_month = 1
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._from_name_starting_month is not None:
+                kwargs["startingMonth"] = cls._from_name_starting_month
+        return cls(**kwargs)
 
 
 cdef class BQuarterEnd(QuarterOffset):
