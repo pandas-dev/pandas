@@ -27,19 +27,30 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, IndexLabel
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
 
 import pandas as pd
-from pandas.api.types import is_dict_like, is_list_like
+from pandas.api.types import (
+    is_dict_like,
+    is_list_like,
+)
 from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
+from pandas.core.indexing import (
+    maybe_numeric_slice,
+    non_reducing_slice,
+)
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
@@ -157,53 +168,39 @@ class Styler:
         na_rep: Optional[str] = None,
         uuid_len: int = 5,
     ):
-        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
-        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
-
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("``data`` must be a Series or DataFrame")
-        if data.ndim == 1:
+        # validate ordered args
+        if isinstance(data, pd.Series):
             data = data.to_frame()
+        if not isinstance(data, DataFrame):
+            raise TypeError("``data`` must be a Series or DataFrame")
         if not data.index.is_unique or not data.columns.is_unique:
             raise ValueError("style is not supported for non-unique indices.")
-
-        self.data = data
-        self.index = data.index
-        self.columns = data.columns
-
+        self.data: DataFrame = data
+        self.index: pd.Index = data.index
+        self.columns: pd.Index = data.columns
+        if precision is None:
+            precision = get_option("display.precision")
+        self.precision = precision
+        self.table_styles = table_styles
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
         self.uuid_len = min(32, uuid_len)
         self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
-        self.table_styles = table_styles
         self.caption = caption
-        if precision is None:
-            precision = get_option("display.precision")
-        self.precision = precision
         self.table_attributes = table_attributes
-        self.hidden_index = False
-        self.hidden_columns: Sequence[int] = []
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
-        self.tooltips: Optional[_Tooltips] = None
-
+        # assign additional default vars
+        self.hidden_index: bool = False
+        self.hidden_columns: Sequence[int] = []
+        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
         self.cell_context: Dict[str, Any] = {}
-
-        # display_funcs maps (row, col) -> formatting function
-
-        def default_display_func(x):
-            if self.na_rep is not None and pd.isna(x):
-                return self.na_rep
-            elif is_float(x):
-                display_format = f"{x:.{self.precision}f}"
-                return display_format
-            else:
-                return x
-
-        self._display_funcs: DefaultDict[
+        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
+        self.tooltips: Optional[_Tooltips] = None
+        self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: default_display_func)
+        ] = defaultdict(lambda: self._default_display_func)
 
     def _repr_html_(self) -> str:
         """
@@ -223,6 +220,15 @@ class Styler:
             )
         if self.tooltips is None:
             self.tooltips = _Tooltips()
+
+    def _default_display_func(self, x):
+        if self.na_rep is not None and pd.isna(x):
+            return self.na_rep
+        elif is_float(x):
+            display_format = f"{x:.{self.precision}f}"
+            return display_format
+        else:
+            return x
 
     def set_tooltips(self, ttips: DataFrame) -> Styler:
         """
@@ -478,8 +484,15 @@ class Styler:
                 )
 
             index_header_row.extend(
-                [{"type": "th", "value": BLANK_VALUE, "class": " ".join([BLANK_CLASS])}]
-                * (len(clabels[0]) - len(hidden_columns))
+                [
+                    {
+                        "type": "th",
+                        "value": BLANK_VALUE,
+                        "class": " ".join([BLANK_CLASS, f"col{c}"]),
+                    }
+                    for c in range(len(clabels[0]))
+                    if c not in hidden_columns
+                ]
             )
 
             head.append(index_header_row)
@@ -846,11 +859,19 @@ class Styler:
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):
-                raise TypeError(
-                    f"Function {repr(func)} must return a DataFrame when "
-                    f"passed to `Styler.apply` with axis=None"
-                )
-            if not (
+                if not isinstance(result, np.ndarray):
+                    raise TypeError(
+                        f"Function {repr(func)} must return a DataFrame or ndarray "
+                        f"when passed to `Styler.apply` with axis=None"
+                    )
+                if not (data.shape == result.shape):
+                    raise ValueError(
+                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                        f"Result has shape: {result.shape}\n"
+                        f"Expected shape: {data.shape}"
+                    )
+                result = DataFrame(result, index=data.index, columns=data.columns)
+            elif not (
                 result.index.equals(data.index) and result.columns.equals(data.columns)
             ):
                 raise ValueError(
@@ -858,13 +879,11 @@ class Styler:
                     f"index and columns as the input"
                 )
 
-        result_shape = result.shape
-        expected_shape = self.data.loc[subset].shape
-        if result_shape != expected_shape:
+        if result.shape != data.shape:
             raise ValueError(
                 f"Function {repr(func)} returned the wrong shape.\n"
                 f"Result has shape: {result.shape}\n"
-                f"Expected shape:   {expected_shape}"
+                f"Expected shape:   {data.shape}"
             )
         self._update_ctx(result)
         return self
@@ -877,7 +896,7 @@ class Styler:
         **kwargs,
     ) -> Styler:
         """
-        Apply a function column-wise, row-wise, or table-wise.
+        Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Updates the HTML representation with the result.
 
@@ -887,7 +906,10 @@ class Styler:
             ``func`` should take a Series or DataFrame (depending
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
-            column labels when ``axis=None``.
+            column labels or an ndarray with same shape as input when ``axis=None``.
+
+            .. versionchanged:: 1.3.0
+
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -904,9 +926,11 @@ class Styler:
 
         Notes
         -----
-        The output shape of ``func`` should match the input, i.e. if
+        The output of ``func`` should be elements having CSS style as string or,
+        if nothing is to be applied to that element, an empty string or ``None``.
+        The output shape must match the input, i.e. if
         ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x).shape == x.shape`` should be true.
+        then ``func(x).shape == x.shape`` should be ``True``.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
@@ -914,12 +938,12 @@ class Styler:
 
         Examples
         --------
-        >>> def highlight_max(x):
-        ...     return ['background-color: yellow' if v == x.max() else ''
-                        for v in x]
-        ...
+        >>> def highlight_max(x, color):
+        ...     return np.where(x == np.nanmax(x.values), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2))
-        >>> df.style.apply(highlight_max)
+        >>> df.style.apply(highlight_max, color='red')
+        >>> df.style.apply(highlight_max, color='blue', axis=1)
+        >>> df.style.apply(highlight_max, color='green', axis=None)
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
@@ -937,7 +961,7 @@ class Styler:
 
     def applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         """
-        Apply a function elementwise.
+        Apply a CSS-styling function elementwise.
 
         Updates the HTML representation with the result.
 
@@ -959,6 +983,18 @@ class Styler:
         --------
         Styler.where: Updates the HTML representation with a style which is
             selected in accordance with the return value of a function.
+
+        Notes
+        -----
+        The output of ``func`` should be a CSS style as string or, if nothing is to be
+        applied, an empty string or ``None``.
+
+        Examples
+        --------
+        >>> def color_negative(v, color):
+        ...     return f"color: {color};" if v < 0 else None
+        >>> df = pd.DataFrame(np.random.randn(5, 2))
+        >>> df.style.applymap(color_negative, color='red')
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
@@ -1277,33 +1313,6 @@ class Styler:
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
-    @staticmethod
-    def _highlight_null(v, null_color: str) -> str:
-        return f"background-color: {null_color}" if pd.isna(v) else ""
-
-    def highlight_null(
-        self,
-        null_color: str = "red",
-        subset: Optional[IndexLabel] = None,
-    ) -> Styler:
-        """
-        Shade the background ``null_color`` for missing values.
-
-        Parameters
-        ----------
-        null_color : str, default 'red'
-        subset : label or list of labels, default None
-            A valid slice for ``data`` to limit the style application to.
-
-            .. versionadded:: 1.1.0
-
-        Returns
-        -------
-        self : Styler
-        """
-        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
-        return self
-
     def background_gradient(
         self,
         cmap="PuBu",
@@ -1619,8 +1628,39 @@ class Styler:
 
         return self
 
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[IndexLabel] = None,
+    ) -> Styler:
+        """
+        Shade the background ``null_color`` for missing values.
+
+        Parameters
+        ----------
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        self : Styler
+        """
+
+        def f(data: DataFrame, props: str) -> np.ndarray:
+            return np.where(pd.isna(data).values, props, "")
+
+        return self.apply(
+            f, axis=None, subset=subset, props=f"background-color: {null_color};"
+        )
+
     def highlight_max(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
     ) -> Styler:
         """
         Highlight the maximum by shading the background.
@@ -1639,10 +1679,19 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(subset=subset, color=color, axis=axis, max_=True)
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmax(data.values), props, "")
+
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
+        )
 
     def highlight_min(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
     ) -> Styler:
         """
         Highlight the minimum by shading the background.
@@ -1661,43 +1710,13 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(
-            subset=subset, color=color, axis=axis, max_=False
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmin(data.values), props, "")
+
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
         )
-
-    def _highlight_handler(
-        self,
-        subset=None,
-        color: str = "yellow",
-        axis: Optional[Axis] = None,
-        max_: bool = True,
-    ) -> Styler:
-        subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
-        self.apply(
-            self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
-        )
-        return self
-
-    @staticmethod
-    def _highlight_extrema(
-        data: FrameOrSeries, color: str = "yellow", max_: bool = True
-    ):
-        """
-        Highlight the min or max in a Series or DataFrame.
-        """
-        attr = f"background-color: {color}"
-
-        if max_:
-            extrema = data == np.nanmax(data.to_numpy())
-        else:
-            extrema = data == np.nanmin(data.to_numpy())
-
-        if data.ndim == 1:  # Series from .apply
-            return [attr if v else "" for v in extrema]
-        else:  # DataFrame from .tee
-            return pd.DataFrame(
-                np.where(extrema, attr, ""), index=data.index, columns=data.columns
-            )
 
     @classmethod
     def from_custom_template(cls, searchpath, name):
@@ -1721,8 +1740,8 @@ class Styler:
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
         # mypy doesn't like dynamically-defined classes
-        # error: Variable "cls" is not valid as a type  [valid-type]
-        # error: Invalid base class "cls"  [misc]
+        # error: Variable "cls" is not valid as a type
+        # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
@@ -2066,6 +2085,6 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
         except IndexError:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
-                f"for example 'attr: val;'. {style} was given."
+                f"for example 'attr: val;'. '{style}' was given."
             )
     return style

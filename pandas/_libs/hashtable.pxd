@@ -1,4 +1,7 @@
-from numpy cimport intp_t, ndarray
+from numpy cimport (
+    intp_t,
+    ndarray,
+)
 
 from pandas._libs.khash cimport (
     complex64_t,

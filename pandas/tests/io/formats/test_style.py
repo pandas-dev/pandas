@@ -254,8 +254,8 @@ class TestStyler:
             ],
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
-                {"class": "blank", "type": "th", "value": ""},
-                {"class": "blank", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": ""},
+                {"class": "blank col1", "type": "th", "value": ""},
             ],
         ]
 
@@ -293,7 +293,7 @@ class TestStyler:
             [
                 {"class": "index_name level0", "type": "th", "value": "A"},
                 {"class": "index_name level1", "type": "th", "value": "B"},
-                {"class": "blank", "type": "th", "value": ""},
+                {"class": "blank col0", "type": "th", "value": ""},
             ],
         ]
 
@@ -1395,12 +1395,19 @@ class TestStyler:
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", ""], axis=1)
 
+        msg = "returned ndarray with wrong shape"
+        with pytest.raises(ValueError, match=msg):
+            df.style._apply(lambda x: np.array([[""], [""]]), axis=None)
+
     def test_apply_bad_return(self):
         def f(x):
             return ""
 
         df = DataFrame([[1, 2], [3, 4]])
-        msg = "must return a DataFrame when passed to `Styler.apply` with axis=None"
+        msg = (
+            "must return a DataFrame or ndarray when passed to `Styler.apply` "
+            "with axis=None"
+        )
         with pytest.raises(TypeError, match=msg):
             df.style._apply(f, axis=None)
 
@@ -1530,7 +1537,7 @@ class TestStyler:
         expected = [
             {"class": "index_name level0", "value": "idx_level_0", "type": "th"},
             {"class": "index_name level1", "value": "idx_level_1", "type": "th"},
-            {"class": "blank", "value": "", "type": "th"},
+            {"class": "blank col0", "value": "", "type": "th"},
         ]
 
         assert head == expected

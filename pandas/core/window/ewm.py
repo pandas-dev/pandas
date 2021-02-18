@@ -3,14 +3,21 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import Optional, Union
+from typing import (
+    Optional,
+    Union,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, TimedeltaConvertibleTypes
+from pandas._typing import (
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    TimedeltaConvertibleTypes,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -35,7 +42,10 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby
+from pandas.core.window.rolling import (
+    BaseWindow,
+    BaseWindowGroupby,
+)
 
 
 def get_center_of_mass(
@@ -69,22 +79,6 @@ def get_center_of_mass(
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
     return float(comass)
-
-
-def dispatch(name: str, *args, **kwargs):
-    """
-    Dispatch to groupby apply.
-    """
-
-    def outer(self, *args, **kwargs):
-        def f(x):
-            x = self._shallow_copy(x, groupby=self._groupby)
-            return getattr(x, name)(*args, **kwargs)
-
-        return self._groupby.apply(f)
-
-    outer.__name__ = name
-    return outer
 
 
 class ExponentialMovingWindow(BaseWindow):
@@ -457,10 +451,22 @@ class ExponentialMovingWindow(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
             result = window_aggregations.ewmcov(
                 x_array,
-                np.array([0], dtype=np.int64),
-                np.array([0], dtype=np.int64),
+                start,
+                end,
                 self.min_periods,
                 y_array,
                 self.com,
@@ -509,12 +515,24 @@ class ExponentialMovingWindow(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
 
             def _cov(X, Y):
                 return window_aggregations.ewmcov(
                     X,
-                    np.array([0], dtype=np.int64),
-                    np.array([0], dtype=np.int64),
+                    start,
+                    end,
                     self.min_periods,
                     Y,
                     self.com,
@@ -555,11 +573,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
-
-    var = dispatch("var", bias=False)
-    std = dispatch("std", bias=False)
-    cov = dispatch("cov", other=None, pairwise=None, bias=False)
-    corr = dispatch("corr", other=None, pairwise=None)
 
     def mean(self, engine=None, engine_kwargs=None):
         """
@@ -602,11 +615,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
-
-            def f(x):
-                x = self._shallow_copy(x, groupby=self._groupby)
-                return x.mean()
-
-            return self._groupby.apply(f)
+            return super().mean()
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")

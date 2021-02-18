@@ -19,27 +19,52 @@ Instead of splitting it was decided to define sections here:
 """
 
 from collections import abc
-from datetime import date, time, timedelta, timezone
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    timezone,
+)
 from decimal import Decimal
 import operator
 import os
 
-from dateutil.tz import tzlocal, tzutc
+from dateutil.tz import (
+    tzlocal,
+    tzutc,
+)
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import FixedOffset, utc
+from pytz import (
+    FixedOffset,
+    utc,
+)
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
 
 import pandas as pd
-from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
+from pandas import (
+    DataFrame,
+    Interval,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 
 
 # ----------------------------------------------------------------
@@ -757,6 +782,27 @@ def mixed_type_frame():
     )
 
 
+@pytest.fixture
+def rand_series_with_duplicate_datetimeindex():
+    """
+    Fixture for Series with a DatetimeIndex that has duplicates.
+    """
+    dates = [
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 5),
+    ]
+
+    return Series(np.random.randn(len(dates)), index=dates)
+
+
 # ----------------------------------------------------------------
 # Scalars
 # ----------------------------------------------------------------
@@ -1242,6 +1288,32 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
+def any_int_or_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
 def any_nullable_numeric_dtype(request):
     """
@@ -1514,6 +1586,14 @@ def indexer_sli(request):
 def indexer_si(request):
     """
     Parametrize over __setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc])
+def indexer_sl(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__
     """
     return request.param
 
