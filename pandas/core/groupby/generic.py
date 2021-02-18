@@ -1207,17 +1207,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             data = data.get_numeric_data(copy=False)
 
         def py_fallback(bvalues: ArrayLike) -> ArrayLike:
+            # TODO(ArrayManager)
             raise NotImplementedError
 
         def array_func(values: ArrayLike) -> ArrayLike:
 
             try:
                 result = self.grouper._cython_operation(
-                    "aggregate",
-                    values,
-                    how,
-                    axis=1,
-                    min_count=min_count,
+                    "aggregate", values, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
