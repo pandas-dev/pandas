@@ -308,7 +308,7 @@ class Block(PandasObject):
         if placement is None:
             placement = self.mgr_locs
         if self.is_extension:
-            values = _block_shape(values, ndim=self.ndim)
+            values = ensure_block_shape(values, ndim=self.ndim)
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
@@ -533,7 +533,7 @@ class Block(PandasObject):
             else:
                 # Put back the dimension that was taken from it and make
                 # a block out of the result.
-                nv = _block_shape(nv, ndim=self.ndim)
+                nv = ensure_block_shape(nv, ndim=self.ndim)
                 block = self.make_block(values=nv, placement=ref_loc)
             return block
 
@@ -1569,7 +1569,9 @@ class ExtensionBlock(Block):
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
-        mask = safe_reshape(mask, new_values.shape)
+        if mask.ndim == new_values.ndim + 1:
+            # TODO(EA2D): unnecessary with 2D EAs
+            mask = mask.reshape(new_values.shape)
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
@@ -2431,36 +2433,16 @@ def extend_blocks(result, blocks=None) -> List[Block]:
     return blocks
 
 
-def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
-    """ guarantee the shape of the values to be at least 1 d """
+def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
+    """
+    Reshape if possible to have values.ndim == ndim.
+    """
     if values.ndim < ndim:
-        shape = values.shape
         if not is_extension_array_dtype(values.dtype):
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
 
             # error: "ExtensionArray" has no attribute "reshape"
-            values = values.reshape(tuple((1,) + shape))  # type: ignore[attr-defined]
+            values = np.asarray(values).reshape(1, -1)  # type: ignore[attr-defined]
     return values
-
-
-def safe_reshape(arr: ArrayLike, new_shape: Shape) -> ArrayLike:
-    """
-    Reshape `arr` to have shape `new_shape`, unless it is an ExtensionArray,
-    in which case it will be returned unchanged (see gh-13012).
-
-    Parameters
-    ----------
-    arr : np.ndarray or ExtensionArray
-    new_shape : Tuple[int]
-
-    Returns
-    -------
-    np.ndarray or ExtensionArray
-    """
-    if not is_extension_array_dtype(arr.dtype):
-        # Note: this will include TimedeltaArray and tz-naive DatetimeArray
-        # TODO(EA2D): special case will be unnecessary with 2D EAs
-        arr = np.asarray(arr).reshape(new_shape)
-    return arr
