@@ -1,16 +1,33 @@
 import re
-from typing import Type, Union
+from typing import (
+    Type,
+    Union,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
+from pandas._libs import (
+    NaT,
+    OutOfBoundsDatetime,
+    Timestamp,
+)
 from pandas.compat import np_version_under1p18
 
 import pandas as pd
-from pandas import DatetimeIndex, Period, PeriodIndex, TimedeltaIndex
+from pandas import (
+    DatetimeIndex,
+    Period,
+    PeriodIndex,
+    TimedeltaIndex,
+)
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PandasArray, PeriodArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PandasArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 
 
 # TODO: more freq variants

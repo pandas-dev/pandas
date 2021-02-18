@@ -1,12 +1,26 @@
 from __future__ import annotations
 
 from distutils.version import LooseVersion
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import Dtype, NpDtype
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    Dtype,
+    NpDtype,
+)
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -25,7 +39,10 @@ from pandas.api.types import (
 from pandas.core.algorithms import factorize
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.indexers import check_array_indexer, validate_indices
+from pandas.core.indexers import (
+    check_array_indexer,
+    validate_indices,
+)
 from pandas.core.missing import get_fill_func
 
 try:
@@ -633,7 +650,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
 
         vc = self._data.value_counts()
 

@@ -1,5 +1,8 @@
 """ Test cases for DataFrame.plot """
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 import re
 import string
@@ -13,9 +16,19 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    PeriodIndex,
+    Series,
+    bdate_range,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
