@@ -287,7 +287,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             indices = indices.astype(int)
         if not is_int64_dtype(indices):
             indices = indices.astype(np.int64)
-        return indices.values, type(self)(encoded.chunk(0).dictionary)
+
+        if encoded.num_chunks:
+            uniques = type(self)(encoded.chunk(0).dictionary)
+        else:
+            uniques = type(self)(pa.array([], type=encoded.type.value_type))
+
+        return indices.values, uniques
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> ArrowStringArray:
