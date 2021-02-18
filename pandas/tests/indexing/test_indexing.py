@@ -23,7 +23,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -790,40 +789,6 @@ class TestMisc:
 
         s.loc[range(2)] = 43
         tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
-
-    @pytest.mark.parametrize(
-        "slc",
-        [
-            pd.IndexSlice[:, :],
-            pd.IndexSlice[:, 1],
-            pd.IndexSlice[1, :],
-            pd.IndexSlice[[1], [1]],
-            pd.IndexSlice[1, [1]],
-            pd.IndexSlice[[1], 1],
-            pd.IndexSlice[1],
-            pd.IndexSlice[1, 1],
-            slice(None, None, None),
-            [0, 1],
-            np.array([0, 1]),
-            Series([0, 1]),
-        ],
-    )
-    def test_non_reducing_slice(self, slc):
-        df = DataFrame([[0, 1], [2, 3]])
-
-        tslice_ = non_reducing_slice(slc)
-        assert isinstance(df.loc[tslice_], DataFrame)
-
-    @pytest.mark.parametrize("box", [list, Series, np.array])
-    def test_list_slice(self, box):
-        # like dataframe getitem
-        subset = box(["A"])
-
-        df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
-        expected = pd.IndexSlice[:, ["A"]]
-
-        result = non_reducing_slice(subset)
-        tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170

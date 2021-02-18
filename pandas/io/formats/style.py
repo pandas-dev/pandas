@@ -37,6 +37,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
 from pandas.api.types import (
@@ -47,7 +48,7 @@ from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import non_reducing_slice
+from pandas.core.indexes.api import Index
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
@@ -622,7 +623,7 @@ class Styler:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
         else:
-            subset = non_reducing_slice(subset)
+            subset = _non_reducing_slice(subset)
             if len(subset) == 1:
                 subset = subset, self.data.columns
 
@@ -848,7 +849,7 @@ class Styler:
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis, result_type="expand", **kwargs)
@@ -951,7 +952,7 @@ class Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
         return self
@@ -1301,7 +1302,7 @@ class Styler:
         -------
         self : Styler
         """
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
@@ -2087,3 +2088,44 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def _non_reducing_slice(slice_):
+    """
+    Ensure that a slice doesn't reduce to a Series or Scalar.
+
+    Any user-passed `subset` should have this called on it
+    to make sure we're always working with DataFrames.
+    """
+    # default to column slice, like DataFrame
+    # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
+    kinds = (ABCSeries, np.ndarray, Index, list, str)
+    if isinstance(slice_, kinds):
+        slice_ = pd.IndexSlice[:, slice_]
+
+    def pred(part) -> bool:
+        """
+        Returns
+        -------
+        bool
+            True if slice does *not* reduce,
+            False if `part` is a tuple.
+        """
+        # true when slice does *not* reduce, False when part is a tuple,
+        # i.e. MultiIndex slice
+        if isinstance(part, tuple):
+            # GH#39421 check for sub-slice:
+            return any((isinstance(s, slice) or is_list_like(s)) for s in part)
+        else:
+            return isinstance(part, slice) or is_list_like(part)
+
+    if not is_list_like(slice_):
+        if not isinstance(slice_, slice):
+            # a 1-d slice, like df.loc[1]
+            slice_ = [[slice_]]
+        else:
+            # slice(a, b, c)
+            slice_ = [slice_]  # to tuplize later
+    else:
+        slice_ = [part if pred(part) else [part] for part in slice_]
+    return tuple(slice_)

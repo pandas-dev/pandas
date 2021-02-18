@@ -16,6 +16,7 @@ from pandas.io.formats.style import (  # isort:skip
     Styler,
     _get_level_lengths,
     _maybe_convert_css_to_tuples,
+    _non_reducing_slice,
 )
 
 
@@ -1974,6 +1975,40 @@ class TestStyler:
 </table>
 """
         assert expected == s.render()
+
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            pd.IndexSlice[:, :],
+            pd.IndexSlice[:, 1],
+            pd.IndexSlice[1, :],
+            pd.IndexSlice[[1], [1]],
+            pd.IndexSlice[1, [1]],
+            pd.IndexSlice[[1], 1],
+            pd.IndexSlice[1],
+            pd.IndexSlice[1, 1],
+            slice(None, None, None),
+            [0, 1],
+            np.array([0, 1]),
+            pd.Series([0, 1]),
+        ],
+    )
+    def test_non_reducing_slice(self, slc):
+        df = DataFrame([[0, 1], [2, 3]])
+
+        tslice_ = _non_reducing_slice(slc)
+        assert isinstance(df.loc[tslice_], DataFrame)
+
+    @pytest.mark.parametrize("box", [list, pd.Series, np.array])
+    def test_list_slice(self, box):
+        # like dataframe getitem
+        subset = box(["A"])
+
+        df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
+        expected = pd.IndexSlice[:, ["A"]]
+
+        result = _non_reducing_slice(subset)
+        tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
 
 @td.skip_if_no_mpl
