@@ -240,8 +240,8 @@ class ExtensionIndex(Index):
                 return type(self)(result, name=self.name)
             # Unpack to ndarray for MPL compat
 
-            # error: "ExtensionArray" has no attribute "_data"
-            result = result._data  # type: ignore[attr-defined]
+            # error: "ExtensionArray" has no attribute "_ndarray"
+            result = result._ndarray  # type: ignore[attr-defined]
 
         # Includes cases where we get a 2D ndarray back for MPL compat
         deprecate_ndim_indexing(result)

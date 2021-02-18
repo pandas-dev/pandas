@@ -415,3 +415,7 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
     pass
+
+
+class Test2DCompat(BaseNumPyTests, base.Dim2CompatTests):
+    pass
