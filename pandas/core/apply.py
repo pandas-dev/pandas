@@ -225,51 +225,66 @@ class Apply(metaclass=abc.ABCMeta):
 
         results = []
         keys = []
+        ndims = []
 
         # degenerate case
-        if selected_obj.ndim == 1:
-            for a in arg:
-                colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                try:
-                    new_res = colg.aggregate(a)
+        # if selected_obj.ndim == 1:
+        for a in arg:
+            # colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
+            try:
+                # new_res = colg.aggregate(a)
+                print('selected_obj:', type(selected_obj))
+                print(selected_obj)
+                print('###')
+                new_res = selected_obj.aggregate(a)
+                print(new_res)
 
-                except TypeError:
-                    pass
+            except TypeError:
+                pass
+            else:
+                results.append(new_res)
+                if isinstance(new_res, ABCNDFrame):
+                    ndims.append(new_res.ndim)
                 else:
-                    results.append(new_res)
+                    ndims.append(0)
 
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
+                # make sure we find a good name
+                name = com.get_callable_name(a) or a
+                keys.append(name)
 
         # multiples
-        else:
-            for index, col in enumerate(selected_obj):
-                colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                try:
-                    new_res = colg.aggregate(arg)
-                except (TypeError, DataError):
-                    pass
-                except ValueError as err:
-                    # cannot aggregate
-                    if "Must produce aggregated value" in str(err):
-                        # raised directly in _aggregate_named
-                        pass
-                    elif "no results" in str(err):
-                        # raised directly in _aggregate_multiple_funcs
-                        pass
-                    else:
-                        raise
-                else:
-                    results.append(new_res)
-                    keys.append(col)
+        # else:
+        #     for index, col in enumerate(selected_obj):
+        #         colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
+        #         try:
+        #             new_res = colg.aggregate(arg)
+        #         except (TypeError, DataError):
+        #             pass
+        #         except ValueError as err:
+        #             # cannot aggregate
+        #             if "Must produce aggregated value" in str(err):
+        #                 # raised directly in _aggregate_named
+        #                 pass
+        #             elif "no results" in str(err):
+        #                 # raised directly in _aggregate_multiple_funcs
+        #                 pass
+        #             else:
+        #                 raise
+        #         else:
+        #             results.append(new_res)
+        #             keys.append(col)
 
         # if we are empty
         if not len(results):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1, sort=False)
+            # if len(results) == 0:
+            #     result = results[0]
+            # else:
+            result = concat(results, keys=keys, axis=1, sort=False)
+            if all([e == 1 for e in ndims]):
+                result = result.T.infer_objects()
         except TypeError as err:
 
             # we are concatting non-NDFrame objects,
@@ -282,7 +297,12 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(
                     "cannot combine transform and aggregation operations"
                 ) from err
-            return result
+        else:
+            if result.columns.nlevels > 1:
+                new_order = [-1] + list(range(result.columns.nlevels - 1))
+                result = result.reorder_levels(new_order, axis='columns')
+                result = result[selected_obj.columns]
+        return result
 
     def agg_dict_like(self, _axis: int) -> FrameOrSeriesUnion:
         """
