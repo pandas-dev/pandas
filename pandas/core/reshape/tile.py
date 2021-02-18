@@ -339,10 +339,10 @@ def qcut(
     Notes
     -----
     Out of bounds values will be NA in the resulting Categorical object.
-    
-    More information on the discretization of continuous features can be
-    found `here
-    <https://en.wikipedia.org/wiki/Discretization_of_continuous_features>`__.
+
+    More information about binning algorithms can be found on the corresponding
+    `Wikipedia <https://en.wikipedia.org/wiki/Discretization_of_continuous_features>`__
+    page.
 
     Examples
     --------
