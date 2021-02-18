@@ -484,8 +484,15 @@ class Styler:
                 )
 
             index_header_row.extend(
-                [{"type": "th", "value": BLANK_VALUE, "class": " ".join([BLANK_CLASS])}]
-                * (len(clabels[0]) - len(hidden_columns))
+                [
+                    {
+                        "type": "th",
+                        "value": BLANK_VALUE,
+                        "class": " ".join([BLANK_CLASS, f"col{c}"]),
+                    }
+                    for c in range(len(clabels[0]))
+                    if c not in hidden_columns
+                ]
             )
 
             head.append(index_header_row)
