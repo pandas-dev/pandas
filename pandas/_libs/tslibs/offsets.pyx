@@ -1838,10 +1838,10 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     DateOffset that just needs a month.
     """
-    
+
     _attributes = tuple(["n", "normalize", "month"])
     _default_month = 1
-    
+
     cdef:
         public int _period_dtype_code
         readonly int month
@@ -1855,10 +1855,10 @@ cdef class YearOffset(SingleConstructorOffset):
             elif month >= 1 and month <= 12:
                 self.month = month
             else:
-                raise ValueError("Month must go from 1 to 12.") 
+                raise ValueError("Month must go from 1 to 12.")
         else:
             self.month = self._default_month
-            
+
         self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
 
     cpdef __setstate__(self, state):
@@ -1876,7 +1876,7 @@ cdef class YearOffset(SingleConstructorOffset):
             if cls._default_month is not None:
                 kwargs["month"] = cls._default_month
         return cls(**kwargs)
-    
+
     @property
     def rule_code(self) -> str:
         month = MONTH_ALIASES[self.month]
@@ -1912,11 +1912,11 @@ cdef class YearOffset(SingleConstructorOffset):
         )
         return shifted
 
-    
+
 cdef class YearBegin(YearOffset):
     """
     DateOffset increments between calendar year begin dates.
-    
+
     Examples
     --------
     >>> from pandas.tseries.offsets import YearBegin
@@ -1933,12 +1933,12 @@ cdef class YearBegin(YearOffset):
     _default_month = 1
     _prefix = "AS"
     _day_opt = "start"
-    
+
 
 cdef class YearEnd(YearOffset):
     """
     DateOffset increments between calendar year ends.
-    
+
     Examples
     --------
     >>> from pandas.tseries.offsets import YearEnd
@@ -1955,8 +1955,8 @@ cdef class YearEnd(YearOffset):
     _default_month = 12
     _prefix = "A"
     _day_opt = "end"
-    
-    
+
+
 cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
@@ -1979,24 +1979,24 @@ cdef class BYearBegin(YearOffset):
     _default_month = 1
     _prefix = "BAS"
     _day_opt = "business_start"
-    
+
 
 cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business days of offset years.
     Here, the year is a period of 12 consecutive calendar months
-    (January - December by default). The "month" parameter allows custom setting 
-    of the final month in a year (and correspondingly - the year start month). 
-    
+    (January - December by default). The "month" parameter allows custom setting
+    of the final month in a year (and correspondingly - the year start month).
+
     Parameters
     ----------
     n : int, default 1
         Number of years to offset.
     normalize: bool, default False
-        If true, the time component of the resulting date-time is converted to 
+        If true, the time component of the resulting date-time is converted to
         00:00:00, i.e. midnight (the start, not the end of date-time).
     month: int, default 12
-        The calendar month number (12 for December) of the ending month 
+        The calendar month number (12 for December) of the ending month
         in a custom-defined year to be used as offset.
 
     Examples
@@ -2019,7 +2019,7 @@ cdef class BYearEnd(YearOffset):
     _default_month = 12
     _prefix = "BA"
     _day_opt = "business_end"
-    
+
 
 # ----------------------------------------------------------------------
 # Quarter-Based Offset Classes
@@ -2031,27 +2031,27 @@ cdef class QuarterOffset(SingleConstructorOffset):
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
-    
+
     _attributes = tuple(["n", "normalize", "startingMonth"])
     _default_month = 1
-    
+
     cdef:
         public int _period_dtype_code
         readonly int startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
-       
+
         if startingMonth is not None:
             if isinstance(startingMonth, str):
                 self.startingMonth = MONTH_TO_CAL_NUM[startingMonth]
             elif startingMonth >= 1 and startingMonth <= 12:
                 self.startingMonth = startingMonth
             else:
-                raise ValueError("Month must go from 1 to 12.") 
+                raise ValueError("Month must go from 1 to 12.")
         else:
             self.startingMonth = self._default_month
-        
+
         self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
 
     cpdef __setstate__(self, state):
@@ -2108,7 +2108,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         )
         return shifted
 
-    
+
 cdef class QuarterBegin(QuarterOffset):
     """
     DateOffset increments between Quarter start dates.
@@ -2116,7 +2116,7 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
-            
+
     Examples
     --------
     >>> from pandas.tseries.offsets import QuarterBegin
@@ -2130,12 +2130,12 @@ cdef class QuarterBegin(QuarterOffset):
     >>> ts + QuarterBegin(2, startingMonth = 2)
     Timestamp('2020-11-01 05:01:15')
     """
-    
+
     _output_name = "QuarterBegin"
-    _default_month = 3 # 1
+    _default_month = 1
     _prefix = "QS"
     _day_opt = "start"
-    
+
 
 cdef class QuarterEnd(QuarterOffset):
     """
@@ -2144,7 +2144,7 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
-    
+
     Examples
     --------
     >>> from pandas.tseries.offsets import QuarterEnd
@@ -2158,12 +2158,12 @@ cdef class QuarterEnd(QuarterOffset):
     >>> ts + QuarterEnd(-2, startingMonth = 2)
     Timestamp('2019-11-30 05:01:15')
     """
-    
+
     _output_name = "QuarterEnd"
     _default_month = 3
     _prefix = "Q"
     _day_opt = "end"
-  
+
 
 cdef class BQuarterBegin(QuarterOffset):
     """
@@ -2186,13 +2186,13 @@ cdef class BQuarterBegin(QuarterOffset):
     >>> ts + BQuarterBegin(-1)
     Timestamp('2020-04-01 05:01:15')
     """
-    
+
     _output_name = "BusinessQuarterBegin"
-    _default_month = 3 # 1
+    _default_month = 1
     _prefix = "BQS"
     _day_opt = "business_start"
 
-    
+
 cdef class BQuarterEnd(QuarterOffset):
     """
     DateOffset increments between the last business day of each Quarter.
@@ -2214,7 +2214,7 @@ cdef class BQuarterEnd(QuarterOffset):
     >>> ts + BQuarterEnd(startingMonth=2)
     Timestamp('2020-05-29 05:01:15')
     """
-    
+
     _output_name = "BusinessQuarterEnd"
     _default_month = 3
     _prefix = "BQ"
@@ -2226,7 +2226,7 @@ cdef class BQuarterEnd(QuarterOffset):
 
 cdef class MonthOffset(SingleConstructorOffset):
     _period_dtype_code = PeriodDtypeCode.M
-    
+
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -2255,7 +2255,7 @@ cdef class MonthOffset(SingleConstructorOffset):
 
         BaseOffset.__setstate__(self, state)
 
-        
+
 cdef class MonthBegin(MonthOffset):
     """
     DateOffset of one month at beginning.
@@ -2263,8 +2263,8 @@ cdef class MonthBegin(MonthOffset):
 
     _prefix = "MS"
     _day_opt = "start"
-        
-        
+
+
 cdef class MonthEnd(MonthOffset):
     """
     DateOffset of one month end.
@@ -2289,7 +2289,7 @@ cdef class BusinessMonthBegin(MonthOffset):
     >>> ts + BMonthBegin(-3)
     Timestamp('2020-03-02 05:01:15')
     """
-    
+
     _prefix = "BMS"
     _day_opt = "business_start"
 
@@ -2309,7 +2309,7 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> ts + BMonthEnd(-2)
     Timestamp('2020-03-31 05:01:15')
     """
-    
+
     _prefix = "BM"
     _day_opt = "business_end"
 
