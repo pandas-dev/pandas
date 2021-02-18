@@ -24,7 +24,10 @@ from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 cnp.import_array()
 
@@ -57,7 +60,10 @@ from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
 )
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -219,7 +225,9 @@ cdef _wrap_timedelta_result(result):
 
 
 cdef _get_calendar(weekmask, holidays, calendar):
-    """Generate busdaycalendar"""
+    """
+    Generate busdaycalendar
+    """
     if isinstance(calendar, np.busdaycalendar):
         if not holidays:
             holidays = tuple(calendar.holidays)
@@ -659,14 +667,18 @@ cdef class BaseOffset:
         return nint
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
         # At this point we expect state to be empty
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         state = {}
         state["n"] = self.n
         state["normalize"] = self.normalize
@@ -784,6 +796,11 @@ cdef class Tick(SingleConstructorOffset):
 
     def is_anchored(self) -> bool:
         return False
+
+    # This is identical to BaseOffset.__hash__, but has to be redefined here
+    # for Python 3, because we've redefined __eq__.
+    def __hash__(self) -> int:
+        return hash(self._params)
 
     # --------------------------------------------------------------------
     # Comparison and Arithmetic Methods
@@ -971,7 +988,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
             object.__setattr__(self, key, val)
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
         #  class, so the only one with __dict__
         state = self.__dict__.copy()
@@ -980,7 +999,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
         return state
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
 
         if "offset" in state:
             # Older (<0.22.0) versions have offset attribute instead of _offset
@@ -1202,9 +1223,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
-
-    pass
-
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
 
 # --------------------------------------------------------------------
 
@@ -1374,7 +1394,11 @@ cdef class BusinessDay(BusinessMixin):
     @apply_array_wraps
     def _apply_array(self, dtarr):
         i8other = dtarr.view("i8")
-        return shift_bdays(i8other, self.n)
+        res = _shift_bdays(i8other, self.n)
+        if self.offset:
+            res = res.view("M8[ns]") + Timedelta(self.offset)
+            res = res.view("i8")
+        return res
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -1385,6 +1409,19 @@ cdef class BusinessDay(BusinessMixin):
 cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "BH"
@@ -3233,6 +3270,19 @@ cdef class CustomBusinessDay(BusinessDay):
 cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "CBH"
@@ -3521,7 +3571,7 @@ cpdef to_offset(freq):
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
-    elif isinstance(freq, timedelta):
+    elif PyDelta_Check(freq):
         return delta_to_tick(freq)
 
     elif isinstance(freq, str):
@@ -3604,7 +3654,9 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
-    """new year number after shifting npy_datetimestruct number of months"""
+    """
+    New year number after shifting npy_datetimestruct number of months.
+    """
     return dts.year + (dts.month + months - 1) // 12
 
 
@@ -3702,7 +3754,9 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
                                Py_ssize_t count,
                                int months,
                                str day_opt) nogil:
-    """See shift_months.__doc__"""
+    """
+    See shift_months.__doc__
+    """
     cdef:
         Py_ssize_t i
         int months_to_roll
@@ -3734,7 +3788,9 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
                                  int q1start_month,
                                  str day_opt,
                                  int modby) nogil:
-    """See shift_quarters.__doc__"""
+    """
+    See shift_quarters.__doc__
+    """
     cdef:
         Py_ssize_t i
         int months_since, n
@@ -3758,7 +3814,7 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
         out[i] = dtstruct_to_dt64(&dts)
 
 
-cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
+cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     """
     Implementation of BusinessDay.apply_offset.
 
@@ -3990,7 +4046,9 @@ cdef inline int _roll_qtrday(npy_datetimestruct* dts,
                              int n,
                              int months_since,
                              str day_opt) nogil except? -1:
-    """See roll_qtrday.__doc__"""
+    """
+    See roll_qtrday.__doc__
+    """
 
     if n > 0:
         if months_since < 0 or (months_since == 0 and

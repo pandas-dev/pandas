@@ -28,7 +28,10 @@ from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 
-from pandas._libs import algos, hashtable as _hash
+from pandas._libs import (
+    algos,
+    hashtable as _hash,
+)
 from pandas._libs.missing import checknull
 
 
@@ -260,13 +263,13 @@ cdef class IndexEngine:
     def get_indexer_non_unique(self, targets):
         """
         Return an indexer suitable for taking from a non unique index
-        return the labels in the same order ast the target
+        return the labels in the same order as the target
         and a missing indexer into the targets (which correspond
         to the -1 indices in the results
         """
         cdef:
             ndarray values, x
-            ndarray[int64_t] result, missing
+            ndarray[intp_t] result, missing
             set stargets, remaining_stargets
             dict d = {}
             object val
@@ -283,8 +286,8 @@ cdef class IndexEngine:
         else:
             n_alloc = n
 
-        result = np.empty(n_alloc, dtype=np.int64)
-        missing = np.empty(n_t, dtype=np.int64)
+        result = np.empty(n_alloc, dtype=np.intp)
+        missing = np.empty(n_t, dtype=np.intp)
 
         # map each starget to its position in the index
         if stargets and len(stargets) < 5 and self.is_monotonic_increasing:

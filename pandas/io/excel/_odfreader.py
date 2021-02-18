@@ -1,16 +1,23 @@
-from typing import List, cast
+from typing import (
+    List,
+    cast,
+)
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _ODFReader(_BaseExcelReader):
+class ODFReader(BaseExcelReader):
     """
     Read tables out of OpenDocument formatted files.
 
@@ -19,7 +26,7 @@ class _ODFReader(_BaseExcelReader):
     filepath_or_buffer : string, path to be parsed or
         an open readable stream.
     storage_options : dict, optional
-        passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
+        passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
     """
 
     def __init__(
@@ -57,25 +64,32 @@ class _ODFReader(_BaseExcelReader):
     def get_sheet_by_index(self, index: int):
         from odf.table import Table
 
+        self.raise_if_bad_sheet_by_index(index)
         tables = self.book.getElementsByType(Table)
         return tables[index]
 
     def get_sheet_by_name(self, name: str):
         from odf.table import Table
 
+        self.raise_if_bad_sheet_by_name(name)
         tables = self.book.getElementsByType(Table)
 
         for table in tables:
             if table.getAttribute("name") == name:
                 return table
 
+        self.close()
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
         """
         Parse an ODF Table into a list of lists
         """
-        from odf.table import CoveredTableCell, TableCell, TableRow
+        from odf.table import (
+            CoveredTableCell,
+            TableCell,
+            TableRow,
+        )
 
         covered_cell_name = CoveredTableCell().qname
         table_cell_name = TableCell().qname
@@ -190,6 +204,7 @@ class _ODFReader(_BaseExcelReader):
             result = cast(pd.Timestamp, result)
             return result.time()
         else:
+            self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
 
     def _get_cell_string_value(self, cell) -> str:
@@ -197,22 +212,24 @@ class _ODFReader(_BaseExcelReader):
         Find and decode OpenDocument text:s tags that represent
         a run length encoded sequence of space characters.
         """
-        from odf.element import Element, Text
+        from odf.element import Element
         from odf.namespaces import TEXTNS
-        from odf.text import P, S
+        from odf.text import S
 
-        text_p = P().qname
         text_s = S().qname
 
-        p = cell.childNodes[0]
-
         value = []
-        if p.qname == text_p:
-            for k, fragment in enumerate(p.childNodes):
-                if isinstance(fragment, Text):
-                    value.append(fragment.data)
-                elif isinstance(fragment, Element):
-                    if fragment.qname == text_s:
-                        spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
+
+        for fragment in cell.childNodes:
+            if isinstance(fragment, Element):
+                if fragment.qname == text_s:
+                    spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
                     value.append(" " * spaces)
+                else:
+                    # recursive impl needed in case of nested fragments
+                    # with multiple spaces
+                    # https://github.com/pandas-dev/pandas/pull/36175#discussion_r484639704
+                    value.append(self._get_cell_string_value(fragment))
+            else:
+                value.append(str(fragment))
         return "".join(value)

@@ -4,7 +4,11 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, NamedAgg, option_context
+from pandas import (
+    DataFrame,
+    NamedAgg,
+    option_context,
+)
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
@@ -57,7 +61,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
         func_numba = numba.jit(func_numba)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -90,7 +94,7 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
         func_2 = numba.jit(func_2)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -121,7 +125,7 @@ def test_use_global_config():
         return np.mean(values) - 3.4
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
     expected = grouped.agg(func_1, engine="numba")
@@ -142,7 +146,7 @@ def test_use_global_config():
 )
 def test_multifunc_notimplimented(agg_func):
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
     with pytest.raises(NotImplementedError, match="Numba engine can"):

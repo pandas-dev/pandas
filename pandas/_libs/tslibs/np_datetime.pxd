@@ -1,6 +1,12 @@
-from cpython.datetime cimport date, datetime
+from cpython.datetime cimport (
+    date,
+    datetime,
+)
+from numpy cimport (
+    int32_t,
+    int64_t,
+)
 
-from numpy cimport int64_t, int32_t
 
 cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_timedelta
@@ -42,6 +48,7 @@ cdef extern from "numpy/ndarraytypes.h":
         NPY_FR_ps
         NPY_FR_fs
         NPY_FR_as
+        NPY_FR_GENERIC
 
 cdef extern from "src/datetime/np_datetime.h":
     ctypedef struct pandas_timedeltastruct:

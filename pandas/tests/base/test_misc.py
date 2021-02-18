@@ -3,18 +3,22 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    IS64,
+    PYPY,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_object_dtype,
 )
 
 import pandas as pd
-from pandas import DataFrame, Index, IntervalIndex, Series
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 
 
 @pytest.mark.parametrize(
@@ -43,54 +47,6 @@ def test_binary_ops_docstring(klass, op_name, op):
     assert expected_str in getattr(klass, "r" + op_name).__doc__
 
 
-def test_none_comparison(series_with_simple_index):
-    series = series_with_simple_index
-    if isinstance(series.index, IntervalIndex):
-        # IntervalIndex breaks on "series[0] = np.nan" below
-        pytest.skip("IntervalIndex doesn't support assignment")
-    if len(series) < 1:
-        pytest.skip("Test doesn't make sense on empty data")
-
-    # bug brought up by #1079
-    # changed from TypeError in 0.17.0
-    series[0] = np.nan
-
-    # noinspection PyComparisonWithNone
-    result = series == None  # noqa
-    assert not result.iat[0]
-    assert not result.iat[1]
-
-    # noinspection PyComparisonWithNone
-    result = series != None  # noqa
-    assert result.iat[0]
-    assert result.iat[1]
-
-    result = None == series  # noqa
-    assert not result.iat[0]
-    assert not result.iat[1]
-
-    result = None != series  # noqa
-    assert result.iat[0]
-    assert result.iat[1]
-
-    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
-        # Following DatetimeIndex (and Timestamp) convention,
-        # inequality comparisons with Series[datetime64] raise
-        msg = "Invalid comparison"
-        with pytest.raises(TypeError, match=msg):
-            None > series
-        with pytest.raises(TypeError, match=msg):
-            series > None
-    else:
-        result = None > series
-        assert not result.iat[0]
-        assert not result.iat[1]
-
-        result = series < None
-        assert not result.iat[0]
-        assert not result.iat[1]
-
-
 def test_ndarray_compat_properties(index_or_series_obj):
     obj = index_or_series_obj
 
@@ -99,7 +55,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
         assert getattr(obj, p, None) is not None
 
     # deprecated properties
-    for p in ["flags", "strides", "itemsize", "base", "data"]:
+    for p in ["strides", "itemsize", "base", "data"]:
         assert not hasattr(obj, p)
 
     msg = "can only convert an array of size 1 to a Python scalar"
@@ -116,6 +72,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_obj):
     obj = index_or_series_obj
+
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
@@ -127,7 +84,11 @@ def test_memory_usage(index_or_series_obj):
     )
 
     if len(obj) == 0:
-        assert res_deep == res == 0
+        if isinstance(obj, Index):
+            expected = 0
+        else:
+            expected = 108 if IS64 else 64
+        assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up
         assert res_deep > res
@@ -180,7 +141,7 @@ def test_access_by_position(index):
     elif isinstance(index, pd.MultiIndex):
         pytest.skip("Can't instantiate Series from MultiIndex")
 
-    series = pd.Series(index)
+    series = Series(index)
     assert index[0] == series.iloc[0]
     assert index[5] == series.iloc[5]
     assert index[-1] == series.iloc[-1]
@@ -194,10 +155,3 @@ def test_access_by_position(index):
     msg = "single positional indexer is out-of-bounds"
     with pytest.raises(IndexError, match=msg):
         series.iloc[size]
-
-
-def test_get_indexer_non_unique_dtype_mismatch():
-    # GH 25459
-    indexes, missing = pd.Index(["A", "B"]).get_indexer_non_unique(pd.Index([0]))
-    tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
-    tm.assert_numpy_array_equal(np.array([0], dtype=np.int64), missing)

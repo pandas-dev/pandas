@@ -1,12 +1,36 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
-from pandas.core.dtypes.missing import isna, remove_na_arraylike
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    remove_na_arraylike,
+)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
-from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
+from pandas.plotting._matplotlib.core import (
+    LinePlot,
+    MPLPlot,
+)
+from pandas.plotting._matplotlib.tools import (
+    create_subplots,
+    flatten_axes,
+    maybe_adjust_figure,
+    set_ticks_props,
+)
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 class HistPlot(LinePlot):
@@ -90,7 +114,7 @@ class HistPlot(LinePlot):
         kwds["bins"] = self.bins
         return kwds
 
-    def _post_plot_logic(self, ax, data):
+    def _post_plot_logic(self, ax: Axes, data):
         if self.orientation == "horizontal":
             ax.set_xlabel("Frequency")
         else:
@@ -193,11 +217,11 @@ def _grouped_plot(
         grouped = grouped[column]
 
     naxes = len(grouped)
-    fig, axes = _subplots(
+    fig, axes = create_subplots(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    _axes = _flatten(axes)
+    _axes = flatten_axes(axes)
 
     for i, (key, group) in enumerate(grouped):
         ax = _axes[i]
@@ -281,12 +305,12 @@ def _grouped_hist(
         rot=rot,
     )
 
-    _set_ticks_props(
+    set_ticks_props(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
 
-    fig.subplots_adjust(
-        bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
+    maybe_adjust_figure(
+        fig, bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
     )
     return axes
 
@@ -332,7 +356,7 @@ def hist_series(
         ax.grid(grid)
         axes = np.array([ax])
 
-        _set_ticks_props(
+        set_ticks_props(
             axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
         )
 
@@ -405,16 +429,21 @@ def hist_frame(
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
+        if not isinstance(column, (list, np.ndarray, ABCIndex)):
             column = [column]
         data = data[column]
-    data = data._get_numeric_data()
+    # GH32590
+    data = data.select_dtypes(
+        include=(np.number, "datetime64", "datetimetz"), exclude="timedelta"
+    )
     naxes = len(data.columns)
 
     if naxes == 0:
-        raise ValueError("hist method requires numerical columns, nothing to plot.")
+        raise ValueError(
+            "hist method requires numerical or datetime columns, nothing to plot."
+        )
 
-    fig, axes = _subplots(
+    fig, axes = create_subplots(
         naxes=naxes,
         ax=ax,
         squeeze=False,
@@ -423,7 +452,7 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
     )
-    _axes = _flatten(axes)
+    _axes = flatten_axes(axes)
 
     can_set_label = "label" not in kwds
 
@@ -437,9 +466,9 @@ def hist_frame(
         if legend:
             ax.legend()
 
-    _set_ticks_props(
+    set_ticks_props(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
-    fig.subplots_adjust(wspace=0.3, hspace=0.3)
+    maybe_adjust_figure(fig, wspace=0.3, hspace=0.3)
 
     return axes

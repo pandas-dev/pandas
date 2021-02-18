@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.7.1 and above, and 3.8.
+Officially Python 3.7.1 and above, 3.8, and 3.9.
 
 Installing pandas
 -----------------
@@ -28,20 +28,20 @@ Installing pandas
 Installing with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installing pandas and the rest of the `NumPy <https://www.numpy.org/>`__ and
-`SciPy <https://www.scipy.org/>`__ stack can be a little
+Installing pandas and the rest of the `NumPy <https://numpy.org/>`__ and
+`SciPy <https://scipy.org/>`__ stack can be a little
 difficult for inexperienced users.
 
 The simplest way to install not only pandas, but Python and the most popular
-packages that make up the `SciPy <https://www.scipy.org/>`__ stack
-(`IPython <https://ipython.org/>`__, `NumPy <https://www.numpy.org/>`__,
+packages that make up the `SciPy <https://scipy.org/>`__ stack
+(`IPython <https://ipython.org/>`__, `NumPy <https://numpy.org/>`__,
 `Matplotlib <https://matplotlib.org/>`__, ...) is with
 `Anaconda <https://docs.continuum.io/anaconda/>`__, a cross-platform
-(Linux, Mac OS X, Windows) Python distribution for data analytics and
+(Linux, macOS, Windows) Python distribution for data analytics and
 scientific computing.
 
 After running the installer, the user will have access to pandas and the
-rest of the `SciPy <https://www.scipy.org/>`__ stack without needing to install
+rest of the `SciPy <https://scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
 Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
@@ -179,12 +179,12 @@ In Linux/Mac you can run ``which python`` on your terminal and it will tell you 
 using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
 
 It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
-You can find simple installation instructions for pandas in this document: `installation instructions </getting_started.html>`.
+You can find simple installation instructions for pandas in this document: ``installation instructions </getting_started.html>``.
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a pandas development environment.
 
 Running the test suite
 ----------------------
@@ -219,8 +219,8 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                1.16.5
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    38.6.0
+`NumPy <https://numpy.org>`__                                    1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================
@@ -249,7 +249,7 @@ Recommended dependencies
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-Pandas has many optional dependencies that are only used for specific methods.
+pandas has many optional dependencies that are only used for specific methods.
 For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 :meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
 optional dependency is not installed, pandas will raise an ``ImportError`` when
@@ -262,30 +262,29 @@ BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref
 Jinja2                    2.10               Conditional formatting with DataFrame.style
 PyQt4                                        Clipboard I/O
 PyQt5                                        Clipboard I/O
-PyTables                  3.4.4              HDF5-based reading / writing
-SQLAlchemy                1.2.8              SQL support for databases other than sqlite
+PyTables                  3.5.1              HDF5-based reading / writing
+SQLAlchemy                1.3.0              SQL support for databases other than sqlite
 SciPy                     1.12.0             Miscellaneous statistical functions
 xlsxwriter                1.0.2              Excel writing
-blosc                     1.14.3             Compression for HDF5
+blosc                     1.17.0             Compression for HDF5
 fsspec                    0.7.4              Handling files aside from local and HTTP
-fastparquet               0.3.2              Parquet reading / writing
+fastparquet               0.4.0              Parquet reading / writing
 gcsfs                     0.6.0              Google Cloud Storage access
 html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.3              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  2.5.7              Reading / writing for xlsx files
+openpyxl                  3.0.0              Reading / writing for xlsx files
 pandas-gbq                0.12.0             Google Big Query access
 psycopg2                  2.7                PostgreSQL engine for sqlalchemy
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
-pymysql                   0.7.11             MySQL engine for sqlalchemy
+pymysql                   0.8.1              MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
-pytables                  3.4.4              HDF5 reading / writing
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.4.0              Amazon S3 access
-tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
-xarray                    0.12.0             pandas-like API for N-dimensional data
+tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
+xarray                    0.12.3             pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
 xlrd                      1.2.0              Excel reading
 xlwt                      1.3.0              Excel writing
@@ -300,8 +299,6 @@ Optional dependencies for parsing HTML
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
-
-.. versionchanged:: 0.23.0
 
 * `BeautifulSoup4`_ and `html5lib`_
 * `BeautifulSoup4`_ and `lxml`_

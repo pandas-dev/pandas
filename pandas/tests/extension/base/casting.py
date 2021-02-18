@@ -1,9 +1,9 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas.core.internals import ObjectBlock
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseCastingTests(BaseExtensionTests):
@@ -56,3 +56,11 @@ class BaseCastingTests(BaseExtensionTests):
         df = pd.DataFrame()
         result = df.astype(dtype)
         self.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("copy", [True, False])
+    def test_astype_own_type(self, data, copy):
+        # ensure that astype returns the original object for equal dtype and copy=False
+        # https://github.com/pandas-dev/pandas/issues/28488
+        result = data.astype(data.dtype, copy=copy)
+        assert (result is data) is (not copy)
+        self.assert_extension_array_equal(result, data)

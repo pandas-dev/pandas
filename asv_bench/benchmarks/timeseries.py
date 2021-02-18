@@ -3,7 +3,14 @@ from datetime import timedelta
 import dateutil
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, period_range, to_datetime
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+    timedelta_range,
+    to_datetime,
+)
 
 from pandas.tseries.frequencies import infer_freq
 
@@ -121,12 +128,15 @@ class TimeDatetimeConverter:
 
 class Iteration:
 
-    params = [date_range, period_range]
+    params = [date_range, period_range, timedelta_range]
     param_names = ["time_index"]
 
     def setup(self, time_index):
         N = 10 ** 6
-        self.idx = time_index(start="20140101", freq="T", periods=N)
+        if time_index is timedelta_range:
+            self.idx = time_index(start=0, freq="T", periods=N)
+        else:
+            self.idx = time_index(start="20140101", freq="T", periods=N)
         self.exit = 10000
 
     def time_iter(self, time_index):
@@ -263,6 +273,29 @@ class Lookup:
         self.ts.index._cleanup()
 
 
+class ToDatetimeFromIntsFloats:
+    def setup(self):
+        self.ts_sec = Series(range(1521080307, 1521685107), dtype="int64")
+        self.ts_sec_float = self.ts_sec.astype("float64")
+
+        self.ts_nanosec = 1_000_000 * self.ts_sec
+        self.ts_nanosec_float = self.ts_nanosec.astype("float64")
+
+    # speed of int64 and float64 paths should be comparable
+
+    def time_nanosec_int64(self):
+        to_datetime(self.ts_nanosec, unit="ns")
+
+    def time_nanosec_float64(self):
+        to_datetime(self.ts_nanosec_float, unit="ns")
+
+    def time_sec_int64(self):
+        to_datetime(self.ts_sec, unit="s")
+
+    def time_sec_float64(self):
+        to_datetime(self.ts_sec_float, unit="s")
+
+
 class ToDatetimeYYYYMMDD:
     def setup(self):
         rng = date_range(start="1/1/2000", periods=10000, freq="D")
@@ -313,7 +346,7 @@ class ToDatetimeISO8601:
 class ToDatetimeNONISO8601:
     def setup(self):
         N = 10000
-        half = int(N / 2)
+        half = N // 2
         ts_string_1 = "March 1, 2018 12:00:00+0400"
         ts_string_2 = "March 1, 2018 12:00:00+0500"
         self.same_offset = [ts_string_1] * N
@@ -343,7 +376,7 @@ class ToDatetimeFormat:
         self.same_offset = ["10/11/2018 00:00:00.045-07:00"] * N
         self.diff_offset = [
             f"10/11/2018 00:00:00.045-0{offset}:00" for offset in range(10)
-        ] * int(N / 10)
+        ] * (N // 10)
 
     def time_exact(self):
         to_datetime(self.s2, format="%d%b%y")

@@ -5,21 +5,47 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
 from typing import List
+import warnings
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas._typing import final
+
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_scalar,
+)
 
 from pandas.core.base import PandasObject
 
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
 
-class GroupByMixin(PandasObject):
+class ShallowMixin(PandasObject):
+    _attributes: List[str] = []
+
+    @final
+    def _shallow_copy(self, obj, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if isinstance(obj, self._constructor):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                # TODO: Remove once win_type deprecation is enforced
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "win_type", FutureWarning)
+                    kwargs[attr] = getattr(self, attr)
+        return self._constructor(obj, **kwargs)
+
+
+class GotItemMixin(PandasObject):
     """
     Provide the groupby facilities to the mixed object.
     """
 
     _attributes: List[str]
 
+    @final
     def _gotitem(self, key, ndim, subset=None):
         """
         Sub-classes to define. Return a sliced object.
@@ -34,23 +60,33 @@ class GroupByMixin(PandasObject):
         """
         # create a new object to prevent aliasing
         if subset is None:
-            subset = self.obj
+            # error: "GotItemMixin" has no attribute "obj"
+            subset = self.obj  # type: ignore[attr-defined]
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
-        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        # TODO: Remove once win_type deprecation is enforced
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "win_type", FutureWarning)
+            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
         # Try to select from a DataFrame, falling back to a Series
         try:
-            groupby = self._groupby[key]
+            # error: "GotItemMixin" has no attribute "_groupby"
+            groupby = self._groupby[key]  # type: ignore[attr-defined]
         except IndexError:
-            groupby = self._groupby
+            # error: "GotItemMixin" has no attribute "_groupby"
+            groupby = self._groupby  # type: ignore[attr-defined]
 
-        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
+        # error: Too many arguments for "GotItemMixin"
+        # error: Unexpected keyword argument "groupby" for "GotItemMixin"
+        # error: Unexpected keyword argument "parent" for "GotItemMixin"
+        self = type(self)(
+            subset, groupby=groupby, parent=self, **kwargs  # type: ignore[call-arg]
+        )
         self._reset_cache()
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
+        if subset.ndim == 2 and (is_scalar(key) and key in subset or is_list_like(key)):
+            self._selection = key
         return self
 
 
@@ -78,15 +114,8 @@ common_apply_allowlist = (
 )
 
 series_apply_allowlist = (
-    (
-        common_apply_allowlist
-        | {
-            "nlargest",
-            "nsmallest",
-            "is_monotonic_increasing",
-            "is_monotonic_decreasing",
-        }
-    )
+    common_apply_allowlist
+    | {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
 ) | frozenset(["dtype", "unique"])
 
 dataframe_apply_allowlist = common_apply_allowlist | frozenset(["dtypes", "corrwith"])
@@ -169,6 +198,7 @@ groupby_other_methods = frozenset(
         "describe",
         "dtypes",
         "expanding",
+        "ewm",
         "filter",
         "get_group",
         "groups",

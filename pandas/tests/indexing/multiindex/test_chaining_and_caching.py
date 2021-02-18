@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -49,6 +53,7 @@ def test_cache_updating():
     assert result == 2
 
 
+@pytest.mark.arm_slow
 def test_indexer_caching():
     # GH5727
     # make sure that indexers are in the _internal_names_set

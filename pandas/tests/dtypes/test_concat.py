@@ -3,81 +3,8 @@ import pytest
 import pandas.core.dtypes.concat as _concat
 
 import pandas as pd
-from pandas import DatetimeIndex, Period, PeriodIndex, Series, TimedeltaIndex
+from pandas import Series
 import pandas._testing as tm
-
-
-@pytest.mark.parametrize(
-    "to_concat, expected",
-    [
-        # int/float/str
-        ([["a"], [1, 2]], ["i", "object"]),
-        ([[3, 4], [1, 2]], ["i"]),
-        ([[3, 4], [1, 2.1]], ["i", "f"]),
-        # datetimelike
-        ([DatetimeIndex(["2011-01-01"]), DatetimeIndex(["2011-01-02"])], ["datetime"]),
-        ([TimedeltaIndex(["1 days"]), TimedeltaIndex(["2 days"])], ["timedelta"]),
-        # datetimelike object
-        (
-            [
-                DatetimeIndex(["2011-01-01"]),
-                DatetimeIndex(["2011-01-02"], tz="US/Eastern"),
-            ],
-            ["datetime", "datetime64[ns, US/Eastern]"],
-        ),
-        (
-            [
-                DatetimeIndex(["2011-01-01"], tz="Asia/Tokyo"),
-                DatetimeIndex(["2011-01-02"], tz="US/Eastern"),
-            ],
-            ["datetime64[ns, Asia/Tokyo]", "datetime64[ns, US/Eastern]"],
-        ),
-        ([TimedeltaIndex(["1 days"]), TimedeltaIndex(["2 hours"])], ["timedelta"]),
-        (
-            [
-                DatetimeIndex(["2011-01-01"], tz="Asia/Tokyo"),
-                TimedeltaIndex(["1 days"]),
-            ],
-            ["datetime64[ns, Asia/Tokyo]", "timedelta"],
-        ),
-    ],
-)
-def test_get_dtype_kinds(index_or_series, to_concat, expected):
-    to_concat_klass = [index_or_series(c) for c in to_concat]
-    result = _concat.get_dtype_kinds(to_concat_klass)
-    assert result == set(expected)
-
-
-@pytest.mark.parametrize(
-    "to_concat, expected",
-    [
-        (
-            [PeriodIndex(["2011-01"], freq="M"), PeriodIndex(["2011-01"], freq="M")],
-            ["period[M]"],
-        ),
-        (
-            [
-                Series([Period("2011-01", freq="M")]),
-                Series([Period("2011-02", freq="M")]),
-            ],
-            ["period[M]"],
-        ),
-        (
-            [PeriodIndex(["2011-01"], freq="M"), PeriodIndex(["2011-01"], freq="D")],
-            ["period[M]", "period[D]"],
-        ),
-        (
-            [
-                Series([Period("2011-01", freq="M")]),
-                Series([Period("2011-02", freq="D")]),
-            ],
-            ["period[M]", "period[D]"],
-        ),
-    ],
-)
-def test_get_dtype_kinds_period(to_concat, expected):
-    result = _concat.get_dtype_kinds(to_concat)
-    assert result == set(expected)
 
 
 def test_concat_mismatched_categoricals_with_empty():

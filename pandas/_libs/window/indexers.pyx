@@ -2,7 +2,10 @@
 
 import numpy as np
 
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 # Cython routines for window indexers
 
@@ -43,16 +46,14 @@ def calculate_variable_window_bounds(
     (ndarray[int64], ndarray[int64])
     """
     cdef:
-        bint left_closed = False
-        bint right_closed = False
-        int index_growth_sign = 1
+        bint left_closed = False, right_closed = False
         ndarray[int64_t, ndim=1] start, end
-        int64_t start_bound, end_bound
+        int64_t start_bound, end_bound, index_growth_sign = 1
         Py_ssize_t i, j
 
-    # if windows is variable, default is 'right', otherwise default is 'both'
+    # default is 'right'
     if closed is None:
-        closed = 'right' if index is not None else 'both'
+        closed = 'right'
 
     if closed in ['right', 'both']:
         right_closed = True

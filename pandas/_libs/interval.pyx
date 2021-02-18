@@ -1,7 +1,13 @@
 import numbers
-from operator import le, lt
+from operator import (
+    le,
+    lt,
+)
 
-from cpython.datetime cimport PyDateTime_IMPORT, PyDelta_Check
+from cpython.datetime cimport (
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+)
 
 PyDateTime_IMPORT
 
@@ -46,7 +52,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-_VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
+VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
 cdef class IntervalMixin:
@@ -179,7 +185,8 @@ cdef class IntervalMixin:
         return (self.right == self.left) & (self.closed != 'both')
 
     def _check_closed_matches(self, other, name='other'):
-        """Check if the closed attribute of `other` matches.
+        """
+        Check if the closed attribute of `other` matches.
 
         Note that 'left' and 'right' are considered different from 'both'.
 
@@ -291,12 +298,6 @@ cdef class Interval(IntervalMixin):
     True
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
-
-    And also you can create string intervals
-
-    >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
-    >>> 'Bee' in volume_1
-    True
     """
     _typ = "interval"
     __array_priority__ = 1000
@@ -324,7 +325,7 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(left)
         self._validate_endpoint(right)
 
-        if closed not in _VALID_CLOSED:
+        if closed not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'closed': {closed}")
         if not left <= right:
             raise ValueError("left side of interval must be <= right side")

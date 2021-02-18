@@ -43,6 +43,6 @@ def test_read_with_creds_from_pub_bucket():
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
         df = read_csv(
-            "s3://gdelt-open-data/events/1981.csv", nrows=5, sep="\t", header=None,
+            "s3://gdelt-open-data/events/1981.csv", nrows=5, sep="\t", header=None
         )
         assert len(df) == 5

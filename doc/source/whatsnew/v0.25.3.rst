@@ -11,7 +11,7 @@ including other versions of pandas.
 Bug fixes
 ~~~~~~~~~
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`DataFrameGroupBy.quantile` where NA values in the grouping could cause segfaults or incorrect results (:issue:`28882`)

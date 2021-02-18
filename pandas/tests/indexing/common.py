@@ -3,7 +3,14 @@ import itertools
 
 import numpy as np
 
-from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
+from pandas import (
+    DataFrame,
+    Float64Index,
+    MultiIndex,
+    Series,
+    UInt64Index,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -94,7 +101,7 @@ class Base:
 
         # form agglomerates
         for kind in self._kinds:
-            d = dict()
+            d = {}
             for typ in self._typs:
                 d[typ] = getattr(self, f"{kind}_{typ}")
 
@@ -144,9 +151,7 @@ class Base:
 
             tm.assert_almost_equal(result, expected)
 
-    def check_result(
-        self, method, key, typs=None, axes=None, fails=None,
-    ):
+    def check_result(self, method, key, typs=None, axes=None, fails=None):
         def _eq(axis, obj, key):
             """ compare equal for these 2 keys """
             axified = _axify(obj, key, axis)

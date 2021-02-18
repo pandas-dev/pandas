@@ -8,14 +8,22 @@ shadows the python class, where we do any heavy lifting.
 """
 import warnings
 
+cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int8_t, int64_t, ndarray, uint8_t
+from numpy cimport (
+    int8_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
 
 from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+    PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
@@ -24,7 +32,16 @@ from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     time,
     tzinfo as tzinfo_type,
 )
-from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+    PyObject_RichCompare,
+    PyObject_RichCompareBool,
+)
 
 PyDateTime_IMPORT
 
@@ -44,9 +61,17 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-from pandas._libs.tslibs.fields import get_date_name_field, get_start_end_field
+from pandas._libs.tslibs.fields import (
+    RoundTo,
+    get_date_name_field,
+    get_start_end_field,
+    round_nsint64,
+)
 
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     cmp_scalar,
@@ -57,8 +82,14 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.offsets cimport is_offset_object, to_offset
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds, is_any_td_scalar
+from pandas._libs.tslibs.offsets cimport (
+    is_offset_object,
+    to_offset,
+)
+from pandas._libs.tslibs.timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from pandas._libs.tslibs.timedeltas import Timedelta
 
@@ -98,115 +129,6 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-class RoundTo:
-    """
-    enumeration defining the available rounding modes
-
-    Attributes
-    ----------
-    MINUS_INFTY
-        round towards -∞, or floor [2]_
-    PLUS_INFTY
-        round towards +∞, or ceil [3]_
-    NEAREST_HALF_EVEN
-        round to nearest, tie-break half to even [6]_
-    NEAREST_HALF_MINUS_INFTY
-        round to nearest, tie-break half to -∞ [5]_
-    NEAREST_HALF_PLUS_INFTY
-        round to nearest, tie-break half to +∞ [4]_
-
-
-    References
-    ----------
-    .. [1] "Rounding - Wikipedia"
-           https://en.wikipedia.org/wiki/Rounding
-    .. [2] "Rounding down"
-           https://en.wikipedia.org/wiki/Rounding#Rounding_down
-    .. [3] "Rounding up"
-           https://en.wikipedia.org/wiki/Rounding#Rounding_up
-    .. [4] "Round half up"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_up
-    .. [5] "Round half down"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_down
-    .. [6] "Round half to even"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
-    """
-    @property
-    def MINUS_INFTY(self) -> int:
-        return 0
-
-    @property
-    def PLUS_INFTY(self) -> int:
-        return 1
-
-    @property
-    def NEAREST_HALF_EVEN(self) -> int:
-        return 2
-
-    @property
-    def NEAREST_HALF_PLUS_INFTY(self) -> int:
-        return 3
-
-    @property
-    def NEAREST_HALF_MINUS_INFTY(self) -> int:
-        return 4
-
-
-cdef inline _floor_int64(values, unit):
-    return values - np.remainder(values, unit)
-
-cdef inline _ceil_int64(values, unit):
-    return values + np.remainder(-values, unit)
-
-cdef inline _rounddown_int64(values, unit):
-    return _ceil_int64(values - unit//2, unit)
-
-cdef inline _roundup_int64(values, unit):
-    return _floor_int64(values + unit//2, unit)
-
-
-def round_nsint64(values, mode, freq):
-    """
-    Applies rounding mode at given frequency
-
-    Parameters
-    ----------
-    values : :obj:`ndarray`
-    mode : instance of `RoundTo` enumeration
-    freq : str, obj
-
-    Returns
-    -------
-    :obj:`ndarray`
-    """
-
-    unit = to_offset(freq).nanos
-
-    if mode == RoundTo.MINUS_INFTY:
-        return _floor_int64(values, unit)
-    elif mode == RoundTo.PLUS_INFTY:
-        return _ceil_int64(values, unit)
-    elif mode == RoundTo.NEAREST_HALF_MINUS_INFTY:
-        return _rounddown_int64(values, unit)
-    elif mode == RoundTo.NEAREST_HALF_PLUS_INFTY:
-        return _roundup_int64(values, unit)
-    elif mode == RoundTo.NEAREST_HALF_EVEN:
-        # for odd unit there is no need of a tie break
-        if unit % 2:
-            return _rounddown_int64(values, unit)
-        quotient, remainder = np.divmod(values, unit)
-        mask = np.logical_or(
-            remainder > (unit // 2),
-            np.logical_and(remainder == (unit // 2), quotient % 2)
-        )
-        quotient[mask] += 1
-        return quotient * unit
-
-    # if/elif above should catch all rounding modes defined in enum 'RoundTo':
-    # if flow of control arrives here, it is a bug
-    raise ValueError("round_nsint64 called with an unrecognized rounding mode")
-
-
 # ----------------------------------------------------------------------
 
 def integer_op_not_supported(obj):
@@ -230,6 +152,8 @@ cdef class _Timestamp(ABCTimestamp):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+    dayofweek = _Timestamp.day_of_week
+    dayofyear = _Timestamp.day_of_year
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -253,6 +177,9 @@ cdef class _Timestamp(ABCTimestamp):
             try:
                 ots = type(self)(other)
             except ValueError:
+                if is_datetime64_object(other):
+                    # cast non-nano dt64 to pydatetime
+                    other = other.astype(object)
                 return self._compare_outside_nanorange(other, op)
 
         elif is_array(other):
@@ -260,6 +187,10 @@ cdef class _Timestamp(ABCTimestamp):
             if other.dtype.kind == "M":
                 if self.tz is None:
                     return PyObject_RichCompare(self.asm8, other, op)
+                elif op == Py_NE:
+                    return np.ones(other.shape, dtype=np.bool_)
+                elif op == Py_EQ:
+                    return np.zeros(other.shape, dtype=np.bool_)
                 raise TypeError(
                     "Cannot compare tz-naive and tz-aware timestamps"
                 )
@@ -275,27 +206,56 @@ cdef class _Timestamp(ABCTimestamp):
                 return np.zeros(other.shape, dtype=np.bool_)
             return NotImplemented
 
+        elif PyDate_Check(other):
+            # returning NotImplemented defers to the `date` implementation
+            #  which incorrectly drops tz and normalizes to midnight
+            #  before comparing
+            # We follow the stdlib datetime behavior of never being equal
+            warnings.warn(
+                "Comparison of Timestamp with datetime.date is deprecated in "
+                "order to match the standard library behavior.  "
+                "In a future version these will be considered non-comparable."
+                "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
+                FutureWarning,
+                stacklevel=1,
+            )
+            return NotImplemented
         else:
             return NotImplemented
 
-        self._assert_tzawareness_compat(ots)
+        if not self._can_compare(ots):
+            if op == Py_NE or op == Py_EQ:
+                return NotImplemented
+            raise TypeError(
+                "Cannot compare tz-naive and tz-aware timestamps"
+            )
         return cmp_scalar(self.value, ots.value, op)
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
         cdef:
-            datetime dtval = self.to_pydatetime()
+            datetime dtval = self.to_pydatetime(warn=False)
 
-        self._assert_tzawareness_compat(other)
-        return PyObject_RichCompareBool(dtval, other, op)
+        if not self._can_compare(other):
+            return NotImplemented
 
-    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
-        if self.tzinfo is None:
-            if other.tzinfo is not None:
-                raise TypeError('Cannot compare tz-naive and tz-aware '
-                                'timestamps')
-        elif other.tzinfo is None:
-            raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
+        if self.nanosecond == 0:
+            return PyObject_RichCompareBool(dtval, other, op)
+
+        # otherwise we have dtval < self
+        if op == Py_NE:
+            return True
+        if op == Py_EQ:
+            return False
+        if op == Py_LE or op == Py_LT:
+            return other.year <= self.year
+        if op == Py_GE or op == Py_GT:
+            return other.year >= self.year
+
+    cdef bint _can_compare(self, datetime other):
+        if self.tzinfo is not None:
+            return other.tzinfo is not None
+        return other.tzinfo is None
 
     def __add__(self, other):
         cdef:
@@ -503,9 +463,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -520,9 +478,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """
         return self._get_date_name_field("month_name", locale)
 
@@ -534,14 +490,14 @@ cdef class _Timestamp(ABCTimestamp):
         return bool(ccalendar.is_leapyear(self.year))
 
     @property
-    def dayofweek(self) -> int:
+    def day_of_week(self) -> int:
         """
         Return day of the week.
         """
         return self.weekday()
 
     @property
-    def dayofyear(self) -> int:
+    def day_of_year(self) -> int:
         """
         Return the day of the year.
         """
@@ -626,14 +582,12 @@ cdef class _Timestamp(ABCTimestamp):
 
         try:
             stamp += self.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
         except ValueError:
             year2000 = self.replace(year=2000)
             stamp += year2000.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
 
+        if self.tzinfo:
+            zone = get_timezone(self.tzinfo)
         try:
             stamp += zone.strftime(' %%Z')
         except AttributeError:
@@ -783,7 +737,6 @@ class Timestamp(_Timestamp):
     year, month, day : int
     hour, minute, second, microsecond : int, optional, default 0
     nanosecond : int, optional, default 0
-        .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
@@ -907,9 +860,25 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromtimestamp(ts)
 
-        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        Transform timestamp[, tz] to tz's local time from POSIX timestamp.
         """
         return cls(datetime.fromtimestamp(ts))
+
+    def strftime(self, format):
+        """
+        Timestamp.strftime(format)
+
+        Return a string representing the given POSIX timestamp
+        controlled by an explicit format string.
+
+        Parameters
+        ----------
+        format : str
+            Format string to convert Timestamp to string.
+            See strftime documentation for more information on the format string:
+            https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+        """
+        return datetime.strftime(self, format)
 
     # Issue 25016.
     @classmethod
@@ -929,7 +898,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields.
+        Combine date, time into datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
@@ -1085,6 +1054,9 @@ class Timestamp(_Timestamp):
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
+        cdef:
+            int64_t nanos = to_offset(freq).nanos
+
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -1093,7 +1065,7 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = round_nsint64(value, mode, freq)[0]
+        r = round_nsint64(value, mode, nanos)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(
@@ -1148,7 +1120,7 @@ timedelta}, default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution.
+        Return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -1187,7 +1159,7 @@ timedelta}, default 'raise'
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution.
+        Return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -1369,10 +1341,10 @@ default 'raise'
         microsecond=None,
         nanosecond=None,
         tzinfo=object,
-        fold=0,
+        fold=None,
     ):
         """
-        implements datetime.replace, handles nanoseconds.
+        Implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
@@ -1385,7 +1357,7 @@ default 'raise'
         microsecond : int, optional
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
-        fold : int, optional, default is 0
+        fold : int, optional
 
         Returns
         -------
@@ -1402,6 +1374,11 @@ default 'raise'
         # set to naive if needed
         tzobj = self.tzinfo
         value = self.value
+
+        # GH 37610. Preserve fold when replacing.
+        if fold is None:
+            fold = self.fold
+
         if tzobj is not None:
             value = tz_convert_from_utc_single(value, tzobj)
 
@@ -1492,11 +1469,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
-# the smallest value we could actually represent is
-#   INT64_MIN + 1 == -9223372036854775807
-# but to allow overflow free conversion with a microsecond resolution
-# use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9_223_372_036_854_775_000
+cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
 
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)

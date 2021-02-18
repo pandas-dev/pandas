@@ -6,7 +6,10 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
 
-from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
 from pandas.core.arrays.sparse.array import SparseArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 
@@ -88,9 +91,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         dtype: Sparse[float64, nan]
         """
         from pandas import Series
-        from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
+        from pandas.core.arrays.sparse.scipy_sparse import coo_to_sparse_series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index)
+        result = coo_to_sparse_series(A, dense_index=dense_index)
         result = Series(result.array, index=result.index, copy=False)
 
         return result
@@ -168,9 +171,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         >>> columns
         [('a', 0), ('a', 1), ('b', 0), ('b', 1)]
         """
-        from pandas.core.arrays.sparse.scipy_sparse import _sparse_series_to_coo
+        from pandas.core.arrays.sparse.scipy_sparse import sparse_series_to_coo
 
-        A, rows, columns = _sparse_series_to_coo(
+        A, rows, columns = sparse_series_to_coo(
             self._parent, row_levels, column_levels, sort_labels=sort_labels
         )
         return A, rows, columns
@@ -329,22 +332,22 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
 
-        dtype = find_common_type(self._parent.dtypes)
+        dtype = find_common_type(self._parent.dtypes.to_list())
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
 
-        cols, rows, datas = [], [], []
+        cols, rows, data = [], [], []
         for col, name in enumerate(self._parent):
             s = self._parent[name]
             row = s.array.sp_index.to_int_index().indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            datas.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(s.array.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
-        datas = np.concatenate(datas)
-        return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
+        data = np.concatenate(data)
+        return coo_matrix((data, (rows, cols)), shape=self._parent.shape)
 
     @property
     def density(self) -> float:

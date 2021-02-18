@@ -1,11 +1,11 @@
 # Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
 trigger:
 - master
-- 1.1.x
+- 1.2.x
 
 pr:
 - master
-- 1.1.x
+- 1.2.x
 
 variables:
   PYTEST_WORKERS: auto
@@ -26,3 +26,28 @@ jobs:
   parameters:
     name: Windows
     vmImage: vs2017-win2016
+
+- job: py37_32bit
+  pool:
+    vmImage: ubuntu-18.04
+
+  steps:
+    - script: |
+        docker pull quay.io/pypa/manylinux2014_i686
+        docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
+        /bin/bash -xc "cd pandas && \
+        /opt/python/cp37-cp37m/bin/python -m venv ~/virtualenvs/pandas-dev && \
+        . ~/virtualenvs/pandas-dev/bin/activate && \
+        python -m pip install --no-deps -U pip wheel setuptools && \
+        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
+        python setup.py build_ext -q -j2 && \
+        python -m pip install --no-build-isolation -e . && \
+        pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
+      displayName: 'Run 32-bit manylinux2014 Docker Build / Tests'
+
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFiles: '**/test-*.xml'
+        failTaskOnFailedTests: true
+        testRunTitle: 'Publish test results for Python 3.7-32 bit full Linux'

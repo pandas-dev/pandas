@@ -1,42 +1,62 @@
-from collections.abc import Iterable
-from typing import Any, Optional, Sequence, Tuple, Union
+from __future__ import annotations
+
+from distutils.version import LooseVersion
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+)
 
 import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
 
-from pandas._libs import missing as libmissing
-from pandas._typing import ArrayLike
+from pandas._libs import lib
+from pandas._typing import (
+    Dtype,
+    NpDtype,
+)
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.missing import isna
 
 from pandas.api.types import (
     is_array_like,
     is_bool_dtype,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_scalar,
 )
-from pandas.core.algorithms import factorize
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    validate_indices,
+)
+from pandas.core.missing import get_fill_func
+
+ARROW_CMP_FUNCS = {
+    "eq": pc.equal,
+    "ne": pc.not_equal,
+    "lt": pc.less,
+    "gt": pc.greater,
+    "le": pc.less_equal,
+    "ge": pc.greater_equal,
+}
 
 
-def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
-    scalar = arrow_scalar.as_py()
-    if scalar is None:
-        return libmissing.NA
-    else:
-        return scalar
+if TYPE_CHECKING:
+    from pandas import Series
 
 
-class ArrowStringArray(ExtensionArray):
+class ArrowStringArray(OpsMixin, ExtensionArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
-    .. versionadded:: 1.1.0
+    .. versionadded:: 1.2.0
 
     .. warning::
 
@@ -70,63 +90,80 @@ class ArrowStringArray(ExtensionArray):
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="arrow_string")
+    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string[arrow]")
     <ArrowStringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: arrow_string
     """
 
+    _dtype = StringDtype(storage="pyarrow")
+
     def __init__(self, values):
+        self._chk_pyarrow_available()
         if isinstance(values, pa.Array):
-            self.data = pa.chunked_array([values])
+            self._data = pa.chunked_array([values])
         elif isinstance(values, pa.ChunkedArray):
-            self.data = values
+            self._data = values
         else:
             raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
-        self._dtype = StringDtype(storage="pyarrow")
+
+        if not pa.types.is_string(self._data.type):
+            raise ValueError(
+                "ArrowStringArray requires a PyArrow (chunked) array of string type"
+            )
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
-        # TODO(ARROW-9407): Accept pd.NA in Arrow
-        scalars_corrected = [None if isna(x) else x for x in scalars]
-        return cls(pa.array(scalars_corrected, type=pa.string()))
+    def _chk_pyarrow_available(cls) -> None:
+        # TODO: maybe update import_optional_dependency to allow a minimum
+        # version to be specified rather than use the global minimum
+        if pa is None or LooseVersion(pa.__version__) < "1.0.0":
+            msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+            raise ImportError(msg)
+
+    @classmethod
+    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy=False):
+        cls._chk_pyarrow_available()
+        # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
+        scalars = lib.ensure_string_array(scalars, copy=False)
+        return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls, strings, dtype: Optional[Dtype] = None, copy=False
+    ):
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
     def dtype(self) -> StringDtype:
         """
-        An instance of 'StringDtype'.
+        An instance of 'ArrowStringDtype'.
         """
         return self._dtype
 
-    def __array__(self, *args, **kwargs) -> "np.ndarray":
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.data.__array__(*args, **kwargs)
+        return self.to_numpy(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self.data
+        return self._data
 
-    @property
-    def size(self) -> int:
+    def to_numpy(
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
+    ) -> np.ndarray:
         """
-        Return the number of elements in this array.
-
-        Returns
-        -------
-        size : int
+        Convert to a NumPy ndarray.
         """
-        return len(self.data)
+        # TODO: copy argument is ignored
 
-    @property
-    def shape(self) -> Tuple[int]:
-        """Return the shape of the data."""
-        # This may be patched by pandas to support pseudo-2D operations.
-        return (len(self.data),)
-
-    @property
-    def ndim(self) -> int:
-        """Return the number of dimensions of the underlying data."""
-        return 1
+        if na_value is lib.no_default:
+            na_value = self._dtype.na_value
+        result = self._data.__array__(dtype=dtype)
+        result[isna(result)] = na_value
+        return result
 
     def __len__(self) -> int:
         """
@@ -136,14 +173,32 @@ class ArrowStringArray(ExtensionArray):
         -------
         length : int
         """
-        return len(self.data)
+        return len(self._data)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+    def _from_factorized(cls, values, original):
+        return cls._from_sequence(values)
 
-    def __getitem__(self, item):
-        # type (Any) -> Any
+    @classmethod
+    def _concat_same_type(cls, to_concat) -> ArrowStringArray:
+        """
+        Concatenate multiple ArrowStringArray.
+
+        Parameters
+        ----------
+        to_concat : sequence of ArrowStringArray
+
+        Returns
+        -------
+        ArrowStringArray
+        """
+        return cls(
+            pa.chunked_array(
+                [array for ea in to_concat for array in ea._data.iterchunks()]
+            )
+        )
+
+    def __getitem__(self, item: Any) -> Any:
         """Select a subset of self.
 
         Parameters
@@ -169,38 +224,98 @@ class ArrowStringArray(ExtensionArray):
         """
         item = check_array_indexer(self, item)
 
-        if isinstance(item, Iterable):
-            if not is_array_like(item):
-                item = np.array(item)
-            if len(item) == 0:
+        if isinstance(item, np.ndarray):
+            if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
-            elif is_integer_dtype(item):
+            elif is_integer_dtype(item.dtype):
                 return self.take(item)
-            elif is_bool_dtype(item):
-                return type(self)(self.data.filter(item))
+            elif is_bool_dtype(item.dtype):
+                return type(self)(self._data.filter(item))
             else:
                 raise IndexError(
                     "Only integers, slices and integer or "
                     "boolean arrays are valid indices."
                 )
-        elif is_integer(item):
-            if item < 0:
-                item += len(self)
-            if item >= len(self):
-                raise IndexError("index out of bounds")
 
-        value = self.data[item]
+        # We are not an array indexer, so maybe e.g. a slice or integer
+        # indexer. We dispatch to pyarrow.
+        value = self._data[item]
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
         else:
-            return _as_pandas_scalar(value)
+            return self._as_pandas_scalar(value)
+
+    def _as_pandas_scalar(self, arrow_scalar: pa.Scalar):
+        scalar = arrow_scalar.as_py()
+        if scalar is None:
+            return self._dtype.na_value
+        else:
+            return scalar
+
+    def fillna(self, value=None, method=None, limit=None):
+        """
+        Fill NA/NaN values using the specified method.
+
+        Parameters
+        ----------
+        value : scalar, array-like
+            If a scalar value is passed it is used to fill all missing values.
+            Alternatively, an array-like 'value' can be given. It's expected
+            that the array-like have the same length as 'self'.
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap.
+        limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled.
+
+        Returns
+        -------
+        ExtensionArray
+            With NA/NaN filled.
+        """
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError(
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f"expected {len(self)}"
+                )
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                func = get_fill_func(method)
+                new_values = func(self.to_numpy(object), limit=limit, mask=mask)
+                new_values = self._from_sequence(new_values)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
+
+    def _reduce(self, name, skipna=True, **kwargs):
+        if name in ["min", "max"]:
+            return getattr(self, name)(skipna=skipna)
+
+        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     @property
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
         """
-        return self.data.nbytes
+        return self._data.nbytes
 
     def isna(self) -> np.ndarray:
         """
@@ -209,43 +324,42 @@ class ArrowStringArray(ExtensionArray):
         This should return a 1-D array the same length as 'self'.
         """
         # TODO: Implement .to_numpy for ChunkedArray
-        return self.data.is_null().to_pandas().values
+        return self._data.is_null().to_pandas().values
 
-    def copy(self) -> ExtensionArray:
+    def copy(self) -> ArrowStringArray:
         """
-        Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
+        Return a shallow copy of the array.
 
         Returns
         -------
-        ExtensionArray
+        ArrowStringArray
         """
-        return type(self)(self.data)
+        return type(self)(self._data)
 
-    def __eq__(self, other: Any) -> ArrayLike:
-        """
-        Return for `self == other` (element-wise equality).
-        """
-        from pandas import array, Series, DataFrame, Index
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
 
-        if isinstance(other, (Series, DataFrame, Index)):
-            return NotImplemented
+        pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowStringArray):
-            result = pc.equal(self.data, other.data)
+            result = pc_func(self._data, other._data)
+        elif isinstance(other, np.ndarray):
+            result = pc_func(self._data, other)
         elif is_scalar(other):
-            result = pc.equal(self.data, pa.scalar(other))
+            try:
+                result = pc_func(self._data, pa.scalar(other))
+            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                mask = isna(self) | isna(other)
+                valid = ~mask
+                result = np.zeros(len(self), dtype="bool")
+                result[valid] = op(np.array(self)[valid], other)
+                return BooleanArray(result, mask)
         else:
-            raise NotImplementedError("Neither scalar nor ArrowStringArray")
+            return NotImplemented
 
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return array(result.to_pandas().values, dtype="boolean")
+        return BooleanArray._from_sequence(result.to_pandas().values)
 
-    def __setitem__(self, key, value):
-        # type: (Union[int, np.ndarray], Any) -> None
+    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
         """Set one or more values inplace.
 
         Parameters
@@ -276,13 +390,13 @@ class ArrowStringArray(ExtensionArray):
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
 
-            # Slice data and insert inbetween
+            # Slice data and insert in-between
             new_data = [
-                *self.data[0:key].chunks,
+                *self._data[0:key].chunks,
                 pa.array([value], type=pa.string()),
-                *self.data[(key + 1) :].chunks,
+                *self._data[(key + 1) :].chunks,
             ]
-            self.data = pa.chunked_array(new_data)
+            self._data = pa.chunked_array(new_data)
         else:
             # Convert to integer indices and iteratively assign.
             # TODO: Make a faster variant of this in Arrow upstream.
@@ -311,7 +425,7 @@ class ArrowStringArray(ExtensionArray):
 
     def take(
         self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ) -> "ExtensionArray":
+    ):
         """
         Take elements from an array.
 
@@ -371,66 +485,67 @@ class ArrowStringArray(ExtensionArray):
         else:
             indices_array = indices
 
-        if len(self.data) == 0 and (indices_array >= 0).any():
+        if len(self._data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
-        if len(indices_array) > 0 and indices_array.max() >= len(self.data):
+        if indices_array.size > 0 and indices_array.max() >= len(self._data):
             raise IndexError("out of bounds value in 'indices'.")
 
         if allow_fill:
-            if (indices_array < 0).any():
-                if indices_array.min() < -1:
-                    raise ValueError(
-                        "'indicies' contains negative values other "
-                        "-1 with 'allow_fill=True."
-                    )
+            fill_mask = indices_array < 0
+            if fill_mask.any():
+                validate_indices(indices_array, len(self._data))
                 # TODO(ARROW-9433): Treat negative indices as NULL
-                indices_array = pa.array(indices_array, mask=indices_array < 0)
-                result = self.data.take(indices_array)
+                indices_array = pa.array(indices_array, mask=fill_mask)
+                result = self._data.take(indices_array)
                 if isna(fill_value):
                     return type(self)(result)
-                return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
+                # TODO: ArrowNotImplementedError: Function fill_null has no
+                # kernel matching input types (array[string], scalar[string])
+                result = type(self)(result)
+                result[fill_mask] = fill_value
+                return result
+                # return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
                 # Nothing to fill
-                return type(self)(self.data.take(indices))
+                return type(self)(self._data.take(indices))
         else:  # allow_fill=False
             # TODO(ARROW-9432): Treat negative indices as indices from the right.
             if (indices_array < 0).any():
                 # Don't modify in-place
                 indices_array = np.copy(indices_array)
-                indices_array[indices_array < 0] += len(self.data)
-            return type(self)(self.data.take(indices_array))
+                indices_array[indices_array < 0] += len(self._data)
+            return type(self)(self._data.take(indices_array))
 
-    def value_counts(self, dropna=True):
-        from pandas import Series
+    def value_counts(self, dropna: bool = True) -> Series:
+        """
+        Return a Series containing counts of each unique value.
 
-        if dropna:
-            na = self.isna()
-            self = self[~na]
-        counts = self.data.value_counts()
-        return Series(counts.field(1), counts.field(0))
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of missing values.
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
-        # see https://github.com/xhochy/fletcher/blob/master/fletcher/base.py
-        # doesn't handle dictionary types.
-        if self.data.num_chunks == 1:
-            encoded = self.data.chunk(0).dictionary_encode()
-            indices = encoded.indices.to_pandas()
-            if indices.dtype.kind == "f":
-                indices[np.isnan(indices)] = na_sentinel
-                indices = indices.astype(int)
-            if not is_int64_dtype(indices):
-                indices = indices.astype(np.int64)
-            return indices.values, type(self)(encoded.dictionary)
-        else:
-            np_array = self.data.to_pandas().values
-            return factorize(np_array, na_sentinel=na_sentinel)
+        Returns
+        -------
+        counts : Series
 
-    @classmethod
-    def _concat_same_type(
-        cls, to_concat: Sequence["ArrowStringArray"]
-    ) -> "ArrowStringArray":
-        return cls(
-            pa.chunked_array(
-                [array for ea in to_concat for array in ea.data.iterchunks()]
-            )
+        See Also
+        --------
+        Series.value_counts
+        """
+        from pandas import (
+            Index,
+            Series,
         )
+
+        vc = self._data.value_counts()
+
+        # Index cannot hold ExtensionArrays yet
+        index = Index(type(self)(vc.field(0)).astype(object))
+        # No missing values so we can adhere to the interface and return a numpy array.
+        counts = np.array(vc.field(1))
+
+        if dropna and self._data.null_count > 0:
+            raise NotImplementedError("yo")
+
+        return Series(counts, index=index).astype("Int64")

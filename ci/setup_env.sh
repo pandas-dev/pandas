@@ -1,10 +1,5 @@
 #!/bin/bash -e
 
-if [ "$JOB" == "3.9-dev" ]; then
-    /bin/bash ci/build39.sh
-    exit 0
-fi
-
 # edit the locale file if needed
 if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -42,8 +37,7 @@ else
 fi
 
 if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
-  sudo apt-get -y install xvfb
-  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.2-1/Miniforge3-4.8.2-1-Linux-aarch64.sh"
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
 else
   CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
 fi
@@ -99,8 +93,6 @@ echo "conda list (root environment)"
 conda list
 
 # Clean up any left-over from a previous build
-# (note workaround for https://github.com/conda/conda/issues/2679:
-#  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
 echo
@@ -115,6 +107,12 @@ fi
 
 echo "activate pandas-dev"
 source activate pandas-dev
+
+# Explicitly set an environment variable indicating that this is pandas' CI environment.
+#
+# This allows us to enable things like -Werror that shouldn't be activated in
+# downstream CI jobs that may also build pandas from source.
+export PANDAS_CI=1
 
 echo
 echo "remove any installed pandas package"
@@ -139,14 +137,8 @@ conda list pandas
 # Make sure any error below is reported as such
 
 echo "[Build extensions]"
-python setup.py build_ext -q -i -j2
+python setup.py build_ext -q -j2
 
-# TODO: Some of our environments end up with old versions of pip (10.x)
-# Adding a new enough version of pip to the requirements explodes the
-# solve time. Just using pip to update itself.
-# - py35_macos
-# - py35_compat
-# - py36_32bit
 echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
 

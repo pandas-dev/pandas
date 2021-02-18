@@ -1,12 +1,34 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    timedelta_range,
+)
 import pandas._testing as tm
+
+# TODO td.skip_array_manager_not_yet_implemented
+# appending with reindexing not yet working
 
 
 class TestDataFrameAppend:
+    def test_append_multiindex(self, multiindex_dataframe_random_data, frame_or_series):
+        obj = multiindex_dataframe_random_data
+        if frame_or_series is Series:
+            obj = obj["A"]
+
+        a = obj[:5]
+        b = obj[5:]
+
+        result = a.append(b)
+        tm.assert_equal(result, obj)
+
     def test_append_empty_list(self):
         # GH 28769
         df = DataFrame()
@@ -21,6 +43,7 @@ class TestDataFrameAppend:
         tm.assert_frame_equal(result, expected)
         assert result is not df  # .append() should return a new object
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_series_dict(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
@@ -61,6 +84,7 @@ class TestDataFrameAppend:
         expected = df.append(df[-1:], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_list_of_series_dicts(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
@@ -79,6 +103,7 @@ class TestDataFrameAppend:
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_missing_cols(self):
         # GH22252
         # exercise the conditional branch in append method where the data
@@ -123,6 +148,7 @@ class TestDataFrameAppend:
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_dtypes(self):
 
         # GH 5754
@@ -177,11 +203,12 @@ class TestDataFrameAppend:
     def test_append_timestamps_aware_or_naive(self, tz_naive_fixture, timestamp):
         # GH 30238
         tz = tz_naive_fixture
-        df = pd.DataFrame([pd.Timestamp(timestamp, tz=tz)])
+        df = DataFrame([Timestamp(timestamp, tz=tz)])
         result = df.append(df.iloc[0]).iloc[-1]
-        expected = pd.Series(pd.Timestamp(timestamp, tz=tz), name=0)
+        expected = Series(Timestamp(timestamp, tz=tz), name=0)
         tm.assert_series_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "data, dtype",
         [
@@ -193,7 +220,21 @@ class TestDataFrameAppend:
         ],
     )
     def test_other_dtypes(self, data, dtype):
-        df = pd.DataFrame(data, dtype=dtype)
+        df = DataFrame(data, dtype=dtype)
         result = df.append(df.iloc[0]).iloc[-1]
-        expected = pd.Series(data, name=0, dtype=dtype)
+        expected = Series(data, name=0, dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+    def test_append_numpy_bug_1681(self, dtype):
+        # another datetime64 bug
+        if dtype == "datetime64[ns]":
+            index = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
+        else:
+            index = timedelta_range("1 days", "10 days", freq="2D")
+
+        df = DataFrame()
+        other = DataFrame({"A": "foo", "B": index}, index=index)
+
+        result = df.append(other)
+        assert (result["B"] == index).all()

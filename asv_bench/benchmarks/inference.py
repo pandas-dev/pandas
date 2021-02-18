@@ -1,8 +1,14 @@
 import numpy as np
 
-from pandas import Series, to_numeric
+from pandas import (
+    Series,
+    to_numeric,
+)
 
-from .pandas_vb_common import lib, tm
+from .pandas_vb_common import (
+    lib,
+    tm,
+)
 
 
 class ToNumeric:
@@ -42,7 +48,7 @@ class ToNumericDowncast:
     ]
 
     N = 500000
-    N2 = int(N / 2)
+    N2 = N // 2
 
     data_dict = {
         "string-int": ["1"] * N2 + [2] * N2,

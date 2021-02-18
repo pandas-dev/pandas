@@ -151,6 +151,17 @@ Here are some things to check when reviewing a pull request.
   for regression fixes and small bug fixes, the next minor milestone otherwise)
 * Changes should comply with our :ref:`policies.version`.
 
+Backporting
+-----------
+
+In the case you want to apply changes to a stable branch from a newer branch then you
+can comment::
+
+    @meeseeksdev backport version-branch
+
+This will trigger a workflow which will backport a given change to a branch
+(e.g. @meeseeksdev backport 1.2.x)
+
 Cleaning up old issues
 ----------------------
 
@@ -207,7 +218,7 @@ Only core team members can merge pull requests. We have a few guidelines.
 1. You should typically not self-merge your own pull requests. Exceptions include
    things like small changes to fix CI (e.g. pinning a package version).
 2. You should not merge pull requests that have an active discussion, or pull
-   requests that has any ``-1`` votes from a core maintainer. Pandas operates
+   requests that has any ``-1`` votes from a core maintainer. pandas operates
    by consensus.
 3. For larger changes, it's good to have a +1 from at least two core team members.
 

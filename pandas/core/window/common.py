@@ -1,98 +1,19 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
-from typing import Callable, Optional
+from typing import cast
 import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
-from pandas.core.groupby.base import GroupByMixin
 from pandas.core.indexes.api import MultiIndex
-from pandas.core.shared_docs import _shared_docs
-
-_shared_docs = dict(**_shared_docs)
-_doc_template = """
-        Returns
-        -------
-        Series or DataFrame
-            Return type is determined by the caller.
-
-        See Also
-        --------
-        pandas.Series.%(name)s : Calling object with Series data.
-        pandas.DataFrame.%(name)s : Calling object with DataFrame data.
-        pandas.Series.%(func_name)s : Similar method for Series.
-        pandas.DataFrame.%(func_name)s : Similar method for DataFrame.
-"""
 
 
-def _dispatch(name: str, *args, **kwargs):
-    """
-    Dispatch to apply.
-    """
-
-    def outer(self, *args, **kwargs):
-        def f(x):
-            x = self._shallow_copy(x, groupby=self._groupby)
-            return getattr(x, name)(*args, **kwargs)
-
-        return self._groupby.apply(f)
-
-    outer.__name__ = name
-    return outer
-
-
-class WindowGroupByMixin(GroupByMixin):
-    """
-    Provide the groupby facilities.
-    """
-
-    def __init__(self, obj, *args, **kwargs):
-        kwargs.pop("parent", None)
-        groupby = kwargs.pop("groupby", None)
-        if groupby is None:
-            groupby, obj = obj, obj._selected_obj
-        self._groupby = groupby
-        self._groupby.mutated = True
-        self._groupby.grouper.mutated = True
-        super().__init__(obj, *args, **kwargs)
-
-    count = _dispatch("count")
-    corr = _dispatch("corr", other=None, pairwise=None)
-    cov = _dispatch("cov", other=None, pairwise=None)
-
-    def _apply(
-        self,
-        func: Callable,
-        center: bool,
-        require_min_periods: int = 0,
-        floor: int = 1,
-        is_weighted: bool = False,
-        name: Optional[str] = None,
-        use_numba_cache: bool = False,
-        **kwargs,
-    ):
-        """
-        Dispatch to apply; we are stripping all of the _apply kwargs and
-        performing the original function call on the grouped object.
-        """
-        kwargs.pop("floor", None)
-        kwargs.pop("original_func", None)
-
-        # TODO: can we de-duplicate with _dispatch?
-        def f(x, name=name, *args):
-            x = self._shallow_copy(x)
-
-            if isinstance(name, str):
-                return getattr(x, name)(*args, **kwargs)
-
-            return x.apply(name, *args, **kwargs)
-
-        return self._groupby.apply(f)
-
-
-def _flex_binary_moment(arg1, arg2, f, pairwise=False):
+def flex_binary_moment(arg1, arg2, f, pairwise=False):
 
     if not (
         isinstance(arg1, (np.ndarray, ABCSeries, ABCDataFrame))
@@ -176,6 +97,9 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
                     # set the index and reorder
                     if arg2.columns.nlevels > 1:
+                        # mypy needs to know columns is a MultiIndex, Index doesn't
+                        # have levels attribute
+                        arg2.columns = cast(MultiIndex, arg2.columns)
                         result.index = MultiIndex.from_product(
                             arg2.columns.levels + [result_index]
                         )
@@ -222,7 +146,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
             return dataframe_from_int_dict(results, arg1)
 
     else:
-        return _flex_binary_moment(arg2, arg1, f)
+        return flex_binary_moment(arg2, arg1, f)
 
 
 def zsqrt(x):

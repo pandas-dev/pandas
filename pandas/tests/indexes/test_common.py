@@ -9,11 +9,22 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.compat import IS64
 
-from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
+from pandas.core.dtypes.common import (
+    is_period_dtype,
+    needs_i8_conversion,
+)
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+)
 import pandas._testing as tm
 
 
@@ -30,7 +41,11 @@ class TestCommon:
             if isinstance(index.name, tuple) and level is index.name:
                 # GH 21121 : droplevel with tuple name
                 continue
-            with pytest.raises(ValueError):
+            msg = (
+                "Cannot remove 1 levels from an index with 1 levels: at least one "
+                "level must be left."
+            )
+            with pytest.raises(ValueError, match=msg):
                 index.droplevel(level)
 
         for level in "wrong", ["wrong"]:
@@ -40,11 +55,9 @@ class TestCommon:
             ):
                 index.droplevel(level)
 
-    def test_constructor_non_hashable_name(self, index):
+    def test_constructor_non_hashable_name(self, index_flat):
         # GH 20527
-
-        if isinstance(index, MultiIndex):
-            pytest.skip("multiindex handled in test_multi.py")
+        index = index_flat
 
         message = "Index.name must be a hashable type"
         renamed = [["1"]]
@@ -57,80 +70,23 @@ class TestCommon:
         with pytest.raises(TypeError, match=message):
             index.set_names(names=renamed)
 
-    def test_constructor_unwraps_index(self, index):
-        if isinstance(index, pd.MultiIndex):
-            raise pytest.skip("MultiIndex has no ._data")
-        a = index
+    def test_constructor_unwraps_index(self, index_flat):
+        a = index_flat
         b = type(a)(a)
         tm.assert_equal(a._data, b._data)
 
-    @pytest.mark.parametrize("itm", [101, "no_int"])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_getitem_error(self, index, itm):
-        with pytest.raises(IndexError):
-            index[itm]
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_corner_union(self, index, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = index.copy().set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = index.copy().set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = index.drop(index).set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = index.drop(index).set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-    def test_to_flat_index(self, index):
+    def test_to_flat_index(self, index_flat):
         # 22866
-        if isinstance(index, MultiIndex):
-            pytest.skip("Separate expectation for MultiIndex")
+        index = index_flat
 
         result = index.to_flat_index()
         tm.assert_index_equal(result, index)
 
-    def test_set_name_methods(self, index):
+    def test_set_name_methods(self, index_flat):
+        # MultiIndex tested separately
+        index = index_flat
         new_name = "This is the new name for this index"
 
-        # don't tests a MultiIndex here (as its tested separated)
-        if isinstance(index, MultiIndex):
-            pytest.skip("Skip check for MultiIndex")
         original_name = index.name
         new_ind = index.set_names([new_name])
         assert new_ind.name == new_name
@@ -154,11 +110,13 @@ class TestCommon:
         assert index.name == name
         assert index.names == [name]
 
-    def test_copy_and_deepcopy(self, index):
-        from copy import copy, deepcopy
+    def test_copy_and_deepcopy(self, index_flat):
+        from copy import (
+            copy,
+            deepcopy,
+        )
 
-        if isinstance(index, MultiIndex):
-            pytest.skip("Skip check for MultiIndex")
+        index = index_flat
 
         for func in (copy, deepcopy):
             idx_copy = func(index)
@@ -168,11 +126,9 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_unique(self, index):
+    def test_unique(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
-        # don't test a CategoricalIndex because categories change (GH 18291)
-        if isinstance(index, (MultiIndex, CategoricalIndex)):
-            pytest.skip("Skip check for MultiIndex/CategoricalIndex")
+        index = index_flat
 
         # GH 17896
         expected = index.drop_duplicates()
@@ -191,9 +147,10 @@ class TestCommon:
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
 
-    def test_get_unique_index(self, index):
+    def test_get_unique_index(self, index_flat):
         # MultiIndex tested separately
-        if not len(index) or isinstance(index, MultiIndex):
+        index = index_flat
+        if not len(index):
             pytest.skip("Skip check for empty Index and MultiIndex")
 
         idx = index[[0] * 5]
@@ -207,9 +164,8 @@ class TestCommon:
         except NotImplementedError:
             pass
 
-        for dropna in [False, True]:
-            result = idx._get_unique_index(dropna=dropna)
-            tm.assert_index_equal(result, idx_unique)
+        result = idx._get_unique_index()
+        tm.assert_index_equal(result, idx_unique)
 
         # nans:
         if not index._can_hold_na:
@@ -226,6 +182,10 @@ class TestCommon:
             vals[0] = np.nan
 
         vals_unique = vals[:2]
+        if index.dtype.kind in ["m", "M"]:
+            # i.e. needs_i8_conversion but not period_dtype, as above
+            vals = type(index._data)._simple_new(vals, dtype=index.dtype)
+            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True
@@ -233,26 +193,17 @@ class TestCommon:
         assert idx_nan.dtype == index.dtype
         assert idx_unique_nan.dtype == index.dtype
 
-        for dropna, expected in zip([False, True], [idx_unique_nan, idx_unique]):
-            for i in [idx_nan, idx_unique_nan]:
-                result = i._get_unique_index(dropna=dropna)
-                tm.assert_index_equal(result, expected)
+        expected = idx_unique_nan
+        for i in [idx_nan, idx_unique_nan]:
+            result = i._get_unique_index()
+            tm.assert_index_equal(result, expected)
 
-    def test_mutability(self, index):
-        if not len(index):
-            pytest.skip("Skip check for empty Index")
-        msg = "Index does not support mutable operations"
-        with pytest.raises(TypeError, match=msg):
-            index[0] = index[0]
-
-    def test_view(self, index):
-        assert index.view().name == index.name
-
-    def test_searchsorted_monotonic(self, index):
+    def test_searchsorted_monotonic(self, index_flat):
         # GH17271
+        index = index_flat
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
-        if isinstance(index, (MultiIndex, pd.IntervalIndex)):
+        if isinstance(index, pd.IntervalIndex):
             pytest.skip("Skip check for MultiIndex/IntervalIndex")
 
         # nothing to test if the index is empty
@@ -289,18 +240,13 @@ class TestCommon:
             assert expected_right == ssm_right
         else:
             # non-monotonic should raise.
-            with pytest.raises(ValueError):
+            msg = "index must be monotonic increasing or decreasing"
+            with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
-    def test_pickle(self, index):
-        original_name, index.name = index.name, "foo"
-        unpickled = tm.round_trip_pickle(index)
-        assert index.equals(unpickled)
-        index.name = original_name
-
-    def test_drop_duplicates(self, index, keep):
-        if isinstance(index, MultiIndex):
-            pytest.skip("MultiIndex is tested separately")
+    def test_drop_duplicates(self, index_flat, keep):
+        # MultiIndex is tested separately
+        index = index_flat
         if isinstance(index, RangeIndex):
             pytest.skip(
                 "RangeIndex is tested in test_drop_duplicates_no_duplicates "
@@ -332,9 +278,9 @@ class TestCommon:
         expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
         tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
 
-    def test_drop_duplicates_no_duplicates(self, index):
-        if isinstance(index, MultiIndex):
-            pytest.skip("MultiIndex is tested separately")
+    def test_drop_duplicates_no_duplicates(self, index_flat):
+        # MultiIndex is tested separately
+        index = index_flat
 
         # make unique index
         if isinstance(index, RangeIndex):
@@ -358,9 +304,12 @@ class TestCommon:
         with pytest.raises(TypeError, match=msg):
             index.drop_duplicates(inplace=True)
 
-    def test_has_duplicates(self, index):
+    def test_has_duplicates(self, index_flat):
+        # MultiIndex tested separately in:
+        #   tests/indexes/multi/test_unique_and_duplicates.
+        index = index_flat
         holder = type(index)
-        if not len(index) or isinstance(index, (MultiIndex, RangeIndex)):
+        if not len(index) or isinstance(index, RangeIndex):
             # MultiIndex tested separately in:
             #   tests/indexes/multi/test_unique_and_duplicates.
             # RangeIndex is unique by definition.
@@ -381,9 +330,21 @@ class TestCommon:
         else:
             index.name = "idx"
 
+        warn = None
+        if dtype in ["int64", "uint64"]:
+            if needs_i8_conversion(index.dtype):
+                warn = FutureWarning
+        elif (
+            isinstance(index, DatetimeIndex)
+            and index.tz is not None
+            and dtype == "datetime64[ns]"
+        ):
+            # This astype is deprecated in favor of tz_localize
+            warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            result = index.astype(dtype)
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+                result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
@@ -391,3 +352,63 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
+
+    def test_asi8_deprecation(self, index):
+        # GH#37877
+        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            index.asi8
+
+
+@pytest.mark.parametrize("na_position", [None, "middle"])
+def test_sort_values_invalid_na_position(index_with_missing, na_position):
+
+    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+        index_with_missing.sort_values(na_position=na_position)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_sort_values_with_missing(index_with_missing, na_position):
+    # GH 35584. Test that sort_values works with missing values,
+    # sort non-missing and place missing according to na_position
+
+    if isinstance(index_with_missing, CategoricalIndex):
+        pytest.skip("missing value sorting order not well-defined")
+
+    missing_count = np.sum(index_with_missing.isna())
+    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    sorted_values = np.sort(not_na_vals)
+    if na_position == "first":
+        sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+    else:
+        sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    expected = type(index_with_missing)(sorted_values)
+
+    result = index_with_missing.sort_values(na_position=na_position)
+    tm.assert_index_equal(result, expected)
+
+
+def test_ndarray_compat_properties(index):
+    if isinstance(index, PeriodIndex) and not IS64:
+        pytest.skip("Overflow")
+    idx = index
+    assert idx.T.equals(idx)
+    assert idx.transpose().equals(idx)
+
+    values = idx.values
+
+    assert idx.shape == values.shape
+    assert idx.ndim == values.ndim
+    assert idx.size == values.size
+
+    if not isinstance(index, (RangeIndex, MultiIndex)):
+        # These two are not backed by an ndarray
+        assert idx.nbytes == values.nbytes
+
+    # test for validity
+    idx.nbytes
+    idx.values.nbytes

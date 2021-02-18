@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex, Series
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -37,6 +41,7 @@ def test_intersection_base(idx, sort, klass):
         first.intersection([1, 2, 3], sort=sort)
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
 def test_union_base(idx, sort, klass):
     first = idx[::-1]
@@ -104,11 +109,13 @@ def test_symmetric_difference(idx, sort):
 def test_multiindex_symmetric_difference():
     # GH 13490
     idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
-    result = idx ^ idx
+    with tm.assert_produces_warning(FutureWarning):
+        result = idx ^ idx
     assert result.names == idx.names
 
     idx2 = idx.copy().rename(["A", "B"])
-    result = idx ^ idx2
+    with tm.assert_produces_warning(FutureWarning):
+        result = idx ^ idx2
     assert result.names == [None, None]
 
 
@@ -218,14 +225,12 @@ def test_difference_sort_incomparable():
     tm.assert_index_equal(result, idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_incomparable_true():
-    # TODO decide on True behaviour
-    # # sort=True, raises
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
     other = pd.MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
 
-    with pytest.raises(TypeError):
+    msg = "The 'sort' keyword only takes the values of None or False; True was passed."
+    with pytest.raises(ValueError, match=msg):
         idx.difference(other, sort=True)
 
 
@@ -242,10 +247,10 @@ def test_union(idx, sort):
 
     # corner case, pass self or empty thing:
     the_union = idx.union(idx, sort=sort)
-    assert the_union is idx
+    tm.assert_index_equal(the_union, idx)
 
     the_union = idx.union(idx[:0], sort=sort)
-    assert the_union is idx
+    tm.assert_index_equal(the_union, idx)
 
     # FIXME: dont leave commented-out
     # won't work in python 3
@@ -277,7 +282,7 @@ def test_intersection(idx, sort):
 
     # corner case, pass self
     the_int = idx.intersection(idx, sort=sort)
-    assert the_int is idx
+    tm.assert_index_equal(the_int, idx)
 
     # empty intersection: disjoint
     empty = idx[:2].intersection(idx[2:], sort=sort)
@@ -289,6 +294,40 @@ def test_intersection(idx, sort):
     # tuples = _index.values
     # result = _index & tuples
     # assert result.equals(tuples)
+
+
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
+def test_setop_with_categorical(idx, sort, method):
+    other = idx.to_flat_index().astype("category")
+    res_names = [None] * idx.nlevels
+
+    result = getattr(idx, method)(other, sort=sort)
+    expected = getattr(idx, method)(idx, sort=sort).rename(res_names)
+    tm.assert_index_equal(result, expected)
+
+    result = getattr(idx, method)(other[:5], sort=sort)
+    expected = getattr(idx, method)(idx[:5], sort=sort).rename(res_names)
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_non_object(idx, sort):
+    other = Index(range(3), name="foo")
+
+    result = idx.intersection(other, sort=sort)
+    expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=None)
+    tm.assert_index_equal(result, expected, exact=True)
+
+    # if we pass a length-0 ndarray (i.e. no name, we retain our idx.name)
+    result = idx.intersection(np.asarray(other)[:0], sort=sort)
+    expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=idx.names)
+    tm.assert_index_equal(result, expected, exact=True)
+
+    msg = "other must be a MultiIndex or a list of tuples"
+    with pytest.raises(TypeError, match=msg):
+        # With non-zero length non-index, we try and fail to convert to tuples
+        idx.intersection(np.asarray(other), sort=sort)
 
 
 def test_intersect_equal_sort():
@@ -366,6 +405,15 @@ def test_union_non_object_dtype_raises():
         mi.union(idx)
 
 
+def test_union_empty_self_different_names():
+    # GH#38423
+    mi = MultiIndex.from_arrays([[]])
+    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    result = mi.union(mi2)
+    expected = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method", ["union", "intersection", "difference", "symmetric_difference"]
 )
@@ -375,3 +423,76 @@ def test_setops_disallow_true(method):
 
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
         getattr(idx1, method)(idx2, sort=True)
+
+
+@pytest.mark.parametrize(
+    ("tuples", "exp_tuples"),
+    [
+        ([("val1", "test1")], [("val1", "test1")]),
+        ([("val1", "test1"), ("val1", "test1")], [("val1", "test1")]),
+        (
+            [("val2", "test2"), ("val1", "test1")],
+            [("val2", "test2"), ("val1", "test1")],
+        ),
+    ],
+)
+def test_intersect_with_duplicates(tuples, exp_tuples):
+    # GH#36915
+    left = MultiIndex.from_tuples(tuples, names=["first", "second"])
+    right = MultiIndex.from_tuples(
+        [("val1", "test1"), ("val1", "test1"), ("val2", "test2")],
+        names=["first", "second"],
+    )
+    result = left.intersection(right)
+    expected = MultiIndex.from_tuples(exp_tuples, names=["first", "second"])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, names, expected",
+    [
+        ((1,), None, [None, None]),
+        ((1,), ["a"], [None, None]),
+        ((1,), ["b"], [None, None]),
+        ((1, 2), ["c", "d"], [None, None]),
+        ((1, 2), ["b", "a"], [None, None]),
+        ((1, 2, 3), ["a", "b", "c"], [None, None]),
+        ((1, 2), ["a", "c"], ["a", None]),
+        ((1, 2), ["c", "b"], [None, "b"]),
+        ((1, 2), ["a", "b"], ["a", "b"]),
+        ((1, 2), [None, "b"], [None, "b"]),
+    ],
+)
+def test_maybe_match_names(data, names, expected):
+    # GH#38323
+    mi = pd.MultiIndex.from_tuples([], names=["a", "b"])
+    mi2 = pd.MultiIndex.from_tuples([data], names=names)
+    result = mi._maybe_match_names(mi2)
+    assert result == expected
+
+
+def test_intersection_equal_different_names():
+    # GH#30302
+    mi1 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["c", "b"])
+    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+
+    result = mi1.intersection(mi2)
+    expected = MultiIndex.from_arrays([[1, 2], [3, 4]], names=[None, "b"])
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_different_names():
+    # GH#38323
+    mi = MultiIndex.from_arrays([[1], [3]], names=["c", "b"])
+    mi2 = MultiIndex.from_arrays([[1], [3]])
+    result = mi.intersection(mi2)
+    tm.assert_index_equal(result, mi2)
+
+
+def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
+    # GH#38623
+    mi1 = MultiIndex.from_arrays([[3, nulls_fixture, 4, nulls_fixture], [1, 2, 4, 2]])
+    mi2 = MultiIndex.from_arrays([[3, nulls_fixture, 3], [1, 2, 4]])
+    result = mi1.intersection(mi2)
+    expected = MultiIndex.from_arrays([[3.0, nulls_fixture], [1, 2]])
+    tm.assert_index_equal(result, expected)

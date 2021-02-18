@@ -7,6 +7,7 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import argparse
+from distutils.command.build import build
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
 import multiprocessing
@@ -16,10 +17,14 @@ import platform
 import shutil
 import sys
 
-import pkg_resources
-from setuptools import Command, find_packages, setup
+import numpy
+from setuptools import (
+    Command,
+    Extension,
+    setup,
+)
+from setuptools.command.build_ext import build_ext as _build_ext
 
-# versioning
 import versioneer
 
 cmdclass = versioneer.get_cmdclass()
@@ -33,13 +38,13 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.16.5"
-min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
+min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
-    import Cython
-
-    _CYTHON_VERSION = Cython.__version__
+    from Cython import (
+        Tempita,
+        __version__ as _CYTHON_VERSION,
+    )
     from Cython.Build import cythonize
 
     _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)
@@ -48,28 +53,13 @@ except ImportError:
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
-# The import of Extension must be after the import of Cython, otherwise
-# we do not get the appropriately patched class.
-# See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
-from distutils.extension import Extension  # noqa: E402 isort:skip
-from distutils.command.build import build  # noqa: E402 isort:skip
-
-if _CYTHON_INSTALLED:
-    from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
-
-    cython = True
-    from Cython import Tempita as tempita
-else:
-    from distutils.command.build_ext import build_ext as _build_ext
-
-    cython = False
-
 
 _pxi_dep_template = {
     "algos": ["_libs/algos_common_helper.pxi.in", "_libs/algos_take_helper.pxi.in"],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
+        "_libs/khash_for_primitive_helper.pxi.in",
     ],
     "index": ["_libs/index_class_helper.pxi.in"],
     "sparse": ["_libs/sparse_op_helper.pxi.in"],
@@ -99,9 +89,9 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile, "r") as f:
+            with open(pxifile) as f:
                 tmpl = f.read()
-            pyxcontent = tempita.sub(tmpl)
+            pyxcontent = Tempita.sub(tmpl)
 
             with open(outfile, "w") as f:
                 f.write(pyxcontent)
@@ -109,99 +99,10 @@ class build_ext(_build_ext):
     def build_extensions(self):
         # if building from c files, don't need to
         # generate template output
-        if cython:
+        if _CYTHON_INSTALLED:
             self.render_templates(_pxifiles)
 
         super().build_extensions()
-
-
-DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
-LONG_DESCRIPTION = """
-**pandas** is a Python package that provides fast, flexible, and expressive data
-structures designed to make working with structured (tabular, multidimensional,
-potentially heterogeneous) and time series data both easy and intuitive. It
-aims to be the fundamental high-level building block for doing practical,
-**real world** data analysis in Python. Additionally, it has the broader goal
-of becoming **the most powerful and flexible open source data analysis /
-manipulation tool available in any language**. It is already well on its way
-toward this goal.
-
-pandas is well suited for many different kinds of data:
-
-  - Tabular data with heterogeneously-typed columns, as in an SQL table or
-    Excel spreadsheet
-  - Ordered and unordered (not necessarily fixed-frequency) time series data.
-  - Arbitrary matrix data (homogeneously typed or heterogeneous) with row and
-    column labels
-  - Any other form of observational / statistical data sets. The data actually
-    need not be labeled at all to be placed into a pandas data structure
-
-The two primary data structures of pandas, Series (1-dimensional) and DataFrame
-(2-dimensional), handle the vast majority of typical use cases in finance,
-statistics, social science, and many areas of engineering. For R users,
-DataFrame provides everything that R's ``data.frame`` provides and much
-more. pandas is built on top of `NumPy <https://www.numpy.org>`__ and is
-intended to integrate well within a scientific computing environment with many
-other 3rd party libraries.
-
-Here are just a few of the things that pandas does well:
-
-  - Easy handling of **missing data** (represented as NaN) in floating point as
-    well as non-floating point data
-  - Size mutability: columns can be **inserted and deleted** from DataFrame and
-    higher dimensional objects
-  - Automatic and explicit **data alignment**: objects can be explicitly
-    aligned to a set of labels, or the user can simply ignore the labels and
-    let `Series`, `DataFrame`, etc. automatically align the data for you in
-    computations
-  - Powerful, flexible **group by** functionality to perform
-    split-apply-combine operations on data sets, for both aggregating and
-    transforming data
-  - Make it **easy to convert** ragged, differently-indexed data in other
-    Python and NumPy data structures into DataFrame objects
-  - Intelligent label-based **slicing**, **fancy indexing**, and **subsetting**
-    of large data sets
-  - Intuitive **merging** and **joining** data sets
-  - Flexible **reshaping** and pivoting of data sets
-  - **Hierarchical** labeling of axes (possible to have multiple labels per
-    tick)
-  - Robust IO tools for loading data from **flat files** (CSV and delimited),
-    Excel files, databases, and saving / loading data from the ultrafast **HDF5
-    format**
-  - **Time series**-specific functionality: date range generation and frequency
-    conversion, moving window statistics, date shifting and lagging.
-
-Many of these principles are here to address the shortcomings frequently
-experienced using other languages / scientific research environments. For data
-scientists, working with data is typically divided into multiple stages:
-munging and cleaning data, analyzing / modeling it, then organizing the results
-of the analysis into a form suitable for plotting or tabular display. pandas is
-the ideal tool for all of these tasks.
-"""
-
-DISTNAME = "pandas"
-LICENSE = "BSD"
-AUTHOR = "The PyData Development Team"
-EMAIL = "pydata@googlegroups.com"
-URL = "https://pandas.pydata.org"
-DOWNLOAD_URL = ""
-PROJECT_URLS = {
-    "Bug Tracker": "https://github.com/pandas-dev/pandas/issues",
-    "Documentation": "https://pandas.pydata.org/pandas-docs/stable/",
-    "Source Code": "https://github.com/pandas-dev/pandas",
-}
-CLASSIFIERS = [
-    "Development Status :: 5 - Production/Stable",
-    "Environment :: Console",
-    "Operating System :: OS Independent",
-    "Intended Audience :: Science/Research",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Cython",
-    "Topic :: Scientific/Engineering",
-]
 
 
 class CleanCommand(Command):
@@ -386,8 +287,7 @@ class CythonCommand(build_ext):
 
 
 class DummyBuildSrc(Command):
-    """ numpy's build_src command interferes with Cython's build_ext.
-    """
+    """numpy's build_src command interferes with Cython's build_ext."""
 
     user_options = []
 
@@ -404,7 +304,7 @@ class DummyBuildSrc(Command):
 cmdclass.update({"clean": CleanCommand, "build": build})
 cmdclass["build_ext"] = CheckingBuildExt
 
-if cython:
+if _CYTHON_INSTALLED:
     suffix = ".pyx"
     cmdclass["cython"] = CythonCommand
 else:
@@ -425,17 +325,20 @@ else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
 
 
+extra_compile_args = []
+extra_link_args = []
 if is_platform_windows():
-    extra_compile_args = []
-    extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    extra_compile_args = ["-Werror"]
-    extra_link_args = []
+    # PANDAS_CI=1 is set by ci/setup_env.sh
+    if os.environ.get("PANDAS_CI", "0") == "1":
+        extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
+        extra_compile_args.append("-UNDEBUG")
+        extra_compile_args.append("-O0")
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
@@ -448,7 +351,7 @@ if is_platform_mac():
             "MACOSX_DEPLOYMENT_TARGET", current_system
         )
         if (
-            LooseVersion(python_target) < "10.9"
+            LooseVersion(str(python_target)) < "10.9"
             and LooseVersion(current_system) >= "10.9"
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
@@ -477,18 +380,10 @@ if linetrace:
     directives["linetrace"] = True
     macros = [("CYTHON_TRACE", "1"), ("CYTHON_TRACE_NOGIL", "1")]
 
-# in numpy>=1.16.0, silence build warnings about deprecated API usage
-#  we can't do anything about these warnings because they stem from
-#  cython+numpy version mismatches.
+# silence build warnings about deprecated API usage
+# we can't do anything about these warnings because they stem from
+# cython+numpy version mismatches.
 macros.append(("NPY_NO_DEPRECATED_API", "0"))
-if "-Werror" in extra_compile_args:
-    try:
-        import numpy as np
-    except ImportError:
-        pass
-    else:
-        if np.__version__ < LooseVersion("1.16.0"):
-            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------
@@ -507,7 +402,7 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # See https://github.com/cython/cython/issues/1495
         return extensions
 
-    elif not cython:
+    elif not _CYTHON_INSTALLED:
         # GH#28836 raise a helfpul error message
         if _CYTHON_VERSION:
             raise RuntimeError(
@@ -516,25 +411,12 @@ def maybe_cythonize(extensions, *args, **kwargs):
             )
         raise RuntimeError("Cannot cythonize without Cython installed.")
 
-    numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
-    # TODO: Is this really necessary here?
-    for ext in extensions:
-        if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
-            ext.include_dirs.append(numpy_incl)
-
     # reuse any parallel arguments provided for compilation to cythonize
     parser = argparse.ArgumentParser()
-    parser.add_argument("-j", type=int)
-    parser.add_argument("--parallel", type=int)
+    parser.add_argument("--parallel", "-j", type=int, default=1)
     parsed, _ = parser.parse_known_args()
 
-    nthreads = 0
-    if parsed.parallel:
-        nthreads = parsed.parallel
-    elif parsed.j:
-        nthreads = parsed.j
-
-    kwargs["nthreads"] = nthreads
+    kwargs["nthreads"] = parsed.parallel
     build_ext.render_templates(_pxifiles)
     return cythonize(extensions, *args, **kwargs)
 
@@ -563,7 +445,10 @@ ext_data = {
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
         "include": klib_include,
-        "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
+        "depends": (
+            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
+            + _pxi_dep["hashtable"]
+        ),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
@@ -679,7 +564,8 @@ for name, data in ext_data.items():
 
     sources.extend(data.get("sources", []))
 
-    include = data.get("include")
+    include = data.get("include", [])
+    include.append(numpy.get_include())
 
     obj = Extension(
         f"pandas.{name}",
@@ -728,6 +614,7 @@ ujson_ext = Extension(
         "pandas/_libs/src/ujson/python",
         "pandas/_libs/src/ujson/lib",
         "pandas/_libs/src/datetime",
+        numpy.get_include(),
     ],
     extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
     extra_link_args=extra_link_args,
@@ -740,51 +627,11 @@ extensions.append(ujson_ext)
 # ----------------------------------------------------------------------
 
 
-def setup_package():
-    setuptools_kwargs = {
-        "install_requires": [
-            "python-dateutil >= 2.7.3",
-            "pytz >= 2017.3",
-            f"numpy >= {min_numpy_ver}",
-        ],
-        "setup_requires": [f"numpy >= {min_numpy_ver}"],
-        "zip_safe": False,
-    }
-
-    setup(
-        name=DISTNAME,
-        maintainer=AUTHOR,
-        version=versioneer.get_version(),
-        packages=find_packages(include=["pandas", "pandas.*"]),
-        package_data={"": ["templates/*", "_libs/**/*.dll"]},
-        ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
-        maintainer_email=EMAIL,
-        description=DESCRIPTION,
-        license=LICENSE,
-        cmdclass=cmdclass,
-        url=URL,
-        download_url=DOWNLOAD_URL,
-        project_urls=PROJECT_URLS,
-        long_description=LONG_DESCRIPTION,
-        classifiers=CLASSIFIERS,
-        platforms="any",
-        python_requires=">=3.7.1",
-        extras_require={
-            "test": [
-                # sync with setup.cfg minversion & install.rst
-                "pytest>=5.0.1",
-                "pytest-xdist",
-                "hypothesis>=3.58",
-            ]
-        },
-        entry_points={
-            "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
-        },
-        **setuptools_kwargs,
-    )
-
-
 if __name__ == "__main__":
     # Freeze to support parallel compilation when using spawn instead of fork
     multiprocessing.freeze_support()
-    setup_package()
+    setup(
+        version=versioneer.get_version(),
+        ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
+        cmdclass=cmdclass,
+    )

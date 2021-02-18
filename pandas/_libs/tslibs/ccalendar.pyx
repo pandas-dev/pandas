@@ -5,7 +5,10 @@ Cython implementations of functions resembling the stdlib calendar module
 
 import cython
 
-from numpy cimport int32_t, int64_t
+from numpy cimport (
+    int32_t,
+    int64_t,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -201,10 +204,10 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
             iso_week = 1
 
     iso_year = year
-    if iso_week == 1 and doy > 7:
+    if iso_week == 1 and month == 12:
         iso_year += 1
 
-    elif iso_week >= 52 and doy < 7:
+    elif iso_week >= 52 and month == 1:
         iso_year -= 1
 
     return iso_year, iso_week, dow + 1

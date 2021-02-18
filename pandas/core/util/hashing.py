@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCSeries,
 )
@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import (
 _default_hash_key = "0123456789123456"
 
 
-def _combine_hash_arrays(arrays, num_items: int):
+def combine_hash_arrays(arrays, num_items: int):
     """
     Parameters
     ----------
@@ -86,7 +86,7 @@ def hash_pandas_object(
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
-    elif isinstance(obj, ABCIndexClass):
+    elif isinstance(obj, ABCIndex):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
@@ -108,7 +108,7 @@ def hash_pandas_object(
                 for _ in [None]
             )
             arrays = itertools.chain([h], index_iter)
-            h = _combine_hash_arrays(arrays, 2)
+            h = combine_hash_arrays(arrays, 2)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
@@ -131,7 +131,7 @@ def hash_pandas_object(
             # keep `hashes` specifically a generator to keep mypy happy
             _hashes = itertools.chain(hashes, index_hash_generator)
             hashes = (x for x in _hashes)
-        h = _combine_hash_arrays(hashes, num_items)
+        h = combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
@@ -160,7 +160,10 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     elif not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
 
-    from pandas import Categorical, MultiIndex
+    from pandas import (
+        Categorical,
+        MultiIndex,
+    )
 
     if not isinstance(vals, ABCMultiIndex):
         vals = MultiIndex.from_tuples(vals)
@@ -175,7 +178,7 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     hashes = (
         _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in vals
     )
-    h = _combine_hash_arrays(hashes, len(vals))
+    h = combine_hash_arrays(hashes, len(vals))
     if is_tuple:
         h = h[0]
 
@@ -275,7 +278,11 @@ def hash_array(
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
-            from pandas import Categorical, Index, factorize
+            from pandas import (
+                Categorical,
+                Index,
+                factorize,
+            )
 
             codes, categories = factorize(vals, sort=False)
             cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)

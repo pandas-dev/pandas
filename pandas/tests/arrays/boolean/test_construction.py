@@ -7,14 +7,6 @@ from pandas.arrays import BooleanArray
 from pandas.core.arrays.boolean import coerce_to_array
 
 
-@pytest.fixture
-def data():
-    return pd.array(
-        [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
-        dtype="boolean",
-    )
-
-
 def test_boolean_array_constructor():
     values = np.array([True, False, True, False], dtype="bool")
     mask = np.array([False, False, False, True], dtype="bool")

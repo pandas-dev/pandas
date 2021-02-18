@@ -4,7 +4,14 @@ import string
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    date_range,
+    melt,
+    wide_to_long,
+)
+from pandas.api.types import CategoricalDtype
 
 
 class Melt:
@@ -103,7 +110,10 @@ class WideToLong:
         nidvars = 20
         N = 5000
         self.letters = list("ABCD")
-        yrvars = [l + str(num) for l, num in product(self.letters, range(1, nyrs + 1))]
+        yrvars = [
+            letter + str(num)
+            for letter, num in product(self.letters, range(1, nyrs + 1))
+        ]
         columns = [str(i) for i in range(nidvars)] + yrvars
         self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)), columns=columns)
         self.df["id"] = self.df.index
@@ -193,7 +203,7 @@ class GetDummies:
         categories = list(string.ascii_letters[:12])
         s = pd.Series(
             np.random.choice(categories, size=1000000),
-            dtype=pd.api.types.CategoricalDtype(categories),
+            dtype=CategoricalDtype(categories),
         )
         self.s = s
 

@@ -5,7 +5,6 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
-import pandas as pd
 from pandas import (
     Index,
     NaT,
@@ -195,7 +194,7 @@ class TestPeriodIndex:
         if box is None:
             data = data._values
         elif box == "series":
-            data = pd.Series(data)
+            data = Series(data)
 
         result = PeriodIndex(data, freq="D")
         expected = PeriodIndex(
@@ -330,7 +329,7 @@ class TestPeriodIndex:
         msg = "Should be numpy array of type i8"
         with pytest.raises(AssertionError, match=msg):
             # Need ndarray, not Int64Index
-            type(idx._data)._simple_new(idx.astype("i8"), freq=idx.freq)
+            type(idx._data)._simple_new(Index(idx.asi8), freq=idx.freq)
 
         arr = type(idx._data)._simple_new(idx.asi8, freq=idx.freq)
         result = idx._simple_new(arr, name="p")
@@ -362,7 +361,7 @@ class TestPeriodIndex:
             period_range(start="2011-01-01", end="NaT", freq="M")
 
     def test_constructor_year_and_quarter(self):
-        year = pd.Series([2001, 2002, 2003])
+        year = Series([2001, 2002, 2003])
         quarter = year - 2000
         idx = PeriodIndex(year=year, quarter=quarter)
         strs = [f"{t[0]:d}Q{t[1]:d}" for t in zip(quarter, year)]

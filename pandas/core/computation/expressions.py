@@ -6,26 +6,32 @@ Offer fast expression evaluation through numexpr
 
 """
 import operator
-from typing import List, Set
+from typing import (
+    List,
+    Optional,
+    Set,
+)
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
+from pandas._typing import FuncType
+
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas.core.computation.check import _NUMEXPR_INSTALLED
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 from pandas.core.ops import roperator
 
-if _NUMEXPR_INSTALLED:
+if NUMEXPR_INSTALLED:
     import numexpr as ne
 
-_TEST_MODE = None
-_TEST_RESULT: List[bool] = list()
-_USE_NUMEXPR = _NUMEXPR_INSTALLED
-_evaluate = None
-_where = None
+_TEST_MODE: Optional[bool] = None
+_TEST_RESULT: List[bool] = []
+USE_NUMEXPR = NUMEXPR_INSTALLED
+_evaluate: Optional[FuncType] = None
+_where: Optional[FuncType] = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
@@ -39,21 +45,21 @@ _MIN_ELEMENTS = 10000
 
 def set_use_numexpr(v=True):
     # set/unset to use numexpr
-    global _USE_NUMEXPR
-    if _NUMEXPR_INSTALLED:
-        _USE_NUMEXPR = v
+    global USE_NUMEXPR
+    if NUMEXPR_INSTALLED:
+        USE_NUMEXPR = v
 
     # choose what we are going to do
     global _evaluate, _where
 
-    _evaluate = _evaluate_numexpr if _USE_NUMEXPR else _evaluate_standard
-    _where = _where_numexpr if _USE_NUMEXPR else _where_standard
+    _evaluate = _evaluate_numexpr if USE_NUMEXPR else _evaluate_standard
+    _where = _where_numexpr if USE_NUMEXPR else _where_standard
 
 
 def set_numexpr_threads(n=None):
     # if we are using numexpr, set the threads to n
     # otherwise reset
-    if _NUMEXPR_INSTALLED and _USE_NUMEXPR:
+    if NUMEXPR_INSTALLED and USE_NUMEXPR:
         if n is None:
             n = ne.detect_number_of_cores()
         ne.set_num_threads(n)
@@ -74,7 +80,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     if op_str is not None:
 
         # required min elements (otherwise we are adding overhead)
-        if np.prod(a.shape) > _MIN_ELEMENTS:
+        if a.size > _MIN_ELEMENTS:
             # check for dtype compatibility
             dtypes: Set[str] = set()
             for o in [a, b]:
@@ -133,7 +139,10 @@ _op_str_mapping = {
     roperator.rtruediv: "/",
     operator.floordiv: "//",
     roperator.rfloordiv: "//",
-    operator.mod: "%",
+    # we require Python semantics for mod of negative for backwards compatibility
+    # see https://github.com/pydata/numexpr/issues/365
+    # so sticking with unaccelerated for now
+    operator.mod: None,
     roperator.rmod: "%",
     operator.pow: "**",
     roperator.rpow: "**",
@@ -245,6 +254,7 @@ def where(cond, a, b, use_numexpr=True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
+    assert _where is not None
     return _where(cond, a, b) if use_numexpr else _where_standard(cond, a, b)
 
 

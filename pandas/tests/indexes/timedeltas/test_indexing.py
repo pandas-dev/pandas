@@ -1,11 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import re
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Timedelta, TimedeltaIndex, notna, timedelta_range
+from pandas import (
+    Index,
+    Timedelta,
+    TimedeltaIndex,
+    notna,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 
@@ -65,7 +74,7 @@ class TestGetItem:
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
-        tdi = pd.timedelta_range(0, periods=10)
+        tdi = timedelta_range(0, periods=10)
         with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 
@@ -148,29 +157,39 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
-        i2 = Index([pd.NaT, pd.NaT] + tdi[2:].tolist())
+        tail = tdi[2:].tolist()
+        i2 = Index([pd.NaT, pd.NaT] + tail)
+        mask = notna(i2)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
-            tdi.where(notna(i2), i2.asi8)
+        expected = Index([pd.NaT.value, pd.NaT.value] + tail, dtype=object, name="idx")
+        assert isinstance(expected[0], int)
+        result = tdi.where(mask, i2.asi8)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
-            tdi.where(notna(i2), i2 + pd.Timestamp.now())
+        ts = i2 + pd.Timestamp.now()
+        expected = Index([ts[0], ts[1]] + tail, dtype=object, name="idx")
+        result = tdi.where(mask, ts)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
-            tdi.where(notna(i2), (i2 + pd.Timestamp.now()).to_period("D"))
+        per = (i2 + pd.Timestamp.now()).to_period("D")
+        expected = Index([per[0], per[1]] + tail, dtype=object, name="idx")
+        result = tdi.where(mask, per)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
-            # non-matching scalar
-            tdi.where(notna(i2), pd.Timestamp.now())
+        ts = pd.Timestamp.now()
+        expected = Index([ts, ts] + tail, dtype=object, name="idx")
+        result = tdi.where(mask, ts)
+        tm.assert_index_equal(result, expected)
 
     def test_where_mismatched_nat(self):
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
         cond = np.array([True, False, False])
 
-        msg = "Where requires matching dtype"
-        with pytest.raises(TypeError, match=msg):
-            # wrong-dtyped NaT
-            tdi.where(cond, np.datetime64("NaT", "ns"))
+        dtnat = np.datetime64("NaT", "ns")
+        expected = Index([tdi[0], dtnat, dtnat], dtype=object, name="idx")
+        assert expected[2] is dtnat
+        result = tdi.where(cond, dtnat)
+        tm.assert_index_equal(result, expected)
 
 
 class TestTake:

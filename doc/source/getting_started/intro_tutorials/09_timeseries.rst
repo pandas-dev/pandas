@@ -58,6 +58,8 @@ Westminster* in respectively Paris, Antwerp and London.
 How to handle time series data with ease?
 -----------------------------------------
 
+.. _10min_tut_09_timeseries.properties:
+
 Using pandas datetime properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -204,10 +206,9 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
 .. ipython:: python
 
     fig, axs = plt.subplots(figsize=(12, 4))
-    air_quality.groupby(
-        air_quality["datetime"].dt.hour)["value"].mean().plot(kind='bar',
-                                                              rot=0,
-                                                              ax=axs)
+    air_quality.groupby(air_quality["datetime"].dt.hour)["value"].mean().plot(
+        kind='bar', rot=0, ax=axs
+    )
     plt.xlabel("Hour of the day");  # custom x label using matplotlib
     @savefig 09_bar_chart.png
     plt.ylabel("$NO_2 (µg/m^3)$");
