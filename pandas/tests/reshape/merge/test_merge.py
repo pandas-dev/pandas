@@ -1391,11 +1391,8 @@ class TestMerge:
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
 
-        if using_array_manager:
-            for arr in data1._mgr.arrays:
-                arr.flags.writeable = False
-        else:
-            data1._mgr.blocks[0].values.flags.writeable = False
+        for arr in data1._mgr.arrays:
+            arr.flags.writeable = False
 
         data1.merge(data2)  # no error
 
