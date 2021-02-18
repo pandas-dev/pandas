@@ -1382,7 +1382,7 @@ class TestMerge:
         expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_readonly(self, using_array_manager):
+    def test_merge_readonly(self):
         # https://github.com/pandas-dev/pandas/issues/27943
         data1 = DataFrame(
             np.arange(20).reshape((4, 5)) + 1, columns=["a", "b", "c", "d", "e"]
