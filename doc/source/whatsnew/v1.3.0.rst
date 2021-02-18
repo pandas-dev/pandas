@@ -49,13 +49,13 @@ For example:
 DataFrame constructor honors ``copy=False`` With Dict
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When passing a dictionary to :class:`DataFrame` with (the default) ``copy=False``,
+When passing a dictionary to :class:`DataFrame` with ``copy=False``,
 a copy will no longer be made (:issue:`32960`)
 
 .. ipython:: python
 
     arr = np.array([1, 2, 3])
-    df = pd.DataFrame({"A": arr, "B": arr.copy()})
+    df = pd.DataFrame({"A": arr, "B": arr.copy()}, copy=False)
     df
 
 ``df["A"]`` remains a view on ``arr``:
