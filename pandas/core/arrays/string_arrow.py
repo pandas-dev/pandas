@@ -36,7 +36,6 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
-from pandas.core.algorithms import factorize
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
@@ -279,22 +278,16 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
-        if self._data.num_chunks == 1:
-            encoded = self._data.chunk(0).dictionary_encode()
-            indices = encoded.indices.to_pandas()
-            if indices.dtype.kind == "f":
-                indices[np.isnan(indices)] = na_sentinel
-                indices = indices.astype(int)
-            if not is_int64_dtype(indices):
-                indices = indices.astype(np.int64)
-            return indices.values, type(self)(encoded.dictionary)
-        else:
-            np_array = self._data.to_pandas().values
-            # error: Incompatible return value type (got "Tuple[Any, Union[Any,
-            # Index]]", expected "Tuple[Any, ExtensionArray]")
-            return factorize(  # type: ignore[return-value]
-                np_array, na_sentinel=na_sentinel
-            )
+        encoded = self._data.dictionary_encode()
+        indices = pa.chunked_array(
+            [c.indices for c in encoded.chunks], type=encoded.type.index_type
+        ).to_pandas()
+        if indices.dtype.kind == "f":
+            indices[np.isnan(indices)] = na_sentinel
+            indices = indices.astype(int)
+        if not is_int64_dtype(indices):
+            indices = indices.astype(np.int64)
+        return indices.values, type(self)(encoded.chunk(0).dictionary)
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> ArrowStringArray:
