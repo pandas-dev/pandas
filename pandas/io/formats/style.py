@@ -1915,6 +1915,14 @@ class Styler:
 
         This method uses ``pandas.qcut`` to implement the quantile labelling of data
         values.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.arange(1,100).reshape(10,10)+1)
+        >>> df.style.highlight_quantile(q_low=0.5, q_high=0.7, axis=None)
+        >>> df.style.highlight_quantile(q_low=0.5, q_high=0.7, axis=0)
+        >>> df.style.highlight_quantile(q_low=0.5, q_high=0.7, axis=1)
+        >>> df.style.highlight_quantile(q_low=0.5, props='font-weight:bold;color:red')
         """
 
         def f(
