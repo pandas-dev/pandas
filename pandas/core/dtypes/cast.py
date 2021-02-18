@@ -630,7 +630,8 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
         if inferred == dtype:
             return dtype, fv
-        return np.dtype(object), fill_value
+        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
+        return np.dtype(object), fill_value  # type: ignore[type-var]
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
