@@ -1313,6 +1313,28 @@ class Styler:
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    def text_gradient(
+        self,
+        cmap="PuBu",
+        low: float = 0,
+        high: float = 0,
+        axis: Optional[Axis] = 0,
+        subset=None,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+    ) -> Styler:
+        return self.apply(
+            self._background_gradient,
+            cmap=cmap,
+            subset=subset,
+            axis=axis,
+            low=low,
+            high=high,
+            vmin=vmin,
+            vmax=vmax,
+            text_only=True,
+        )
+
     def background_gradient(
         self,
         cmap="PuBu",
@@ -1403,6 +1425,7 @@ class Styler:
         text_color_threshold: float = 0.408,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
+        text_only: bool = False,
     ):
         """
         Color background in a range according to the data.
@@ -1446,16 +1469,21 @@ class Styler:
                 )
                 return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-            def css(rgba) -> str:
-                dark = relative_luminance(rgba) < text_color_threshold
-                text_color = "#f1f1f1" if dark else "#000000"
-                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+            def css(rgba, text_only) -> str:
+                if not text_only:
+                    dark = relative_luminance(rgba) < text_color_threshold
+                    text_color = "#f1f1f1" if dark else "#000000"
+                    return (
+                        f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+                    )
+                else:
+                    return f"color: {colors.rgb2hex(rgba)};"
 
             if s.ndim == 1:
-                return [css(rgba) for rgba in rgbas]
+                return [css(rgba, text_only) for rgba in rgbas]
             else:
                 return pd.DataFrame(
-                    [[css(rgba) for rgba in row] for row in rgbas],
+                    [[css(rgba, text_only) for rgba in row] for row in rgbas],
                     index=s.index,
                     columns=s.columns,
                 )
