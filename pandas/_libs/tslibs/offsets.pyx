@@ -2083,7 +2083,7 @@ cdef class BQuarterEnd(QuarterOffset):
     """
     _output_name = "BusinessQuarterEnd"
     _default_starting_month = 3
-    _from_name_starting_month = 12
+    _from_name_starting_month = 3
     _prefix = "BQ"
     _day_opt = "business_end"
 
@@ -2110,7 +2110,7 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-03-02 05:01:15')
     """
     _output_name = "BusinessQuarterBegin"
-    _default_starting_month = 3
+    _default_starting_month = 1
     _from_name_starting_month = 1
     _prefix = "BQS"
     _day_opt = "business_start"
@@ -2125,6 +2125,7 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
     """
     _default_starting_month = 3
+    _from_name_starting_month = 3
     _prefix = "Q"
     _day_opt = "end"
 
@@ -2146,7 +2147,7 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
     """
-    _default_starting_month = 3
+    _default_starting_month = 1
     _from_name_starting_month = 1
     _prefix = "QS"
     _day_opt = "start"
