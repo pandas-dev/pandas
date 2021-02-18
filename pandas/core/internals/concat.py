@@ -70,9 +70,7 @@ def concatenate_array_managers(
     mgrs = []
     for mgr, indexers in mgrs_indexers:
         for ax, indexer in indexers.items():
-            mgr = mgr.reindex_indexer(
-                axes[ax], indexer, axis=ax, allow_dups=True, do_integrity_check=False
-            )
+            mgr = mgr.reindex_indexer(axes[ax], indexer, axis=ax, allow_dups=True)
         mgrs.append(mgr)
 
     if concat_axis == 1:
