@@ -89,6 +89,8 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
             and util.is_timedelta64_object(right)
             and get_timedelta64_value(right) == NPY_NAT
         )
+    elif is_decimal_na(left):
+        return is_decimal_na(right)
     return False
 
 

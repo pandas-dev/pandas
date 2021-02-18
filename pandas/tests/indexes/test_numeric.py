@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -109,9 +108,6 @@ class Numeric(Base):
 
         if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
-        elif isinstance(na_val, Decimal) and not isinstance(index, Float64Index):
-            # TODO: decide if this is the desired behavior
-            expected = Index([index[0], na_val] + list(index[1:]), dtype=object)
         else:
             expected = Float64Index([index[0], np.nan] + list(index[1:]))
 

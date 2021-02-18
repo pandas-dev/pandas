@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import no_default
+from pandas._libs.missing import is_matching_na
 import pandas._libs.testing as _testing
 
 from pandas.core.dtypes.common import (
@@ -457,22 +458,8 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
 
     if left_attr is right_attr:
         return True
-    elif (
-        is_number(left_attr)
-        and np.isnan(left_attr)
-        and is_number(right_attr)
-        and np.isnan(right_attr)
-    ):
-        # np.nan
-        return True
-    elif (
-        isinstance(left_attr, (np.datetime64, np.timedelta64))
-        and isinstance(right_attr, (np.datetime64, np.timedelta64))
-        and type(left_attr) is type(right_attr)
-        and np.isnat(left_attr)
-        and np.isnat(right_attr)
-    ):
-        # np.datetime64("nat") or np.timedelta64("nat")
+    elif is_matching_na(left_attr, right_attr):
+        # e.g. both np.nan, both NaT, both pd.NA, ...
         return True
 
     try:

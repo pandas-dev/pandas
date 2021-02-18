@@ -541,9 +541,17 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, nulls_fi
 
     if isinstance(fill_value, Decimal):
         # Subject to change, but ATM (When Decimal(NAN) is being added to nulls_fixture)
-        #  this is the existing bheavior in maybe_promote
-        expected_dtype = np.dtype(object)
-        exp_val_for_scalar = fill_value
+        #  this is the existing behavior in maybe_promote,
+        #  hinges on is_valid_na_for_dtype
+        if dtype.kind in ["i", "u", "f", "c"]:
+            if dtype.kind in ["i", "u"]:
+                expected_dtype = np.dtype(np.float64)
+            else:
+                expected_dtype = dtype
+            exp_val_for_scalar = np.nan
+        else:
+            expected_dtype = np.dtype(object)
+            exp_val_for_scalar = fill_value
     elif is_integer_dtype(dtype) and fill_value is not NaT:
         # integer + other missing value (np.nan / None) casts to float
         expected_dtype = np.float64
