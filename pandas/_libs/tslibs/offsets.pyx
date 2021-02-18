@@ -2201,7 +2201,7 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-06-30 05:01:15')
     >>> ts + BQuarterEnd(2)
     Timestamp('2020-09-30 05:01:15')
-    >>> ts + BQuarterEnd(1, startingMonth=2)
+    >>> ts + BQuarterEnd(1, startingMonth = 2)
     Timestamp('2020-05-29 05:01:15')
     >>> ts + BQuarterEnd(startingMonth=2)
     Timestamp('2020-05-29 05:01:15')
