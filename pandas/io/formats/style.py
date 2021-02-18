@@ -47,10 +47,7 @@ from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import (
-    maybe_numeric_slice,
-    non_reducing_slice,
-)
+from pandas.core.indexing import non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
@@ -1379,8 +1376,9 @@ class Styler:
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
         """
-        subset = maybe_numeric_slice(self.data, subset)
-        subset = non_reducing_slice(subset)
+        if subset is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1613,8 +1611,9 @@ class Styler:
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
-        subset = maybe_numeric_slice(self.data, subset)
-        subset = non_reducing_slice(subset)
+        if subset is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
         self.apply(
             self._bar,
             subset=subset,

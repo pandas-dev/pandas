@@ -23,10 +23,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import (
-    maybe_numeric_slice,
-    non_reducing_slice,
-)
+from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -827,19 +824,6 @@ class TestMisc:
 
         result = non_reducing_slice(subset)
         tm.assert_frame_equal(df.loc[result], df.loc[expected])
-
-    def test_maybe_numeric_slice(self):
-        df = DataFrame({"A": [1, 2], "B": ["c", "d"], "C": [True, False]})
-        result = maybe_numeric_slice(df, slice_=None)
-        expected = pd.IndexSlice[:, ["A"]]
-        assert result == expected
-
-        result = maybe_numeric_slice(df, None, include_bool=True)
-        expected = pd.IndexSlice[:, ["A", "C"]]
-        assert all(result[1] == expected[1])
-        result = maybe_numeric_slice(df, [1])
-        expected = [1]
-        assert result == expected
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170
