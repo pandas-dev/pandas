@@ -283,7 +283,7 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
     def test_datetime_is_numeric_includes_datetime(self):
-        df = DataFrame({"a": pd.date_range("2012", periods=3), "b": [1, 2, 3]})
+        df = DataFrame({"a": date_range("2012", periods=3), "b": [1, 2, 3]})
         result = df.describe(datetime_is_numeric=True)
         expected = DataFrame(
             {
