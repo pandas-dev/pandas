@@ -239,7 +239,7 @@ def array(
     >>> pd.array(["a", None, "c"])
     <StringArray>
     ['a', <NA>, 'c']
-    Length: 3, dtype: string
+    Length: 3, dtype: string[python]
 
     >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
     <PeriodArray>

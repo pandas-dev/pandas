@@ -42,10 +42,10 @@ def test_repr(dtype, request):
     expected = "      A\n0     a\n1  <NA>\n2     b"
     assert repr(df) == expected
 
-    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: StringDtype[python]"
+    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string[python]"
     assert repr(df.A) == expected
 
-    expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: StringDtype[python]"
+    expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: string[python]"
     assert repr(df.A.array) == expected
 
 

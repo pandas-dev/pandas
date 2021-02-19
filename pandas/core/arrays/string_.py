@@ -99,7 +99,7 @@ class StringDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return f"StringDtype[{self.storage}]"
+        return f"string[{self.storage}]"
 
     @property
     def type(self) -> Type[str]:
@@ -121,9 +121,7 @@ class StringDtype(ExtensionDtype):
             ========================== ==============
             ``'string'``               global default
             ``'string[python]'``       python
-            ``'StringDtype[python]'``  python
             ``'string[pyarrow]'``      pyarrow
-            ``'StringDtype[pyarrow]'`` pyarrow
             ========================== =============
 
         Returns
