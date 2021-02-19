@@ -907,7 +907,7 @@ def value_counts_arraylike(values, dropna: bool):
     return keys, counts
 
 
-def duplicated(values: ArrayLike, keep: str = "first") -> np.ndarray:
+def duplicated(values: ArrayLike, keep: Union[str, bool] = "first") -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
