@@ -43,7 +43,6 @@ if TYPE_CHECKING:
         Timedelta,
         Timestamp,
     )
-    from pandas._libs.tslibs.offsets import DateOffset
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -65,6 +64,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+    from pandas.tseries.offsets import DateOffset
 else:
     # typing.final does not exist until py38
     final = lambda x: x
