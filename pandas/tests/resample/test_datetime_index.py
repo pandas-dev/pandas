@@ -1816,3 +1816,14 @@ def test_resample_aggregate_functions_min_count(func):
         index=DatetimeIndex(["2020-03-31"], dtype="datetime64[ns]", freq="Q-DEC"),
     )
     tm.assert_series_equal(result, expected)
+
+def timeseries_interpolation():
+    dates1 = date_range('2016-08-28', periods=4, freq='21H')
+    ts1 = Series([21*i for i in range(4)], dates1, dtype=float)
+    nb_periods = (21 * 4) // 15
+    dates2 = date_range('2016-08-28', periods=nb_periods, freq='15H')
+    expect = Series([15*i for i in range(nb_periods)], dates2, dtype=float)
+
+    result = ts1.resample('15H').interpolate(method='time')
+    tm.assert_series_equal(result, expect)
+
