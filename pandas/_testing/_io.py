@@ -1,11 +1,22 @@
 import bz2
 from functools import wraps
 import gzip
-from typing import Any, Callable, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    Tuple,
+)
 import zipfile
 
-from pandas._typing import FilePathOrBuffer, FrameOrSeries
-from pandas.compat import get_lzma_file, import_lzma
+from pandas._typing import (
+    FilePathOrBuffer,
+    FrameOrSeries,
+)
+from pandas.compat import (
+    get_lzma_file,
+    import_lzma,
+)
 
 import pandas as pd
 from pandas._testing._random import rands
@@ -394,7 +405,10 @@ def write_to_compressed(compression, path, data, dest="test"):
 
 
 def close(fignum=None):
-    from matplotlib.pyplot import close as _close, get_fignums
+    from matplotlib.pyplot import (
+        close as _close,
+        get_fignums,
+    )
 
     if fignum is None:
         for fignum in get_fignums():

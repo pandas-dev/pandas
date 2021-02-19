@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 

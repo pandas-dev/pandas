@@ -25,9 +25,17 @@ import operator
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_scalar
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+    is_scalar,
+)
 
-from pandas.core.ops.roperator import rdivmod, rfloordiv, rmod
+from pandas.core.ops.roperator import (
+    rdivmod,
+    rfloordiv,
+    rmod,
+)
 
 
 def fill_zeros(result, x, y):

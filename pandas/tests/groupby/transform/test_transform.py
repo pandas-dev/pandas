@@ -4,7 +4,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_timedelta64_dtype,
+)
 
 import pandas as pd
 from pandas import (

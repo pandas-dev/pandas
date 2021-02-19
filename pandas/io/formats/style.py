@@ -27,23 +27,34 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, IndexLabel
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
-from pandas.api.types import is_dict_like, is_list_like
+from pandas.api.types import (
+    is_dict_like,
+    is_list_like,
+)
 from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
+from pandas.core.indexes.api import Index
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
-CSSProperties = Union[str, CSSSequence]
+
+CSSPair = Tuple[str, Union[str, int, float]]
+CSSList = List[CSSPair]
+CSSProperties = Union[str, CSSList]
 CSSStyles = List[Dict[str, CSSProperties]]
 
 try:
@@ -183,7 +194,7 @@ class Styler:
         # assign additional default vars
         self.hidden_index: bool = False
         self.hidden_columns: Sequence[int] = []
-        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
+        self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: Dict[str, Any] = {}
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
         self.tooltips: Optional[_Tooltips] = None
@@ -403,7 +414,8 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle_map = defaultdict(list)
+        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+
         head = []
 
         for r in range(n_clvls):
@@ -473,8 +485,15 @@ class Styler:
                 )
 
             index_header_row.extend(
-                [{"type": "th", "value": BLANK_VALUE, "class": " ".join([BLANK_CLASS])}]
-                * (len(clabels[0]) - len(hidden_columns))
+                [
+                    {
+                        "type": "th",
+                        "value": BLANK_VALUE,
+                        "class": " ".join([BLANK_CLASS, f"col{c}"]),
+                    }
+                    for c in range(len(clabels[0]))
+                    if c not in hidden_columns
+                ]
             )
 
             head.append(index_header_row)
@@ -513,25 +532,21 @@ class Styler:
                 }
 
                 # only add an id if the cell has a style
-                props = []
+                props: CSSList = []
                 if self.cell_ids or (r, c) in ctx:
                     row_dict["id"] = "_".join(cs[1:])
-                    for x in ctx[r, c]:
-                        # have to handle empty styles like ['']
-                        if x.count(":"):
-                            props.append(tuple(x.split(":")))
-                        else:
-                            props.append(("", ""))
+                    props.extend(ctx[r, c])
 
                 # add custom classes from cell context
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 row_dict["class"] = " ".join(cs)
 
                 row_es.append(row_dict)
-                cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
+                if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
+                    cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
-        cellstyle = [
+        cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in cellstyle_map.items()
         ]
@@ -607,7 +622,7 @@ class Styler:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
         else:
-            subset = non_reducing_slice(subset)
+            subset = _non_reducing_slice(subset)
             if len(subset) == 1:
                 subset = subset, self.data.columns
 
@@ -737,19 +752,14 @@ class Styler:
         self._compute()
         # TODO: namespace all the pandas keys
         d = self._translate()
-        # filter out empty styles, every cell will have a class
-        # but the list of props may just be [['', '']].
-        # so we have the nested anys below
-        trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
-        d["cellstyle"] = trimmed
         d.update(kwargs)
         return self.template.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
-        Update the state of the Styler.
+        Update the state of the Styler for data cells.
 
-        Collects a mapping of {index_label: ['<property>: <value>']}.
+        Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
 
         Parameters
         ----------
@@ -758,20 +768,13 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        coli = {k: i for i, k in enumerate(self.columns)}
-        rowi = {k: i for i, k in enumerate(self.index)}
-        for jj in range(len(attrs.columns)):
-            cn = attrs.columns[jj]
-            j = coli[cn]
+        for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
                     continue
-                c = c.rstrip(";")
-                if not c:
-                    continue
-                i = rowi[rn]
-                for pair in c.split(";"):
-                    self.ctx[(i, j)].append(pair)
+                css_list = _maybe_convert_css_to_tuples(c)
+                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                self.ctx[(i, j)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
@@ -833,7 +836,7 @@ class Styler:
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis, result_type="expand", **kwargs)
@@ -936,7 +939,7 @@ class Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
         return self
@@ -1286,7 +1289,7 @@ class Styler:
         -------
         self : Styler
         """
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
@@ -1294,33 +1297,6 @@ class Styler:
     # -----------------------------------------------------------------------
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
-
-    @staticmethod
-    def _highlight_null(v, null_color: str) -> str:
-        return f"background-color: {null_color}" if pd.isna(v) else ""
-
-    def highlight_null(
-        self,
-        null_color: str = "red",
-        subset: Optional[IndexLabel] = None,
-    ) -> Styler:
-        """
-        Shade the background ``null_color`` for missing values.
-
-        Parameters
-        ----------
-        null_color : str, default 'red'
-        subset : label or list of labels, default None
-            A valid slice for ``data`` to limit the style application to.
-
-            .. versionadded:: 1.1.0
-
-        Returns
-        -------
-        self : Styler
-        """
-        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
-        return self
 
     def background_gradient(
         self,
@@ -1388,8 +1364,9 @@ class Styler:
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
         """
-        subset = maybe_numeric_slice(self.data, subset)
-        subset = non_reducing_slice(subset)
+        if subset is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1622,8 +1599,9 @@ class Styler:
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
-        subset = maybe_numeric_slice(self.data, subset)
-        subset = non_reducing_slice(subset)
+        if subset is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
         self.apply(
             self._bar,
             subset=subset,
@@ -1637,8 +1615,39 @@ class Styler:
 
         return self
 
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[IndexLabel] = None,
+    ) -> Styler:
+        """
+        Shade the background ``null_color`` for missing values.
+
+        Parameters
+        ----------
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        self : Styler
+        """
+
+        def f(data: DataFrame, props: str) -> np.ndarray:
+            return np.where(pd.isna(data).values, props, "")
+
+        return self.apply(
+            f, axis=None, subset=subset, props=f"background-color: {null_color};"
+        )
+
     def highlight_max(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
     ) -> Styler:
         """
         Highlight the maximum by shading the background.
@@ -1657,10 +1666,19 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(subset=subset, color=color, axis=axis, max_=True)
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmax(data.values), props, "")
+
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
+        )
 
     def highlight_min(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
     ) -> Styler:
         """
         Highlight the minimum by shading the background.
@@ -1679,43 +1697,13 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(
-            subset=subset, color=color, axis=axis, max_=False
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmin(data.values), props, "")
+
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
         )
-
-    def _highlight_handler(
-        self,
-        subset=None,
-        color: str = "yellow",
-        axis: Optional[Axis] = None,
-        max_: bool = True,
-    ) -> Styler:
-        subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
-        self.apply(
-            self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
-        )
-        return self
-
-    @staticmethod
-    def _highlight_extrema(
-        data: FrameOrSeries, color: str = "yellow", max_: bool = True
-    ):
-        """
-        Highlight the min or max in a Series or DataFrame.
-        """
-        attr = f"background-color: {color}"
-
-        if max_:
-            extrema = data == np.nanmax(data.to_numpy())
-        else:
-            extrema = data == np.nanmin(data.to_numpy())
-
-        if data.ndim == 1:  # Series from .apply
-            return [attr if v else "" for v in extrema]
-        else:  # DataFrame from .tee
-            return pd.DataFrame(
-                np.where(extrema, attr, ""), index=data.index, columns=data.columns
-            )
 
     @classmethod
     def from_custom_template(cls, searchpath, name):
@@ -2067,7 +2055,7 @@ def _maybe_wrap_formatter(
         raise TypeError(msg)
 
 
-def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
+def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
     """
     Convert css-string to sequence of tuples format if needed.
     'color:red; border:1px solid black;' -> [('color', 'red'),
@@ -2087,3 +2075,44 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def _non_reducing_slice(slice_):
+    """
+    Ensure that a slice doesn't reduce to a Series or Scalar.
+
+    Any user-passed `subset` should have this called on it
+    to make sure we're always working with DataFrames.
+    """
+    # default to column slice, like DataFrame
+    # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
+    kinds = (ABCSeries, np.ndarray, Index, list, str)
+    if isinstance(slice_, kinds):
+        slice_ = pd.IndexSlice[:, slice_]
+
+    def pred(part) -> bool:
+        """
+        Returns
+        -------
+        bool
+            True if slice does *not* reduce,
+            False if `part` is a tuple.
+        """
+        # true when slice does *not* reduce, False when part is a tuple,
+        # i.e. MultiIndex slice
+        if isinstance(part, tuple):
+            # GH#39421 check for sub-slice:
+            return any((isinstance(s, slice) or is_list_like(s)) for s in part)
+        else:
+            return isinstance(part, slice) or is_list_like(part)
+
+    if not is_list_like(slice_):
+        if not isinstance(slice_, slice):
+            # a 1-d slice, like df.loc[1]
+            slice_ = [[slice_]]
+        else:
+            # slice(a, b, c)
+            slice_ = [slice_]  # to tuplize later
+    else:
+        slice_ = [part if pred(part) else [part] for part in slice_]
+    return tuple(slice_)
