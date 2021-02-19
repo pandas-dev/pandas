@@ -40,7 +40,8 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.ops import roperator
-from pandas.tests.arithmetic.common import (
+
+from .common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,

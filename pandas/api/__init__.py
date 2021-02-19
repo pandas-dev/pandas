@@ -1,5 +1,5 @@
 """ public toolkit API """
-from pandas.api import (  # noqa
+from . import (  # noqa
     extensions,
     indexers,
     types,

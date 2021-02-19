@@ -43,7 +43,8 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.tests.indexes.common import Base
+
+from .common import Base
 
 
 class TestIndex(Base):

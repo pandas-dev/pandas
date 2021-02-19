@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.strings.base import BaseStringArrayMethods
+from .base import BaseStringArrayMethods
 
 
 class ObjectStringArrayMixin(BaseStringArrayMethods):

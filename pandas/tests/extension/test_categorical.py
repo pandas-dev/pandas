@@ -26,7 +26,8 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
-from pandas.tests.extension import base
+
+from . import base
 
 
 def make_data():

@@ -9,7 +9,8 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import infer_dtype
 from pandas.tests.extension import base
-from pandas.tests.extension.decimal.array import (
+
+from .array import (
     DecimalArray,
     DecimalDtype,
     make_data,

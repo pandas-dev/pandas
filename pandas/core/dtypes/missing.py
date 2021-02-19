@@ -19,7 +19,7 @@ from pandas._typing import (
     DtypeObj,
 )
 
-from pandas.core.dtypes.common import (
+from .common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     ensure_object,
@@ -37,14 +37,14 @@ from pandas.core.dtypes.common import (
     is_string_like_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import (
+from .generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_list_like
+from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar

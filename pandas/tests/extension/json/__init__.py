@@ -1,4 +1,4 @@
-from pandas.tests.extension.json.array import (
+from .array import (
     JSONArray,
     JSONDtype,
     make_data,

@@ -12,7 +12,8 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.generic.test_generic import Generic
+
+from .test_generic import Generic
 
 
 class TestDataFrame(Generic):

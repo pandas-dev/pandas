@@ -14,7 +14,8 @@ from pandas._libs.tslibs.offsets import (
 )
 
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import (
+
+from .common import (
     Base,
     assert_offset_equal,
 )

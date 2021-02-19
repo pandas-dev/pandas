@@ -32,22 +32,22 @@ from pandas._typing import (
     FrameOrSeriesUnion,
 )
 
-from pandas.core.dtypes.common import (
+import pandas.core.common as com
+
+from .algorithms import safe_sort
+from .base import SpecificationError
+from .dtypes.common import (
     is_dict_like,
     is_list_like,
 )
-from pandas.core.dtypes.generic import (
+from .dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-
-from pandas.core.algorithms import safe_sort
-from pandas.core.base import SpecificationError
-import pandas.core.common as com
-from pandas.core.indexes.api import Index
+from .indexes.api import Index
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series
+    from .series import Series
 
 
 def reconstruct_func(
@@ -482,7 +482,7 @@ def transform_dict_like(
     """
     Compute transform in the case of a dict-like func
     """
-    from pandas.core.reshape.concat import concat
+    from .reshape.concat import concat
 
     if len(func) == 0:
         raise ValueError("No transform functions were provided")

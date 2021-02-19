@@ -1,7 +1,7 @@
 """
 config for datetime formatting
 """
-from pandas._config import config as cf
+from . import config as cf
 
 pc_date_dayfirst_doc = """
 : boolean

@@ -12,7 +12,8 @@ import sys
 import warnings
 
 from pandas._typing import F
-from pandas.compat.numpy import (
+
+from .numpy import (
     is_numpy_dev,
     np_array_datetime64_compat,
     np_datetime64_compat,

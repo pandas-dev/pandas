@@ -23,7 +23,8 @@ from pandas.util._decorators import Appender
 import pandas as pd
 
 from pandas.io.common import get_handle
-from pandas.io.sas.sasreader import ReaderBase
+
+from .sasreader import ReaderBase
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"

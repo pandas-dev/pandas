@@ -3,7 +3,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
-from pandas.tests.plotting.common import (
+
+from .common import (
     TestPlotBase,
     _check_plot_works,
     _gen_two_subplots,

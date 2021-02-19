@@ -94,15 +94,6 @@ import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
-from pandas.core.groupby.groupby import (
-    GroupBy,
-    _agg_template,
-    _apply_docs,
-    _transform_template,
-    get_groupby,
-    group_selection_context,
-)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -114,6 +105,16 @@ from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
+
+from . import base
+from .groupby import (
+    GroupBy,
+    _agg_template,
+    _apply_docs,
+    _transform_template,
+    get_groupby,
+    group_selection_context,
+)
 
 if TYPE_CHECKING:
     from pandas.core.internals import Block

@@ -14,7 +14,7 @@ from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
-from pandas.io.excel._base import BaseExcelReader
+from ._base import BaseExcelReader
 
 
 class ODFReader(BaseExcelReader):

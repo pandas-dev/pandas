@@ -36,12 +36,17 @@ from pandas._typing import (
 )
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.cast import (
+from .construction import (
+    array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
+from .dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
     maybe_promote,
 )
-from pandas.core.dtypes.common import (
+from .dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_object,
@@ -68,8 +73,8 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PandasDtype
-from pandas.core.dtypes.generic import (
+from .dtypes.dtypes import PandasDtype
+from .dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
@@ -78,17 +83,11 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import (
+from .dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
-
-from pandas.core.construction import (
-    array,
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
-from pandas.core.indexers import validate_indices
+from .indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import (
@@ -97,7 +96,8 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.arrays import (
+
+    from .arrays import (
         DatetimeArray,
         TimedeltaArray,
     )
@@ -819,12 +819,12 @@ def value_counts(
     -------
     Series
     """
-    from pandas.core.series import Series
+    from .series import Series
 
     name = getattr(values, "name", None)
 
     if bins is not None:
-        from pandas.core.reshape.tile import cut
+        from .reshape.tile import cut
 
         values = Series(values)
         try:
@@ -2247,8 +2247,8 @@ def _sort_tuples(values: np.ndarray):
     nans (can't use `np.sort` as it may fail when str and nan are mixed in a
     column as types cannot be compared).
     """
-    from pandas.core.internals.construction import to_arrays
-    from pandas.core.sorting import lexsort_indexer
+    from .internals.construction import to_arrays
+    from .sorting import lexsort_indexer
 
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)

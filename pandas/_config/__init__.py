@@ -15,9 +15,9 @@ __all__ = [
     "option_context",
     "options",
 ]
-from pandas._config import config
-from pandas._config import dates  # noqa:F401
-from pandas._config.config import (
+from . import config
+from . import dates  # noqa:F401
+from .config import (
     describe_option,
     get_option,
     option_context,
@@ -25,4 +25,4 @@ from pandas._config.config import (
     reset_option,
     set_option,
 )
-from pandas._config.display import detect_console_encoding
+from .display import detect_console_encoding

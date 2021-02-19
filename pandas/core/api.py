@@ -8,31 +8,21 @@ from pandas._libs import (
 )
 from pandas._libs.missing import NA
 
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
-from pandas.core.dtypes.missing import (
-    isna,
-    isnull,
-    notna,
-    notnull,
-)
+from pandas.io.formats.format import set_eng_float_format
+from pandas.tseries.offsets import DateOffset
 
-from pandas.core.algorithms import (
+from .algorithms import (
     factorize,
     unique,
     value_counts,
 )
-from pandas.core.arrays import Categorical
-from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.floating import (
+from .arrays import Categorical
+from .arrays.boolean import BooleanDtype
+from .arrays.floating import (
     Float32Dtype,
     Float64Dtype,
 )
-from pandas.core.arrays.integer import (
+from .arrays.integer import (
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
@@ -42,14 +32,26 @@ from pandas.core.arrays.integer import (
     UInt32Dtype,
     UInt64Dtype,
 )
-from pandas.core.arrays.string_ import StringDtype
-from pandas.core.construction import array
-from pandas.core.flags import Flags
-from pandas.core.groupby import (
+from .arrays.string_ import StringDtype
+from .construction import array
+from .dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
+from .dtypes.missing import (
+    isna,
+    isnull,
+    notna,
+    notnull,
+)
+from .flags import Flags
+from .groupby import (
     Grouper,
     NamedAgg,
 )
-from pandas.core.indexes.api import (
+from .indexes.api import (
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
@@ -62,24 +64,21 @@ from pandas.core.indexes.api import (
     TimedeltaIndex,
     UInt64Index,
 )
-from pandas.core.indexes.datetimes import (
+from .indexes.datetimes import (
     bdate_range,
     date_range,
 )
-from pandas.core.indexes.interval import (
+from .indexes.interval import (
     Interval,
     interval_range,
 )
-from pandas.core.indexes.period import period_range
-from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.indexing import IndexSlice
-from pandas.core.series import Series
-from pandas.core.tools.datetimes import to_datetime
-from pandas.core.tools.numeric import to_numeric
-from pandas.core.tools.timedeltas import to_timedelta
-
-from pandas.io.formats.format import set_eng_float_format
-from pandas.tseries.offsets import DateOffset
+from .indexes.period import period_range
+from .indexes.timedeltas import timedelta_range
+from .indexing import IndexSlice
+from .series import Series
+from .tools.datetimes import to_datetime
+from .tools.numeric import to_numeric
+from .tools.timedeltas import to_timedelta
 
 # DataFrame needs to be imported after NamedAgg to avoid a circular import
-from pandas.core.frame import DataFrame  # isort:skip
+from .frame import DataFrame  # isort:skip

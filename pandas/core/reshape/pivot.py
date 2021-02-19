@@ -44,9 +44,10 @@ from pandas.core.indexes.api import (
     MultiIndex,
     get_objs_combined_axis,
 )
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
+
+from .concat import concat
+from .util import cartesian_product
 
 if TYPE_CHECKING:
     from pandas import DataFrame

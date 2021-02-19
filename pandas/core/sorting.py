@@ -24,20 +24,21 @@ from pandas._libs import (
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import IndexKeyFunc
 
-from pandas.core.dtypes.common import (
+import pandas.core.algorithms as algorithms
+
+from .construction import extract_array
+from .dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
-from pandas.core.dtypes.missing import isna
-
-import pandas.core.algorithms as algorithms
-from pandas.core.construction import extract_array
+from .dtypes.generic import ABCMultiIndex
+from .dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
-    from pandas.core.indexes.base import Index
+
+    from .indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
 
@@ -289,7 +290,7 @@ def lexsort_indexer(
 
         .. versionadded:: 1.0.0
     """
-    from pandas.core.arrays import Categorical
+    from .arrays import Categorical
 
     labels = []
     shape = []
@@ -485,7 +486,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     levels : Optional[List], if values is a MultiIndex, list of levels to
     apply the key to.
     """
-    from pandas.core.indexes.api import Index
+    from .indexes.api import Index
 
     if not key:
         return values

@@ -33,7 +33,7 @@ use_bottleneck_doc = """
 
 
 def use_bottleneck_cb(key):
-    from pandas.core import nanops
+    from . import nanops
 
     nanops.set_use_bottleneck(cf.get_option(key))
 
@@ -47,7 +47,7 @@ use_numexpr_doc = """
 
 
 def use_numexpr_cb(key):
-    from pandas.core.computation import expressions
+    from .computation import expressions
 
     expressions.set_use_numexpr(cf.get_option(key))
 
@@ -61,7 +61,7 @@ use_numba_doc = """
 
 
 def use_numba_cb(key):
-    from pandas.core.util import numba_
+    from .util import numba_
 
     numba_.set_use_numba(cf.get_option(key))
 
@@ -473,7 +473,7 @@ use_inf_as_na_doc = """
 
 
 def use_inf_as_na_cb(key):
-    from pandas.core.dtypes.missing import _use_inf_as_na
+    from .dtypes.missing import _use_inf_as_na
 
     _use_inf_as_na(key)
 

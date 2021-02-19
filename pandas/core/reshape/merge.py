@@ -173,7 +173,7 @@ def _groupby_and_merge(by, on, left: DataFrame, right: DataFrame, merge_pieces):
 
     # preserve the original order
     # if we have a missing piece this can be reset
-    from pandas.core.reshape.concat import concat
+    from .concat import concat
 
     result = concat(pieces, ignore_index=True)
     result = result.reindex(columns=pieces[0].columns, copy=False)

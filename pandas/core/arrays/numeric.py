@@ -26,7 +26,8 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import ops
-from pandas.core.arrays.masked import (
+
+from .masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
@@ -44,7 +45,7 @@ class NumericDtype(BaseMaskedDtype):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+        from ._arrow_utils import pyarrow_array_to_numpy_and_mask
 
         array_class = self.construct_array_type()
 
@@ -181,12 +182,12 @@ class NumericArray(BaseMaskedArray):
             # raise for reduce up above.
 
             if is_integer_dtype(x.dtype):
-                from pandas.core.arrays import IntegerArray
+                from . import IntegerArray
 
                 m = mask.copy()
                 return IntegerArray(x, m)
             elif is_float_dtype(x.dtype):
-                from pandas.core.arrays import FloatingArray
+                from . import FloatingArray
 
                 m = mask.copy()
                 return FloatingArray(x, m)

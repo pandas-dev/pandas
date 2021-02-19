@@ -23,7 +23,10 @@ import numpy as np
 from pandas.compat import PY39
 
 import pandas.core.common as com
-from pandas.core.computation.ops import (
+
+import pandas.io.formats.printing as printing
+
+from .ops import (
     ARITH_OPS_SYMS,
     BOOL_OPS_SYMS,
     CMP_OPS_SYMS,
@@ -41,13 +44,11 @@ from pandas.core.computation.ops import (
     UndefinedVariableError,
     is_term,
 )
-from pandas.core.computation.parsing import (
+from .parsing import (
     clean_backtick_quoted_toks,
     tokenize_string,
 )
-from pandas.core.computation.scope import Scope
-
-import pandas.io.formats.printing as printing
+from .scope import Scope
 
 
 def _rewrite_assign(tok: Tuple[int, str]) -> Tuple[int, str]:

@@ -36,20 +36,20 @@ from pandas._typing import (
 )
 from pandas.compat import np_version_under1p18
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import (
+from .dtypes.cast import construct_1d_object_array_from_listlike
+from .dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import (
+from .dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import (  # noqa
+from .dtypes.inference import iterable_not_string
+from .dtypes.missing import (  # noqa
     isna,
     isnull,
     notnull,

@@ -1,4 +1,4 @@
-from pandas.tests.extension.decimal.array import (
+from .array import (
     DecimalArray,
     DecimalDtype,
     make_data,

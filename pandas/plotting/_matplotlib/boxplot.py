@@ -14,12 +14,13 @@ import pandas as pd
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import (
+
+from .core import (
     LinePlot,
     MPLPlot,
 )
-from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import (
+from .style import get_standard_colors
+from .tools import (
     create_subplots,
     flatten_axes,
     maybe_adjust_figure,

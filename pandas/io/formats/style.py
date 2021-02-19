@@ -355,7 +355,7 @@ class Styler:
         freeze_panes: Optional[Tuple[int, int]] = None,
     ) -> None:
 
-        from pandas.io.formats.excel import ExcelFormatter
+        from .excel import ExcelFormatter
 
         formatter = ExcelFormatter(
             self,

@@ -91,7 +91,6 @@ from pandas.core.algorithms import (
     take_nd,
     unique1d,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import (
     ExtensionArray,
     NoNewAttributesMixin,
@@ -110,6 +109,8 @@ from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 from pandas.io.formats import console
+
+from ._mixins import NDArrayBackedExtensionArray
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -2391,7 +2392,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.
-        from pandas.core.arrays import PandasArray
+        from . import PandasArray
 
         categories = self.categories
         codes = self.codes
@@ -2400,7 +2401,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _str_get_dummies(self, sep="|"):
         # sep may not be in categories. Just bail on this.
-        from pandas.core.arrays import PandasArray
+        from . import PandasArray
 
         return PandasArray(self.astype(str))._str_get_dummies(sep)
 

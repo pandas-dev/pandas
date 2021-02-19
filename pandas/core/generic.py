@@ -75,7 +75,33 @@ from pandas.util._validators import (
     validate_fillna_kwargs,
 )
 
-from pandas.core.dtypes.common import (
+import pandas.core.algorithms as algos
+import pandas.core.common as com
+
+from pandas.io.formats import format as fmt
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    DataFrameRenderer,
+)
+from pandas.io.formats.printing import pprint_thing
+
+from . import (
+    arraylike,
+    indexing,
+    missing,
+    nanops,
+)
+from .arrays import ExtensionArray
+from .base import (
+    PandasObject,
+    SelectionMixin,
+)
+from .construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+)
+from .describe import describe_ndframe
+from .dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_str,
@@ -96,37 +122,18 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
+from .dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import (
+from .dtypes.inference import is_hashable
+from .dtypes.missing import (
     isna,
     notna,
 )
-
-from pandas.core import (
-    arraylike,
-    indexing,
-    missing,
-    nanops,
-)
-import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
-from pandas.core.base import (
-    PandasObject,
-    SelectionMixin,
-)
-import pandas.core.common as com
-from pandas.core.construction import (
-    create_series_with_explicit_dtype,
-    extract_array,
-)
-from pandas.core.describe import describe_ndframe
-from pandas.core.flags import Flags
-from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import (
+from .flags import Flags
+from .indexes import base as ibase
+from .indexes.api import (
     DatetimeIndex,
     Index,
     MultiIndex,
@@ -134,36 +141,29 @@ from pandas.core.indexes.api import (
     RangeIndex,
     ensure_index,
 )
-from pandas.core.internals import (
+from .internals import (
     ArrayManager,
     BlockManager,
 )
-from pandas.core.missing import find_valid_index
-from pandas.core.ops import align_method_FRAME
-from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import get_indexer_indexer
-from pandas.core.window import (
+from .missing import find_valid_index
+from .ops import align_method_FRAME
+from .reshape.concat import concat
+from .shared_docs import _shared_docs
+from .sorting import get_indexer_indexer
+from .window import (
     Expanding,
     ExponentialMovingWindow,
     Rolling,
     Window,
 )
 
-from pandas.io.formats import format as fmt
-from pandas.io.formats.format import (
-    DataFrameFormatter,
-    DataFrameRenderer,
-)
-from pandas.io.formats.printing import pprint_thing
-
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
-    from pandas.core.frame import DataFrame
-    from pandas.core.resample import Resampler
-    from pandas.core.series import Series
-    from pandas.core.window.indexers import BaseIndexer
+    from .frame import DataFrame
+    from .resample import Resampler
+    from .series import Series
+    from .window.indexers import BaseIndexer
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -552,7 +552,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     def _get_index_resolvers(self) -> Dict[Hashable, Union[Series, MultiIndex]]:
-        from pandas.core.computation.parsing import clean_column_name
+        from .computation.parsing import clean_column_name
 
         d: Dict[str, Union[Series, MultiIndex]] = {}
         for axis_name in self._AXIS_ORDERS:
@@ -569,7 +569,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         be referred to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
-        from pandas.core.computation.parsing import clean_column_name
+        from .computation.parsing import clean_column_name
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
@@ -7615,7 +7615,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-01 00:02:30    3.0
         2000-01-01 00:03:00    3.0
         """
-        from pandas.core.resample import asfreq
+        from .resample import asfreq
 
         return asfreq(
             self,
@@ -8182,7 +8182,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-02 00:41:00    24
         Freq: 17T, dtype: int64
         """
-        from pandas.core.resample import get_resampler
+        from .resample import get_resampler
 
         axis = self._get_axis_number(axis)
         return get_resampler(
@@ -8470,7 +8470,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         keep_shape: bool_t = False,
         keep_equal: bool_t = False,
     ):
-        from pandas.core.reshape.concat import concat
+        from .reshape.concat import concat
 
         if type(self) is not type(other):
             cls_self, cls_other = type(self).__name__, type(other).__name__
@@ -9533,7 +9533,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
         if ax._is_all_dates:
-            from pandas.core.tools.datetimes import to_datetime
+            from .tools.datetimes import to_datetime
 
             before = to_datetime(before)
             after = to_datetime(after)

@@ -2,7 +2,8 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_path
+
+from .common import ensure_clean_path
 
 tables = pytest.importorskip("tables")
 

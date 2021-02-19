@@ -28,8 +28,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
-from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
+
+from .base import Index
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 

@@ -25,16 +25,17 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas.core.common as com
-from pandas.core.computation.common import (
-    ensure_decoded,
-    result_type_many,
-)
-from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
+
+from .common import (
+    ensure_decoded,
+    result_type_many,
+)
+from .scope import DEFAULT_GLOBALS
 
 REDUCTIONS = ("sum", "prod")
 
@@ -457,7 +458,7 @@ class BinOp(Op):
             if self.op in eval_in_python:
                 res = self.func(left.value, right.value)
             else:
-                from pandas.core.computation.eval import eval
+                from .eval import eval
 
                 res = eval(self, local_dict=env, engine=engine, parser=parser)
 
@@ -618,7 +619,7 @@ class MathCall(Op):
 
 class FuncNode:
     def __init__(self, name: str):
-        from pandas.core.computation.check import (
+        from .check import (
             NUMEXPR_INSTALLED,
             NUMEXPR_VERSION,
         )

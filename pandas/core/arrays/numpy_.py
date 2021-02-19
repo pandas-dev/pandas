@@ -27,8 +27,9 @@ from pandas.core import (
     ops,
 )
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.strings.object_array import ObjectStringArrayMixin
+
+from ._mixins import NDArrayBackedExtensionArray
 
 
 class PandasArray(
@@ -390,7 +391,7 @@ class PandasArray(
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
         #  of a PandasArray
         if result.dtype == "timedelta64[ns]":
-            from pandas.core.arrays import TimedeltaArray
+            from . import TimedeltaArray
 
             return TimedeltaArray._simple_new(result)
         return type(self)(result)

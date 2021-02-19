@@ -14,7 +14,8 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.tests.arrays.categorical.common import TestCategorical
+
+from .common import TestCategorical
 
 
 class TestCategoricalIndexingWithFactor(TestCategorical):

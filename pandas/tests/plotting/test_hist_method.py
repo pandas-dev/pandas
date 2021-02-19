@@ -13,7 +13,8 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
+
+from .common import (
     TestPlotBase,
     _check_plot_works,
 )

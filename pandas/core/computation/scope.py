@@ -209,7 +209,7 @@ class Scope:
                 return self.temps[key]
             except KeyError as err:
                 # runtime import because ops imports from scope
-                from pandas.core.computation.ops import UndefinedVariableError
+                from .ops import UndefinedVariableError
 
                 raise UndefinedVariableError(key, is_local) from err
 

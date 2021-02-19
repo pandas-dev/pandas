@@ -20,12 +20,13 @@ from pandas import (
     bdate_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
+from pandas.util import _test_decorators as td
+
+from .common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
 
 _default_compressor = "blosc"
 

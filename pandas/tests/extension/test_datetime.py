@@ -20,7 +20,8 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas.core.arrays import DatetimeArray
-from pandas.tests.extension import base
+
+from . import base
 
 
 @pytest.fixture(params=["US/Central"])

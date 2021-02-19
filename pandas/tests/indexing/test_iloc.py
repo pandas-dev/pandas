@@ -25,7 +25,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
-from pandas.tests.indexing.common import Base
+
+from .common import Base
 
 # We pass through the error message from numpy
 _slice_iloc_msg = re.escape(

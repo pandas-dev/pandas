@@ -19,7 +19,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.tests.extension import base
+
+from . import base
 
 
 def make_data():

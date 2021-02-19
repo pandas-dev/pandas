@@ -3,7 +3,8 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
+
+from .base import BaseExtensionTests
 
 
 class BaseSetitemTests(BaseExtensionTests):

@@ -17,8 +17,9 @@ import numpy as np
 from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import (
+
+from .style import get_standard_colors
+from .tools import (
     create_subplots,
     do_adjust_figure,
     maybe_adjust_figure,

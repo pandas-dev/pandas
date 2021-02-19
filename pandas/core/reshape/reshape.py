@@ -841,7 +841,7 @@ def get_dummies(
     1  0.0  1.0  0.0
     2  0.0  0.0  1.0
     """
-    from pandas.core.reshape.concat import concat
+    from .concat import concat
 
     dtypes_to_encode = ["object", "category"]
 
@@ -931,7 +931,7 @@ def _get_dummies_1d(
     drop_first=False,
     dtype: Optional[Dtype] = None,
 ):
-    from pandas.core.reshape.concat import concat
+    from .concat import concat
 
     # Series avoids inconsistent NaN handling
     codes, levels = factorize_from_iterable(Series(data))

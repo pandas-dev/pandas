@@ -10,12 +10,13 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
+
+import pandas.plotting as plotting
+
+from .common import (
     TestPlotBase,
     _check_plot_works,
 )
-
-import pandas.plotting as plotting
 
 pytestmark = pytest.mark.slow
 

@@ -37,9 +37,10 @@ import pandas as pd
 from pandas import isna
 
 from pandas.io.common import get_handle
-from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas.sasreader import ReaderBase
+
+from ._sas import Parser
+from .sasreader import ReaderBase
 
 
 def _parse_datetime(sas_datetime: float, unit: str):

@@ -6,8 +6,8 @@ from typing import (
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
 
-from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import validate_freeze_panes
+from ._base import ExcelWriter
+from ._util import validate_freeze_panes
 
 if TYPE_CHECKING:
     from xlwt import XFStyle

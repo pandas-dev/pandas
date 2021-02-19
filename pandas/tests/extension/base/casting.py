@@ -3,7 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas.core.internals import ObjectBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
+
+from .base import BaseExtensionTests
 
 
 class BaseCastingTests(BaseExtensionTests):

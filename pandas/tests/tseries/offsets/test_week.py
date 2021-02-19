@@ -15,7 +15,7 @@ from pandas._libs.tslibs.offsets import (
     WeekOfMonth,
 )
 
-from pandas.tests.tseries.offsets.common import (
+from .common import (
     Base,
     WeekDay,
     assert_is_on_offset,

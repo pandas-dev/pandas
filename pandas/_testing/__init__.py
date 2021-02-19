@@ -49,7 +49,14 @@ from pandas import (
     Series,
     bdate_range,
 )
-from pandas._testing._io import (  # noqa:F401
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
+
+from ._io import (  # noqa:F401
     close,
     network,
     round_trip_localpath,
@@ -58,14 +65,14 @@ from pandas._testing._io import (  # noqa:F401
     with_connectivity_check,
     write_to_compressed,
 )
-from pandas._testing._random import (  # noqa:F401
+from ._random import (  # noqa:F401
     randbool,
     rands,
     rands_array,
     randu_array,
 )
-from pandas._testing._warnings import assert_produces_warning  # noqa:F401
-from pandas._testing.asserters import (  # noqa:F401
+from ._warnings import assert_produces_warning  # noqa:F401
+from .asserters import (  # noqa:F401
     assert_almost_equal,
     assert_attr_equal,
     assert_categorical_equal,
@@ -88,8 +95,8 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
-from pandas._testing.compat import get_dtype  # noqa:F401
-from pandas._testing.contexts import (  # noqa:F401
+from .compat import get_dtype  # noqa:F401
+from .contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
     ensure_clean,
@@ -98,12 +105,6 @@ from pandas._testing.contexts import (  # noqa:F401
     set_timezone,
     use_numexpr,
     with_csv_dialect,
-)
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-    period_array,
 )
 
 if TYPE_CHECKING:

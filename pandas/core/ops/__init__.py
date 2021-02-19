@@ -30,30 +30,31 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
-from pandas.core.ops.array_ops import (  # noqa:F401
+
+from .array_ops import (  # noqa:F401
     arithmetic_op,
     comp_method_OBJECT_ARRAY,
     comparison_op,
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.common import (  # noqa:F401
+from .common import (  # noqa:F401
     get_op_result_name,
     unpack_zerodim_and_defer,
 )
-from pandas.core.ops.docstrings import (
+from .docstrings import (
     _flex_comp_doc_FRAME,
     _op_descriptions,
     make_flex_doc,
 )
-from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
-from pandas.core.ops.mask_ops import (  # noqa: F401
+from .invalid import invalid_comparison  # noqa:F401
+from .mask_ops import (  # noqa: F401
     kleene_and,
     kleene_or,
     kleene_xor,
 )
-from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
-from pandas.core.ops.roperator import (  # noqa:F401
+from .methods import add_flex_arithmetic_methods  # noqa:F401
+from .roperator import (  # noqa:F401
     radd,
     rand_,
     rdiv,

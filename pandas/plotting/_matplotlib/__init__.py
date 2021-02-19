@@ -6,17 +6,17 @@ from typing import (
     Type,
 )
 
-from pandas.plotting._matplotlib.boxplot import (
+from .boxplot import (
     BoxPlot,
     boxplot,
     boxplot_frame,
     boxplot_frame_groupby,
 )
-from pandas.plotting._matplotlib.converter import (
+from .converter import (
     deregister,
     register,
 )
-from pandas.plotting._matplotlib.core import (
+from .core import (
     AreaPlot,
     BarhPlot,
     BarPlot,
@@ -25,13 +25,13 @@ from pandas.plotting._matplotlib.core import (
     PiePlot,
     ScatterPlot,
 )
-from pandas.plotting._matplotlib.hist import (
+from .hist import (
     HistPlot,
     KdePlot,
     hist_frame,
     hist_series,
 )
-from pandas.plotting._matplotlib.misc import (
+from .misc import (
     andrews_curves,
     autocorrelation_plot,
     bootstrap_plot,
@@ -40,10 +40,10 @@ from pandas.plotting._matplotlib.misc import (
     radviz,
     scatter_matrix,
 )
-from pandas.plotting._matplotlib.tools import table
+from .tools import table
 
 if TYPE_CHECKING:
-    from pandas.plotting._matplotlib.core import MPLPlot
+    from .core import MPLPlot
 
 PLOT_CLASSES: Dict[str, Type[MPLPlot]] = {
     "line": LinePlot,

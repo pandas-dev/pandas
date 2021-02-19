@@ -39,7 +39,7 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays.sparse.array import SparseArray
+    from .array import SparseArray
 
 
 @register_extension_dtype
@@ -197,7 +197,7 @@ class SparseDtype(ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.sparse.array import SparseArray
+        from .array import SparseArray
 
         return SparseArray
 

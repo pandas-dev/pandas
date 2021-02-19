@@ -4,9 +4,10 @@ from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.io.excel import xlrd_version
 
 from pandas.io.excel import ExcelFile
+
+from . import xlrd_version
 
 xlrd = pytest.importorskip("xlrd")
 xlwt = pytest.importorskip("xlwt")

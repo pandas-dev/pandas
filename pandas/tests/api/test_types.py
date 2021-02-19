@@ -1,6 +1,7 @@
 import pandas._testing as tm
 from pandas.api import types
-from pandas.tests.api.test_api import Base
+
+from .test_api import Base
 
 
 class TestTypes(Base):

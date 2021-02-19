@@ -27,7 +27,7 @@ from pandas import (
     date_range,
 )
 
-from pandas.tseries.offsets import (
+from .offsets import (
     Day,
     Easter,
 )

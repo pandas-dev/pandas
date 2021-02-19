@@ -23,7 +23,8 @@ from pandas import (
     _testing as tm,
     date_range,
 )
-from pandas.tests.tseries.offsets.common import (
+
+from .common import (
     Base,
     assert_offset_equal,
 )

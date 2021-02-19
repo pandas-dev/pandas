@@ -41,9 +41,10 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
-from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import make_block
-from pandas.core.internals.managers import BlockManager
+
+from .array_manager import ArrayManager
+from .blocks import make_block
+from .managers import BlockManager
 
 if TYPE_CHECKING:
     from pandas import Index

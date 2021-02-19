@@ -13,18 +13,19 @@ from pandas import (
     _testing as tm,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_path,
-    ensure_clean_store,
-    tables,
-)
 
 from pandas.io import pytables as pytables
 from pandas.io.pytables import (
     ClosedFileError,
     PossibleDataLossError,
     Term,
+)
+
+from .common import (
+    _maybe_remove,
+    ensure_clean_path,
+    ensure_clean_store,
+    tables,
 )
 
 pytestmark = pytest.mark.single

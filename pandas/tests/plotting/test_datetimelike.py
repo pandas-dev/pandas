@@ -37,9 +37,10 @@ from pandas.core.indexes.period import (
     period_range,
 )
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.tests.plotting.common import TestPlotBase
 
 from pandas.tseries.offsets import WeekOfMonth
+
+from .common import TestPlotBase
 
 pytestmark = pytest.mark.slow
 

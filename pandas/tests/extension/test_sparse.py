@@ -28,7 +28,8 @@ import pandas as pd
 from pandas import SparseDtype
 import pandas._testing as tm
 from pandas.arrays import SparseArray
-from pandas.tests.extension import base
+
+from . import base
 
 
 def make_data(fill_value):

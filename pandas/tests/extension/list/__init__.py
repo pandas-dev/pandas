@@ -1,4 +1,4 @@
-from pandas.tests.extension.list.array import (
+from .array import (
     ListArray,
     ListDtype,
     make_data,

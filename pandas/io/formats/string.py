@@ -10,8 +10,8 @@ from typing import (
 
 import numpy as np
 
-from pandas.io.formats.format import DataFrameFormatter
-from pandas.io.formats.printing import pprint_thing
+from .format import DataFrameFormatter
+from .printing import pprint_thing
 
 
 class StringFormatter:

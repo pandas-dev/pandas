@@ -74,14 +74,6 @@ from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    Index,
-    _index_shared_docs,
-    ensure_index,
-    get_unanimous_names,
-)
-from pandas.core.indexes.frozen import FrozenList
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
@@ -94,6 +86,15 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
+
+from .base import (
+    Index,
+    _index_shared_docs,
+    ensure_index,
+    get_unanimous_names,
+)
+from .frozen import FrozenList
+from .numeric import Int64Index
 
 if TYPE_CHECKING:
     from pandas import (

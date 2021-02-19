@@ -1,6 +1,6 @@
-from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.base import DataManager
-from pandas.core.internals.blocks import (  # io.pytables, io.packers
+from .array_manager import ArrayManager
+from .base import DataManager
+from .blocks import (  # io.pytables, io.packers
     Block,
     CategoricalBlock,
     DatetimeBlock,
@@ -12,8 +12,8 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     TimeDeltaBlock,
     make_block,
 )
-from pandas.core.internals.concat import concatenate_block_managers
-from pandas.core.internals.managers import (
+from .concat import concatenate_block_managers
+from .managers import (
     BlockManager,
     SingleBlockManager,
     create_block_manager_from_arrays,

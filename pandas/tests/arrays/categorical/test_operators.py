@@ -12,7 +12,8 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.arrays.categorical.common import TestCategorical
+
+from .common import TestCategorical
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):

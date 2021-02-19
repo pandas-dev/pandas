@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from pandas.plotting._core import _get_plot_backend
+from ._core import _get_plot_backend
 
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):

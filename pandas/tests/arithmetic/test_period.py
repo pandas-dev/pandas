@@ -25,7 +25,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
-from pandas.tests.arithmetic.common import assert_invalid_comparison
+
+from .common import assert_invalid_comparison
 
 # ------------------------------------------------------------------
 # Comparisons

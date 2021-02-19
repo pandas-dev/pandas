@@ -70,7 +70,8 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     union_indexes,
 )
-from pandas.core.internals.managers import (
+
+from .managers import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
@@ -165,7 +166,7 @@ def mgr_to_mgr(mgr, typ: str):
     Convert to specific type of Manager. Does not copy if the type is already
     correct. Does not guarantee a copy otherwise.
     """
-    from pandas.core.internals import (
+    from . import (
         ArrayManager,
         BlockManager,
     )
@@ -259,7 +260,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
                 if isinstance(dvals_list[n], np.ndarray):
                     dvals_list[n] = dvals_list[n].reshape(1, -1)
 
-            from pandas.core.internals.blocks import make_block
+            from .blocks import make_block
 
             # TODO: What about re-joining object columns?
             block_values = [

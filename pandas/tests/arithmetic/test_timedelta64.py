@@ -26,7 +26,8 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.tests.arithmetic.common import (
+
+from .common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,

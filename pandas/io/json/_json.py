@@ -61,12 +61,13 @@ from pandas.io.common import (
     is_url,
     stringify_path,
 )
-from pandas.io.json._normalize import convert_to_line_delimits
-from pandas.io.json._table_schema import (
+from pandas.io.parsers.readers import validate_integer
+
+from ._normalize import convert_to_line_delimits
+from ._table_schema import (
     build_table_schema,
     parse_table_schema,
 )
-from pandas.io.parsers.readers import validate_integer
 
 loads = json.loads
 dumps = json.dumps

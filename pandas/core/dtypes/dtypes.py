@@ -38,15 +38,15 @@ from pandas._typing import (
     Ordered,
 )
 
-from pandas.core.dtypes.base import (
+from .base import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.generic import (
+from .generic import (
     ABCCategoricalIndex,
     ABCIndex,
 )
-from pandas.core.dtypes.inference import (
+from .inference import (
     is_bool,
     is_list_like,
 )
@@ -591,7 +591,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def _is_boolean(self) -> bool:
-        from pandas.core.dtypes.common import is_bool_dtype
+        from .common import is_bool_dtype
 
         return is_bool_dtype(self.categories)
 
@@ -621,7 +621,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
         ]
         # TODO should categorical always give an answer?
-        from pandas.core.dtypes.cast import find_common_type
+        from .cast import find_common_type
 
         return find_common_type(non_cat_dtypes)
 
@@ -1046,7 +1046,7 @@ class IntervalDtype(PandasExtensionDtype):
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, subtype=None, closed: Optional[str_type] = None):
-        from pandas.core.dtypes.common import (
+        from .common import (
             is_string_dtype,
             pandas_dtype,
         )
@@ -1181,7 +1181,7 @@ class IntervalDtype(PandasExtensionDtype):
         elif self.closed != other.closed:
             return False
         else:
-            from pandas.core.dtypes.common import is_dtype_equal
+            from .common import is_dtype_equal
 
             return is_dtype_equal(self.subtype, other.subtype)
 
@@ -1246,7 +1246,7 @@ class IntervalDtype(PandasExtensionDtype):
         if not all(cast("IntervalDtype", x).closed == closed for x in dtypes):
             return np.dtype(object)
 
-        from pandas.core.dtypes.cast import find_common_type
+        from .cast import find_common_type
 
         common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
         if common == object:

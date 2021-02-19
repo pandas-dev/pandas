@@ -1025,6 +1025,6 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         FutureWarning,
         stacklevel=2,
     )
-    from pandas.core.tools.times import to_time
+    from .times import to_time
 
     return to_time(arg, format, infer_time_format, errors)

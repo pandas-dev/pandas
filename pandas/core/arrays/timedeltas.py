@@ -57,14 +57,15 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import (
-    IntegerArray,
-    datetimelike as dtl,
-)
-from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
+
+from . import (
+    IntegerArray,
+    datetimelike as dtl,
+)
+from ._ranges import generate_regular_range
 
 
 def _field_accessor(name: str, alias: str, docstring: str):
@@ -432,7 +433,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         Add a Period object.
         """
         # We will wrap in a PeriodArray and defer to the reversed operation
-        from pandas.core.arrays.period import PeriodArray
+        from .period import PeriodArray
 
         i8vals = np.broadcast_to(other.ordinal, self.shape)
         oth = PeriodArray(i8vals, freq=other.freq)
@@ -444,7 +445,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         if isinstance(other, np.ndarray):
             # At this point we have already checked that dtype is datetime64
-            from pandas.core.arrays import DatetimeArray
+            from . import DatetimeArray
 
             other = DatetimeArray(other)
 
@@ -453,7 +454,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def _add_datetimelike_scalar(self, other):
         # adding a timedeltaindex to a datetimelike
-        from pandas.core.arrays import DatetimeArray
+        from . import DatetimeArray
 
         assert other is not NaT
         other = Timestamp(other)

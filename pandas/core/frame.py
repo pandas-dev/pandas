@@ -89,7 +89,38 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
-from pandas.core.dtypes.cast import (
+from pandas.io.common import get_handle
+from pandas.io.formats import (
+    console,
+    format as fmt,
+)
+from pandas.io.formats.info import (
+    BaseInfo,
+    DataFrameInfo,
+)
+import pandas.plotting
+
+from . import (
+    algorithms,
+    common as com,
+    generic,
+    nanops,
+    ops,
+)
+from .accessor import CachedAccessor
+from .aggregation import (
+    reconstruct_func,
+    relabel_result,
+    transform,
+)
+from .arraylike import OpsMixin
+from .arrays import ExtensionArray
+from .arrays.sparse import SparseFrameAccessor
+from .construction import (
+    extract_array,
+    sanitize_masked_array,
+)
+from .dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -101,7 +132,7 @@ from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     validate_numeric_casting,
 )
-from pandas.core.dtypes.common import (
+from .dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     infer_dtype_from_object,
@@ -123,57 +154,36 @@ from pandas.core.dtypes.common import (
     is_sequence,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import (
+from .dtypes.missing import (
     isna,
     notna,
 )
-
-from pandas.core import (
-    algorithms,
-    common as com,
-    generic,
-    nanops,
-    ops,
-)
-from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import (
-    reconstruct_func,
-    relabel_result,
-    transform,
-)
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import (
-    extract_array,
-    sanitize_masked_array,
-)
-from pandas.core.generic import (
+from .generic import (
     NDFrame,
     _shared_docs,
 )
-from pandas.core.indexers import check_key_length
-from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import (
+from .indexers import check_key_length
+from .indexes import base as ibase
+from .indexes.api import (
     DatetimeIndex,
     Index,
     PeriodIndex,
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.core.indexes.multi import (
+from .indexes.multi import (
     MultiIndex,
     maybe_droplevels,
 )
-from pandas.core.indexing import (
+from .indexing import (
     check_bool_indexer,
     convert_to_index_sliceable,
 )
-from pandas.core.internals import (
+from .internals import (
     ArrayManager,
     BlockManager,
 )
-from pandas.core.internals.construction import (
+from .internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
     init_dict,
@@ -186,24 +196,13 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
-from pandas.core.reshape.melt import melt
-from pandas.core.series import Series
-from pandas.core.sorting import (
+from .reshape.melt import melt
+from .series import Series
+from .sorting import (
     get_group_index,
     lexsort_indexer,
     nargsort,
 )
-
-from pandas.io.common import get_handle
-from pandas.io.formats import (
-    console,
-    format as fmt,
-)
-from pandas.io.formats.info import (
-    BaseInfo,
-    DataFrameInfo,
-)
-import pandas.plotting
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -213,10 +212,10 @@ if TYPE_CHECKING:
         TimestampConvertibleTypes,
     )
 
-    from pandas.core.groupby.generic import DataFrameGroupBy
-    from pandas.core.resample import Resampler
-
     from pandas.io.formats.style import Styler
+
+    from .groupby.generic import DataFrameGroupBy
+    from .resample import Resampler
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -3708,7 +3707,7 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4   8  0
         4  5   2   7  3
         """
-        from pandas.core.computation.eval import eval as _eval
+        from .computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         resolvers = kwargs.pop("resolvers", None)
@@ -6851,7 +6850,7 @@ NaN 12.3   33.0
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
-        from pandas.core.groupby.generic import DataFrameGroupBy
+        from .groupby.generic import DataFrameGroupBy
 
         if squeeze is not no_default:
             warnings.warn(
@@ -7029,7 +7028,7 @@ NaN 12.3   33.0
     @Substitution("")
     @Appender(_shared_docs["pivot"])
     def pivot(self, index=None, columns=None, values=None) -> DataFrame:
-        from pandas.core.reshape.pivot import pivot
+        from .reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
 
@@ -7181,7 +7180,7 @@ NaN 12.3   33.0
         margins_name="All",
         observed=False,
     ) -> DataFrame:
-        from pandas.core.reshape.pivot import pivot_table
+        from .reshape.pivot import pivot_table
 
         return pivot_table(
             self,
@@ -7357,7 +7356,7 @@ NaN 12.3   33.0
         dog kg     NaN     2.0
             m      3.0     NaN
         """
-        from pandas.core.reshape.reshape import (
+        from .reshape.reshape import (
             stack,
             stack_multiple,
         )
@@ -7505,7 +7504,7 @@ NaN 12.3   33.0
              b  4.0
         dtype: float64
         """
-        from pandas.core.reshape.reshape import unstack
+        from .reshape.reshape import unstack
 
         result = unstack(self, level, fill_value)
 
@@ -7758,7 +7757,7 @@ NaN 12.3   33.0
         return result
 
     def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
-        from pandas.core.apply import frame_apply
+        from .apply import frame_apply
 
         op = frame_apply(
             self if axis == 0 else self.T,
@@ -7936,7 +7935,7 @@ NaN 12.3   33.0
         1  1  2
         2  1  2
         """
-        from pandas.core.apply import frame_apply
+        from .apply import frame_apply
 
         op = frame_apply(
             self,
@@ -8160,7 +8159,7 @@ NaN 12.3   33.0
                 if (self.columns.get_indexer(other.columns) >= 0).all():
                     other = other.reindex(columns=self.columns)
 
-        from pandas.core.reshape.concat import concat
+        from .reshape.concat import concat
 
         if isinstance(other, (list, tuple)):
             to_concat = [self, *other]
@@ -8314,8 +8313,8 @@ NaN 12.3   33.0
         rsuffix: str = "",
         sort: bool = False,
     ):
-        from pandas.core.reshape.concat import concat
-        from pandas.core.reshape.merge import merge
+        from .reshape.concat import concat
+        from .reshape.merge import merge
 
         if isinstance(other, Series):
             if other.name is None:
@@ -8390,7 +8389,7 @@ NaN 12.3   33.0
         indicator: bool = False,
         validate: Optional[str] = None,
     ) -> DataFrame:
-        from pandas.core.reshape.merge import merge
+        from .reshape.merge import merge
 
         return merge(
             self,
@@ -8485,7 +8484,7 @@ NaN 12.3   33.0
         2   0.7   0.0
         3   0.2   0.0
         """
-        from pandas.core.reshape.concat import concat
+        from .reshape.concat import concat
 
         def _dict_round(df, decimals):
             for col, vals in df.items():
@@ -9673,7 +9672,7 @@ NaN 12.3   33.0
         dog        False      False
         """
         if isinstance(values, dict):
-            from pandas.core.reshape.concat import concat
+            from .reshape.concat import concat
 
             values = collections.defaultdict(list, values)
             return concat(

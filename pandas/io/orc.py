@@ -10,7 +10,7 @@ from typing import (
 
 from pandas._typing import FilePathOrBuffer
 
-from pandas.io.common import get_handle
+from .common import get_handle
 
 if TYPE_CHECKING:
     from pandas import DataFrame

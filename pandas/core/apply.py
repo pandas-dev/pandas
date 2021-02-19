@@ -30,28 +30,28 @@ from pandas._typing import (
 )
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import is_nested_object
-from pandas.core.dtypes.common import (
+import pandas.core.common as com
+
+from .algorithms import safe_sort
+from .base import (
+    DataError,
+    SpecificationError,
+)
+from .construction import (
+    array as pd_array,
+    create_series_with_explicit_dtype,
+)
+from .dtypes.cast import is_nested_object
+from .dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import (
+from .dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
     ABCSeries,
-)
-
-from pandas.core.algorithms import safe_sort
-from pandas.core.base import (
-    DataError,
-    SpecificationError,
-)
-import pandas.core.common as com
-from pandas.core.construction import (
-    array as pd_array,
-    create_series_with_explicit_dtype,
 )
 
 if TYPE_CHECKING:
@@ -60,12 +60,13 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.groupby import (
+
+    from .groupby import (
         DataFrameGroupBy,
         SeriesGroupBy,
     )
-    from pandas.core.resample import Resampler
-    from pandas.core.window.rolling import BaseWindow
+    from .resample import Resampler
+    from .window.rolling import BaseWindow
 
 ResType = Dict[int, Any]
 
@@ -210,7 +211,7 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        from pandas.core.reshape.concat import concat
+        from .reshape.concat import concat
 
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
@@ -355,7 +356,7 @@ class Apply(metaclass=abc.ABCMeta):
                 )
                 raise SpecificationError(f"Column(s) {cols} do not exist")
 
-        from pandas.core.reshape.concat import concat
+        from .reshape.concat import concat
 
         if selected_obj.ndim == 1:
             # key only used for output

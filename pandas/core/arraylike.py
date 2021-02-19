@@ -15,12 +15,12 @@ import numpy as np
 
 from pandas._libs import lib
 
-from pandas.core.construction import extract_array
-from pandas.core.ops import (
+from .construction import extract_array
+from .ops import (
     maybe_dispatch_ufunc_to_dunder_op,
     roperator,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from .ops.common import unpack_zerodim_and_defer
 
 
 class OpsMixin:
@@ -183,7 +183,8 @@ def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
     See https://github.com/pandas-dev/pandas/pull/39239
     """
     from pandas import DataFrame
-    from pandas.core.generic import NDFrame
+
+    from .generic import NDFrame
 
     n_alignable = sum(isinstance(x, NDFrame) for x in inputs)
     n_frames = sum(isinstance(x, DataFrame) for x in inputs)
@@ -242,8 +243,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     --------
     numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
     """
-    from pandas.core.generic import NDFrame
-    from pandas.core.internals import BlockManager
+    from .generic import NDFrame
+    from .internals import BlockManager
 
     cls = type(self)
 

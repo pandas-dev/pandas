@@ -321,8 +321,8 @@ def format_object_summary(
     -------
     summary string
     """
-    from pandas.io.formats.console import get_console_size
-    from pandas.io.formats.format import get_adjustment
+    from .console import get_console_size
+    from .format import get_adjustment
 
     display_width, _ = get_console_size()
     if display_width is None:

@@ -54,14 +54,15 @@ from pandas.io.common import (
     stringify_path,
     validate_header_arg,
 )
-from pandas.io.excel._util import (
+from pandas.io.parsers import TextParser
+
+from ._util import (
     fill_mi_header,
     get_default_engine,
     get_writer,
     maybe_convert_usecols,
     pop_header_name,
 )
-from pandas.io.parsers import TextParser
 
 _read_excel_doc = (
     """
@@ -1064,10 +1065,10 @@ class ExcelFile:
             This is not supported, switch to using ``openpyxl`` instead.
     """
 
-    from pandas.io.excel._odfreader import ODFReader
-    from pandas.io.excel._openpyxl import OpenpyxlReader
-    from pandas.io.excel._pyxlsb import PyxlsbReader
-    from pandas.io.excel._xlrd import XlrdReader
+    from ._odfreader import ODFReader
+    from ._openpyxl import OpenpyxlReader
+    from ._pyxlsb import PyxlsbReader
+    from ._xlrd import XlrdReader
 
     _engines: Mapping[str, Any] = {
         "xlrd": XlrdReader,

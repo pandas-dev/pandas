@@ -62,8 +62,9 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
-from pandas.core.internals.base import DataManager
-from pandas.core.internals.blocks import (
+
+from .base import DataManager
+from .blocks import (
     Block,
     CategoricalBlock,
     DatetimeTZBlock,
@@ -74,7 +75,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-from pandas.core.internals.ops import (
+from .ops import (
     blockwise_all,
     operate_blockwise,
 )

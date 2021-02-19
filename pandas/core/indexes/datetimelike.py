@@ -57,17 +57,18 @@ from pandas.core.arrays import (
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
+from pandas.core.tools.timedeltas import to_timedelta
+
+from .base import (
     Index,
     _index_shared_docs,
 )
-from pandas.core.indexes.extension import (
+from .extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
     make_wrapped_arith_op,
 )
-from pandas.core.indexes.numeric import Int64Index
-from pandas.core.tools.timedeltas import to_timedelta
+from .numeric import Int64Index
 
 if TYPE_CHECKING:
     from pandas import CategoricalIndex

@@ -11,12 +11,13 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import (
+
+from pandas.io.pytables import read_hdf
+
+from .common import (
     ensure_clean_path,
     ensure_clean_store,
 )
-
-from pandas.io.pytables import read_hdf
 
 # TODO(ArrayManager) HDFStore relies on accessing the blocks
 pytestmark = td.skip_array_manager_not_yet_implemented

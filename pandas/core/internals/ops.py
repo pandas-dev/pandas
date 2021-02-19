@@ -13,8 +13,8 @@ import numpy as np
 from pandas._typing import ArrayLike
 
 if TYPE_CHECKING:
-    from pandas.core.internals.blocks import Block
-    from pandas.core.internals.managers import BlockManager
+    from .blocks import Block
+    from .managers import BlockManager
 
 
 BlockPairInfo = namedtuple(

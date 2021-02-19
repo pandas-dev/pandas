@@ -30,16 +30,15 @@ from pandas._typing import (
 )
 from pandas.util._validators import validate_percentile
 
-from pandas.core.dtypes.common import (
+from pandas.io.formats.format import format_percentiles
+
+from .dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_numeric_dtype,
     is_timedelta64_dtype,
 )
-
-from pandas.core.reshape.concat import concat
-
-from pandas.io.formats.format import format_percentiles
+from .reshape.concat import concat
 
 if TYPE_CHECKING:
     from pandas import (

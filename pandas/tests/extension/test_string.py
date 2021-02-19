@@ -23,7 +23,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.string_arrow import ArrowStringDtype
-from pandas.tests.extension import base
+
+from . import base
 
 
 @pytest.fixture(

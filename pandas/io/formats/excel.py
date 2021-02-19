@@ -42,13 +42,13 @@ from pandas import (
 from pandas.core import generic
 import pandas.core.common as com
 
-from pandas.io.formats._color_data import CSS4_COLORS
-from pandas.io.formats.css import (
+from ._color_data import CSS4_COLORS
+from .css import (
     CSSResolver,
     CSSWarning,
 )
-from pandas.io.formats.format import get_level_lengths
-from pandas.io.formats.printing import pprint_thing
+from .format import get_level_lengths
+from .printing import pprint_thing
 
 
 class ExcelCell:

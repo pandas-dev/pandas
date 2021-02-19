@@ -28,7 +28,7 @@ from pandas._libs.tslibs.offsets import (
     YearEnd,
 )
 
-from pandas.tests.tseries.offsets.test_offsets import get_utc_offset_hours
+from .test_offsets import get_utc_offset_hours
 
 
 class TestDST:

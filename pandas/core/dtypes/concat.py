@@ -10,23 +10,23 @@ from pandas._typing import (
     DtypeObj,
 )
 
-from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_sparse,
-)
-from pandas.core.dtypes.generic import (
-    ABCCategoricalIndex,
-    ABCSeries,
-)
-
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import (
     array,
     ensure_wrapped_if_datetimelike,
+)
+
+from .cast import find_common_type
+from .common import (
+    is_categorical_dtype,
+    is_dtype_equal,
+    is_extension_array_dtype,
+    is_sparse,
+)
+from .generic import (
+    ABCCategoricalIndex,
+    ABCSeries,
 )
 
 

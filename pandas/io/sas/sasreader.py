@@ -136,7 +136,7 @@ def read_sas(
 
     reader: ReaderBase
     if format.lower() == "xport":
-        from pandas.io.sas.sas_xport import XportReader
+        from .sas_xport import XportReader
 
         reader = XportReader(
             filepath_or_buffer,
@@ -145,7 +145,7 @@ def read_sas(
             chunksize=chunksize,
         )
     elif format.lower() == "sas7bdat":
-        from pandas.io.sas.sas7bdat import SAS7BDATReader
+        from .sas7bdat import SAS7BDATReader
 
         reader = SAS7BDATReader(
             filepath_or_buffer,

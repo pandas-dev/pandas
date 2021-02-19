@@ -20,14 +20,15 @@ from pandas import (
     isna,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
+
+from pandas.io.pytables import Term
+
+from .common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
     tables,
 )
-
-from pandas.io.pytables import Term
 
 pytestmark = pytest.mark.single
 

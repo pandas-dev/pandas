@@ -20,7 +20,8 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.io.excel import xlrd_version
+
+from . import xlrd_version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [

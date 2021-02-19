@@ -13,7 +13,8 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import Index
 import pandas._testing as tm
-from pandas.tests.base.common import allow_na_ops
+
+from .common import allow_na_ops
 
 
 def test_fillna(index_or_series_obj):

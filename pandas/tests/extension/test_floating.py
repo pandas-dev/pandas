@@ -25,7 +25,8 @@ from pandas.core.arrays.floating import (
     Float32Dtype,
     Float64Dtype,
 )
-from pandas.tests.extension import base
+
+from . import base
 
 
 def make_data():

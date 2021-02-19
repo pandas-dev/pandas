@@ -33,7 +33,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.common as com
-from pandas.core.indexes.base import (
+
+from .base import (
     Index,
     maybe_extract_name,
 )

@@ -32,8 +32,9 @@ from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+
+from .datetimes import DatetimeIndex
+from .timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
     from pandas import Series

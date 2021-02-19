@@ -51,14 +51,15 @@ from pandas.core.arrays.period import (
 )
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import maybe_extract_name
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.datetimes import (
+
+from .base import maybe_extract_name
+from .datetimelike import DatetimeIndexOpsMixin
+from .datetimes import (
     DatetimeIndex,
     Index,
 )
-from pandas.core.indexes.extension import inherit_names
-from pandas.core.indexes.numeric import Int64Index
+from .extension import inherit_names
+from .numeric import Int64Index
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})

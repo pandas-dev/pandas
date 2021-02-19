@@ -30,7 +30,7 @@ from pandas.errors import (
 
 from pandas.core.dtypes.common import is_integer
 
-from pandas.io.parsers.base_parser import (
+from .base_parser import (
     ParserBase,
     parser_defaults,
 )

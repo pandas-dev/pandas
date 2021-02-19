@@ -25,11 +25,12 @@ from pandas import (
 )
 
 from pandas.io.common import is_url
-from pandas.io.formats.format import (
+
+from .format import (
     DataFrameFormatter,
     get_level_lengths,
 )
-from pandas.io.formats.printing import pprint_thing
+from .printing import pprint_thing
 
 
 class HTMLFormatter:

@@ -26,15 +26,16 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.converter import (
-    TimeSeries_DateFormatter,
-    TimeSeries_DateLocator,
-    TimeSeries_TimedeltaFormatter,
-)
 from pandas.tseries.frequencies import (
     get_period_alias,
     is_subperiod,
     is_superperiod,
+)
+
+from .converter import (
+    TimeSeries_DateFormatter,
+    TimeSeries_DateLocator,
+    TimeSeries_TimedeltaFormatter,
 )
 
 if TYPE_CHECKING:
@@ -136,7 +137,7 @@ def _replot_ax(ax: Axes, freq, kwargs):
 
             # for tsplot
             if isinstance(plotf, str):
-                from pandas.plotting._matplotlib import PLOT_CLASSES
+                from . import PLOT_CLASSES
 
                 plotf = PLOT_CLASSES[plotf]._plot
 

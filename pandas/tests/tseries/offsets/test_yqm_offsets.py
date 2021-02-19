@@ -7,11 +7,6 @@ import pytest
 
 import pandas as pd
 from pandas import Timestamp
-from pandas.tests.tseries.offsets.common import (
-    Base,
-    assert_is_on_offset,
-    assert_offset_equal,
-)
 
 from pandas.tseries.offsets import (
     BMonthBegin,
@@ -26,6 +21,12 @@ from pandas.tseries.offsets import (
     QuarterEnd,
     YearBegin,
     YearEnd,
+)
+
+from .common import (
+    Base,
+    assert_is_on_offset,
+    assert_offset_equal,
 )
 
 # --------------------------------------------------------------------

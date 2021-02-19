@@ -34,12 +34,13 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
 )
 from pandas.core.missing import get_fill_func
+
+from .base import ExtensionArray
 
 try:
     import pyarrow as pa

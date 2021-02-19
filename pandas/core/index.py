@@ -1,6 +1,6 @@
 import warnings
 
-from pandas.core.indexes.api import (  # noqa:F401
+from .indexes.api import (  # noqa:F401
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
@@ -19,7 +19,7 @@ from pandas.core.indexes.api import (  # noqa:F401
     ensure_index_from_sequences,
     get_objs_combined_axis,
 )
-from pandas.core.indexes.multi import sparsify_labels  # noqa:F401
+from .indexes.multi import sparsify_labels  # noqa:F401
 
 # GH#30193
 warnings.warn(

@@ -714,7 +714,7 @@ class TestDateRangeTZ:
         tm.assert_index_equal(result, expected)
 
     def test_date_range_with_fixedoffset_noname(self):
-        from pandas.tests.indexes.datetimes.test_timezones import fixed_off_no_name
+        from .test_timezones import fixed_off_no_name
 
         off = fixed_off_no_name
         start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)

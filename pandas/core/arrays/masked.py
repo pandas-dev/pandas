@@ -51,12 +51,14 @@ from pandas.core.algorithms import (
 )
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
+
+from . import ExtensionArray
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.core.arrays import BooleanArray
+
+    from . import BooleanArray
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
@@ -358,7 +360,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def isin(self, values) -> BooleanArray:
 
-        from pandas.core.arrays import BooleanArray
+        from . import BooleanArray
 
         result = isin(self._data, values)
         if self._hasna:

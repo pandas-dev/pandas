@@ -10,7 +10,8 @@ from pandas import (
     _testing as tm,
     concat,
 )
-from pandas.tests.strings.test_strings import assert_series_or_index_equal
+
+from .test_strings import assert_series_or_index_equal
 
 
 @pytest.mark.parametrize("other", [None, Series, Index])

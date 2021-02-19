@@ -14,7 +14,7 @@ from pandas._typing import FrameOrSeries
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
-from pandas.core.window.doc import (
+from .doc import (
     _shared_docs,
     args_compat,
     create_section_header,
@@ -26,12 +26,12 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
     window_apply_parameters,
 )
-from pandas.core.window.indexers import (
+from .indexers import (
     BaseIndexer,
     ExpandingIndexer,
     GroupbyIndexer,
 )
-from pandas.core.window.rolling import (
+from .rolling import (
     BaseWindowGroupby,
     RollingAndExpandingMixin,
 )

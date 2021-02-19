@@ -25,7 +25,8 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import (
+
+from .common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,

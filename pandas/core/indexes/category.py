@@ -39,12 +39,13 @@ from pandas.core.arrays.categorical import (
 )
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
+
+from .base import (
     Index,
     _index_shared_docs,
     maybe_extract_name,
 )
-from pandas.core.indexes.extension import (
+from .extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
 )

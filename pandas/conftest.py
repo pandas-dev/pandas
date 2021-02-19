@@ -45,13 +45,10 @@ from pytz import (
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    IntervalDtype,
-)
-
 import pandas as pd
-from pandas import (
+import pandas._testing as tm
+
+from . import (
     DataFrame,
     Interval,
     Period,
@@ -59,9 +56,12 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
-import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.indexes.api import (
+from .core import ops
+from .core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
+from .core.indexes.api import (
     Index,
     MultiIndex,
 )

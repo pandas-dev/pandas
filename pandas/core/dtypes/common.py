@@ -23,19 +23,19 @@ from pandas._typing import (
     Optional,
 )
 
-from pandas.core.dtypes.base import registry
-from pandas.core.dtypes.dtypes import (
+from .base import registry
+from .dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import (
+from .generic import (
     ABCCategorical,
     ABCIndex,
 )
-from pandas.core.dtypes.inference import (  # noqa:F401
+from .inference import (  # noqa:F401
     is_array_like,
     is_bool,
     is_complex,

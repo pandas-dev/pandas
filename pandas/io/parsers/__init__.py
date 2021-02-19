@@ -1,4 +1,4 @@
-from pandas.io.parsers.readers import (
+from .readers import (
     TextFileReader,
     TextParser,
     read_csv,

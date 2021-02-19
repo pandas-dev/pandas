@@ -11,7 +11,7 @@ from pandas.core.dtypes.inference import is_list_like
 
 from pandas.core.api import DataFrame
 
-from pandas.io.common import stringify_path
+from .common import stringify_path
 
 
 def read_spss(

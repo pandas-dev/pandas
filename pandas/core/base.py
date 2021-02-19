@@ -32,34 +32,34 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.common import (
+import pandas.core.nanops as nanops
+
+from . import algorithms
+from .accessor import DirNamesMixin
+from .algorithms import (
+    duplicated,
+    unique1d,
+    value_counts,
+)
+from .arraylike import OpsMixin
+from .arrays import ExtensionArray
+from .construction import create_series_with_explicit_dtype
+from .dtypes.common import (
     is_categorical_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import (
+from .dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
+from .dtypes.missing import (
     isna,
     remove_na_arraylike,
 )
-
-from pandas.core import algorithms
-from pandas.core.accessor import DirNamesMixin
-from pandas.core.algorithms import (
-    duplicated,
-    unique1d,
-    value_counts,
-)
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
-from pandas.core.construction import create_series_with_explicit_dtype
-import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
     from pandas import Categorical

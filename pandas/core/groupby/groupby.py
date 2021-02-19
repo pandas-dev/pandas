@@ -94,11 +94,6 @@ from pandas.core.base import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import (
-    base,
-    numba_,
-    ops,
-)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -107,6 +102,12 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+from . import (
+    base,
+    numba_,
+    ops,
+)
 
 _common_see_also = """
         See Also
@@ -589,7 +590,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.dropna = dropna
 
         if grouper is None:
-            from pandas.core.groupby.grouper import get_grouper
+            from .grouper import get_grouper
 
             grouper, exclusions, obj = get_grouper(
                 obj,
@@ -2179,7 +2180,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             # create a grouper with the original parameters, but on dropped
             # object
-            from pandas.core.groupby.grouper import get_grouper
+            from .grouper import get_grouper
 
             grouper, _, _ = get_grouper(
                 dropped,
@@ -3111,11 +3112,11 @@ def get_groupby(
 
     klass: Type[GroupBy]
     if isinstance(obj, Series):
-        from pandas.core.groupby.generic import SeriesGroupBy
+        from .generic import SeriesGroupBy
 
         klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
-        from pandas.core.groupby.generic import DataFrameGroupBy
+        from .generic import DataFrameGroupBy
 
         klass = DataFrameGroupBy
     else:

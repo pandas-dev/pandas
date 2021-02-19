@@ -39,7 +39,8 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.arrays.masked import (
+
+from .masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
@@ -727,7 +728,7 @@ class BooleanArray(BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            from pandas.core.arrays import FloatingArray
+            from . import FloatingArray
 
             return FloatingArray(result, mask, copy=False)
 
@@ -735,7 +736,7 @@ class BooleanArray(BaseMaskedArray):
             return BooleanArray(result, mask, copy=False)
 
         elif is_integer_dtype(result):
-            from pandas.core.arrays import IntegerArray
+            from . import IntegerArray
 
             return IntegerArray(result, mask, copy=False)
         else:

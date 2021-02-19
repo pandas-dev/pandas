@@ -19,7 +19,7 @@ import numpy as np
 from pandas._typing import DtypeObj
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.generic import (
+from .generic import (
     ABCDataFrame,
     ABCIndex,
     ABCSeries,

@@ -35,8 +35,8 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
 
-    from pandas.io.clipboard import clipboard_get
-    from pandas.io.parsers import read_csv
+    from .clipboard import clipboard_get
+    from .parsers import read_csv
 
     text = clipboard_get()
 
@@ -107,7 +107,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise ValueError("clipboard only supports utf-8 encoding")
 
-    from pandas.io.clipboard import clipboard_set
+    from .clipboard import clipboard_set
 
     if excel is None:
         excel = True

@@ -23,15 +23,16 @@ from pandas import (
     _testing as tm,
     read_pickle,
 )
-from pandas.tests.tseries.offsets.common import (
+
+from pandas.tseries import offsets as offsets
+from pandas.tseries.holiday import USFederalHolidayCalendar
+
+from .common import (
     Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
-from pandas.tests.tseries.offsets.test_offsets import _ApplyCases
-
-from pandas.tseries import offsets as offsets
-from pandas.tseries.holiday import USFederalHolidayCalendar
+from .test_offsets import _ApplyCases
 
 
 class TestBusinessDay(Base):

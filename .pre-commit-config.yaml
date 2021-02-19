@@ -208,7 +208,8 @@ repos:
     hooks:
     -   id: no-string-hints
 -   repo: https://github.com/MarcoGorelli/abs-imports
-    rev: v0.1.2
+    rev: c434798
     hooks:
     -   id: abs-imports
         files: ^pandas/
+        args: [--keep-local-imports-relative]

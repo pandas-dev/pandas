@@ -24,7 +24,10 @@ from pandas.errors import (
 )
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
+import pandas.core.common as com
+
+from .construction import array as pd_array
+from .dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_hashable,
@@ -36,26 +39,23 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
 )
-from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import (
+from .dtypes.concat import concat_compat
+from .dtypes.generic import (
     ABCDataFrame,
     ABCMultiIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
+from .dtypes.missing import (
     infer_fill_value,
     isna,
 )
-
-import pandas.core.common as com
-from pandas.core.construction import array as pd_array
-from pandas.core.indexers import (
+from .indexers import (
     check_array_indexer,
     is_exact_shape_match,
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index
+from .indexes.api import Index
 
 if TYPE_CHECKING:
     from pandas import (

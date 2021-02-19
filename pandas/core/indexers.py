@@ -14,7 +14,7 @@ from pandas._typing import (
     ArrayLike,
 )
 
-from pandas.core.dtypes.common import (
+from .dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_extension_array_dtype,
@@ -22,14 +22,14 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import (
+from .dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
 
 if TYPE_CHECKING:
-    from pandas.core.frame import DataFrame
-    from pandas.core.indexes.base import Index
+    from .frame import DataFrame
+    from .indexes.base import Index
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -514,7 +514,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     ...
     IndexError: arrays used as indices must be of integer or boolean type
     """
-    from pandas.core.construction import array as pd_array
+    from .construction import array as pd_array
 
     # whatever is not an array-like is returned as-is (possible valid array
     # indexers that are not array-like: integer, slice, Ellipsis, None)

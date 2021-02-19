@@ -8,7 +8,8 @@ from pandas import (
     Series,
     _testing as tm,
 )
-from pandas.tests.io.pytables.common import ensure_clean_store
+
+from .common import ensure_clean_store
 
 pytestmark = pytest.mark.single
 

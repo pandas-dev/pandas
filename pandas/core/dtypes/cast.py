@@ -53,7 +53,7 @@ from pandas._typing import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.common import (
+from .common import (
     DT64NS_DTYPE,
     POSSIBLY_CAST_DTYPES,
     TD64NS_DTYPE,
@@ -87,20 +87,20 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     is_unsigned_integer_dtype,
 )
-from pandas.core.dtypes.dtypes import (
+from .dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import (
+from .generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import (
+from .inference import is_list_like
+from .missing import (
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,

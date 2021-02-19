@@ -5,12 +5,13 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_path
 
 from pandas.io.pytables import (
     HDFStore,
     read_hdf,
 )
+
+from .common import ensure_clean_path
 
 
 class TestHDFStoreSubclass:

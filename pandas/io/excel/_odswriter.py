@@ -13,9 +13,10 @@ from typing import (
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
 
-from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import validate_freeze_panes
 from pandas.io.formats.excel import ExcelCell
+
+from ._base import ExcelWriter
+from ._util import validate_freeze_panes
 
 
 class ODSWriter(ExcelWriter):

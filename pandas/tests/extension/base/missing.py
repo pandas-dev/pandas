@@ -2,7 +2,8 @@ import numpy as np
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
+
+from .base import BaseExtensionTests
 
 
 class BaseMissingTests(BaseExtensionTests):

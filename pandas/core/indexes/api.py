@@ -10,26 +10,26 @@ from pandas._libs import (
 )
 from pandas.errors import InvalidIndexError
 
-from pandas.core.indexes.base import (
+from .base import (
     Index,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
     get_unanimous_names,
 )
-from pandas.core.indexes.category import CategoricalIndex
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.interval import IntervalIndex
-from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.numeric import (
+from .category import CategoricalIndex
+from .datetimes import DatetimeIndex
+from .interval import IntervalIndex
+from .multi import MultiIndex
+from .numeric import (
     Float64Index,
     Int64Index,
     NumericIndex,
     UInt64Index,
 )
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.range import RangeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from .period import PeriodIndex
+from .range import RangeIndex
+from .timedeltas import TimedeltaIndex
 
 _sort_msg = textwrap.dedent(
     """\

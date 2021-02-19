@@ -15,7 +15,8 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.indexing.common import Base
+
+from .common import Base
 
 
 class TestScalar(Base):

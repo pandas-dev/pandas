@@ -67,8 +67,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
@@ -77,6 +75,9 @@ from pandas.tseries.offsets import (
     Day,
     Tick,
 )
+
+from . import datetimelike as dtl
+from ._ranges import generate_regular_range
 
 _midnight = time(0, 0)
 
@@ -1109,7 +1110,7 @@ default 'raise'
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]', freq='D')
         """
-        from pandas.core.arrays import PeriodArray
+        from . import PeriodArray
 
         if self.tz is not None:
             warnings.warn(
@@ -1158,7 +1159,7 @@ default 'raise'
             FutureWarning,
             stacklevel=3,
         )
-        from pandas.core.arrays.timedeltas import TimedeltaArray
+        from .timedeltas import TimedeltaArray
 
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
         m8delta = i8delta.view("m8[ns]")
@@ -1890,7 +1891,7 @@ default 'raise'
         # Because std is translation-invariant, we can get self.std
         #  by calculating (self - Timestamp(0)).std, and we can do it
         #  without creating a copy by using a view on self._ndarray
-        from pandas.core.arrays import TimedeltaArray
+        from . import TimedeltaArray
 
         tda = TimedeltaArray(self._ndarray.view("i8"))
         return tda.std(

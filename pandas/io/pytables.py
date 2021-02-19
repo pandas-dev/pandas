@@ -94,8 +94,8 @@ from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 from pandas.core.internals import BlockManager
 
-from pandas.io.common import stringify_path
-from pandas.io.formats.printing import (
+from .common import stringify_path
+from .formats.printing import (
     adjoin,
     pprint_thing,
 )

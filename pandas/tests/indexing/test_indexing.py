@@ -23,8 +23,9 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.tests.indexing.common import _mklbl
-from pandas.tests.indexing.test_floats import gen_obj
+
+from .common import _mklbl
+from .test_floats import gen_obj
 
 # ------------------------------------------------------------------------
 # Indexing test cases

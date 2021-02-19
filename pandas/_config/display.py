@@ -6,7 +6,7 @@ import locale
 import sys
 from typing import Optional
 
-from pandas._config import config as cf
+from . import config as cf
 
 # -----------------------------------------------------------------------------
 # Global formatting options

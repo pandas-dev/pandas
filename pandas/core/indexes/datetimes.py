@@ -55,14 +55,15 @@ from pandas.core.arrays.datetimes import (
     tz_to_dtype,
 )
 import pandas.core.common as com
-from pandas.core.indexes.base import (
+from pandas.core.tools.times import to_time
+
+from .base import (
     Index,
     get_unanimous_names,
     maybe_extract_name,
 )
-from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
-from pandas.core.indexes.extension import inherit_names
-from pandas.core.tools.times import to_time
+from .datetimelike import DatetimeTimedeltaMixin
+from .extension import inherit_names
 
 if TYPE_CHECKING:
     from pandas import (
@@ -286,21 +287,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @doc(DatetimeArray.to_period)
     def to_period(self, freq=None) -> PeriodIndex:
-        from pandas.core.indexes.api import PeriodIndex
+        from .api import PeriodIndex
 
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_perioddelta)
     def to_perioddelta(self, freq) -> TimedeltaIndex:
-        from pandas.core.indexes.api import TimedeltaIndex
+        from .api import TimedeltaIndex
 
         arr = self._data.to_perioddelta(freq)
         return TimedeltaIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_julian_date)
     def to_julian_date(self) -> Float64Index:
-        from pandas.core.indexes.api import Float64Index
+        from .api import Float64Index
 
         arr = self._data.to_julian_date()
         return Float64Index._simple_new(arr, name=self.name)

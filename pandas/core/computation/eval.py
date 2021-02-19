@@ -9,15 +9,15 @@ import warnings
 from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.computation.engines import ENGINES
-from pandas.core.computation.expr import (
+from pandas.io.formats.printing import pprint_thing
+
+from .engines import ENGINES
+from .expr import (
     PARSERS,
     Expr,
 )
-from pandas.core.computation.parsing import tokenize_string
-from pandas.core.computation.scope import ensure_scope
-
-from pandas.io.formats.printing import pprint_thing
+from .parsing import tokenize_string
+from .scope import ensure_scope
 
 
 def _check_engine(engine: Optional[str]) -> str:
@@ -41,7 +41,7 @@ def _check_engine(engine: Optional[str]) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from .check import NUMEXPR_INSTALLED
 
     if engine is None:
         engine = "numexpr" if NUMEXPR_INSTALLED else "python"

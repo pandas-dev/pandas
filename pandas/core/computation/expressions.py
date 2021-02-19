@@ -21,8 +21,9 @@ from pandas._typing import FuncType
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas.core.computation.check import NUMEXPR_INSTALLED
 from pandas.core.ops import roperator
+
+from .check import NUMEXPR_INSTALLED
 
 if NUMEXPR_INSTALLED:
     import numexpr as ne

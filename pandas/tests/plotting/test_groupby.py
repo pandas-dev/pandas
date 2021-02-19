@@ -13,7 +13,8 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+
+from .common import TestPlotBase
 
 pytestmark = pytest.mark.slow
 

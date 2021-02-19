@@ -75,10 +75,6 @@ from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import (
-    base,
-    grouper,
-)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -92,6 +88,11 @@ from pandas.core.sorting import (
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
+)
+
+from . import (
+    base,
+    grouper,
 )
 
 

@@ -18,7 +18,8 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
+
+from .common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,

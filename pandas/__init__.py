@@ -19,14 +19,14 @@ if missing_dependencies:
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
-from pandas.compat import (
+from .compat import (
     np_version_under1p17 as _np_version_under1p17,
     np_version_under1p18 as _np_version_under1p18,
     is_numpy_dev as _is_numpy_dev,
 )
 
 try:
-    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+    from ._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
 except ImportError as e:  # pragma: no cover
     # hack but overkill to use re
     module = str(e).replace("cannot import name ", "")
@@ -36,7 +36,7 @@ except ImportError as e:  # pragma: no cover
         "'python setup.py build_ext --force' to build the C extensions first."
     ) from e
 
-from pandas._config import (
+from ._config import (
     get_option,
     set_option,
     reset_option,
@@ -48,7 +48,7 @@ from pandas._config import (
 # let init-time option registration happen
 import pandas.core.config_init
 
-from pandas.core.api import (
+from .core.api import (
     # dtype
     Int8Dtype,
     Int16Dtype,
@@ -115,14 +115,14 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
+from .core.arrays.sparse import SparseDtype
 
-from pandas.tseries.api import infer_freq
-from pandas.tseries import offsets
+from .tseries.api import infer_freq
+from .tseries import offsets
 
-from pandas.core.computation.api import eval
+from .core.computation.api import eval
 
-from pandas.core.reshape.api import (
+from .core.reshape.api import (
     concat,
     lreshape,
     melt,
@@ -139,9 +139,9 @@ from pandas.core.reshape.api import (
 )
 
 import pandas.api
-from pandas.util._print_versions import show_versions
+from .util._print_versions import show_versions
 
-from pandas.io.api import (
+from .io.api import (
     # excel
     ExcelFile,
     ExcelWriter,
@@ -173,14 +173,14 @@ from pandas.io.api import (
     read_spss,
 )
 
-from pandas.io.json import _json_normalize as json_normalize
+from .io.json import _json_normalize as json_normalize
 
-from pandas.util._tester import test
+from .util._tester import test
 import pandas.testing
 import pandas.arrays
 
 # use the closest tagged version if possible
-from pandas._version import get_versions
+from ._version import get_versions
 
 v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
@@ -237,7 +237,7 @@ def __getattr__(name):
             FutureWarning,
             stacklevel=2,
         )
-        from pandas.core.arrays.sparse import SparseArray as _SparseArray
+        from .core.arrays.sparse import SparseArray as _SparseArray
 
         return _SparseArray
 

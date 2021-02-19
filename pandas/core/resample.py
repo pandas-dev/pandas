@@ -36,44 +36,7 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
-
 import pandas.core.algorithms as algos
-from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import DataError
-from pandas.core.generic import (
-    NDFrame,
-    _shared_docs,
-)
-from pandas.core.groupby.base import (
-    GotItemMixin,
-    ShallowMixin,
-)
-from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import (
-    BaseGroupBy,
-    GroupBy,
-    _pipe_template,
-    get_groupby,
-)
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.groupby.ops import BinGrouper
-from pandas.core.indexes.api import Index
-from pandas.core.indexes.datetimes import (
-    DatetimeIndex,
-    date_range,
-)
-from pandas.core.indexes.period import (
-    PeriodIndex,
-    period_range,
-)
-from pandas.core.indexes.timedeltas import (
-    TimedeltaIndex,
-    timedelta_range,
-)
 
 from pandas.tseries.frequencies import (
     is_subperiod,
@@ -84,6 +47,43 @@ from pandas.tseries.offsets import (
     Day,
     Nano,
     Tick,
+)
+
+from .apply import ResamplerWindowApply
+from .base import DataError
+from .dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from .generic import (
+    NDFrame,
+    _shared_docs,
+)
+from .groupby.base import (
+    GotItemMixin,
+    ShallowMixin,
+)
+from .groupby.generic import SeriesGroupBy
+from .groupby.groupby import (
+    BaseGroupBy,
+    GroupBy,
+    _pipe_template,
+    get_groupby,
+)
+from .groupby.grouper import Grouper
+from .groupby.ops import BinGrouper
+from .indexes.api import Index
+from .indexes.datetimes import (
+    DatetimeIndex,
+    date_range,
+)
+from .indexes.period import (
+    PeriodIndex,
+    period_range,
+)
+from .indexes.timedeltas import (
+    TimedeltaIndex,
+    timedelta_range,
 )
 
 _shared_docs_kwargs: Dict[str, str] = {}

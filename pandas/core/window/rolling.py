@@ -77,11 +77,12 @@ from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     maybe_use_numba,
 )
-from pandas.core.window.common import (
+
+from .common import (
     flex_binary_moment,
     zsqrt,
 )
-from pandas.core.window.doc import (
+from .doc import (
     _shared_docs,
     args_compat,
     create_section_header,
@@ -94,13 +95,13 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
     window_apply_parameters,
 )
-from pandas.core.window.indexers import (
+from .indexers import (
     BaseIndexer,
     FixedWindowIndexer,
     GroupbyIndexer,
     VariableWindowIndexer,
 )
-from pandas.core.window.numba_ import (
+from .numba_ import (
     generate_manual_numpy_nan_agg_with_axis,
     generate_numba_apply_func,
     generate_numba_table_func,

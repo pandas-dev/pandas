@@ -26,8 +26,8 @@ from pandas._typing import (
 
 from pandas.core.indexes.api import Index
 
-from pandas.io.formats import format as fmt
-from pandas.io.formats.printing import pprint_thing
+from . import format as fmt
+from .printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas.core.frame import DataFrame

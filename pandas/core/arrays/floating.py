@@ -37,12 +37,13 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.numeric import (
+from pandas.core.ops import invalid_comparison
+from pandas.core.tools.numeric import to_numeric
+
+from .numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas.core.ops import invalid_comparison
-from pandas.core.tools.numeric import to_numeric
 
 
 class FloatingDtype(NumericDtype):

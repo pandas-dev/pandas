@@ -5,7 +5,8 @@ from pandas import (
     HDFStore,
     _testing as tm,
 )
-from pandas.tests.io.pytables.common import (
+
+from .common import (
     ensure_clean_path,
     ensure_clean_store,
     tables,

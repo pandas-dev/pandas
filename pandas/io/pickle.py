@@ -13,7 +13,7 @@ from pandas.util._decorators import doc
 
 from pandas.core import generic
 
-from pandas.io.common import get_handle
+from .common import get_handle
 
 
 @doc(storage_options=generic._shared_docs["storage_options"])

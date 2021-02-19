@@ -26,8 +26,9 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
-from pandas.core.window.common import zsqrt
-from pandas.core.window.doc import (
+
+from .common import zsqrt
+from .doc import (
     _shared_docs,
     args_compat,
     create_section_header,
@@ -36,13 +37,13 @@ from pandas.core.window.doc import (
     template_returns,
     template_see_also,
 )
-from pandas.core.window.indexers import (
+from .indexers import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
     GroupbyIndexer,
 )
-from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import (
+from .numba_ import generate_numba_groupby_ewma_func
+from .rolling import (
     BaseWindow,
     BaseWindowGroupby,
 )

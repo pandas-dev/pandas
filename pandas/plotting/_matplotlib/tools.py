@@ -25,7 +25,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.plotting._matplotlib import compat
+from . import compat
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes

@@ -8,7 +8,7 @@ import locale
 import re
 import subprocess
 
-from pandas._config.config import options
+from .config import options
 
 
 @contextmanager

@@ -33,7 +33,8 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.tests.indexing.common import Base
+
+from .common import Base
 
 
 class TestLoc(Base):

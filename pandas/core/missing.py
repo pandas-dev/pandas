@@ -26,14 +26,14 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.cast import infer_dtype_from
-from pandas.core.dtypes.common import (
+from .dtypes.cast import infer_dtype_from
+from .dtypes.common import (
     ensure_float64,
     is_integer_dtype,
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isna
+from .dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas import Index

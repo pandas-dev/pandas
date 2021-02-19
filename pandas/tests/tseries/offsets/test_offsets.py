@@ -31,11 +31,6 @@ from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import (
-    Base,
-    WeekDay,
-    assert_offset_equal,
-)
 
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -58,6 +53,12 @@ from pandas.tseries.offsets import (
     Tick,
     Week,
     WeekOfMonth,
+)
+
+from .common import (
+    Base,
+    WeekDay,
+    assert_offset_equal,
 )
 
 _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]

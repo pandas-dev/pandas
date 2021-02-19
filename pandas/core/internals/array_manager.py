@@ -56,11 +56,12 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
-from pandas.core.internals.base import DataManager
-from pandas.core.internals.blocks import make_block
+
+from .base import DataManager
+from .blocks import make_block
 
 if TYPE_CHECKING:
-    from pandas.core.internals.managers import SingleBlockManager
+    from .managers import SingleBlockManager
 
 
 T = TypeVar("T", bound="ArrayManager")
@@ -643,7 +644,7 @@ class ArrayManager(DataManager):
         """
         Return the data as a SingleBlockManager.
         """
-        from pandas.core.internals.managers import SingleBlockManager
+        from .managers import SingleBlockManager
 
         values = self.arrays[i]
         block = make_block(values, placement=slice(0, len(values)), ndim=1)

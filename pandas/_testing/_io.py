@@ -19,10 +19,11 @@ from pandas.compat import (
 )
 
 import pandas as pd
-from pandas._testing._random import rands
-from pandas._testing.contexts import ensure_clean
 
 from pandas.io.common import urlopen
+
+from ._random import rands
+from .contexts import ensure_clean
 
 _RAISE_NETWORK_ERROR_DEFAULT = False
 

@@ -141,7 +141,6 @@ from pandas.core.base import (
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import deprecate_ndim_indexing
-from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
@@ -158,6 +157,8 @@ from pandas.io.formats.printing import (
     pprint_thing,
 )
 
+from .frozen import FrozenList
+
 if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
@@ -166,7 +167,8 @@ if TYPE_CHECKING:
         RangeIndex,
         Series,
     )
-    from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+
+    from .datetimelike import DatetimeIndexOpsMixin
 
 
 __all__ = ["Index"]
@@ -204,7 +206,7 @@ def _new_Index(cls, d):
     # required for backward compat, because PI can't be instantiated with
     # ordinals through __new__ GH #13277
     if issubclass(cls, ABCPeriodIndex):
-        from pandas.core.indexes.period import _new_PeriodIndex
+        from .period import _new_PeriodIndex
 
         return _new_PeriodIndex(cls, **d)
 
@@ -333,7 +335,8 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         from pandas.core.arrays import PandasArray
-        from pandas.core.indexes.range import RangeIndex
+
+        from .range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
 
@@ -432,7 +435,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if data and all(isinstance(e, tuple) for e in data):
                     # we must be all tuples, otherwise don't construct
                     # 10697
-                    from pandas.core.indexes.multi import MultiIndex
+                    from .multi import MultiIndex
 
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get("names")
@@ -831,7 +834,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            from pandas.core.indexes.category import CategoricalIndex
+            from .category import CategoricalIndex
 
             return CategoricalIndex(
                 self._values, name=self.name, dtype=dtype, copy=copy
@@ -1821,7 +1824,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._name = new_names[0]
             return result
         else:
-            from pandas.core.indexes.multi import MultiIndex
+            from .multi import MultiIndex
 
             return MultiIndex(
                 levels=new_levels,
@@ -3940,8 +3943,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_multi(self, other, how, return_indexers=True):
-        from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
+
+        from .multi import MultiIndex
 
         # figure out join names
         self_names_list = list(com.not_none(*self.names))
@@ -4058,7 +4062,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex will not be changed; otherwise, it will tie out
         with `other`.
         """
-        from pandas.core.indexes.multi import MultiIndex
+        from .multi import MultiIndex
 
         def _get_leaf_sorter(labels):
             """
@@ -5329,7 +5333,7 @@ class Index(IndexOpsMixin, PandasObject):
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        from pandas.core.indexes.multi import MultiIndex
+        from .multi import MultiIndex
 
         new_values = super()._map_values(mapper, na_action=na_action)
 
@@ -6067,7 +6071,7 @@ def ensure_index_from_sequences(sequences, names=None):
     --------
     ensure_index
     """
-    from pandas.core.indexes.multi import MultiIndex
+    from .multi import MultiIndex
 
     if len(sequences) == 1:
         if names is not None:
@@ -6140,7 +6144,7 @@ def ensure_index(
         converted, all_arrays = lib.clean_index_list(index_like)
 
         if len(converted) > 0 and all_arrays:
-            from pandas.core.indexes.multi import MultiIndex
+            from .multi import MultiIndex
 
             return MultiIndex.from_arrays(converted)
         else:
@@ -6198,7 +6202,7 @@ def _validate_join_method(method: str):
 
 
 def default_index(n: int) -> RangeIndex:
-    from pandas.core.indexes.range import RangeIndex
+    from .range import RangeIndex
 
     return RangeIndex(0, n, name=None)
 

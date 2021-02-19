@@ -9,7 +9,8 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-from pandas.tests.arrays.categorical.common import TestCategorical
+
+from .common import TestCategorical
 
 
 class TestCategoricalReprWithFactor(TestCategorical):

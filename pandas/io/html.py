@@ -31,14 +31,14 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import (
+from .common import (
     is_url,
     stringify_path,
     urlopen,
     validate_header_arg,
 )
-from pandas.io.formats.printing import pprint_thing
-from pandas.io.parsers import TextParser
+from .formats.printing import pprint_thing
+from .parsers import TextParser
 
 _IMPORTS = False
 _HAS_BS4 = False

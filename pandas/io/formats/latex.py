@@ -19,7 +19,7 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import DataFrameFormatter
+from .format import DataFrameFormatter
 
 
 def _split_into_full_short_caption(

@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pyarrow
 
-from pandas.core.arrays.interval import VALID_CLOSED
+from .interval import VALID_CLOSED
 
 _pyarrow_version_ge_015 = LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")
 

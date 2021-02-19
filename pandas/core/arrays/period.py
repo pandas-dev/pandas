@@ -73,8 +73,9 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+
+from . import datetimelike as dtl
 
 _shared_doc_kwargs = {
     "klass": "PeriodArray",
@@ -343,7 +344,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import ArrowPeriodType
+        from ._arrow_utils import ArrowPeriodType
 
         if type is not None:
             if pyarrow.types.is_integer(type):
@@ -462,7 +463,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         -------
         DatetimeArray/Index
         """
-        from pandas.core.arrays import DatetimeArray
+        from . import DatetimeArray
 
         how = libperiod.validate_end_alias(how)
 

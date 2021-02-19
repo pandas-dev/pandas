@@ -33,9 +33,10 @@ from pandas.core.algorithms import (
     value_counts,
 )
 from pandas.core.array_algos.transforms import shift
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
+
+from .base import ExtensionArray
 
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"

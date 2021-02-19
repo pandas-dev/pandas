@@ -69,11 +69,6 @@ from pandas.core.algorithms import (
     take,
     value_counts,
 )
-from pandas.core.arrays.base import (
-    ExtensionArray,
-    _extension_array_shared_docs,
-)
-from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
     array,
@@ -86,6 +81,12 @@ from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
 )
+
+from .base import (
+    ExtensionArray,
+    _extension_array_shared_docs,
+)
+from .categorical import Categorical
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
@@ -808,7 +809,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas import Index
-        from pandas.core.arrays.string_ import StringDtype
+
+        from .string_ import StringDtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -1370,7 +1372,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import ArrowIntervalType
+        from ._arrow_utils import ArrowIntervalType
 
         try:
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)

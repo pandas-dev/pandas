@@ -23,7 +23,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
@@ -34,6 +33,8 @@ from pandas.tseries.offsets import (
     Nano,
     Second,
 )
+
+from .common import assert_offset_equal
 
 # ---------------------------------------------------------------------
 # Test Helpers

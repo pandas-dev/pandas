@@ -29,7 +29,7 @@ from pandas import (
 )
 from pandas.core import generic
 
-from pandas.io.common import (
+from .common import (
     IOHandles,
     get_handle,
     is_fsspec_url,

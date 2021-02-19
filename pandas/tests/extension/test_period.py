@@ -22,7 +22,8 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 from pandas.core.arrays import PeriodArray
-from pandas.tests.extension import base
+
+from . import base
 
 
 @pytest.fixture

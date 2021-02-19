@@ -1,23 +1,23 @@
 # flake8: noqa
 
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.melt import (
+from .concat import concat
+from .melt import (
     lreshape,
     melt,
     wide_to_long,
 )
-from pandas.core.reshape.merge import (
+from .merge import (
     merge,
     merge_asof,
     merge_ordered,
 )
-from pandas.core.reshape.pivot import (
+from .pivot import (
     crosstab,
     pivot,
     pivot_table,
 )
-from pandas.core.reshape.reshape import get_dummies
-from pandas.core.reshape.tile import (
+from .reshape import get_dummies
+from .tile import (
     cut,
     qcut,
 )

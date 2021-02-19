@@ -31,11 +31,13 @@ from pandas._typing import (
     DtypeObj,
 )
 
-from pandas.core.dtypes.base import (
+import pandas.core.common as com
+
+from .dtypes.base import (
     ExtensionDtype,
     registry,
 )
-from pandas.core.dtypes.cast import (
+from .dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike,
@@ -45,7 +47,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_upcast,
 )
-from pandas.core.dtypes.common import (
+from .dtypes.common import (
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
     is_float_dtype,
@@ -56,15 +58,13 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.generic import (
+from .dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
-
-import pandas.core.common as com
+from .dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas import (
@@ -286,7 +286,7 @@ def array(
       ...
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
-    from pandas.core.arrays import (
+    from .arrays import (
         BooleanArray,
         DatetimeArray,
         FloatingArray,
@@ -425,12 +425,12 @@ def ensure_wrapped_if_datetimelike(arr):
     """
     if isinstance(arr, np.ndarray):
         if arr.dtype.kind == "M":
-            from pandas.core.arrays import DatetimeArray
+            from .arrays import DatetimeArray
 
             return DatetimeArray._from_sequence(arr)
 
         elif arr.dtype.kind == "m":
-            from pandas.core.arrays import TimedeltaArray
+            from .arrays import TimedeltaArray
 
             return TimedeltaArray._from_sequence(arr)
 
@@ -706,7 +706,7 @@ def create_series_with_explicit_dtype(
     -------
     Series
     """
-    from pandas.core.series import Series
+    from .series import Series
 
     if is_empty_data(data) and dtype is None:
         dtype = dtype_if_empty

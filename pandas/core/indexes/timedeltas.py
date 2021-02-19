@@ -23,12 +23,13 @@ from pandas.core.dtypes.common import (
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import (
+
+from .base import (
     Index,
     maybe_extract_name,
 )
-from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
-from pandas.core.indexes.extension import inherit_names
+from .datetimelike import DatetimeTimedeltaMixin
+from .extension import inherit_names
 
 
 @inherit_names(

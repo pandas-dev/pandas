@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-from pandas.core.ops.roperator import (
+from .roperator import (
     rdivmod,
     rfloordiv,
     rmod,

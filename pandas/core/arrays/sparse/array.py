@@ -66,7 +66,6 @@ from pandas.core.dtypes.missing import (
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -79,6 +78,8 @@ from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 
 import pandas.io.formats.printing as printing
+
+from .dtype import SparseDtype
 
 # ----------------------------------------------------------------------------
 # Array

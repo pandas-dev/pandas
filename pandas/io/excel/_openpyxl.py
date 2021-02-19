@@ -17,11 +17,11 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.excel._base import (
+from ._base import (
     BaseExcelReader,
     ExcelWriter,
 )
-from pandas.io.excel._util import validate_freeze_panes
+from ._util import validate_freeze_panes
 
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable

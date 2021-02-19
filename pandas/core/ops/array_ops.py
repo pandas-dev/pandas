@@ -46,10 +46,11 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.ops import missing
-from pandas.core.ops.dispatch import should_extension_dispatch
-from pandas.core.ops.invalid import invalid_comparison
-from pandas.core.ops.roperator import rpow
+
+from . import missing
+from .dispatch import should_extension_dispatch
+from .invalid import invalid_comparison
+from .roperator import rpow
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):

@@ -29,7 +29,8 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
+from .construction import extract_array
+from .dtypes.common import (
     get_dtype,
     is_any_int_dtype,
     is_bool_dtype,
@@ -46,14 +47,12 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.missing import (
+from .dtypes.dtypes import PeriodDtype
+from .dtypes.missing import (
     isna,
     na_value_for_dtype,
     notna,
 )
-
-from pandas.core.construction import extract_array
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None

@@ -94,10 +94,6 @@ from pandas.core.algorithms import (
     unique1d,
 )
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import (
-    NDArrayBackedExtensionArray,
-    ravel_compat,
-)
 import pandas.core.common as com
 from pandas.core.construction import (
     array,
@@ -115,8 +111,13 @@ from pandas.core.ops.invalid import (
 
 from pandas.tseries import frequencies
 
+from ._mixins import (
+    NDArrayBackedExtensionArray,
+    ravel_compat,
+)
+
 if TYPE_CHECKING:
-    from pandas.core.arrays import (
+    from . import (
         DatetimeArray,
         TimedeltaArray,
     )
@@ -1086,7 +1087,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if isinstance(other, np.ndarray):
             # ndarray[timedelta64]; wrap in TimedeltaIndex for op
-            from pandas.core.arrays import TimedeltaArray
+            from . import TimedeltaArray
 
             other = TimedeltaArray._from_sequence(other)
 
@@ -1250,7 +1251,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return NotImplemented
 
         if isinstance(result, np.ndarray) and is_timedelta64_dtype(result.dtype):
-            from pandas.core.arrays import TimedeltaArray
+            from . import TimedeltaArray
 
             return TimedeltaArray(result)
         return result
@@ -1306,7 +1307,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return NotImplemented
 
         if isinstance(result, np.ndarray) and is_timedelta64_dtype(result.dtype):
-            from pandas.core.arrays import TimedeltaArray
+            from . import TimedeltaArray
 
             return TimedeltaArray(result)
         return result
@@ -1322,7 +1323,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 return Timestamp(other) - self
             if not isinstance(other, DatetimeLikeArrayMixin):
                 # Avoid down-casting DatetimeIndex
-                from pandas.core.arrays import DatetimeArray
+                from . import DatetimeArray
 
                 other = DatetimeArray(other)
             return other - self

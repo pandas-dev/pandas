@@ -68,7 +68,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
-from pandas.io.common import get_handle
+from .common import get_handle
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "

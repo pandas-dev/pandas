@@ -42,7 +42,7 @@ from pandas.core.indexes.api import Index
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
-    from pandas.io.formats.format import DataFrameFormatter
+    from .format import DataFrameFormatter
 
 
 class CSVFormatter:

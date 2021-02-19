@@ -1,10 +1,10 @@
-from pandas.core.groupby.generic import (
+from .generic import (
     DataFrameGroupBy,
     NamedAgg,
     SeriesGroupBy,
 )
-from pandas.core.groupby.groupby import GroupBy
-from pandas.core.groupby.grouper import Grouper
+from .groupby import GroupBy
+from .grouper import Grouper
 
 __all__ = [
     "DataFrameGroupBy",

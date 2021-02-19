@@ -56,13 +56,39 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
-from pandas.core.dtypes.cast import (
+import pandas.core.common as com
+import pandas.core.indexes.base as ibase
+
+import pandas.io.formats.format as fmt
+import pandas.plotting
+
+from . import (
+    algorithms,
+    base,
+    generic,
+    missing,
+    nanops,
+    ops,
+)
+from .accessor import CachedAccessor
+from .aggregation import transform
+from .apply import series_apply
+from .arrays import ExtensionArray
+from .arrays.categorical import CategoricalAccessor
+from .arrays.sparse import SparseAccessor
+from .construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+    is_empty_data,
+    sanitize_array,
+)
+from .dtypes.cast import (
     convert_dtypes,
     maybe_box_native,
     maybe_cast_to_extension_array,
     validate_numeric_casting,
 )
-from pandas.core.dtypes.common import (
+from .dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
@@ -76,66 +102,40 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.generic import ABCDataFrame
-from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import (
+from .dtypes.generic import ABCDataFrame
+from .dtypes.inference import is_hashable
+from .dtypes.missing import (
     isna,
     na_value_for_dtype,
     notna,
     remove_na_arraylike,
 )
-
-from pandas.core import (
-    algorithms,
-    base,
-    generic,
-    missing,
-    nanops,
-    ops,
-)
-from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import transform
-from pandas.core.apply import series_apply
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.categorical import CategoricalAccessor
-from pandas.core.arrays.sparse import SparseAccessor
-import pandas.core.common as com
-from pandas.core.construction import (
-    create_series_with_explicit_dtype,
-    extract_array,
-    is_empty_data,
-    sanitize_array,
-)
-from pandas.core.generic import NDFrame
-from pandas.core.indexers import (
+from .generic import NDFrame
+from .indexers import (
     deprecate_ndim_indexing,
     unpack_1tuple,
 )
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import (
+from .indexes.accessors import CombinedDatetimelikeProperties
+from .indexes.api import (
     CategoricalIndex,
     Float64Index,
     Index,
     MultiIndex,
     ensure_index,
 )
-import pandas.core.indexes.base as ibase
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.indexing import check_bool_indexer
-from pandas.core.internals import SingleBlockManager
-from pandas.core.internals.construction import sanitize_index
-from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import (
+from .indexes.datetimes import DatetimeIndex
+from .indexes.period import PeriodIndex
+from .indexes.timedeltas import TimedeltaIndex
+from .indexing import check_bool_indexer
+from .internals import SingleBlockManager
+from .internals.construction import sanitize_index
+from .shared_docs import _shared_docs
+from .sorting import (
     ensure_key_mapped,
     nargsort,
 )
-from pandas.core.strings import StringMethods
-from pandas.core.tools.datetimes import to_datetime
-
-import pandas.io.formats.format as fmt
-import pandas.plotting
+from .strings import StringMethods
+from .tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -143,9 +143,9 @@ if TYPE_CHECKING:
         TimestampConvertibleTypes,
     )
 
-    from pandas.core.frame import DataFrame
-    from pandas.core.groupby.generic import SeriesGroupBy
-    from pandas.core.resample import Resampler
+    from .frame import DataFrame
+    from .groupby.generic import SeriesGroupBy
+    from .resample import Resampler
 
 __all__ = ["Series"]
 
@@ -464,7 +464,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Used when a manipulation result has one higher dimension as the
         original, such as Series.to_frame()
         """
-        from pandas.core.frame import DataFrame
+        from .frame import DataFrame
 
         return DataFrame
 
@@ -1736,7 +1736,7 @@ Name: Max Speed, dtype: float64
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
-        from pandas.core.groupby.generic import SeriesGroupBy
+        from .groupby.generic import SeriesGroupBy
 
         if squeeze is not no_default:
             warnings.warn(
@@ -2715,7 +2715,7 @@ Name: Max Speed, dtype: float64
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
-        from pandas.core.reshape.concat import concat
+        from .reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
             to_concat = [self]
@@ -3854,7 +3854,7 @@ Keep all original rows and also all original values
         a    1    3
         b    2    4
         """
-        from pandas.core.reshape.reshape import unstack
+        from .reshape.reshape import unstack
 
         return unstack(self, level, fill_value)
 

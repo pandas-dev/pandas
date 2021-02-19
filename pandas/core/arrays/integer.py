@@ -40,16 +40,17 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.masked import (
+from pandas.core.ops import invalid_comparison
+from pandas.core.tools.numeric import to_numeric
+
+from .masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
-from pandas.core.arrays.numeric import (
+from .numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas.core.ops import invalid_comparison
-from pandas.core.tools.numeric import to_numeric
 
 
 class _IntegerDtype(NumericDtype):
@@ -106,7 +107,7 @@ class _IntegerDtype(NumericDtype):
         if np.issubdtype(np_dtype, np.integer):
             return INT_STR_TO_DTYPE[str(np_dtype)]
         elif np.issubdtype(np_dtype, np.floating):
-            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+            from .floating import FLOAT_STR_TO_DTYPE
 
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
@@ -401,7 +402,7 @@ class IntegerArray(NumericArray):
         return data
 
     def _cmp_method(self, other, op):
-        from pandas.core.arrays import BooleanArray
+        from . import BooleanArray
 
         mask = None
 
@@ -476,12 +477,12 @@ class IntegerArray(NumericArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            from pandas.core.arrays import FloatingArray
+            from . import FloatingArray
 
             return FloatingArray(result, mask, copy=False)
 
         if result.dtype == "timedelta64[ns]":
-            from pandas.core.arrays import TimedeltaArray
+            from . import TimedeltaArray
 
             result[mask] = iNaT
             return TimedeltaArray._simple_new(result)

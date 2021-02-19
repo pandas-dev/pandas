@@ -57,7 +57,7 @@ lzma = import_lzma()
 @pytest.fixture(scope="module")
 def current_pickle_data():
     # our current version pickle data
-    from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
+    from .generate_legacy_storage_files import create_pickle_data
 
     return create_pickle_data()
 

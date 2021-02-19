@@ -10,7 +10,8 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.base.common import allow_na_ops
+
+from .common import allow_na_ops
 
 
 def test_unique(index_or_series_obj):

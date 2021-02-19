@@ -98,7 +98,8 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import stringify_path
-from pandas.io.formats.printing import (
+
+from .printing import (
     adjoin,
     justify,
     pprint_thing,
@@ -968,7 +969,7 @@ class DataFrameRenderer:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
-        from pandas.io.formats.latex import LatexFormatter
+        from .latex import LatexFormatter
 
         latex_formatter = LatexFormatter(
             self.fmt,
@@ -1016,7 +1017,7 @@ class DataFrameRenderer:
         render_links : bool, default False
             Convert URLs to HTML links.
         """
-        from pandas.io.formats.html import (
+        from .html import (
             HTMLFormatter,
             NotebookFormatter,
         )
@@ -1051,7 +1052,7 @@ class DataFrameRenderer:
         line_width : int, optional
             Width to wrap a line in characters.
         """
-        from pandas.io.formats.string import StringFormatter
+        from .string import StringFormatter
 
         string_formatter = StringFormatter(self.fmt, line_width=line_width)
         string = string_formatter.to_string()
@@ -1079,7 +1080,7 @@ class DataFrameRenderer:
         """
         Render dataframe as comma-separated file.
         """
-        from pandas.io.formats.csvs import CSVFormatter
+        from .csvs import CSVFormatter
 
         if path_or_buf is None:
             created_buffer = True

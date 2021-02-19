@@ -81,27 +81,28 @@ from pandas.core.arrays.interval import (
 import pandas.core.common as com
 from pandas.core.indexers import is_valid_positional_slice
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
+from pandas.core.ops import get_op_result_name
+
+from .base import (
     Index,
     _index_shared_docs,
     default_pprint,
     ensure_index,
     maybe_extract_name,
 )
-from pandas.core.indexes.datetimes import (
+from .datetimes import (
     DatetimeIndex,
     date_range,
 )
-from pandas.core.indexes.extension import (
+from .extension import (
     ExtensionIndex,
     inherit_names,
 )
-from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.timedeltas import (
+from .multi import MultiIndex
+from .timedeltas import (
     TimedeltaIndex,
     timedelta_range,
 )
-from pandas.core.ops import get_op_result_name
 
 if TYPE_CHECKING:
     from pandas import CategoricalIndex

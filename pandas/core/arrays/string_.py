@@ -35,16 +35,17 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import (
+from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
+from pandas.core.missing import isna
+
+from . import (
     FloatingArray,
     IntegerArray,
     PandasArray,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import _IntegerDtype
-from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
-from pandas.core.missing import isna
+from .floating import FloatingDtype
+from .integer import _IntegerDtype
 
 if TYPE_CHECKING:
     import pyarrow
@@ -229,7 +230,7 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
 
-        from pandas.core.arrays.masked import BaseMaskedArray
+        from .masked import BaseMaskedArray
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype
@@ -408,7 +409,8 @@ class StringArray(PandasArray):
             IntegerArray,
             StringArray,
         )
-        from pandas.core.arrays.string_ import StringDtype
+
+        from .string_ import StringDtype
 
         if dtype is None:
             dtype = StringDtype()

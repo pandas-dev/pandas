@@ -16,14 +16,15 @@ from pandas import (
     _testing as tm,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
+from pandas.util import _test_decorators as td
+
+from pandas.io.pytables import TableIterator
+
+from .common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
-
-from pandas.io.pytables import TableIterator
 
 pytestmark = pytest.mark.single
 

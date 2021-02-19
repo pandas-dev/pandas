@@ -18,11 +18,12 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import (
+
+from .core import (
     LinePlot,
     MPLPlot,
 )
-from pandas.plotting._matplotlib.tools import (
+from .tools import (
     create_subplots,
     flatten_axes,
     maybe_adjust_figure,

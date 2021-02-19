@@ -43,13 +43,14 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 
 from pandas.io.common import validate_header_arg
-from pandas.io.parsers.base_parser import (
+
+from .base_parser import (
     ParserBase,
     is_index_col,
     parser_defaults,
 )
-from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-from pandas.io.parsers.python_parser import (
+from .c_parser_wrapper import CParserWrapper
+from .python_parser import (
     FixedWidthFieldParser,
     PythonParser,
 )

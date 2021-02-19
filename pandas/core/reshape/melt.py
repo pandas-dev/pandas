@@ -28,10 +28,11 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
+
+from .concat import concat
+from .util import tile_compat
 
 if TYPE_CHECKING:
     from pandas import (

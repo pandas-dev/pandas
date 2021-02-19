@@ -8,16 +8,16 @@ from typing import (
     Type,
 )
 
-from pandas.core.computation.align import (
+import pandas.io.formats.printing as printing
+
+from .align import (
     align_terms,
     reconstruct_object,
 )
-from pandas.core.computation.ops import (
+from .ops import (
     MATHOPS,
     REDUCTIONS,
 )
-
-import pandas.io.formats.printing as printing
 
 _ne_builtins = frozenset(MATHOPS + REDUCTIONS)
 
