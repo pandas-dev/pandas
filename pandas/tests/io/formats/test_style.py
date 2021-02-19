@@ -1948,22 +1948,22 @@ class TestStylerMatplotlibDep:
             (
                 "PuBu",
                 {
-                    (4, 5): ["background-color: #86b0d3", "color: #000000"],
-                    (4, 6): ["background-color: #83afd3", "color: #f1f1f1"],
+                    (4, 5): [("background-color", "#86b0d3"), ("color", "#000000")],
+                    (4, 6): [("background-color", "#83afd3"), ("color", "#f1f1f1")],
                 },
             ),
             (
                 "YlOrRd",
                 {
-                    (4, 8): ["background-color: #fd913e", "color: #000000"],
-                    (4, 9): ["background-color: #fd8f3d", "color: #f1f1f1"],
+                    (4, 8): [("background-color", "#fd913e"), ("color", "#000000")],
+                    (4, 9): [("background-color", "#fd8f3d"), ("color", "#f1f1f1")],
                 },
             ),
             (
                 None,
                 {
-                    (7, 0): ["background-color: #48c16e", "color: #f1f1f1"],
-                    (7, 1): ["background-color: #4cc26c", "color: #000000"],
+                    (7, 0): [("background-color", "#48c16e"), ("color", "#f1f1f1")],
+                    (7, 1): [("background-color", "#4cc26c"), ("color", "#000000")],
                 },
             ),
         ],
