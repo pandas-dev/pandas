@@ -374,7 +374,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
    df.iloc[0, 2] = np.nan
    df
    styled = (df.style
-             .applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black')
+             .applymap(lambda val: 'color:red;' if val < 0 else 'color:black;')
              .highlight_max())
    styled.to_excel('styled.xlsx', engine='openpyxl')
 
