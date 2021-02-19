@@ -292,6 +292,8 @@ class PythonParser(ParserBase):
         if self._col_indices is not None and len(names) != len(self._col_indices):
             names = [names[i] for i in sorted(self._col_indices)]
 
+        self._check_data_length(names, alldata)
+
         return {name: alldata[i + offset] for i, name in enumerate(names)}, names
 
     # legacy

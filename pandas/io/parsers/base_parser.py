@@ -767,6 +767,26 @@ class ParserBase:
 
         return names, data
 
+    def _check_data_length(self, columns: List[str], data: List[np.ndarray]):
+        """Checks if length of data is equal to length of column names. One set of
+        trailing commas is allowed.
+        Parameters
+        ----------
+        columns: list of column names
+        data: list of array-likes containing the data column-wise
+        """
+        if not self.index_col and len(columns) != len(data) and columns:
+            if len(columns) == len(data) - 1 and np.all(
+                (is_object_dtype(data[-1]) and data[-1] == "") | isna(data[-1])
+            ):
+                return
+            warnings.warn(
+                "Length of header or names does not match length of data. This leads "
+                "to a loss of data with index_col=False.",
+                ParserWarning,
+                stacklevel=6,
+            )
+
     def _evaluate_usecols(self, usecols, names):
         """
         Check whether or not the 'usecols' parameter
