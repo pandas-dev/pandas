@@ -25,22 +25,17 @@ class TestDatetimeIndex:
         df.iloc[1, 1] = pd.NaT
         df.iloc[1, 2] = pd.NaT
 
+        expected = Series(
+            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
+            index=list("ABC"),
+            dtype="object",
+            name=1,
+        )
+
         # indexing
         result = df.iloc[1]
-        expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
-            index=list("ABC"),
-            dtype="object",
-            name=1,
-        )
         tm.assert_series_equal(result, expected)
         result = df.loc[1]
-        expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
-            index=list("ABC"),
-            dtype="object",
-            name=1,
-        )
         tm.assert_series_equal(result, expected)
 
     def test_indexing_fast_xs(self):
@@ -224,12 +219,14 @@ class TestDatetimeIndex:
         expected = DataFrame(-1, index=index, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
-    def test_loc_setitem_with_existing_dst(self):
+    def test_loc_setitem_with_expansion_and_existing_dst(self):
         # GH 18308
         start = Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
         end = Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
         ts = Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
         idx = pd.date_range(start, end, closed="left", freq="H")
+        assert ts not in idx  # i.e. result.loc setitem is with-expansion
+
         result = DataFrame(index=idx, columns=["value"])
         result.loc[ts, "value"] = 12
         expected = DataFrame(

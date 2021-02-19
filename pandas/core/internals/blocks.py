@@ -207,10 +207,17 @@ class Block(PandasObject):
         if ndim is None:
             ndim = values.ndim
 
-        if self._validate_ndim and values.ndim != ndim:
+        if self._validate_ndim:
+            if values.ndim != ndim:
+                raise ValueError(
+                    "Wrong number of dimensions. "
+                    f"values.ndim != ndim [{values.ndim} != {ndim}]"
+                )
+        elif values.ndim > ndim:
+            # ExtensionBlock
             raise ValueError(
                 "Wrong number of dimensions. "
-                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+                f"values.ndim > ndim [{values.ndim} > {ndim}]"
             )
         return ndim
 
@@ -301,7 +308,7 @@ class Block(PandasObject):
         if placement is None:
             placement = self.mgr_locs
         if self.is_extension:
-            values = _block_shape(values, ndim=self.ndim)
+            values = ensure_block_shape(values, ndim=self.ndim)
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
@@ -526,7 +533,7 @@ class Block(PandasObject):
             else:
                 # Put back the dimension that was taken from it and make
                 # a block out of the result.
-                nv = _block_shape(nv, ndim=self.ndim)
+                nv = ensure_block_shape(nv, ndim=self.ndim)
                 block = self.make_block(values=nv, placement=ref_loc)
             return block
 
@@ -1562,7 +1569,9 @@ class ExtensionBlock(Block):
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
-        mask = safe_reshape(mask, new_values.shape)
+        if mask.ndim == new_values.ndim + 1:
+            # TODO(EA2D): unnecessary with 2D EAs
+            mask = mask.reshape(new_values.shape)
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
@@ -2041,6 +2050,21 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return [self.make_block_same_class(new_values)]
 
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List[Block]:
+
+        if not self._can_hold_element(value) and self.dtype.kind != "m":
+            # We support filling a DatetimeTZ with a `value` whose timezone
+            #  is different by coercing to object.
+            # TODO: don't special-case td64
+            return self.astype(object).fillna(value, limit, inplace, downcast)
+
+        values = self.array_values()
+        values = values if inplace else values.copy()
+        new_values = values.fillna(value=value, limit=limit)
+        return [self.make_block_same_class(values=new_values)]
+
 
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
@@ -2127,6 +2151,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     fill_value = NaT
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
+    fillna = DatetimeLikeBlockMixin.fillna
 
     array_values = ExtensionBlock.array_values
 
@@ -2165,41 +2190,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # Avoid FutureWarning in .astype in casting from dt64tz to dt64
         return self.values._data
 
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> List[Block]:
-        # We support filling a DatetimeTZ with a `value` whose timezone
-        # is different by coercing to object.
-        if self._can_hold_element(value):
-            return super().fillna(value, limit, inplace, downcast)
-
-        # different timezones, or a non-tz
-        return self.astype(object).fillna(
-            value, limit=limit, inplace=inplace, downcast=downcast
-        )
-
-    def _check_ndim(self, values, ndim):
-        """
-        ndim inference and validation.
-
-        This is overridden by the DatetimeTZBlock to check the case of 2D
-        data (values.ndim == 2), which should only be allowed if ndim is
-        also 2.
-        The case of 1D array is still allowed with both ndim of 1 or 2, as
-        if the case for other EAs. Therefore, we are only checking
-        `values.ndim > ndim` instead of `values.ndim != ndim` as for
-        consolidated blocks.
-        """
-        if ndim is None:
-            ndim = values.ndim
-
-        if values.ndim > ndim:
-            raise ValueError(
-                "Wrong number of dimensions. "
-                f"values.ndim != ndim [{values.ndim} != {ndim}]"
-            )
-        return ndim
-
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -2208,14 +2198,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
     _holder = TimedeltaArray
     fill_value = np.timedelta64("NaT", "ns")
     _dtype = fill_value.dtype
-
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> List[Block]:
-        values = self.array_values()
-        values = values if inplace else values.copy()
-        new_values = values.fillna(value=value, limit=limit)
-        return [self.make_block_same_class(values=new_values)]
 
 
 class ObjectBlock(Block):
@@ -2446,36 +2428,15 @@ def extend_blocks(result, blocks=None) -> List[Block]:
     return blocks
 
 
-def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
-    """ guarantee the shape of the values to be at least 1 d """
+def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
+    """
+    Reshape if possible to have values.ndim == ndim.
+    """
     if values.ndim < ndim:
-        shape = values.shape
         if not is_extension_array_dtype(values.dtype):
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
 
-            # error: "ExtensionArray" has no attribute "reshape"
-            values = values.reshape(tuple((1,) + shape))  # type: ignore[attr-defined]
+            values = np.asarray(values).reshape(1, -1)
     return values
-
-
-def safe_reshape(arr: ArrayLike, new_shape: Shape) -> ArrayLike:
-    """
-    Reshape `arr` to have shape `new_shape`, unless it is an ExtensionArray,
-    in which case it will be returned unchanged (see gh-13012).
-
-    Parameters
-    ----------
-    arr : np.ndarray or ExtensionArray
-    new_shape : Tuple[int]
-
-    Returns
-    -------
-    np.ndarray or ExtensionArray
-    """
-    if not is_extension_array_dtype(arr.dtype):
-        # Note: this will include TimedeltaArray and tz-naive DatetimeArray
-        # TODO(EA2D): special case will be unnecessary with 2D EAs
-        arr = np.asarray(arr).reshape(new_shape)
-    return arr

@@ -57,6 +57,21 @@ class DummyElement:
 class TestFrameComparisons:
     # Specifically _not_ flex-comparisons
 
+    def test_comparison_with_categorical_dtype(self):
+        # GH#12564
+
+        df = DataFrame({"A": ["foo", "bar", "baz"]})
+        exp = DataFrame({"A": [True, False, False]})
+
+        res = df == "foo"
+        tm.assert_frame_equal(res, exp)
+
+        # casting to categorical shouldn't affect the result
+        df["A"] = df["A"].astype("category")
+
+        res = df == "foo"
+        tm.assert_frame_equal(res, exp)
+
     def test_frame_in_list(self):
         # GH#12689 this should raise at the DataFrame level, not blocks
         df = DataFrame(np.random.randn(6, 4), columns=list("ABCD"))
@@ -596,6 +611,26 @@ class TestFrameFlexArithmetic:
         exp = df.fillna(0).add(2)
         res = df.add(2, fill_value=0)
         tm.assert_frame_equal(res, exp)
+
+    def test_sub_alignment_with_duplicate_index(self):
+        # GH#5185 dup aligning operations should work
+        df1 = DataFrame([1, 2, 3, 4, 5], index=[1, 2, 1, 2, 3])
+        df2 = DataFrame([1, 2, 3], index=[1, 2, 3])
+        expected = DataFrame([0, 2, 0, 2, 2], index=[1, 1, 2, 2, 3])
+        result = df1.sub(df2)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("op", ["__add__", "__mul__", "__sub__", "__truediv__"])
+    def test_arithmetic_with_duplicate_columns(self, op):
+        # operations
+        df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
+        expected = getattr(df, op)(df)
+        expected.columns = ["A", "A"]
+        df.columns = ["A", "A"]
+        result = getattr(df, op)(df)
+        tm.assert_frame_equal(result, expected)
+        str(result)
+        result.dtypes
 
 
 class TestFrameArithmetic:
