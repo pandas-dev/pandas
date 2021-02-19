@@ -432,19 +432,11 @@ class TestAstype:
         other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        msg = (
-            fr"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
-            fr"\[timedelta64\[{unit}\]\]"
-            fr"|(Cannot cast DatetimeArray to dtype timedelta64\[{unit}\])"
-        )
+        msg = fr"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]"
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = (
-            fr"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
-            fr"\[datetime64\[{unit}\]\]"
-            fr"|(Cannot cast TimedeltaArray to dtype datetime64\[{unit}\])"
-        )
+        msg = fr"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]"
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)

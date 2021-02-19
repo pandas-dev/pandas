@@ -60,6 +60,7 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -397,12 +398,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
+            level = find_stack_level()
             warnings.warn(
                 f"casting {self.dtype} values to int64 with .astype(...) is "
                 "deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=level,
             )
 
             values = self.asi8
