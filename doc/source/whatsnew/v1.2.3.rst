@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
--
+- Fixed regression in :func:`pandas.to_excel` raising ``KeyError`` when giving duplicate columns with ``columns`` attribute (:issue:`39695`)
 -
 
 .. ---------------------------------------------------------------------------

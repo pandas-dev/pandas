@@ -23,7 +23,10 @@ from pandas._typing import FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
@@ -43,7 +46,10 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------

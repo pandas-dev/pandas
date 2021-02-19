@@ -91,8 +91,8 @@ else:
 # (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
-single_doc = pattern is not None and pattern != "-api"
-include_api = pattern != "-api"
+single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
+include_api = pattern is None or pattern == "whatsnew"
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
         reldir = os.path.relpath(dirname, source_path)
@@ -104,7 +104,13 @@ if pattern:
                     continue
                 elif pattern == "-api" and reldir.startswith("reference"):
                     exclude_patterns.append(fname)
-                elif pattern != "-api" and fname != pattern:
+                elif (
+                    pattern == "whatsnew"
+                    and not reldir.startswith("reference")
+                    and reldir != "whatsnew"
+                ):
+                    exclude_patterns.append(fname)
+                elif single_doc and fname != pattern:
                     exclude_patterns.append(fname)
 
 with open(os.path.join(source_path, "index.rst.template")) as f:
@@ -417,7 +423,7 @@ latex_documents = [
 if include_api:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
-        "matplotlib": ("https://matplotlib.org/", None),
+        "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
         "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),

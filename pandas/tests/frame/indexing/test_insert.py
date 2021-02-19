@@ -8,7 +8,10 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 

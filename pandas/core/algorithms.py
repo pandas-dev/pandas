@@ -6,13 +6,34 @@ from __future__ import annotations
 
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
-from warnings import catch_warnings, simplefilter, warn
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
+from warnings import (
+    catch_warnings,
+    simplefilter,
+    warn,
+)
 
 import numpy as np
 
-from pandas._libs import algos, hashtable as htable, iNaT, lib
-from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
+from pandas._libs import (
+    algos,
+    hashtable as htable,
+    iNaT,
+    lib,
+)
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    DtypeObj,
+    FrameOrSeriesUnion,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -57,7 +78,10 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
 from pandas.core.construction import (
     array,
@@ -67,8 +91,16 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Index, Series
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
+    from pandas import (
+        Categorical,
+        DataFrame,
+        Index,
+        Series,
+    )
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
 
 _shared_docs: Dict[str, str] = {}
 
@@ -1388,6 +1420,9 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
 
 def _convert_wrapper(f, conv_dtype):
     def wrapper(arr, indexer, out, fill_value=np.nan):
+        if conv_dtype == object:
+            # GH#39755 avoid casting dt64/td64 to integers
+            arr = ensure_wrapped_if_datetimelike(arr)
         arr = arr.astype(conv_dtype)
         f(arr, indexer, out, fill_value=fill_value)
 
@@ -1662,7 +1697,12 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
 
 def _take_preprocess_indexer_and_fill_value(
-    arr, indexer, axis, out, fill_value, allow_fill
+    arr: np.ndarray,
+    indexer: Optional[np.ndarray],
+    axis: int,
+    out: Optional[np.ndarray],
+    fill_value,
+    allow_fill: bool,
 ):
     mask_info = None
 
@@ -1783,7 +1823,9 @@ def take_nd(
     return out
 
 
-def take_2d_multi(arr, indexer, fill_value=np.nan):
+def take_2d_multi(
+    arr: np.ndarray, indexer: np.ndarray, fill_value=np.nan
+) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
     """
@@ -2198,7 +2240,7 @@ def _sort_mixed(values):
     return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
 
-def _sort_tuples(values: np.ndarray[tuple]):
+def _sort_tuples(values: np.ndarray):
     """
     Convert array of tuples (1d) to array or array (2d).
     We need to keep the columns separately as they contain different types and
