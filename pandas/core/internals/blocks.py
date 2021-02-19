@@ -127,7 +127,6 @@ class Block(PandasObject):
 
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
-    is_float = False
     is_bool = False
     is_object = False
     is_extension = False
@@ -1253,7 +1252,7 @@ class Block(PandasObject):
         data = self.values if inplace else self.values.copy()
 
         # only deal with floats
-        if not self.is_float:
+        if self.dtype.kind != "f":
             if self.dtype.kind not in ["i", "u"]:
                 return [self]
             data = data.astype(np.float64)
@@ -1929,7 +1928,6 @@ class NumericBlock(Block):
 
 class FloatBlock(NumericBlock):
     __slots__ = ()
-    is_float = True
 
     def to_native_types(
         self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
@@ -2116,7 +2114,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-    is_datetime = True
     fill_value = np.datetime64("NaT", "ns")
     _dtype = fill_value.dtype
     _holder = DatetimeArray
