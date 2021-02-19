@@ -1169,6 +1169,9 @@ class TestStyler:
         result = self.df.style.highlight_quantile(**kwargs)._compute().ctx
         assert result == expected
 
+    @pytest.mark.skipif(
+        np.__version__[:4] in ["1.16", "1.17"], reason="Numpy Issue #14831"
+    )
     @pytest.mark.parametrize(
         "f,kwargs",
         [
