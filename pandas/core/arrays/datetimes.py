@@ -617,7 +617,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
 
         elif self.tz is None and is_datetime64_dtype(dtype) and dtype != self.dtype:
-            # unit conversion
+            # unit conversion e.g. datetime64[s]
             return self._data.astype(dtype)
 
         elif is_period_dtype(dtype):
