@@ -69,10 +69,10 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
+    ensure_block_shape,
     extend_blocks,
     get_block_type,
     make_block,
-    safe_reshape,
 )
 from pandas.core.internals.ops import (
     blockwise_all,
@@ -1042,7 +1042,7 @@ class BlockManager(DataManager):
                 value = value.T
 
             if value.ndim == self.ndim - 1:
-                value = safe_reshape(value, (1,) + value.shape)
+                value = ensure_block_shape(value, ndim=2)
 
                 def value_getitem(placement):
                     return value
@@ -1167,7 +1167,7 @@ class BlockManager(DataManager):
             value = value.T
         elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
-            value = safe_reshape(value, (1,) + value.shape)
+            value = ensure_block_shape(value, ndim=2)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
