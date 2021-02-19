@@ -679,6 +679,7 @@ class Block(PandasObject):
         if (
             values.dtype.kind in ["m", "M"]
             and dtype.kind in ["i", "u"]
+            and isinstance(dtype, np.dtype)
             and dtype.itemsize != 8
         ):
             # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
