@@ -187,8 +187,8 @@ def test_cross_type_arithmetic():
     [
         ([1.1, 2.2, 3.3], [-1.1, -2.2, -3.3]),
         ([1.1, 2.2, None], [-1.1, -2.2, None]),
-        ([-1.1, 0.0, 1.1], [1.1, 0.0, -1.1])
-    ]
+        ([-1.1, 0.0, 1.1], [1.1, 0.0, -1.1]),
+    ],
 )
 def test_unary_minus_float(float_ea_dtype, source, target):
     dtype = float_ea_dtype
@@ -198,10 +198,7 @@ def test_unary_minus_float(float_ea_dtype, source, target):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "source",
-    [[1.1, 2.2, 3.3], [1.1, 2.2, None], [-1.1, 0.0, 1]]
-)
+@pytest.mark.parametrize("source", [[1.1, 2.2, 3.3], [1.1, 2.2, None], [-1.1, 0.0, 1]])
 def test_unary_plus_float(float_ea_dtype, source):
     dtype = float_ea_dtype
     expected = pd.array(source, dtype=dtype)
@@ -214,8 +211,8 @@ def test_unary_plus_float(float_ea_dtype, source):
     [
         ([1.1, 2.2, 3.3], [1.1, 2.2, 3.3]),
         ([1.1, -2.2, None], [1.1, 2.2, None]),
-        ([-1.1, 0.0, 1.1], [1.1, 0.0, 1.1])
-    ]
+        ([-1.1, 0.0, 1.1], [1.1, 0.0, 1.1]),
+    ],
 )
 def test_unary_abs_float(float_ea_dtype, source, target):
     dtype = float_ea_dtype
