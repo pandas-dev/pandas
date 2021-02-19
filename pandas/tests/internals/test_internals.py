@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 import re
 
@@ -23,8 +26,16 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
-from pandas.core.internals import BlockManager, SingleBlockManager, make_block
+from pandas.core.arrays import (
+    DatetimeArray,
+    SparseArray,
+    TimedeltaArray,
+)
+from pandas.core.internals import (
+    BlockManager,
+    SingleBlockManager,
+    make_block,
+)
 
 
 @pytest.fixture
@@ -1233,8 +1244,8 @@ class TestCanHoldElement:
         if inplace:
             # assertion here implies setting was done inplace
 
-            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]"
-            #  has no attribute "blocks"  [union-attr]
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
+            #  attribute "blocks"
             assert df._mgr.blocks[0].values is arr  # type:ignore[union-attr]
         else:
             assert df.dtypes[0] == object
@@ -1295,17 +1306,17 @@ def test_make_block_no_pandas_array():
 
     # PandasArray, no dtype
     result = make_block(arr, slice(len(arr)), ndim=arr.ndim)
-    assert result.is_integer is True
+    assert result.dtype.kind in ["i", "u"]
     assert result.is_extension is False
 
     # PandasArray, PandasDtype
     result = make_block(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
-    assert result.is_integer is True
+    assert result.dtype.kind in ["i", "u"]
     assert result.is_extension is False
 
     # ndarray, PandasDtype
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
-    assert result.is_integer is True
+    assert result.dtype.kind in ["i", "u"]
     assert result.is_extension is False
 
 

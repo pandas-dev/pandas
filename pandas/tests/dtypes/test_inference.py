@@ -5,7 +5,12 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 from decimal import Decimal
 from fractions import Fraction
 from io import StringIO
@@ -16,7 +21,10 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -300,7 +308,7 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+test_tuple = collections.namedtuple("test_tuple", ["a", "b", "c"])
 
 
 @pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])
@@ -890,6 +898,19 @@ class TestTypeInference:
 
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series, pd.Index])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype_period_array(self, klass, skipna):
+        # https://github.com/pandas-dev/pandas/issues/23553
+        values = klass(
+            [
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-02", freq="D"),
+                pd.NaT,
+            ]
+        )
+        assert lib.infer_dtype(values, skipna=skipna) == "period"
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(

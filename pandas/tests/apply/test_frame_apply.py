@@ -5,12 +5,17 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    notna,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.tests.frame.common import zip_frames
@@ -178,6 +183,16 @@ class TestDataFrameApply:
         result = getattr(float_frame, how)(func, *args, **kwds)
         expected = getattr(float_frame, func)(*args, **kwds)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "how, args", [("pct_change", ()), ("nsmallest", (1, ["a", "b"])), ("tail", 1)]
+    )
+    def test_apply_str_axis_1_raises(self, how, args):
+        # GH 39211 - some ops don't support axis=1
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        msg = f"Operation {how} does not support axis=1"
+        with pytest.raises(ValueError, match=msg):
+            df.apply(how, axis=1, args=args)
 
     def test_apply_broadcast(self, float_frame, int_frame_const_col):
 
@@ -592,7 +607,6 @@ class TestDataFrameApply:
             tm.assert_frame_equal(reduce_false, df)
             tm.assert_series_equal(reduce_none, dicts)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_applymap(self, float_frame):
         applied = float_frame.applymap(lambda x: x * 2)
         tm.assert_frame_equal(applied, float_frame * 2)

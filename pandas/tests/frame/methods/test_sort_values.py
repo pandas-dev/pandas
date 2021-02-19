@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -323,7 +329,7 @@ class TestDataFrameSortValues:
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT))
+        int_values = (2, int(NaT.value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -579,6 +585,14 @@ class TestDataFrameSortValues:
 
         assert df.iloc[0, 0] == df["A"][0]
 
+    def test_sort_values_reshaping(self):
+        # GH 39426
+        values = list(range(21))
+        expected = DataFrame([values], columns=values)
+        df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
+
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
@@ -831,7 +845,7 @@ class TestSortValuesLevelAsStr:
         if len(levels) > 1:
             # Accessing multi-level columns that are not lexsorted raises a
             # performance warning
-            with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(PerformanceWarning):
                 tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)

@@ -2,18 +2,15 @@ from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
-    BoolBlock,
     CategoricalBlock,
-    ComplexBlock,
     DatetimeBlock,
     DatetimeTZBlock,
     ExtensionBlock,
     FloatBlock,
-    IntBlock,
+    NumericBlock,
     ObjectBlock,
     TimeDeltaBlock,
     make_block,
-    safe_reshape,
 )
 from pandas.core.internals.concat import concatenate_block_managers
 from pandas.core.internals.managers import (
@@ -25,17 +22,14 @@ from pandas.core.internals.managers import (
 
 __all__ = [
     "Block",
-    "BoolBlock",
     "CategoricalBlock",
-    "ComplexBlock",
+    "NumericBlock",
     "DatetimeBlock",
     "DatetimeTZBlock",
     "ExtensionBlock",
     "FloatBlock",
-    "IntBlock",
     "ObjectBlock",
     "TimeDeltaBlock",
-    "safe_reshape",
     "make_block",
     "DataManager",
     "ArrayManager",

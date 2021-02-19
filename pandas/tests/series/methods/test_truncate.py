@@ -1,7 +1,10 @@
 from datetime import datetime
 
 import pandas as pd
-from pandas import Series, date_range
+from pandas import (
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 

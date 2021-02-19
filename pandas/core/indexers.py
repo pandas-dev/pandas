@@ -1,11 +1,18 @@
 """
 Low-dependency indexing utilities.
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
 
-from pandas._typing import Any, AnyArrayLike, ArrayLike
+from pandas._typing import (
+    Any,
+    AnyArrayLike,
+    ArrayLike,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -15,7 +22,14 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
+
+if TYPE_CHECKING:
+    from pandas.core.frame import DataFrame
+    from pandas.core.indexes.base import Index
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -82,12 +96,11 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     if ndim == 1 and is_integer(indexer):
         # GH37748: allow indexer to be an integer for Series
         return True
-    if isinstance(indexer, tuple):
-        if len(indexer) == ndim:
-            return all(
-                is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
-                for x in indexer
-            )
+    if isinstance(indexer, tuple) and len(indexer) == ndim:
+        return all(
+            is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
+            for x in indexer
+        )
     return False
 
 
@@ -375,6 +388,32 @@ def unpack_1tuple(tup):
 
         return tup[0]
     return tup
+
+
+def check_key_length(columns: Index, key, value: DataFrame):
+    """
+    Checks if a key used as indexer has the same length as the columns it is
+    associated with.
+
+    Parameters
+    ----------
+    columns : Index The columns of the DataFrame to index.
+    key : A list-like of keys to index with.
+    value : DataFrame The value to set for the keys.
+
+    Raises
+    ------
+    ValueError: If the length of key is not equal to the number of columns in value
+                or if the number of columns referenced by key is not equal to number
+                of columns.
+    """
+    if columns.is_unique:
+        if len(value.columns) != len(key):
+            raise ValueError("Columns must be same length as key")
+    else:
+        # Missing keys in columns are represented as -1
+        if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
+            raise ValueError("Columns must be same length as key")
 
 
 # -----------------------------------------------------------

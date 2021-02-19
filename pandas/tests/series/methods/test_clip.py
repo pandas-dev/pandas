@@ -1,10 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 import pandas as pd
-from pandas import Series, Timestamp, isna, notna
+from pandas import (
+    Series,
+    Timestamp,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 
 
@@ -20,7 +23,6 @@ class TestSeriesClip:
         tm.assert_series_equal(result, expected)
         assert isinstance(expected, Series)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_clip_types_and_nulls(self):
 
         sers = [

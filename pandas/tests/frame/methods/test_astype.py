@@ -432,19 +432,11 @@ class TestAstype:
         other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        msg = (
-            fr"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
-            fr"\[timedelta64\[{unit}\]\]"
-            fr"|(Cannot cast DatetimeArray to dtype timedelta64\[{unit}\])"
-        )
+        msg = fr"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]"
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = (
-            fr"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
-            fr"\[datetime64\[{unit}\]\]"
-            fr"|(Cannot cast TimedeltaArray to dtype datetime64\[{unit}\])"
-        )
+        msg = fr"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]"
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
@@ -515,7 +507,9 @@ class TestAstype:
         result = timezone_frame.astype(object)
         tm.assert_frame_equal(result, expected)
 
-        result = timezone_frame.astype("datetime64[ns]")
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64tz->dt64 deprecated
+            result = timezone_frame.astype("datetime64[ns]")
         expected = DataFrame(
             {
                 "A": date_range("20130101", periods=3),
@@ -649,3 +643,8 @@ class TestAstype:
         # For non-NA values, we should match what we get for non-EA str
         alt = obj.astype(str)
         assert np.all(alt.iloc[1:] == result.iloc[1:])
+
+    def test_astype_bytes(self):
+        # GH#39474
+        result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes[0] == np.dtype("S3")

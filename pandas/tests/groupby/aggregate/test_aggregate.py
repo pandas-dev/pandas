@@ -13,7 +13,13 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
@@ -201,6 +207,18 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
+    gb = df.groupby(level=0)
+    if reduction_func in ("idxmax", "idxmin"):
+        error = TypeError
+        msg = "reduction operation '.*' not allowed for this dtype"
+    else:
+        error = ValueError
+        msg = f"Operation {reduction_func} does not support axis=1"
+    with pytest.raises(error, match=msg):
+        gb.agg(reduction_func, axis=1)
 
 
 def test_aggregate_item_by_item(df):
@@ -1175,3 +1193,27 @@ def test_aggregate_datetime_objects():
     result = df.groupby("A").B.max()
     expected = df.set_index("A")["B"]
     tm.assert_series_equal(result, expected)
+
+
+def test_aggregate_numeric_object_dtype():
+    # https://github.com/pandas-dev/pandas/issues/39329
+    # simplified case: multiple object columns where one is all-NaN
+    # -> gets split as the all-NaN is inferred as float
+    df = DataFrame(
+        {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": [np.nan] * 4},
+    ).astype(object)
+    result = df.groupby("key").min()
+    expected = DataFrame(
+        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [np.nan, np.nan]}
+    ).set_index("key")
+    tm.assert_frame_equal(result, expected)
+
+    # same but with numbers
+    df = DataFrame(
+        {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": range(4)},
+    ).astype(object)
+    result = df.groupby("key").min()
+    expected = DataFrame(
+        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]}
+    ).set_index("key")
+    tm.assert_frame_equal(result, expected)

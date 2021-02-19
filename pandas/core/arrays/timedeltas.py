@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
+from pandas._libs import (
+    lib,
+    tslibs,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -42,12 +49,18 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCTimedeltaIndex,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import IntegerArray, datetimelike as dtl
+from pandas.core.arrays import (
+    IntegerArray,
+    datetimelike as dtl,
+)
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -419,7 +432,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         Add a Period object.
         """
         # We will wrap in a PeriodArray and defer to the reversed operation
-        from .period import PeriodArray
+        from pandas.core.arrays.period import PeriodArray
 
         i8vals = np.broadcast_to(other.ordinal, self.shape)
         oth = PeriodArray(i8vals, freq=other.freq)

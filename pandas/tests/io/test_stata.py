@@ -18,7 +18,10 @@ from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.frame import DataFrame, Series
+from pandas.core.frame import (
+    DataFrame,
+    Series,
+)
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -555,6 +558,7 @@ class TestStata:
             msg = "time_stamp should be datetime type"
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, time_stamp=time_stamp, version=version)
+            assert not os.path.isfile(path)
 
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
@@ -1921,10 +1925,10 @@ def test_compression_dict(method, file_ext):
         compression = {"method": method, "archive_name": archive_name}
         df.to_stata(path, compression=compression)
         if method == "zip" or file_ext == "zip":
-            zp = zipfile.ZipFile(path, "r")
-            assert len(zp.filelist) == 1
-            assert zp.filelist[0].filename == archive_name
-            fp = io.BytesIO(zp.read(zp.filelist[0]))
+            with zipfile.ZipFile(path, "r") as zp:
+                assert len(zp.filelist) == 1
+                assert zp.filelist[0].filename == archive_name
+                fp = io.BytesIO(zp.read(zp.filelist[0]))
         else:
             fp = path
         reread = read_stata(fp, index_col="index")
@@ -2002,3 +2006,48 @@ def test_precision_loss():
         tm.assert_series_equal(reread.dtypes, expected_dt)
         assert reread.loc[0, "little"] == df.loc[0, "little"]
         assert reread.loc[0, "big"] == float(df.loc[0, "big"])
+
+
+def test_compression_roundtrip(compression):
+    df = DataFrame(
+        [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+        index=["A", "B"],
+        columns=["X", "Y", "Z"],
+    )
+    df.index.name = "index"
+
+    with tm.ensure_clean() as path:
+
+        df.to_stata(path, compression=compression)
+        reread = read_stata(path, compression=compression, index_col="index")
+        tm.assert_frame_equal(df, reread)
+
+        # explicitly ensure file was compressed.
+        with tm.decompress_file(path, compression) as fh:
+            contents = io.BytesIO(fh.read())
+        reread = pd.read_stata(contents, index_col="index")
+        tm.assert_frame_equal(df, reread)
+
+
+@pytest.mark.parametrize("to_infer", [True, False])
+@pytest.mark.parametrize("read_infer", [True, False])
+def test_stata_compression(compression_only, read_infer, to_infer):
+    compression = compression_only
+
+    ext = "gz" if compression == "gzip" else compression
+    filename = f"test.{ext}"
+
+    df = DataFrame(
+        [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+        index=["A", "B"],
+        columns=["X", "Y", "Z"],
+    )
+    df.index.name = "index"
+
+    to_compression = "infer" if to_infer else compression
+    read_compression = "infer" if read_infer else compression
+
+    with tm.ensure_clean(filename) as path:
+        df.to_stata(path, compression=to_compression)
+        result = pd.read_stata(path, compression=read_compression, index_col="index")
+        tm.assert_frame_equal(result, df)

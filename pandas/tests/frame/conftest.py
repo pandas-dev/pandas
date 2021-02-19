@@ -3,7 +3,11 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, date_range
+from pandas import (
+    DataFrame,
+    NaT,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -181,24 +185,6 @@ def mixed_int_frame():
     df.C = df.C.astype("uint8")
     df.D = df.C.astype("int64")
     return df
-
-
-@pytest.fixture
-def mixed_type_frame():
-    """
-    Fixture for DataFrame of float/int/string columns with RangeIndex
-    Columns are ['a', 'b', 'c', 'float32', 'int32'].
-    """
-    return DataFrame(
-        {
-            "a": 1.0,
-            "b": 2,
-            "c": "foo",
-            "float32": np.array([1.0] * 10, dtype="float32"),
-            "int32": np.array([1] * 10, dtype="int32"),
-        },
-        index=np.arange(10),
-    )
 
 
 @pytest.fixture

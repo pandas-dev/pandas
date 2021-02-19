@@ -2,7 +2,11 @@
 test date_range, bdate_range construction from the convenience range functions
 """
 
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -10,12 +14,25 @@ import pytz
 from pytz import timezone
 
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.offsets import BDay, CDay, DateOffset, MonthEnd, prefix_mapping
+from pandas._libs.tslibs.offsets import (
+    BDay,
+    CDay,
+    DateOffset,
+    MonthEnd,
+    prefix_mapping,
+)
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
+from pandas import (
+    DatetimeIndex,
+    Timedelta,
+    Timestamp,
+    bdate_range,
+    date_range,
+    offsets,
+)
 import pandas._testing as tm
 from pandas.core.arrays.datetimes import generate_range
 
@@ -76,6 +93,13 @@ class TestTimestampEquivDateRange:
 
 
 class TestDateRanges:
+    def test_date_range_near_implementation_bound(self):
+        # GH#???
+        freq = Timedelta(1)
+
+        with pytest.raises(OutOfBoundsDatetime, match="Cannot generate range with"):
+            date_range(end=Timestamp.min, periods=2, freq=freq)
+
     def test_date_range_nat(self):
         # GH#11587
         msg = "Neither `start` nor `end` can be NaT"

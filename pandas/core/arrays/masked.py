@@ -1,13 +1,33 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype, NpDtype, Scalar
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    NpDtype,
+    Scalar,
+)
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -18,10 +38,17 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 from pandas.core import nanops
-from pandas.core.algorithms import factorize_array, take
+from pandas.core.algorithms import (
+    factorize_array,
+    isin,
+    take,
+)
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -29,6 +56,7 @@ from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
     from pandas import Series
+    from pandas.core.arrays import BooleanArray
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
@@ -328,6 +356,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
+    def isin(self, values) -> BooleanArray:
+
+        from pandas.core.arrays import BooleanArray
+
+        result = isin(self._data, values)
+        if self._hasna:
+            if libmissing.NA in values:
+                result += self._mask
+            else:
+                result *= np.invert(self._mask)
+        mask = np.zeros_like(self, dtype=bool)
+        return BooleanArray(result, mask, copy=False)
+
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         data, mask = self._data, self._mask
         data = data.copy()
@@ -363,7 +404,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
         from pandas.arrays import IntegerArray
 
         # compute counts on the data with no nans

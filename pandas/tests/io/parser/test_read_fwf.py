@@ -5,17 +5,28 @@ engine is set to 'python-fwf' internally.
 """
 
 from datetime import datetime
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 from pathlib import Path
 
 import numpy as np
 import pytest
 
+from pandas.errors import EmptyDataError
+
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+)
 import pandas._testing as tm
 
-from pandas.io.parsers import EmptyDataError, read_csv, read_fwf
+from pandas.io.parsers import (
+    read_csv,
+    read_fwf,
+)
 
 
 def test_basic():

@@ -13,7 +13,11 @@ from pandas import (
     merge,
 )
 import pandas._testing as tm
-from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
+from pandas.tests.reshape.merge.test_merge import (
+    NGROUPS,
+    N,
+    get_test_data,
+)
 
 a_ = np.array
 

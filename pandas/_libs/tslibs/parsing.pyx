@@ -9,7 +9,12 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython.datetime cimport datetime, datetime_new, import_datetime, tzinfo
+from cpython.datetime cimport (
+    datetime,
+    datetime_new,
+    import_datetime,
+    tzinfo,
+)
 from cpython.object cimport PyObject_Str
 from cpython.version cimport PY_VERSION_HEX
 
@@ -31,7 +36,10 @@ cnp.import_array()
 
 # dateutil compat
 
-from dateutil.parser import DEFAULTPARSER, parse as du_parse
+from dateutil.parser import (
+    DEFAULTPARSER,
+    parse as du_parse,
+)
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
@@ -43,9 +51,15 @@ from dateutil.tz import (
 from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
-from pandas._libs.tslibs.nattype cimport c_NaT as NaT, c_nat_strings as nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 from pandas._libs.tslibs.offsets cimport is_offset_object
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size, is_array
+from pandas._libs.tslibs.util cimport (
+    get_c_string_buf_and_size,
+    is_array,
+)
 
 
 cdef extern from "../src/headers/portable.h":
