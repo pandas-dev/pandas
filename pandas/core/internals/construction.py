@@ -230,7 +230,8 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
 
         return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
-    if is_datetime64tz_dtype(values):
+    if is_extension_array_dtype(values) and not is_ea_dtype(values):
+        # i.e. Datetime64TZ
         # TODO: combine into _prep_ndarray?
         values = extract_array(values, extract_numpy=True)
         if copy:
