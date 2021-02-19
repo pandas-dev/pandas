@@ -1926,17 +1926,13 @@ class Styler:
             q_high: float = 1,
             axis_: Optional[Axis] = 0,
         ):
-            if q_low > 0:
-                q, tgt_label = [0, q_low, q_high], 1
-            else:
-                q, tgt_label = [0, q_high], 0
             if axis_ is None:
-                labels = pd.qcut(data.to_numpy().ravel(), q=q, labels=False).reshape(
-                    data.to_numpy().shape
-                )
+                labels = pd.qcut(
+                    data.to_numpy().ravel(), q=[q_low, q_high], labels=False
+                ).reshape(data.to_numpy().shape)
             else:
-                labels = pd.qcut(data, q=q, labels=False)
-            return np.where(labels == tgt_label, props, "")
+                labels = pd.qcut(data, q=[q_low, q_high], labels=False)
+            return np.where(labels == 0, props, "")
 
         if props is None:
             props = f"background-color: {color};"
