@@ -44,7 +44,11 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+    properties,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
@@ -91,7 +95,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
-    maybe_box_datetimelike,
+    maybe_box_native,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
@@ -119,16 +123,35 @@ from pandas.core.dtypes.common import (
     is_sequence,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import algorithms, common as com, generic, nanops, ops
+from pandas.core import (
+    algorithms,
+    common as com,
+    generic,
+    nanops,
+    ops,
+)
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result, transform
+from pandas.core.aggregation import (
+    reconstruct_func,
+    relabel_result,
+    transform,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import extract_array, sanitize_masked_array
-from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.construction import (
+    extract_array,
+    sanitize_masked_array,
+)
+from pandas.core.generic import (
+    NDFrame,
+    _shared_docs,
+)
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -138,9 +161,18 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
-from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
-from pandas.core.internals import ArrayManager, BlockManager
+from pandas.core.indexes.multi import (
+    MultiIndex,
+    maybe_droplevels,
+)
+from pandas.core.indexing import (
+    check_bool_indexer,
+    convert_to_index_sliceable,
+)
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
@@ -156,17 +188,30 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
-from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
+from pandas.core.sorting import (
+    get_group_index,
+    lexsort_indexer,
+    nargsort,
+)
 
 from pandas.io.common import get_handle
-from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import BaseInfo, DataFrameInfo
+from pandas.io.formats import (
+    console,
+    format as fmt,
+)
+from pandas.io.formats.info import (
+    BaseInfo,
+    DataFrameInfo,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
     from typing import Literal
 
-    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+    from pandas._typing import (
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+    )
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.resample import Resampler
@@ -1610,7 +1655,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(maybe_box_datetimelike, t))
+                            list(map(maybe_box_native, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1618,7 +1663,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, v) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1627,8 +1672,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
-                for row in rows
+                into_c((k, maybe_box_native(v)) for k, v in row.items()) for row in rows
             ]
 
         elif orient == "index":
@@ -4021,8 +4065,8 @@ class DataFrame(NDFrame, OpsMixin):
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
             use DataFrame.melt and DataFrame.loc instead.
-            For an example see :meth:`~pandas.DataFrame.lookup`
-            in the user guide.
+            For further details see
+            :ref:`Looking up values by index/column labels <indexing.lookup>`.
 
         Parameters
         ----------
@@ -7313,7 +7357,10 @@ NaN 12.3   33.0
         dog kg     NaN     2.0
             m      3.0     NaN
         """
-        from pandas.core.reshape.reshape import stack, stack_multiple
+        from pandas.core.reshape.reshape import (
+            stack,
+            stack_multiple,
+        )
 
         if isinstance(level, (tuple, list)):
             result = stack_multiple(self, level, dropna=dropna)
@@ -7686,7 +7733,7 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis, *args, **kwargs)
+            result = self._aggregate(func, axis, *args, **kwargs)
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -7720,14 +7767,14 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        result, how = op.agg()
+        result = op.agg()
 
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
             result = result.T if result is not None else result
 
-        return result, how
+        return result
 
     agg = aggregate
 
@@ -7813,6 +7860,12 @@ NaN 12.3   33.0
         DataFrame.applymap: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------

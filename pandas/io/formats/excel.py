@@ -21,18 +21,32 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import IndexLabel, StorageOptions
+from pandas._typing import (
+    IndexLabel,
+    StorageOptions,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes import missing
-from pandas.core.dtypes.common import is_float, is_scalar
+from pandas.core.dtypes.common import (
+    is_float,
+    is_scalar,
+)
 
-from pandas import DataFrame, Index, MultiIndex, PeriodIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    PeriodIndex,
+)
 from pandas.core import generic
 import pandas.core.common as com
 
 from pandas.io.formats._color_data import CSS4_COLORS
-from pandas.io.formats.css import CSSResolver, CSSWarning
+from pandas.io.formats.css import (
+    CSSResolver,
+    CSSWarning,
+)
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
@@ -475,7 +489,7 @@ class ExcelFormatter:
             if not len(Index(cols).intersection(df.columns)):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            if len(Index(cols).intersection(df.columns)) != len(cols):
+            if len(Index(cols).intersection(df.columns)) != len(set(cols)):
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 
@@ -759,7 +773,8 @@ class ExcelFormatter:
             series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 if styles is not None:
-                    xlstyle = self.style_converter(";".join(styles[i, colidx]))
+                    css = ";".join([a + ":" + str(v) for (a, v) in styles[i, colidx]])
+                    xlstyle = self.style_converter(css)
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
 
     def get_formatted_cells(self) -> Iterable[ExcelCell]:

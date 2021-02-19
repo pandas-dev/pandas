@@ -219,7 +219,7 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    38.6.0
 `NumPy <https://numpy.org>`__                                    1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
@@ -274,7 +274,7 @@ html5lib                  1.0.1              HTML parser for read_html (see :ref
 lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.3              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  2.6.0              Reading / writing for xlsx files
+openpyxl                  3.0.0              Reading / writing for xlsx files
 pandas-gbq                0.12.0             Google Big Query access
 psycopg2                  2.7                PostgreSQL engine for sqlalchemy
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing

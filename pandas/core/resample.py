@@ -3,7 +3,14 @@ from __future__ import annotations
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Callable, Dict, Optional, Tuple, Union, no_type_check
+from typing import (
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+    no_type_check,
+)
 
 import numpy as np
 
@@ -16,18 +23,35 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import T, TimedeltaConvertibleTypes, TimestampConvertibleTypes
+from pandas._typing import (
+    T,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import DataError
-from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.base import GotItemMixin, ShallowMixin
+from pandas.core.generic import (
+    NDFrame,
+    _shared_docs,
+)
+from pandas.core.groupby.base import (
+    GotItemMixin,
+    ShallowMixin,
+)
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
@@ -38,12 +62,29 @@ from pandas.core.groupby.groupby import (
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import Index
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    date_range,
+)
+from pandas.core.indexes.period import (
+    PeriodIndex,
+    period_range,
+)
+from pandas.core.indexes.timedeltas import (
+    TimedeltaIndex,
+    timedelta_range,
+)
 
-from pandas.tseries.frequencies import is_subperiod, is_superperiod
-from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
+from pandas.tseries.frequencies import (
+    is_subperiod,
+    is_superperiod,
+)
+from pandas.tseries.offsets import (
+    DateOffset,
+    Day,
+    Nano,
+    Tick,
+)
 
 _shared_docs_kwargs: Dict[str, str] = {}
 
@@ -300,7 +341,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
             grouper = None

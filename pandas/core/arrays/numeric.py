@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import datetime
 import numbers
-from typing import TYPE_CHECKING, Any, List, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import Timedelta, missing as libmissing
+from pandas._libs import (
+    Timedelta,
+    missing as libmissing,
+)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -18,7 +26,10 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import ops
-from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow

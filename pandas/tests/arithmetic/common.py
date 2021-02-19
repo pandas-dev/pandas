@@ -4,7 +4,12 @@ Assertion helpers for arithmetic tests.
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, array as pd_array
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    array as pd_array,
+)
 import pandas._testing as tm
 from pandas.core.arrays import PandasArray
 

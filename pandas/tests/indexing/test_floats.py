@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
+from pandas import (
+    DataFrame,
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

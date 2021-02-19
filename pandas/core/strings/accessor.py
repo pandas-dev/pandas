@@ -1,7 +1,11 @@
 import codecs
 from functools import wraps
 import re
-from typing import Dict, List, Optional
+from typing import (
+    Dict,
+    List,
+    Optional,
+)
 import warnings
 
 import numpy as np
@@ -16,7 +20,12 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCMultiIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
@@ -233,7 +242,10 @@ class StringMethods(NoNewAttributesMixin):
         fill_value=np.nan,
         returns_string=True,
     ):
-        from pandas import Index, MultiIndex
+        from pandas import (
+            Index,
+            MultiIndex,
+        )
 
         if not hasattr(result, "ndim") or not hasattr(result, "dtype"):
             if isinstance(result, ABCDataFrame):
@@ -338,7 +350,10 @@ class StringMethods(NoNewAttributesMixin):
         list of Series
             Others transformed into list of Series.
         """
-        from pandas import DataFrame, Series
+        from pandas import (
+            DataFrame,
+            Series,
+        )
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndex) else self._orig.index
@@ -515,7 +530,11 @@ class StringMethods(NoNewAttributesMixin):
         For more examples, see :ref:`here <text.concatenate>`.
         """
         # TODO: dispatch
-        from pandas import Index, Series, concat
+        from pandas import (
+            Index,
+            Series,
+            concat,
+        )
 
         if isinstance(others, str):
             raise ValueError("Did you mean to supply a `sep` keyword?")
@@ -2990,7 +3009,10 @@ def _str_extract_noexpand(arr, pat, flags=0):
     Index.
 
     """
-    from pandas import DataFrame, array
+    from pandas import (
+        DataFrame,
+        array,
+    )
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)

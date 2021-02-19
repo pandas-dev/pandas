@@ -1,12 +1,23 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple, Type
+from typing import (
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
@@ -20,10 +31,16 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.numeric import NumericArray, NumericDtype
+from pandas.core.arrays.numeric import (
+    NumericArray,
+    NumericDtype,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
@@ -303,7 +320,10 @@ class FloatingArray(NumericArray):
         return self._data
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray, IntegerArray
+        from pandas.arrays import (
+            BooleanArray,
+            IntegerArray,
+        )
 
         mask = None
 
