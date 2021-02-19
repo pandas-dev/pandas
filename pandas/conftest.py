@@ -19,27 +19,52 @@ Instead of splitting it was decided to define sections here:
 """
 
 from collections import abc
-from datetime import date, time, timedelta, timezone
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    timezone,
+)
 from decimal import Decimal
 import operator
 import os
 
-from dateutil.tz import tzlocal, tzutc
+from dateutil.tz import (
+    tzlocal,
+    tzutc,
+)
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import FixedOffset, utc
+from pytz import (
+    FixedOffset,
+    utc,
+)
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
 
 import pandas as pd
-from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
+from pandas import (
+    DataFrame,
+    Interval,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 
 
 # ----------------------------------------------------------------
@@ -75,6 +100,19 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
+    parser.addoption(
+        "--array-manager",
+        "--am",
+        action="store_true",
+        help="Use the experimental ArrayManager as default data manager.",
+    )
+
+
+def pytest_sessionstart(session):
+    # Note: we need to set the option here and not in pytest_runtest_setup below
+    # to ensure this is run before creating fixture data
+    if session.config.getoption("--array-manager"):
+        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
@@ -467,13 +505,41 @@ def index(request):
 index_fixture2 = index
 
 
-@pytest.fixture(params=indices_dict.keys())
+@pytest.fixture(
+    params=[
+        key for key in indices_dict if not isinstance(indices_dict[key], MultiIndex)
+    ]
+)
+def index_flat(request):
+    """
+    index fixture, but excluding MultiIndex cases.
+    """
+    key = request.param
+    return indices_dict[key].copy()
+
+
+# Alias so we can test with cartesian product of index_flat
+index_flat2 = index_flat
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key in indices_dict
+        if key not in ["int", "uint", "range", "empty", "repeats"]
+        and not isinstance(indices_dict[key], MultiIndex)
+    ]
+)
 def index_with_missing(request):
     """
-    Fixture for indices with missing values
+    Fixture for indices with missing values.
+
+    Integer-dtype and empty cases are excluded because they cannot hold missing
+    values.
+
+    MultiIndex is excluded because isna() is not defined for MultiIndex.
     """
-    if request.param in ["int", "uint", "range", "empty", "repeats"]:
-        pytest.skip("missing values not supported")
+
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
@@ -696,6 +762,45 @@ def float_frame():
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getSeriesData())
+
+
+@pytest.fixture
+def mixed_type_frame():
+    """
+    Fixture for DataFrame of float/int/string columns with RangeIndex
+    Columns are ['a', 'b', 'c', 'float32', 'int32'].
+    """
+    return DataFrame(
+        {
+            "a": 1.0,
+            "b": 2,
+            "c": "foo",
+            "float32": np.array([1.0] * 10, dtype="float32"),
+            "int32": np.array([1] * 10, dtype="int32"),
+        },
+        index=np.arange(10),
+    )
+
+
+@pytest.fixture
+def rand_series_with_duplicate_datetimeindex():
+    """
+    Fixture for Series with a DatetimeIndex that has duplicates.
+    """
+    dates = [
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 5),
+    ]
+
+    return Series(np.random.randn(len(dates)), index=dates)
 
 
 # ----------------------------------------------------------------
@@ -1010,6 +1115,9 @@ def utc_fixture(request):
     return request.param
 
 
+utc_fixture2 = utc_fixture
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
@@ -1168,6 +1276,32 @@ def any_nullable_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
+def any_int_or_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
     * 'UInt8'
     * 'Int8'
     * 'UInt16'
@@ -1454,3 +1588,19 @@ def indexer_si(request):
     Parametrize over __setitem__, iloc.__setitem__
     """
     return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc])
+def indexer_sl(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture
+def using_array_manager(request):
+    """
+    Fixture to check if the array manager is being used.
+    """
+    return pd.options.mode.data_manager == "array"

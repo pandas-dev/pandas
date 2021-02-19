@@ -4,18 +4,37 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
-from collections import abc, defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import contextlib
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Optional, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, NpDtype, Scalar, T
-from pandas.compat.numpy import np_version_under1p18
+from pandas._typing import (
+    AnyArrayLike,
+    NpDtype,
+    Scalar,
+    T,
+)
+from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -24,9 +43,17 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+from pandas.core.dtypes.missing import (  # noqa
+    isna,
+    isnull,
+    notnull,
+)
 
 
 class SettingWithCopyError(ValueError):
@@ -257,10 +284,6 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    # error: Incompatible return value type (got
-    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
-    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
-    # "Union[Collection[T], T]")  [return-value]
     obj = cast(Collection, obj)
     return obj
 
@@ -405,7 +428,9 @@ def random_state(state=None):
         )
 
 
-def pipe(obj, func, *args, **kwargs):
+def pipe(
+    obj, func: Union[Callable[..., T], Tuple[Callable[..., T], str]], *args, **kwargs
+) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,

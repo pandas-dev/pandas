@@ -1,10 +1,12 @@
 """
 Concat routines.
 """
+from __future__ import annotations
 
 from collections import abc
 from typing import (
     TYPE_CHECKING,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -17,11 +19,14 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, Label
+from pandas._typing import FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
@@ -41,7 +46,10 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------
@@ -50,7 +58,7 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Union[Iterable["DataFrame"], Mapping[Label, "DataFrame"]],
+    objs: Union[Iterable[DataFrame], Mapping[Hashable, DataFrame]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -60,13 +68,13 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> "DataFrame":
+) -> DataFrame:
     ...
 
 
 @overload
 def concat(
-    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
+    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -81,7 +89,7 @@ def concat(
 
 
 def concat(
-    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
+    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -306,7 +314,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
+        objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -375,7 +383,7 @@ class _Concatenator:
         # get the sample
         # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
-        sample: Optional["NDFrame"] = None
+        sample: Optional[NDFrame] = None
         if len(ndims) > 1:
             max_ndim = max(ndims)
             for obj in objs:
@@ -560,7 +568,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Label] = [None] * len(self.objs)
+                names: List[Hashable] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):

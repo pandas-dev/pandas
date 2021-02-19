@@ -6,7 +6,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Period,
+    Series,
+    Timedelta,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -150,7 +158,7 @@ class TestDataFrameReshape:
     def test_unstack_fill_frame_datetime(self):
 
         # Test unstacking with date times
-        dv = pd.date_range("2012-01-01", periods=4).values
+        dv = date_range("2012-01-01", periods=4).values
         data = Series(dv)
         data.index = MultiIndex.from_tuples(
             [("x", "a"), ("x", "b"), ("y", "b"), ("z", "a")]
@@ -600,7 +608,7 @@ class TestDataFrameReshape:
                     "A": ["a"] * 5,
                     "C": c,
                     "D": d,
-                    "B": pd.date_range("2012-01-01", periods=5),
+                    "B": date_range("2012-01-01", periods=5),
                 }
             )
 
@@ -934,7 +942,7 @@ class TestDataFrameReshape:
         df = DataFrame(
             {
                 "1st": [1, 2, 1, 2, 1, 2],
-                "2nd": pd.date_range("2014-02-01", periods=6, freq="D"),
+                "2nd": date_range("2014-02-01", periods=6, freq="D"),
                 "jim": 100 + np.arange(6),
                 "joe": (np.random.randn(6) * 10).round(2),
             }
@@ -1163,9 +1171,7 @@ def test_unstack_timezone_aware_values():
 
 def test_stack_timezone_aware_values():
     # GH 19420
-    ts = pd.date_range(
-        freq="D", start="20180101", end="20180103", tz="America/New_York"
-    )
+    ts = date_range(freq="D", start="20180101", end="20180103", tz="America/New_York")
     df = DataFrame({"A": ts}, index=["a", "b", "c"])
     result = df.stack()
     expected = Series(
@@ -1931,3 +1937,25 @@ Thur,Lunch,Yes,51.51,17"""
         )
 
         tm.assert_index_equal(result, expected)
+
+    def test_stack_nan_in_multiindex_columns(self):
+        # GH#39481
+        df = DataFrame(
+            np.zeros([1, 5]),
+            columns=MultiIndex.from_tuples(
+                [
+                    (0, None, None),
+                    (0, 2, 0),
+                    (0, 2, 1),
+                    (0, 3, 0),
+                    (0, 3, 1),
+                ],
+            ),
+        )
+        result = df.stack(2)
+        expected = DataFrame(
+            [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
+            index=Index([(0, None), (0, 0), (0, 1)]),
+            columns=Index([(0, None), (0, 2), (0, 3)]),
+        )
+        tm.assert_frame_equal(result, expected)

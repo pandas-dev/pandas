@@ -1,15 +1,32 @@
 import functools
 import itertools
 import operator
-from typing import Any, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Timedelta, iNaT, lib
-from pandas._typing import ArrayLike, Dtype, DtypeObj, F, Scalar
+from pandas._libs import (
+    NaT,
+    Timedelta,
+    iNaT,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    F,
+    Scalar,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -30,7 +47,11 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+    notna,
+)
 
 from pandas.core.construction import extract_array
 
@@ -149,10 +170,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        if name in ["nansum", "nanprod"]:
-            return False
-
-        return True
+        return name not in ["nansum", "nanprod"]
     return False
 
 
@@ -184,14 +202,11 @@ def _get_fill_value(
             else:
                 return -np.inf
     else:
-        if fill_value_typ is None:
-            return iNaT
+        if fill_value_typ == "+inf":
+            # need the max int here
+            return np.iinfo(np.int64).max
         else:
-            if fill_value_typ == "+inf":
-                # need the max int here
-                return np.iinfo(np.int64).max
-            else:
-                return iNaT
+            return iNaT
 
 
 def _maybe_get_mask(
@@ -423,8 +438,6 @@ def _na_for_min_count(
     if is_numeric_dtype(values):
         values = values.astype("float64")
     fill_value = na_value_for_dtype(values.dtype)
-    if fill_value is NaT:
-        fill_value = values.dtype.type("NaT", "ns")
 
     if values.ndim == 1:
         return fill_value
@@ -433,8 +446,7 @@ def _na_for_min_count(
     else:
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
 
-        result = np.full(result_shape, fill_value, dtype=values.dtype)
-        return result
+        return np.full(result_shape, fill_value, dtype=values.dtype)
 
 
 def nanany(
@@ -1151,12 +1163,12 @@ def nanskew(
     if isinstance(result, np.ndarray):
         result = np.where(m2 == 0, 0, result)
         result[count < 3] = np.nan
-        return result
     else:
         result = 0 if m2 == 0 else result
         if count < 3:
             return np.nan
-        return result
+
+    return result
 
 
 @disallow("M8", "m8")

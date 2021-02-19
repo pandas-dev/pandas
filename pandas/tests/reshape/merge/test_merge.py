@@ -1,13 +1,18 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 import random
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
-from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -29,7 +34,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.merge import MergeError, merge
+from pandas.core.reshape.merge import (
+    MergeError,
+    merge,
+)
 
 N = 50
 NGROUPS = 8
@@ -2039,7 +2047,6 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 @pytest.mark.parametrize(
     "how,expected",
     [

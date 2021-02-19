@@ -1,4 +1,6 @@
 """ miscellaneous sorting / groupby utilities """
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -14,7 +16,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import algos, hashtable, lib
+from pandas._libs import (
+    algos,
+    hashtable,
+    lib,
+)
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import IndexKeyFunc
 
@@ -37,7 +43,7 @@ _INT64_MAX = np.iinfo(np.int64).max
 
 
 def get_indexer_indexer(
-    target: "Index",
+    target: Index,
     level: Union[str, int, List[str], List[int]],
     ascending: bool,
     kind: str,
@@ -418,8 +424,8 @@ def nargminmax(values, method: str):
 
 
 def _ensure_key_mapped_multiindex(
-    index: "MultiIndex", key: Callable, level=None
-) -> "MultiIndex":
+    index: MultiIndex, key: Callable, level=None
+) -> MultiIndex:
     """
     Returns a new MultiIndex in which key has been applied
     to all levels specified in level (or all levels if level
@@ -463,9 +469,7 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    labels = type(index).from_arrays(mapped)
-
-    return labels
+    return type(index).from_arrays(mapped)
 
 
 def ensure_key_mapped(values, key: Optional[Callable], levels=None):
@@ -515,7 +519,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 def get_flattened_list(
     comp_ids: np.ndarray,
     ngroups: int,
-    levels: Iterable["Index"],
+    levels: Iterable[Index],
     labels: Iterable[np.ndarray],
 ) -> List[Tuple]:
     """Map compressed group id -> key tuple."""
@@ -530,7 +534,7 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List["Index"]
+    label_list: List[np.ndarray], keys: List[Index]
 ) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
@@ -593,7 +597,7 @@ def compress_group_index(group_index, sort: bool = True):
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
-    size_hint = min(len(group_index), hashtable.SIZE_HINT_LIMIT)
+    size_hint = len(group_index)
     table = hashtable.Int64HashTable(size_hint)
 
     group_index = ensure_int64(group_index)

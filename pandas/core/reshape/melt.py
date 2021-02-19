@@ -1,27 +1,43 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, List, cast
+from typing import (
+    TYPE_CHECKING,
+    List,
+    cast,
+)
 import warnings
 
 import numpy as np
 
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import (
+    Appender,
+    deprecate_kwarg,
+)
 
-from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
+from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
+    is_list_like,
+)
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 @Appender(_shared_docs["melt"] % {"caller": "pd.melt(df, ", "other": "DataFrame.melt"})
@@ -33,7 +49,7 @@ def melt(
     value_name="value",
     col_level=None,
     ignore_index: bool = True,
-) -> "DataFrame":
+) -> DataFrame:
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
     if isinstance(frame.columns, MultiIndex):
@@ -141,7 +157,7 @@ def melt(
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)
-def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> "DataFrame":
+def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
@@ -237,7 +253,7 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> "DataF
 
 def wide_to_long(
     df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
-) -> "DataFrame":
+) -> DataFrame:
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 

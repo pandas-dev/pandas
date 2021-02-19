@@ -8,10 +8,14 @@ import time
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.mark.parametrize(
@@ -108,7 +112,7 @@ def test_compression_warning(compression_only):
     )
     with tm.ensure_clean() as path:
         with icom.get_handle(path, "w", compression=compression_only) as handles:
-            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(RuntimeWarning):
                 df.to_csv(handles.handle, compression=compression_only)
 
 

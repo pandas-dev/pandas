@@ -5,7 +5,10 @@ and latex files. This module also applies to display formatting.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from csv import QUOTE_NONE, QUOTE_NONNUMERIC
+from csv import (
+    QUOTE_NONE,
+    QUOTE_NONNUMERIC,
+)
 import decimal
 from functools import partial
 from io import StringIO
@@ -18,6 +21,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -32,11 +36,19 @@ from unicodedata import east_asian_width
 
 import numpy as np
 
-from pandas._config.config import get_option, set_option
+from pandas._config.config import (
+    get_option,
+    set_option,
+)
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
-from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    iNaT,
+)
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
@@ -47,7 +59,6 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     IndexLabel,
-    Label,
     StorageOptions,
 )
 
@@ -66,23 +77,39 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    PeriodIndex,
+    ensure_index,
+)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import stringify_path
-from pandas.io.formats.printing import adjoin, justify, pprint_thing
+from pandas.io.formats.printing import (
+    adjoin,
+    justify,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Series
+    from pandas import (
+        Categorical,
+        DataFrame,
+        Series,
+    )
 
 
 common_docstring = """
@@ -173,7 +200,7 @@ return_docstring = """
 class CategoricalFormatter:
     def __init__(
         self,
-        categorical: "Categorical",
+        categorical: Categorical,
         buf: Optional[IO[str]] = None,
         length: bool = True,
         na_rep: str = "NaN",
@@ -237,7 +264,7 @@ class CategoricalFormatter:
 class SeriesFormatter:
     def __init__(
         self,
-        series: "Series",
+        series: Series,
         buf: Optional[IO[str]] = None,
         length: Union[bool, str] = True,
         header: bool = True,
@@ -919,7 +946,7 @@ class DataFrameRenderer:
     Parameters
     ----------
     fmt : DataFrameFormatter
-        Formatter with the formating options.
+        Formatter with the formatting options.
     """
 
     def __init__(self, fmt: DataFrameFormatter):
@@ -989,7 +1016,10 @@ class DataFrameRenderer:
         render_links : bool, default False
             Convert URLs to HTML links.
         """
-        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
+        from pandas.io.formats.html import (
+            HTMLFormatter,
+            NotebookFormatter,
+        )
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
 
@@ -1032,7 +1062,7 @@ class DataFrameRenderer:
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         encoding: Optional[str] = None,
         sep: str = ",",
-        columns: Optional[Sequence[Label]] = None,
+        columns: Optional[Sequence[Hashable]] = None,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",
@@ -1347,11 +1377,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             def base_formatter(v):
                 assert float_format is not None  # for mypy
-                # pandas\io\formats\format.py:1411: error: "str" not callable
-                # [operator]
-
-                # pandas\io\formats\format.py:1411: error: Unexpected keyword
-                # argument "value" for "__call__" of "EngFormatter"  [call-arg]
+                # error: "str" not callable
+                # error: Unexpected keyword argument "value" for "__call__" of
+                # "EngFormatter"
                 return (
                     float_format(value=v)  # type: ignore[operator,call-arg]
                     if notna(v)
@@ -1502,7 +1530,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 class Datetime64Formatter(GenericArrayFormatter):
     def __init__(
         self,
-        values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
+        values: Union[np.ndarray, Series, DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
