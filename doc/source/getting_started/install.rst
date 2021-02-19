@@ -255,16 +255,24 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
-Visualization & computation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Visualization
+^^^^^^^^^^^^^
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 matplotlib                2.2.3              Plotting library
-SciPy                     1.12.0             Miscellaneous statistical functions
 Jinja2                    2.10               Conditional formatting with DataFrame.style
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
+========================= ================== =============================================================
+
+Computation
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+SciPy                     1.12.0             Miscellaneous statistical functions
 numba                     0.46.0             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
 xarray                    0.12.3             pandas-like API for N-dimensional data
