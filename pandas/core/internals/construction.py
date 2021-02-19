@@ -74,7 +74,7 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     union_indexes,
 )
-from pandas.core.internals.blocks import block_shape
+from pandas.core.internals.blocks import ensure_block_shape
 from pandas.core.internals.managers import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -288,7 +288,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
             block_values = [datelike_vals]
             block_values = [extract_array(x, extract_numpy=True) for x in block_values]
             if values.ndim == 2:
-                block_values = [block_shape(x, 2) for x in block_values]
+                block_values = [ensure_block_shape(x, 2) for x in block_values]
 
     else:
         block_values = [values]

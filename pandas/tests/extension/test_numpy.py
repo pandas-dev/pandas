@@ -24,12 +24,34 @@ from pandas.core.dtypes.dtypes import (
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
+from pandas.core.internals import blocks
 from pandas.tests.extension import base
 
 
 @pytest.fixture(params=["float", "object"])
 def dtype(request):
     return PandasDtype(np.dtype(request.param))
+
+
+orig_init = blocks.ExtensionBlock.__init__
+
+
+def __init__(self, values, placement, ndim):
+    if not isinstance(placement, blocks.libinternals.BlockPlacement):
+        placement = blocks.libinternals.BlockPlacement(placement)
+
+    # Maybe infer ndim from placement
+    if ndim is None:
+        if len(placement) != 1:
+            ndim = 1
+        else:
+            ndim = 2
+
+    if isinstance(values, PandasArray) and values.ndim > ndim:
+        assert values.shape[0] == 1
+        values = values[0]
+
+    orig_init(self, values, placement, ndim)
 
 
 @pytest.fixture
@@ -51,6 +73,7 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
+        m.setattr(blocks.ExtensionBlock, "__init__", __init__)
         yield
 
 
@@ -202,6 +225,22 @@ class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
             mark = pytest.mark.xfail(reason="raises in MultiIndex construction")
             request.node.add_marker(mark)
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping):
+        # We override just to change the expected dtype following expected.reset_index
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
+        result = df.groupby("B", as_index=as_index).A.mean()
+        _, index = pd.factorize(data_for_grouping, sort=True)
+
+        index = pd.Index(index, name="B")
+        expected = pd.Series([3, 1, 4], index=index, name="A")
+        if as_index:
+            self.assert_series_equal(result, expected)
+        else:
+            expected = expected.reset_index()
+            expected["B"] = expected["B"].astype(data_for_grouping.dtype)
+            self.assert_frame_equal(result, expected)
 
 
 class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
