@@ -925,7 +925,7 @@ class Styler:
         Examples
         --------
         >>> def highlight_max(x, color):
-        ...     return np.where(x == np.nanmax(x.values), f"color: {color};", None)
+        ...     return np.where(x == np.nanmax(x.to_numpy()), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2))
         >>> df.style.apply(highlight_max, color='red')
         >>> df.style.apply(highlight_max, color='blue', axis=1)
@@ -1657,7 +1657,7 @@ class Styler:
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
-            return np.where(pd.isna(data).values, props, "")
+            return np.where(pd.isna(data).to_numpy(), props, "")
 
         if props is None:
             props = f"background-color: {null_color};"
@@ -1703,7 +1703,7 @@ class Styler:
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmax(data.values), props, "")
+            return np.where(data == np.nanmax(data.to_numpy()), props, "")
 
         if props is None:
             props = f"background-color: {color};"
@@ -1749,7 +1749,7 @@ class Styler:
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmin(data.values), props, "")
+            return np.where(data == np.nanmin(data.to_numpy()), props, "")
 
         if props is None:
             props = f"background-color: {color};"
@@ -1931,8 +1931,9 @@ class Styler:
             else:
                 q, tgt_label = [0, q_high], 0
             if axis_ is None:
-                shape = data.values.shape
-                labels = pd.qcut(data.values.ravel(), q=q, labels=False).reshape(shape)
+                labels = pd.qcut(data.to_numpy().ravel(), q=q, labels=False).reshape(
+                    data.to_numpy().shape
+                )
             else:
                 labels = pd.qcut(data, q=q, labels=False)
             return np.where(labels == tgt_label, props, "")
