@@ -2520,5 +2520,7 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
 
-            values = np.asarray(values).reshape(1, -1)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ExtensionArray")
+            values = np.asarray(values).reshape(1, -1)  # type: ignore[assignment]
     return values
