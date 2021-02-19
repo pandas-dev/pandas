@@ -71,6 +71,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -167,6 +168,29 @@ def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scal
     elif isinstance(value, (np.timedelta64, timedelta)):
         value = Timedelta(value)
 
+    return value
+
+
+def maybe_box_native(value: Scalar) -> Scalar:
+    """
+    If passed a scalar cast the scalar to a python native type.
+
+    Parameters
+    ----------
+    value : scalar or Series
+
+    Returns
+    -------
+    scalar or Series
+    """
+    if is_datetime_or_timedelta_dtype(value):
+        value = maybe_box_datetimelike(value)
+    elif is_float(value):
+        value = float(value)
+    elif is_integer(value):
+        value = int(value)
+    elif is_bool(value):
+        value = bool(value)
     return value
 
 

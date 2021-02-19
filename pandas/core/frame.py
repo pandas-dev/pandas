@@ -95,7 +95,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
-    maybe_box_datetimelike,
+    maybe_box_native,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
@@ -1752,7 +1752,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(maybe_box_datetimelike, t))
+                            list(map(maybe_box_native, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1760,7 +1760,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, v) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1769,8 +1769,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
-                for row in rows
+                into_c((k, maybe_box_native(v)) for k, v in row.items()) for row in rows
             ]
 
         elif orient == "index":
