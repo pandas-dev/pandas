@@ -194,7 +194,7 @@ class TestCommon(Base):
             exp_warning = UserWarning
 
         # test nanosecond is preserved
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+        with tm.assert_produces_warning(exp_warning):
             result = func(ts)
         assert isinstance(result, Timestamp)
         if normalize is False:
@@ -231,7 +231,7 @@ class TestCommon(Base):
                 exp_warning = UserWarning
 
             # test nanosecond is preserved
-            with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            with tm.assert_produces_warning(exp_warning):
                 result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:
