@@ -180,3 +180,46 @@ def test_cross_type_arithmetic():
     result = df.A + df.B
     expected = pd.Series([2, np.nan, np.nan], dtype="Float64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "source, target",
+    [
+        ([1.1, 2.2, 3.3], [-1.1, -2.2, -3.3]),
+        ([1.1, 2.2, None], [-1.1, -2.2, None]),
+        ([-1.1, 0.0, 1.1], [1.1, 0.0, -1.1])
+    ]
+)
+def test_unary_minus_float(float_ea_dtype, source, target):
+    dtype = float_ea_dtype
+    arr = pd.array(source, dtype=dtype)
+    result = -arr
+    expected = pd.array(target, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [[1.1, 2.2, 3.3], [1.1, 2.2, None], [-1.1, 0.0, 1]]
+)
+def test_unary_plus_float(float_ea_dtype, source):
+    dtype = float_ea_dtype
+    expected = pd.array(source, dtype=dtype)
+    result = +expected
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "source, target",
+    [
+        ([1.1, 2.2, 3.3], [1.1, 2.2, 3.3]),
+        ([1.1, -2.2, None], [1.1, 2.2, None]),
+        ([-1.1, 0.0, 1.1], [1.1, 0.0, 1.1])
+    ]
+)
+def test_unary_abs_float(float_ea_dtype, source, target):
+    dtype = float_ea_dtype
+    arr = pd.array(source, dtype=dtype)
+    result = abs(arr)
+    expected = pd.array(target, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
