@@ -5,7 +5,12 @@ benchmarks.tslibs.timedelta for benchmarks that rely only on tslibs.
 
 import numpy as np
 
-from pandas import DataFrame, Series, timedelta_range, to_timedelta
+from pandas import (
+    DataFrame,
+    Series,
+    timedelta_range,
+    to_timedelta,
+)
 
 
 class ToTimedelta:

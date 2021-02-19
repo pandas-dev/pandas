@@ -6,10 +6,18 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-from pandas.util._test_decorators import async_mark, skip_if_no
+from pandas.util._test_decorators import (
+    async_mark,
+    skip_if_no,
+)
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range, timedelta_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 
@@ -65,7 +73,7 @@ class TestDataFrameMisc:
         df = DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
         for key in list("ABCD"):
             assert key in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.Series)
+        assert isinstance(df.__getitem__("A"), Series)
 
         # DataFrame whose first-level columns are identifiers shall have
         # them in __dir__.
@@ -77,7 +85,7 @@ class TestDataFrameMisc:
             assert key in dir(df)
         for key in list("EFGH"):
             assert key not in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.DataFrame)
+        assert isinstance(df.__getitem__("A"), DataFrame)
 
     def test_not_hashable(self):
         empty_frame = DataFrame()

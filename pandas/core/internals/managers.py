@@ -19,12 +19,23 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
+from pandas._libs import (
+    internals as libinternals,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    Shape,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_dtype_equal,
@@ -32,14 +43,25 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import array_equals, isna
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCPandasArray,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    array_equals,
+    isna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Float64Index, Index, ensure_index
+from pandas.core.indexes.api import (
+    Float64Index,
+    Index,
+    ensure_index,
+)
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
@@ -47,12 +69,15 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
+    ensure_block_shape,
     extend_blocks,
     get_block_type,
     make_block,
-    safe_reshape,
 )
-from pandas.core.internals.ops import blockwise_all, operate_blockwise
+from pandas.core.internals.ops import (
+    blockwise_all,
+    operate_blockwise,
+)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -1017,7 +1042,7 @@ class BlockManager(DataManager):
                 value = value.T
 
             if value.ndim == self.ndim - 1:
-                value = safe_reshape(value, (1,) + value.shape)
+                value = ensure_block_shape(value, ndim=2)
 
                 def value_getitem(placement):
                     return value
@@ -1140,10 +1165,9 @@ class BlockManager(DataManager):
 
         if value.ndim == 2:
             value = value.T
-
-        if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+        elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
-            value = safe_reshape(value, (1,) + value.shape)
+            value = ensure_block_shape(value, ndim=2)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 

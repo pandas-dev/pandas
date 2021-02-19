@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, Timestamp, isna, notna
+from pandas import (
+    Series,
+    Timestamp,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 
 

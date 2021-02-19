@@ -8,7 +8,10 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 _msg_validate_usecols_arg = (

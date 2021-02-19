@@ -2,9 +2,20 @@
 # JSON normalization routines
 from __future__ import annotations
 
-from collections import abc, defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import copy
-from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 

@@ -1,14 +1,23 @@
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 from dateutil.tz import tzoffset
 import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas._libs import iNaT, lib
+from pandas._libs import (
+    iNaT,
+    lib,
+)
 
-from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -31,7 +40,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray, period_array
+from pandas.core.arrays import (
+    IntervalArray,
+    period_array,
+)
 from pandas.core.internals.blocks import NumericBlock
 
 
@@ -1306,7 +1318,7 @@ class TestSeriesConstructors:
             td.astype("int64")
 
         # invalid casting
-        msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to \[int32\]"
+        msg = r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to \[int32\]"
         with pytest.raises(TypeError, match=msg):
             td.astype("int32")
 

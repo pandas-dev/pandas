@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Hashable, List, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -10,7 +18,10 @@ from pandas._config.config import option_context
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.errors import AbstractMethodError, InvalidIndexError
+from pandas.errors import (
+    AbstractMethodError,
+    InvalidIndexError,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -26,8 +37,15 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
-from pandas.core.dtypes.missing import infer_fill_value, isna
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCMultiIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    infer_fill_value,
+    isna,
+)
 
 import pandas.core.common as com
 from pandas.core.construction import array as pd_array
@@ -40,7 +58,10 @@ from pandas.core.indexers import (
 from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 # "null slice"
 _NS = slice(None, None)
@@ -2382,57 +2403,3 @@ def need_slice(obj) -> bool:
         or obj.stop is not None
         or (obj.step is not None and obj.step != 1)
     )
-
-
-def non_reducing_slice(slice_):
-    """
-    Ensure that a slice doesn't reduce to a Series or Scalar.
-
-    Any user-passed `subset` should have this called on it
-    to make sure we're always working with DataFrames.
-    """
-    # default to column slice, like DataFrame
-    # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
-    kinds = (ABCSeries, np.ndarray, Index, list, str)
-    if isinstance(slice_, kinds):
-        slice_ = IndexSlice[:, slice_]
-
-    def pred(part) -> bool:
-        """
-        Returns
-        -------
-        bool
-            True if slice does *not* reduce,
-            False if `part` is a tuple.
-        """
-        # true when slice does *not* reduce, False when part is a tuple,
-        # i.e. MultiIndex slice
-        if isinstance(part, tuple):
-            # GH#39421 check for sub-slice:
-            return any((isinstance(s, slice) or is_list_like(s)) for s in part)
-        else:
-            return isinstance(part, slice) or is_list_like(part)
-
-    if not is_list_like(slice_):
-        if not isinstance(slice_, slice):
-            # a 1-d slice, like df.loc[1]
-            slice_ = [[slice_]]
-        else:
-            # slice(a, b, c)
-            slice_ = [slice_]  # to tuplize later
-    else:
-        slice_ = [part if pred(part) else [part] for part in slice_]
-    return tuple(slice_)
-
-
-def maybe_numeric_slice(df, slice_, include_bool: bool = False):
-    """
-    Want nice defaults for background_gradient that don't break
-    with non-numeric data. But if slice_ is passed go with that.
-    """
-    if slice_ is None:
-        dtypes = [np.number]
-        if include_bool:
-            dtypes.append(bool)
-        slice_ = IndexSlice[:, df.select_dtypes(include=dtypes).columns]
-    return slice_

@@ -6,7 +6,10 @@ from pandas._libs import index as libindex
 import pandas as pd
 from pandas import Categorical
 import pandas._testing as tm
-from pandas.core.indexes.api import CategoricalIndex, Index
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+)
 from pandas.tests.indexes.common import Base
 
 

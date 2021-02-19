@@ -8,6 +8,16 @@ including other versions of pandas.
 
 {{ header }}
 
+.. warning::
+
+   When reading new Excel 2007+ (``.xlsx``) files, the default argument
+   ``engine=None`` to :func:`~pandas.read_excel` will now result in using the
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_ engine in all cases
+   when the option :attr:`io.excel.xlsx.reader` is set to ``"auto"``.
+   Previously, some cases would use the
+   `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ engine instead. See
+   :ref:`What's new 1.2.0 <whatsnew_120>` for background on this change.
+
 .. ---------------------------------------------------------------------------
 
 Enhancements
@@ -55,7 +65,8 @@ Other enhancements
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
 - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`)
 - :meth:`.Styler.set_tooltips_class` and :meth:`.Styler.set_table_styles` amended to optionally allow certain css-string input arguments (:issue:`39564`)
-- :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None``. (:issue:`39359`)
+- :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None`` (:issue:`39359`)
+- :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if wrong format CSS is passed on render (:issue:`39660`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
@@ -164,6 +175,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | mypy (dev)      | 0.800           |          |    X    |
 +-----------------+-----------------+----------+---------+
+| setuptools      | 38.6.0          |          |    X    |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -186,7 +199,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | numba           | 0.46.0          |         |
 +-----------------+-----------------+---------+
-| openpyxl        | 2.6.0           |         |
+| openpyxl        | 3.0.0           |    X    |
 +-----------------+-----------------+---------+
 | pyarrow         | 0.15.0          |         |
 +-----------------+-----------------+---------+
@@ -239,7 +252,7 @@ Deprecations
 - Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
 - Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
--
+- Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
 
 .. ---------------------------------------------------------------------------
 
@@ -312,6 +325,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
 -
 -
 
@@ -346,7 +360,9 @@ Indexing
 - Bug in setting ``timedelta64`` or ``datetime64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`, issue:`39619`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
 - Bug in setting ``datetime64`` values into a :class:`Series` with integer-dtype incorrect casting the datetime64 values to integers (:issue:`39266`)
+- Bug in setting ``np.datetime64("NaT")`` into a :class:`Series` with :class:`Datetime64TZDtype` incorrectly treating the timezone-naive value as timezone-aware (:issue:`39769`)
 - Bug in :meth:`Index.get_loc` not raising ``KeyError`` when method is specified for ``NaN`` value when ``NaN`` is not in :class:`Index` (:issue:`39382`)
+- Bug in :meth:`DatetimeIndex.insert` when inserting ``np.datetime64("NaT")`` into a timezone-aware index incorrectly treating the timezone-naive value as timezone-aware (:issue:`39769`)
 - Bug in incorrectly raising in :meth:`Index.insert`, when setting a new column that cannot be held in the existing ``frame.columns``, or in :meth:`Series.reset_index` or :meth:`DataFrame.reset_index` instead of casting to a compatible dtype (:issue:`39068`)
 - Bug in :meth:`RangeIndex.append` where a single object of length 1 was concatenated incorrectly (:issue:`39401`)
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
@@ -460,6 +476,7 @@ Other
 - Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
 - Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
 - :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
+- Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 
 
