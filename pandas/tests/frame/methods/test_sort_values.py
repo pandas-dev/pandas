@@ -845,7 +845,7 @@ class TestSortValuesLevelAsStr:
         if len(levels) > 1:
             # Accessing multi-level columns that are not lexsorted raises a
             # performance warning
-            with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(PerformanceWarning):
                 tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)

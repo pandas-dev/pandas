@@ -669,7 +669,7 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
 
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
 

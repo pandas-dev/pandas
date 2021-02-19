@@ -227,7 +227,7 @@ def test_suppress_future_warning_with_sort_kw(sort_kw):
     if sort_kw is False:
         expected = expected.reindex(index=["c", "a", "b"])
 
-    with tm.assert_produces_warning(None, check_stacklevel=False):
+    with tm.assert_produces_warning(None):
         result = a.join([b, c], how="outer", sort=sort_kw)
     tm.assert_frame_equal(result, expected)
 

@@ -92,7 +92,7 @@ class TestFancy:
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
         with pytest.raises(potential_errors, match=msg):
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(DeprecationWarning):
                 idxr[nd3]
 
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
