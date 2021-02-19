@@ -16,6 +16,7 @@ from pandas.io.formats.style import (  # isort:skip
     Styler,
     _get_level_lengths,
     _maybe_convert_css_to_tuples,
+    _non_reducing_slice,
 )
 
 
@@ -1835,6 +1836,93 @@ class TestStyler:
 </table>
 """
         assert expected == s.render()
+
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            pd.IndexSlice[:, :],
+            pd.IndexSlice[:, 1],
+            pd.IndexSlice[1, :],
+            pd.IndexSlice[[1], [1]],
+            pd.IndexSlice[1, [1]],
+            pd.IndexSlice[[1], 1],
+            pd.IndexSlice[1],
+            pd.IndexSlice[1, 1],
+            slice(None, None, None),
+            [0, 1],
+            np.array([0, 1]),
+            pd.Series([0, 1]),
+        ],
+    )
+    def test_non_reducing_slice(self, slc):
+        df = DataFrame([[0, 1], [2, 3]])
+
+        tslice_ = _non_reducing_slice(slc)
+        assert isinstance(df.loc[tslice_], DataFrame)
+
+    @pytest.mark.parametrize("box", [list, pd.Series, np.array])
+    def test_list_slice(self, box):
+        # like dataframe getitem
+        subset = box(["A"])
+
+        df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
+        expected = pd.IndexSlice[:, ["A"]]
+
+        result = _non_reducing_slice(subset)
+        tm.assert_frame_equal(df.loc[result], df.loc[expected])
+
+    def test_non_reducing_slice_on_multiindex(self):
+        # GH 19861
+        dic = {
+            ("a", "d"): [1, 4],
+            ("a", "c"): [2, 3],
+            ("b", "c"): [3, 2],
+            ("b", "d"): [4, 1],
+        }
+        df = DataFrame(dic, index=[0, 1])
+        idx = pd.IndexSlice
+        slice_ = idx[:, idx["b", "d"]]
+        tslice_ = _non_reducing_slice(slice_)
+
+        result = df.loc[tslice_]
+        expected = DataFrame({("b", "d"): [4, 1]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "slice_",
+        [
+            pd.IndexSlice[:, :],
+            # check cols
+            pd.IndexSlice[:, pd.IndexSlice[["a"]]],  # inferred deeper need list
+            pd.IndexSlice[:, pd.IndexSlice[["a"], ["c"]]],  # inferred deeper need list
+            pd.IndexSlice[:, pd.IndexSlice["a", "c", :]],
+            pd.IndexSlice[:, pd.IndexSlice["a", :, "e"]],
+            pd.IndexSlice[:, pd.IndexSlice[:, "c", "e"]],
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d"], :]],  # check list
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], :]],  # allow missing
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], "e"]],  # no slice
+            # check rows
+            pd.IndexSlice[pd.IndexSlice[["U"]], :],  # inferred deeper need list
+            pd.IndexSlice[pd.IndexSlice[["U"], ["W"]], :],  # inferred deeper need list
+            pd.IndexSlice[pd.IndexSlice["U", "W", :], :],
+            pd.IndexSlice[pd.IndexSlice["U", :, "Y"], :],
+            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], :],
+            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z"]], :],  # check list
+            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # allow missing
+            pd.IndexSlice[pd.IndexSlice["U", "W", ["Y", "Z", "-"]], :],  # no slice
+            # check simultaneous
+            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], pd.IndexSlice["a", "c", :]],
+        ],
+    )
+    def test_non_reducing_multi_slice_on_multiindex(self, slice_):
+        # GH 33562
+        cols = pd.MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
+        idxs = pd.MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
+        df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
+
+        expected = df.loc[slice_]
+        result = df.loc[_non_reducing_slice(slice_)]
+        tm.assert_frame_equal(result, expected)
 
 
 @td.skip_if_no_mpl
