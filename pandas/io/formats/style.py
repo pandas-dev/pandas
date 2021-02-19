@@ -1645,11 +1645,11 @@ class Styler:
 
         See Also
         --------
-        Styler.highlight_null: Highlight missing values with a style
-        Styler.highlight_max: Highlight the maximum with a style
-        Styler.highlight_min: Highlight the minimum with a style
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style
-        Styler.highlight_range: Highlight a defined range with a style
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+        Styler.highlight_range: Highlight a defined range with a style.
 
         Notes
         -----
@@ -1695,11 +1695,11 @@ class Styler:
 
         See Also
         --------
-        Styler.highlight_null: Highlight missing values with a style
-        Styler.highlight_max: Highlight the maximum with a style
-        Styler.highlight_min: Highlight the minimum with a style
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style
-        Styler.highlight_range: Highlight a defined range with a style
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+        Styler.highlight_range: Highlight a defined range with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1741,11 +1741,11 @@ class Styler:
 
         See Also
         --------
-        Styler.highlight_null: Highlight missing values with a style
-        Styler.highlight_max: Highlight the maximum with a style
-        Styler.highlight_min: Highlight the minimum with a style
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style
-        Styler.highlight_range: Highlight a defined range with a style
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+        Styler.highlight_range: Highlight a defined range with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1765,7 +1765,7 @@ class Styler:
         props: Optional[str] = None,
     ) -> Styler:
         """
-        Highlight a defined range with a style
+        Highlight a defined range with a style.
 
         .. versionadded:: 1.3.0
 
@@ -1793,11 +1793,11 @@ class Styler:
 
         See Also
         --------
-        Styler.highlight_null: Highlight missing values with a style
-        Styler.highlight_max: Highlight the maximum with a style
-        Styler.highlight_min: Highlight the minimum with a style
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style
-        Styler.highlight_range: Highlight a defined range with a style
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+        Styler.highlight_range: Highlight a defined range with a style.
 
         Notes
         -----
@@ -1866,7 +1866,7 @@ class Styler:
         props: Optional[str] = None,
     ) -> Styler:
         """
-        Highlight values defined by a quantile with a style
+        Highlight values defined by a quantile with a style.
 
         .. versionadded:: 1.3.0
 
@@ -1895,11 +1895,11 @@ class Styler:
 
         See Also
         --------
-        Styler.highlight_null: Highlight missing values with a style
-        Styler.highlight_max: Highlight the maximum with a style
-        Styler.highlight_min: Highlight the minimum with a style
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style
-        Styler.highlight_range: Highlight a defined range with a style
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+        Styler.highlight_range: Highlight a defined range with a style.
 
         Notes
         -----
