@@ -70,6 +70,7 @@ Other enhancements
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
+- Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
 
 .. ---------------------------------------------------------------------------
 
@@ -466,7 +467,6 @@ ExtensionArray
 
 - Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with :class:`ExtensionArray` dtype (:issue:`38729`)
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
-- Bug in :class:`FloatingArray` raises ``TypeError`` when trying to apply a negative operator (:issue:`38749`)
 -
 
 Other
