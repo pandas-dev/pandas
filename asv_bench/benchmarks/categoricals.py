@@ -220,7 +220,7 @@ class Rank:
         self.s_int_cat_ordered.rank()
 
 
-class Isin:
+class IsInCategorical:
 
     params = ["object", "int64"]
     param_names = ["dtype"]
@@ -232,11 +232,11 @@ class Isin:
         arr = list(np.random.randint(0, n // 10, size=n))
         if dtype == "object":
             arr = [f"s{i:04d}" for i in arr]
-        self.sample = np.random.choice(arr, sample_size)
+        self.values = np.random.choice(arr, sample_size)
         self.series = pd.Series(arr).astype("category")
 
-    def time_isin_categorical(self, dtype):
-        self.series.isin(self.sample)
+    def time_isin(self, dtype):
+        self.series.isin(self.values)
 
 
 class IsMonotonic:

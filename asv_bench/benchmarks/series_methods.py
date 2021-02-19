@@ -32,112 +32,129 @@ class SeriesConstructor:
 
 class IsIn:
 
-    params = ["int64", "uint64", "object", "Int64"]
+    params = ["int64", "uint64", "object", "Int64", "boolean", "bool"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
         N = 10000
-        self.s = Series(np.random.randint(1, 10, N)).astype(dtype)
-        self.values = [1, 2]
+        if dtype in ["boolean", "bool"]:
+            self.series = Series(np.random.randint(0, 2, N)).astype(dtype)
+            self.values = [True, False]
+        else:
+            self.series = Series(np.random.randint(1, 10, N)).astype(dtype)
+            self.values = [1, 2]
 
-    def time_isin(self, dtypes):
-        self.s.isin(self.values)
-
-
-class IsInBoolean:
-
-    params = ["boolean", "bool"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        N = 10000
-        self.s = Series(np.random.randint(0, 2, N)).astype(dtype)
-        self.values = [True, False]
-
-    def time_isin(self, dtypes):
-        self.s.isin(self.values)
+    def time_isin(self, dtype):
+        self.series.isin(self.values)
 
 
 class IsInDatetime64:
-    def setup(self):
+
+    params = ["subset", "subset_categorical"]
+    param_names = ["title"]
+
+    def setup(self, title):
         dti = date_range(
             start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
         )
-        self.ser = Series(dti)
-        self.subset = self.ser._values[::3]
-        self.cat_subset = Categorical(self.subset)
+        self.series = Series(dti)
 
-    def time_isin(self):
-        self.ser.isin(self.subset)
+        subset = self.series._values[::3]
+        if title == "subset":
+            self.values = subset
+        elif title == "subset_categorical":
+            self.values = Categorical(subset)
+        else:
+            raise ValueError(title)
 
-    def time_isin_cat_values(self):
-        self.ser.isin(self.cat_subset)
+    def time_isin(self, title):
+        self.series.isin(self.values)
 
-    def time_isin_mismatched_dtype(self):
-        self.ser.isin([1, 2])
+    def time_isin_mismatched_dtype(self, title):
+        self.series.isin([1, 2])
 
-    def time_isin_empty(self):
-        self.ser.isin([])
+    def time_isin_empty(self, title):
+        self.series.isin([])
 
 
 class IsInFloat64:
 
-    params = [np.float64, "Float64"]
-    param_names = ["dtype"]
+    params = [
+        [np.float64, "Float64"],
+        ["many_different_values", "few_different_values", "only_nans_values"],
+    ]
+    param_names = ["dtype", "title"]
 
-    def setup(self, dtype):
+    def setup(self, dtype, title):
         N_many = 10 ** 5
         N_few = 10 ** 6
-        self.small = Series([1, 2], dtype=dtype)
-        self.many_different_values = np.arange(N_many, dtype=np.float64)
-        self.few_different_values = np.zeros(N_few, dtype=np.float64)
-        self.only_nans_values = np.full(N_few, np.nan, dtype=np.float64)
+        self.series = Series([1, 2], dtype=dtype)
 
-    def time_isin_many_different(self, dtypes):
-        # runtime is dominated by creation of the lookup-table
-        self.small.isin(self.many_different_values)
+        if title == "many_different_values":
+            # runtime is dominated by creation of the lookup-table
+            self.values = np.arange(N_many, dtype=np.float64)
+        elif title == "few_different_values":
+            # runtime is dominated by creation of the lookup-table
+            self.values = np.zeros(N_few, dtype=np.float64)
+        elif title == "only_nans_values":
+            # runtime is dominated by creation of the lookup-table
+            self.values = np.full(N_few, np.nan, dtype=np.float64)
+        else:
+            raise ValueError(title)
 
-    def time_isin_few_different(self, dtypes):
-        # runtime is dominated by creation of the lookup-table
-        self.small.isin(self.few_different_values)
-
-    def time_isin_nan_values(self, dtypes):
-        # runtime is dominated by creation of the lookup-table
-        self.small.isin(self.few_different_values)
+    def time_isin(self):
+        self.series.isin(self.values)
 
 
 class IsInForObjects:
-    def setup(self):
-        self.s_nans = Series(np.full(10 ** 4, np.nan)).astype(object)
-        self.vals_nans = np.full(10 ** 4, np.nan).astype(object)
-        self.s_short = Series(np.arange(2)).astype(object)
-        self.s_long = Series(np.arange(10 ** 5)).astype(object)
-        self.vals_short = np.arange(2).astype(object)
-        self.vals_long = np.arange(10 ** 5).astype(object)
-        # because of nans floats are special:
-        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float_)).astype(object)
-        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float_).astype(object)
+    """
+    A subset of the cartesian product of cases have special motivations:
 
-    def time_isin_nans(self):
-        # if nan-objects are different objects,
-        # this has the potential to trigger O(n^2) running time
-        self.s_nans.isin(self.vals_nans)
+    "nans" x "nans"
+        if nan-objects are different objects,
+        this has the potential to trigger O(n^2) running time
 
-    def time_isin_short_series_long_values(self):
-        # running time dominated by the preprocessing
-        self.s_short.isin(self.vals_long)
+    "short" x "long"
+        running time dominated by the preprocessing
 
-    def time_isin_long_series_short_values(self):
-        # running time dominated by look-up
-        self.s_long.isin(self.vals_short)
+    "long" x "short"
+        running time dominated by look-up
 
-    def time_isin_long_series_long_values(self):
-        # no dominating part
-        self.s_long.isin(self.vals_long)
+    "long" x "long"
+        no dominating part
 
-    def time_isin_long_series_long_values_floats(self):
-        # no dominating part
-        self.s_long_floats.isin(self.vals_long_floats)
+    "long_floats" x "long_floats"
+        because of nans floats are special
+        no dominating part
+
+    """
+
+    variants = ["nans", "short", "long", "long_floats"]
+
+    params = [variants, variants]
+    param_names = ["ser_type", "vals_type"]
+
+    def setup(self, ser_type, vals_type):
+        if ser_type == "nans":
+            self.series = Series(np.full(10 ** 4, np.nan)).astype(object)
+        elif ser_type == "short":
+            self.series = Series(np.arange(2)).astype(object)
+        elif ser_type == "long":
+            self.series = Series(np.arange(10 ** 5)).astype(object)
+        elif ser_type == "long_floats":
+            self.series = Series(np.arange(10 ** 5, dtype=np.float_)).astype(object)
+
+        if vals_type == "nans":
+            self.values = np.full(10 ** 4, np.nan).astype(object)
+        elif vals_type == "short":
+            self.values = np.arange(2).astype(object)
+        elif vals_type == "long":
+            self.values = np.arange(10 ** 5).astype(object)
+        elif vals_type == "long_floats":
+            self.values = np.arange(10 ** 5, dtype=np.float_).astype(object)
+
+    def time_isin(self, ser_type, vals_type):
+        self.series.isin(self.values)
 
 
 class IsInLongSeriesLookUpDominates:

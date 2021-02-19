@@ -7,22 +7,26 @@ class IsinAlmostFullWithRandomInt:
     params = [
         [np.float64, np.int64, np.uint64, np.object],
         range(10, 21),
+        ["inside", "outside"],
     ]
-    param_names = ["dtype", "exponent"]
+    param_names = ["dtype", "exponent", "title"]
 
-    def setup(self, dtype, exponent):
+    def setup(self, dtype, exponent, title):
         M = 3 * 2 ** (exponent - 2)
         # 0.77-the maximal share of occupied buckets
         np.random.seed(42)
-        self.s = pd.Series(np.random.randint(0, M, M)).astype(dtype)
-        self.values = np.random.randint(0, M, M).astype(dtype)
-        self.values_outside = self.values + M
+        self.series = pd.Series(np.random.randint(0, M, M)).astype(dtype)
 
-    def time_isin(self, dtype, exponent):
-        self.s.isin(self.values)
+        values = np.random.randint(0, M, M).astype(dtype)
+        if title == "inside":
+            self.values = values
+        elif title == "outside":
+            self.values = values + M
+        else:
+            raise ValueError(title)
 
-    def time_isin_outside(self, dtype, exponent):
-        self.s.isin(self.values_outside)
+    def time_isin(self, dtype, exponent, title):
+        self.series.isin(self.values)
 
 
 class UniqueForLargePyObjectInts:
@@ -47,21 +51,21 @@ class IsinWithRandomFloat:
             750_000,
             900_000,
         ],
+        ["inside", "outside"],
     ]
-    param_names = ["dtype", "M"]
+    param_names = ["dtype", "size", "title"]
 
-    def setup(self, dtype, M):
+    def setup(self, dtype, size, title):
         np.random.seed(42)
-        self.values = np.random.rand(M)
-        self.s = pd.Series(self.values).astype(dtype)
+        self.values = np.random.rand(size)
+        self.series = pd.Series(self.values).astype(dtype)
         np.random.shuffle(self.values)
-        self.values_outside = self.values + 0.1
 
-    def time_isin(self, dtype, M):
-        self.s.isin(self.values)
+        if title == "outside":
+            self.values = self.values + 0.1
 
-    def time_isin_outside(self, dtype, M):
-        self.s.isin(self.values_outside)
+    def time_isin(self, dtype, size, title):
+        self.series.isin(self.values)
 
 
 class IsinWithArangeSorted:
@@ -75,14 +79,14 @@ class IsinWithArangeSorted:
             1_000_000,
         ],
     ]
-    param_names = ["dtype", "M"]
+    param_names = ["dtype", "size"]
 
-    def setup(self, dtype, M):
-        self.s = pd.Series(np.arange(M)).astype(dtype)
-        self.values = np.arange(M).astype(dtype)
+    def setup(self, dtype, size):
+        self.series = pd.Series(np.arange(size)).astype(dtype)
+        self.values = np.arange(size).astype(dtype)
 
-    def time_isin(self, dtype, M):
-        self.s.isin(self.values)
+    def time_isin(self, dtype, size):
+        self.series.isin(self.values)
 
 
 class IsinWithArange:
@@ -101,11 +105,11 @@ class IsinWithArange:
         offset = int(M * offset_factor)
         np.random.seed(42)
         tmp = pd.Series(np.random.randint(offset, M + offset, 10 ** 6))
-        self.s = tmp.astype(dtype)
+        self.series = tmp.astype(dtype)
         self.values = np.arange(M).astype(dtype)
 
     def time_isin(self, dtype, M, offset_factor):
-        self.s.isin(self.values)
+        self.series.isin(self.values)
 
 
 class Float64GroupIndex:
