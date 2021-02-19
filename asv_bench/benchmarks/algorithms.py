@@ -5,7 +5,6 @@ import numpy as np
 from pandas._libs import lib
 
 import pandas as pd
-from pandas.core.arrays.string_arrow import ArrowStringDtype
 
 from .pandas_vb_common import tm
 
@@ -53,6 +52,8 @@ class Factorize:
         N = 10 ** 5
         string_index = tm.makeStringIndex(N)
         try:
+            from pandas.core.arrays.string_arrow import ArrowStringDtype
+
             string_arrow = pd.array(string_index, dtype=ArrowStringDtype())
         except ImportError:
             string_arrow = None
