@@ -22,20 +22,17 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.arrays.string_arrow import ArrowStringDtype
 from pandas.tests.extension import base
 
 
 @pytest.fixture(
     params=[
-        StringDtype,
-        pytest.param(
-            ArrowStringDtype, marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        "python",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
     ]
 )
 def dtype(request):
-    return request.param()
+    return StringDtype(storage=request.param)
 
 
 @pytest.fixture
@@ -81,7 +78,7 @@ class TestDtype(base.BaseDtypeTests):
 
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
-        if isinstance(data.dtype, ArrowStringDtype):
+        if data.dtype.storage == "pyarrow":
             mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_view(data)
@@ -92,8 +89,8 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_transpose(self, data, dtype, request):
-        if isinstance(dtype, ArrowStringDtype):
+    def test_transpose(self, data, request):
+        if data.dtype.storage == "pyarrow":
             mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_transpose(data)
@@ -104,8 +101,8 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    def test_setitem_preserves_views(self, data, dtype, request):
-        if isinstance(dtype, ArrowStringDtype):
+    def test_setitem_preserves_views(self, data, request):
+        if data.dtype.storage == "pyarrow":
             mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_setitem_preserves_views(data)

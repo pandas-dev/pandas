@@ -29,7 +29,8 @@ def test_config():
         arr = pd.array(["a", "b"])
         assert arr.dtype.storage == "pyarrow"
 
-    with pytest.raises(ValueError):
+    msg = re.escape("Value must be one of python|pyarrow")
+    with pytest.raises(ValueError, match=msg):
         pd.options.mode.string_storage = "foo"
 
 

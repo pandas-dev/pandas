@@ -52,6 +52,8 @@ from pandas.core.missing import isna
 if TYPE_CHECKING:
     import pyarrow
 
+    from pandas.core.arrays.string_arrow import ArrowStringArray
+
 
 @register_extension_dtype
 class StringDtype(ExtensionDtype):
@@ -157,8 +159,12 @@ class StringDtype(ExtensionDtype):
         # custom __eq__ so have to override __hash__
         return super().__hash__()
 
-    # XXX: this is a classmethod, but we need to know the storage type.
-    def construct_array_type(self) -> Type[StringArray]:
+    # TODO: this is a classmethod, but we need to know the storage type.
+    # error: Signature of "construct_array_type" incompatible with supertype
+    # "ExtensionDtype"
+    def construct_array_type(  # type: ignore[override]
+        self,
+    ) -> Type[StringArray | ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -178,7 +184,7 @@ class StringDtype(ExtensionDtype):
 
     def __from_arrow__(
         self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
-    ) -> StringArray:
+    ) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
