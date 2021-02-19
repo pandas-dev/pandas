@@ -7,7 +7,10 @@ which here returns a DataFrameGroupBy object.
 """
 from __future__ import annotations
 
-from collections import abc, namedtuple
+from collections import (
+    abc,
+    namedtuple,
+)
 import copy
 from functools import partial
 from textwrap import dedent
@@ -32,9 +35,20 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, reduction as libreduction
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
-from pandas.util._decorators import Appender, Substitution, doc
+from pandas._libs import (
+    lib,
+    reduction as libreduction,
+)
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+)
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -46,23 +60,36 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
+    is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import algorithms, nanops
+from pandas.core import (
+    algorithms,
+    nanops,
+)
 from pandas.core.aggregation import (
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.base import DataError, SpecificationError
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+from pandas.core.base import (
+    DataError,
+    SpecificationError,
+)
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -76,7 +103,11 @@ from pandas.core.groupby.groupby import (
     get_groupby,
     group_selection_context,
 )
-from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    all_indexes_same,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
@@ -565,7 +596,7 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        out = algorithms.take_1d(result._values, ids)
+        out = algorithms.take_nd(result._values, ids)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -579,6 +610,12 @@ class SeriesGroupBy(GroupBy[Series]):
             To apply to each group. Should return True or False.
         dropna : Drop groups that do not pass the filter. True by default;
             if False, groups that evaluate False are filled with NaNs.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
@@ -962,8 +999,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func = maybe_mangle_lambdas(func)
 
         op = GroupByApply(self, func, args, kwargs)
-        result, how = op.agg()
-        if how is None:
+        result = op.agg()
+        if not is_dict_like(func) and result is not None:
             return result
 
         if result is None:
@@ -982,8 +1019,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result, _ = GroupByApply(
-                        self, [func], args=(), kwds={"_axis": self.axis}
+                    result = GroupByApply(
+                        self, [func], args=(), kwargs={"_axis": self.axis}
                     ).agg()
 
                     # select everything except for the last level, which is the one
@@ -1102,11 +1139,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             assert isinstance(result, (Series, DataFrame))  # for mypy
             mgr = result._mgr
             assert isinstance(mgr, BlockManager)
-            assert len(mgr.blocks) == 1
 
             # unwrap DataFrame to get array
-            result = mgr.blocks[0].values
-            return result
+            if len(mgr.blocks) != 1:
+                # We've split an object block! Everything we've assumed
+                # about a single block input returning a single block output
+                # is a lie. See eg GH-39329
+                return mgr.as_array()
+            else:
+                result = mgr.blocks[0].values
+                return result
 
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
@@ -1408,7 +1450,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
-            algorithms.take_1d(result.iloc[:, i].values, ids)
+            algorithms.take_nd(result.iloc[:, i].values, ids)
             for i, _ in enumerate(result.columns)
         ]
 
@@ -1500,6 +1542,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -----
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------

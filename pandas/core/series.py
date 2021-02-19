@@ -25,7 +25,12 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs import (
+    lib,
+    properties,
+    reshape,
+    tslibs,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
@@ -41,11 +46,19 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, Substitution, doc
-from pandas.util._validators import validate_bool_kwarg, validate_percentile
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    doc,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_percentile,
+)
 
 from pandas.core.dtypes.cast import (
     convert_dtypes,
+    maybe_box_native,
     maybe_cast_to_extension_array,
     validate_numeric_casting,
 )
@@ -60,6 +73,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    pandas_dtype,
     validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
@@ -71,7 +85,14 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core import algorithms, base, generic, missing, nanops, ops
+from pandas.core import (
+    algorithms,
+    base,
+    generic,
+    missing,
+    nanops,
+    ops,
+)
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import transform
 from pandas.core.apply import series_apply
@@ -86,7 +107,10 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
+from pandas.core.indexers import (
+    deprecate_ndim_indexing,
+    unpack_1tuple,
+)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     CategoricalIndex,
@@ -103,7 +127,10 @@ from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.internals.construction import sanitize_index
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import ensure_key_mapped, nargsort
+from pandas.core.sorting import (
+    ensure_key_mapped,
+    nargsort,
+)
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -111,7 +138,10 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+    from pandas._typing import (
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+    )
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
@@ -180,8 +210,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
         RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like
-        and index is None, then the values in the index are used to
-        reindex the Series after it is created using the keys in the data.
+        and index is None, then the keys in the data are used as the index. If the
+        index is not None, the resulting Series is reindexed with the index values.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
@@ -190,6 +220,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         The name to give to the Series.
     copy : bool, default False
         Copy input data.
+
+    Examples
+    --------
+    Constructing Series from a dictionary with an Index specified
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['a', 'b', 'c'])
+    >>> ser
+    a   1
+    b   2
+    c   3
+    dtype: int64
+
+    The keys of the dictionary match with the Index values, hence the Index
+    values have no effect.
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['x', 'y', 'z'])
+    >>> ser
+    x   NaN
+    y   NaN
+    z   NaN
+    dtype: float64
+
+    Note that the Index is first build with the keys from the dictionary.
+    After this the Series is reindexed with the given Index values, hence we
+    get all NaN as a result.
     """
 
     _typ = "series"
@@ -378,7 +435,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(dtype)
+            values = na_value_for_dtype(pandas_dtype(dtype))
             keys = index
         else:
             keys, values = (), []
@@ -403,6 +460,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def _constructor_expanddim(self) -> Type[DataFrame]:
+        """
+        Used when a manipulation result has one higher dimension as the
+        original, such as Series.to_frame()
+        """
         from pandas.core.frame import DataFrame
 
         return DataFrame
@@ -412,7 +473,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index = None
+    _index: Optional[Index] = None
 
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
@@ -1531,7 +1592,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # GH16122
         into_c = com.standardize_mapping(into)
-        return into_c(self.items())
+        return into_c((k, maybe_box_native(v)) for k, v in self.items())
 
     def to_frame(self, name=None) -> DataFrame:
         """
@@ -3940,8 +4001,8 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, func, args=args, kwds=kwargs)
-        result, how = op.agg()
+        op = series_apply(self, func, args=args, kwargs=kwargs)
+        result = op.agg()
         if result is None:
 
             # we can be called from an inner function which
@@ -3981,7 +4042,7 @@ Keep all original rows and also all original values
         func: AggFuncType,
         convert_dtype: bool = True,
         args: Tuple[Any, ...] = (),
-        **kwds,
+        **kwargs,
     ) -> FrameOrSeriesUnion:
         """
         Invoke function on values of Series.
@@ -3998,7 +4059,7 @@ Keep all original rows and also all original values
             False, leave as dtype=object.
         args : tuple
             Positional arguments passed to func after the series value.
-        **kwds
+        **kwargs
             Additional keyword arguments passed to func.
 
         Returns
@@ -4011,6 +4072,12 @@ Keep all original rows and also all original values
         Series.map: For element-wise operations.
         Series.agg: Only perform aggregating type operations.
         Series.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
@@ -4079,7 +4146,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        op = series_apply(self, func, convert_dtype, args, kwds)
+        op = series_apply(self, func, convert_dtype, args, kwargs)
         return op.apply()
 
     def _reduce(
@@ -4123,7 +4190,7 @@ Keep all original rows and also all original values
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(
+        new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
         )
         return self._constructor(new_values, index=new_index)

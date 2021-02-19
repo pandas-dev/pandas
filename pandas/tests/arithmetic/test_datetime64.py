@@ -1,8 +1,15 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-from datetime import datetime, time, timedelta
-from itertools import product, starmap
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
+from itertools import (
+    product,
+    starmap,
+)
 import operator
 import warnings
 
@@ -28,7 +35,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -318,40 +328,40 @@ class TestDatetime64SeriesComparison:
             box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
         )
 
-        ser = Series([Timestamp("2000-01-29 01:59:00"), "NaT"])
+        ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), "NaT"])
         ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser
-        expected = tm.box_expected([False, True], xbox)
+        expected = tm.box_expected([False, False, True], xbox)
         tm.assert_equal(result, expected)
 
         warn = FutureWarning if box_with_array is pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
             result = ser != ser[0]
-        expected = tm.box_expected([False, True], xbox)
+        expected = tm.box_expected([False, True, True], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
-            result = ser != ser[1]
-        expected = tm.box_expected([True, True], xbox)
+            result = ser != ser[2]
+        expected = tm.box_expected([True, True, True], xbox)
         tm.assert_equal(result, expected)
 
         result = ser == ser
-        expected = tm.box_expected([True, False], xbox)
+        expected = tm.box_expected([True, True, False], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
             result = ser == ser[0]
-        expected = tm.box_expected([True, False], xbox)
+        expected = tm.box_expected([True, False, False], xbox)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(warn):
             # alignment for frame vs series comparisons deprecated
-            result = ser == ser[1]
-        expected = tm.box_expected([False, False], xbox)
+            result = ser == ser[2]
+        expected = tm.box_expected([False, False, False], xbox)
         tm.assert_equal(result, expected)
 
 
@@ -1010,10 +1020,7 @@ class TestDatetime64Arithmetic:
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        warn = None
-        if box_with_array is not pd.DataFrame or tz_naive_fixture is None:
-            warn = PerformanceWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
 
@@ -1276,7 +1283,7 @@ class TestDatetime64DateOffsetArithmetic:
             ]
         )
         vec = tm.box_expected(vec, box_with_array)
-        vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
+        vec_items = vec.iloc[0] if box_with_array is pd.DataFrame else vec
 
         # DateOffset relativedelta fastpath
         relative_kwargs = [
@@ -1401,7 +1408,7 @@ class TestDatetime64DateOffsetArithmetic:
             ]
         )
         vec = tm.box_expected(vec, box_with_array)
-        vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
+        vec_items = vec.iloc[0] if box_with_array is pd.DataFrame else vec
 
         offset_cls = getattr(pd.offsets, cls_name)
 
@@ -1515,10 +1522,7 @@ class TestDatetime64DateOffsetArithmetic:
         if box_other:
             other = tm.box_expected(other, box_with_array)
 
-        warn = PerformanceWarning
-        if box_with_array is pd.DataFrame and tz is not None:
-            warn = None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)
 
         tm.assert_equal(res, expected)
@@ -2459,18 +2463,14 @@ class TestDatetimeIndexArithmetic:
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        warn = PerformanceWarning
-        if box_with_array is pd.DataFrame and tz is not None:
-            warn = None
-
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr - other
         tm.assert_equal(result, expected)
 

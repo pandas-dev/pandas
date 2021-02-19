@@ -32,8 +32,14 @@ from pandas._typing import (
     FrameOrSeriesUnion,
 )
 
-from pandas.core.dtypes.common import is_dict_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_dict_like,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.algorithms import safe_sort
 from pandas.core.base import SpecificationError
@@ -457,7 +463,7 @@ def transform(
 
     # Functions that transform may return empty Series/DataFrame
     # when the dtype is not appropriate
-    if isinstance(result, (ABCSeries, ABCDataFrame)) and result.empty:
+    if isinstance(result, (ABCSeries, ABCDataFrame)) and result.empty and not obj.empty:
         raise ValueError("Transform function failed")
     if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
         obj.index
