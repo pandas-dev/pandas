@@ -17,11 +17,25 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import BaseOffset, Resolution, Tick
+from pandas._libs import (
+    NaT,
+    Timedelta,
+    iNaT,
+    join as libjoin,
+    lib,
+)
+from pandas._libs.tslibs import (
+    BaseOffset,
+    Resolution,
+    Tick,
+)
 from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import (
+    Appender,
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -35,11 +49,18 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+)
 from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
@@ -714,7 +735,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left_chunk = left._values[lslice]
             # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
             # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"  [arg-type]
+            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"
             result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
 
         return self._wrap_setop_result(other, result)

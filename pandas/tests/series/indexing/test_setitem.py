@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -166,15 +169,6 @@ class TestSetitemBooleanMask:
         ser[mask] = ["a", "c"]
         expected = Series(["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
-
-    @pytest.mark.parametrize("value", [None, NaT, np.nan])
-    def test_setitem_boolean_td64_values_cast_na(self, value):
-        # GH#18586
-        series = Series([0, 1, 2], dtype="timedelta64[ns]")
-        mask = series == series[0]
-        series[mask] = value
-        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
-        tm.assert_series_equal(series, expected)
 
     def test_setitem_boolean_nullable_int_types(self, any_nullable_numeric_dtype):
         # GH: 26468
@@ -640,25 +634,43 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
         return True
 
 
-class TestSetitemNATimedelta64Dtype(SetitemCastingEquivalents):
-    # some nat-like values should be cast to timedelta64 when inserting
-    #  into a timedelta64 series.  Others should coerce to object
-    #  and retain their dtypes.
-
-    @pytest.fixture
-    def obj(self):
-        return Series([0, 1, 2], dtype="m8[ns]")
+class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to datetime64/timedelta64 when
+    #  inserting into a datetime64/timedelta64 series.  Others should coerce
+    #  to object and retain their dtypes.
+    # GH#18586 for td64 and boolean mask case
 
     @pytest.fixture(
-        params=[NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]
+        params=["m8[ns]", "M8[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Central]"]
+    )
+    def dtype(self, request):
+        return request.param
+
+    @pytest.fixture
+    def obj(self, dtype):
+        i8vals = date_range("2016-01-01", periods=3).asi8
+        idx = Index(i8vals, dtype=dtype)
+        assert idx.dtype == dtype
+        return Series(idx)
+
+    @pytest.fixture(
+        params=[
+            None,
+            np.nan,
+            NaT,
+            np.timedelta64("NaT", "ns"),
+            np.datetime64("NaT", "ns"),
+        ]
     )
     def val(self, request):
         return request.param
 
     @pytest.fixture
-    def is_inplace(self, val):
-        # cast to object iff val is datetime64("NaT")
-        return val is NaT or val.dtype.kind == "m"
+    def is_inplace(self, val, obj):
+        # td64   -> cast to object iff val is datetime64("NaT")
+        # dt64   -> cast to object iff val is timedelta64("NaT")
+        # dt64tz -> cast to object with anything _but_ NaT
+        return val is NaT or val is None or val is np.nan or obj.dtype == val.dtype
 
     @pytest.fixture
     def expected(self, obj, val, is_inplace):
