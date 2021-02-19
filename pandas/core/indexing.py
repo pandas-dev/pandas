@@ -1493,6 +1493,9 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
+        if is_iterator(key):
+            key = list(key)
+
         if isinstance(key, list):
             key = np.asarray(key)
 
@@ -1534,6 +1537,8 @@ class _iLocIndexer(_LocationIndexer):
 
     def _get_setitem_indexer(self, key):
         # GH#32257 Fall through to let numpy do validation
+        if is_iterator(key):
+            return list(key)
         return key
 
     # -------------------------------------------------------------------

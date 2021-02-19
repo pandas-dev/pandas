@@ -360,9 +360,8 @@ class SetitemCastingEquivalents:
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
-        if indexer_sli is not tm.iloc:
-            genkey = (x for x in [key])
-            self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
+        genkey = (x for x in [key])
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
     def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
@@ -378,9 +377,8 @@ class SetitemCastingEquivalents:
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
-        if indexer_sli is not tm.iloc:
-            genkey = (x for x in indkey)
-            self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
+        genkey = (x for x in indkey)
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
     def test_mask_key(self, obj, key, expected, val, indexer_sli):
         # setitem with boolean mask
