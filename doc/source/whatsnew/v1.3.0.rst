@@ -325,6 +325,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
 -
 -
 
