@@ -55,3 +55,43 @@ class TestSeriesUnaryOps:
         result = abs(ser)
         expected = Series(target, dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1.1, 2.2, 3.3], [-1.1, -2.2, -3.3]),
+            ([1.1, 2.2, None], [-1.1, -2.2, None]),
+            ([-1.1, 0.0, 1.1], [1.1, 0.0, -1.1])
+        ]
+    )
+    def test_unary_minus_float(self, float_ea_dtype, source, target):
+        dtype = float_ea_dtype
+        ser = Series(source, dtype=dtype)
+        result = -ser
+        expected = Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "source",
+        [[1.1, 2.2, 3.3], [1.1, 2.2, None], [-1.1, 0.0, 1]]
+    )
+    def test_unary_plus_float(self, float_ea_dtype, source):
+        dtype = float_ea_dtype
+        expected = Series(source, dtype=dtype)
+        result = +expected
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1.1, 2.2, 3.3], [1.1, 2.2, 3.3]),
+            ([1.1, -2.2, None], [1.1, 2.2, None]),
+            ([-1.1, 0.0, 1.1], [1.1, 0.0, 1.1])
+        ]
+    )
+    def test_unary_abs_float(self, float_ea_dtype, source, target):
+        dtype = float_ea_dtype
+        ser = Series(source, dtype=dtype)
+        result = abs(ser)
+        expected = Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)
