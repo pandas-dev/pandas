@@ -1101,8 +1101,8 @@ class TestStyler:
     @pytest.mark.parametrize("f", ["highlight_min", "highlight_max"])
     def test_highlight_minmax_basic(self, f):
         expected = {
-            (0, 0): ["background-color: red"],
-            (1, 0): ["background-color: red"],
+            (0, 0): [("background-color", "red")],
+            (1, 0): [("background-color", "red")],
         }
         if f == "highlight_min":
             df = -self.df
@@ -1121,7 +1121,7 @@ class TestStyler:
         ],
     )
     def test_highlight_minmax_ext(self, f, kwargs):
-        expected = {(1, 0): ["background-color: red"]}
+        expected = {(1, 0): [("background-color", "red")]}
         if f == "highlight_min":
             df = -self.df
         else:
@@ -1144,8 +1144,8 @@ class TestStyler:
     )
     def test_highlight_range(self, kwargs):
         expected = {
-            (0, 0): ["background-color: yellow"],
-            (1, 0): ["background-color: yellow"],
+            (0, 0): [("background-color", "yellow")],
+            (1, 0): [("background-color", "yellow")],
         }
         result = self.df.style.highlight_range(**kwargs)._compute().ctx
         assert result == expected
@@ -1163,8 +1163,8 @@ class TestStyler:
     )
     def test_highlight_quantile(self, kwargs):
         expected = {
-            (0, 0): ["background-color: yellow"],
-            (1, 0): ["background-color: yellow"],
+            (0, 0): [("background-color", "yellow")],
+            (1, 0): [("background-color", "yellow")],
         }
         result = self.df.style.highlight_quantile(**kwargs)._compute().ctx
         assert result == expected
@@ -1198,7 +1198,7 @@ class TestStyler:
         elif func == "highlight_range":
             f["kw"]["start"] = df.iloc[1, 0]  # set the range low for testing
 
-        expected = {(1, 0): ["background-color: yellow"]}
+        expected = {(1, 0): [("background-color", "yellow")]}
         result = getattr(df.style, func)(**f["kw"])._compute().ctx
         assert result == expected
 
