@@ -153,6 +153,7 @@ jobs:
       run: |
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
+        pytest pandas/tests/arithmetic/ --array-manager
 
         # indexing subset (temporary since other tests don't pass yet)
         pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean --array-manager
