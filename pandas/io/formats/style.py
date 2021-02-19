@@ -53,8 +53,10 @@ from pandas.core.indexing import (
 )
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-CSSSequence = Sequence[Tuple[str, Union[str, int, float]]]
-CSSProperties = Union[str, CSSSequence]
+
+CSSPair = Tuple[str, Union[str, int, float]]
+CSSList = List[CSSPair]
+CSSProperties = Union[str, CSSList]
 CSSStyles = List[Dict[str, CSSProperties]]
 
 try:
@@ -194,7 +196,7 @@ class Styler:
         # assign additional default vars
         self.hidden_index: bool = False
         self.hidden_columns: Sequence[int] = []
-        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
+        self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: Dict[str, Any] = {}
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
         self.tooltips: Optional[_Tooltips] = None
@@ -414,7 +416,8 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle_map = defaultdict(list)
+        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+
         head = []
 
         for r in range(n_clvls):
@@ -531,25 +534,21 @@ class Styler:
                 }
 
                 # only add an id if the cell has a style
-                props = []
+                props: CSSList = []
                 if self.cell_ids or (r, c) in ctx:
                     row_dict["id"] = "_".join(cs[1:])
-                    for x in ctx[r, c]:
-                        # have to handle empty styles like ['']
-                        if x.count(":"):
-                            props.append(tuple(x.split(":")))
-                        else:
-                            props.append(("", ""))
+                    props.extend(ctx[r, c])
 
                 # add custom classes from cell context
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 row_dict["class"] = " ".join(cs)
 
                 row_es.append(row_dict)
-                cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
+                if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
+                    cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
-        cellstyle = [
+        cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in cellstyle_map.items()
         ]
@@ -755,19 +754,14 @@ class Styler:
         self._compute()
         # TODO: namespace all the pandas keys
         d = self._translate()
-        # filter out empty styles, every cell will have a class
-        # but the list of props may just be [['', '']].
-        # so we have the nested anys below
-        trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
-        d["cellstyle"] = trimmed
         d.update(kwargs)
         return self.template.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
-        Update the state of the Styler.
+        Update the state of the Styler for data cells.
 
-        Collects a mapping of {index_label: ['<property>: <value>']}.
+        Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
 
         Parameters
         ----------
@@ -776,20 +770,13 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        coli = {k: i for i, k in enumerate(self.columns)}
-        rowi = {k: i for i, k in enumerate(self.index)}
-        for jj in range(len(attrs.columns)):
-            cn = attrs.columns[jj]
-            j = coli[cn]
+        for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
                     continue
-                c = c.rstrip(";")
-                if not c:
-                    continue
-                i = rowi[rn]
-                for pair in c.split(";"):
-                    self.ctx[(i, j)].append(pair)
+                css_list = _maybe_convert_css_to_tuples(c)
+                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                self.ctx[(i, j)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
@@ -2068,7 +2055,7 @@ def _maybe_wrap_formatter(
         raise TypeError(msg)
 
 
-def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSSequence:
+def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
     """
     Convert css-string to sequence of tuples format if needed.
     'color:red; border:1px solid black;' -> [('color', 'red'),
