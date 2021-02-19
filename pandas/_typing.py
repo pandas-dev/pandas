@@ -111,7 +111,7 @@ Shape = Tuple[int, ...]
 Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
-Frequency = Union[str, DateOffset]
+Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
 
 # dtypes
