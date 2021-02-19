@@ -32,49 +32,46 @@ class SeriesConstructor:
 
 class IsIn:
 
-    params = ["int64", "uint64", "object", "Int64", "boolean", "bool"]
+    params = ["int64", "uint64", "object", "Int64", "boolean", "bool", "datetime64[ns]"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
         N = 10000
+
+        self.mismatched = [NaT.to_timedelta64()] * 2
+
         if dtype in ["boolean", "bool"]:
             self.series = Series(np.random.randint(0, 2, N)).astype(dtype)
             self.values = [True, False]
+
+        elif dtype == "datetime64[ns]":
+            # Note: values here is much larger than non-dt64ns cases
+
+            # dti has length=115777
+            dti = date_range(
+                start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
+            )
+            self.series = Series(dti)
+            self.values = self.series._values[::3]
+            self.mismatched = [1, 2]
+
         else:
             self.series = Series(np.random.randint(1, 10, N)).astype(dtype)
             self.values = [1, 2]
 
+        self.cat_values = Categorical(self.values)
+
     def time_isin(self, dtype):
         self.series.isin(self.values)
 
+    def time_isin_categorical(self, dtype):
+        self.series.isin(self.cat_values)
 
-class IsInDatetime64:
-
-    params = ["subset", "subset_categorical"]
-    param_names = ["title"]
-
-    def setup(self, title):
-        dti = date_range(
-            start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
-        )
-        self.series = Series(dti)
-
-        subset = self.series._values[::3]
-        if title == "subset":
-            self.values = subset
-        elif title == "subset_categorical":
-            self.values = Categorical(subset)
-        else:
-            raise ValueError(title)
-
-    def time_isin(self, title):
-        self.series.isin(self.values)
-
-    def time_isin_mismatched_dtype(self, title):
-        self.series.isin([1, 2])
-
-    def time_isin_empty(self, title):
+    def time_isin_empty(self, dtype):
         self.series.isin([])
+
+    def time_isin_mismatched_dtype(self, dtype):
+        self.series.isin(self.mismatched)
 
 
 class IsInFloat64:
@@ -132,16 +129,16 @@ class IsInForObjects:
     variants = ["nans", "short", "long", "long_floats"]
 
     params = [variants, variants]
-    param_names = ["ser_type", "vals_type"]
+    param_names = ["series_type", "vals_type"]
 
-    def setup(self, ser_type, vals_type):
-        if ser_type == "nans":
+    def setup(self, series_type, vals_type):
+        if series_type == "nans":
             self.series = Series(np.full(10 ** 4, np.nan)).astype(object)
-        elif ser_type == "short":
+        elif series_type == "short":
             self.series = Series(np.arange(2)).astype(object)
-        elif ser_type == "long":
+        elif series_type == "long":
             self.series = Series(np.arange(10 ** 5)).astype(object)
-        elif ser_type == "long_floats":
+        elif series_type == "long_floats":
             self.series = Series(np.arange(10 ** 5, dtype=np.float_)).astype(object)
 
         if vals_type == "nans":
@@ -153,7 +150,7 @@ class IsInForObjects:
         elif vals_type == "long_floats":
             self.values = np.arange(10 ** 5, dtype=np.float_).astype(object)
 
-    def time_isin(self, ser_type, vals_type):
+    def time_isin(self, series_type, vals_type):
         self.series.isin(self.values)
 
 
