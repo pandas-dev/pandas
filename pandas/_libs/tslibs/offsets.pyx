@@ -1986,27 +1986,33 @@ cdef class YearBegin(YearOffset):
 # Quarter-Based Offset Classes
 
 cdef class QuarterOffset(SingleConstructorOffset):
-    _attributes = tuple(["n", "normalize", "startingMonth"])
+    _attributes = tuple(["n", "normalize", "month", "startingMonth"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
     # FIXME: python annotations here breaks things
-    # _default_starting_month: int
-    # _from_name_starting_month: int
+    # _default_month: int
+    # _from_name_month: int
+    cdef public:
+        int _default_month, _from_name_month
 
     cdef readonly:
-        int startingMonth
+        int month
 
-    def __init__(self, n=1, normalize=False, startingMonth=None):
+    def __init__(self, n=1, normalize=False, month=None, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
 
-        if startingMonth is None:
-            startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        if month is None:
+            if startingMonth is None:
+                self.month = self._default_month
+            else:
+                self.month = startingMonth
+        else:
+            self.month = month
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self.month = state.pop("month")
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
 
@@ -2014,24 +2020,24 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+            kwargs["month"] = MONTH_TO_CAL_NUM[suffix]
         else:
-            if cls._from_name_starting_month is not None:
-                kwargs["startingMonth"] = cls._from_name_starting_month
+            if cls._from_name_month is not None:
+                kwargs["month"] = cls._from_name_month
         return cls(**kwargs)
 
     @property
     def rule_code(self) -> str:
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
     def is_anchored(self) -> bool:
-        return self.n == 1 and self.startingMonth is not None
+        return self.n == 1 and self.month is not None
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        mod_month = (dt.month - self.startingMonth) % 3
+        mod_month = (dt.month - self.month) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
@@ -2041,9 +2047,9 @@ cdef class QuarterOffset(SingleConstructorOffset):
         # Then find the month in that quarter containing an is_on_offset date for
         # self.  `months_since` is the number of months to shift other.month
         # to get to this on-offset month.
-        months_since = other.month % 3 - self.startingMonth % 3
+        months_since = other.month % 3 - self.month % 3
         qtrs = roll_qtrday(
-            other, self.n, self.startingMonth, day_opt=self._day_opt, modby=3
+            other, self.n, self.month, day_opt=self._day_opt, modby=3
         )
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
@@ -2055,7 +2061,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     @apply_array_wraps
     def _apply_array(self, dtarr):
         shifted = shift_quarters(
-            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt
+            dtarr.view("i8"), self.n, self.month, self._day_opt
         )
         return shifted
 
@@ -2070,20 +2076,20 @@ cdef class BQuarterEnd(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterEnd
+    >>> from pandas.tseries.offsets import BQuarterEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterEnd()
     Timestamp('2020-06-30 05:01:15')
     >>> ts + BQuarterEnd(2)
     Timestamp('2020-09-30 05:01:15')
-    >>> ts + BQuarterEnd(1, startingMonth=2)
+    >>> ts + BQuarterEnd(1, month=2)
     Timestamp('2020-05-29 05:01:15')
-    >>> ts + BQuarterEnd(startingMonth=2)
+    >>> ts + BQuarterEnd(month=2)
     Timestamp('2020-05-29 05:01:15')
     """
     _output_name = "BusinessQuarterEnd"
-    _default_starting_month = 3
-    _from_name_starting_month = 3
+    _default_month = 3
+    _from_name_month = 3
     _prefix = "BQ"
     _day_opt = "business_end"
 
@@ -2098,20 +2104,20 @@ cdef class BQuarterBegin(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterBegin
+    >>> from pandas.tseries.offsets import BQuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterBegin()
     Timestamp('2020-06-01 05:01:15')
     >>> ts + BQuarterBegin(2)
     Timestamp('2020-09-01 05:01:15')
-    >>> ts + BQuarterBegin(startingMonth=2)
+    >>> ts + BQuarterBegin(month=2)
     Timestamp('2020-08-03 05:01:15')
     >>> ts + BQuarterBegin(-1)
     Timestamp('2020-03-02 05:01:15')
     """
     _output_name = "BusinessQuarterBegin"
-    _default_starting_month = 1
-    _from_name_starting_month = 1
+    _default_month = 1
+    _from_name_month = 1
     _prefix = "BQS"
     _day_opt = "business_start"
 
@@ -2124,8 +2130,8 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
     """
-    _default_starting_month = 3
-    _from_name_starting_month = 3
+    _default_month = 3
+    _from_name_month = 3
     _prefix = "Q"
     _day_opt = "end"
 
@@ -2147,8 +2153,8 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
     """
-    _default_starting_month = 1
-    _from_name_starting_month = 1
+    _default_month = 1
+    _from_name_month = 1
     _prefix = "QS"
     _day_opt = "start"
 
