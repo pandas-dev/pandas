@@ -3263,6 +3263,8 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
+            if isinstance(value, DataFrame):
+                value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
