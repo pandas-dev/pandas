@@ -1036,9 +1036,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    def _validate_fill_value(self, value):
-        return self._data._validate_setitem_value(value)
-
     @property
     def _is_all_dates(self) -> bool:
         """
