@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, concat
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 from pandas.core.base import DataError
 

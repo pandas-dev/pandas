@@ -1,12 +1,22 @@
-import datetime
+from datetime import (
+    date,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.timezones import maybe_get_tz
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
@@ -30,199 +40,108 @@ def _compare_with_tz(a, b):
                 raise AssertionError(f"invalid tz comparison [{a_e}] [{b_e}]")
 
 
-def test_append_with_timezones_dateutil(setup_path):
+# use maybe_get_tz instead of dateutil.tz.gettz to handle the windows
+# filename issues.
+gettz_dateutil = lambda x: maybe_get_tz("dateutil/" + x)
+gettz_pytz = lambda x: x
 
-    from datetime import timedelta
 
-    # use maybe_get_tz instead of dateutil.tz.gettz to handle the windows
-    # filename issues.
-    from pandas._libs.tslibs.timezones import maybe_get_tz
-
-    gettz = lambda x: maybe_get_tz("dateutil/" + x)
-
+@pytest.mark.parametrize("gettz", [gettz_dateutil, gettz_pytz])
+def test_append_with_timezones(setup_path, gettz):
     # as columns
+
+    # Single-tzinfo, no DST transition
+    df_est = DataFrame(
+        {
+            "A": [
+                Timestamp("20130102 2:00:00", tz=gettz("US/Eastern"))
+                + timedelta(hours=1) * i
+                for i in range(5)
+            ]
+        }
+    )
+
+    # frame with all columns having same tzinfo, but different sides
+    #  of DST transition
+    df_crosses_dst = DataFrame(
+        {
+            "A": Timestamp("20130102", tz=gettz("US/Eastern")),
+            "B": Timestamp("20130603", tz=gettz("US/Eastern")),
+        },
+        index=range(5),
+    )
+
+    df_mixed_tz = DataFrame(
+        {
+            "A": Timestamp("20130102", tz=gettz("US/Eastern")),
+            "B": Timestamp("20130102", tz=gettz("EET")),
+        },
+        index=range(5),
+    )
+
+    df_different_tz = DataFrame(
+        {
+            "A": Timestamp("20130102", tz=gettz("US/Eastern")),
+            "B": Timestamp("20130102", tz=gettz("CET")),
+        },
+        index=range(5),
+    )
+
     with ensure_clean_store(setup_path) as store:
 
         _maybe_remove(store, "df_tz")
-        df = DataFrame(
-            {
-                "A": [
-                    Timestamp("20130102 2:00:00", tz=gettz("US/Eastern"))
-                    + timedelta(hours=1) * i
-                    for i in range(5)
-                ]
-            }
-        )
-
-        store.append("df_tz", df, data_columns=["A"])
+        store.append("df_tz", df_est, data_columns=["A"])
         result = store["df_tz"]
-        _compare_with_tz(result, df)
-        tm.assert_frame_equal(result, df)
+        _compare_with_tz(result, df_est)
+        tm.assert_frame_equal(result, df_est)
 
         # select with tz aware
-        expected = df[df.A >= df.A[3]]
-        result = store.select("df_tz", where="A>=df.A[3]")
+        expected = df_est[df_est.A >= df_est.A[3]]
+        result = store.select("df_tz", where="A>=df_est.A[3]")
         _compare_with_tz(result, expected)
 
         # ensure we include dates in DST and STD time here.
         _maybe_remove(store, "df_tz")
-        df = DataFrame(
-            {
-                "A": Timestamp("20130102", tz=gettz("US/Eastern")),
-                "B": Timestamp("20130603", tz=gettz("US/Eastern")),
-            },
-            index=range(5),
-        )
-        store.append("df_tz", df)
+        store.append("df_tz", df_crosses_dst)
         result = store["df_tz"]
-        _compare_with_tz(result, df)
-        tm.assert_frame_equal(result, df)
-
-        df = DataFrame(
-            {
-                "A": Timestamp("20130102", tz=gettz("US/Eastern")),
-                "B": Timestamp("20130102", tz=gettz("EET")),
-            },
-            index=range(5),
-        )
+        _compare_with_tz(result, df_crosses_dst)
+        tm.assert_frame_equal(result, df_crosses_dst)
 
         msg = (
             r"invalid info for \[values_block_1\] for \[tz\], "
-            r"existing_value \[dateutil/.*US/Eastern\] "
-            r"conflicts with new value \[dateutil/.*EET\]"
+            r"existing_value \[(dateutil/.*)?US/Eastern\] "
+            r"conflicts with new value \[(dateutil/.*)?EET\]"
         )
         with pytest.raises(ValueError, match=msg):
-            store.append("df_tz", df)
+            store.append("df_tz", df_mixed_tz)
 
         # this is ok
         _maybe_remove(store, "df_tz")
-        store.append("df_tz", df, data_columns=["A", "B"])
+        store.append("df_tz", df_mixed_tz, data_columns=["A", "B"])
         result = store["df_tz"]
-        _compare_with_tz(result, df)
-        tm.assert_frame_equal(result, df)
+        _compare_with_tz(result, df_mixed_tz)
+        tm.assert_frame_equal(result, df_mixed_tz)
 
         # can't append with diff timezone
-        df = DataFrame(
-            {
-                "A": Timestamp("20130102", tz=gettz("US/Eastern")),
-                "B": Timestamp("20130102", tz=gettz("CET")),
-            },
-            index=range(5),
-        )
-
         msg = (
             r"invalid info for \[B\] for \[tz\], "
-            r"existing_value \[dateutil/.*EET\] "
-            r"conflicts with new value \[dateutil/.*CET\]"
+            r"existing_value \[(dateutil/.*)?EET\] "
+            r"conflicts with new value \[(dateutil/.*)?CET\]"
         )
         with pytest.raises(ValueError, match=msg):
-            store.append("df_tz", df)
+            store.append("df_tz", df_different_tz)
 
-    # as index
+
+@pytest.mark.parametrize("gettz", [gettz_dateutil, gettz_pytz])
+def test_append_with_timezones_as_index(setup_path, gettz):
+    # GH#4098 example
+
+    dti = date_range("2000-1-1", periods=3, freq="H", tz=gettz("US/Eastern"))
+    dti = dti._with_freq(None)  # freq doesnt round-trip
+
+    df = DataFrame({"A": Series(range(3), index=dti)})
+
     with ensure_clean_store(setup_path) as store:
-
-        dti = date_range("2000-1-1", periods=3, freq="H", tz=gettz("US/Eastern"))
-        dti = dti._with_freq(None)  # freq doesnt round-trip
-
-        # GH 4098 example
-        df = DataFrame({"A": Series(range(3), index=dti)})
-
-        _maybe_remove(store, "df")
-        store.put("df", df)
-        result = store.select("df")
-        tm.assert_frame_equal(result, df)
-
-        _maybe_remove(store, "df")
-        store.append("df", df)
-        result = store.select("df")
-        tm.assert_frame_equal(result, df)
-
-
-def test_append_with_timezones_pytz(setup_path):
-
-    from datetime import timedelta
-
-    # as columns
-    with ensure_clean_store(setup_path) as store:
-
-        _maybe_remove(store, "df_tz")
-        df = DataFrame(
-            {
-                "A": [
-                    Timestamp("20130102 2:00:00", tz="US/Eastern")
-                    + timedelta(hours=1) * i
-                    for i in range(5)
-                ]
-            }
-        )
-        store.append("df_tz", df, data_columns=["A"])
-        result = store["df_tz"]
-        _compare_with_tz(result, df)
-        tm.assert_frame_equal(result, df)
-
-        # select with tz aware
-        _compare_with_tz(store.select("df_tz", where="A>=df.A[3]"), df[df.A >= df.A[3]])
-
-        _maybe_remove(store, "df_tz")
-        # ensure we include dates in DST and STD time here.
-        df = DataFrame(
-            {
-                "A": Timestamp("20130102", tz="US/Eastern"),
-                "B": Timestamp("20130603", tz="US/Eastern"),
-            },
-            index=range(5),
-        )
-        store.append("df_tz", df)
-        result = store["df_tz"]
-        _compare_with_tz(result, df)
-        tm.assert_frame_equal(result, df)
-
-        df = DataFrame(
-            {
-                "A": Timestamp("20130102", tz="US/Eastern"),
-                "B": Timestamp("20130102", tz="EET"),
-            },
-            index=range(5),
-        )
-
-        msg = (
-            r"invalid info for \[values_block_1\] for \[tz\], "
-            r"existing_value \[US/Eastern\] conflicts with new value \[EET\]"
-        )
-        with pytest.raises(ValueError, match=msg):
-            store.append("df_tz", df)
-
-        # this is ok
-        _maybe_remove(store, "df_tz")
-        store.append("df_tz", df, data_columns=["A", "B"])
-        result = store["df_tz"]
-        _compare_with_tz(result, df)
-        tm.assert_frame_equal(result, df)
-
-        # can't append with diff timezone
-        df = DataFrame(
-            {
-                "A": Timestamp("20130102", tz="US/Eastern"),
-                "B": Timestamp("20130102", tz="CET"),
-            },
-            index=range(5),
-        )
-
-        msg = (
-            r"invalid info for \[B\] for \[tz\], "
-            r"existing_value \[EET\] conflicts with new value \[CET\]"
-        )
-        with pytest.raises(ValueError, match=msg):
-            store.append("df_tz", df)
-
-    # as index
-    with ensure_clean_store(setup_path) as store:
-
-        dti = date_range("2000-1-1", periods=3, freq="H", tz="US/Eastern")
-        dti = dti._with_freq(None)  # freq doesnt round-trip
-
-        # GH 4098 example
-        df = DataFrame({"A": Series(range(3), index=dti)})
 
         _maybe_remove(store, "df")
         store.put("df", df)
@@ -321,17 +240,19 @@ def test_timezones_fixed_format_frame_non_empty(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-def test_timezones_fixed_format_frame_empty(setup_path, tz_aware_fixture):
+def test_timezones_fixed_format_empty(setup_path, tz_aware_fixture, frame_or_series):
     # GH 20594
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
+    obj = Series(dtype=dtype, name="A")
+    if frame_or_series is DataFrame:
+        obj = obj.to_frame()
+
     with ensure_clean_store(setup_path) as store:
-        s = Series(dtype=dtype)
-        df = DataFrame({"A": s})
-        store["df"] = df
-        result = store["df"]
-        tm.assert_frame_equal(result, df)
+        store["obj"] = obj
+        result = store["obj"]
+        tm.assert_equal(result, obj)
 
 
 def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
@@ -341,18 +262,6 @@ def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
 
     with ensure_clean_store(setup_path) as store:
         s = Series([0], dtype=dtype)
-        store["s"] = s
-        result = store["s"]
-        tm.assert_series_equal(result, s)
-
-
-def test_timezones_fixed_format_series_empty(setup_path, tz_aware_fixture):
-    # GH 20594
-
-    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
-
-    with ensure_clean_store(setup_path) as store:
-        s = Series(dtype=dtype)
         store["s"] = s
         result = store["s"]
         tm.assert_series_equal(result, s)
@@ -378,7 +287,7 @@ def test_store_timezone(setup_path):
     # original method
     with ensure_clean_store(setup_path) as store:
 
-        today = datetime.date(2013, 9, 10)
+        today = date(2013, 9, 10)
         df = DataFrame([1, 2, 3], index=[today, today, today])
         store["obj1"] = df
         result = store["obj1"]
@@ -388,7 +297,7 @@ def test_store_timezone(setup_path):
     with ensure_clean_store(setup_path) as store:
 
         with tm.set_timezone("EST5EDT"):
-            today = datetime.date(2013, 9, 10)
+            today = date(2013, 9, 10)
             df = DataFrame([1, 2, 3], index=[today, today, today])
             store["obj1"] = df
 

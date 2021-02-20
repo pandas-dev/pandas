@@ -1,5 +1,9 @@
 import calendar
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 import locale
 import unicodedata
 
@@ -9,7 +13,10 @@ import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
 
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_list_like,
+)
 
 import pandas as pd
 from pandas import (
@@ -573,7 +580,10 @@ class TestSeriesDatetimeValues:
 
     def test_valid_dt_with_missing_values(self):
 
-        from datetime import date, time
+        from datetime import (
+            date,
+            time,
+        )
 
         # GH 8689
         s = Series(date_range("20130101", periods=5, freq="D"))

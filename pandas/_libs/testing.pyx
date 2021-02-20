@@ -8,10 +8,17 @@ from numpy cimport import_array
 import_array()
 
 from pandas._libs.lib import is_complex
-from pandas._libs.util cimport is_array, is_real_number_object
+
+from pandas._libs.util cimport (
+    is_array,
+    is_real_number_object,
+)
 
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+    isna,
+)
 
 
 cdef bint isiterable(obj):
