@@ -4062,3 +4062,25 @@ cdef inline int _roll_qtrday(npy_datetimestruct* dts,
             # make sure to roll forward, so negate
             n += 1
     return n
+
+
+def offset(offset_alias:str, n:int = 1, **kwargs) -> BaseOffset:
+    """
+    Given an offset alias (e.g., 'M'), periods number and the matching DateOffset
+    class arguments, return a new DateOffset object.
+
+    Parameters
+    ----------
+    offset_alias : str
+        Offset alias, a.k.a. frequency string, for the DateOffset object
+        to be created. E.g., 'Q' for QuarterEnd
+    n : int, default 1
+        Number of periods to offset.
+    **kwargs
+        These parameters will be passed to the DateOffset object consructor.
+
+    Returns
+    -------
+    shifted : datetime or Timestamp (same as input `stamp`)
+    """
+    return prefix_mapping[offset_alias](n, **kwargs)
