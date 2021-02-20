@@ -37,6 +37,8 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     cases.
     """
     if is_categorical_dtype(dtype):
+        # if casting an array to a categorical dtype, then we need to ensure
+        # that its unique values are predefined as categories in that dtype
         unique_values = np.unique(arr[~isna(arr)])
         if any(val not in dtype.categories for val in unique_values.tolist()):
             raise ValueError(
@@ -121,23 +123,21 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+    first_ea = isinstance(to_concat[0], ExtensionArray)
+    arr_index_expansion = (
+        first_ea and len(to_concat) == 2 and to_concat[1].shape[0] == 1
+    )
 
     if any_ea:
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
         if not single_dtype:
-            # Special case for handling concat with categorical series.
-            # We need to make sure that categorical dtype is preserved
-            # when an array of valid values is given (GH#25383)
-            use_index_expansion = len(to_concat) == 2 and all(
-                x.shape[0] == 1 for x in to_concat[1:]
-            )
             target_dtype = find_common_type(
-                [x.dtype for x in to_concat], prio_cat_dtype=use_index_expansion
+                [x.dtype for x in to_concat], prio_cat_dtype=arr_index_expansion
             )
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
-        if isinstance(to_concat[0], ExtensionArray):
+        if first_ea:
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
