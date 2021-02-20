@@ -2209,13 +2209,13 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthEnd
+    >>> from pandas.tseries.offsets import BusinessMonthEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthEnd()
+    >>> ts + BusinessMonthEnd()
     Timestamp('2020-05-29 05:01:15')
-    >>> ts + BMonthEnd(2)
+    >>> ts + BusinessMonthEnd(2)
     Timestamp('2020-06-30 05:01:15')
-    >>> ts + BMonthEnd(-2)
+    >>> ts + BusinessMonthEnd(-2)
     Timestamp('2020-03-31 05:01:15')
     """
     _prefix = "BM"
@@ -2228,13 +2228,13 @@ cdef class BusinessMonthBegin(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthBegin
+    >>> from pandas.tseries.offsets import BusinessMonthBegin
     >>> ts=pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthBegin()
+    >>> ts + BusinessMonthBegin()
     Timestamp('2020-06-01 05:01:15')
-    >>> ts + BMonthBegin(2)
+    >>> ts + BusinessMonthBegin(2)
     Timestamp('2020-07-01 05:01:15')
-    >>> ts + BMonthBegin(-3)
+    >>> ts + BusinessMonthBegin(-3)
     Timestamp('2020-03-02 05:01:15')
     """
     _prefix = "BMS"
