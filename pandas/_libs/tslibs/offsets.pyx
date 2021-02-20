@@ -3471,7 +3471,9 @@ _lite_rule_alias = {
     "BAS": "BAS-JAN",  # BYearBegin(month=1),
     "BYS": "BAS-JAN",
 
-    "MS": "M"
+    "MS": "M",         # MonthBegin
+    "BMS": "M",        # BusinessMonthBegin
+    "BM": "M",         # BusinessMonthEnd
 
     "Min": "T",
     "min": "T",
