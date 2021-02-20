@@ -1840,10 +1840,11 @@ cdef class YearOffset(SingleConstructorOffset):
     """
 
     _attributes = tuple(["n", "normalize", "month"])
-    _default_month = 1
+    # _default_month = 1
 
     cdef:
         readonly int month
+        public int _default_month, _period_dtype_code
 
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
@@ -1970,7 +1971,7 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2022-01-03 05:01:15')
     """
 
-    _period_dtype_code = None
+    del(_period_dtype_code)
     _outputName = "BusinessYearBegin"
     _default_month = 1
     _prefix = "BAS"
@@ -2011,7 +2012,7 @@ cdef class BYearEnd(YearOffset):
     Timestamp('2020-11-30 05:01:15')
     """
 
-    _period_dtype_code = None
+    del(_period_dtype_code)
     _outputName = "BusinessYearEnd"
     _default_month = 12
     _prefix = "BA"
@@ -2030,10 +2031,11 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       startingMonth vs month attr names are resolved
 
     _attributes = tuple(["n", "normalize", "startingMonth"])
-    _default_month = 1
+    # _default_month = 1
 
     cdef:
         readonly int startingMonth
+        public int _period_dtype_code, _default_month
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
@@ -2170,7 +2172,7 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-08-03 05:01:15')
     """
 
-    _period_dtype_code = None
+    del(_period_dtype_code)
     _output_name = "BusinessQuarterBegin"
     _default_month = 3  # Should be 1
     _from_name_starting_month = 1
@@ -2200,7 +2202,7 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-05-29 05:01:15')
     """
 
-    _period_dtype_code = None
+    del(_period_dtype_code)
     _output_name = "BusinessQuarterEnd"
     _default_month = 3
     _from_name_starting_month = 12
