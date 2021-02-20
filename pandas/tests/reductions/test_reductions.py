@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -1417,7 +1420,7 @@ class TestSeriesMode:
         expected = Series(["foo", np.nan])
         s = Series([1, "foo", "foo", np.nan, np.nan])
 
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 

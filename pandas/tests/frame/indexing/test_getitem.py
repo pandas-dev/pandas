@@ -10,6 +10,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    concat,
     get_dummies,
     period_range,
 )
@@ -175,6 +176,87 @@ class TestGetitemBooleanMask:
             df4[df4.index < 2]
         with pytest.raises(TypeError, match=msg):
             df4[df4.index > 1]
+
+    @pytest.mark.parametrize(
+        "data1,data2,expected_data",
+        (
+            (
+                [[1, 2], [3, 4]],
+                [[0.5, 6], [7, 8]],
+                [[np.nan, 3.0], [np.nan, 4.0], [np.nan, 7.0], [6.0, 8.0]],
+            ),
+            (
+                [[1, 2], [3, 4]],
+                [[5, 6], [7, 8]],
+                [[np.nan, 3.0], [np.nan, 4.0], [5, 7], [6, 8]],
+            ),
+        ),
+    )
+    def test_getitem_bool_mask_duplicate_columns_mixed_dtypes(
+        self,
+        data1,
+        data2,
+        expected_data,
+    ):
+        # GH#31954
+
+        df1 = DataFrame(np.array(data1))
+        df2 = DataFrame(np.array(data2))
+        df = concat([df1, df2], axis=1)
+
+        result = df[df > 2]
+
+        exdict = {i: np.array(col) for i, col in enumerate(expected_data)}
+        expected = DataFrame(exdict).rename(columns={2: 0, 3: 1})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.fixture
+    def df_dup_cols(self):
+        dups = ["A", "A", "C", "D"]
+        df = DataFrame(np.arange(12).reshape(3, 4), columns=dups, dtype="float64")
+        return df
+
+    def test_getitem_boolean_frame_unaligned_with_duplicate_columns(self, df_dup_cols):
+        # `df.A > 6` is a DataFrame with a different shape from df
+
+        # boolean with the duplicate raises
+        df = df_dup_cols
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df[df.A > 6]
+
+    def test_getitem_boolean_series_with_duplicate_columns(self, df_dup_cols):
+        # boolean indexing
+        # GH#4879
+        df = DataFrame(
+            np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"], dtype="float64"
+        )
+        expected = df[df.C > 6]
+        expected.columns = df_dup_cols.columns
+
+        df = df_dup_cols
+        result = df[df.C > 6]
+
+        tm.assert_frame_equal(result, expected)
+        result.dtypes
+        str(result)
+
+    def test_getitem_boolean_frame_with_duplicate_columns(self, df_dup_cols):
+
+        # where
+        df = DataFrame(
+            np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"], dtype="float64"
+        )
+        # `df > 6` is a DataFrame with the same shape+alignment as df
+        expected = df[df > 6]
+        expected.columns = df_dup_cols.columns
+
+        df = df_dup_cols
+        result = df[df > 6]
+
+        tm.assert_frame_equal(result, expected)
+        result.dtypes
+        str(result)
 
 
 class TestGetitemSlice:
