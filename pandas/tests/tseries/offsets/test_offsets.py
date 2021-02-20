@@ -877,3 +877,4 @@ def test_offset():
     assert offsets.offset("M", -2) == MonthEnd(-2)
     assert offsets.offset("BQS") == BQuarterBegin()
     assert offsets.offset("A", 3, month=2) == YearEnd(3, month=2)
+    assert offsets.offset("YS") == YearBegin(3, month=1)
