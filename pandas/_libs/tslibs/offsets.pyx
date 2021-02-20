@@ -2136,11 +2136,11 @@ cdef class QuarterEnd(QuarterOffset):
     cdef readonly:
         int _period_dtype_code
 
-    def __init__(self, n=1, normalize=False, startingMonth=None):
+    def __init__(self, n=1, normalize=False, month=None, startingMonth=None):
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
-        QuarterOffset.__init__(self, n, normalize, startingMonth)
-        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
+        QuarterOffset.__init__(self, n, normalize, month, startingMonth)
+        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.month % 12
 
 
 cdef class QuarterBegin(QuarterOffset):
