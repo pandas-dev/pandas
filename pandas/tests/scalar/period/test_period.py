@@ -220,6 +220,7 @@ class TestPeriodConstruction:
         )
 
         assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
+        assert Period(200701, freq=offsets.MonthBegin()) == Period(200701, freq="MS")
 
         i1 = Period(ordinal=200701, freq=offsets.MonthEnd())
         i2 = Period(ordinal=200701, freq="M")
