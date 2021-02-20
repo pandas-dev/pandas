@@ -1046,14 +1046,14 @@ class TestTimeSeries:
 
         idx1 = date_range(start=sdate, end=edate, freq="QS")
         idx2 = date_range(
-            start=sdate, end=edate, freq=offsets.QuarterBegin(startingMonth=1)
+            start=sdate, end=edate, freq=offsets.QuarterBegin(month=1)
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
 
         idx1 = date_range(start=sdate, end=edate, freq="BQ")
         idx2 = date_range(
-            start=sdate, end=edate, freq=offsets.BQuarterEnd(startingMonth=12)
+            start=sdate, end=edate, freq=offsets.BQuarterEnd(month=3)
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
