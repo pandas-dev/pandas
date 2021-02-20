@@ -586,7 +586,7 @@ def pad_inplace(values: np.ndarray, mask: np.ndarray, limit: int | None = None) 
 def _pad_inplace(
     values: np.ndarray, mask: np.ndarray, limit: int | None = None
 ) -> None:
-    if len(values):
+    if values.shape[0]:
         if limit is None:
             _pad_inplace_no_limit(values, mask)
         else:
@@ -734,32 +734,11 @@ def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) ->
 #     return indexer
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
-#     cdef:
-#         Py_ssize_t i, N
-#         algos_t val
-#         int lim, fill_count = 0
-
-#     N = len(values)
-
-#     # GH#2778
-#     if N == 0:
-#         return
-
-#     lim = validate_limit(N, limit)
-
-#     val = values[N - 1]
-#     for i in range(N - 1, -1, -1):
-#         if mask[i]:
-#             if fill_count >= lim:
-#                 continue
-#             fill_count += 1
-#             values[i] = val
-#         else:
-#             fill_count = 0
-#             val = values[i]
+def backfill_inplace(
+    values: np.ndarray, mask: np.ndarray, limit: int | None = None
+) -> None:
+    _validate_limit(limit)
+    _pad_inplace(values[::-1], mask[::-1], limit)
 
 
 # @cython.boundscheck(False)

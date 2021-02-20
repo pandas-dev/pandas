@@ -701,7 +701,7 @@ def _pad_1d(values, limit=None, mask=None):
 
 def _backfill_1d(values, limit=None, mask=None):
     values, mask = _fillna_prep(values, mask)
-    algos.backfill_inplace(values, mask, limit=limit)
+    algos_numba.backfill_inplace(values, mask, limit=limit)
     return values
 
 
