@@ -1021,6 +1021,8 @@ class DataFrameRenderer:
         pretty_print: Optional[bool] = True,
         parser: Optional[str] = "lxml",
         stylesheet: Optional[FilePathOrBuffer[str]] = None,
+        compression: CompressionOptions = "infer",
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to an XML document.
@@ -1078,6 +1080,19 @@ class DataFrameRenderer:
             layout of elements and attributes from original output. This
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
+        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+            For on-the-fly decompression of on-disk data. If 'infer', then use
+            gzip, bz2, zip or xz if path_or_buffer is a string ending in
+            '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
+            otherwise. If using 'zip', the ZIP file must contain only one data
+            file to be read in. Set to None for no decompression.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection,
+            e.g. host, port, username, password, etc., if using a URL that will be
+            parsed by fsspec, e.g., starting “s3://”, “gcs://”. An error will be
+            raised if providing this argument with a non-fsspec URL. See the fsspec
+            and backend storage implementation docs for the set of allowed keys and
+            values.
         """
 
         from pandas.io.formats.xml import EtreeXMLFormatter, LxmlXMLFormatter
@@ -1115,6 +1130,8 @@ class DataFrameRenderer:
             xml_declaration=xml_declaration,
             pretty_print=pretty_print,
             stylesheet=stylesheet,
+            compression=compression,
+            storage_options=storage_options,
         )
 
         return xml_formatter.write_output()

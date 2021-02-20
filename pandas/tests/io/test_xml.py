@@ -2,6 +2,7 @@ from io import BytesIO, StringIO
 import os
 from urllib.error import HTTPError
 
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
@@ -23,7 +24,6 @@ etree
 [X] - SyntaxError("You have used an incorrect or unsupported XPath")
 [X] - ValueError("names does not match length of child elements in xpath.")
 [X] - TypeError("...is not a valid type for names")
-[X] - ValueError("io is not a url, file, or xml string")
 [X] - ValueError("To use stylesheet, you need lxml installed...")
 []  - URLError      (GENERAL ERROR WITH HTTPError AS SUBCLASS)
 [X] - HTTPError("HTTP Error 404: Not Found")
@@ -41,7 +41,6 @@ lxml
 [X] - TypeError("empty namespace prefix is not supported in XPath")
 [X] - ValueError("names does not match length of child elements in xpath.")
 [X] - TypeError("...is not a valid type for names")
-[X] - ValueError("io is not a url, file, or xml string")
 [X] - LookupError(unknown encoding)
 []  - URLError           (USUALLY DUE TO NETWORKING)
 [X  - HTTPError("HTTP Error 404: Not Found")
@@ -51,6 +50,13 @@ lxml
 [X] - ValueError("Values for parser can only be lxml or etree.")
 """
 
+geom_df = DataFrame(
+    {
+        "shape": ["square", "circle", "triangle"],
+        "degrees": [360, 360, 180],
+        "sides": [4, np.nan, 3],
+    }
+)
 
 xml_default_nmsp = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -211,18 +217,27 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     tm.assert_frame_equal(df_str, df_expected)
 
 
-def test_wrong_io_object(parser):
-    with pytest.raises(ValueError, match=("io is not a url, file, or xml string")):
-        read_xml(DataFrame, parser=parser)
+@td.skip_if_no("lxml")
+def test_wrong_file_path_lxml(datapath):
+    from lxml.etree import XMLSyntaxError
 
-
-def test_wrong_file_path(datapath, parser):
     with pytest.raises(
-        (OSError, FileNotFoundError),
-        match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
+        XMLSyntaxError,
+        match=("Start tag expected, '<' not found"),
     ):
         filename = os.path.join("data", "html", "books.xml")
-        read_xml(filename, parser=parser)
+        read_xml(filename, parser="lxml")
+
+
+def test_wrong_file_path_etree(datapath):
+    from xml.etree.ElementTree import ParseError
+
+    with pytest.raises(
+        ParseError,
+        match=("not well-formed"),
+    ):
+        filename = os.path.join("data", "html", "books.xml")
+        read_xml(filename, parser="etree")
 
 
 @tm.network
@@ -513,48 +528,35 @@ def test_names_option_wrong_type(datapath, parser):
 # ENCODING
 
 
-@td.skip_if_no("lxml")
-def test_wrong_encoding_lxml(datapath):
-    from lxml.etree import XMLSyntaxError
-
+def test_wrong_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    with pytest.raises(XMLSyntaxError, match=("Input is not proper UTF-8")):
-        read_xml(filename)
+    with pytest.raises(UnicodeDecodeError, match=("'utf-8' codec can't decode")):
+        read_xml(filename, parser=parser)
 
 
-@td.skip_if_no("lxml")
-def test_utf16_encoding_lxml(datapath):
-    from lxml.etree import XMLSyntaxError
-
+def test_utf16_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    with pytest.raises(XMLSyntaxError, match=("Start tag expected, '<' not found")):
-        read_xml(filename, encoding="UTF-16")
+    with pytest.raises(UnicodeError, match=("UTF-16 stream does not start with BOM")):
+        read_xml(filename, encoding="UTF-16", parser=parser)
 
 
-@td.skip_if_no("lxml")
-def test_unknown_encoding_lxml(datapath):
+def test_unknown_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    with pytest.raises(LookupError, match=("unknown encoding")):
-        read_xml(filename, encoding="UFT-8")
-
-
-# etree raises no error on wrong, utf-16, or unknown encoding
-@pytest.mark.parametrize("encoding", [None, "UTF-16", "UFT-8"])
-def test_wrong_encoding_etree(datapath, encoding):
-    filename = datapath("io", "data", "xml", "baby_names.xml")
-    read_xml(filename, parser="etree", encoding=encoding)
+    with pytest.raises(LookupError, match=("unknown encoding: uft-8")):
+        read_xml(filename, encoding="UFT-8", parser=parser)
 
 
 def test_ascii_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    read_xml(filename, encoding="ascii", parser=parser)
+    with pytest.raises(UnicodeDecodeError, match=("'ascii' codec can't decode byte")):
+        read_xml(filename, encoding="ascii", parser=parser)
 
 
 @td.skip_if_no("lxml")
 def test_parser_consistency_with_encoding(datapath):
     filename = datapath("io", "data", "xml", "baby_names.xml")
     df_lxml = read_xml(filename, parser="lxml", encoding="ISO-8859-1")
-    df_etree = read_xml(filename, parser="etree")
+    df_etree = read_xml(filename, parser="etree", encoding="iso-8859-1")
 
     tm.assert_frame_equal(df_lxml, df_etree)
 
@@ -835,12 +837,14 @@ def test_incorrect_xsl_apply(datapath):
 
 @td.skip_if_no("lxml")
 def test_wrong_stylesheet():
+    from lxml.etree import XMLSyntaxError
+
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
     xsl = os.path.join("data", "xml", "flatten.xsl")
 
     with pytest.raises(
-        (OSError, FileNotFoundError),
-        match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
+        XMLSyntaxError,
+        match=("Start tag expected, '<' not found"),
     ):
         read_xml(kml, stylesheet=xsl)
 
@@ -888,3 +892,83 @@ def test_online_stylesheet():
     )
 
     tm.assert_frame_equal(df_expected, df_xsl)
+
+
+# COMPRESSION
+
+
+@pytest.mark.parametrize(
+    "compfile", ["geom_xml.bz2", "geom_xml.gzz", "geom_xml.xz", "geom_xml.zip"]
+)
+def test_compression_read(datapath, parser, compfile):
+    filename = datapath("io", "data", "xml", "geom_xml.bz2")
+    xml_df = read_xml(filename, parser=parser)
+
+    tm.assert_frame_equal(xml_df, geom_df)
+
+
+def test_wrong_compression_bz2(datapath, parser):
+    filename = datapath("io", "data", "xml", "geom_xml.zip")
+
+    with pytest.raises(OSError, match="Invalid data stream"):
+        read_xml(filename, parser=parser, compression="bz2")
+
+
+def test_wrong_compression_gz(datapath, parser):
+    filename = datapath("io", "data", "xml", "geom_xml.zip")
+
+    with pytest.raises(OSError, match="Not a gzipped file"):
+        read_xml(filename, parser=parser, compression="gzip")
+
+
+def test_wrong_compression_xz(datapath, parser):
+    from lzma import LZMAError
+
+    filename = datapath("io", "data", "xml", "geom_xml.bz2")
+
+    with pytest.raises(LZMAError, match="Input format not supported by decoder"):
+        read_xml(filename, parser=parser, compression="xz")
+
+
+def test_wrong_compression_zip(datapath, parser):
+    from zipfile import BadZipFile
+
+    filename = datapath("io", "data", "xml", "geom_xml.gz")
+
+    with pytest.raises(BadZipFile, match="File is not a zip file"):
+        read_xml(filename, parser=parser, compression="zip")
+
+
+def test_unsuported_compression(datapath, parser):
+    with pytest.raises(ValueError, match="Unrecognized compression type"):
+        with tm.ensure_clean() as path:
+            read_xml(path, compression="7z")
+
+
+# STORAGE OPTIONS
+
+
+@tm.network
+@td.skip_if_no("s3fs")
+@td.skip_if_no("lxml")
+def test_s3_parser_consistency():
+    # Python Software Foundation (2019 IRS-990 FORM)
+    s3 = "s3://irs-form-990/201923199349319487_public.xml"
+
+    df_lxml = read_xml(
+        s3,
+        xpath=".//irs:Form990PartVIISectionAGrp",
+        namespaces={"irs": "http://www.irs.gov/efile"},
+        parser="lxml",
+        storage_options={"anon": True},
+    )
+
+    df_etree = read_xml(
+        s3,
+        xpath=".//irs:Form990PartVIISectionAGrp",
+        namespaces={"irs": "http://www.irs.gov/efile"},
+        parser="etree",
+        storage_options={"anon": True},
+    )
+
+    tm.assert_frame_equal(df_lxml, df_etree)

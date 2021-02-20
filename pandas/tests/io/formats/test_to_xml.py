@@ -1274,3 +1274,123 @@ def test_style_to_json():
     out_xml = geom_df.to_xml(stylesheet=xsl)
 
     assert out_json == out_xml
+
+
+# COMPRESSION
+
+geom_xml = """\
+<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <index>0</index>
+    <shape>square</shape>
+    <degrees>360</degrees>
+    <sides>4.0</sides>
+  </row>
+  <row>
+    <index>1</index>
+    <shape>circle</shape>
+    <degrees>360</degrees>
+    <sides/>
+  </row>
+  <row>
+    <index>2</index>
+    <shape>triangle</shape>
+    <degrees>180</degrees>
+    <sides>3.0</sides>
+  </row>
+</data>"""
+
+
+def test_bz2_output(parser):
+    import bz2
+
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, compression="bz2")
+
+        with bz2.BZ2File(path, "rb") as fp:
+            output = fp.read()
+
+    # etree and lxml differs on quotes and case in xml declaration
+    output = output.decode("utf-8").replace(
+        '<?xml version="1.0" encoding="utf-8"?',
+        "<?xml version='1.0' encoding='utf-8'?",
+    )
+
+    assert geom_xml == output.strip()
+
+
+def test_gz_output(parser):
+    import gzip
+
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, compression="gzip")
+
+        with gzip.open(path, "rb") as fp:
+            output = fp.read()
+
+    # etree and lxml differs on quotes and case in xml declaration
+    output = output.decode("utf-8").replace(
+        '<?xml version="1.0" encoding="utf-8"?',
+        "<?xml version='1.0' encoding='utf-8'?",
+    )
+
+    assert geom_xml == output.strip()
+
+
+def test_xz_output(parser):
+    import lzma
+
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, compression="xz")
+
+        with lzma.open(path, "rb") as fp:
+            output = fp.read()
+
+    # etree and lxml differs on quotes and case in xml declaration
+    output = output.decode("utf-8").replace(
+        '<?xml version="1.0" encoding="utf-8"?',
+        "<?xml version='1.0' encoding='utf-8'?",
+    )
+
+    assert geom_xml == output.strip()
+
+
+def test_zip_output(parser):
+    import zipfile
+
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, compression="zip")
+
+        with zipfile.ZipFile(path, "r") as fp:
+            output = fp.read(fp.infolist()[0])
+
+    # etree and lxml differs on quotes and case in xml declaration
+    output = output.decode("utf-8").replace(
+        '<?xml version="1.0" encoding="utf-8"?',
+        "<?xml version='1.0' encoding='utf-8'?",
+    )
+
+    assert geom_xml == output.strip()
+
+
+def test_unsuported_compression(datapath, parser):
+    with pytest.raises(ValueError, match="Unrecognized compression type"):
+        with tm.ensure_clean() as path:
+            geom_df.to_xml(path, compression="7z")
+
+
+# STORAGE OPTIONS
+
+
+@tm.network
+@td.skip_if_no("s3fs")
+@td.skip_if_no("lxml")
+def test_s3_permission_output(parser):
+    import s3fs
+
+    with pytest.raises(PermissionError, match="Access Denied"):
+        fs = s3fs.S3FileSystem(anon=True)
+        fs.ls("pandas-test")
+
+        geom_df.to_xml("s3://pandas-test/geom.xml", compression="zip")

@@ -6,12 +6,12 @@ import codecs
 import io
 from typing import Any, Dict, List, Optional, Union
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.io.common import is_url, urlopen
+from pandas.io.common import get_handle, is_url, urlopen
 from pandas.io.formats.format import DataFrameFormatter
 
 
@@ -62,6 +62,14 @@ class BaseXMLFormatter:
     stylesheet : str or file-like
         A URL, file, file-like object, or a raw string containing XSLT.
 
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+        Compression type for on-the-fly decompression of on-disk data.
+        If 'infer', then use extension for gzip, bz2, zip or xz.
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc.,
+
     See also
     --------
     pandas.io.formats.xml.EtreeXMLFormatter
@@ -85,6 +93,8 @@ class BaseXMLFormatter:
         xml_declaration: Optional[bool] = True,
         pretty_print: Optional[bool] = True,
         stylesheet: Optional[FilePathOrBuffer[str]] = None,
+        compression: CompressionOptions = "infer",
+        storage_options: StorageOptions = None,
     ) -> None:
         self.fmt = formatter
         self.path_or_buffer = path_or_buffer
@@ -100,8 +110,10 @@ class BaseXMLFormatter:
         self.xml_declaration = xml_declaration
         self.pretty_print = pretty_print
         self.stylesheet = stylesheet
-        self.frame = self.fmt.frame
+        self.compression = compression
+        self.storage_options = storage_options
 
+        self.frame = self.fmt.frame
         self.orig_cols = self.fmt.frame.columns.tolist()
         self.frame_dicts = self.process_dataframe()
 
@@ -238,15 +250,23 @@ class BaseXMLFormatter:
 
     def write_output(self) -> Optional[str]:
         xml_doc = self.build_tree()
-        out_str: Optional[str] = xml_doc.decode(self.encoding).rstrip()
 
-        if self.path_or_buffer and isinstance(self.path_or_buffer, str):
-            with open(self.path_or_buffer, "wb") as f:
-                f.write(xml_doc)
+        out_str: Optional[str]
 
-            out_str = None
+        if self.path_or_buffer is not None:
+            # apply compression and byte/text conversion
+            with get_handle(
+                self.path_or_buffer,
+                "wb",
+                compression=self.compression,
+                storage_options=self.storage_options,
+                is_text=False,
+            ) as handles:
+                handles.handle.write(xml_doc)  # type: ignore[arg-type]
+            return None
 
-        return out_str
+        else:
+            return xml_doc.decode(self.encoding).rstrip()
 
 
 class EtreeXMLFormatter(BaseXMLFormatter):
@@ -277,6 +297,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             if not self.attr_cols and not self.elem_cols:
                 self.elem_cols = list(self.frame_dicts[0].keys())
                 self.build_elems()
+
             else:
                 self.build_attribs()
                 self.build_elems()
@@ -315,42 +336,46 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         return uri
 
     def build_attribs(self) -> None:
-        if self.attr_cols:
-            for col in self.attr_cols:
-                flat_col = col
-                if isinstance(col, tuple):
-                    flat_col = (
-                        "".join(str(c) for c in col).strip()
-                        if "" in col
-                        else "_".join(str(c) for c in col).strip()
-                    )
+        if not self.attr_cols:
+            return
 
-                attr_name = f"{self.prefix_uri}{flat_col}"
-                try:
-                    if self.d[col] is not None:
-                        self.elem_row.attrib[attr_name] = str(self.d[col])
-                except KeyError:
-                    raise KeyError(f"no valid column, {col}")
+        for col in self.attr_cols:
+            flat_col = col
+            if isinstance(col, tuple):
+                flat_col = (
+                    "".join(str(c) for c in col).strip()
+                    if "" in col
+                    else "_".join(str(c) for c in col).strip()
+                )
+
+            attr_name = f"{self.prefix_uri}{flat_col}"
+            try:
+                if self.d[col] is not None:
+                    self.elem_row.attrib[attr_name] = str(self.d[col])
+            except KeyError:
+                raise KeyError(f"no valid column, {col}")
 
     def build_elems(self) -> None:
         from xml.etree.ElementTree import SubElement
 
-        if self.elem_cols:
-            for col in self.elem_cols:
-                flat_col = col
-                if isinstance(col, tuple):
-                    flat_col = (
-                        "".join(str(c) for c in col).strip()
-                        if "" in col
-                        else "_".join(str(c) for c in col).strip()
-                    )
+        if not self.elem_cols:
+            return
 
-                elem_name = f"{self.prefix_uri}{flat_col}"
-                try:
-                    val = None if self.d[col] in [None, ""] else str(self.d[col])
-                    SubElement(self.elem_row, elem_name).text = val
-                except KeyError:
-                    raise KeyError(f"no valid column, {col}")
+        for col in self.elem_cols:
+            flat_col = col
+            if isinstance(col, tuple):
+                flat_col = (
+                    "".join(str(c) for c in col).strip()
+                    if "" in col
+                    else "_".join(str(c) for c in col).strip()
+                )
+
+            elem_name = f"{self.prefix_uri}{flat_col}"
+            try:
+                val = None if self.d[col] in [None, ""] else str(self.d[col])
+                SubElement(self.elem_row, elem_name).text = val
+            except KeyError:
+                raise KeyError(f"no valid column, {col}")
 
     def prettify_tree(self) -> bytes:
         """
@@ -410,6 +435,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             if not self.attr_cols and not self.elem_cols:
                 self.elem_cols = list(self.frame_dicts[0].keys())
                 self.build_elems()
+
             else:
                 self.build_attribs()
                 self.build_elems()
@@ -452,42 +478,46 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         return uri
 
     def build_attribs(self) -> None:
-        if self.attr_cols:
-            for col in self.attr_cols:
-                flat_col = col
-                if isinstance(col, tuple):
-                    flat_col = (
-                        "".join(str(c) for c in col).strip()
-                        if "" in col
-                        else "_".join(str(c) for c in col).strip()
-                    )
+        if not self.attr_cols:
+            return
 
-                attr_name = f"{self.prefix_uri}{flat_col}"
-                try:
-                    if self.d[col] is not None:
-                        self.elem_row.attrib[attr_name] = self.d[col]
-                except KeyError:
-                    raise KeyError(f"no valid column, {col}")
+        for col in self.attr_cols:
+            flat_col = col
+            if isinstance(col, tuple):
+                flat_col = (
+                    "".join(str(c) for c in col).strip()
+                    if "" in col
+                    else "_".join(str(c) for c in col).strip()
+                )
+
+            attr_name = f"{self.prefix_uri}{flat_col}"
+            try:
+                if self.d[col] is not None:
+                    self.elem_row.attrib[attr_name] = self.d[col]
+            except KeyError:
+                raise KeyError(f"no valid column, {col}")
 
     def build_elems(self) -> None:
         from lxml.etree import SubElement
 
-        if self.elem_cols:
-            for col in self.elem_cols:
-                flat_col = col
-                if isinstance(col, tuple):
-                    flat_col = (
-                        "".join(str(c) for c in col).strip()
-                        if "" in col
-                        else "_".join(str(c) for c in col).strip()
-                    )
+        if not self.elem_cols:
+            return
 
-                elem_name = f"{self.prefix_uri}{flat_col}"
-                try:
-                    val = None if self.d[col] in [None, ""] else str(self.d[col])
-                    SubElement(self.elem_row, elem_name).text = val
-                except KeyError:
-                    raise KeyError(f"no valid column, {col}")
+        for col in self.elem_cols:
+            flat_col = col
+            if isinstance(col, tuple):
+                flat_col = (
+                    "".join(str(c) for c in col).strip()
+                    if "" in col
+                    else "_".join(str(c) for c in col).strip()
+                )
+
+            elem_name = f"{self.prefix_uri}{flat_col}"
+            try:
+                val = None if self.d[col] in [None, ""] else str(self.d[col])
+                SubElement(self.elem_row, elem_name).text = val
+            except KeyError:
+                raise KeyError(f"no valid column, {col}")
 
     def convert_io(self) -> Union[bytes, str, None]:
         """

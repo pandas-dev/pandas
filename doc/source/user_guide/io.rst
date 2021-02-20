@@ -2925,6 +2925,17 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
    df = pd.read_xml(bio)
    df
 
+Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
+
+.. ipython:: python
+
+   df = pd.read_xml(
+       "s3://irs-form-990/201923199349319487_public.xml",
+       xpath=".//irs:Form990PartVIISectionAGrp",
+       namespaces={"irs": "http://www.irs.gov/efile"}
+   )
+   df
+
 With `lxml`_ as default ``parser``, you access the full-featured XML library
 that extends Python's ElementTree API. One powerful tool is ability to query
 nodes selectively or conditionally with more expressive XPath:
@@ -3254,7 +3265,7 @@ XML Final Notes
 * For above reason, if your application builds XML prior to pandas operations,
   use appropriate DOM libraries like ``etree`` and ``lxml`` to build the necessary
   document and not by string concatenation or regex adjustments. Always remember
-  XML is a *special* and not any text file.
+  XML is a *special* text file with markup rules.
 
 * With very large XML files (several hundred MBs to GBs), XPath and XSLT
   can become memory-intensive operations. Be sure to have enough available
