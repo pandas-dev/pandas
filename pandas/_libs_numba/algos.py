@@ -794,6 +794,7 @@ def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) ->
 #                 val = values[j, i]
 
 
+@numba.njit
 def is_monotonic(arr: np.ndarray) -> tuple[bool, bool, bool]:
     """
     Returns
