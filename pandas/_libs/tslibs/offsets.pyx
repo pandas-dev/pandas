@@ -1995,10 +1995,10 @@ cdef class QuarterOffset(SingleConstructorOffset):
     # _default_month: int
     # _from_name_month: int
     cdef public:
-        int _default_month, _from_name_month
+        int _default_month = 1, _from_name_month = 1
 
     cdef readonly:
-        int month
+        int month, startingMonth
 
     def __init__(self, n=1, normalize=False, month=None, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
