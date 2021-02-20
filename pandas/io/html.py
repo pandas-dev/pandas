@@ -73,7 +73,7 @@ def _importers():
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
+def _remove_whitespace(s: str, regex=_RE_WHITESPACE, remove_whitespace=True) -> str:
     """
     Replace extra whitespace inside of a string with a single space.
 
@@ -83,13 +83,18 @@ def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
         The string from which to remove extra whitespace.
     regex : re.Pattern
         The regular expression to use to remove extra whitespace.
+    remove_whitespace : bool, default True
+        Whether to replace whitespace, or skip replacement.
 
     Returns
     -------
     subd : str or unicode
         `s` with all extra whitespace replaced with a single space.
     """
-    return regex.sub(" ", s.strip())
+    if remove_whitespace:
+        return regex.sub(" ", s.strip())
+    else:
+        return s
 
 
 def _get_skiprows(skiprows):
@@ -172,6 +177,9 @@ class _HtmlFrameParser:
 
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
+    
+    remove_whitespace : bool
+        Whether table row values should have all whitespace replaced with a space.
 
     Attributes
     ----------
@@ -190,6 +198,9 @@ class _HtmlFrameParser:
 
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
+    
+    remove_whitespace : bool
+        Whether table row values should have all whitespace replaced with a space
 
     Notes
     -----
@@ -207,12 +218,13 @@ class _HtmlFrameParser:
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding, displayed_only):
+    def __init__(self, io, match, attrs, encoding, displayed_only, remove_whitespace):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
         self.displayed_only = displayed_only
+        self.remove_whitespace = remove_whitespace
 
     def parse_tables(self):
         """
@@ -466,7 +478,7 @@ class _HtmlFrameParser:
                     index += 1
 
                 # Append the text from this <td>, colspan times
-                text = _remove_whitespace(self._text_getter(td))
+                text = _remove_whitespace(self._text_getter(td), remove_whitespace=self.remove_whitespace)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
@@ -896,14 +908,14 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
+def _parse(flavor, io, match, attrs, encoding, displayed_only, remove_whitespace, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only, remove_whitespace)
 
         try:
             tables = p.parse_tables()
@@ -954,6 +966,7 @@ def read_html(
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
+    remove_whitespace: bool = True,
 ) -> List[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1045,6 +1058,9 @@ def read_html(
 
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
+    
+    remove_whitespace : bool, default True
+        Whether table row values should have all whitespace replaced with a space.
 
     Returns
     -------
@@ -1114,4 +1130,5 @@ def read_html(
         na_values=na_values,
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
+        remove_whitespace=remove_whitespace,
     )
