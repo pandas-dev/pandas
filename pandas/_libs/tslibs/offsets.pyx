@@ -2218,6 +2218,8 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> ts + BusinessMonthEnd(-2)
     Timestamp('2020-03-31 05:01:15')
     """
+
+    _period_dtype_code = None
     _prefix = "BM"
     _day_opt = "business_end"
 
@@ -2237,6 +2239,8 @@ cdef class BusinessMonthBegin(MonthOffset):
     >>> ts + BusinessMonthBegin(-3)
     Timestamp('2020-03-02 05:01:15')
     """
+
+    _period_dtype_code = None
     _prefix = "BMS"
     _day_opt = "business_start"
 
@@ -3472,8 +3476,9 @@ _lite_rule_alias = {
     "BYS": "BAS-JAN",
 
     "MS": "M",         # MonthBegin
-    "BMS": "M",        # BusinessMonthBegin
-    "BM": "M",         # BusinessMonthEnd
+    # TODO: implement business month periods?
+    # "BMS": "BM",       # BusinessMonthBegin
+    # "BM": "BM",        # BusinessMonthEnd
 
     "Min": "T",
     "min": "T",
