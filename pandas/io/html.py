@@ -73,7 +73,7 @@ def _importers():
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s: str, regex=_RE_WHITESPACE, remove_whitespace=True) -> str:
+def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
     """
     Replace extra whitespace inside of a string with a single space.
 
@@ -83,18 +83,13 @@ def _remove_whitespace(s: str, regex=_RE_WHITESPACE, remove_whitespace=True) -> 
         The string from which to remove extra whitespace.
     regex : re.Pattern
         The regular expression to use to remove extra whitespace.
-    remove_whitespace : bool, default True
-        Whether to replace whitespace, or skip replacement.
 
     Returns
     -------
     subd : str or unicode
         `s` with all extra whitespace replaced with a single space.
     """
-    if remove_whitespace:
-        return regex.sub(" ", s.strip())
-    else:
-        return s
+    return regex.sub(" ", s.strip())
 
 
 def _get_skiprows(skiprows):
@@ -478,7 +473,10 @@ class _HtmlFrameParser:
                     index += 1
 
                 # Append the text from this <td>, colspan times
-                text = _remove_whitespace(self._text_getter(td), remove_whitespace=self.remove_whitespace)
+                if self.remove_whitespace:
+                    text = _remove_whitespace(self._text_getter(td))
+                else:
+                    text = self._text_getter(td)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
