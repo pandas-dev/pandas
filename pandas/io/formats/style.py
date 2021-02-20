@@ -1308,21 +1308,27 @@ class Styler:
         text_color_threshold: float = 0.408,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
+        gmap: Optional[Sequence] = None,
     ) -> Styler:
         """
         Color the background in a gradient style.
 
         The background color is determined according
-        to the data in each column (optionally row). Requires matplotlib.
+        to the data in each column, row or frame, or by a given
+        gradient map. Requires matplotlib.
 
         Parameters
         ----------
         cmap : str or colormap
             Matplotlib colormap.
         low : float
-            Compress the range by the low.
+            Compress the color range at the low end. This is a multiple of the data
+            range to extend below the minimum; sound values usually in [0, 0.5],
+            defaults to 0.
         high : float
-            Compress the range by the high.
+            Compress the color range at the high end. This is a multiple of the data
+            range to extend above the maximum; sound values usually in [0, 0.5],
+            defaults to 0.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -1330,41 +1336,50 @@ class Styler:
         subset : IndexSlice
             A valid slice for ``data`` to limit the style application to.
         text_color_threshold : float or int
-            Luminance threshold for determining text color. Facilitates text
-            visibility across varying background colors. From 0 to 1.
-            0 = all text is dark colored, 1 = all text is light colored.
+            Luminance threshold for determining text color in [0, 1]. Facilitates text
+            visibility across varying background colors. All text is dark if 0, and
+            light if 1, defaults to 0.408.
 
             .. versionadded:: 0.24.0
 
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
-            When None (default): the minimum value of the data will be used.
+            If not specified the minimum value of the data will be used.
 
             .. versionadded:: 1.0.0
 
         vmax : float, optional
             Maximum data value that corresponds to colormap maximum value.
-            When None (default): the maximum value of the data will be used.
+            If not specified the maximum value of the data will be used.
 
             .. versionadded:: 1.0.0
+
+        gmap : array-like, optional
+            Gradient map for determining the background colors. If not supplied
+            will use the input data from rows, columns or frame. Must be an
+            identical shape for sampling columns, rows or DataFrame based on ``axis``.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         self : Styler
 
-        Raises
-        ------
-        ValueError
-            If ``text_color_threshold`` is not a value from 0 to 1.
-
         Notes
         -----
-        Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
-        text legible by not using the entire range of the color map. The range
-        of the data is extended by ``low * (x.max() - x.min())`` and ``high *
-        (x.max() - x.min())`` before normalizing.
+        When using ``low`` and ``high`` the range
+        of the data is extended at the low end effectively by
+        `data.min - low * data.range` and at the high end by
+        `data.max + high * data.range` before the colors are normalized and determined.
+
+        If combining with ``vmin`` and ``vmax`` the `data.min`, `data.max` and
+        `data.range` are replaced by values according to the values derived from
+        ``vmin`` and ``vmax``.
+
+        This method will preselect numeric columns and ignore non-numeric columns
+        unless a ``gmap`` is supplied in which case no preselection occurs.
         """
-        if subset is None:
+        if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
         self.apply(
@@ -1377,6 +1392,7 @@ class Styler:
             text_color_threshold=text_color_threshold,
             vmin=vmin,
             vmax=vmax,
+            gmap=gmap,
         )
         return self
 
@@ -1389,26 +1405,22 @@ class Styler:
         text_color_threshold: float = 0.408,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
+        gmap: Optional[Sequence] = None,
     ):
         """
-        Color background in a range according to the data.
+        Color background in a range according to the data or a gradient map
         """
-        if (
-            not isinstance(text_color_threshold, (float, int))
-            or not 0 <= text_color_threshold <= 1
-        ):
-            msg = "`text_color_threshold` must be a value from 0 to 1."
-            raise ValueError(msg)
-
+        if gmap is None:
+            gmap = s.to_numpy(dtype=float)
+        else:
+            gmap = np.asarray(gmap, dtype=float).reshape(s.shape)
         with _mpl(Styler.background_gradient) as (plt, colors):
-            smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
-            smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
+            smin = np.nanmin(gmap) if vmin is None else vmin
+            smax = np.nanmax(gmap) if vmax is None else vmax
             rng = smax - smin
             # extend lower / upper bounds, compresses color range
             norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
-            # matplotlib colors.Normalize modifies inplace?
-            # https://github.com/matplotlib/matplotlib/issues/5427
-            rgbas = plt.cm.get_cmap(cmap)(norm(s.to_numpy(dtype=float)))
+            rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
 
             def relative_luminance(rgba) -> float:
                 """
