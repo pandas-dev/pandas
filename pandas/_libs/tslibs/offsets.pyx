@@ -1996,7 +1996,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     # _from_name_month: int
 
     cdef readonly:
-        int month, startingMonth, _default_month, _from_name_month
+        int month, startingMonth
 
     def __init__(self, n=1, normalize=False, month=None, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
@@ -2086,8 +2086,8 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-05-29 05:01:15')
     """
     _output_name = "BusinessQuarterEnd"
-    self._default_month = 3
-    self._from_name_month = 3
+    _default_month = 3
+    _from_name_month = 3
     _prefix = "BQ"
     _day_opt = "business_end"
 
@@ -2114,8 +2114,8 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-03-02 05:01:15')
     """
     _output_name = "BusinessQuarterBegin"
-    self._default_month = 1
-    self._from_name_month = 1
+    _default_month = 1
+    _from_name_month = 1
     _prefix = "BQS"
     _day_opt = "business_start"
 
@@ -2128,8 +2128,8 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
     """
-    self._default_month = 3
-    self._from_name_month = 3
+    _default_month = 3
+    _from_name_month = 3
     _prefix = "Q"
     _day_opt = "end"
 
@@ -2151,8 +2151,8 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
     """
-    self._default_month = 1
-    self._from_name_month = 1
+    _default_month = 1
+    _from_name_month = 1
     _prefix = "QS"
     _day_opt = "start"
 
