@@ -10,6 +10,7 @@ from pandas._typing import (
     DtypeObj,
 )
 
+from pandas.core.algorithms import unique1d
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -40,7 +41,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     if isinstance(dtype, CategoricalDtype):
         # if casting an array to a categorical dtype, then we need to ensure
         # that its unique values are predefined as categories in that dtype
-        unique_values = np.unique(arr[~isna(arr)])
+        unique_values = unique1d(arr[~isna(arr)])
         if any(val not in dtype.categories for val in unique_values.tolist()):
             raise ValueError(
                 "Cannot setitem on a Categorical with a new category, "
