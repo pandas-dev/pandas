@@ -137,7 +137,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
             )
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
-        if first_ea:
+        if isinstance(to_concat[0], ExtensionArray):
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
