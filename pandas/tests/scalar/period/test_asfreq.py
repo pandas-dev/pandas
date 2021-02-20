@@ -796,5 +796,6 @@ class TestFreqConversion:
 
         assert initial.asfreq(freq="M", how="S") == Period("2013-01", "M")
         assert initial.asfreq(freq="MS", how="S") == Period("2013-01", "MS")
-        assert initial.asfreq(freq="M", how="S").to_timestamp(how="start") == ts1
+        assert initial.asfreq(freq="M", how="S").to_timestamp(how="start") \
+            == ts1
         assert initial.asfreq(freq="MS", how="S").to_timestamp() == ts2
