@@ -17,6 +17,9 @@ from typing import (
 import numpy as np
 
 from pandas._typing import (
+    AggFuncType,
+    AggFuncTypeBase,
+    AggFuncTypeDict,
     FrameOrSeriesUnion,
     IndexLabel,
 )
@@ -57,11 +60,11 @@ if TYPE_CHECKING:
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data,
+    data: DataFrame,
     values=None,
     index=None,
     columns=None,
-    aggfunc="mean",
+    aggfunc: AggFuncType = "mean",
     fill_value=None,
     margins=False,
     dropna=True,
@@ -75,7 +78,7 @@ def pivot_table(
         pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
-            table = pivot_table(
+            _table = __internal_pivot_table(
                 data,
                 values=values,
                 index=index,
@@ -87,11 +90,42 @@ def pivot_table(
                 margins_name=margins_name,
                 observed=observed,
             )
-            pieces.append(table)
+            pieces.append(_table)
             keys.append(getattr(func, "__name__", func))
 
-        return concat(pieces, keys=keys, axis=1)
+        table = concat(pieces, keys=keys, axis=1)
+        return table.__finalize__(data, method="pivot_table")
 
+    table = __internal_pivot_table(
+        data,
+        values,
+        index,
+        columns,
+        aggfunc,
+        fill_value,
+        margins,
+        dropna,
+        margins_name,
+        observed,
+    )
+    return table.__finalize__(data, method="pivot_table")
+
+
+def __internal_pivot_table(
+    data: DataFrame,
+    values,
+    index,
+    columns,
+    aggfunc: Union[AggFuncTypeBase, AggFuncTypeDict],
+    fill_value,
+    margins: bool,
+    dropna: bool,
+    margins_name: str,
+    observed: bool,
+) -> DataFrame:
+    """
+    Helper of :func:`pandas.pivot_table` for any non-list ``aggfunc``.
+    """
     keys = index + columns
 
     values_passed = values is not None
