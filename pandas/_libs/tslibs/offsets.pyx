@@ -4064,6 +4064,13 @@ cdef inline int _roll_qtrday(npy_datetimestruct* dts,
     return n
 
 
+_alias_mapping = {
+    **{k: prefix_mapping.get(v.split("-")[0]) 
+       for k, v in _lite_rule_alias.items() 
+       if prefix_mapping.get(v.split("-")[0])},
+    **prefix_mapping}
+
+
 def offset(offset_alias: str, n: int = 1, **kwargs) -> BaseOffset:
     """
     Given an offset alias (e.g., 'M'), periods number and the matching DateOffset
@@ -4083,4 +4090,4 @@ def offset(offset_alias: str, n: int = 1, **kwargs) -> BaseOffset:
     -------
     DateOffset
     """
-    return prefix_mapping[offset_alias](n, **kwargs)
+    return _alias_mapping[offset_alias](n, **kwargs)
