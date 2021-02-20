@@ -78,6 +78,7 @@ _period_code_map = {
     "Q-NOV": 2011,    # Quarterly - November year end
 
     "M": 3000,        # Monthly
+    "MS": 3000,       # Monthly
 
     "W-SUN": 4000,    # Weekly - Sunday end of week
     "W-MON": 4001,    # Weekly - Monday end of week
