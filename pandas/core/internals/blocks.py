@@ -95,7 +95,6 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     PandasArray,
-    TimedeltaArray,
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -2084,8 +2083,6 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
-
-    _holder: Type[Union[DatetimeArray, TimedeltaArray]]
 
     @classmethod
     def _maybe_coerce_values(cls, values):
