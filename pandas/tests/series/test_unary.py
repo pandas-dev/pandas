@@ -18,79 +18,23 @@ class TestSeriesUnaryOps:
         tm.assert_series_equal(-(ser < 0), ~(ser < 0))
 
     @pytest.mark.parametrize(
-        "source, target",
+        "source, neg_target, abs_target",
         [
-            ([1, 2, 3], [-1, -2, -3]),
-            ([1, 2, None], [-1, -2, None]),
-            ([-1, 0, 1], [1, 0, -1]),
+            ([1, 2, 3], [-1, -2, -3], [1, 2, 3]),
+            ([1, 2, None], [-1, -2, None], [1, 2, None]),
+            ([-1, 0, 1], [1, 0, -1], [1, 0, 1]),
         ],
     )
-    def test_unary_minus_nullable_int(
-        self, any_signed_nullable_int_dtype, source, target
+    def test_all_numeric_unary_operators(
+        self, any_signed_nullable_numeric_dtype, source, neg_target, abs_target
     ):
-        dtype = any_signed_nullable_int_dtype
+        # GH38794
+        dtype = any_signed_nullable_numeric_dtype
         ser = Series(source, dtype=dtype)
-        result = -ser
-        expected = Series(target, dtype=dtype)
-        tm.assert_series_equal(result, expected)
+        neg_result, pos_result, abs_result = -ser, +ser, abs(ser)
+        neg_target = Series(neg_target, dtype=dtype)
+        abs_target = Series(abs_target, dtype=dtype)
 
-    @pytest.mark.parametrize("source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]])
-    def test_unary_plus_nullable_int(self, any_signed_nullable_int_dtype, source):
-        dtype = any_signed_nullable_int_dtype
-        expected = Series(source, dtype=dtype)
-        result = +expected
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "source, target",
-        [
-            ([1, 2, 3], [1, 2, 3]),
-            ([1, -2, None], [1, 2, None]),
-            ([-1, 0, 1], [1, 0, 1]),
-        ],
-    )
-    def test_abs_nullable_int(self, any_signed_nullable_int_dtype, source, target):
-        dtype = any_signed_nullable_int_dtype
-        ser = Series(source, dtype=dtype)
-        result = abs(ser)
-        expected = Series(target, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "source, target",
-        [
-            ([1.1, 2.2, 3.3], [-1.1, -2.2, -3.3]),
-            ([1.1, 2.2, None], [-1.1, -2.2, None]),
-            ([-1.1, 0.0, 1.1], [1.1, 0.0, -1.1]),
-        ],
-    )
-    def test_unary_minus_float(self, float_ea_dtype, source, target):
-        dtype = float_ea_dtype
-        ser = Series(source, dtype=dtype)
-        result = -ser
-        expected = Series(target, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "source", [[1.1, 2.2, 3.3], [1.1, 2.2, None], [-1.1, 0.0, 1]]
-    )
-    def test_unary_plus_float(self, float_ea_dtype, source):
-        dtype = float_ea_dtype
-        expected = Series(source, dtype=dtype)
-        result = +expected
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "source, target",
-        [
-            ([1.1, 2.2, 3.3], [1.1, 2.2, 3.3]),
-            ([1.1, -2.2, None], [1.1, 2.2, None]),
-            ([-1.1, 0.0, 1.1], [1.1, 0.0, 1.1]),
-        ],
-    )
-    def test_unary_abs_float(self, float_ea_dtype, source, target):
-        dtype = float_ea_dtype
-        ser = Series(source, dtype=dtype)
-        result = abs(ser)
-        expected = Series(target, dtype=dtype)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(neg_result, neg_target)
+        tm.assert_series_equal(pos_result, ser)
+        tm.assert_series_equal(abs_result, abs_target)
