@@ -3475,11 +3475,6 @@ _lite_rule_alias = {
     "BAS": "BAS-JAN",  # BYearBegin(month=1),
     "BYS": "BAS-JAN",
 
-    "MS": "M",         # MonthBegin
-    # TODO: implement business month periods?
-    # "BMS": "BM",       # BusinessMonthBegin
-    # "BM": "BM",        # BusinessMonthEnd
-
     "Min": "T",
     "min": "T",
     "ms": "L",
