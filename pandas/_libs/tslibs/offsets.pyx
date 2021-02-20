@@ -4064,7 +4064,7 @@ cdef inline int _roll_qtrday(npy_datetimestruct* dts,
     return n
 
 
-def offset(offset_alias:str, n:int = 1, **kwargs) -> BaseOffset:
+def offset(offset_alias: str, n: int = 1, **kwargs) -> BaseOffset:
     """
     Given an offset alias (e.g., 'M'), periods number and the matching DateOffset
     class arguments, return a new DateOffset object.
@@ -4081,6 +4081,6 @@ def offset(offset_alias:str, n:int = 1, **kwargs) -> BaseOffset:
 
     Returns
     -------
-    shifted : datetime or Timestamp (same as input `stamp`)
+    DateOffset
     """
     return prefix_mapping[offset_alias](n, **kwargs)
