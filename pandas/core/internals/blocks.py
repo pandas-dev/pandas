@@ -672,6 +672,18 @@ class Block(PandasObject):
 
     def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
         values = self.values
+        if values.dtype.kind in ["m", "M"]:
+            values = self.array_values()
+
+        if (
+            values.dtype.kind in ["m", "M"]
+            and dtype.kind in ["i", "u"]
+            and isinstance(dtype, np.dtype)
+            and dtype.itemsize != 8
+        ):
+            # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
+            msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
+            raise TypeError(msg)
 
         if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
             return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
