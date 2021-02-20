@@ -1925,8 +1925,6 @@ cdef class YearBegin(YearOffset):
     Timestamp('2021-01-01 05:01:15')
     >>> ts + YearBegin(normalize = True)
     Timestamp('2021-01-01 00:00:00')
-    >>> ts + YearBegin()._from_name('APR')
-    Timestamp('2021-04-01 05:01:15')
     """
 
     _outputName = "YearBegin"
@@ -1947,8 +1945,6 @@ cdef class YearEnd(YearOffset):
     Timestamp('2020-12-31 05:01:15')
     >>> ts + YearEnd(normalize = True)
     Timestamp('2020-12-31 00:00:00')
-    >>> ts + YearEnd()._from_name('AUG')
-    Timestamp('2020-08-31 05:01:15')
     """
 
     _outputName = "YearEnd"
@@ -1975,6 +1971,7 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2022-01-03 05:01:15')
     """
 
+    _period_dtype_code = None
     _outputName = "BusinessYearBegin"
     _default_month = 1
     _prefix = "BAS"
@@ -2015,6 +2012,7 @@ cdef class BYearEnd(YearOffset):
     Timestamp('2020-11-30 05:01:15')
     """
 
+    _period_dtype_code = None
     _outputName = "BusinessYearEnd"
     _default_month = 12
     _prefix = "BA"
@@ -2121,8 +2119,6 @@ cdef class QuarterBegin(QuarterOffset):
     --------
     >>> from pandas.tseries.offsets import QuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + QuarterBegin()._from_name('MAR')
-    Timestamp('2020-06-01 05:01:15')
     >>> ts + QuarterBegin(2, startingMonth = 2)
     Timestamp('2020-11-01 05:01:15')
     """
@@ -2148,8 +2144,6 @@ cdef class QuarterEnd(QuarterOffset):
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + QuarterEnd(2)
     Timestamp('2020-09-30 05:01:15')
-    >>> ts + QuarterEnd()._from_name('JUN')
-    Timestamp('2020-06-30 05:01:15')
     >>> ts + QuarterEnd(1, normalize = True)
     Timestamp('2020-06-30 00:00:00')
     >>> ts + QuarterEnd(-2, startingMonth = 2)
@@ -2178,6 +2172,7 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-08-03 05:01:15')
     """
 
+    _period_dtype_code = None
     _output_name = "BusinessQuarterBegin"
     _default_month = 3  # Should be 1
     _from_name_starting_month = 1
@@ -2207,6 +2202,7 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-05-29 05:01:15')
     """
 
+    _period_dtype_code = None
     _output_name = "BusinessQuarterEnd"
     _default_month = 3
     _from_name_starting_month = 12
