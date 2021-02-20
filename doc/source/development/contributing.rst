@@ -159,7 +159,15 @@ Instead of manually setting up a development environment, you can use `Docker
 commands. pandas provides a ``DockerFile`` in the root directory to build a Docker image
 with a full pandas development environment.
 
-**Docker Commands**
+**Unix/macOS**
+
+There is a script to help you with this::
+
+    ./docker.sh
+
+When prompted, enter your Github username.
+
+**Windows**
 
 Pass your GitHub username in the ``DockerFile`` to use your own fork::
 
