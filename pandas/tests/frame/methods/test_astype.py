@@ -644,7 +644,8 @@ class TestAstype:
         alt = obj.astype(str)
         assert np.all(alt.iloc[1:] == result.iloc[1:])
 
-    def test_astype_bytes(self):
-        # GH#39474
-        result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
-        assert result.dtypes[0] == np.dtype("S3")
+    @pytest.mark.parametrize("dtype", [bytes, np.string_, np.bytes_])
+    def test_astype_bytes(self, dtype):
+        # GH#39566
+        result = DataFrame(["foo", "bar", "baz"]).astype(dtype)
+        assert result.dtypes[0] == "object"

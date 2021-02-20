@@ -344,10 +344,11 @@ class TestAstype:
             reload(sys)
             sys.setdefaultencoding(former_encoding)
 
-    def test_astype_bytes(self):
+    @pytest.mark.parametrize("dtype", [bytes, np.string_, np.bytes_])
+    def test_astype_bytes(self, dtype):
         # GH#39474
-        result = Series(["foo", "bar", "baz"]).astype(bytes)
-        assert result.dtypes == np.dtype("S3")
+        result = Series(["foo", "bar", "baz"]).astype(dtype)
+        assert result.dtypes == "object"
 
 
 class TestAstypeCategorical:

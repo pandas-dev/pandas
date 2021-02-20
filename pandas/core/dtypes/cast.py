@@ -1268,7 +1268,7 @@ def soft_convert_objects(
             values = lib.maybe_convert_objects(
                 values, convert_datetime=datetime, convert_timedelta=timedelta
             )
-        except (OutOfBoundsDatetime, ValueError):
+        except OutOfBoundsDatetime:
             return values
 
     if numeric and is_object_dtype(values.dtype):

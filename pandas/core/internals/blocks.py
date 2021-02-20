@@ -2219,7 +2219,7 @@ class ObjectBlock(Block):
 
     @classmethod
     def _maybe_coerce_values(cls, values):
-        if issubclass(values.dtype.type, str):
+        if issubclass(values.dtype.type, (str, bytes)):
             values = np.array(values, dtype=object)
         return values
 
