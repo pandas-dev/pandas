@@ -54,6 +54,7 @@ from pandas.tseries.offsets import (
     FY5253Quarter,
     LastWeekOfMonth,
     MonthBegin,
+    MonthEnd,
     Nano,
     Tick,
     Week,
@@ -870,3 +871,9 @@ def test_dateoffset_immutable(attribute):
     msg = "DateOffset objects are immutable"
     with pytest.raises(AttributeError, match=msg):
         setattr(offset, attribute, 5)
+
+def test_offset():
+    assert offsets.offset("MS", 0) == MonthBegin(0)
+    assert offsets.offset("M", -2) == MonthEnd(-2)
+    assert offsets.offset("BQS") == BQuarterBegin()
+    assert offsets.offset("A", 3, month=2) == YearEnd(3, month=2)
