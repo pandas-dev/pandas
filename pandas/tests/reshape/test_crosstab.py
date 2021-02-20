@@ -240,7 +240,7 @@ class TestCrosstab:
         s2 = Series([4, 5, 6], index=[4, 5, 6])
 
         actual = crosstab(s1, s2)
-        expected = DataFrame()
+        expected = DataFrame(index=Index([], dtype="int", name="row_0"))
 
         tm.assert_frame_equal(actual, expected)
 

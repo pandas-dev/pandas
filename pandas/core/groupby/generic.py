@@ -461,6 +461,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Parameters
         ----------
+        data : Series
+            Input data for groupby operation.
         keys : Index
             Keys of groups that Series was grouped by.
         values : Optional[List[Any]]
@@ -475,7 +477,10 @@ class SeriesGroupBy(GroupBy[Series]):
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
-                [], name=self._selection_name, index=keys, dtype=np.float64
+                [],
+                name=self._selection_name,
+                index=self.grouper.result_index,
+                dtype=data.dtype,
             )
         assert values is not None
 
@@ -1235,7 +1240,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
         if len(keys) == 0:
-            return self.obj._constructor(index=keys, columns=data.columns)
+            result = self.obj._constructor(
+                index=self.grouper.result_index, columns=data.columns
+            )
+            result = result.astype(data.dtypes.to_dict())
+            return result
 
         # GH12824
         first_not_none = next(com.not_none(*values), None)

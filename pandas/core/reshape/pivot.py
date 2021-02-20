@@ -202,14 +202,8 @@ def pivot_table(
         )
 
     # discard the top level
-    if (
-        values_passed
-        and not values_multi
-        and not table.empty
-        and (table.columns.nlevels > 1)
-    ):
-        table = table[values[0]]
-
+    if values_passed and not values_multi and table.columns.nlevels > 1:
+        table = table.droplevel(0, axis=1)
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 

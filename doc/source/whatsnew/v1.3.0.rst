@@ -434,7 +434,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.resample` would raise when the index was a :class:`PeriodIndex` consisting of ``NaT`` (:issue:`39227`)
 - Bug in :meth:`core.window.rolling.RollingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.corr` where the groupby column would return 0 instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 - Bug in :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` where 1 would be returned instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
-- Bug in :meth:`DataFrameGroupBy.agg` would return no columns when the result had no rows (:issue:`39809`)
+- Bug in various Groupby operations on an empty ``Series`` or ``DataFrame`` would lose index, columns, and data types (:issue:`26411`)
 
 Reshaping
 ^^^^^^^^^
@@ -449,6 +449,7 @@ Reshaping
 - Bug in :meth:`DataFrame.sort_values` not reshaping index correctly after sorting on columns, when ``ignore_index=True`` (:issue:`39464`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
+- Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
 
 Sparse
 ^^^^^^

@@ -1716,18 +1716,40 @@ def test_pivot_table_values_key_error():
         )
 
 
+@pytest.mark.parametrize("columns", ["C", ["C"]])
 @pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
-def test_empty_dataframe_groupby(keys):
-    # GH8093 & GH39809
+@pytest.mark.parametrize(
+    "dtypes",
+    [
+        "object",
+        "int",
+        "float",
+        {"A": "object", "B": "int", "C": "float"},
+        {"A": "int", "B": "float", "C": "object"},
+    ],
+)
+@pytest.mark.parametrize(
+    "op, args",
+    [
+        ["sum", ()],
+        ["agg", ("sum",)],
+        ["apply", ("sum",)],
+        ["transform", ("sum",)],
+    ],
+)
+def test_empty_dataframe_groupby(columns, keys, dtypes, op, args):
+    # GH8093 & GH26411
     df = DataFrame(columns=["A", "B", "C"])
+    df = df.astype(dtypes)
 
-    result = df.groupby(keys).sum()
-    expected = DataFrame(columns=df.columns.difference(keys))
+    result = getattr(df.groupby(keys)[columns], op)(*args)
+    if op == "transform":
+        expected = df[columns]
+    else:
+        expected = df.set_index(keys)[columns]
     if len(keys) == 1:
-        expected = expected.astype(float)
         expected.index.name = keys[0]
-
-    tm.assert_frame_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 def test_tuple_as_grouping():

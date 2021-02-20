@@ -153,7 +153,7 @@ def test_agg_apply_corner(ts, tsframe):
     )
     tm.assert_frame_equal(grouped.sum(), exp_df)
     tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
-    tm.assert_frame_equal(grouped.apply(np.sum), exp_df.astype(object))
+    tm.assert_frame_equal(grouped.apply(np.sum), exp_df)
 
 
 def test_agg_grouping_is_list_tuple(ts):
