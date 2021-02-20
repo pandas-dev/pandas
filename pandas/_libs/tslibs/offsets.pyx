@@ -1994,11 +1994,9 @@ cdef class QuarterOffset(SingleConstructorOffset):
     # FIXME: python annotations here breaks things
     # _default_month: int
     # _from_name_month: int
-    cdef public:
-        int _default_month = 1, _from_name_month = 1
 
     cdef readonly:
-        int month, startingMonth
+        int month, startingMonth, _default_month, _from_name_month
 
     def __init__(self, n=1, normalize=False, month=None, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
