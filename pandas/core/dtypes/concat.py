@@ -10,7 +10,6 @@ from pandas._typing import (
     DtypeObj,
 )
 
-from pandas.core.algorithms import unique1d
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -25,6 +24,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.algorithms import unique1d
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import (
