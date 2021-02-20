@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_sparse,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCSeries,
@@ -36,7 +37,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     Helper function for `arr.astype(common_dtype)` but handling all special
     cases.
     """
-    if is_categorical_dtype(dtype):
+    if isinstance(dtype, CategoricalDtype):
         # if casting an array to a categorical dtype, then we need to ensure
         # that its unique values are predefined as categories in that dtype
         unique_values = np.unique(arr[~isna(arr)])
