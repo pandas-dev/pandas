@@ -24,7 +24,7 @@ class BaseNoAccumulateTests(BaseAccumulateTests):
         op_name = all_numeric_accumulations
         s = pd.Series(data)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             getattr(s, op_name)(skipna=skipna)
 
 
