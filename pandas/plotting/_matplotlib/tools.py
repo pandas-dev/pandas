@@ -2,7 +2,14 @@
 from __future__ import annotations
 
 from math import ceil
-from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import matplotlib.table
@@ -12,7 +19,11 @@ import numpy as np
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.plotting._matplotlib import compat
 

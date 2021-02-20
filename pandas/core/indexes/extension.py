@@ -1,16 +1,29 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List, TypeVar
+from typing import (
+    List,
+    TypeVar,
+)
 
 import numpy as np
 
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
-from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype, pandas_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    is_object_dtype,
+    pandas_dtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -295,6 +308,10 @@ class ExtensionIndex(Index):
                 # Ensure that self.astype(self.dtype) is self
                 return self
             return self.copy()
+
+        if isinstance(dtype, np.dtype) and dtype.kind == "M" and dtype != "M8[ns]":
+            # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
+            raise TypeError(f"Cannot cast {type(self._data).__name__} to dtype")
 
         new_values = self._data.astype(dtype, copy=copy)
 

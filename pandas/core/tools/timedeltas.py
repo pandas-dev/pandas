@@ -6,10 +6,16 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
+from pandas._libs.tslibs.timedeltas import (
+    Timedelta,
+    parse_timedelta_unit,
+)
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
