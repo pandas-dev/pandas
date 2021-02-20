@@ -28,7 +28,7 @@ class IsIn:
     def setup(self, dtype):
         N = 10000
 
-        self.mismatched = [NaT.to_timedelta64()] * 2
+        self.mismatched = [NaT.to_datetime64()] * 2
 
         if dtype in ["boolean", "bool"]:
             self.series = Series(np.random.randint(0, 2, N)).astype(dtype)
