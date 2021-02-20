@@ -4,7 +4,7 @@
 
 -----------------
 
-# pandas: powerful Python data analysis toolkit
+# pandas: is a powerful Python data analysis toolkit
 [![PyPI Latest Release](https://img.shields.io/pypi/v/pandas.svg)](https://pypi.org/project/pandas/)
 [![Conda Latest Release](https://anaconda.org/conda-forge/pandas/badges/version.svg)](https://anaconda.org/anaconda/pandas/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3509134.svg)](https://doi.org/10.5281/zenodo.3509134)
@@ -20,16 +20,14 @@
 
 ## What is it?
 
-**pandas** is a Python package that provides fast, flexible, and expressive data
+**pandas**  is a Python package that provides fast, flexible, and expressive data
 structures designed to make working with "relational" or "labeled" data both
-easy and intuitive. It aims to be the fundamental high-level building block for
-doing practical, **real world** data analysis in Python. Additionally, it has
-the broader goal of becoming **the most powerful and flexible open source data
-analysis / manipulation tool available in any language**. It is already well on
-its way towards this goal.
+ easy and intuitive. It aims to be the fundamental high-level building block for 
+ doing practical, **real-world** data analysis in Python. Additionally, it has 
+ the broader goal of becoming **the most powerful and flexible open-source data analysis/manipulation tool available in any language**. It is already well on its way towards this goal.l.
 
 ## Main Features
-Here are just a few of the things that pandas does well:
+Here are just a few of the things that pandas do well:
 
   - Easy handling of [**missing data**][missing-data] (represented as
     `NaN`, `NA`, or `NaT`) in floating point as well as non-floating point data
@@ -114,7 +112,7 @@ dependencies above. Cython can be installed from PyPI:
 pip install cython
 ```
 
-In the `pandas` directory (same one where you found this file after
+In the `pandas` directory (the same one where you found this file after
 cloning the git repo), execute:
 
 ```sh
