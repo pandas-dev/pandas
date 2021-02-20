@@ -1843,7 +1843,6 @@ cdef class YearOffset(SingleConstructorOffset):
     _default_month = 1
 
     cdef:
-        public int _period_dtype_code
         readonly int month
 
     def __init__(self, n=1, normalize=False, month=None):
@@ -2034,7 +2033,6 @@ cdef class QuarterOffset(SingleConstructorOffset):
     _default_month = 1
 
     cdef:
-        public int _period_dtype_code
         readonly int startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
@@ -2172,7 +2170,7 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-08-03 05:01:15')
     """
 
-    self._period_dtype_code = None
+    _period_dtype_code = None
     _output_name = "BusinessQuarterBegin"
     _default_month = 3  # Should be 1
     _from_name_starting_month = 1
@@ -2202,7 +2200,7 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-05-29 05:01:15')
     """
 
-    self._period_dtype_code = None
+    _period_dtype_code = None
     _output_name = "BusinessQuarterEnd"
     _default_month = 3
     _from_name_starting_month = 12
