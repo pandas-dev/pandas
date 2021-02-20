@@ -201,7 +201,7 @@ class IsInFloat64:
         else:
             raise ValueError(title)
 
-    def time_isin(self):
+    def time_isin(self, dtype, title):
         self.series.isin(self.values)
 
 
