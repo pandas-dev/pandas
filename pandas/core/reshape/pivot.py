@@ -124,7 +124,7 @@ def __internal_pivot_table(
     observed: bool,
 ) -> DataFrame:
     """
-    Equivalent of :func:`pandas.pivot_table`, except only allowing non-list ``aggfunc``.
+    Helper of :func:`pandas.pivot_table` for any non-list ``aggfunc``.
     """
     keys = index + columns
 
