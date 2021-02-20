@@ -234,7 +234,7 @@ class TestDatetime64:
             exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name")
             tm.assert_index_equal(res, exp)
 
-        dti = date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
+        dti = date_range(freq="BQ-MAR", start=datetime(1998, 1, 1), periods=4)
 
         assert sum(dti.is_quarter_start) == 0
         assert sum(dti.is_quarter_end) == 4
