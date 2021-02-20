@@ -99,7 +99,10 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -2100,21 +2103,11 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
         Returns
         -------
-        values : ndarray[datetime64ns/timedelta64ns]
-
-        Overridden by DatetimeTZBlock.
+        values : DatetimeArray or TimedeltaArray
         """
-        if cls.fill_value is not NaT and values.dtype != cls._dtype:
-            # non-nano we will convert to nano
-            if values.dtype.kind != cls._dtype.kind:
-                # caller is responsible for ensuring td64/dt64 dtype
-                raise TypeError(values.dtype)  # pragma: no cover
-
-            values = cls._holder._from_sequence(values)
-
-        if not isinstance(values, cls._holder):
-            values = cls._holder(values)
-
+        values = extract_array(values, extract_numpy=True)
+        if isinstance(values, np.ndarray):
+            values = ensure_wrapped_if_datetimelike(values)
         return values
 
     def to_native_types(self, na_rep="NaT", **kwargs):
