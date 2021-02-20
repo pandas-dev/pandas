@@ -17,7 +17,6 @@ import numpy as np
 
 from pandas._libs import (
     Interval,
-    NaT,
     Period,
     Timestamp,
     algos as libalgos,
@@ -72,6 +71,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
+    na_value_for_dtype,
 )
 
 import pandas.core.algorithms as algos
@@ -2109,6 +2109,14 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
             values = ensure_wrapped_if_datetimelike(values)
         return values
 
+    @property
+    def _holder(self):
+        return type(self.values)
+
+    @property
+    def fill_value(self):
+        return na_value_for_dtype(self.dtype)
+
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
         arr = self.values
@@ -2124,8 +2132,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
-    fill_value = np.datetime64("NaT", "ns")
-    _holder = DatetimeArray
 
 
 class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
@@ -2137,9 +2143,6 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
     is_extension = True
     _validate_ndim = True
     _can_consolidate = True
-
-    _holder = DatetimeArray
-    fill_value = NaT
 
     get_values = Block.get_values
     set_inplace = Block.set_inplace
@@ -2159,8 +2162,6 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-    _holder = TimedeltaArray
-    fill_value = np.timedelta64("NaT", "ns")
 
 
 class ObjectBlock(Block):
