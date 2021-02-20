@@ -791,10 +791,10 @@ class TestFreqConversion:
 
     def test_asfreq_MS(self):
         initial = Period("2013")
+        ts1 = Period("2013-01", "MS").to_timestamp()
+        ts2 = Period("2013-01", "M").to_timestamp(how="start")
 
         assert initial.asfreq(freq="M", how="S") == Period("2013-01", "M")
         assert initial.asfreq(freq="MS", how="S") == Period("2013-01", "MS")
-        assert initial.asfreq(freq="M", how="S") == Period("2013-01", "MS")
-        assert initial.asfreq(freq="MS", how="S") == Period("2013-01", "M")
-
-        assert _period_code_map.get("MS") is None
+        assert initial.asfreq(freq="M", how="S").to_timestamp(how="start") == ts1
+        assert initial.asfreq(freq="MS", how="S").to_timestamp() == ts2
