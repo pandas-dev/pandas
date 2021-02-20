@@ -135,7 +135,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # for axis=0
         if not single_dtype:
             target_dtype = find_common_type(
-                [x.dtype for x in to_concat], prio_cat_dtype=arr_index_expansion
+                [x.dtype for x in to_concat], promote_categorical=arr_index_expansion
             )
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 

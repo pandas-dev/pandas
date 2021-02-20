@@ -1640,14 +1640,16 @@ def sanitize_to_nanoseconds(values: np.ndarray) -> np.ndarray:
     return values
 
 
-def find_common_type(types: List[DtypeObj], prio_cat_dtype: bool = False) -> DtypeObj:
+def find_common_type(
+    types: List[DtypeObj], promote_categorical: bool = False
+) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
     Parameters
     ----------
     types : list of dtypes
-    prio_cat_dtype: set priority towards finding a categorical dtype
+    promote_categorical : find if possible, a categorical dtype that fits all the dtypes
 
     Returns
     -------
@@ -1663,9 +1665,11 @@ def find_common_type(types: List[DtypeObj], prio_cat_dtype: bool = False) -> Dty
 
     first = types[0]
 
-    # categorical dtypes should not be casted to a new dtype
-    # if priority is set accodring to prio_cat_dtype
-    if prio_cat_dtype:
+    # We will first try to find a common categorical dtype
+    # if promote_categorical is set to True. This is used
+    # to preserve the categorical dtype (since categorical
+    # values can consist of multiple dtypes).
+    if promote_categorical:
         if any(is_categorical_dtype(t) for t in types):
             cat_dtypes = []
             for t in types:
