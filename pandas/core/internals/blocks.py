@@ -2087,7 +2087,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     is_numeric = False
     _can_hold_na = True
-    _dtype: np.dtype
     _holder: Type[Union[DatetimeArray, TimedeltaArray]]
 
     @classmethod
@@ -2126,7 +2125,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
     fill_value = np.datetime64("NaT", "ns")
-    _dtype = fill_value.dtype
     _holder = DatetimeArray
 
 
@@ -2163,7 +2161,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     _holder = TimedeltaArray
     fill_value = np.timedelta64("NaT", "ns")
-    _dtype = fill_value.dtype
 
 
 class ObjectBlock(Block):
