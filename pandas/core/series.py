@@ -4056,7 +4056,10 @@ Keep all original rows and also all original values
             Python function or NumPy ufunc to apply.
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object.
+            False, leave as dtype=object. For the dtypes Categorical,
+            Sparse, Interval, Period, DatetimeArray and TimedeltaArray
+            the original dtype is kept.
+            
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
