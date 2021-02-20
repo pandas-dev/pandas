@@ -1302,3 +1302,17 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_keep_whitespace(self, datapath):
+        # GH 24766
+        whitespace_data = datapath("io", "data", "html", "whitespace_table.html")
+        df1 = self.read_html(whitespace_data, remove_whitespace=False)[0]
+        df2 = self.read_html(whitespace_data)[0]
+        assert df2.iloc[0, 0] == "Test with misc. whitespace more text"
+        assert (
+            df1.iloc[0, 0]
+            == """
+                    Test with  misc. whitespace
+                    more text
+                """
+        )

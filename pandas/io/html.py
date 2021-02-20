@@ -180,6 +180,10 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
+    remove_whitespace : bool
+        Whether table row values should have all whitespace replaced with a space.
+        .. versionadded:: 1.5.0
+
     Attributes
     ----------
     io : str or file-like
@@ -197,6 +201,10 @@ class _HtmlFrameParser:
 
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
+
+    remove_whitespace : bool
+        Whether table row values should have all whitespace replaced with a space
+        .. versionadded:: 1.5.0
 
     Notes
     -----
@@ -221,12 +229,14 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
+        remove_whitespace: bool,
     ):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
         self.displayed_only = displayed_only
+        self.remove_whitespace = remove_whitespace
 
     def parse_tables(self):
         """
@@ -480,7 +490,10 @@ class _HtmlFrameParser:
                     index += 1
 
                 # Append the text from this <td>, colspan times
-                text = _remove_whitespace(self._text_getter(td))
+                if self.remove_whitespace:
+                    text = _remove_whitespace(self._text_getter(td))
+                else:
+                    text = self._text_getter(td)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
@@ -906,14 +919,18 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
+def _parse(
+    flavor, io, match, attrs, encoding, displayed_only, remove_whitespace, **kwargs
+):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only)
+        p = parser(
+            io, compiled_match, attrs, encoding, displayed_only, remove_whitespace
+        )
 
         try:
             tables = p.parse_tables()
@@ -964,6 +981,7 @@ def read_html(
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
+    remove_whitespace: bool = True,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1058,6 +1076,10 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
+    remove_whitespace : bool, default True
+        Whether table row values should have all whitespace replaced with a space.
+        .. versionadded:: 1.5.0
+
     Returns
     -------
     dfs
@@ -1126,4 +1148,5 @@ def read_html(
         na_values=na_values,
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
+        remove_whitespace=remove_whitespace,
     )
