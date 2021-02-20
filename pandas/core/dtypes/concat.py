@@ -114,6 +114,9 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
 
+    if _contains_datetime:
+        return _concat_datetime(to_concat, axis=axis)
+
     if any_ea:
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
@@ -123,14 +126,9 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
 
         if isinstance(to_concat[0], ExtensionArray):
             cls = type(to_concat[0])
-            if _contains_datetime:
-                return _concat_datetime(to_concat, axis=axis)
             return cls._concat_same_type(to_concat)
         else:
             return np.concatenate(to_concat, axis=axis)
-
-    elif _contains_datetime:
-        return _concat_datetime(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
