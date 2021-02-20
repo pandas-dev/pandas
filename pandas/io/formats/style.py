@@ -566,7 +566,7 @@ class Styler:
             "body": body,
             "uuid": uuid,
             "precision": precision,
-            "table_styles": table_styles,
+            "table_styles": _format_table_styles(table_styles),
             "caption": caption,
             "table_attributes": table_attr,
         }
@@ -2075,6 +2075,26 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def _format_table_styles(styles: CSSStyles) -> CSSStyles:
+    """
+    looks for multiple CSS selectors and separates them:
+    [{'selector': 'td, th', 'props': 'a:v;'}]
+        ---> [{'selector': 'td', 'props': 'a:v;'},
+              {'selector': 'th', 'props': 'a:v;'}]
+    """
+    return [
+        item
+        for sublist in [
+            [
+                {"selector": x, "props": style["props"]}
+                for x in style["selector"].split(",")
+            ]
+            for style in styles
+        ]
+        for item in sublist
+    ]
 
 
 def _non_reducing_slice(slice_):
