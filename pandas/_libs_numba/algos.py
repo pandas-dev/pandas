@@ -1,11 +1,16 @@
+from __future__ import annotations
+
+import numba
+import numpy as np
+
+import pandas._libs_numba.util as util
+
 # import cython
 # from cython import Py_ssize_t
 
 # from libc.math cimport fabs, sqrt
 # from libc.stdlib cimport free, malloc
 # from libc.string cimport memmove
-
-# import numpy as np
 
 # cimport numpy as cnp
 # from numpy cimport (
@@ -36,7 +41,6 @@
 
 # cnp.import_array()
 
-import pandas._libs_numba.util as util
 
 # from pandas._libs.khash cimport (
 #     kh_destroy_int64,
@@ -504,30 +508,16 @@ import pandas._libs_numba.util as util
 #     uint8_t
 
 
-def validate_limit(nobs: int, limit=None) -> int:
+def _validate_limit(limit: int | None = None) -> None:
     """
-    Check that the `limit` argument is a positive integer.
-
-    Parameters
-    ----------
-    nobs : int
-    limit : object
-
-    Returns
-    -------
-    int
-        The limit.
+    Check that the `limit` argument is a positive integer or None.
     """
     if limit is None:
-        lim = nobs
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError("Limit must be an integer")
-        if limit < 1:
-            raise ValueError("Limit must be greater than 0")
-        lim = limit
-
-    return lim
+        return
+    elif not util.is_integer_object(limit):
+        raise ValueError("Limit must be an integer")
+    elif limit < 1:
+        raise ValueError("Limit must be greater than 0")
 
 
 # @cython.boundscheck(False)
@@ -587,22 +577,41 @@ def validate_limit(nobs: int, limit=None) -> int:
 #     return indexer
 
 
-def pad_inplace(values, mask, limit=None):
+def pad_inplace(values: np.ndarray, mask: np.ndarray, limit: int | None = None) -> None:
+    _validate_limit(limit)
+    _pad_inplace(values, mask, limit)
 
-    fill_count = 0
 
+@numba.jit
+def _pad_inplace(
+    values: np.ndarray, mask: np.ndarray, limit: int | None = None
+) -> None:
+    if len(values):
+        if limit is None:
+            _pad_inplace_no_limit(values, mask)
+        else:
+            _pad_inplace_with_limit(values, mask, limit)
+
+
+@numba.jit
+def _pad_inplace_no_limit(values: np.ndarray, mask: np.ndarray) -> None:
     N = len(values)
-
-    # GH#2778
-    if N == 0:
-        return
-
-    lim = validate_limit(N, limit)
-
     val = values[0]
     for i in range(N):
         if mask[i]:
-            if fill_count >= lim:
+            values[i] = val
+        else:
+            val = values[i]
+
+
+@numba.jit
+def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) -> None:
+    N = len(values)
+    fill_count = 0
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= limit:
                 continue
             fill_count += 1
             values[i] = val
