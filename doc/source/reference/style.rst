@@ -53,9 +53,11 @@ Builtin styles
 .. autosummary::
    :toctree: api/
 
+   Styler.highlight_null
    Styler.highlight_max
    Styler.highlight_min
-   Styler.highlight_null
+   Styler.highlight_range
+   Styler.highlight_quantile
    Styler.background_gradient
    Styler.bar
 
