@@ -794,92 +794,51 @@ def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) ->
 #                 val = values[j, i]
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
-#     """
-#     Returns
-#     -------
-#     tuple
-#         is_monotonic_inc : bool
-#         is_monotonic_dec : bool
-#         is_unique : bool
-#     """
-#     cdef:
-#         Py_ssize_t i, n
-#         algos_t prev, cur
-#         bint is_monotonic_inc = 1
-#         bint is_monotonic_dec = 1
-#         bint is_unique = 1
-#         bint is_strict_monotonic = 1
+def is_monotonic(arr: np.ndarray) -> tuple[bool, bool, bool]:
+    """
+    Returns
+    -------
+    tuple
+        is_monotonic_inc : bool
+        is_monotonic_dec : bool
+        is_unique : bool
+    """
+    is_monotonic_inc = True
+    is_monotonic_dec = True
+    is_unique = True
+    is_strict_monotonic = True
 
-#     n = len(arr)
+    n = len(arr)
 
-#     if n == 1:
-#         if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == NPY_NAT):
-#             # single value is NaN
-#             return False, False, True
-#         else:
-#             return True, True, True
-#     elif n < 2:
-#         return True, True, True
+    if n == 1:
+        if arr[0] != arr[0]:
+            # single value is NaN/NaT
+            return False, False, True
+        else:
+            return True, True, True
+    elif n < 2:
+        return True, True, True
 
-#     if timelike and <int64_t>arr[0] == NPY_NAT:
-#         return False, False, True
+    prev = arr[0]
+    for i in range(1, n):
+        cur = arr[i]
+        if cur < prev:
+            is_monotonic_inc = False
+        elif cur > prev:
+            is_monotonic_dec = False
+        elif cur == prev:
+            is_unique = False
+        else:
+            # cur or prev is NaN/NaT
+            is_monotonic_inc = False
+            is_monotonic_dec = False
+            break
+        if not is_monotonic_inc and not is_monotonic_dec:
+            break
+        prev = cur
 
-#     if algos_t is not object:
-#         with nogil:
-#             prev = arr[0]
-#             for i in range(1, n):
-#                 cur = arr[i]
-#                 if timelike and <int64_t>cur == NPY_NAT:
-#                     is_monotonic_inc = 0
-#                     is_monotonic_dec = 0
-#                     break
-#                 if cur < prev:
-#                     is_monotonic_inc = 0
-#                 elif cur > prev:
-#                     is_monotonic_dec = 0
-#                 elif cur == prev:
-#                     is_unique = 0
-#                 else:
-#                     # cur or prev is NaN
-#                     is_monotonic_inc = 0
-#                     is_monotonic_dec = 0
-#                     break
-#                 if not is_monotonic_inc and not is_monotonic_dec:
-#                     is_monotonic_inc = 0
-#                     is_monotonic_dec = 0
-#                     break
-#                 prev = cur
-#     else:
-#         # object-dtype, identical to above except we cannot use `with nogil`
-#         prev = arr[0]
-#         for i in range(1, n):
-#             cur = arr[i]
-#             if timelike and <int64_t>cur == NPY_NAT:
-#                 is_monotonic_inc = 0
-#                 is_monotonic_dec = 0
-#                 break
-#             if cur < prev:
-#                 is_monotonic_inc = 0
-#             elif cur > prev:
-#                 is_monotonic_dec = 0
-#             elif cur == prev:
-#                 is_unique = 0
-#             else:
-#                 # cur or prev is NaN
-#                 is_monotonic_inc = 0
-#                 is_monotonic_dec = 0
-#                 break
-#             if not is_monotonic_inc and not is_monotonic_dec:
-#                 is_monotonic_inc = 0
-#                 is_monotonic_dec = 0
-#                 break
-#             prev = cur
-
-#     is_strict_monotonic = is_unique and (is_monotonic_inc or is_monotonic_dec)
-#     return is_monotonic_inc, is_monotonic_dec, is_strict_monotonic
+    is_strict_monotonic = is_unique and (is_monotonic_inc or is_monotonic_dec)
+    return is_monotonic_inc, is_monotonic_dec, is_strict_monotonic
 
 
 # # ----------------------------------------------------------------------
