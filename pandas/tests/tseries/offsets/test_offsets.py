@@ -872,6 +872,7 @@ def test_dateoffset_immutable(attribute):
     with pytest.raises(AttributeError, match=msg):
         setattr(offset, attribute, 5)
 
+
 def test_offset():
     assert offsets.offset("MS", 0) == MonthBegin(0)
     assert offsets.offset("M", -2) == MonthEnd(-2)
