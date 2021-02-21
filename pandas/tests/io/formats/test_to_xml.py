@@ -13,6 +13,7 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
+from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
 """
@@ -1062,11 +1063,13 @@ def test_stylesheet_buffered_reader(datapath, mode):
 
 @td.skip_if_no("lxml")
 def test_stylesheet_wrong_path(datapath):
+    from lxml.etree import XMLSyntaxError
+
     xsl = os.path.join("data", "xml", "row_field_output.xslt")
 
     with pytest.raises(
-        (OSError, FileNotFoundError),
-        match=("failed to load external entity|No such file or directory|没有那个文件或目录"),
+        (XMLSyntaxError),
+        match=("Start tag expected, '<' not found"),
     ):
         geom_df.to_xml(stylesheet=xsl)
 
@@ -1074,7 +1077,7 @@ def test_stylesheet_wrong_path(datapath):
 @td.skip_if_no("lxml")
 def test_stylesheet_not_path_buffer():
     with pytest.raises(
-        ValueError, match=("stylesheet is not a url, file, or xml string")
+        TypeError, match=("argument of type 'function' is not iterable")
     ):
         geom_df.to_xml(stylesheet=DataFrame)
 
@@ -1283,6 +1286,7 @@ def test_style_to_json():
 
 # COMPRESSION
 
+
 geom_xml = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -1307,17 +1311,20 @@ geom_xml = """\
 </data>"""
 
 
-def test_bz2_output(parser):
-    import bz2
-
+@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
+def test_compression_output(parser, comp):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression="bz2")
+        geom_df.to_xml(path, parser=parser, compression=comp)
 
-        with bz2.BZ2File(path, "rb") as fp:
-            output = fp.read()
+        with get_handle(
+            path,
+            "r",
+            compression=comp,
+        ) as handle_obj:
+            output = handle_obj.handle.read()
 
     # etree and lxml differs on quotes and case in xml declaration
-    output = output.decode("utf-8").replace(
+    output = output.replace(
         '<?xml version="1.0" encoding="utf-8"?',
         "<?xml version='1.0' encoding='utf-8'?",
     )
@@ -1325,53 +1332,21 @@ def test_bz2_output(parser):
     assert geom_xml == output.strip()
 
 
-def test_gz_output(parser):
-    import gzip
+@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
+@pytest.mark.parametrize("compfile", ["xml.bz2", "xml.gz", "xml.xz", "xml.zip"])
+def test_unmatched_suffix_comp(parser, comp, compfile):
+    with tm.ensure_clean(filename=compfile) as path:
+        geom_df.to_xml(path, parser=parser, compression=comp)
 
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression="gzip")
-
-        with gzip.open(path, "rb") as fp:
-            output = fp.read()
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.decode("utf-8").replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
-
-    assert geom_xml == output.strip()
-
-
-def test_xz_output(parser):
-    import lzma
-
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression="xz")
-
-        with lzma.open(path, "rb") as fp:
-            output = fp.read()
+        with get_handle(
+            path,
+            "r",
+            compression=comp,
+        ) as handle_obj:
+            output = handle_obj.handle.read()
 
     # etree and lxml differs on quotes and case in xml declaration
-    output = output.decode("utf-8").replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
-
-    assert geom_xml == output.strip()
-
-
-def test_zip_output(parser):
-    import zipfile
-
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression="zip")
-
-        with zipfile.ZipFile(path, "r") as fp:
-            output = fp.read(fp.infolist()[0])
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.decode("utf-8").replace(
+    output = output.replace(
         '<?xml version="1.0" encoding="utf-8"?',
         "<?xml version='1.0' encoding='utf-8'?",
     )

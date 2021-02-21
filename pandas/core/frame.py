@@ -2639,9 +2639,10 @@ class DataFrame(NDFrame, OpsMixin):
             render_links=render_links,
         )
 
+    @doc(storage_options=generic._shared_docs["storage_options"])
     def to_xml(
         self,
-        path_or_buffer: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buffer: Optional[FilePathOrBuffer] = None,
         index: bool = True,
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
@@ -2654,7 +2655,7 @@ class DataFrame(NDFrame, OpsMixin):
         xml_declaration: Optional[bool] = True,
         pretty_print: Optional[bool] = True,
         parser: Optional[str] = "lxml",
-        stylesheet: Optional[FilePathOrBuffer[str]] = None,
+        stylesheet: Optional[FilePathOrBuffer] = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> Optional[str]:
@@ -2691,7 +2692,7 @@ class DataFrame(NDFrame, OpsMixin):
             Default namespaces should be given empty string key. For
             example, ::
 
-                namespaces = {"": "https://example.com"}
+                namespaces = {{"": "https://example.com"}}
 
         prefix : str, optional
             Namespace prefix to be used for every element and/or attribute
@@ -2704,7 +2705,7 @@ class DataFrame(NDFrame, OpsMixin):
         pretty_print : bool, default True
             Whether output should be pretty printed with indentation and
             line breaks.
-        parser : {'lxml','etree'}, default 'lxml'
+        parser : {{'lxml','etree'}}, default 'lxml'
             Parser module to use for building of tree. Only 'lxml' and
             'etree' are supported. With 'lxml', the ability to use XSLT
             stylesheet is supported.
@@ -2720,13 +2721,7 @@ class DataFrame(NDFrame, OpsMixin):
             '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
             otherwise. If using 'zip', the ZIP file must contain only one data
             file to be read in. Set to None for no decompression.
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection,
-            e.g. host, port, username, password, etc., if using a URL that will be
-            parsed by fsspec, e.g., starting “s3://”, “gcs://”. An error will be
-            raised if providing this argument with a non-fsspec URL. See the fsspec
-            and backend storage implementation docs for the set of allowed keys and
-            values.
+        {storage_options}
 
         Returns
         -------
@@ -2741,9 +2736,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'shape': ['square', 'circle', 'triangle'],
+        >>> df = pd.DataFrame({{'shape': ['square', 'circle', 'triangle'],
         ...                    'degrees': [360, 360, 180],
-        ...                    'sides': [4, np.nan, 3]})
+        ...                    'sides': [4, np.nan, 3]}})
 
         >>> df.to_xml()  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
@@ -2778,7 +2773,7 @@ class DataFrame(NDFrame, OpsMixin):
           <row index="2" shape="triangle" degrees="180" sides="3.0"/>
         </data>
 
-        >>> df.to_xml(namespaces={"doc": "https://example.com"},
+        >>> df.to_xml(namespaces={{"doc": "https://example.com"}},
         ...           prefix="doc")  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <doc:data xmlns:doc="https://example.com">

@@ -920,46 +920,54 @@ def test_online_stylesheet():
 # COMPRESSION
 
 
-@pytest.mark.parametrize("compfile", ["geom_xml.bz2", "geom_xml.gz", "geom_xml.xz"])
-def test_compression_read(datapath, parser, compfile):
-    filename = datapath("io", "data", "xml", "geom_xml.bz2")
-    xml_df = read_xml(filename, parser=parser)
+@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
+def test_compression_read(parser, comp):
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, index=False, parser=parser, compression=comp)
+
+        xml_df = read_xml(path, parser=parser, compression=comp)
 
     tm.assert_frame_equal(xml_df, geom_df)
 
 
-def test_wrong_compression_bz2(datapath, parser):
+@pytest.mark.parametrize("comp", ["gzip", "xz", "zip"])
+def test_wrong_compression_bz2(parser, comp):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression="zip")
+        geom_df.to_xml(path, parser=parser, compression=comp)
 
         with pytest.raises(OSError, match="Invalid data stream"):
             read_xml(path, parser=parser, compression="bz2")
 
 
-def test_wrong_compression_gz(datapath, parser):
+@pytest.mark.parametrize("comp", ["bz2", "xz", "zip"])
+def test_wrong_compression_gz(parser, comp):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression="zip")
+        geom_df.to_xml(path, parser=parser, compression=comp)
 
         with pytest.raises(OSError, match="Not a gzipped file"):
             read_xml(path, parser=parser, compression="gzip")
 
 
-def test_wrong_compression_xz(datapath, parser):
+@pytest.mark.parametrize("comp", ["bz2", "gzip", "zip"])
+def test_wrong_compression_xz(parser, comp):
     from lzma import LZMAError
 
-    filename = datapath("io", "data", "xml", "geom_xml.bz2")
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, parser=parser, compression=comp)
 
-    with pytest.raises(LZMAError, match="Input format not supported by decoder"):
-        read_xml(filename, parser=parser, compression="xz")
+        with pytest.raises(LZMAError, match="Input format not supported by decoder"):
+            read_xml(path, parser=parser, compression="xz")
 
 
-def test_wrong_compression_zip(datapath, parser):
+@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz"])
+def test_wrong_compression_zip(parser, comp):
     from zipfile import BadZipFile
 
-    filename = datapath("io", "data", "xml", "geom_xml.gz")
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, parser=parser, compression=comp)
 
-    with pytest.raises(BadZipFile, match="File is not a zip file"):
-        read_xml(filename, parser=parser, compression="zip")
+        with pytest.raises(BadZipFile, match="File is not a zip file"):
+            read_xml(path, parser=parser, compression="zip")
 
 
 def test_unsuported_compression(datapath, parser):

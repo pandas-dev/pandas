@@ -20,10 +20,12 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.frame import DataFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     file_exists,
@@ -69,7 +71,7 @@ class _XMLFrameParser:
         URL, file, file-like object, or a raw string containing XSLT,
         `etree` does not support XSLT but retained for consistency.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         Compression type for on-the-fly decompression of on-disk data.
         If 'infer', then use extension for gzip, bz2, zip or xz.
 
@@ -192,13 +194,11 @@ class _XMLFrameParser:
         The data either has a `read` attribute (e.g. a file object or a
         StringIO/BytesIO) or is a string or bytes that is an XML document.
         """
-        if hasattr(data, "read"):
-            data = data.read()
 
-        if not hasattr(data, "read") and isinstance(data, str):
+        if isinstance(data, str):
             data = io.StringIO(data)
 
-        if not hasattr(data, "read") and isinstance(data, bytes):
+        elif isinstance(data, bytes):
             data = io.BytesIO(data)
 
         return data
@@ -222,14 +222,18 @@ class _XMLFrameParser:
             or is_fsspec_url(filepath_or_buffer)
             or file_exists(filepath_or_buffer)
         ):
-            self.handles = get_handle(
+            with get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
                 compression=self.compression,
                 storage_options=self.storage_options,
-            )
-            filepath_or_buffer = self.handles.handle
+            ) as handle_obj:
+                filepath_or_buffer = (
+                    handle_obj.handle.read()
+                    if hasattr(handle_obj.handle, "read")
+                    else handle_obj.handle
+                )
 
         return filepath_or_buffer
 
@@ -239,23 +243,6 @@ class _XMLFrameParser:
 
         This method will parse io object into tree for parsing
         conditionally by its specific object type.
-
-        Raises
-        ------
-        HttpError
-            * If URL cannot be reached.
-
-        LookupError
-            * If xml document has incorrect or unknown encoding.
-
-        OSError
-            * If file cannot be found.
-
-        ParseError
-            * If xml document conntains syntax issues.
-
-        ValueError
-            * If io object is not readable as string or file-like object.
         """
 
         raise AbstractMethodError(self)
@@ -422,32 +409,20 @@ class _EtreeFrameParser(_XMLFrameParser):
 
     def _parse_doc(self) -> Union[Element, ElementTree]:
         from xml.etree.ElementTree import (
-            Element,
-            ElementTree,
             XMLParser,
-            fromstring,
             parse,
         )
 
-        if isinstance(self.path_or_buffer, str):
-            if self.path_or_buffer.startswith(("<?xml", "<")):
-                self.path_or_buffer = self.path_or_buffer.encode(self.encoding)
+        if isinstance(self.path_or_buffer, str) and self.path_or_buffer.startswith(
+            ("<?xml", "<")
+        ):
+            self.path_or_buffer = self.path_or_buffer.encode(self.encoding)
 
         data = self._get_data_from_filepath(self.path_or_buffer)
         self.data = self._preprocess_data(data)
 
-        r: Union[Element, ElementTree]
-
         curr_parser = XMLParser(encoding=self.encoding)
-
-        if isinstance(self.data, str):
-            r = fromstring(self.data.encode(self.encoding), parser=curr_parser)
-        elif isinstance(self.data, bytes):
-            r = fromstring(self.data, parser=curr_parser)
-        elif isinstance(self.data, io.StringIO):
-            r = parse(self.data, parser=curr_parser)
-        elif isinstance(self.data, io.BytesIO):
-            r = parse(self.data, parser=curr_parser)
+        r = parse(self.data, parser=curr_parser)
 
         return r
 
@@ -634,13 +609,12 @@ class _LxmlFrameParser(_XMLFrameParser):
             parse,
         )
 
-        self.raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
+        raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
 
-        if isinstance(self.raw_doc, str):
-            if self.raw_doc.startswith(("<?xml", "<")):
-                self.raw_doc = self.raw_doc.encode(self.encoding)
+        if isinstance(raw_doc, str) and raw_doc.startswith(("<?xml", "<")):
+            raw_doc = raw_doc.encode(self.encoding)
 
-        data = self._get_data_from_filepath(self.raw_doc)
+        data = self._get_data_from_filepath(raw_doc)
         self.data = self._preprocess_data(data)
 
         curr_parser = XMLParser(encoding=self.encoding)
@@ -666,11 +640,11 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
     class that build Data Frame and infers specific dtypes.
     """
 
-    tags = [list(d.keys()) for d in data]
+    tags = next(iter(data))
     nodes = [list(d.values()) for d in data]
 
     try:
-        with TextParser(nodes, names=tags[0], **kwargs) as tp:
+        with TextParser(nodes, names=tags, **kwargs) as tp:
             return tp.read()
     except ParserError:
         raise ParserError(
@@ -750,6 +724,7 @@ def _parse(
     return _data_to_frame(data=data_dicts, **kwargs)
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 def read_xml(
     path_or_buffer: FilePathOrBuffer,
     xpath: Optional[str] = "./*",
@@ -759,7 +734,7 @@ def read_xml(
     names: Optional[List[str]] = None,
     encoding: Optional[str] = "utf-8",
     parser: Optional[str] = "lxml",
-    stylesheet: Optional[FilePathOrBuffer[str]] = None,
+    stylesheet: Optional[FilePathOrBuffer] = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame:
@@ -790,7 +765,7 @@ def read_xml(
         namespace prefix such as 'doc' to the URI in order to parse
         underlying nodes and/or attributes. For example, ::
 
-            namespaces = {"doc": "https://example.com"}
+            namespaces = {{"doc": "https://example.com"}}
 
     elems_only : bool, optional, default False
         Parse only the child elements at the specified ``xpath``. By default,
@@ -807,7 +782,7 @@ def read_xml(
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
 
-    parser : {'lxml','etree'}, default 'lxml'
+    parser : {{'lxml','etree'}}, default 'lxml'
         Parser module to use for retrieval of data. Only 'lxml' and
         'etree' are supported. With 'lxml' more complex XPath searches
         and ability to use XSLT stylesheet are supported.
@@ -828,13 +803,7 @@ def read_xml(
         otherwise. If using 'zip', the ZIP file must contain only one data
         file to be read in. Set to None for no decompression.
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc., if using a URL that will be
-        parsed by fsspec, e.g., starting “s3://”, “gcs://”. An error will be
-        raised if providing this argument with a non-fsspec URL. See the fsspec
-        and backend storage implementation docs for the set of allowed keys and
-        values.
+    {storage_options}
 
     Returns
     -------
@@ -941,7 +910,7 @@ def read_xml(
 
     >>> df = pd.read_xml(xml,
     ...                  xpath="//doc:row",
-    ...                  namespaces={"doc": "https://example.com"})
+    ...                  namespaces={{"doc": "https://example.com"}})
     >>> df
           shape  degrees  sides
     0    square      360    4.0

@@ -62,6 +62,7 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -97,6 +98,7 @@ from pandas.core.indexes.api import (
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import (
@@ -1035,9 +1037,10 @@ class DataFrameRenderer:
         string = html_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
 
+    @doc(storage_options=_shared_docs["storage_options"])
     def to_xml(
         self,
-        path_or_buffer: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buffer: Optional[FilePathOrBuffer] = None,
         index: Optional[bool] = True,
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
@@ -1050,7 +1053,7 @@ class DataFrameRenderer:
         xml_declaration: Optional[bool] = True,
         pretty_print: Optional[bool] = True,
         parser: Optional[str] = "lxml",
-        stylesheet: Optional[FilePathOrBuffer[str]] = None,
+        stylesheet: Optional[FilePathOrBuffer] = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> Optional[str]:
@@ -1087,7 +1090,7 @@ class DataFrameRenderer:
             Default namespaces should be given empty string key. For
             example, ::
 
-                namespaces = {'': 'https://example.com'}
+                namespaces = {{'': 'https://example.com'}}
 
         prefix : str, optional
             Namespace prefix to be used for every element and/or attribute
@@ -1100,7 +1103,7 @@ class DataFrameRenderer:
         pretty_print : bool, default True
             Whether output should be pretty printed with indentation and
             line breaks.
-        parser : {'lxml','etree'}, default "lxml"
+        parser : {{'lxml','etree'}}, default "lxml"
             Parser module to use for building of tree. Only 'lxml' and
             'etree' are supported. With 'lxml', the ability to use XSLT
             stylesheet is supported.
@@ -1116,13 +1119,7 @@ class DataFrameRenderer:
             '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
             otherwise. If using 'zip', the ZIP file must contain only one data
             file to be read in. Set to None for no decompression.
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection,
-            e.g. host, port, username, password, etc., if using a URL that will be
-            parsed by fsspec, e.g., starting “s3://”, “gcs://”. An error will be
-            raised if providing this argument with a non-fsspec URL. See the fsspec
-            and backend storage implementation docs for the set of allowed keys and
-            values.
+        {storage_options}
         """
 
         from pandas.io.formats.xml import (

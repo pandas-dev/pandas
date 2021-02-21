@@ -22,9 +22,11 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.io.common import (
+    file_exists,
     get_handle,
+    is_fsspec_url,
     is_url,
-    urlopen,
+    stringify_path,
 )
 from pandas.io.formats.format import DataFrameFormatter
 
@@ -76,7 +78,7 @@ class BaseXMLFormatter:
     stylesheet : str or file-like
         A URL, file, file-like object, or a raw string containing XSLT.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         Compression type for on-the-fly decompression of on-disk data.
         If 'infer', then use extension for gzip, bz2, zip or xz.
 
@@ -94,7 +96,7 @@ class BaseXMLFormatter:
     def __init__(
         self,
         formatter: DataFrameFormatter,
-        path_or_buffer: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buffer: Optional[FilePathOrBuffer] = None,
         index: Optional[bool] = True,
         root_name: Optional[str] = "data",
         row_name: Optional[str] = "row",
@@ -106,7 +108,7 @@ class BaseXMLFormatter:
         encoding: str = "utf-8",
         xml_declaration: Optional[bool] = True,
         pretty_print: Optional[bool] = True,
-        stylesheet: Optional[FilePathOrBuffer[str]] = None,
+        stylesheet: Optional[FilePathOrBuffer] = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
@@ -261,6 +263,56 @@ class BaseXMLFormatter:
         """
 
         raise AbstractMethodError(self)
+
+    def _preprocess_data(self, data):
+        """
+        Convert extracted raw data.
+
+        This method will return underlying data of extracted XML content.
+        The data either has a `read` attribute (e.g. a file object or a
+        StringIO/BytesIO) or is a string or bytes that is an XML document.
+        """
+        if isinstance(data, str):
+            data = io.StringIO(data)
+
+        elif isinstance(data, bytes):
+            data = io.BytesIO(data)
+
+        return data
+
+    def _get_data_from_filepath(self, filepath_or_buffer):
+        """
+        Extract raw XML data.
+
+        The method accepts three input types:
+            1. filepath (string-like)
+            2. file-like object (e.g. open file object, StringIO)
+            3. XML bytes
+
+        This method turns (1) into (2) to simplify the rest of the processing.
+        It returns input types (2) and (3) unchanged.
+        """
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
+        if (
+            not isinstance(filepath_or_buffer, str)
+            or is_url(filepath_or_buffer)
+            or is_fsspec_url(filepath_or_buffer)
+            or file_exists(filepath_or_buffer)
+        ):
+            with get_handle(
+                filepath_or_buffer,
+                "r",
+                encoding=self.encoding,
+                compression=self.compression,
+                storage_options=self.storage_options,
+            ) as handle_obj:
+                filepath_or_buffer = (
+                    handle_obj.handle.read()
+                    if hasattr(handle_obj.handle, "read")
+                    else handle_obj.handle
+                )
+
+        return filepath_or_buffer
 
     def write_output(self) -> Optional[str]:
         xml_doc = self.build_tree()
@@ -541,61 +593,12 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
 
-    def convert_io(self) -> Union[bytes, str, None]:
-        """
-        Convert stylesheet object to string.
-
-        This method will convert stylesheet object into a string or keep
-        as string, depending on object type.
-        """
-
-        obj: Union[bytes, str, None] = None
-
-        if isinstance(self.stylesheet, str):
-            obj = self.stylesheet
-
-        elif isinstance(self.stylesheet, bytes):
-            obj = self.stylesheet.decode(self.encoding)
-
-        elif isinstance(self.stylesheet, io.StringIO):
-            obj = self.stylesheet.getvalue()
-
-        elif isinstance(self.stylesheet, io.BytesIO):
-            obj = self.stylesheet.getvalue().decode(self.encoding)
-
-        elif isinstance(self.stylesheet, io.TextIOWrapper):
-            obj = self.stylesheet.read()
-
-        elif isinstance(self.stylesheet, io.BufferedReader):
-            obj = self.stylesheet.read().decode(self.encoding)
-        else:
-            obj = None
-
-        return obj
-
     def parse_doc(self):
         """
         Build tree from stylesheet.
 
         This method will parse stylesheet object into tree for parsing
         conditionally by its specific object type.
-
-        Raises
-        ------
-        HttpError
-            * If URL cannot be reached.
-
-        LookupError
-            * If xml document has incorrect or unknown encoding.
-
-        OSError
-            * If file cannot be found.
-
-        XMLSyntaxError
-            * If xml document conntains syntax issues.
-
-        ValueError
-            * If io object is not readable as string or file-like object.
         """
 
         from lxml.etree import (
@@ -604,21 +607,24 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             parse,
         )
 
-        current_doc = self.convert_io()
-        if current_doc and isinstance(current_doc, str):
-            is_xml = current_doc.startswith(("<?xml", "<"))
-        else:
-            raise ValueError("stylesheet is not a url, file, or xml string")
+        style_doc = self.stylesheet
+
+        if isinstance(style_doc, str) and style_doc.startswith(("<?xml", "<")):
+            style_doc = io.StringIO(style_doc)
+
+        data = self._get_data_from_filepath(style_doc)
+        self.data = self._preprocess_data(data)
 
         curr_parser = XMLParser(encoding=self.encoding)
 
-        if is_url(current_doc):
-            with urlopen(current_doc) as f:
-                r = parse(f, parser=curr_parser)
-        elif is_xml:
-            r = XML(bytes(current_doc, encoding=self.encoding))
-        else:
-            r = parse(current_doc, parser=curr_parser)
+        if isinstance(self.data, str):
+            r = XML(self.data.encode(self.encoding), parser=curr_parser)
+        elif isinstance(self.data, bytes):
+            r = XML(self.data, parser=curr_parser)
+        elif isinstance(self.data, io.StringIO):
+            r = XML(self.data.getvalue().encode(self.encoding), parser=curr_parser)
+        elif isinstance(self.data, io.BytesIO):
+            r = parse(self.data, parser=curr_parser)
 
         return r
 
