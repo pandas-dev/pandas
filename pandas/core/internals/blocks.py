@@ -1013,7 +1013,7 @@ class Block(PandasObject):
             arr_value = value
         else:
             is_ea_value = False
-            arr_value = np.array(value)
+            arr_value = np.asarray(value)
 
         if transpose:
             values = values.T
@@ -1654,8 +1654,8 @@ class ExtensionBlock(Block):
         be a compatible shape.
         """
         if not self._can_hold_element(value):
-            # This is only relevant for DatetimeTZBlock, which has a
-            #  non-trivial `_can_hold_element`.
+            # This is only relevant for DatetimeTZBlock, ObjectValuesExtensionBlock,
+            #  which has a non-trivial `_can_hold_element`.
             # https://github.com/pandas-dev/pandas/issues/24020
             # Need a dedicated setitem until GH#24020 (type promotion in setitem
             #  for extension arrays) is designed and implemented.
@@ -2081,6 +2081,8 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
+    is_numeric = False
+    _can_hold_na = True
     _dtype: np.dtype
     _holder: Type[Union[DatetimeArray, TimedeltaArray]]
 
@@ -2133,10 +2135,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
     _dtype = fill_value.dtype
     _holder = DatetimeArray
 
-    @property
-    def _can_hold_na(self):
-        return True
-
     def set_inplace(self, locs, values):
         """
         See Block.set.__doc__
@@ -2153,6 +2151,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
     __slots__ = ()
     is_extension = True
+    _can_hold_na = True
+    is_numeric = False
 
     _holder = DatetimeArray
 
@@ -2205,8 +2205,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-    _can_hold_na = True
-    is_numeric = False
     _holder = TimedeltaArray
     fill_value = np.timedelta64("NaT", "ns")
     _dtype = fill_value.dtype
