@@ -1028,6 +1028,9 @@ class GroupByApply(Apply):
     def apply(self):
         raise NotImplementedError
 
+    def transform(self):
+        raise NotImplementedError
+
 
 class ResamplerWindowApply(Apply):
     axis = 0
@@ -1050,4 +1053,7 @@ class ResamplerWindowApply(Apply):
         )
 
     def apply(self):
+        raise NotImplementedError
+
+    def transform(self):
         raise NotImplementedError
