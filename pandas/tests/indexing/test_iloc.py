@@ -35,28 +35,12 @@ _slice_iloc_msg = re.escape(
 
 
 class TestiLoc(Base):
-    def test_iloc_getitem_int(self):
+    @pytest.mark.parametrize("key", [2, -1, [0, 1, 2]])
+    def test_iloc_getitem_int(self, key):
         # integer
         self.check_result(
             "iloc",
-            2,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-    def test_iloc_getitem_neg_int(self):
-        # neg integer
-        self.check_result(
-            "iloc",
-            -1,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-    def test_iloc_getitem_list_int(self):
-        self.check_result(
-            "iloc",
-            [0, 1, 2],
+            key,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
@@ -371,7 +355,7 @@ class TestiLocBaseIndependent:
         s = Series([1, 2, 3])
         msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
         with pytest.raises(IndexError, match=msg):
-            _ = s.iloc[index]
+            s.iloc[index]
 
     def test_iloc_getitem_slice(self):
         df = DataFrame(
