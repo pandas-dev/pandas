@@ -737,9 +737,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ).__finalize__(self, method="swapaxes")
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
-        Return DataFrame with requested index / column level(s) removed.
+        Return {klass} with requested index / column level(s) removed.
 
         .. versionadded:: 0.24.0
 
@@ -750,7 +751,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If list-like, elements must be names or positional indexes
             of levels.
 
-        axis : {0 or 'index', 1 or 'columns'}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
             Axis along which the level(s) is removed:
 
             * 0 or 'index': remove level(s) in column.
@@ -758,8 +759,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        DataFrame
-            DataFrame with requested index / column level(s) removed.
+        {klass}
+            {klass} with requested index / column level(s) removed.
 
         Examples
         --------

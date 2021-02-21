@@ -23,10 +23,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import (
-    maybe_numeric_slice,
-    non_reducing_slice,
-)
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -96,7 +92,7 @@ class TestFancy:
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
         with pytest.raises(potential_errors, match=msg):
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(DeprecationWarning):
                 idxr[nd3]
 
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
@@ -793,53 +789,6 @@ class TestMisc:
 
         s.loc[range(2)] = 43
         tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
-
-    @pytest.mark.parametrize(
-        "slc",
-        [
-            pd.IndexSlice[:, :],
-            pd.IndexSlice[:, 1],
-            pd.IndexSlice[1, :],
-            pd.IndexSlice[[1], [1]],
-            pd.IndexSlice[1, [1]],
-            pd.IndexSlice[[1], 1],
-            pd.IndexSlice[1],
-            pd.IndexSlice[1, 1],
-            slice(None, None, None),
-            [0, 1],
-            np.array([0, 1]),
-            Series([0, 1]),
-        ],
-    )
-    def test_non_reducing_slice(self, slc):
-        df = DataFrame([[0, 1], [2, 3]])
-
-        tslice_ = non_reducing_slice(slc)
-        assert isinstance(df.loc[tslice_], DataFrame)
-
-    @pytest.mark.parametrize("box", [list, Series, np.array])
-    def test_list_slice(self, box):
-        # like dataframe getitem
-        subset = box(["A"])
-
-        df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
-        expected = pd.IndexSlice[:, ["A"]]
-
-        result = non_reducing_slice(subset)
-        tm.assert_frame_equal(df.loc[result], df.loc[expected])
-
-    def test_maybe_numeric_slice(self):
-        df = DataFrame({"A": [1, 2], "B": ["c", "d"], "C": [True, False]})
-        result = maybe_numeric_slice(df, slice_=None)
-        expected = pd.IndexSlice[:, ["A"]]
-        assert result == expected
-
-        result = maybe_numeric_slice(df, None, include_bool=True)
-        expected = pd.IndexSlice[:, ["A", "C"]]
-        assert all(result[1] == expected[1])
-        result = maybe_numeric_slice(df, [1])
-        expected = [1]
-        assert result == expected
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170
