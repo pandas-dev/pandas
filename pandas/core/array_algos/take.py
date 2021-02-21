@@ -156,14 +156,14 @@ def take_2d_multi(
         func = _take_2d_multi_dict.get((out.dtype.name, out.dtype.name), None)
         if func is not None:
             func = _convert_wrapper(func, out.dtype)
-    if func is None:
 
-        def func(arr, indexer, out, fill_value=np.nan):
-            _take_2d_multi_object(
-                arr, indexer, out, fill_value=fill_value, mask_info=mask_info
-            )
+    if func is not None:
+        func(arr, indexer, out=out, fill_value=fill_value)
+    else:
+        _take_2d_multi_object(
+            arr, indexer, out, fill_value=fill_value, mask_info=mask_info
+        )
 
-    func(arr, indexer, out=out, fill_value=fill_value)
     return out
 
 
