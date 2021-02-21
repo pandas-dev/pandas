@@ -215,7 +215,7 @@ class BlockManager(DataManager):
             assert isinstance(self, SingleBlockManager)  # for mypy
             blk = self.blocks[0]
             arr = blk.values[:0]
-            nb = blk.make_block_same_class(arr, placement=slice(0, 0), ndim=1)
+            nb = blk.make_block_same_class(arr, placement=slice(0, 0))
             blocks = [nb]
         else:
             blocks = []
@@ -967,12 +967,8 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
-        return SingleBlockManager(
-            block.make_block_same_class(
-                values, placement=slice(0, len(values)), ndim=1
-            ),
-            self.axes[1],
-        )
+        nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
+        return SingleBlockManager(nb, self.axes[1])
 
     def iget_values(self, i: int) -> ArrayLike:
         """
