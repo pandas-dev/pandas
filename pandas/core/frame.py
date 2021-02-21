@@ -7728,21 +7728,14 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        from pandas.core.apply import frame_apply
+
         axis = self._get_axis_number(axis)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
-        result = None
-        try:
-            result = self._aggregate(func, axis, *args, **kwargs)
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
-        if result is None:
-            return self.apply(func, axis=axis, args=args, **kwargs)
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.agg()
 
         if relabeling:
             # This is to keep the order to columns occurrence unchanged, and also
@@ -7755,25 +7748,6 @@ NaN 12.3   33.0
 
             result_in_dict = relabel_result(result, func, columns, order)
             result = DataFrame(result_in_dict, index=columns)
-
-        return result
-
-    def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
-        from pandas.core.apply import frame_apply
-
-        op = frame_apply(
-            self if axis == 0 else self.T,
-            func=arg,
-            axis=0,
-            args=args,
-            kwargs=kwargs,
-        )
-        result = op.agg()
-
-        if axis == 1:
-            # NDFrame.aggregate returns a tuple, and we need to transpose
-            # only result
-            result = result.T if result is not None else result
 
         return result
 

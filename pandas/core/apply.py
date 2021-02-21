@@ -151,6 +151,7 @@ class Apply(metaclass=abc.ABCMeta):
         else:
             f = func
 
+        self.orig_f: AggFuncType = func
         self.f: AggFuncType = f
 
     @property
@@ -526,6 +527,35 @@ class FrameApply(Apply):
             return self.apply_raw()
 
         return self.apply_standard()
+
+    def agg(self):
+        obj = self.obj
+        axis = self.axis
+
+        # TODO: Avoid having to change state
+        self.obj = self.obj if self.axis == 0 else self.obj.T
+        self.axis = 0
+
+        result = None
+        try:
+            result = super().agg()
+        except TypeError as err:
+            exc = TypeError(
+                "DataFrame constructor called with "
+                f"incompatible data and dtype: {err}"
+            )
+            raise exc from err
+        finally:
+            self.obj = obj
+            self.axis = axis
+
+        if axis == 1:
+            result = result.T if result is not None else result
+
+        if result is None:
+            result = self.obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
+
+        return result
 
     def apply_empty_result(self):
         """
