@@ -287,7 +287,9 @@ class ArrayManager(DataManager):
                 if not ignore_failures:
                     raise
                 continue
-            # if not isinstance(applied, ExtensionArray):
+            if not isinstance(applied, ExtensionArray):
+                if issubclass(applied.dtype.type, (str, bytes)):
+                    applied = np.array(applied, dtype=object)
             #     # TODO not all EA operations return new EAs (eg astype)
             #     applied = array(applied)
             result_arrays.append(applied)
@@ -413,7 +415,10 @@ class ArrayManager(DataManager):
         return self.apply_with_block("downcast")
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
-        return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+        # if issubclass(dtype, (str, bytes)):
+        #     dtype = "object"
+        y = self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+        return y
 
     def convert(
         self,
