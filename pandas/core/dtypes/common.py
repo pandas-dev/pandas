@@ -2,14 +2,26 @@
 Common type operations.
 """
 
-from typing import Any, Callable, Union
+from typing import (
+    Any,
+    Callable,
+    Union,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import Interval, Period, algos
+from pandas._libs import (
+    Interval,
+    Period,
+    algos,
+)
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj, Optional
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Optional,
+)
 
 from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
@@ -19,7 +31,10 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import ABCCategorical, ABCIndex
+from pandas.core.dtypes.generic import (
+    ABCCategorical,
+    ABCIndex,
+)
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
@@ -1395,7 +1410,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         return False
     try:
         dtype = get_dtype(arr_or_dtype)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
     if isinstance(arr_or_dtype, CategoricalDtype):
@@ -1526,7 +1541,12 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     False
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-    return isinstance(dtype, ExtensionDtype) or registry.find(dtype) is not None
+    if isinstance(dtype, ExtensionDtype):
+        return True
+    elif isinstance(dtype, np.dtype):
+        return False
+    else:
+        return registry.find(dtype) is not None
 
 
 def is_ea_or_datetimelike_dtype(dtype: Optional[DtypeObj]) -> bool:
@@ -1677,7 +1697,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     return condition(tipo)
 
 
-def infer_dtype_from_object(dtype):
+def infer_dtype_from_object(dtype) -> DtypeObj:
     """
     Get a numpy dtype.type-style object for a dtype object.
 

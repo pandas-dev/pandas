@@ -1,5 +1,9 @@
 """ test label based indexing with loc """
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 from io import StringIO
 import re
 
@@ -7,7 +11,6 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -15,7 +18,9 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
+    IndexSlice,
     MultiIndex,
     Series,
     SparseDtype,
@@ -394,7 +399,16 @@ class TestLoc2:
         tm.assert_series_equal(result, expected)
         assert result.dtype == object
 
-    def test_loc_setitem_consistency(self):
+    @pytest.fixture
+    def frame_for_consistency(self):
+        return DataFrame(
+            {
+                "date": date_range("2000-01-01", "2000-01-5"),
+                "val": Series(range(5), dtype=np.int64),
+            }
+        )
+
+    def test_loc_setitem_consistency(self, frame_for_consistency):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
         expected = DataFrame(
@@ -403,33 +417,21 @@ class TestLoc2:
                 "val": Series(range(5), dtype=np.int64),
             }
         )
-
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = 0
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = np.array(0, dtype=np.int64)
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = np.array([0, 0, 0, 0, 0], dtype=np.int64)
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_consistency_dt64_to_str(self, frame_for_consistency):
+        # GH 6149
+        # coerce similarly for setitem and loc when rows have a null-slice
 
         expected = DataFrame(
             {
@@ -437,30 +439,24 @@ class TestLoc2:
                 "val": Series(range(5), dtype=np.int64),
             }
         )
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = "foo"
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_consistency_dt64_to_float(self, frame_for_consistency):
+        # GH 6149
+        # coerce similarly for setitem and loc when rows have a null-slice
         expected = DataFrame(
             {
                 "date": Series(1.0, index=range(5)),
                 "val": Series(range(5), dtype=np.int64),
             }
         )
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = 1.0
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_consistency_single_row(self):
         # GH 15494
         # setting on frame with single row
         df = DataFrame({"date": Series([Timestamp("20180101")])})
@@ -985,7 +981,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="gh-35481")
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
@@ -999,7 +994,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with pytest.raises(KeyError, match=msg):
             df.loc[[0, 1], "x"] = data
 
-        msg = "cannot copy sequence with size 2 to array axis with dimension 0"
+        msg = "|".join(
+            [
+                "cannot copy sequence with size 2 to array axis with dimension 0",
+                r"could not broadcast input array from shape \(2,\) into shape \(0,\)",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             df.loc[0:2, "x"] = data
 
@@ -1556,6 +1556,42 @@ class TestPartialStringSlicing:
         sliced = df.loc["0 days"]
         tm.assert_series_equal(sliced, expected)
 
+    @pytest.mark.parametrize("indexer_end", [None, "2020-01-02 23:59:59.999999999"])
+    def test_loc_getitem_partial_slice_non_monotonicity(
+        self, tz_aware_fixture, indexer_end, frame_or_series
+    ):
+        # GH#33146
+        obj = frame_or_series(
+            [1] * 5,
+            index=DatetimeIndex(
+                [
+                    Timestamp("2019-12-30"),
+                    Timestamp("2020-01-01"),
+                    Timestamp("2019-12-25"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                    Timestamp("2019-12-19"),
+                ],
+                tz=tz_aware_fixture,
+            ),
+        )
+        expected = frame_or_series(
+            [1] * 2,
+            index=DatetimeIndex(
+                [
+                    Timestamp("2020-01-01"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                ],
+                tz=tz_aware_fixture,
+            ),
+        )
+        indexer = slice("2020-01-01", indexer_end)
+
+        result = obj[indexer]
+        tm.assert_equal(result, expected)
+
+        result = obj.loc[indexer]
+        tm.assert_equal(result, expected)
+
 
 class TestLabelSlicing:
     def test_loc_getitem_label_slice_across_dst(self):
@@ -1652,7 +1688,7 @@ class TestLabelSlicing:
         # GH: 20975
         df = DataFrame({"test": 1, 1: 2, 2: 3}, index=[0])
         expected = DataFrame(
-            data=[[2, 3]], index=[0], columns=pd.Index([1, 2], dtype=object)
+            data=[[2, 3]], index=[0], columns=Index([1, 2], dtype=object)
         )
         tm.assert_frame_equal(df.loc[:, 1:], expected)
 
@@ -1858,7 +1894,7 @@ def test_loc_set_dataframe_multiindex():
 
 def test_loc_mixed_int_float():
     # GH#19456
-    ser = Series(range(2), pd.Index([1, 2.0], dtype=object))
+    ser = Series(range(2), Index([1, 2.0], dtype=object))
 
     result = ser.loc[1]
     assert result == 0
@@ -2102,3 +2138,17 @@ class TestLocSeries:
         ser = Series(0, index=list("abcde"), dtype=object)
         ser.iloc[0] = arr
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("indexer", [IndexSlice["A", :], ("A", slice(None))])
+    def test_loc_series_getitem_too_many_dimensions(self, indexer):
+        # GH#35349
+        ser = Series(
+            index=MultiIndex.from_tuples([("A", "0"), ("A", "1"), ("B", "0")]),
+            data=[21, 22, 23],
+        )
+        msg = "Too many indices"
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[indexer, :]
+
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[indexer, :] = 1

@@ -1,6 +1,8 @@
 """
 Routines for filling missing data.
 """
+from __future__ import annotations
+
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -16,8 +18,17 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import algos, lib
-from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, IndexLabel, Scalar
+from pandas._libs import (
+    algos,
+    lib,
+)
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    DtypeObj,
+    IndexLabel,
+    Scalar,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -161,7 +172,7 @@ def find_valid_index(values: ArrayLike, how: str) -> Optional[int]:
     if how == "first":
         idxpos = is_valid[::].argmax()
 
-    if how == "last":
+    elif how == "last":
         idxpos = len(values) - 1 - is_valid[::-1].argmax()
 
     chk_notna = is_valid[idxpos]
@@ -172,7 +183,7 @@ def find_valid_index(values: ArrayLike, how: str) -> Optional[int]:
 
 
 def interpolate_1d(
-    xvalues: "Index",
+    xvalues: Index,
     yvalues: np.ndarray,
     method: str = "linear",
     limit: Optional[int] = None,

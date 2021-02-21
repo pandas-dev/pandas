@@ -23,7 +23,7 @@ cdef class PeriodDtypeBase:
         return self._dtype_code == other._dtype_code
 
     @property
-    def freq_group(self) -> int:
+    def freq_group_code(self) -> int:
         # See also: libperiod.get_freq_group
         return (self._dtype_code // 1000) * 1000
 
@@ -37,7 +37,6 @@ cdef class PeriodDtypeBase:
         from .offsets import to_offset
 
         freqstr = _reverse_period_code_map.get(self._dtype_code)
-        # equiv: freqstr = libfrequencies.get_freq_str(self._dtype_code)
 
         return to_offset(freqstr)
 
@@ -134,7 +133,7 @@ cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
 
-class FreqGroup:
+class FreqGroup(Enum):
     # Mirrors c_FreqGroup in the .pxd file
     FR_ANN = 1000
     FR_QTR = 2000
@@ -151,9 +150,10 @@ class FreqGroup:
     FR_UND = -10000  # undefined
 
     @staticmethod
-    def get_freq_group(code: int) -> int:
-        # See also: PeriodDtypeBase.freq_group
-        return (code // 1000) * 1000
+    def get_freq_group(code: int) -> "FreqGroup":
+        # See also: PeriodDtypeBase.freq_group_code
+        code = (code // 1000) * 1000
+        return FreqGroup(code)
 
 
 class Resolution(Enum):
@@ -178,8 +178,7 @@ class Resolution(Enum):
         return self.value >= other.value
 
     @property
-    def freq_group(self):
-        # TODO: annotate as returning FreqGroup once that is an enum
+    def freq_group(self) -> FreqGroup:
         if self == Resolution.RESO_NS:
             return FreqGroup.FR_NS
         elif self == Resolution.RESO_US:

@@ -1,18 +1,29 @@
 """
 SQL-style merge routines
 """
+from __future__ import annotations
 
 import copy
 import datetime
 from functools import partial
 import hashlib
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Tuple,
+    cast,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
+from pandas._libs import (
+    Timedelta,
+    hashtable as libhashtable,
+    join as libjoin,
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
@@ -21,7 +32,10 @@ from pandas._typing import (
     Suffixes,
 )
 from pandas.errors import MergeError
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -43,10 +57,20 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
-from pandas import Categorical, Index, MultiIndex
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+)
 from pandas.core import groupby
 import pandas.core.algorithms as algos
 import pandas.core.common as com
@@ -76,7 +100,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate: Optional[str] = None,
-) -> "DataFrame":
+) -> DataFrame:
     op = _MergeOperation(
         left,
         right,
@@ -99,7 +123,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
-def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_pieces):
+def _groupby_and_merge(by, on, left: DataFrame, right: DataFrame, merge_pieces):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -157,8 +181,8 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
 
 def merge_ordered(
-    left: "DataFrame",
-    right: "DataFrame",
+    left: DataFrame,
+    right: DataFrame,
     on: Optional[IndexLabel] = None,
     left_on: Optional[IndexLabel] = None,
     right_on: Optional[IndexLabel] = None,
@@ -167,7 +191,7 @@ def merge_ordered(
     fill_method: Optional[str] = None,
     suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform merge with optional filling/interpolation.
 
@@ -300,8 +324,8 @@ def merge_ordered(
 
 
 def merge_asof(
-    left: "DataFrame",
-    right: "DataFrame",
+    left: DataFrame,
+    right: DataFrame,
     on: Optional[IndexLabel] = None,
     left_on: Optional[IndexLabel] = None,
     right_on: Optional[IndexLabel] = None,
@@ -314,7 +338,7 @@ def merge_asof(
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform an asof merge.
 
@@ -717,13 +741,13 @@ class _MergeOperation:
 
         return result.__finalize__(self, method="merge")
 
-    def _maybe_drop_cross_column(self, result: "DataFrame", cross_col: Optional[str]):
+    def _maybe_drop_cross_column(self, result: DataFrame, cross_col: Optional[str]):
         if cross_col is not None:
             result.drop(columns=cross_col, inplace=True)
 
     def _indicator_pre_merge(
-        self, left: "DataFrame", right: "DataFrame"
-    ) -> Tuple["DataFrame", "DataFrame"]:
+        self, left: DataFrame, right: DataFrame
+    ) -> Tuple[DataFrame, DataFrame]:
 
         columns = left.columns.union(right.columns)
 
@@ -851,13 +875,13 @@ class _MergeOperation:
                     lvals = result[name]._values
                 else:
                     lfill = na_value_for_dtype(take_left.dtype)
-                    lvals = algos.take_1d(take_left, left_indexer, fill_value=lfill)
+                    lvals = algos.take_nd(take_left, left_indexer, fill_value=lfill)
 
                 if take_right is None:
                     rvals = result[name]._values
                 else:
                     rfill = na_value_for_dtype(take_right.dtype)
-                    rvals = algos.take_1d(take_right, right_indexer, fill_value=rfill)
+                    rvals = algos.take_nd(take_right, right_indexer, fill_value=rfill)
 
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
@@ -995,9 +1019,8 @@ class _MergeOperation:
         """
         left_keys = []
         right_keys = []
-        # pandas\core\reshape\merge.py:966: error: Need type annotation for
-        # 'join_names' (hint: "join_names: List[<type>] = ...")
-        # [var-annotated]
+        # error: Need type annotation for 'join_names' (hint: "join_names: List[<type>]
+        # = ...")
         join_names = []  # type: ignore[var-annotated]
         right_drop = []
         left_drop = []
@@ -1230,8 +1253,8 @@ class _MergeOperation:
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
     def _create_cross_configuration(
-        self, left: "DataFrame", right: "DataFrame"
-    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+        self, left: DataFrame, right: DataFrame
+    ) -> Tuple[DataFrame, DataFrame, str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added
@@ -1546,8 +1569,8 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left: "DataFrame",
-        right: "DataFrame",
+        left: DataFrame,
+        right: DataFrame,
         on: Optional[IndexLabel] = None,
         left_on: Optional[IndexLabel] = None,
         right_on: Optional[IndexLabel] = None,
@@ -1640,8 +1663,8 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left: "DataFrame",
-        right: "DataFrame",
+        left: DataFrame,
+        right: DataFrame,
         on: Optional[IndexLabel] = None,
         left_on: Optional[IndexLabel] = None,
         right_on: Optional[IndexLabel] = None,
@@ -1707,6 +1730,23 @@ class _AsOfMerge(_OrderedMerge):
             raise MergeError("missing left_by")
         if self.left_by is not None and self.right_by is None:
             raise MergeError("missing right_by")
+
+        # GH#29130 Check that merge keys do not have dtype object
+        lo_dtype = (
+            self.left[self.left_on[0]].dtype
+            if not self.left_index
+            else self.left.index.dtype
+        )
+        ro_dtype = (
+            self.right[self.right_on[0]].dtype
+            if not self.right_index
+            else self.right.index.dtype
+        )
+        if is_object_dtype(lo_dtype) or is_object_dtype(ro_dtype):
+            raise MergeError(
+                f"Incompatible merge dtype, {repr(ro_dtype)} and "
+                f"{repr(lo_dtype)}, both sides must have numeric dtype"
+            )
 
         # add 'by' to our key-list so we can have it in the
         # output as a key
@@ -2142,7 +2182,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
+def _validate_operand(obj: FrameOrSeries) -> DataFrame:
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):

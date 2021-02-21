@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -295,6 +298,21 @@ def test_agg_consistency():
     msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
     with pytest.raises(pd.core.base.SpecificationError, match=msg):
         r.agg({"r1": "mean", "r2": "sum"})
+
+
+def test_agg_consistency_int_str_column_mix():
+    # GH#39025
+    df = DataFrame(
+        np.random.randn(1000, 2),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=[1, "a"],
+    )
+
+    r = df.resample("3T")
+
+    msg = r"Column\(s\) \[2, 'b'\] do not exist"
+    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        r.agg({2: "mean", "b": "sum"})
 
 
 # TODO: once GH 14008 is fixed, move these tests into

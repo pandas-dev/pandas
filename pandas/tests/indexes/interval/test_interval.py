@@ -585,7 +585,7 @@ class TestIntervalIndex:
         msg = "|".join(
             [
                 "not supported between instances of 'int' and '.*.Interval'",
-                r"Invalid comparison between dtype=interval\[int64\] and ",
+                r"Invalid comparison between dtype=interval\[int64, right\] and ",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -694,13 +694,13 @@ class TestIntervalIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        msg = "Intervals must all be closed on the same side"
         for other_closed in {"left", "right", "both", "neither"} - {closed}:
             index_other_closed = IntervalIndex.from_arrays(
                 [0, 1], [1, 2], closed=other_closed
             )
-            with pytest.raises(ValueError, match=msg):
-                index1.append(index_other_closed)
+            result = index1.append(index_other_closed)
+            expected = index1.astype(object).append(index_other_closed.astype(object))
+            tm.assert_index_equal(result, expected)
 
     def test_is_non_overlapping_monotonic(self, closed):
         # Should be True in all cases

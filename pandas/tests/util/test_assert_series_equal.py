@@ -1,7 +1,11 @@
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -253,7 +257,7 @@ def test_assert_series_equal_interval_dtype_mismatch():
     msg = """Attributes of Series are different
 
 Attribute "dtype" are different
-\\[left\\]:  interval\\[int64\\]
+\\[left\\]:  interval\\[int64, right\\]
 \\[right\\]: object"""
 
     tm.assert_series_equal(left, right, check_dtype=False)

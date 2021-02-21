@@ -9,7 +9,10 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import Categorical, Index
+from pandas import (
+    Categorical,
+    Index,
+)
 
 
 @pytest.mark.parametrize(
@@ -130,12 +133,12 @@ def test_period_dtype_mismatch(dtype2):
 
 
 interval_dtypes = [
-    IntervalDtype(np.int64),
-    IntervalDtype(np.float64),
-    IntervalDtype(np.uint64),
-    IntervalDtype(DatetimeTZDtype(unit="ns", tz="US/Eastern")),
-    IntervalDtype("M8[ns]"),
-    IntervalDtype("m8[ns]"),
+    IntervalDtype(np.int64, "right"),
+    IntervalDtype(np.float64, "right"),
+    IntervalDtype(np.uint64, "right"),
+    IntervalDtype(DatetimeTZDtype(unit="ns", tz="US/Eastern"), "right"),
+    IntervalDtype("M8[ns]", "right"),
+    IntervalDtype("m8[ns]", "right"),
 ]
 
 
@@ -151,7 +154,7 @@ def test_interval_dtype(left, right):
         # i.e. numeric
         if right.subtype.kind in ["i", "u", "f"]:
             # both numeric -> common numeric subtype
-            expected = IntervalDtype(np.float64)
+            expected = IntervalDtype(np.float64, "right")
             assert result == expected
         else:
             assert result == object

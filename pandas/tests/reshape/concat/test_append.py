@@ -7,7 +7,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, concat, isna
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    concat,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -82,7 +89,6 @@ class TestAppend:
         df5 = df.append(df3, sort=sort)
 
         expected = DataFrame(index=[0, 1], columns=["A", "B", "C"])
-        expected["C"] = expected["C"].astype(np.float64)
         tm.assert_frame_equal(df5, expected)
 
     def test_append_records(self):
@@ -335,24 +341,28 @@ class TestAppend:
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())
-        s = Series({"date": date, "a": 1.0, "b": 2.0})
+        ser = Series({"date": date, "a": 1.0, "b": 2.0})
         df = DataFrame(columns=["c", "d"])
-        result_a = df.append(s, ignore_index=True)
+        result_a = df.append(ser, ignore_index=True)
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
+        # These columns get cast to object after append
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
         tm.assert_frame_equal(result_a, expected)
 
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]] * 2, columns=["c", "d", "a", "b", "date"]
         )
-
-        result_b = result_a.append(s, ignore_index=True)
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
+        result_b = result_a.append(ser, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
 
         # column order is different
         expected = expected[["c", "d", "date", "a", "b"]]
-        result = df.append([s, s], ignore_index=True)
+        result = df.append([ser, ser], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
     def test_append_empty_tz_frame_with_datetime64ns(self):
@@ -361,13 +371,40 @@ class TestAppend:
 
         # pd.NaT gets inferred as tz-naive, so append result is tz-naive
         result = df.append({"a": pd.NaT}, ignore_index=True)
-        expected = DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)
 
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
-        result = df.append(
-            Series({"a": pd.NaT}, dtype="datetime64[ns]"), ignore_index=True
-        )
-        expected = DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
+        result = df.append(other, ignore_index=True)
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype_str", ["datetime64[ns, UTC]", "datetime64[ns]", "Int64", "int64"]
+    )
+    @pytest.mark.parametrize("val", [1, "NaT"])
+    def test_append_empty_frame_with_timedelta64ns_nat(self, dtype_str, val):
+        # https://github.com/pandas-dev/pandas/issues/35460
+        df = DataFrame(columns=["a"]).astype(dtype_str)
+
+        other = DataFrame({"a": [np.timedelta64(val, "ns")]})
+        result = df.append(other, ignore_index=True)
+
+        expected = other.astype(object)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype_str", ["datetime64[ns, UTC]", "datetime64[ns]", "Int64", "int64"]
+    )
+    @pytest.mark.parametrize("val", [1, "NaT"])
+    def test_append_frame_with_timedelta64ns_nat(self, dtype_str, val):
+        # https://github.com/pandas-dev/pandas/issues/35460
+        df = DataFrame({"a": pd.array([1], dtype=dtype_str)})
+
+        other = DataFrame({"a": [np.timedelta64(val, "ns")]})
+        result = df.append(other, ignore_index=True)
+
+        expected = DataFrame({"a": [df.iloc[0, 0], other.iloc[0, 0]]}, dtype=object)
         tm.assert_frame_equal(result, expected)

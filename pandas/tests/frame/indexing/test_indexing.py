@@ -1,4 +1,9 @@
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 import re
 
 import numpy as np
@@ -212,7 +217,7 @@ class TestDataFrameIndexing:
         it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]
 
         cols = MultiIndex.from_product(it)
-        index = pd.date_range("20141006", periods=20)
+        index = date_range("20141006", periods=20)
         vals = np.random.randint(1, 1000, (len(index), len(cols)))
         df = DataFrame(vals, columns=cols, index=index)
 
@@ -290,7 +295,7 @@ class TestDataFrameIndexing:
         # we are producing a warning that since the passed boolean
         # key is not the same as the given index, we will reindex
         # not sure this is really necessary
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             indexer_obj = indexer_obj.reindex(datetime_frame.index[::-1])
             subframe_obj = datetime_frame[indexer_obj]
             tm.assert_frame_equal(subframe_obj, subframe)
@@ -1141,7 +1146,8 @@ class TestDataFrameIndexing:
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
-        # rows unaligned
+    def test_setitem_frame_mixed_rows_unaligned(self, float_string_frame):
+        # GH#3216 rows unaligned
         f = float_string_frame.copy()
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
@@ -1154,7 +1160,8 @@ class TestDataFrameIndexing:
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
         )
 
-        # key is unaligned with values
+    def test_setitem_frame_mixed_key_unaligned(self, float_string_frame):
+        # GH#3216 key is unaligned with values
         f = float_string_frame.copy()
         piece = f.loc[f.index[:2], ["A"]]
         piece.index = f.index[-2:]
@@ -1163,7 +1170,8 @@ class TestDataFrameIndexing:
         piece["B"] = np.nan
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
 
-        # ndarray
+    def test_setitem_frame_mixed_ndarray(self, float_string_frame):
+        # GH#3216 ndarray
         f = float_string_frame.copy()
         piece = float_string_frame.loc[f.index[:2], ["A", "B"]]
         key = (f.index[slice(-2, None)], ["A", "B"])
@@ -1349,7 +1357,7 @@ class TestDataFrameIndexing:
         # gh-17105
 
         # insert a duplicate element to the index
-        trange = pd.date_range(
+        trange = date_range(
             start=Timestamp(year=2017, month=1, day=1),
             end=Timestamp(year=2017, month=1, day=5),
         )
@@ -1413,7 +1421,7 @@ class TestDataFrameIndexing:
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
         # Make sure timezone isn't lost
-        column = Series(pd.date_range("2015-01-01", periods=3, tz="utc"), name="dates")
+        column = Series(date_range("2015-01-01", periods=3, tz="utc"), name="dates")
         df = DataFrame({"dates": column})
         df["dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
@@ -1466,27 +1474,13 @@ class TestDataFrameIndexing:
         result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
-    def test_at_time_between_time_datetimeindex(self):
+    def test_loc_setitem_time_key(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
         df = DataFrame(np.random.randn(len(index), 5), index=index)
         akey = time(12, 0, 0)
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         ainds = [24, 72, 120, 168]
         binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
-
-        result = df.at_time(akey)
-        expected = df.loc[akey]
-        expected2 = df.iloc[ainds]
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, expected2)
-        assert len(result) == 4
-
-        result = df.between_time(bkey.start, bkey.stop)
-        expected = df.loc[bkey]
-        expected2 = df.iloc[binds]
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, expected2)
-        assert len(result) == 12
 
         result = df.copy()
         result.loc[akey] = 0
@@ -1524,26 +1518,11 @@ class TestDataFrameIndexing:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    @pytest.mark.parametrize(
-        "tpl",
-        [
-            (1,),
-            (
-                1,
-                2,
-            ),
-        ],
-    )
+    @pytest.mark.parametrize("tpl", [(1,), (1, 2)])
     def test_loc_getitem_index_single_double_tuples(self, tpl):
         # GH 20991
         idx = Index(
-            [
-                (1,),
-                (
-                    1,
-                    2,
-                ),
-            ],
+            [(1,), (1, 2)],
             name="A",
             tupleize_cols=False,
         )
@@ -1685,6 +1664,21 @@ class TestDataFrameIndexing:
         res = df.loc[:, 0.5]
         tm.assert_series_equal(res, expected)
 
+    @pytest.mark.parametrize("indexer", ["A", ["A"], ("A", slice(None))])
+    def test_setitem_unsorted_multiindex_columns(self, indexer):
+        # GH#38601
+        mi = MultiIndex.from_tuples([("A", 4), ("B", "3"), ("A", "2")])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        obj = df.copy()
+        obj.loc[:, indexer] = np.zeros((2, 2), dtype=int)
+        expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
+        tm.assert_frame_equal(obj, expected)
+
+        df = df.sort_index(1)
+        df.loc[:, indexer] = np.zeros((2, 2), dtype=int)
+        expected = expected.sort_index(1)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
@@ -1722,7 +1716,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     df = DataFrame(
         {
             "A": [1, 2],
-            "B": pd.date_range("2000", periods=2),
+            "B": date_range("2000", periods=2),
             "C": pd.timedelta_range("1 Day", periods=2),
         }
     )

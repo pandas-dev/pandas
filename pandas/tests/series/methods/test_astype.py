@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from importlib import reload
 import string
 import sys
@@ -88,7 +91,7 @@ class TestAstype:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(DeprecationWarning):
                 as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
@@ -193,10 +196,14 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
         # astype - datetime64[ns, tz]
-        result = Series(s.values).astype("datetime64[ns, US/Eastern]")
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64->dt64tz astype deprecated
+            result = Series(s.values).astype("datetime64[ns, US/Eastern]")
         tm.assert_series_equal(result, s)
 
-        result = Series(s.values).astype(s.dtype)
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64->dt64tz astype deprecated
+            result = Series(s.values).astype(s.dtype)
         tm.assert_series_equal(result, s)
 
         result = s.astype("datetime64[ns, CET]")
@@ -336,6 +343,11 @@ class TestAstype:
         if former_encoding is not None and former_encoding != "utf-8":
             reload(sys)
             sys.setdefaultencoding(former_encoding)
+
+    def test_astype_bytes(self):
+        # GH#39474
+        result = Series(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes == np.dtype("S3")
 
 
 class TestAstypeCategorical:

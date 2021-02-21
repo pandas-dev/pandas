@@ -5,15 +5,26 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+from pandas._libs.tslibs.ccalendar import (
+    DAYS,
+    MONTHS,
+)
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import Period, PeriodIndex, period_range
+from pandas.core.indexes.period import (
+    Period,
+    PeriodIndex,
+    period_range,
+)
 from pandas.core.resample import _get_period_range_edges
 
 import pandas.tseries.offsets as offsets
@@ -787,9 +798,9 @@ class TestPeriodIndex:
     def test_resample_with_only_nat(self):
         # GH 13224
         pi = PeriodIndex([pd.NaT] * 3, freq="S")
-        frame = DataFrame([2, 3, 5], index=pi)
+        frame = DataFrame([2, 3, 5], index=pi, columns=["a"])
         expected_index = PeriodIndex(data=[], freq=pi.freq)
-        expected = DataFrame(index=expected_index)
+        expected = DataFrame(index=expected_index, columns=["a"], dtype="int64")
         result = frame.resample("1s").mean()
         tm.assert_frame_equal(result, expected)
 

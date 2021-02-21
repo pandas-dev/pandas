@@ -4,10 +4,24 @@ retrieval and to reduce dependency on DB-specific API.
 """
 
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 from functools import partial
 import re
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Union, cast, overload
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+    overload,
+)
 import warnings
 
 import numpy as np
@@ -15,11 +29,18 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_dict_like,
+    is_list_like,
+)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import (
+    DataFrame,
+    Series,
+)
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
 
@@ -35,7 +56,7 @@ class DatabaseError(IOError):
 # -----------------------------------------------------------------------------
 # -- Helper functions
 
-_SQLALCHEMY_INSTALLED = None
+_SQLALCHEMY_INSTALLED: Optional[bool] = None
 
 
 def _is_sqlalchemy_connectable(con):
@@ -926,11 +947,17 @@ class SQLTable(PandasObject):
         parse_dates=None,
     ):
         """Return generator through chunked result set."""
+        has_read_data = False
         while True:
             data = result.fetchmany(chunksize)
             if not data:
+                if not has_read_data:
+                    yield DataFrame.from_records(
+                        [], columns=columns, coerce_float=coerce_float
+                    )
                 break
             else:
+                has_read_data = True
                 self.frame = DataFrame.from_records(
                     data, columns=columns, coerce_float=coerce_float
                 )
@@ -1030,7 +1057,11 @@ class SQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import Column, PrimaryKeyConstraint, Table
+        from sqlalchemy import (
+            Column,
+            PrimaryKeyConstraint,
+            Table,
+        )
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1180,7 +1211,14 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
+        from sqlalchemy.types import (
+            TIMESTAMP,
+            Boolean,
+            Date,
+            DateTime,
+            Float,
+            Integer,
+        )
 
         if isinstance(sqltype, Float):
             return float
@@ -1343,11 +1381,21 @@ class SQLDatabase(PandasSQL):
         dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
+        has_read_data = False
         while True:
             data = result.fetchmany(chunksize)
             if not data:
+                if not has_read_data:
+                    yield _wrap_result(
+                        [],
+                        columns,
+                        index_col=index_col,
+                        coerce_float=coerce_float,
+                        parse_dates=parse_dates,
+                    )
                 break
             else:
+                has_read_data = True
                 yield _wrap_result(
                     data,
                     columns,
@@ -1501,7 +1549,10 @@ class SQLDatabase(PandasSQL):
             else:
                 dtype = cast(dict, dtype)
 
-            from sqlalchemy.types import TypeEngine, to_instance
+            from sqlalchemy.types import (
+                TypeEngine,
+                to_instance,
+            )
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
@@ -1849,14 +1900,20 @@ class SQLiteDatabase(PandasSQL):
         dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
+        has_read_data = False
         while True:
             data = cursor.fetchmany(chunksize)
             if type(data) == tuple:
                 data = list(data)
             if not data:
                 cursor.close()
+                if not has_read_data:
+                    yield DataFrame.from_records(
+                        [], columns=columns, coerce_float=coerce_float
+                    )
                 break
             else:
+                has_read_data = True
                 yield _wrap_result(
                     data,
                     columns,

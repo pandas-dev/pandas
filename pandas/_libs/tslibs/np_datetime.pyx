@@ -8,7 +8,14 @@ from cpython.datetime cimport (
     PyDateTime_GET_YEAR,
     PyDateTime_IMPORT,
 )
-from cpython.object cimport Py_EQ, Py_GE, Py_GT, Py_LE, Py_LT, Py_NE
+from cpython.object cimport (
+    Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
+    Py_NE,
+)
 
 PyDateTime_IMPORT
 

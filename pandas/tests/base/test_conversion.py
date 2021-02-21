@@ -1,11 +1,20 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import CategoricalIndex, Series, Timedelta, Timestamp, date_range
+from pandas import (
+    CategoricalIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
@@ -197,13 +206,13 @@ class TestToIterable:
             pd.DatetimeIndex(["2017", "2018"]),
             np.ndarray,
             "datetime64[ns]",
-            marks=[pytest.mark.xfail(reason="datetime _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="datetime _values")],
         ),
         pytest.param(
             pd.TimedeltaIndex([10 ** 10]),
             np.ndarray,
             "m8[ns]",
-            marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="timedelta _values")],
         ),
     ],
 )

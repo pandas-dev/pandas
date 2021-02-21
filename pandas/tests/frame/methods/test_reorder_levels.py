@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -47,6 +52,7 @@ class TestReorderLevels:
         result = obj.reorder_levels(["L0", "L0", "L0"])
         tm.assert_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_reorder_levels_swaplevel_equivalence(
         self, multiindex_year_month_day_dataframe_random_data
     ):

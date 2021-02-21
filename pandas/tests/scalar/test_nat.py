@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 
 import numpy as np
@@ -24,7 +27,11 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.ops import roperator
 
 
@@ -581,6 +588,40 @@ def test_nat_comparisons_invalid(other_and_type, symbol_and_op):
     msg = f"'{symbol}' not supported between instances of '{other_type}' and 'NaTType'"
     with pytest.raises(TypeError, match=msg):
         op(other, NaT)
+
+
+def test_compare_date():
+    # GH#39151 comparing NaT with date object is deprecated
+    # See also: tests.scalar.timestamps.test_comparisons::test_compare_date
+
+    dt = Timestamp.now().to_pydatetime().date()
+
+    for left, right in [(NaT, dt), (dt, NaT)]:
+        assert not left == right
+        assert left != right
+
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left < right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left <= right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left > right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left >= right
+
+    # Once the deprecation is enforced, the following assertions
+    #  can be enabled:
+    #    assert not left == right
+    #    assert left != right
+    #
+    #    with pytest.raises(TypeError):
+    #        left < right
+    #    with pytest.raises(TypeError):
+    #        left <= right
+    #    with pytest.raises(TypeError):
+    #        left > right
+    #    with pytest.raises(TypeError):
+    #        left >= right
 
 
 @pytest.mark.parametrize(

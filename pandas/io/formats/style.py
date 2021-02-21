@@ -1,6 +1,8 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
+from __future__ import annotations
+
 from collections import defaultdict
 from contextlib import contextmanager
 import copy
@@ -11,6 +13,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -24,22 +27,35 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
-from pandas.api.types import is_dict_like, is_list_like
+from pandas.api.types import (
+    is_dict_like,
+    is_list_like,
+)
 from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
+from pandas.core.indexes.api import Index
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
+CSSPair = Tuple[str, Union[str, int, float]]
+CSSList = List[CSSPair]
+CSSProperties = Union[str, CSSList]
+CSSStyles = List[Dict[str, CSSProperties]]
 
 try:
     from matplotlib import colors
@@ -144,7 +160,7 @@ class Styler:
         self,
         data: FrameOrSeriesUnion,
         precision: Optional[int] = None,
-        table_styles: Optional[List[Dict[str, List[Tuple[str, str]]]]] = None,
+        table_styles: Optional[CSSStyles] = None,
         uuid: Optional[str] = None,
         caption: Optional[str] = None,
         table_attributes: Optional[str] = None,
@@ -152,57 +168,167 @@ class Styler:
         na_rep: Optional[str] = None,
         uuid_len: int = 5,
     ):
-        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
-        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
-
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("``data`` must be a Series or DataFrame")
-        if data.ndim == 1:
+        # validate ordered args
+        if isinstance(data, pd.Series):
             data = data.to_frame()
+        if not isinstance(data, DataFrame):
+            raise TypeError("``data`` must be a Series or DataFrame")
         if not data.index.is_unique or not data.columns.is_unique:
             raise ValueError("style is not supported for non-unique indices.")
-
-        self.data = data
-        self.index = data.index
-        self.columns = data.columns
-
+        self.data: DataFrame = data
+        self.index: pd.Index = data.index
+        self.columns: pd.Index = data.columns
+        if precision is None:
+            precision = get_option("display.precision")
+        self.precision = precision
+        self.table_styles = table_styles
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
         self.uuid_len = min(32, uuid_len)
         self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
-        self.table_styles = table_styles
         self.caption = caption
-        if precision is None:
-            precision = get_option("display.precision")
-        self.precision = precision
         self.table_attributes = table_attributes
-        self.hidden_index = False
-        self.hidden_columns: Sequence[int] = []
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
+        # assign additional default vars
+        self.hidden_index: bool = False
+        self.hidden_columns: Sequence[int] = []
+        self.ctx: DefaultDict[Tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: Dict[str, Any] = {}
-
-        # display_funcs maps (row, col) -> formatting function
-
-        def default_display_func(x):
-            if self.na_rep is not None and pd.isna(x):
-                return self.na_rep
-            elif is_float(x):
-                display_format = f"{x:.{self.precision}f}"
-                return display_format
-            else:
-                return x
-
-        self._display_funcs: DefaultDict[
+        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
+        self.tooltips: Optional[_Tooltips] = None
+        self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: default_display_func)
+        ] = defaultdict(lambda: self._default_display_func)
 
     def _repr_html_(self) -> str:
         """
         Hooks into Jupyter notebook rich display system.
         """
         return self.render()
+
+    def _init_tooltips(self):
+        """
+        Checks parameters compatible with tooltips and creates instance if necessary
+        """
+        if not self.cell_ids:
+            # tooltips not optimised for individual cell check. requires reasonable
+            # redesign and more extensive code for a feature that might be rarely used.
+            raise NotImplementedError(
+                "Tooltips can only render with 'cell_ids' is True."
+            )
+        if self.tooltips is None:
+            self.tooltips = _Tooltips()
+
+    def _default_display_func(self, x):
+        if self.na_rep is not None and pd.isna(x):
+            return self.na_rep
+        elif is_float(x):
+            display_format = f"{x:.{self.precision}f}"
+            return display_format
+        else:
+            return x
+
+    def set_tooltips(self, ttips: DataFrame) -> Styler:
+        """
+        Add string based tooltips that will appear in the `Styler` HTML result. These
+        tooltips are applicable only to`<td>` elements.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        ttips : DataFrame
+            DataFrame containing strings that will be translated to tooltips, mapped
+            by identical column and index values that must exist on the underlying
+            `Styler` data. None, NaN values, and empty strings will be ignored and
+            not affect the rendered HTML.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        Tooltips are created by adding `<span class="pd-t"></span>` to each data cell
+        and then manipulating the table level CSS to attach pseudo hover and pseudo
+        after selectors to produce the required the results. For styling control
+        see `:meth:Styler.set_tooltips_class`.
+        Tooltips are not designed to be efficient, and can add large amounts of
+        additional HTML for larger tables, since they also require that `cell_ids`
+        is forced to `True`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        >>> ttips = pd.DataFrame(
+        ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
+        ... )
+        >>> s = df.style.set_tooltips(ttips).render()
+        """
+        self._init_tooltips()
+        assert self.tooltips is not None  # mypy requiremen
+        self.tooltips.tt_data = ttips
+        return self
+
+    def set_tooltips_class(
+        self,
+        name: Optional[str] = None,
+        properties: Optional[CSSProperties] = None,
+    ) -> Styler:
+        """
+        Manually configure the name and/or properties of the class for
+        creating tooltips on hover.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        name : str, default None
+            Name of the tooltip class used in CSS, should conform to HTML standards.
+        properties : list-like or str, default None
+            List of (attr, value) tuples or a valid CSS string; see example.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        If arguments are `None` will not make any changes to the underlying ``Tooltips``
+        existing values.
+
+        The default properties for the tooltip CSS class are:
+
+        - visibility: hidden
+        - position: absolute
+        - z-index: 1
+        - background-color: black
+        - color: white
+        - transform: translate(-20px, -20px)
+
+        The property ('visibility', 'hidden') is a key prerequisite to the hover
+        functionality, and should always be included in any manual properties
+        specification.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df.style.set_tooltips_class(name='tt-add', properties=[
+        ...     ('visibility', 'hidden'),
+        ...     ('position', 'absolute'),
+        ...     ('z-index', 1)])
+        >>> df.style.set_tooltips_class(name='tt-add',
+        ...     properties='visibility:hidden; position:absolute; z-index:1;')
+        """
+        self._init_tooltips()
+        assert self.tooltips is not None  # mypy requirement
+        if properties:
+            self.tooltips.class_properties = properties
+        if name:
+            self.tooltips.class_name = name
+        return self
 
     @doc(
         NDFrame.to_excel,
@@ -215,10 +341,10 @@ class Styler:
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Label]] = None,
-        header: Union[Sequence[Label], bool] = True,
+        columns: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
         index: bool = True,
-        index_label: Optional[Union[Label, Sequence[Label]]] = None,
+        index_label: Optional[IndexLabel] = None,
         startrow: int = 0,
         startcol: int = 0,
         engine: Optional[str] = None,
@@ -271,9 +397,6 @@ class Styler:
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
 
-        def format_attr(pair):
-            return f"{pair['key']}={pair['value']}"
-
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
@@ -291,7 +414,8 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle_map = defaultdict(list)
+        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+
         head = []
 
         for r in range(n_clvls):
@@ -342,9 +466,7 @@ class Styler:
                     }
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
-                        es["attributes"] = [
-                            format_attr({"key": "colspan", "value": f'"{colspan}"'})
-                        ]
+                        es["attributes"] = f'colspan="{colspan}"'
                     row_es.append(es)
                 head.append(row_es)
 
@@ -363,8 +485,15 @@ class Styler:
                 )
 
             index_header_row.extend(
-                [{"type": "th", "value": BLANK_VALUE, "class": " ".join([BLANK_CLASS])}]
-                * (len(clabels[0]) - len(hidden_columns))
+                [
+                    {
+                        "type": "th",
+                        "value": BLANK_VALUE,
+                        "class": " ".join([BLANK_CLASS, f"col{c}"]),
+                    }
+                    for c in range(len(clabels[0]))
+                    if c not in hidden_columns
+                ]
             )
 
             head.append(index_header_row)
@@ -388,38 +517,37 @@ class Styler:
                 }
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
-                    es["attributes"] = [
-                        format_attr({"key": "rowspan", "value": f'"{rowspan}"'})
-                    ]
+                    es["attributes"] = f'rowspan="{rowspan}"'
                 row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
                 cs = [DATA_CLASS, f"row{r}", f"col{c}"]
-                cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
                 row_dict = {
                     "type": "td",
                     "value": value,
-                    "class": " ".join(cs),
                     "display_value": formatter(value),
                     "is_visible": (c not in hidden_columns),
+                    "attributes": "",
                 }
+
                 # only add an id if the cell has a style
-                props = []
+                props: CSSList = []
                 if self.cell_ids or (r, c) in ctx:
                     row_dict["id"] = "_".join(cs[1:])
-                    for x in ctx[r, c]:
-                        # have to handle empty styles like ['']
-                        if x.count(":"):
-                            props.append(tuple(x.split(":")))
-                        else:
-                            props.append(("", ""))
+                    props.extend(ctx[r, c])
+
+                # add custom classes from cell context
+                cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
+                row_dict["class"] = " ".join(cs)
+
                 row_es.append(row_dict)
-                cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
+                if props:  # (), [] won't be in cellstyle_map, cellstyle respectively
+                    cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
-        cellstyle = [
+        cellstyle: List[Dict[str, Union[CSSList, List[str]]]] = [
             {"props": list(props), "selectors": selectors}
             for props, selectors in cellstyle_map.items()
         ]
@@ -433,7 +561,7 @@ class Styler:
             else:
                 table_attr += ' class="tex2jax_ignore"'
 
-        return {
+        d = {
             "head": head,
             "cellstyle": cellstyle,
             "body": body,
@@ -443,8 +571,12 @@ class Styler:
             "caption": caption,
             "table_attributes": table_attr,
         }
+        if self.tooltips:
+            d = self.tooltips._translate(self.data, self.uuid, d)
 
-    def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> "Styler":
+        return d
+
+    def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> Styler:
         """
         Format the text display value of cells.
 
@@ -491,7 +623,7 @@ class Styler:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
         else:
-            subset = non_reducing_slice(subset)
+            subset = _non_reducing_slice(subset)
             if len(subset) == 1:
                 subset = subset, self.data.columns
 
@@ -515,7 +647,7 @@ class Styler:
                 self._display_funcs[(i, j)] = formatter
         return self
 
-    def set_td_classes(self, classes: DataFrame) -> "Styler":
+    def set_td_classes(self, classes: DataFrame) -> Styler:
         """
         Add string based CSS class names to data cells that will appear within the
         `Styler` HTML result. These classes are added within specified `<td>` elements.
@@ -570,10 +702,12 @@ class Styler:
 
         mask = (classes.isna()) | (classes.eq(""))
         self.cell_context["data"] = {
-            r: {c: [str(classes.iloc[r, c])]}
+            r: {
+                c: [str(classes.iloc[r, c])]
+                for c, cn in enumerate(classes.columns)
+                if not mask.iloc[r, c]
+            }
             for r, rn in enumerate(classes.index)
-            for c, cn in enumerate(classes.columns)
-            if not mask.iloc[r, c]
         }
 
         return self
@@ -619,19 +753,14 @@ class Styler:
         self._compute()
         # TODO: namespace all the pandas keys
         d = self._translate()
-        # filter out empty styles, every cell will have a class
-        # but the list of props may just be [['', '']].
-        # so we have the nested anys below
-        trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
-        d["cellstyle"] = trimmed
         d.update(kwargs)
         return self.template.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
-        Update the state of the Styler.
+        Update the state of the Styler for data cells.
 
-        Collects a mapping of {index_label: ['<property>: <value>']}.
+        Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
 
         Parameters
         ----------
@@ -640,22 +769,15 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        coli = {k: i for i, k in enumerate(self.columns)}
-        rowi = {k: i for i, k in enumerate(self.index)}
-        for jj in range(len(attrs.columns)):
-            cn = attrs.columns[jj]
-            j = coli[cn]
+        for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
                 if not c:
                     continue
-                c = c.rstrip(";")
-                if not c:
-                    continue
-                i = rowi[rn]
-                for pair in c.split(";"):
-                    self.ctx[(i, j)].append(pair)
+                css_list = _maybe_convert_css_to_tuples(c)
+                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                self.ctx[(i, j)].extend(css_list)
 
-    def _copy(self, deepcopy: bool = False) -> "Styler":
+    def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
             self.data,
             precision=self.precision,
@@ -672,13 +794,13 @@ class Styler:
             styler._todo = self._todo
         return styler
 
-    def __copy__(self) -> "Styler":
+    def __copy__(self) -> Styler:
         """
         Deep copy by default.
         """
         return self._copy(deepcopy=False)
 
-    def __deepcopy__(self, memo) -> "Styler":
+    def __deepcopy__(self, memo) -> Styler:
         return self._copy(deepcopy=True)
 
     def clear(self) -> None:
@@ -688,6 +810,7 @@ class Styler:
         Returns None.
         """
         self.ctx.clear()
+        self.tooltips = None
         self.cell_context = {}
         self._todo = []
 
@@ -703,17 +826,18 @@ class Styler:
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
+        self._todo = []
         return r
 
     def _apply(
         self,
-        func: Callable[..., "Styler"],
+        func: Callable[..., Styler],
         axis: Optional[Axis] = 0,
         subset=None,
         **kwargs,
-    ) -> "Styler":
+    ) -> Styler:
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis, result_type="expand", **kwargs)
@@ -721,11 +845,19 @@ class Styler:
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):
-                raise TypeError(
-                    f"Function {repr(func)} must return a DataFrame when "
-                    f"passed to `Styler.apply` with axis=None"
-                )
-            if not (
+                if not isinstance(result, np.ndarray):
+                    raise TypeError(
+                        f"Function {repr(func)} must return a DataFrame or ndarray "
+                        f"when passed to `Styler.apply` with axis=None"
+                    )
+                if not (data.shape == result.shape):
+                    raise ValueError(
+                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                        f"Result has shape: {result.shape}\n"
+                        f"Expected shape: {data.shape}"
+                    )
+                result = DataFrame(result, index=data.index, columns=data.columns)
+            elif not (
                 result.index.equals(data.index) and result.columns.equals(data.columns)
             ):
                 raise ValueError(
@@ -733,26 +865,24 @@ class Styler:
                     f"index and columns as the input"
                 )
 
-        result_shape = result.shape
-        expected_shape = self.data.loc[subset].shape
-        if result_shape != expected_shape:
+        if result.shape != data.shape:
             raise ValueError(
                 f"Function {repr(func)} returned the wrong shape.\n"
                 f"Result has shape: {result.shape}\n"
-                f"Expected shape:   {expected_shape}"
+                f"Expected shape:   {data.shape}"
             )
         self._update_ctx(result)
         return self
 
     def apply(
         self,
-        func: Callable[..., "Styler"],
+        func: Callable[..., Styler],
         axis: Optional[Axis] = 0,
         subset=None,
         **kwargs,
-    ) -> "Styler":
+    ) -> Styler:
         """
-        Apply a function column-wise, row-wise, or table-wise.
+        Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Updates the HTML representation with the result.
 
@@ -762,7 +892,10 @@ class Styler:
             ``func`` should take a Series or DataFrame (depending
             on ``axis``), and return an object with the same shape.
             Must return a DataFrame with identical index and
-            column labels when ``axis=None``.
+            column labels or an ndarray with same shape as input when ``axis=None``.
+
+            .. versionchanged:: 1.3.0
+
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -779,9 +912,11 @@ class Styler:
 
         Notes
         -----
-        The output shape of ``func`` should match the input, i.e. if
+        The output of ``func`` should be elements having CSS style as string or,
+        if nothing is to be applied to that element, an empty string or ``None``.
+        The output shape must match the input, i.e. if
         ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x).shape == x.shape`` should be true.
+        then ``func(x).shape == x.shape`` should be ``True``.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
@@ -789,30 +924,30 @@ class Styler:
 
         Examples
         --------
-        >>> def highlight_max(x):
-        ...     return ['background-color: yellow' if v == x.max() else ''
-                        for v in x]
-        ...
+        >>> def highlight_max(x, color):
+        ...     return np.where(x == np.nanmax(x.values), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2))
-        >>> df.style.apply(highlight_max)
+        >>> df.style.apply(highlight_max, color='red')
+        >>> df.style.apply(highlight_max, color='blue', axis=1)
+        >>> df.style.apply(highlight_max, color='green', axis=None)
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
         )
         return self
 
-    def _applymap(self, func: Callable, subset=None, **kwargs) -> "Styler":
+    def _applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
         return self
 
-    def applymap(self, func: Callable, subset=None, **kwargs) -> "Styler":
+    def applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         """
-        Apply a function elementwise.
+        Apply a CSS-styling function elementwise.
 
         Updates the HTML representation with the result.
 
@@ -834,6 +969,18 @@ class Styler:
         --------
         Styler.where: Updates the HTML representation with a style which is
             selected in accordance with the return value of a function.
+
+        Notes
+        -----
+        The output of ``func`` should be a CSS style as string or, if nothing is to be
+        applied, an empty string or ``None``.
+
+        Examples
+        --------
+        >>> def color_negative(v, color):
+        ...     return f"color: {color};" if v < 0 else None
+        >>> df = pd.DataFrame(np.random.randn(5, 2))
+        >>> df.style.applymap(color_negative, color='red')
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
@@ -847,7 +994,7 @@ class Styler:
         other: Optional[str] = None,
         subset=None,
         **kwargs,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Apply a function elementwise.
 
@@ -883,7 +1030,7 @@ class Styler:
             lambda val: value if cond(val) else other, subset=subset, **kwargs
         )
 
-    def set_precision(self, precision: int) -> "Styler":
+    def set_precision(self, precision: int) -> Styler:
         """
         Set the precision used to render.
 
@@ -898,7 +1045,7 @@ class Styler:
         self.precision = precision
         return self
 
-    def set_table_attributes(self, attributes: str) -> "Styler":
+    def set_table_attributes(self, attributes: str) -> Styler:
         """
         Set the table attributes.
 
@@ -938,7 +1085,7 @@ class Styler:
         """
         return self._todo
 
-    def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> "Styler":
+    def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> Styler:
         """
         Set the styles on the current Styler.
 
@@ -960,7 +1107,7 @@ class Styler:
         self._todo.extend(styles)
         return self
 
-    def set_uuid(self, uuid: str) -> "Styler":
+    def set_uuid(self, uuid: str) -> Styler:
         """
         Set the uuid for a Styler.
 
@@ -975,7 +1122,7 @@ class Styler:
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str) -> "Styler":
+    def set_caption(self, caption: str) -> Styler:
         """
         Set the caption on a Styler.
 
@@ -990,7 +1137,12 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> "Styler":
+    def set_table_styles(
+        self,
+        table_styles: Union[Dict[Any, CSSStyles], CSSStyles],
+        axis: int = 0,
+        overwrite: bool = True,
+    ) -> Styler:
         """
         Set the table styles on a Styler.
 
@@ -1044,13 +1196,20 @@ class Styler:
         ...       'props': [('background-color', 'yellow')]}]
         ... )
 
+        Or with CSS strings
+
+        >>> df.style.set_table_styles(
+        ...     [{'selector': 'tr:hover',
+        ...       'props': 'background-color: yellow; font-size: 1em;']}]
+        ... )
+
         Adding column styling by name
 
         >>> df.style.set_table_styles({
         ...     'A': [{'selector': '',
         ...            'props': [('color', 'red')]}],
         ...     'B': [{'selector': 'td',
-        ...            'props': [('color', 'blue')]}]
+        ...            'props': 'color: blue;']}]
         ... }, overwrite=False)
 
         Adding row styling
@@ -1060,7 +1219,7 @@ class Styler:
         ...          'props': [('font-size', '25px')]}]
         ... }, axis=1, overwrite=False)
         """
-        if is_dict_like(table_styles):
+        if isinstance(table_styles, dict):
             if axis in [0, "index"]:
                 obj, idf = self.data.columns, ".col"
             else:
@@ -1068,11 +1227,19 @@ class Styler:
 
             table_styles = [
                 {
-                    "selector": s["selector"] + idf + str(obj.get_loc(key)),
-                    "props": s["props"],
+                    "selector": str(s["selector"]) + idf + str(obj.get_loc(key)),
+                    "props": _maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
                 for s in styles
+            ]
+        else:
+            table_styles = [
+                {
+                    "selector": s["selector"],
+                    "props": _maybe_convert_css_to_tuples(s["props"]),
+                }
+                for s in table_styles
             ]
 
         if not overwrite and self.table_styles is not None:
@@ -1081,7 +1248,7 @@ class Styler:
             self.table_styles = table_styles
         return self
 
-    def set_na_rep(self, na_rep: str) -> "Styler":
+    def set_na_rep(self, na_rep: str) -> Styler:
         """
         Set the missing data representation on a Styler.
 
@@ -1098,7 +1265,7 @@ class Styler:
         self.na_rep = na_rep
         return self
 
-    def hide_index(self) -> "Styler":
+    def hide_index(self) -> Styler:
         """
         Hide any indices from rendering.
 
@@ -1109,7 +1276,7 @@ class Styler:
         self.hidden_index = True
         return self
 
-    def hide_columns(self, subset) -> "Styler":
+    def hide_columns(self, subset) -> Styler:
         """
         Hide columns from rendering.
 
@@ -1123,7 +1290,7 @@ class Styler:
         -------
         self : Styler
         """
-        subset = non_reducing_slice(subset)
+        subset = _non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
@@ -1131,33 +1298,6 @@ class Styler:
     # -----------------------------------------------------------------------
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
-
-    @staticmethod
-    def _highlight_null(v, null_color: str) -> str:
-        return f"background-color: {null_color}" if pd.isna(v) else ""
-
-    def highlight_null(
-        self,
-        null_color: str = "red",
-        subset: Optional[Union[Label, Sequence[Label]]] = None,
-    ) -> "Styler":
-        """
-        Shade the background ``null_color`` for missing values.
-
-        Parameters
-        ----------
-        null_color : str, default 'red'
-        subset : label or list of labels, default None
-            A valid slice for ``data`` to limit the style application to.
-
-            .. versionadded:: 1.1.0
-
-        Returns
-        -------
-        self : Styler
-        """
-        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
-        return self
 
     def background_gradient(
         self,
@@ -1169,7 +1309,7 @@ class Styler:
         text_color_threshold: float = 0.408,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Color the background in a gradient style.
 
@@ -1225,8 +1365,9 @@ class Styler:
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
         """
-        subset = maybe_numeric_slice(self.data, subset)
-        subset = non_reducing_slice(subset)
+        if subset is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1287,7 +1428,7 @@ class Styler:
                     The relative luminance as a value from 0 to 1
                 """
                 r, g, b = (
-                    x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055 ** 2.4)
+                    x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
                     for x in rgba[:3]
                 )
                 return 0.2126 * r + 0.7152 * g + 0.0722 * b
@@ -1306,7 +1447,7 @@ class Styler:
                     columns=s.columns,
                 )
 
-    def set_properties(self, subset=None, **kwargs) -> "Styler":
+    def set_properties(self, subset=None, **kwargs) -> Styler:
         """
         Method to set one or more non-data dependent properties or each cell.
 
@@ -1327,9 +1468,8 @@ class Styler:
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = ";".join(f"{p}: {v}" for p, v in kwargs.items())
-        f = lambda x: values
-        return self.applymap(f, subset=subset)
+        values = "".join(f"{p}: {v};" for p, v in kwargs.items())
+        return self.applymap(lambda x: values, subset=subset)
 
     @staticmethod
     def _bar(
@@ -1400,7 +1540,7 @@ class Styler:
         align: str = "left",
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
 
@@ -1460,8 +1600,9 @@ class Styler:
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
-        subset = maybe_numeric_slice(self.data, subset)
-        subset = non_reducing_slice(subset)
+        if subset is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
         self.apply(
             self._bar,
             subset=subset,
@@ -1475,9 +1616,40 @@ class Styler:
 
         return self
 
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[IndexLabel] = None,
+    ) -> Styler:
+        """
+        Shade the background ``null_color`` for missing values.
+
+        Parameters
+        ----------
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        self : Styler
+        """
+
+        def f(data: DataFrame, props: str) -> np.ndarray:
+            return np.where(pd.isna(data).values, props, "")
+
+        return self.apply(
+            f, axis=None, subset=subset, props=f"background-color: {null_color};"
+        )
+
     def highlight_max(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
-    ) -> "Styler":
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
+    ) -> Styler:
         """
         Highlight the maximum by shading the background.
 
@@ -1495,11 +1667,20 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(subset=subset, color=color, axis=axis, max_=True)
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmax(data.values), props, "")
+
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
+        )
 
     def highlight_min(
-        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
-    ) -> "Styler":
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
+    ) -> Styler:
         """
         Highlight the minimum by shading the background.
 
@@ -1517,43 +1698,13 @@ class Styler:
         -------
         self : Styler
         """
-        return self._highlight_handler(
-            subset=subset, color=color, axis=axis, max_=False
+
+        def f(data: FrameOrSeries, props: str) -> np.ndarray:
+            return np.where(data == np.nanmin(data.values), props, "")
+
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
         )
-
-    def _highlight_handler(
-        self,
-        subset=None,
-        color: str = "yellow",
-        axis: Optional[Axis] = None,
-        max_: bool = True,
-    ) -> "Styler":
-        subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
-        self.apply(
-            self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
-        )
-        return self
-
-    @staticmethod
-    def _highlight_extrema(
-        data: FrameOrSeries, color: str = "yellow", max_: bool = True
-    ):
-        """
-        Highlight the min or max in a Series or DataFrame.
-        """
-        attr = f"background-color: {color}"
-
-        if max_:
-            extrema = data == np.nanmax(data.to_numpy())
-        else:
-            extrema = data == np.nanmin(data.to_numpy())
-
-        if data.ndim == 1:  # Series from .apply
-            return [attr if v else "" for v in extrema]
-        else:  # DataFrame from .tee
-            return pd.DataFrame(
-                np.where(extrema, attr, ""), index=data.index, columns=data.columns
-            )
 
     @classmethod
     def from_custom_template(cls, searchpath, name):
@@ -1576,9 +1727,9 @@ class Styler:
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
-        # mypy doesnt like dynamically-defined class
-        # error: Variable "cls" is not valid as a type  [valid-type]
-        # error: Invalid base class "cls"  [misc]
+        # mypy doesn't like dynamically-defined classes
+        # error: Variable "cls" is not valid as a type
+        # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
@@ -1657,6 +1808,181 @@ class Styler:
         return com.pipe(self, func, *args, **kwargs)
 
 
+class _Tooltips:
+    """
+    An extension to ``Styler`` that allows for and manipulates tooltips on hover
+    of table data-cells in the HTML result.
+
+    Parameters
+    ----------
+    css_name: str, default "pd-t"
+        Name of the CSS class that controls visualisation of tooltips.
+    css_props: list-like, default; see Notes
+        List of (attr, value) tuples defining properties of the CSS class.
+    tooltips: DataFrame, default empty
+        DataFrame of strings aligned with underlying ``Styler`` data for tooltip
+        display.
+
+    Notes
+    -----
+    The default properties for the tooltip CSS class are:
+
+        - visibility: hidden
+        - position: absolute
+        - z-index: 1
+        - background-color: black
+        - color: white
+        - transform: translate(-20px, -20px)
+
+    Hidden visibility is a key prerequisite to the hover functionality, and should
+    always be included in any manual properties specification.
+    """
+
+    def __init__(
+        self,
+        css_props: CSSProperties = [
+            ("visibility", "hidden"),
+            ("position", "absolute"),
+            ("z-index", 1),
+            ("background-color", "black"),
+            ("color", "white"),
+            ("transform", "translate(-20px, -20px)"),
+        ],
+        css_name: str = "pd-t",
+        tooltips: DataFrame = DataFrame(),
+    ):
+        self.class_name = css_name
+        self.class_properties = css_props
+        self.tt_data = tooltips
+        self.table_styles: CSSStyles = []
+
+    @property
+    def _class_styles(self):
+        """
+        Combine the ``_Tooltips`` CSS class name and CSS properties to the format
+        required to extend the underlying ``Styler`` `table_styles` to allow
+        tooltips to render in HTML.
+
+        Returns
+        -------
+        styles : List
+        """
+        return [
+            {
+                "selector": f".{self.class_name}",
+                "props": _maybe_convert_css_to_tuples(self.class_properties),
+            }
+        ]
+
+    def _pseudo_css(self, uuid: str, name: str, row: int, col: int, text: str):
+        """
+        For every table data-cell that has a valid tooltip (not None, NaN or
+        empty string) must create two pseudo CSS entries for the specific
+        <td> element id which are added to overall table styles:
+        an on hover visibility change and a content change
+        dependent upon the user's chosen display string.
+
+        For example:
+            [{"selector": "T__row1_col1:hover .pd-t",
+             "props": [("visibility", "visible")]},
+            {"selector": "T__row1_col1 .pd-t::after",
+             "props": [("content", "Some Valid Text String")]}]
+
+        Parameters
+        ----------
+        uuid: str
+            The uuid of the Styler instance
+        name: str
+            The css-name of the class used for styling tooltips
+        row : int
+            The row index of the specified tooltip string data
+        col : int
+            The col index of the specified tooltip string data
+        text : str
+            The textual content of the tooltip to be displayed in HTML.
+
+        Returns
+        -------
+        pseudo_css : List
+        """
+        return [
+            {
+                "selector": "#T_"
+                + uuid
+                + "row"
+                + str(row)
+                + "_col"
+                + str(col)
+                + f":hover .{name}",
+                "props": [("visibility", "visible")],
+            },
+            {
+                "selector": "#T_"
+                + uuid
+                + "row"
+                + str(row)
+                + "_col"
+                + str(col)
+                + f" .{name}::after",
+                "props": [("content", f'"{text}"')],
+            },
+        ]
+
+    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: Dict):
+        """
+        Mutate the render dictionary to allow for tooltips:
+
+        - Add `<span>` HTML element to each data cells `display_value`. Ignores
+          headers.
+        - Add table level CSS styles to control pseudo classes.
+
+        Parameters
+        ----------
+        styler_data : DataFrame
+            Underlying ``Styler`` DataFrame used for reindexing.
+        uuid : str
+            The underlying ``Styler`` uuid for CSS id.
+        d : dict
+            The dictionary prior to final render
+
+        Returns
+        -------
+        render_dict : Dict
+        """
+        self.tt_data = self.tt_data.reindex_like(styler_data)
+
+        if self.tt_data.empty:
+            return d
+
+        name = self.class_name
+
+        mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
+        self.table_styles = [
+            style
+            for sublist in [
+                self._pseudo_css(uuid, name, i, j, str(self.tt_data.iloc[i, j]))
+                for i in range(len(self.tt_data.index))
+                for j in range(len(self.tt_data.columns))
+                if not mask.iloc[i, j]
+            ]
+            for style in sublist
+        ]
+
+        if self.table_styles:
+            # add span class to every cell only if at least 1 non-empty tooltip
+            for row in d["body"]:
+                for item in row:
+                    if item["type"] == "td":
+                        item["display_value"] = (
+                            str(item["display_value"])
+                            + f'<span class="{self.class_name}"></span>'
+                        )
+            d["table_styles"].extend(self._class_styles)
+            d["table_styles"].extend(self.table_styles)
+
+        return d
+
+
 def _is_visible(idx_row, idx_col, lengths) -> bool:
     """
     Index -> {(idx_row, idx_col): bool}).
@@ -1728,3 +2054,66 @@ def _maybe_wrap_formatter(
     else:
         msg = f"Expected a string, got {na_rep} instead"
         raise TypeError(msg)
+
+
+def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
+    """
+    Convert css-string to sequence of tuples format if needed.
+    'color:red; border:1px solid black;' -> [('color', 'red'),
+                                             ('border','1px solid red')]
+    """
+    if isinstance(style, str):
+        s = style.split(";")
+        try:
+            return [
+                (x.split(":")[0].strip(), x.split(":")[1].strip())
+                for x in s
+                if x.strip() != ""
+            ]
+        except IndexError:
+            raise ValueError(
+                "Styles supplied as string must follow CSS rule formats, "
+                f"for example 'attr: val;'. '{style}' was given."
+            )
+    return style
+
+
+def _non_reducing_slice(slice_):
+    """
+    Ensure that a slice doesn't reduce to a Series or Scalar.
+
+    Any user-passed `subset` should have this called on it
+    to make sure we're always working with DataFrames.
+    """
+    # default to column slice, like DataFrame
+    # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
+    kinds = (ABCSeries, np.ndarray, Index, list, str)
+    if isinstance(slice_, kinds):
+        slice_ = pd.IndexSlice[:, slice_]
+
+    def pred(part) -> bool:
+        """
+        Returns
+        -------
+        bool
+            True if slice does *not* reduce,
+            False if `part` is a tuple.
+        """
+        # true when slice does *not* reduce, False when part is a tuple,
+        # i.e. MultiIndex slice
+        if isinstance(part, tuple):
+            # GH#39421 check for sub-slice:
+            return any((isinstance(s, slice) or is_list_like(s)) for s in part)
+        else:
+            return isinstance(part, slice) or is_list_like(part)
+
+    if not is_list_like(slice_):
+        if not isinstance(slice_, slice):
+            # a 1-d slice, like df.loc[1]
+            slice_ = [[slice_]]
+        else:
+            # slice(a, b, c)
+            slice_ = [slice_]  # to tuplize later
+    else:
+        slice_ = [part if pred(part) else [part] for part in slice_]
+    return tuple(slice_)
