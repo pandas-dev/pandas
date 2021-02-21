@@ -94,7 +94,6 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import transform
 from pandas.core.apply import series_apply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
@@ -4035,7 +4034,10 @@ Keep all original rows and also all original values
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> FrameOrSeriesUnion:
-        return transform(self, func, axis, *args, **kwargs)
+        # Validate axis argument
+        self._get_axis_number(axis)
+        result = series_apply(self, func=func, args=args, kwargs=kwargs).transform()
+        return result
 
     def apply(
         self,

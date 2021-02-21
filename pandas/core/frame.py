@@ -139,7 +139,6 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import (
     reconstruct_func,
     relabel_result,
-    transform,
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -7786,7 +7785,10 @@ NaN 12.3   33.0
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame:
-        result = transform(self, func, axis, *args, **kwargs)
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.transform()
         assert isinstance(result, DataFrame)
         return result
 
