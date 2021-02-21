@@ -1546,11 +1546,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2    4.0
         Name: B, dtype: float64
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "mean",
             alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
@@ -1572,11 +1573,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Median of values within each group.
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "median",
             alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
