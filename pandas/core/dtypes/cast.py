@@ -1834,7 +1834,7 @@ def construct_1d_ndarray_preserving_na(
     return subarr
 
 
-def maybe_cast_to_integer_array(arr, dtype: Dtype, copy: bool = False):
+def maybe_cast_to_integer_array(arr, dtype: np.dtype, copy: bool = False):
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
@@ -1845,7 +1845,7 @@ def maybe_cast_to_integer_array(arr, dtype: Dtype, copy: bool = False):
     ----------
     arr : array-like
         The array to cast.
-    dtype : str, np.dtype
+    dtype : np.dtype
         The integer dtype to cast the array to.
     copy: bool, default False
         Whether to make a copy of the array before returning.
