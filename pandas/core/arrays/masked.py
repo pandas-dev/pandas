@@ -172,7 +172,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     self._data.copy(),
                     limit=limit,
                     mask=mask.copy(),
-                    update_mask=True,
                 )
                 return type(self)(new_values, new_mask.view(np.bool_))
             else:
