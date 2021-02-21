@@ -822,9 +822,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         if not isinstance(dtype, IntervalDtype):
             return False
-        if self.closed != dtype.closed:
-            return False
-        common_subtype = find_common_type([self.dtype.subtype, dtype.subtype])
+        common_subtype = find_common_type([self.dtype, dtype])
         return not is_object_dtype(common_subtype)
 
     # --------------------------------------------------------------------

@@ -25,16 +25,3 @@ doc:
 	cd doc; \
 	python make.py clean; \
 	python make.py html
-
-check:
-	python3 scripts/validate_unwanted_patterns.py \
-		--validation-type="private_function_across_module" \
-		--included-file-extensions="py" \
-		--excluded-file-paths=pandas/tests,asv_bench/ \
-		pandas/
-
-	python3 scripts/validate_unwanted_patterns.py \
-		--validation-type="private_import_across_module" \
-		--included-file-extensions="py" \
-		--excluded-file-paths=pandas/tests,asv_bench/,doc/
-		pandas/
