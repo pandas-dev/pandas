@@ -722,7 +722,7 @@ def _backfill_1d(
         return values
 
 
-def _pad_2d(values, limit=None, mask=None, update_mask: bool = False):
+def _pad_2d(values, limit=None, mask=None):
     values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
