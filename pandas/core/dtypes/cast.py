@@ -48,7 +48,6 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
-    PandasScalar,
     Scalar,
 )
 from pandas.util._exceptions import find_stack_level
@@ -850,7 +849,7 @@ def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
 
 
 def infer_dtype_from_array(
-    arr: Union[ArrayLike, Series, PandasScalar], pandas_dtype: bool = False
+    arr: AnyArrayLike, pandas_dtype: bool = False
 ) -> Tuple[DtypeObj, Union[ArrayLike, Series]]:
     """
     Infer the dtype from an array.
