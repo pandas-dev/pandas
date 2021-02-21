@@ -139,7 +139,6 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import (
     reconstruct_func,
     relabel_result,
-    transform,
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -752,10 +751,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if isinstance(self._mgr, ArrayManager):
             return False
-        if self._mgr.any_extension_types:
-            # TODO(EA2D) special case would be unnecessary with 2D EAs
+        blocks = self._mgr.blocks
+        if len(blocks) != 1:
             return False
-        return len(self._mgr.blocks) == 1
+
+        return not self._mgr.any_extension_types
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -7727,21 +7727,14 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        from pandas.core.apply import frame_apply
+
         axis = self._get_axis_number(axis)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
-        result = None
-        try:
-            result = self._aggregate(func, axis, *args, **kwargs)
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
-        if result is None:
-            return self.apply(func, axis=axis, args=args, **kwargs)
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.agg()
 
         if relabeling:
             # This is to keep the order to columns occurrence unchanged, and also
@@ -7757,25 +7750,6 @@ NaN 12.3   33.0
 
         return result
 
-    def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
-        from pandas.core.apply import frame_apply
-
-        op = frame_apply(
-            self if axis == 0 else self.T,
-            func=arg,
-            axis=0,
-            args=args,
-            kwargs=kwargs,
-        )
-        result = op.agg()
-
-        if axis == 1:
-            # NDFrame.aggregate returns a tuple, and we need to transpose
-            # only result
-            result = result.T if result is not None else result
-
-        return result
-
     agg = aggregate
 
     @doc(
@@ -7786,7 +7760,10 @@ NaN 12.3   33.0
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame:
-        result = transform(self, func, axis, *args, **kwargs)
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.transform()
         assert isinstance(result, DataFrame)
         return result
 
