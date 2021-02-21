@@ -56,7 +56,11 @@
     <tr>
 {% for c in r %}
 {% if c.is_visible != False %}
-      <{{c.type}} {% if c.id is defined -%} id="T_{{uuid}}{{c.id}}" {%- endif %} class="{{c.class}}" {{c.attributes|join(" ")}}>{{c.display_value}}</{{c.type}}>
+{% if c.type == 'th' %}
+      <th {% if c.id is defined -%} id="T_{{uuid}}{{c.id}}" {%- endif %} class="{{c.class}}" {{c.attributes|join(" ")}}>{{c.display_value}}</th>
+{% else %}
+      <td {% if c.id is defined -%} id="T_{{uuid}}{{c.id}}" {%- endif %} class="{{c.class}}" >{{c.display_value}}</td>
+{% endif %}
 {% endif %}
 {% endfor %}
     </tr>
