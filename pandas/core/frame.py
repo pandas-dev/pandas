@@ -1373,7 +1373,7 @@ class DataFrame(NDFrame, OpsMixin):
         data,
         orient: str = "columns",
         dtype: Optional[Dtype] = None,
-        columns: Optional[IndexLabel] = None,
+        columns=None,
     ) -> DataFrame:
         """
         Construct DataFrame from dict of array-like or dicts.
@@ -4072,7 +4072,7 @@ class DataFrame(NDFrame, OpsMixin):
         }
 
     def lookup(
-        self, row_labels: Sequence[IndexLabel], col_labels: IndexLabel
+        self, row_labels: Sequence[IndexLabel], col_labels: Sequence[IndexLabel]
     ) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
