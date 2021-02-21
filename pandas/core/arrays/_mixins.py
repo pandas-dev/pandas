@@ -105,7 +105,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         new_data = take(
             self._ndarray,
-            indices,
+            # error: Argument 2 to "take" has incompatible type "Sequence[int]";
+            # expected "ndarray"
+            indices,  # type: ignore[arg-type]
             allow_fill=allow_fill,
             fill_value=fill_value,
             axis=axis,

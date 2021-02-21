@@ -1621,7 +1621,10 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
-        return np.array([], dtype=np.int64)
+
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return np.array([], dtype=np.int64)  # type: ignore[return-value]
     elif is_categorical_dtype(values):
         values = np.asarray(values)
 

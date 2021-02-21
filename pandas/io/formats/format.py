@@ -1801,7 +1801,11 @@ def get_format_timedelta64(
 
     one_day_nanos = 86400 * 10 ** 9
     even_days = (
-        np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+        # error: Unsupported operand types for % ("ExtensionArray" and "int")
+        np.logical_and(
+            consider_values, values_int % one_day_nanos != 0  # type: ignore[operator]
+        ).sum()
+        == 0
     )
 
     if even_days:

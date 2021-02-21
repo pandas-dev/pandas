@@ -8456,8 +8456,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 na_option=na_option,
                 pct=pct,
             )
-            ranks = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks.__finalize__(self, method="rank")
+            # error: Incompatible types in assignment (expression has type
+            # "FrameOrSeries", variable has type "ndarray")
+            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
+            # "Union[ArrayManager, BlockManager]"
+            ranks = self._constructor(  # type: ignore[assignment]
+                ranks, **data._construct_axes_dict()  # type: ignore[arg-type]
+            )
+            # error: "ndarray" has no attribute "__finalize__"
+            return ranks.__finalize__(self, method="rank")  # type: ignore[attr-defined]
 
         # if numeric_only is None, and we can't get anything, we try with
         # numeric_only=True

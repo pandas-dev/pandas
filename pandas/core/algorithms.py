@@ -358,7 +358,9 @@ def _get_values_for_rank(values: ArrayLike):
 def get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
-    ndtype = _check_object_for_strings(values)
+    # error: Argument 1 to "_check_object_for_strings" has incompatible type
+    # "ExtensionArray"; expected "ndarray"
+    ndtype = _check_object_for_strings(values)  # type: ignore[arg-type]
     htable = _hashtables.get(ndtype, _hashtables["object"])
 
     return htable, values
@@ -515,7 +517,13 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        values = _ensure_arraylike(list(values))
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "Index")
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "Series")
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "ndarray")
+        values = _ensure_arraylike(list(values))  # type: ignore[assignment]
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
 
@@ -533,7 +541,13 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # ExtensionArray]", variable has type "Series")
         values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
 
-    comps = _ensure_arraylike(comps)
+    # error: Incompatible types in assignment (expression has type "ExtensionArray",
+    # variable has type "Index")
+    # error: Incompatible types in assignment (expression has type "ExtensionArray",
+    # variable has type "Series")
+    # error: Incompatible types in assignment (expression has type "ExtensionArray",
+    # variable has type "ndarray")
+    comps = _ensure_arraylike(comps)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Any,
     # ExtensionArray]", variable has type "Index")
     # error: Incompatible types in assignment (expression has type "Union[Any,

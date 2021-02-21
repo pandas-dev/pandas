@@ -1332,4 +1332,6 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
-        return duplicated(self._values, keep=keep)
+        # error: Value of type variable "ArrayLike" of "duplicated" cannot be
+        # "Union[ExtensionArray, ndarray]"
+        return duplicated(self._values, keep=keep)  # type: ignore[type-var]

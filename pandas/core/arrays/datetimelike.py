@@ -443,7 +443,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         #  dtypes here. Everything else we pass through to the underlying
         #  ndarray.
         if dtype is None or dtype is self.dtype:
-            return type(self)(self._ndarray, dtype=self.dtype)
+            # error: Incompatible return value type (got "DatetimeLikeArrayMixin",
+            # expected "ndarray")
+            return type(self)(  # type: ignore[return-value]
+                self._ndarray, dtype=self.dtype
+            )
 
         if isinstance(dtype, type):
             # we sometimes pass non-dtype objects, e.g np.ndarray;
@@ -453,15 +457,25 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
             cls = dtype.construct_array_type()
-            return cls._simple_new(self.asi8, dtype=dtype)
+            # error: Incompatible return value type (got "Union[PeriodArray,
+            # DatetimeArray]", expected "ndarray")
+            return cls._simple_new(self.asi8, dtype=dtype)  # type: ignore[return-value]
         elif dtype == "M8[ns]":
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray._simple_new(self.asi8, dtype=dtype)
+            # error: Incompatible return value type (got "DatetimeArray", expected
+            # "ndarray")
+            return DatetimeArray._simple_new(  # type: ignore[return-value]
+                self.asi8, dtype=dtype
+            )
         elif dtype == "m8[ns]":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._simple_new(self.asi8.view("m8[ns]"), dtype=dtype)
+            # error: Incompatible return value type (got "TimedeltaArray", expected
+            # "ndarray")
+            return TimedeltaArray._simple_new(  # type: ignore[return-value]
+                self.asi8.view("m8[ns]"), dtype=dtype
+            )
         return self._ndarray.view(dtype=dtype)
 
     # ------------------------------------------------------------------
@@ -1752,7 +1766,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             freq = to_offset(self.inferred_freq)
 
         arr = self.view()
-        arr._freq = freq
+        # error: "ExtensionArray" has no attribute "_freq"
+        arr._freq = freq  # type: ignore[attr-defined]
         return arr
 
     # --------------------------------------------------------------

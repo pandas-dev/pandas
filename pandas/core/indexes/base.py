@@ -2956,15 +2956,27 @@ class Index(IndexOpsMixin, PandasObject):
 
         if sort is None and self.is_monotonic and other.is_monotonic:
             try:
-                result = self._outer_indexer(lvals, rvals)[0]
+                # error: Argument 1 to "_outer_indexer" of "Index" has incompatible type
+                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                result = self._outer_indexer(lvals, rvals)[0]  # type: ignore[arg-type]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
-                result = list(lvals)
+
+                # error: Incompatible types in assignment (expression has type
+                # "List[Any]", variable has type "ndarray")
+                result = list(lvals)  # type: ignore[assignment]
 
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
-                result.extend([x for x in rvals if x not in value_set])
-                result = Index(result)._values  # do type inference here
+                # error: "ndarray" has no attribute "extend"
+                result.extend(  # type: ignore[attr-defined]
+                    [x for x in rvals if x not in value_set]
+                )
+                # do type inference here
+
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+                result = Index(result)._values  # type: ignore[assignment]
         else:
             # find indexes of things in "other" that are not in "self"
             if self.is_unique:
@@ -2978,7 +2990,9 @@ class Index(IndexOpsMixin, PandasObject):
                 result = concat_compat((lvals, other_diff))
 
             else:
-                result = lvals
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+                result = lvals  # type: ignore[assignment]
 
             result = _maybe_try_sort(result, sort)
 
@@ -3070,7 +3084,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(lvals, rvals)[0]
+                # error: Argument 1 to "_inner_indexer" of "Index" has incompatible type
+                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                result = self._inner_indexer(lvals, rvals)[0]  # type: ignore[arg-type]
             except TypeError:
                 pass
             else:
@@ -4269,16 +4285,26 @@ class Index(IndexOpsMixin, PandasObject):
             elif how == "right":
                 join_index = other
                 lidx = self._left_indexer_unique(ov, sv)
-                ridx = None
+                # error: Incompatible types in assignment (expression has type "None",
+                # variable has type "ndarray")
+                ridx = None  # type: ignore[assignment]
             elif how == "inner":
-                join_index, lidx, ridx = self._inner_indexer(sv, ov)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                join_index, lidx, ridx = self._inner_indexer(  # type:ignore[assignment]
+                    sv, ov
+                )
                 # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
                 # type "Index"; expected "ndarray"
                 join_index = self._wrap_joined_index(
                     join_index, other  # type: ignore[arg-type]
                 )
             elif how == "outer":
-                join_index, lidx, ridx = self._outer_indexer(sv, ov)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                join_index, lidx, ridx = self._outer_indexer(  # type:ignore[assignment]
+                    sv, ov
+                )
                 # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
                 # type "Index"; expected "ndarray"
                 join_index = self._wrap_joined_index(
@@ -4286,13 +4312,29 @@ class Index(IndexOpsMixin, PandasObject):
                 )
         else:
             if how == "left":
-                join_index, lidx, ridx = self._left_indexer(sv, ov)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                join_index, lidx, ridx = self._left_indexer(  # type: ignore[assignment]
+                    sv, ov
+                )
             elif how == "right":
-                join_index, ridx, lidx = self._left_indexer(ov, sv)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                join_index, ridx, lidx = self._left_indexer(  # type: ignore[assignment]
+                    ov, sv
+                )
             elif how == "inner":
-                join_index, lidx, ridx = self._inner_indexer(sv, ov)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                join_index, lidx, ridx = self._inner_indexer(  # type:ignore[assignment]
+                    sv, ov
+                )
             elif how == "outer":
-                join_index, lidx, ridx = self._outer_indexer(sv, ov)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Index")
+                join_index, lidx, ridx = self._outer_indexer(  # type:ignore[assignment]
+                    sv, ov
+                )
             # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible type
             # "Index"; expected "ndarray"
             join_index = self._wrap_joined_index(

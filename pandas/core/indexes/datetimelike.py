@@ -559,8 +559,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
         arr = self._data.view()
-        arr._freq = self.freq
-        result = arr._time_shift(periods, freq=freq)
+        # error: "ExtensionArray" has no attribute "_freq"
+        arr._freq = self.freq  # type: ignore[attr-defined]
+        # error: "ExtensionArray" has no attribute "_time_shift"
+        result = arr._time_shift(periods, freq=freq)  # type: ignore[attr-defined]
         return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------
