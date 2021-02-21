@@ -114,7 +114,7 @@ def test_hash_tuples():
     tm.assert_numpy_array_equal(result, expected)
 
     # We only need to support MultiIndex and list-of-tuples
-    msg = "object is not iterable"
+    msg = "|".join(["object is not iterable", "zip argument #1 must support iteration"])
     with pytest.raises(TypeError, match=msg):
         hash_tuples(tuples[0])
 

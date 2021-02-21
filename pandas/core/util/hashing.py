@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Tuple,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -193,31 +194,33 @@ def hash_tuples(
     )
 
     if not isinstance(vals, ABCMultiIndex):
-        vals = MultiIndex.from_tuples(vals)
+        mi = MultiIndex.from_tuples(vals)
+    else:
+        mi = vals
 
     # create a list-of-Categoricals
-    vals = [
-        Categorical(vals.codes[level], vals.levels[level], ordered=False, fastpath=True)
-        for level in range(vals.nlevels)
+    cat_vals = [
+        Categorical(mi.codes[level], mi.levels[level], ordered=False, fastpath=True)
+        for level in range(mi.nlevels)
     ]
 
     # hash the list-of-ndarrays
     hashes = (
-        _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in vals
+        _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in cat_vals
     )
     h = combine_hash_arrays(hashes, len(vals))
 
     return h
 
 
-def _hash_categorical(c: Categorical, encoding: str, hash_key: str) -> np.ndarray:
+def _hash_categorical(cat: Categorical, encoding: str, hash_key: str) -> np.ndarray:
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
     to the hashes
 
     Parameters
     ----------
-    c : Categorical
+    cat : Categorical
     encoding : str
     hash_key : str
 
@@ -226,7 +229,7 @@ def _hash_categorical(c: Categorical, encoding: str, hash_key: str) -> np.ndarra
     ndarray of hashed values array, same size as len(c)
     """
     # Convert ExtensionArrays to ndarrays
-    values = np.asarray(c.categories._values)
+    values = np.asarray(cat.categories._values)
     hashed = hash_array(values, encoding, hash_key, categorize=False)
 
     # we have uint64, as we don't directly support missing values
@@ -236,9 +239,9 @@ def _hash_categorical(c: Categorical, encoding: str, hash_key: str) -> np.ndarra
     #
     # TODO: GH 15362
 
-    mask = c.isna()
+    mask = cat.isna()
     if len(hashed):
-        result = hashed.take(c.codes)
+        result = hashed.take(cat.codes)
     else:
         result = np.zeros(len(mask), dtype="uint64")
 
@@ -280,10 +283,25 @@ def hash_array(
     # hash values. (This check is above the complex check so that we don't ask
     # numpy if categorical is a subdtype of complex, as it will choke).
     if is_categorical_dtype(dtype):
+        vals = cast("Categorical", vals)
         return _hash_categorical(vals, encoding, hash_key)
     elif is_extension_array_dtype(dtype):
         vals, _ = vals._values_for_factorize()
         dtype = vals.dtype
+
+    return _hash_ndarray(vals, encoding, hash_key, categorize)
+
+
+def _hash_ndarray(
+    vals: np.ndarray,
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+    categorize: bool = True,
+) -> np.ndarray:
+    """
+    See hash_array.__doc__.
+    """
+    dtype = vals.dtype
 
     # we'll be working with everything as 64-bit values, so handle this
     # 128-bit value early
