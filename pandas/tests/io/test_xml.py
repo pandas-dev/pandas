@@ -1,4 +1,7 @@
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 from urllib.error import HTTPError
 
@@ -15,39 +18,53 @@ from pandas.io.xml import read_xml
 """
 CHECK LIST
 
-[x] - ValueError("Values for parser can only be lxml or etree.")
+[x] - ValueError: "Values for parser can only be lxml or etree."
 
 etree
-[x] - ImportError("lxml not found, please install or use the etree parser.")
-[X] - ValueError("Either element or attributes can be parsed not both.")
-[X] - ValueError("xpath does not return any nodes...")
-[X] - SyntaxError("You have used an incorrect or unsupported XPath")
-[X] - ValueError("names does not match length of child elements in xpath.")
-[X] - TypeError("...is not a valid type for names")
-[X] - ValueError("To use stylesheet, you need lxml installed...")
-[]  - URLError      (GENERAL ERROR WITH HTTPError AS SUBCLASS)
-[X] - HTTPError("HTTP Error 404: Not Found")
-[]  - OSError        (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
-[X] - FileNotFoundError("No such file or directory")
+[x] - ImportError: "lxml not found, please install or use the etree parser."
+[X] - ValueError: "Either element or attributes can be parsed not both."
+[X] - ValueError: "xpath does not return any nodes..."
+[X] - SyntaxError: "You have used an incorrect or unsupported XPath"
+[X] - ValueError: "names does not match length of child elements in xpath."
+[X] - TypeError: "...is not a valid type for names"
+[X] - ValueError: "To use stylesheet, you need lxml installed..."
+[]  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
+[X] - HTTPError: "HTTP Error 404: Not Found"
+[]  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+[X] - FileNotFoundError: "No such file or directory"
 []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+[X] - UnicodeError: "UTF-16 stream does not start with BOM"
+[X] - BadZipFile: "File is not a zip file"
+[X] - OSError: "Invalid data stream"
+[X] - LZMAError: "Input format not supported by decoder"
+[X] - ValueError: "Unrecognized compression type"
+[X] - PermissionError: "Forbidden"
 
 lxml
-[X] - ValueError("Either element or attributes can be parsed not both.")
-[X] - XSLTApplyError("Cannot resolve URI")
-[X] - XSLTParseError("document is not a stylesheet")
-[X] - ValueError("xpath does not return any nodes.")
-[X] - XPathEvalError("Invalid expression")
-[]  - XPathSyntaxError   (OLD VERSION IN lxml FOR XPATH ERRORS)
-[X] - TypeError("empty namespace prefix is not supported in XPath")
-[X] - ValueError("names does not match length of child elements in xpath.")
-[X] - TypeError("...is not a valid type for names")
-[X] - LookupError(unknown encoding)
-[]  - URLError           (USUALLY DUE TO NETWORKING)
-[X  - HTTPError("HTTP Error 404: Not Found")
-[X] - OSError("failed to load external entity")
-[X] - XMLSyntaxError("Start tag expected, '<' not found")
-[]  - ParserError        (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
-[X] - ValueError("Values for parser can only be lxml or etree.")
+[X] - ValueError: "Either element or attributes can be parsed not both."
+[X] - XSLTApplyError: "Cannot resolve URI"
+[X] - XSLTParseError: "document is not a stylesheet"
+[X] - ValueError: "xpath does not return any nodes."
+[X] - XPathEvalError: "Invalid expression"
+[]  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
+[X] - TypeError: "empty namespace prefix is not supported in XPath"
+[X] - ValueError: "names does not match length of child elements in xpath."
+[X] - TypeError: "...is not a valid type for names"
+[X] - LookupError: "unknown encoding"
+[]  - URLError: (USUALLY DUE TO NETWORKING)
+[X  - HTTPError: "HTTP Error 404: Not Found"
+[X] - OSError: "failed to load external entity"
+[X] - XMLSyntaxError: "Start tag expected, '<' not found"
+[]  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
+[X] - ValueError: "Values for parser can only be lxml or etree."
+[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+[X] - UnicodeError: "UTF-16 stream does not start with BOM"
+[X] - BadZipFile: "File is not a zip file"
+[X] - OSError: "Invalid data stream"
+[X] - LZMAError: "Input format not supported by decoder"
+[X] - ValueError: "Unrecognized compression type"
+[X] - PermissionError: "Forbidden"
 """
 
 geom_df = DataFrame(
@@ -536,7 +553,13 @@ def test_wrong_encoding(datapath, parser):
 
 def test_utf16_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    with pytest.raises(UnicodeError, match=("UTF-16 stream does not start with BOM")):
+    with pytest.raises(
+        UnicodeError,
+        match=(
+            "UTF-16 stream does not start with BOM|"
+            "'utf-16-le' codec can't decode byte"
+        ),
+    ):
         read_xml(filename, encoding="UTF-16", parser=parser)
 
 
@@ -897,9 +920,7 @@ def test_online_stylesheet():
 # COMPRESSION
 
 
-@pytest.mark.parametrize(
-    "compfile", ["geom_xml.bz2", "geom_xml.gzz", "geom_xml.xz", "geom_xml.zip"]
-)
+@pytest.mark.parametrize("compfile", ["geom_xml.bz2", "geom_xml.gz", "geom_xml.xz"])
 def test_compression_read(datapath, parser, compfile):
     filename = datapath("io", "data", "xml", "geom_xml.bz2")
     xml_df = read_xml(filename, parser=parser)
@@ -908,17 +929,19 @@ def test_compression_read(datapath, parser, compfile):
 
 
 def test_wrong_compression_bz2(datapath, parser):
-    filename = datapath("io", "data", "xml", "geom_xml.zip")
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, parser=parser, compression="zip")
 
-    with pytest.raises(OSError, match="Invalid data stream"):
-        read_xml(filename, parser=parser, compression="bz2")
+        with pytest.raises(OSError, match="Invalid data stream"):
+            read_xml(path, parser=parser, compression="bz2")
 
 
 def test_wrong_compression_gz(datapath, parser):
-    filename = datapath("io", "data", "xml", "geom_xml.zip")
+    with tm.ensure_clean() as path:
+        geom_df.to_xml(path, parser=parser, compression="zip")
 
-    with pytest.raises(OSError, match="Not a gzipped file"):
-        read_xml(filename, parser=parser, compression="gzip")
+        with pytest.raises(OSError, match="Not a gzipped file"):
+            read_xml(path, parser=parser, compression="gzip")
 
 
 def test_wrong_compression_xz(datapath, parser):
@@ -942,7 +965,7 @@ def test_wrong_compression_zip(datapath, parser):
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            read_xml(path, compression="7z")
+            read_xml(path, parser=parser, compression="7z")
 
 
 # STORAGE OPTIONS
@@ -952,7 +975,7 @@ def test_unsuported_compression(datapath, parser):
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
 def test_s3_parser_consistency():
-    # Python Software Foundation (2019 IRS-990 FORM)
+    # Python Software Foundation (2019 IRS-990 RETURN)
     s3 = "s3://irs-form-990/201923199349319487_public.xml"
 
     df_lxml = read_xml(

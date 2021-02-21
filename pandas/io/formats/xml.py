@@ -4,14 +4,28 @@
 
 import codecs
 import io
-from typing import Any, Dict, List, Optional, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
-from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.io.common import get_handle, is_url, urlopen
+from pandas.io.common import (
+    get_handle,
+    is_url,
+    urlopen,
+)
 from pandas.io.formats.format import DataFrameFormatter
 
 
@@ -284,7 +298,11 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         self.prefix_uri = self.get_prefix_uri()
 
     def build_tree(self) -> bytes:
-        from xml.etree.ElementTree import Element, SubElement, tostring
+        from xml.etree.ElementTree import (
+            Element,
+            SubElement,
+            tostring,
+        )
 
         self.root = Element(
             f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
@@ -424,7 +442,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         This method initializes the root and builds attributes and elements
         with optional namespaces.
         """
-        from lxml.etree import Element, SubElement, tostring
+        from lxml.etree import (
+            Element,
+            SubElement,
+            tostring,
+        )
 
         self.root = Element(f"{self.prefix_uri}{self.root_name}", nsmap=self.namespaces)
 
@@ -576,7 +598,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             * If io object is not readable as string or file-like object.
         """
 
-        from lxml.etree import XML, XMLParser, parse
+        from lxml.etree import (
+            XML,
+            XMLParser,
+            parse,
+        )
 
         current_doc = self.convert_io()
         if current_doc and isinstance(current_doc, str):

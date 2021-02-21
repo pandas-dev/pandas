@@ -3,11 +3,23 @@
 """
 
 import io
-from typing import Dict, List, Optional, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
-from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError, ParserError
+from pandas.errors import (
+    AbstractMethodError,
+    ParserError,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -255,7 +267,10 @@ class _EtreeFrameParser(_XMLFrameParser):
     standard library XML module: `xml.etree.ElementTree`.
     """
 
-    from xml.etree.ElementTree import Element, ElementTree
+    from xml.etree.ElementTree import (
+        Element,
+        ElementTree,
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -613,7 +628,11 @@ class _LxmlFrameParser(_XMLFrameParser):
                 )
 
     def _parse_doc(self):
-        from lxml.etree import XML, XMLParser, parse
+        from lxml.etree import (
+            XML,
+            XMLParser,
+            parse,
+        )
 
         self.raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
 

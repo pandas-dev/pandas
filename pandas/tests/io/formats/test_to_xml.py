@@ -1,4 +1,7 @@
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 import sys
 
@@ -15,35 +18,37 @@ from pandas.io.xml import read_xml
 """
 CHECKLIST
 
-[x] - ValueError("Values for parser can only be lxml or etree.")
+[x] - ValueError: "Values for parser can only be lxml or etree."
 
 etree
-[x] - ImportError("lxml not found, please install or use the etree parser.")
-[X] - TypeError("...is not a valid type for attr_cols")
-[X] - TypeError("...is not a valid type for elem_cols")
-[X] - LookupError("unknown encoding")
-[X] - KeyError("...is not included in namespaces")
-[X] - KeyError("no valid column")
-[X] - ValueError("To use stylesheet, you need lxml installed...")
-[]  - OSError        (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
-[X] - FileNotFoundError("No such file or directory")
+[x] - ImportError: "lxml not found, please install or use the etree parser."
+[X] - TypeError: "...is not a valid type for attr_cols"
+[X] - TypeError: "...is not a valid type for elem_cols"
+[X] - LookupError: "unknown encoding"
+[X] - KeyError: "...is not included in namespaces"
+[X] - KeyError: "no valid column"
+[X] - ValueError: "To use stylesheet, you need lxml installed..."
+[]  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+[X] - FileNotFoundError: "No such file or directory"
+[X] - PermissionError: "Forbidden"
 
 lxml
-[X] - TypeError("...is not a valid type for attr_cols")
-[X] - TypeError("...is not a valid type for elem_cols")
-[X] - LookupError("unknown encoding")
-[]  - OSError        (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
-[X] - FileNotFoundError("No such file or directory")
-[X] - KeyError("...is not included in namespaces")
-[X] - KeyError("no valid column")
-[X] - ValueError("stylesheet is not a url, file, or xml string.")
-[]  - LookupError         (NEED WRONG ENCODING FOR FILE OUTPUT)
-[]  - URLError            (USUALLY DUE TO NETWORKING)
-[]  - HTTPError           (NEED AN ONLINE STYLESHEET)
-[X] - OSError("failed to load external entity")
-[X] - XMLSyntaxError("Opening and ending tag mismatch")
-[X] - XSLTApplyError("Cannot resolve URI")
-[X] - XSLTParseError("failed to compile")
+[X] - TypeError: "...is not a valid type for attr_cols"
+[X] - TypeError: "...is not a valid type for elem_cols"
+[X] - LookupError: "unknown encoding"
+[]  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+[X] - FileNotFoundError: "No such file or directory"
+[X] - KeyError: "...is not included in namespaces"
+[X] - KeyError: "no valid column"
+[X] - ValueError: "stylesheet is not a url, file, or xml string."
+[]  - LookupError: (NEED WRONG ENCODING FOR FILE OUTPUT)
+[]  - URLError: (USUALLY DUE TO NETWORKING)
+[]  - HTTPError: (NEED AN ONLINE STYLESHEET)
+[X] - OSError: "failed to load external entity"
+[X] - XMLSyntaxError: "Opening and ending tag mismatch"
+[X] - XSLTApplyError: "Cannot resolve URI"
+[X] - XSLTParseError: "failed to compile"
+[X] - PermissionError: "Forbidden"
 """
 
 geom_df = DataFrame(
@@ -1306,7 +1311,7 @@ def test_bz2_output(parser):
     import bz2
 
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, compression="bz2")
+        geom_df.to_xml(path, parser=parser, compression="bz2")
 
         with bz2.BZ2File(path, "rb") as fp:
             output = fp.read()
@@ -1324,7 +1329,7 @@ def test_gz_output(parser):
     import gzip
 
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, compression="gzip")
+        geom_df.to_xml(path, parser=parser, compression="gzip")
 
         with gzip.open(path, "rb") as fp:
             output = fp.read()
@@ -1342,7 +1347,7 @@ def test_xz_output(parser):
     import lzma
 
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, compression="xz")
+        geom_df.to_xml(path, parser=parser, compression="xz")
 
         with lzma.open(path, "rb") as fp:
             output = fp.read()
@@ -1360,7 +1365,7 @@ def test_zip_output(parser):
     import zipfile
 
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, compression="zip")
+        geom_df.to_xml(path, parser=parser, compression="zip")
 
         with zipfile.ZipFile(path, "r") as fp:
             output = fp.read(fp.infolist()[0])
@@ -1377,7 +1382,7 @@ def test_zip_output(parser):
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            geom_df.to_xml(path, compression="7z")
+            geom_df.to_xml(path, parser=parser, compression="7z")
 
 
 # STORAGE OPTIONS
@@ -1393,4 +1398,4 @@ def test_s3_permission_output(parser):
         fs = s3fs.S3FileSystem(anon=True)
         fs.ls("pandas-test")
 
-        geom_df.to_xml("s3://pandas-test/geom.xml", compression="zip")
+        geom_df.to_xml("s3://pandas-test/geom.xml", compression="zip", parser=parser)
