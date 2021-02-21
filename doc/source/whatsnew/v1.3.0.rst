@@ -326,6 +326,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
+- Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
 -
 -
 
@@ -481,6 +482,7 @@ Other
 - Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
 - :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
+- Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 
 
