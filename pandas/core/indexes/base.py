@@ -2869,7 +2869,7 @@ class Index(IndexOpsMixin, PandasObject):
             and not (self.has_duplicates and other.has_duplicates)
         ):
             try:
-                result = self._outer_indexer(lvals, rvals)[0]
+                return self._outer_indexer(lvals, rvals)[0]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
                 result = list(lvals)
@@ -2877,26 +2877,28 @@ class Index(IndexOpsMixin, PandasObject):
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
-                result = Index(result)._values  # do type inference here
+                return Index(result)._values  # do type inference here
+
+        elif not other.is_unique and not self.is_unique:
+            result = algos.union_with_duplicates(lvals, rvals)
+            return _maybe_try_sort(result, sort)
+
+        # Either other or self is not unique
+        # find indexes of things in "other" that are not in "self"
+        if self.is_unique:
+            indexer = self.get_indexer(other)
+            missing = (indexer == -1).nonzero()[0]
         else:
-            if other.is_unique:
-                # find indexes of things in "other" that are not in "self"
-                if self.is_unique:
-                    indexer = self.get_indexer(other)
-                    missing = (indexer == -1).nonzero()[0]
-                else:
-                    missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
+            missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
-                if len(missing) > 0:
-                    other_diff = algos.take_nd(rvals, missing, allow_fill=False)
-                    result = concat_compat((lvals, other_diff))
-                else:
-                    result = lvals
-            else:
-                result = algos.union_with_duplicates(lvals, rvals)
+        if len(missing) > 0:
+            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+            result = concat_compat((lvals, other_diff))
+        else:
+            result = lvals
 
-            if not self.is_monotonic or not other.is_monotonic:
-                result = _maybe_try_sort(result, sort)
+        if not self.is_monotonic or not other.is_monotonic:
+            result = _maybe_try_sort(result, sort)
 
         return result
 
