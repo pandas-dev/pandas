@@ -208,7 +208,7 @@ def hash_tuples(
     hashes = (
         _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in cat_vals
     )
-    h = combine_hash_arrays(hashes, len(vals))
+    h = combine_hash_arrays(hashes, len(cat_vals))
 
     return h
 
