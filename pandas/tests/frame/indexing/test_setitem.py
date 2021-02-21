@@ -445,6 +445,15 @@ class TestDataFrameSetItem:
         tm.assert_series_equal(df["C"], df["C"])
         tm.assert_series_equal(df["C"], df["E"], check_names=False)
 
+    def test_setitem_categorical(self):
+        # GH#35369
+        df = DataFrame({"h": Series(list("mn")).astype("category")})
+        df.h = df.h.cat.reorder_categories(["n", "m"])
+        expected = DataFrame(
+            {"h": Categorical(["m", "n"]).reorder_categories(["n", "m"])}
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
