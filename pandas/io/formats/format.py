@@ -1125,7 +1125,10 @@ class DataFrameRenderer:
             values.
         """
 
-        from pandas.io.formats.xml import EtreeXMLFormatter, LxmlXMLFormatter
+        from pandas.io.formats.xml import (
+            EtreeXMLFormatter,
+            LxmlXMLFormatter,
+        )
 
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
