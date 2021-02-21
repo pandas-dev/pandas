@@ -186,6 +186,15 @@ class TestSetitemBooleanMask:
         ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length(self):
+        # GH#30567
+        ser = Series([None] * 10)
+        mask = [False] * 3 + [True] * 5 + [False] * 2
+        ser[mask] = range(5)
+        result = ser
+        expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        tm.assert_series_equal(result, expected)
+
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
@@ -240,6 +249,88 @@ class TestSetitemCallable:
 
         expected = Series([1, 2, inc, 4])
         tm.assert_series_equal(ser, expected)
+
+
+class TestSetitemWithExpansion:
+    def test_setitem_empty_series(self):
+        # GH#10193
+        key = Timestamp("2012-01-01")
+        series = Series(dtype=object)
+        series[key] = 47
+        expected = Series(47, [key])
+        tm.assert_series_equal(series, expected)
+
+    def test_setitem_empty_series_datetimeindex_preserves_freq(self):
+        # GH#33573 our index should retain its freq
+        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
+        key = Timestamp("2012-01-01")
+        series[key] = 47
+        expected = Series(47, DatetimeIndex([key], freq="D"))
+        tm.assert_series_equal(series, expected)
+        assert series.index.freq == expected.index.freq
+
+    def test_setitem_empty_series_timestamp_preserves_dtype(self):
+        # GH 21881
+        timestamp = Timestamp(1412526600000000000)
+        series = Series([timestamp], index=["timestamp"], dtype=object)
+        expected = series["timestamp"]
+
+        series = Series([], dtype=object)
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
+        result = series["timestamp"]
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "td",
+        [
+            Timedelta("9 days"),
+            Timedelta("9 days").to_timedelta64(),
+            Timedelta("9 days").to_pytimedelta(),
+        ],
+    )
+    def test_append_timedelta_does_not_cast(self, td):
+        # GH#22717 inserting a Timedelta should _not_ cast to int64
+        expected = Series(["x", td], index=[0, "td"], dtype=object)
+
+        ser = Series(["x"])
+        ser["td"] = td
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+        ser = Series(["x"])
+        ser.loc["td"] = Timedelta("9 days")
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+
+def test_setitem_scalar_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    for n in range(len(series)):
+        msg = "assignment destination is read-only"
+        with pytest.raises(ValueError, match=msg):
+            series[n] = 1
+
+        assert array[n] == 0
+
+
+def test_setitem_slice_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    msg = "assignment destination is read-only"
+    with pytest.raises(ValueError, match=msg):
+        series[1:3] = 1
+
+    assert not array.any()
 
 
 class TestSetitemCasting:
@@ -443,88 +534,6 @@ class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
         attribute.
         """
         return request.param
-
-
-class TestSetitemWithExpansion:
-    def test_setitem_empty_series(self):
-        # GH#10193
-        key = Timestamp("2012-01-01")
-        series = Series(dtype=object)
-        series[key] = 47
-        expected = Series(47, [key])
-        tm.assert_series_equal(series, expected)
-
-    def test_setitem_empty_series_datetimeindex_preserves_freq(self):
-        # GH#33573 our index should retain its freq
-        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
-        key = Timestamp("2012-01-01")
-        series[key] = 47
-        expected = Series(47, DatetimeIndex([key], freq="D"))
-        tm.assert_series_equal(series, expected)
-        assert series.index.freq == expected.index.freq
-
-    def test_setitem_empty_series_timestamp_preserves_dtype(self):
-        # GH 21881
-        timestamp = Timestamp(1412526600000000000)
-        series = Series([timestamp], index=["timestamp"], dtype=object)
-        expected = series["timestamp"]
-
-        series = Series([], dtype=object)
-        series["anything"] = 300.0
-        series["timestamp"] = timestamp
-        result = series["timestamp"]
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "td",
-        [
-            Timedelta("9 days"),
-            Timedelta("9 days").to_timedelta64(),
-            Timedelta("9 days").to_pytimedelta(),
-        ],
-    )
-    def test_append_timedelta_does_not_cast(self, td):
-        # GH#22717 inserting a Timedelta should _not_ cast to int64
-        expected = Series(["x", td], index=[0, "td"], dtype=object)
-
-        ser = Series(["x"])
-        ser["td"] = td
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser["td"], Timedelta)
-
-        ser = Series(["x"])
-        ser.loc["td"] = Timedelta("9 days")
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser["td"], Timedelta)
-
-
-def test_setitem_scalar_into_readonly_backing_data():
-    # GH#14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    for n in range(len(series)):
-        msg = "assignment destination is read-only"
-        with pytest.raises(ValueError, match=msg):
-            series[n] = 1
-
-        assert array[n] == 0
-
-
-def test_setitem_slice_into_readonly_backing_data():
-    # GH#14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    msg = "assignment destination is read-only"
-    with pytest.raises(ValueError, match=msg):
-        series[1:3] = 1
-
-    assert not array.any()
 
 
 class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
