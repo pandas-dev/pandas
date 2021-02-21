@@ -1,12 +1,25 @@
 """
 data hash pandas / numpy objects
 """
+from __future__ import annotations
+
 import itertools
-from typing import Optional
+from typing import (
+    TYPE_CHECKING,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
-import pandas._libs.hashing as hashing
+from pandas._libs.hashing import hash_object_array
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeriesUnion,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -20,16 +33,29 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+if TYPE_CHECKING:
+    from pandas import (
+        Categorical,
+        Index,
+        MultiIndex,
+        Series,
+    )
+
+
 # 16 byte long hashing key
 _default_hash_key = "0123456789123456"
 
 
-def combine_hash_arrays(arrays, num_items: int):
+def combine_hash_arrays(arrays: Iterator[np.ndarray], num_items: int) -> np.ndarray:
     """
     Parameters
     ----------
-    arrays : generator
+    arrays : Iterator[np.ndarray]
     num_items : int
+
+    Returns
+    -------
+    np.ndarray[int64]
 
     Should be the same as CPython's tupleobject.c
     """
@@ -53,17 +79,18 @@ def combine_hash_arrays(arrays, num_items: int):
 
 
 def hash_pandas_object(
-    obj,
+    obj: Union[Index, FrameOrSeriesUnion],
     index: bool = True,
     encoding: str = "utf8",
     hash_key: Optional[str] = _default_hash_key,
     categorize: bool = True,
-):
+) -> Series:
     """
     Return a data hash of the Index/Series/DataFrame.
 
     Parameters
     ----------
+    obj : Index, Series, or DataFrame
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -139,13 +166,17 @@ def hash_pandas_object(
     return h
 
 
-def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
+def hash_tuples(
+    vals: Union[MultiIndex, List[Tuple]],
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+) -> np.ndarray:
     """
-    Hash an MultiIndex / list-of-tuples efficiently
+    Hash an MultiIndex / list-of-tuples efficiently.
 
     Parameters
     ----------
-    vals : MultiIndex, list-of-tuples, or single tuple
+    vals : MultiIndex or list-of-tuples
     encoding : str, default 'utf8'
     hash_key : str, default _default_hash_key
 
@@ -153,11 +184,7 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     -------
     ndarray of hashed values array
     """
-    is_tuple = False
-    if isinstance(vals, tuple):
-        vals = [vals]
-        is_tuple = True
-    elif not is_list_like(vals):
+    if not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
 
     from pandas import (
@@ -179,13 +206,11 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
         _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in vals
     )
     h = combine_hash_arrays(hashes, len(vals))
-    if is_tuple:
-        h = h[0]
 
     return h
 
 
-def _hash_categorical(c, encoding: str, hash_key: str):
+def _hash_categorical(c: Categorical, encoding: str, hash_key: str) -> np.ndarray:
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
     to the hashes
@@ -224,11 +249,11 @@ def _hash_categorical(c, encoding: str, hash_key: str):
 
 
 def hash_array(
-    vals,
+    vals: ArrayLike,
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
     categorize: bool = True,
-):
+) -> np.ndarray:
     """
     Given a 1d array, return an array of deterministic integers.
 
@@ -289,10 +314,10 @@ def hash_array(
             return _hash_categorical(cat, encoding, hash_key)
 
         try:
-            vals = hashing.hash_object_array(vals, hash_key, encoding)
+            vals = hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            vals = hashing.hash_object_array(
+            vals = hash_object_array(
                 vals.astype(str).astype(object), hash_key, encoding
             )
 
