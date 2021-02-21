@@ -326,6 +326,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
+- Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
 -
 -
 
