@@ -1331,7 +1331,5 @@ class IndexOpsMixin(OpsMixin):
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
-    def duplicated(self, keep="first"):
-        # error: Value of type variable "ArrayLike" of "duplicated" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        return duplicated(self._values, keep=keep)  # type: ignore[type-var]
+    def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
+        return duplicated(self._values, keep=keep)

@@ -10,6 +10,7 @@ from typing import (
     List,
     Optional,
     Tuple,
+    Type,
 )
 import warnings
 
@@ -181,7 +182,7 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _constructor(self):
+    def _constructor(self) -> Type[Int64Index]:
         """ return the class to use for construction """
         return Int64Index
 

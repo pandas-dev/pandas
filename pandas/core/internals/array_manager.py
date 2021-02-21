@@ -818,7 +818,7 @@ class ArrayManager(DataManager):
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
-            self._axes[axis]._can_reindex(indexer)
+            self._axes[axis]._validate_can_reindex(indexer)
 
         # if axis >= self.ndim:
         #     raise IndexError("Requested axis not found in manager")
