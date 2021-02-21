@@ -138,7 +138,7 @@ repos:
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
         language: python
         types: [python]
-        files: ^pandas/tests/
+        files: ^pandas/tests/frame/
     -   id: FrameOrSeriesUnion
         name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
         entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
@@ -180,6 +180,12 @@ repos:
         language: pygrep
         types: [python]
         files: ^pandas/tests/
+    -   id: title-capitalization
+        name: Validate correct capitalization among titles in documentation
+        entry: python scripts/validate_rst_title_capitalization.py
+        language: python
+        types: [rst]
+        files: ^doc/source/(development|reference)/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:

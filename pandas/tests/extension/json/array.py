@@ -13,20 +13,30 @@ hack around pandas by using UserDicts.
 """
 from __future__ import annotations
 
-from collections import UserDict, abc
+from collections import (
+    UserDict,
+    abc,
+)
 import itertools
 import numbers
 import random
 import string
 import sys
-from typing import Any, Mapping, Type
+from typing import (
+    Any,
+    Mapping,
+    Type,
+)
 
 import numpy as np
 
 from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
 from pandas.api.types import is_bool_dtype
 
 
