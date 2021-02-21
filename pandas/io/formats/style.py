@@ -466,7 +466,7 @@ class Styler:
                     }
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
-                        es["attributes"] = [f'colspan="{colspan}"']
+                        es["attributes"] = f'colspan="{colspan}"'
                     row_es.append(es)
                 head.append(row_es)
 
@@ -517,7 +517,7 @@ class Styler:
                 }
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
-                    es["attributes"] = [f'rowspan="{rowspan}"']
+                    es["attributes"] = f'rowspan="{rowspan}"'
                 row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
@@ -529,6 +529,7 @@ class Styler:
                     "value": value,
                     "display_value": formatter(value),
                     "is_visible": (c not in hidden_columns),
+                    "attributes": "",
                 }
 
                 # only add an id if the cell has a style
