@@ -4,6 +4,7 @@ Shared methods for Index subclasses backed by ExtensionArray.
 from typing import (
     List,
     TypeVar,
+    Union,
 )
 
 import numpy as np
@@ -25,7 +26,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import IntervalArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
@@ -216,7 +217,7 @@ class ExtensionIndex(Index):
     # The base class already passes through to _data:
     #  size, __len__, dtype
 
-    _data: ExtensionArray
+    _data: Union[IntervalArray, NDArrayBackedExtensionArray]
 
     __eq__ = _make_wrapped_comparison_op("__eq__")
     __ne__ = _make_wrapped_comparison_op("__ne__")
@@ -240,8 +241,7 @@ class ExtensionIndex(Index):
                 return type(self)(result, name=self.name)
             # Unpack to ndarray for MPL compat
 
-            # error: "ExtensionArray" has no attribute "_data"
-            result = result._data  # type: ignore[attr-defined]
+            result = result._ndarray
 
         # Includes cases where we get a 2D ndarray back for MPL compat
         deprecate_ndim_indexing(result)
@@ -275,6 +275,12 @@ class ExtensionIndex(Index):
     def insert(self, loc: int, item):
         # ExtensionIndex subclasses must override Index.insert
         raise AbstractMethodError(self)
+
+    def _validate_fill_value(self, value):
+        """
+        Convert value to be insertable to underlying array.
+        """
+        return self._data._validate_setitem_value(value)
 
     def _get_unique_index(self):
         if self.is_unique:
