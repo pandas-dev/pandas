@@ -141,6 +141,7 @@ from pandas.core.aggregation import (
     relabel_result,
     transform,
 )
+from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -4185,9 +4186,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            new_values = algorithms.take_2d_multi(
-                self.values, indexer, fill_value=fill_value
-            )
+            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
