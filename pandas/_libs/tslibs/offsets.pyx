@@ -1971,7 +1971,7 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2022-01-03 05:01:15')
     """
 
-    del(self._period_dtype_code)
+    # del(self._period_dtype_code)
     _outputName = "BusinessYearBegin"
     _default_month = 1
     _prefix = "BAS"
@@ -2012,7 +2012,7 @@ cdef class BYearEnd(YearOffset):
     Timestamp('2020-11-30 05:01:15')
     """
 
-    del(self._period_dtype_code)
+    # del(self._period_dtype_code)
     _outputName = "BusinessYearEnd"
     _default_month = 12
     _prefix = "BA"
@@ -2172,7 +2172,7 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-08-03 05:01:15')
     """
 
-    del(self._period_dtype_code)
+    # del(self._period_dtype_code)
     _output_name = "BusinessQuarterBegin"
     _default_month = 3  # Should be 1
     _from_name_starting_month = 1
@@ -2202,7 +2202,7 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-05-29 05:01:15')
     """
 
-    del(self._period_dtype_code)
+    # del(self._period_dtype_code)
     _output_name = "BusinessQuarterEnd"
     _default_month = 3
     _from_name_starting_month = 12
