@@ -692,19 +692,37 @@ def _fillna_prep(values, mask=None):
     return values, mask
 
 
-def _pad_1d(values, limit=None, mask=None):
+def _pad_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+    update_mask: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     values, mask = _fillna_prep(values, mask)
-    algos.pad_inplace(values, mask, limit=limit)
-    return values
+    if update_mask:
+        algos.pad_inplace_masked(values, mask, limit=limit)
+        return values, mask
+    else:
+        algos.pad_inplace(values, mask, limit=limit)
+        return values
 
 
-def _backfill_1d(values, limit=None, mask=None):
+def _backfill_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+    update_mask: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     values, mask = _fillna_prep(values, mask)
-    algos.backfill_inplace(values, mask, limit=limit)
-    return values
+    if update_mask:
+        algos.pad_inplace_masked(values[::-1], mask[::-1], limit=limit)
+        return values, mask
+    else:
+        algos.backfill_inplace(values, mask, limit=limit)
+        return values
 
 
-def _pad_2d(values, limit=None, mask=None):
+def _pad_2d(values, limit=None, mask=None, update_mask: bool = False):
     values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):

@@ -351,15 +351,27 @@ class Isnull:
 
 class Fillna:
 
-    params = ([True, False], ["pad", "bfill"])
-    param_names = ["inplace", "method"]
+    params = (
+        [True, False],
+        ["pad", "bfill"],
+        [
+            "float64",
+            "float32",
+            "object",
+            "Int64",
+            "Float64",
+        ],
+    )
+    param_names = ["inplace", "method", "dtype"]
 
-    def setup(self, inplace, method):
+    def setup(self, inplace, method, dtype):
         values = np.random.randn(10000, 100)
         values[::2] = np.nan
-        self.df = DataFrame(values)
+        if dtype == "Int64":
+            values = values.round()
+        self.df = DataFrame(values, dtype=dtype)
 
-    def time_frame_fillna(self, inplace, method):
+    def time_frame_fillna(self, inplace, method, dtype):
         self.df.fillna(inplace=inplace, method=method)
 
 
