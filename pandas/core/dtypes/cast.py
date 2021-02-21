@@ -898,7 +898,7 @@ def infer_dtype_from_array(
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr, skipna=False)
     if inferred in ["string", "bytes", "mixed", "mixed-integer"]:
-        return np.dtype(np.object_), arr
+        return (np.dtype(np.object_), arr)
 
     arr = np.asarray(arr)
     return arr.dtype, arr
