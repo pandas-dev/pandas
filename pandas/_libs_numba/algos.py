@@ -734,13 +734,6 @@ def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) ->
 #     return indexer
 
 
-def backfill_inplace(
-    values: np.ndarray, mask: np.ndarray, limit: int | None = None
-) -> None:
-    _validate_limit(limit)
-    _pad_inplace(values[::-1], mask[::-1], limit)
-
-
 # @cython.boundscheck(False)
 # @cython.wraparound(False)
 # def backfill_2d_inplace(algos_t[:, :] values,

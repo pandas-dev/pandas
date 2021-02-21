@@ -694,15 +694,16 @@ def _fillna_prep(values, mask=None):
 
 
 def _pad_1d(values, limit=None, mask=None):
-    values, mask = _fillna_prep(values, mask)
+    if mask is None:
+        mask = isna(values)
     algos_numba.pad_inplace(values, mask, limit=limit)
     return values
 
 
 def _backfill_1d(values, limit=None, mask=None):
-    values, mask = _fillna_prep(values, mask)
-    algos_numba.backfill_inplace(values, mask, limit=limit)
-    return values
+    if mask is not None:
+        mask = mask[::-1]
+    return _pad_1d(values[::-1], limit, mask)[::-1]
 
 
 def _pad_2d(values, limit=None, mask=None):
