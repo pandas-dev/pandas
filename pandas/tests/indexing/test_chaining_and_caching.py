@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, option_context
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    option_context,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -373,6 +379,7 @@ class TestChaining:
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df[["c"]][mask] = df[["b"]][mask]
 
+    def test_setting_with_copy_bug_no_warning(self):
         # invalid warning as we are returning a new object
         # GH 8730
         df1 = DataFrame({"x": Series(["a", "b", "c"]), "y": Series(["d", "e", "f"])})

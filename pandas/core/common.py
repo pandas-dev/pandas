@@ -4,7 +4,10 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
-from collections import abc, defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import contextlib
 from functools import partial
 import inspect
@@ -25,7 +28,12 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, NpDtype, Scalar, T
+from pandas._typing import (
+    AnyArrayLike,
+    NpDtype,
+    Scalar,
+    T,
+)
 from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -35,9 +43,13 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+from pandas.core.dtypes.missing import isna
 
 
 class SettingWithCopyError(ValueError):
@@ -137,7 +149,7 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float=False):
+def cast_scalar_indexer(val, warn_float: bool = False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
@@ -268,10 +280,6 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    # error: Incompatible return value type (got
-    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
-    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
-    # "Union[Collection[T], T]")  [return-value]
     obj = cast(Collection, obj)
     return obj
 
@@ -288,7 +296,7 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line):
+def is_true_slices(line) -> List[bool]:
     """
     Find non-trivial slices in "line": return a list of booleans with same length.
     """
@@ -296,7 +304,7 @@ def is_true_slices(line):
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, line) -> bool:
+def is_full_slice(obj, line: int) -> bool:
     """
     We have a full length slice.
     """

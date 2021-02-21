@@ -14,7 +14,10 @@ import pandas as pd
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
+from pandas.plotting._matplotlib.core import (
+    LinePlot,
+    MPLPlot,
+)
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     create_subplots,

@@ -45,7 +45,11 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+    properties,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
@@ -60,6 +64,7 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     FrameOrSeriesUnion,
+    Frequency,
     IndexKeyFunc,
     IndexLabel,
     Level,
@@ -93,7 +98,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
-    maybe_box_datetimelike,
+    maybe_box_native,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
@@ -121,16 +126,34 @@ from pandas.core.dtypes.common import (
     is_sequence,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import algorithms, common as com, generic, nanops, ops
+from pandas.core import (
+    algorithms,
+    common as com,
+    generic,
+    nanops,
+    ops,
+)
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result, transform
+from pandas.core.aggregation import (
+    reconstruct_func,
+    relabel_result,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import extract_array, sanitize_masked_array
-from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.construction import (
+    extract_array,
+    sanitize_masked_array,
+)
+from pandas.core.generic import (
+    NDFrame,
+    _shared_docs,
+)
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -140,9 +163,18 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
-from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
-from pandas.core.internals import ArrayManager, BlockManager
+from pandas.core.indexes.multi import (
+    MultiIndex,
+    maybe_droplevels,
+)
+from pandas.core.indexing import (
+    check_bool_indexer,
+    convert_to_index_sliceable,
+)
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
@@ -158,17 +190,30 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
-from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
+from pandas.core.sorting import (
+    get_group_index,
+    lexsort_indexer,
+    nargsort,
+)
 
 from pandas.io.common import get_handle
-from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import BaseInfo, DataFrameInfo
+from pandas.io.formats import (
+    console,
+    format as fmt,
+)
+from pandas.io.formats.info import (
+    BaseInfo,
+    DataFrameInfo,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
     from typing import Literal
 
-    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+    from pandas._typing import (
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+    )
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.resample import Resampler
@@ -709,10 +754,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if isinstance(self._mgr, ArrayManager):
             return False
-        if self._mgr.any_extension_types:
-            # TODO(EA2D) special case would be unnecessary with 2D EAs
+        blocks = self._mgr.blocks
+        if len(blocks) != 1:
             return False
-        return len(self._mgr.blocks) == 1
+
+        return not self._mgr.any_extension_types
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1167,8 +1213,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
-    # overlap with incompatible return types  [misc]
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible return
+    # types
     @overload
     def dot(self, other: Series) -> Series:  # type: ignore[misc]
         ...
@@ -1618,7 +1664,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(maybe_box_datetimelike, t))
+                            list(map(maybe_box_native, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1626,7 +1672,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, v) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1635,8 +1681,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
-                for row in rows
+                into_c((k, maybe_box_native(v)) for k, v in row.items()) for row in rows
             ]
 
         elif orient == "index":
@@ -4037,8 +4082,8 @@ class DataFrame(NDFrame, OpsMixin):
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
             use DataFrame.melt and DataFrame.loc instead.
-            For an example see :meth:`~pandas.DataFrame.lookup`
-            in the user guide.
+            For further details see
+            :ref:`Looking up values by index/column labels <indexing.lookup>`.
 
         Parameters
         ----------
@@ -4652,7 +4697,7 @@ class DataFrame(NDFrame, OpsMixin):
     def shift(
         self,
         periods=1,
-        freq=None,
+        freq: Optional[Frequency] = None,
         axis: Axis = 0,
         fill_value=lib.no_default,
     ) -> DataFrame:
@@ -4842,8 +4887,8 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
 
-                # error: Argument 1 to "append" of "list" has incompatible
-                #  type "Union[Index, Series]"; expected "Index"  [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible type
+                #  "Union[Index, Series]"; expected "Index"
                 arrays.append(col)  # type:ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
@@ -7333,7 +7378,10 @@ NaN 12.3   33.0
         dog kg     NaN     2.0
             m      3.0     NaN
         """
-        from pandas.core.reshape.reshape import stack, stack_multiple
+        from pandas.core.reshape.reshape import (
+            stack,
+            stack_multiple,
+        )
 
         if isinstance(level, (tuple, list)):
             result = stack_multiple(self, level, dropna=dropna)
@@ -7700,21 +7748,14 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        from pandas.core.apply import frame_apply
+
         axis = self._get_axis_number(axis)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
-        result = None
-        try:
-            result, how = self._aggregate(func, axis, *args, **kwargs)
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
-        if result is None:
-            return self.apply(func, axis=axis, args=args, **kwargs)
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.agg()
 
         if relabeling:
             # This is to keep the order to columns occurrence unchanged, and also
@@ -7730,25 +7771,6 @@ NaN 12.3   33.0
 
         return result
 
-    def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
-        from pandas.core.apply import frame_apply
-
-        op = frame_apply(
-            self if axis == 0 else self.T,
-            func=arg,
-            axis=0,
-            args=args,
-            kwargs=kwargs,
-        )
-        result, how = op.agg()
-
-        if axis == 1:
-            # NDFrame.aggregate returns a tuple, and we need to transpose
-            # only result
-            result = result.T if result is not None else result
-
-        return result, how
-
     agg = aggregate
 
     @doc(
@@ -7759,7 +7781,10 @@ NaN 12.3   33.0
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame:
-        result = transform(self, func, axis, *args, **kwargs)
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.transform()
         assert isinstance(result, DataFrame)
         return result
 
@@ -7833,6 +7858,12 @@ NaN 12.3   33.0
         DataFrame.applymap: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`udf-mutation`
+        for more details.
 
         Examples
         --------
@@ -9472,7 +9503,7 @@ NaN 12.3   33.0
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
     def asfreq(
         self,
-        freq,
+        freq: Frequency,
         method=None,
         how: Optional[str] = None,
         normalize: bool = False,
@@ -9519,7 +9550,7 @@ NaN 12.3   33.0
 
     def to_timestamp(
         self,
-        freq=None,
+        freq: Optional[Frequency] = None,
         how: str = "start",
         axis: Axis = 0,
         copy: bool = True,
@@ -9555,7 +9586,9 @@ NaN 12.3   33.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> DataFrame:
+    def to_period(
+        self, freq: Optional[Frequency] = None, axis: Axis = 0, copy: bool = True
+    ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
@@ -9756,12 +9789,3 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
             "incompatible index of inserted column with frame index"
         ) from err
     return reindexed_value
-
-
-def _maybe_atleast_2d(value):
-    # TODO(EA2D): not needed with 2D EAs
-
-    if is_extension_array_dtype(value):
-        return value
-
-    return np.atleast_2d(np.asarray(value))

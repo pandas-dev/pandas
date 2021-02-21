@@ -1,4 +1,7 @@
-from datetime import date
+from datetime import (
+    date,
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -167,15 +170,6 @@ class TestSetitemBooleanMask:
         expected = Series(["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.parametrize("value", [None, NaT, np.nan])
-    def test_setitem_boolean_td64_values_cast_na(self, value):
-        # GH#18586
-        series = Series([0, 1, 2], dtype="timedelta64[ns]")
-        mask = series == series[0]
-        series[mask] = value
-        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
-        tm.assert_series_equal(series, expected)
-
     def test_setitem_boolean_nullable_int_types(self, any_nullable_numeric_dtype):
         # GH: 26468
         ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
@@ -248,6 +242,88 @@ class TestSetitemCallable:
         tm.assert_series_equal(ser, expected)
 
 
+class TestSetitemWithExpansion:
+    def test_setitem_empty_series(self):
+        # GH#10193
+        key = Timestamp("2012-01-01")
+        series = Series(dtype=object)
+        series[key] = 47
+        expected = Series(47, [key])
+        tm.assert_series_equal(series, expected)
+
+    def test_setitem_empty_series_datetimeindex_preserves_freq(self):
+        # GH#33573 our index should retain its freq
+        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
+        key = Timestamp("2012-01-01")
+        series[key] = 47
+        expected = Series(47, DatetimeIndex([key], freq="D"))
+        tm.assert_series_equal(series, expected)
+        assert series.index.freq == expected.index.freq
+
+    def test_setitem_empty_series_timestamp_preserves_dtype(self):
+        # GH 21881
+        timestamp = Timestamp(1412526600000000000)
+        series = Series([timestamp], index=["timestamp"], dtype=object)
+        expected = series["timestamp"]
+
+        series = Series([], dtype=object)
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
+        result = series["timestamp"]
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "td",
+        [
+            Timedelta("9 days"),
+            Timedelta("9 days").to_timedelta64(),
+            Timedelta("9 days").to_pytimedelta(),
+        ],
+    )
+    def test_append_timedelta_does_not_cast(self, td):
+        # GH#22717 inserting a Timedelta should _not_ cast to int64
+        expected = Series(["x", td], index=[0, "td"], dtype=object)
+
+        ser = Series(["x"])
+        ser["td"] = td
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+        ser = Series(["x"])
+        ser.loc["td"] = Timedelta("9 days")
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+
+def test_setitem_scalar_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    for n in range(len(series)):
+        msg = "assignment destination is read-only"
+        with pytest.raises(ValueError, match=msg):
+            series[n] = 1
+
+        assert array[n] == 0
+
+
+def test_setitem_slice_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    msg = "assignment destination is read-only"
+    with pytest.raises(ValueError, match=msg):
+        series[1:3] = 1
+
+    assert not array.any()
+
+
 class TestSetitemCasting:
     @pytest.mark.parametrize("unique", [True, False])
     @pytest.mark.parametrize("val", [3, 3.0, "3"], ids=type)
@@ -297,7 +373,12 @@ class SetitemCastingEquivalents:
             # We are not (yet) checking whether setting is inplace or not
             pass
         elif is_inplace:
-            assert obj._values is arr
+            if arr.dtype.kind in ["m", "M"]:
+                # We may not have the same DTA/TDA, but will have the same
+                #  underlying data
+                assert arr._data is obj._values._data
+            else:
+                assert obj._values is arr
         else:
             # otherwise original array should be unchanged
             tm.assert_equal(arr, orig._values)
@@ -446,88 +527,6 @@ class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
         return request.param
 
 
-class TestSetitemWithExpansion:
-    def test_setitem_empty_series(self):
-        # GH#10193
-        key = Timestamp("2012-01-01")
-        series = Series(dtype=object)
-        series[key] = 47
-        expected = Series(47, [key])
-        tm.assert_series_equal(series, expected)
-
-    def test_setitem_empty_series_datetimeindex_preserves_freq(self):
-        # GH#33573 our index should retain its freq
-        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
-        key = Timestamp("2012-01-01")
-        series[key] = 47
-        expected = Series(47, DatetimeIndex([key], freq="D"))
-        tm.assert_series_equal(series, expected)
-        assert series.index.freq == expected.index.freq
-
-    def test_setitem_empty_series_timestamp_preserves_dtype(self):
-        # GH 21881
-        timestamp = Timestamp(1412526600000000000)
-        series = Series([timestamp], index=["timestamp"], dtype=object)
-        expected = series["timestamp"]
-
-        series = Series([], dtype=object)
-        series["anything"] = 300.0
-        series["timestamp"] = timestamp
-        result = series["timestamp"]
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "td",
-        [
-            Timedelta("9 days"),
-            Timedelta("9 days").to_timedelta64(),
-            Timedelta("9 days").to_pytimedelta(),
-        ],
-    )
-    def test_append_timedelta_does_not_cast(self, td):
-        # GH#22717 inserting a Timedelta should _not_ cast to int64
-        expected = Series(["x", td], index=[0, "td"], dtype=object)
-
-        ser = Series(["x"])
-        ser["td"] = td
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser["td"], Timedelta)
-
-        ser = Series(["x"])
-        ser.loc["td"] = Timedelta("9 days")
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser["td"], Timedelta)
-
-
-def test_setitem_scalar_into_readonly_backing_data():
-    # GH#14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    for n in range(len(series)):
-        msg = "assignment destination is read-only"
-        with pytest.raises(ValueError, match=msg):
-            series[n] = 1
-
-        assert array[n] == 0
-
-
-def test_setitem_slice_into_readonly_backing_data():
-    # GH#14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    msg = "assignment destination is read-only"
-    with pytest.raises(ValueError, match=msg):
-        series[1:3] = 1
-
-    assert not array.any()
-
-
 class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
     # timedelta64 should not be treated as integers when setting into
     #  numeric Series
@@ -635,6 +634,55 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
         return True
 
 
+class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to datetime64/timedelta64 when
+    #  inserting into a datetime64/timedelta64 series.  Others should coerce
+    #  to object and retain their dtypes.
+    # GH#18586 for td64 and boolean mask case
+
+    @pytest.fixture(
+        params=["m8[ns]", "M8[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Central]"]
+    )
+    def dtype(self, request):
+        return request.param
+
+    @pytest.fixture
+    def obj(self, dtype):
+        i8vals = date_range("2016-01-01", periods=3).asi8
+        idx = Index(i8vals, dtype=dtype)
+        assert idx.dtype == dtype
+        return Series(idx)
+
+    @pytest.fixture(
+        params=[
+            None,
+            np.nan,
+            NaT,
+            np.timedelta64("NaT", "ns"),
+            np.datetime64("NaT", "ns"),
+        ]
+    )
+    def val(self, request):
+        return request.param
+
+    @pytest.fixture
+    def is_inplace(self, val, obj):
+        # td64   -> cast to object iff val is datetime64("NaT")
+        # dt64   -> cast to object iff val is timedelta64("NaT")
+        # dt64tz -> cast to object with anything _but_ NaT
+        return val is NaT or val is None or val is np.nan or obj.dtype == val.dtype
+
+    @pytest.fixture
+    def expected(self, obj, val, is_inplace):
+        dtype = obj.dtype if is_inplace else object
+        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        return expected
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+
 class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
     # GH#24024
     @pytest.fixture
@@ -659,3 +707,33 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
             dtype=object,
         )
         return expected
+
+
+@pytest.mark.parametrize(
+    "obj,expected",
+    [
+        # For numeric series, we should coerce to NaN.
+        (Series([1, 2, 3]), Series([np.nan, 2, 3])),
+        (Series([1.0, 2.0, 3.0]), Series([np.nan, 2.0, 3.0])),
+        # For datetime series, we should coerce to NaT.
+        (
+            Series([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+            Series([NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+        ),
+        # For objects, we should preserve the None value.
+        (Series(["foo", "bar", "baz"]), Series([None, "bar", "baz"])),
+    ],
+)
+class TestSeriesNoneCoercion(SetitemCastingEquivalents):
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def val(self):
+        return None
+
+    @pytest.fixture
+    def is_inplace(self, obj):
+        # This is specific to the 4 cases currently implemented for this class.
+        return obj.dtype.kind != "i"
