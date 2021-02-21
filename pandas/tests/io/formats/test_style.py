@@ -1323,7 +1323,7 @@ class TestStyler:
             "display_value": "a",
             "is_visible": True,
             "type": "th",
-            "attributes": ['rowspan="2"'],
+            "attributes": 'rowspan="2"',
             "class": "row_heading level0 row0",
             "id": "level0_row0",
         }
