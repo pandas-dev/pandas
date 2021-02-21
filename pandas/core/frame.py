@@ -63,6 +63,7 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     FrameOrSeriesUnion,
+    Frequency,
     IndexKeyFunc,
     IndexLabel,
     Level,
@@ -141,7 +142,6 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import (
     reconstruct_func,
     relabel_result,
-    transform,
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -4717,7 +4717,11 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
-        self, periods=1, freq=None, axis: Axis = 0, fill_value=lib.no_default
+        self,
+        periods=1,
+        freq: Optional[Frequency] = None,
+        axis: Axis = 0,
+        fill_value=lib.no_default,
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
@@ -7799,7 +7803,10 @@ NaN 12.3   33.0
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame:
-        result = transform(self, func, axis, *args, **kwargs)
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.transform()
         assert isinstance(result, DataFrame)
         return result
 
@@ -9514,7 +9521,7 @@ NaN 12.3   33.0
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
     def asfreq(
         self,
-        freq,
+        freq: Frequency,
         method=None,
         how: Optional[str] = None,
         normalize: bool = False,
@@ -9560,7 +9567,11 @@ NaN 12.3   33.0
         )
 
     def to_timestamp(
-        self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
+        self,
+        freq: Optional[Frequency] = None,
+        how: str = "start",
+        axis: Axis = 0,
+        copy: bool = True,
     ) -> DataFrame:
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
@@ -9593,7 +9604,9 @@ NaN 12.3   33.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> DataFrame:
+    def to_period(
+        self, freq: Optional[Frequency] = None, axis: Axis = 0, copy: bool = True
+    ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
