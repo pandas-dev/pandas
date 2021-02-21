@@ -1500,7 +1500,7 @@ def maybe_infer_to_datetimelike(
 
 
 def maybe_cast_to_datetime(
-    value: Union[ArrayLike, list], dtype: Optional[DtypeObj]
+    raw_value: Union[ArrayLike, list], dtype: Optional[DtypeObj]
 ) -> Union[ArrayLike, list]:
     """
     try to cast the array/value to a datetimelike dtype, converting float
@@ -1509,8 +1509,12 @@ def maybe_cast_to_datetime(
     from pandas.core.tools.datetimes import to_datetime
     from pandas.core.tools.timedeltas import to_timedelta
 
-    if not is_list_like(value):
+    if not is_list_like(raw_value):
         raise TypeError("value must be listlike")
+    elif isinstance(raw_value, list):
+        value = np.array(raw_value, copy=False)
+    else:
+        value = raw_value
 
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
@@ -1884,7 +1888,7 @@ def maybe_cast_to_integer_array(
     assert is_integer_dtype(dtype)
 
     try:
-        if not hasattr(arr, "astype"):
+        if not isinstance(arr, np.ndarray):
             casted = np.array(arr, dtype=dtype, copy=copy)
         else:
             casted = arr.astype(dtype, copy=copy)
