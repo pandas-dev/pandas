@@ -149,7 +149,7 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float=False):
+def cast_scalar_indexer(val, warn_float: bool = False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
@@ -296,7 +296,7 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line):
+def is_true_slices(line) -> List[bool]:
     """
     Find non-trivial slices in "line": return a list of booleans with same length.
     """
@@ -304,7 +304,7 @@ def is_true_slices(line):
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, line) -> bool:
+def is_full_slice(obj, line: int) -> bool:
     """
     We have a full length slice.
     """

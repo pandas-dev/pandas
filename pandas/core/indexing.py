@@ -2392,7 +2392,7 @@ def is_label_like(key) -> bool:
     return not isinstance(key, slice) and not is_list_like_indexer(key)
 
 
-def need_slice(obj) -> bool:
+def need_slice(obj: slice) -> bool:
     """
     Returns
     -------

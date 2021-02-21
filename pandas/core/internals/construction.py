@@ -36,6 +36,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -377,7 +378,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
         try:
-            if is_list_like(values[0]) or hasattr(values[0], "len"):
+            if is_list_like(values[0]):
                 values = np.array([convert(v) for v in values])
             elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
                 # GH#21861
@@ -827,8 +828,7 @@ def sanitize_index(data, index: Index):
 
     if isinstance(data, np.ndarray):
 
-        # coerce datetimelike types
-        if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=False)
+        # coerce datetimelike types to ns
+        data = sanitize_to_nanoseconds(data)
 
     return data

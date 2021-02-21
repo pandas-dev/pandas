@@ -1122,7 +1122,7 @@ class MultiIndex(Index):
         result = type(self)(
             levels=self.levels,
             codes=self.codes,
-            sortorder=None,
+            sortorder=self.sortorder,
             names=self.names,
             verify_integrity=False,
         )
