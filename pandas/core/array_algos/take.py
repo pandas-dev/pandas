@@ -24,10 +24,11 @@ def take_nd(
     arr,
     indexer,
     axis: int = 0,
-    out=None,
+    out: Optional[np.ndarray] = None,
     fill_value=lib.no_default,
     allow_fill: bool = True,
 ):
+
     """
     Specialized Cython take which sets NaN values in one pass
 
@@ -168,8 +169,9 @@ def take_2d_multi(
 
 
 def _get_take_nd_function(
-    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
+    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int = 0, mask_info=None
 ):
+
     if ndim <= 2:
         tup = (arr_dtype.name, out_dtype.name)
         if ndim == 1:
@@ -204,7 +206,9 @@ def _get_take_nd_function(
 
 
 def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
-    def wrapper(arr, indexer, out, fill_value=np.nan):
+    def wrapper(
+        arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value=np.nan
+    ):
         if arr_dtype is not None:
             arr = arr.view(arr_dtype)
         if out_dtype is not None:
@@ -217,7 +221,9 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
 
 
 def _convert_wrapper(f, conv_dtype):
-    def wrapper(arr, indexer, out, fill_value=np.nan):
+    def wrapper(
+        arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value=np.nan
+    ):
         if conv_dtype == object:
             # GH#39755 avoid casting dt64/td64 to integers
             arr = ensure_wrapped_if_datetimelike(arr)
@@ -340,7 +346,14 @@ _take_2d_multi_dict = {
 }
 
 
-def _take_nd_object(arr, indexer, out, axis: int, fill_value, mask_info):
+def _take_nd_object(
+    arr: np.ndarray,
+    indexer: np.ndarray,
+    out: np.ndarray,
+    axis: int,
+    fill_value,
+    mask_info,
+):
     if mask_info is not None:
         mask, needs_masking = mask_info
     else:
@@ -356,7 +369,9 @@ def _take_nd_object(arr, indexer, out, axis: int, fill_value, mask_info):
         out[tuple(outindexer)] = fill_value
 
 
-def _take_2d_multi_object(arr, indexer, out, fill_value, mask_info):
+def _take_2d_multi_object(
+    arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value, mask_info
+) -> None:
     # this is not ideal, performance-wise, but it's better than raising
     # an exception (best to optimize in Cython to avoid getting here)
     row_idx, col_idx = indexer

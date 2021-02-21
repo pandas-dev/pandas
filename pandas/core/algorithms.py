@@ -263,7 +263,7 @@ def _reconstruct_data(
     return values
 
 
-def _ensure_arraylike(values):
+def _ensure_arraylike(values) -> ArrayLike:
     """
     ensure that we are arraylike if not already
     """
@@ -323,7 +323,7 @@ def get_data_algo(values: ArrayLike):
     return htable, values
 
 
-def _check_object_for_strings(values) -> str:
+def _check_object_for_strings(values: np.ndarray) -> str:
     """
     Check if we can use string hashtable instead of object hashtable.
 
@@ -527,7 +527,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
 
 def factorize_array(
-    values: np.ndarray, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
+    values: np.ndarray,
+    na_sentinel: int = -1,
+    size_hint: Optional[int] = None,
+    na_value=None,
+    mask: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -982,13 +986,13 @@ def mode(values, dropna: bool = True) -> Series:
 
 
 def rank(
-    values,
+    values: ArrayLike,
     axis: int = 0,
     method: str = "average",
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
-):
+) -> np.ndarray:
     """
     Rank the values along a given axis.
 
@@ -1038,7 +1042,12 @@ def rank(
     return ranks
 
 
-def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
+def checked_add_with_arr(
+    arr: np.ndarray,
+    b,
+    arr_mask: Optional[np.ndarray] = None,
+    b_mask: Optional[np.ndarray] = None,
+) -> np.ndarray:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -1051,9 +1060,9 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
     ----------
     arr : array addend.
     b : array or scalar addend.
-    arr_mask : boolean array or None
+    arr_mask : np.ndarray[bool] or None, default None
         array indicating which elements to exclude from checking
-    b_mask : boolean array or boolean or None
+    b_mask : np.ndarray[bool] or None, default None
         array or scalar indicating which element(s) to exclude from checking
 
     Returns
@@ -1405,7 +1414,9 @@ class SelectNFrame(SelectN):
 # ---- #
 
 
-def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
+def take(
+    arr, indices: np.ndarray, axis: int = 0, allow_fill: bool = False, fill_value=None
+):
     """
     Take elements from an array.
 
