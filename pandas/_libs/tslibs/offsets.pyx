@@ -1843,8 +1843,8 @@ cdef class YearOffset(SingleConstructorOffset):
     _default_month = 1
 
     cdef:
-        readonly int month
-        # public int _default_month, _period_dtype_code
+        readonly int month, _period_dtype_code
+        # public int _period_dtype_code
 
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
@@ -2034,8 +2034,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
     _default_month = 1
 
     cdef:
-        readonly int startingMonth
-        # public int _period_dtype_code, _default_month
+        readonly int startingMonth, _period_dtype_code
+        # public int _period_dtype_code
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
