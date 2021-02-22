@@ -266,14 +266,11 @@ class TestFancy:
 
         # ToDo: check_index_type can be True after GH 11497
 
-    def test_dups_fancy_indexing_missing_label(self):
+    @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
+    def test_dups_fancy_indexing_missing_label(self, vals):
 
         # GH 4619; duplicate indexer with missing label
-        df = DataFrame({"A": [0, 1, 2]})
-        with pytest.raises(KeyError, match="with any missing labels"):
-            df.loc[[0, 8, 0]]
-
-        df = DataFrame({"A": list("abc")})
+        df = DataFrame({"A": vals})
         with pytest.raises(KeyError, match="with any missing labels"):
             df.loc[[0, 8, 0]]
 
@@ -455,9 +452,6 @@ class TestFancy:
         df2.loc[mask, cols] = dft.loc[mask, cols]
         tm.assert_frame_equal(df2, expected)
 
-        df2.loc[mask, cols] = dft.loc[mask, cols]
-        tm.assert_frame_equal(df2, expected)
-
         # with an ndarray on rhs
         # coerces to float64 because values has float64 dtype
         # GH 14001
@@ -470,8 +464,6 @@ class TestFancy:
             }
         )
         df2 = df.copy()
-        df2.loc[mask, cols] = dft.loc[mask, cols].values
-        tm.assert_frame_equal(df2, expected)
         df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
 
