@@ -783,15 +783,29 @@ class Styler:
             precision=self.precision,
             caption=self.caption,
             uuid=self.uuid,
-            table_styles=self.table_styles,
+            table_attributes=self.table_attributes,
+            cell_ids=self.cell_ids,
             na_rep=self.na_rep,
+            uuid_len=self.uuid_len,
         )
+
+        styler.hidden_index = self.hidden_index
+
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
             styler._todo = copy.deepcopy(self._todo)
+            styler.table_styles = copy.deepcopy(self.table_styles)
+            styler.hidden_columns = copy.deepcopy(self.hidden_columns)
+            styler.cell_context = copy.deepcopy(self.cell_context)
+            styler.tooltips = copy.deepcopy(self.tooltips)
         else:
             styler.ctx = self.ctx
             styler._todo = self._todo
+            styler.table_styles = self.table_styles
+            styler.hidden_columns = self.hidden_columns
+            styler.cell_context = self.cell_context
+            styler.tooltips = self.tooltips
+
         return styler
 
     def __copy__(self) -> Styler:

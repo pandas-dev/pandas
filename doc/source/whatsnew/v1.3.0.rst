@@ -482,6 +482,7 @@ Other
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
+- Bug in :class:`Styler` copy methods which were not updated for recently introduced attributes (:issue:`39708`)
 
 
 .. ---------------------------------------------------------------------------
