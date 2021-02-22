@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -33,6 +35,8 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
+
+from pandas.tseries.offsets import BDay
 
 
 class TestDataFrameSetItem:
@@ -455,6 +459,14 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_with_empty_listlike(self):
+        # GH#17101
+        index = Index([], name="idx")
+        result = DataFrame(columns=["A"], index=index)
+        result["A"] = []
+        expected = DataFrame(columns=["A"], index=index)
+        tm.assert_index_equal(result.index, expected.index)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -599,6 +611,15 @@ class TestDataFrameSetItemWithExpansion:
         expected = float_frame["A"]
         tm.assert_series_equal(result, expected, check_names=False)
 
+    def test_frame_setitem_newcol_timestamp(self):
+        # GH#2155
+        columns = date_range(start="1/1/2012", end="2/1/2012", freq=BDay())
+        data = DataFrame(columns=columns, index=range(10))
+        t = datetime(2012, 11, 1)
+        ts = Timestamp(t)
+        data[ts] = np.nan  # works, mostly a smoke-test
+        assert np.isnan(data[ts]).all()
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):
@@ -688,6 +709,29 @@ class TestDataFrameSetItemBooleanMask:
         df2 = df.copy()
         df[df > df2] = 47
         tm.assert_frame_equal(df, df2)
+
+    def test_setitem_boolean_indexing(self):
+        idx = list(range(3))
+        cols = ["A", "B", "C"]
+        df1 = DataFrame(
+            index=idx,
+            columns=cols,
+            data=np.array(
+                [[0.0, 0.5, 1.0], [1.5, 2.0, 2.5], [3.0, 3.5, 4.0]], dtype=float
+            ),
+        )
+        df2 = DataFrame(index=idx, columns=cols, data=np.ones((len(idx), len(cols))))
+
+        expected = DataFrame(
+            index=idx,
+            columns=cols,
+            data=np.array([[0.0, 0.5, 1.0], [1.5, 2.0, -1], [-1, -1, -1]], dtype=float),
+        )
+
+        df1[df1 > 2.0 * df2] = -1
+        tm.assert_frame_equal(df1, expected)
+        with pytest.raises(ValueError, match="Item wrong length"):
+            df1[df1.index[:-1] > 2] = -1
 
 
 class TestDataFrameSetitemCopyViewSemantics:
