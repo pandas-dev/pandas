@@ -94,7 +94,6 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import transform
 from pandas.core.apply import series_apply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
@@ -4003,26 +4002,6 @@ Keep all original rows and also all original values
 
         op = series_apply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
-        if result is None:
-
-            # we can be called from an inner function which
-            # passes this meta-data
-            kwargs.pop("_axis", None)
-            kwargs.pop("_level", None)
-
-            # try a regular apply, this evaluates lambdas
-            # row-by-row; however if the lambda is expected a Series
-            # expression, e.g.: lambda x: x-x.quantile(0.25)
-            # this will fail, so we can try a vectorized evaluation
-
-            # we cannot FIRST try the vectorized evaluation, because
-            # then .agg and .apply would have different semantics if the
-            # operation is actually defined on the Series, e.g. str
-            try:
-                result = self.apply(func, *args, **kwargs)
-            except (ValueError, AttributeError, TypeError):
-                result = func(self, *args, **kwargs)
-
         return result
 
     agg = aggregate
@@ -4035,7 +4014,10 @@ Keep all original rows and also all original values
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> FrameOrSeriesUnion:
-        return transform(self, func, axis, *args, **kwargs)
+        # Validate axis argument
+        self._get_axis_number(axis)
+        result = series_apply(self, func=func, args=args, kwargs=kwargs).transform()
+        return result
 
     def apply(
         self,
@@ -4146,8 +4128,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        op = series_apply(self, func, convert_dtype, args, kwargs)
-        return op.apply()
+        return series_apply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
         self,
