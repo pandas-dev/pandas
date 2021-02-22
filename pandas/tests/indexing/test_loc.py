@@ -1141,6 +1141,25 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_frame_equal(expected, df)
 
+    def test_loc_setitem_categorical_values_partial_column_slice(self):
+        # Assigning a Category to parts of a int/... column uses the values of
+        # the Categorical
+        df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
+        exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
+        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+        tm.assert_frame_equal(df, exp)
+
+    def test_loc_setitem_single_row_categorical(self):
+        # GH#25495
+        df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
+        categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
+        df.loc[:, "Alpha"] = categories
+
+        result = df["Alpha"]
+        expected = Series(categories, index=df.index, name="Alpha")
+        tm.assert_series_equal(result, expected)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
@@ -1269,6 +1288,31 @@ class TestLocWithMultiIndex:
 
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_getitem_preserves_index_level_category_dtype(self):
+        # GH#15166
+        df = DataFrame(
+            data=np.arange(2, 22, 2),
+            index=MultiIndex(
+                levels=[CategoricalIndex(["a", "b"]), range(10)],
+                codes=[[0] * 5 + [1] * 5, range(10)],
+                names=["Index1", "Index2"],
+            ),
+        )
+
+        expected = CategoricalIndex(
+            ["a", "b"],
+            categories=["a", "b"],
+            ordered=False,
+            name="Index1",
+            dtype="category",
+        )
+
+        result = df.index.levels[0]
+        tm.assert_index_equal(result, expected)
+
+        result = df.loc[["a"]].index.levels[0]
+        tm.assert_index_equal(result, expected)
 
 
 class TestLocSetitemWithExpansion:

@@ -258,6 +258,13 @@ class TestGetitemBooleanMask:
         result.dtypes
         str(result)
 
+    def test_getitem_empty_frame_with_boolean(self):
+        # Test for issue GH#11859
+
+        df = DataFrame()
+        df2 = df[df > 0]
+        tm.assert_frame_equal(df, df2)
+
 
 class TestGetitemSlice:
     def test_getitem_slice_float64(self, frame_or_series):

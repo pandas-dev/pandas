@@ -8,6 +8,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
@@ -534,6 +535,51 @@ class TestDataFrameSetItemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_with_expansion_categorical_dtype(self):
+        # assignment
+        df = DataFrame(
+            {"value": np.array(np.random.randint(0, 10000, 100), dtype="int32")}
+        )
+        labels = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
+
+        df = df.sort_values(by=["value"], ascending=True)
+        ser = cut(df.value, range(0, 10500, 500), right=False, labels=labels)
+        cat = ser.values
+
+        # setting with a Categorical
+        df["D"] = cat
+        str(df)
+
+        result = df.dtypes
+        expected = Series(
+            [np.dtype("int32"), CategoricalDtype(categories=labels, ordered=False)],
+            index=["value", "D"],
+        )
+        tm.assert_series_equal(result, expected)
+
+        # setting with a Series
+        df["E"] = ser
+        str(df)
+
+        result = df.dtypes
+        expected = Series(
+            [
+                np.dtype("int32"),
+                CategoricalDtype(categories=labels, ordered=False),
+                CategoricalDtype(categories=labels, ordered=False),
+            ],
+            index=["value", "D", "E"],
+        )
+        tm.assert_series_equal(result, expected)
+
+        result1 = df["D"]
+        result2 = df["E"]
+        tm.assert_categorical_equal(result1._mgr._block.values, cat)
+
+        # sorting
+        ser.name = "E"
+        tm.assert_series_equal(result2.sort_index(), ser.sort_index())
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):
@@ -555,6 +601,17 @@ class TestDataFrameSetItemCallable:
         exp = DataFrame({"A": [11, 12, 13, 14], "B": [5, 6, 7, 8]})
         tm.assert_frame_equal(df, exp)
 
+    def test_setitem_other_callable(self):
+        # GH#13299
+        def inc(x):
+            return x + 1
+
+        df = DataFrame([[-1, 1], [1, -1]])
+        df[df > 0] = inc
+
+        expected = DataFrame([[-1, inc], [inc, -1]])
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemBooleanMask:
     @pytest.mark.parametrize(
@@ -575,3 +632,29 @@ class TestDataFrameSetItemBooleanMask:
         expected = df.copy()
         expected.values[np.array(mask)] = np.nan
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_mask_categorical(self):
+        # assign multiple rows (mixed values) (-> array) -> exp_multi_row
+        # changed multiple rows
+        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
+        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values2 = [1, 1, 2, 2, 1, 1, 1]
+        exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
+
+        catsf = Categorical(
+            ["a", "a", "c", "c", "a", "a", "a"], categories=["a", "b", "c"]
+        )
+        idxf = Index(["h", "i", "j", "k", "l", "m", "n"])
+        valuesf = [1, 1, 3, 3, 1, 1, 1]
+        df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
+
+        exp_fancy = exp_multi_row.copy()
+        return_value = exp_fancy["cats"].cat.set_categories(
+            ["a", "b", "c"], inplace=True
+        )
+        assert return_value is None
+
+        mask = df["cats"] == "c"
+        df[mask] = ["b", 2]
+        # category c is kept in .categories
+        tm.assert_frame_equal(df, exp_fancy)
