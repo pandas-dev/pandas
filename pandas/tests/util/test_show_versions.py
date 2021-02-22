@@ -71,7 +71,7 @@ def test_show_versions_console_json(capsys):
 
 def test_show_versions_console(capsys):
     # gh-32041
-    # GH39701
+    # gh-32041
     pd.show_versions(as_json=False)
     result = capsys.readouterr().out
 
