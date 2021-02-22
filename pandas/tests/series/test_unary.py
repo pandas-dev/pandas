@@ -38,3 +38,12 @@ class TestSeriesUnaryOps:
         tm.assert_series_equal(neg_result, neg_target)
         tm.assert_series_equal(pos_result, ser)
         tm.assert_series_equal(abs_result, abs_target)
+
+    @pytest.mark.parametrize("op", ["__neg__", "__abs__", "__pos__"])
+    def test_unary_float_op_mask(self, float_ea_dtype, op):
+        dtype = float_ea_dtype
+        ser = Series([1.1, 2.2, 3.3], dtype=dtype)
+        result = getattr(ser, op)()
+        target = result.copy(deep=True)
+        ser[0] = None
+        tm.assert_series_equal(result, target)
