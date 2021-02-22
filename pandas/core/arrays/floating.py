@@ -261,7 +261,7 @@ class FloatingArray(NumericArray):
         return type(self)(-self._data, self._mask.copy())
 
     def __pos__(self):
-        return self.copy()
+        return self
 
     def __abs__(self):
         return type(self)(abs(self._data), self._mask.copy())
