@@ -23,14 +23,11 @@ from pandas._libs_numba import algos as algos_numba
 from pandas._typing import (
     ArrayLike,
     Axis,
-    DtypeObj,
 )
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
-    ensure_float64,
-    is_integer_dtype,
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
@@ -657,40 +654,6 @@ def interpolate_2d(
         result = result.view(orig_values.dtype)
 
     return result
-
-
-def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
-    """
-    Cast values to a dtype that algos.pad and algos.backfill can handle.
-    """
-    # TODO: for int-dtypes we make a copy, but for everything else this
-    #  alters the values in-place.  Is this intentional?
-
-    if needs_i8_conversion(dtype):
-        values = values.view(np.int64)
-
-    elif is_integer_dtype(values) and not has_mask:
-        # NB: this check needs to come after the datetime64 check above
-        # has_mask check to avoid casting i8 values that have already
-        #  been cast from PeriodDtype
-        values = ensure_float64(values)
-
-    return values
-
-
-def _fillna_prep(values, mask=None):
-    # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
-    dtype = values.dtype
-
-    has_mask = mask is not None
-    if not has_mask:
-        # This needs to occur before datetime/timedeltas are cast to int64
-        mask = isna(values)
-
-    values = _cast_values_for_fillna(values, dtype, has_mask)
-
-    mask = mask.view(np.uint8)
-    return values, mask
 
 
 def _pad_1d(values, limit=None, mask=None):
