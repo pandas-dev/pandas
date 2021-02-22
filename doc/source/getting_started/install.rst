@@ -255,47 +255,52 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
+Visualization
+^^^^^^^^^^^^^
+
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref:`note <optional_html>`)
+matplotlib                2.2.3              Plotting library
 Jinja2                    2.10               Conditional formatting with DataFrame.style
-PyQt4                                        Clipboard I/O
-PyQt5                                        Clipboard I/O
-PyTables                  3.5.1              HDF5-based reading / writing
-SQLAlchemy                1.3.0              SQL support for databases other than sqlite
-SciPy                     1.12.0             Miscellaneous statistical functions
-xlsxwriter                1.0.2              Excel writing
-blosc                     1.17.0             Compression for HDF5
-fsspec                    0.7.4              Handling files aside from local and HTTP
-fastparquet               0.4.0              Parquet reading / writing
-gcsfs                     0.6.0              Google Cloud Storage access
-html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
-matplotlib                2.2.3              Visualization
-numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  3.0.0              Reading / writing for xlsx files
-pandas-gbq                0.12.0             Google Big Query access
-psycopg2                  2.7                PostgreSQL engine for sqlalchemy
-pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
-pymysql                   0.8.1              MySQL engine for sqlalchemy
-pyreadstat                                   SPSS files (.sav) reading
-pyxlsb                    1.0.6              Reading for xlsb files
-qtpy                                         Clipboard I/O
-s3fs                      0.4.0              Amazon S3 access
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
-xarray                    0.12.3             pandas-like API for N-dimensional data
-xclip                                        Clipboard I/O on linux
-xlrd                      1.2.0              Excel reading
-xlwt                      1.3.0              Excel writing
-xsel                                         Clipboard I/O on linux
-zlib                                         Compression for HDF5
 ========================= ================== =============================================================
 
-.. _optional_html:
+Computation
+^^^^^^^^^^^
 
-Optional dependencies for parsing HTML
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+SciPy                     1.12.0             Miscellaneous statistical functions
+numba                     0.46.0             Alternative execution engine for rolling operations
+                                             (see :ref:`Enhancing Performance <enhancingperf.numba>`)
+xarray                    0.12.3             pandas-like API for N-dimensional data
+========================= ================== =============================================================
+
+Excel files
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+xlrd                      1.2.0              Reading Excel
+xlwt                      1.3.0              Writing Excel
+xlsxwriter                1.0.2              Writing Excel
+openpyxl                  3.0.0              Reading / writing for xlsx files
+pyxlsb                    1.0.6              Reading for xlsb files
+========================= ================== =============================================================
+
+HTML
+^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+BeautifulSoup4            4.6.0              HTML parser for read_html
+html5lib                  1.0.1              HTML parser for read_html
+lxml                      4.3.0              HTML parser for read_html
+========================= ================== =============================================================
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
@@ -320,3 +325,52 @@ top-level :func:`~pandas.read_html` function:
 .. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
 .. _lxml: https://lxml.de
 .. _tabulate: https://github.com/astanin/python-tabulate
+
+SQL databases
+^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+SQLAlchemy                1.3.0              SQL support for databases other than sqlite
+psycopg2                  2.7                PostgreSQL engine for sqlalchemy
+pymysql                   0.8.1              MySQL engine for sqlalchemy
+========================= ================== =============================================================
+
+Other data sources
+^^^^^^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+PyTables                  3.5.1              HDF5-based reading / writing
+blosc                     1.17.0             Compression for HDF5
+zlib                                         Compression for HDF5
+fastparquet               0.4.0              Parquet reading / writing
+pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
+pyreadstat                                   SPSS files (.sav) reading
+========================= ================== =============================================================
+
+Access data in the cloud
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+fsspec                    0.7.4              Handling files aside from simple local and HTTP
+gcsfs                     0.6.0              Google Cloud Storage access
+pandas-gbq                0.12.0             Google Big Query access
+s3fs                      0.4.0              Amazon S3 access
+========================= ================== =============================================================
+
+Clipboard
+^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+PyQt4/PyQt5                                  Clipboard I/O
+qtpy                                         Clipboard I/O
+xclip                                        Clipboard I/O on linux
+xsel                                         Clipboard I/O on linux
+========================= ================== =============================================================
