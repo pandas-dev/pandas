@@ -3264,6 +3264,7 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
             if isinstance(value, DataFrame):
+                # GHä39931 reindex since iloc does not align
                 value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
         else:
