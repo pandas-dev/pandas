@@ -921,7 +921,7 @@ class TestiLocBaseIndependent:
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
 
-    @pytest.mark.parametrize("indexer", [lambda x: x.loc, lambda x: x.iloc])
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
     def test_iloc_getitem_read_only_values(self, indexer):
         # GH#10043 this is fundamentally a test for iloc, but test loc while
         #  we're here

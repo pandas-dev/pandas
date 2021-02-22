@@ -1234,7 +1234,7 @@ def soft_convert_objects(
     numeric: bool = True,
     timedelta: bool = True,
     copy: bool = True,
-):
+) -> ArrayLike:
     """
     Try to coerce datetime, timedelta, and numeric object-dtype columns
     to inferred dtype.
@@ -1249,7 +1249,7 @@ def soft_convert_objects(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or ExtensionArray
     """
     validate_bool_kwarg(datetime, "datetime")
     validate_bool_kwarg(numeric, "numeric")
@@ -1432,7 +1432,7 @@ def maybe_infer_to_datetimelike(
     if not len(v):
         return value
 
-    def try_datetime(v):
+    def try_datetime(v: np.ndarray) -> ArrayLike:
         # safe coerce to datetime64
         try:
             # GH19671
@@ -1451,14 +1451,15 @@ def maybe_infer_to_datetimelike(
             except (ValueError, TypeError):
                 pass
             else:
-                return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
+                dti = DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
+                return dti._data
         except TypeError:
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             pass
 
         return v.reshape(shape)
 
-    def try_timedelta(v):
+    def try_timedelta(v: np.ndarray) -> np.ndarray:
         # safe coerce to timedelta64
 
         # will try first with a string & object conversion
