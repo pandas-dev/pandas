@@ -399,7 +399,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
             values = maybe_infer_to_datetimelike(values)
-            if not isinstance(values, (np.ndarray, ExtensionArray)):
+            if isinstance(values, np.ndarray):
+                values = sanitize_to_nanoseconds(values)
+            elif not isinstance(values, ExtensionArray):
                 values = com.convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
@@ -408,9 +410,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
                 values = sanitize_array(values, None, dtype=sanitize_dtype)
-
-            else:
-                values = sanitize_to_nanoseconds(values)
 
         if dtype.categories is None:
             try:
