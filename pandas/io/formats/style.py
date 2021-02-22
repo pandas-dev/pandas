@@ -1392,31 +1392,31 @@ class Styler:
         ...          'Wind (m/s)': [3.2, 3.1, 6.7]
         ... })
 
-        Shading the values column-wise
+        Shading the values column-wise, with ``axis=0``
 
         >>> df.style.background_gradient(axis=0)
 
         .. figure:: ../../_static/style/bg_ax0.png
 
-        Shading all values collectively
+        Shading all values collectively using ``axis=None``
 
         >>> df.style.background_gradient(axis=None)
 
         .. figure:: ../../_static/style/bg_axNone.png
 
-        Compress the color map from the both the low and high ends
+        Compress the color map from the both ``low`` and ``high`` ends
 
         >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
 
         .. figure:: ../../_static/style/bg_axNone_lowhigh.png
 
-        Manually setting minimum and maximum gradient thresholds
+        Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
         >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
 
         .. figure:: ../../_static/style/bg_axNone_vminvmax.png
 
-        Setting the gradient map and applying to all columns with a new colormap
+        Setting a ``gmap`` and applying to all columns with another ``cmap``
 
         >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
 
