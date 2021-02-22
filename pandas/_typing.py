@@ -64,6 +64,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+    from pandas.tseries.offsets import DateOffset
 else:
     # typing.final does not exist until py38
     final = lambda x: x
@@ -110,6 +111,7 @@ Shape = Tuple[int, ...]
 Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
+Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
 
 # dtypes
