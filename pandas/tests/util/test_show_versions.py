@@ -12,10 +12,6 @@ from pandas.util._print_versions import (
 import pandas as pd
 
 
-def get_captured_output(capsys):
-    return capsys.readouterr().out
-
-
 @pytest.mark.filterwarnings(
     # openpyxl
     "ignore:defusedxml.lxml is no longer supported:DeprecationWarning"
