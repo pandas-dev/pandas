@@ -8,7 +8,15 @@ import pytest
 from pandas.core.dtypes.common import is_float_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, NaT, Series, Timedelta, Timestamp, bdate_range
+from pandas import (
+    DataFrame,
+    Index,
+    NaT,
+    Series,
+    Timedelta,
+    Timestamp,
+    bdate_range,
+)
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 

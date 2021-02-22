@@ -33,7 +33,12 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
+from pandas._libs.tslibs import (
+    Period,
+    Tick,
+    Timestamp,
+    to_offset,
+)
 from pandas._typing import (
     Axis,
     CompressionOptions,
@@ -57,9 +62,18 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError, InvalidIndexError
-from pandas.util._decorators import doc, rewrite_axis_style_signature
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
+from pandas.errors import (
+    AbstractMethodError,
+    InvalidIndexError,
+)
+from pandas.util._decorators import (
+    doc,
+    rewrite_axis_style_signature,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -82,16 +96,33 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import arraylike, indexing, missing, nanops
+from pandas.core import (
+    arraylike,
+    indexing,
+    missing,
+    nanops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.base import (
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
-from pandas.core.construction import create_series_with_explicit_dtype, extract_array
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+)
 from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
@@ -103,16 +134,27 @@ from pandas.core.indexes.api import (
     RangeIndex,
     ensure_index,
 )
-from pandas.core.internals import ArrayManager, BlockManager
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
-from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
+from pandas.core.window import (
+    Expanding,
+    ExponentialMovingWindow,
+    Rolling,
+    Window,
+)
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.format import DataFrameFormatter, DataFrameRenderer
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    DataFrameRenderer,
+)
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
@@ -695,9 +737,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ).__finalize__(self, method="swapaxes")
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
-        Return DataFrame with requested index / column level(s) removed.
+        Return {klass} with requested index / column level(s) removed.
 
         .. versionadded:: 0.24.0
 
@@ -708,7 +751,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If list-like, elements must be names or positional indexes
             of levels.
 
-        axis : {0 or 'index', 1 or 'columns'}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
             Axis along which the level(s) is removed:
 
             * 0 or 'index': remove level(s) in column.
@@ -716,8 +759,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        DataFrame
-            DataFrame with requested index / column level(s) removed.
+        {klass}
+            {klass} with requested index / column level(s) removed.
 
         Examples
         --------
@@ -10531,8 +10574,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
 
-        # pandas\core\generic.py:10725: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.any = any  # type: ignore[assignment]
 
         @doc(
@@ -10548,13 +10590,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
-        # pandas\core\generic.py:10719: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
 
-        # pandas\core\generic.py:10719: error: Incompatible types in assignment
-        # (expression has type "Callable[[Iterable[object]], bool]", variable
-        # has type "Callable[[NDFrame, Any, Any, Any, Any, KwArg(Any)], Any]")
-        # [assignment]
+        # error: Incompatible types in assignment (expression has type
+        # "Callable[[Iterable[object]], bool]", variable has type "Callable[[NDFrame,
+        # Any, Any, Any, Any, KwArg(Any)], Any]")
         cls.all = all  # type: ignore[assignment]
 
         # error: Argument 1 to "doc" has incompatible type "Optional[str]"; expected
@@ -10572,8 +10612,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mad(self, axis=None, skipna=None, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
-        # pandas\core\generic.py:10736: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.mad = mad  # type: ignore[assignment]
 
         @doc(
@@ -10596,8 +10635,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.sem(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10758: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.sem = sem  # type: ignore[assignment]
 
         @doc(
@@ -10619,8 +10657,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.var(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10779: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.var = var  # type: ignore[assignment]
 
         @doc(
@@ -10643,8 +10680,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.std(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10801: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.std = std  # type: ignore[assignment]
 
         @doc(
@@ -10659,8 +10695,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummin(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
-        # pandas\core\generic.py:10815: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.cummin = cummin  # type: ignore[assignment]
 
         @doc(
@@ -10675,8 +10710,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummax(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
-        # pandas\core\generic.py:10829: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.cummax = cummax  # type: ignore[assignment]
 
         @doc(
@@ -10691,8 +10725,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumsum(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
-        # pandas\core\generic.py:10843: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.cumsum = cumsum  # type: ignore[assignment]
 
         @doc(
@@ -10707,8 +10740,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumprod(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
-        # pandas\core\generic.py:10857: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.cumprod = cumprod  # type: ignore[assignment]
 
         @doc(
@@ -10735,8 +10767,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        # pandas\core\generic.py:10883: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.sum = sum  # type: ignore[assignment]
 
         @doc(
@@ -10762,8 +10793,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        # pandas\core\generic.py:10908: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.prod = prod  # type: ignore[assignment]
         cls.product = prod
 
@@ -10780,8 +10810,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10924: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.mean = mean  # type: ignore[assignment]
 
         @doc(
@@ -10797,8 +10826,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10939: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.skew = skew  # type: ignore[assignment]
 
         @doc(
@@ -10817,8 +10845,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10957: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.kurt = kurt  # type: ignore[assignment]
         cls.kurtosis = kurt
 
@@ -10837,8 +10864,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10975: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.median = median  # type: ignore[assignment]
 
         @doc(
@@ -10856,8 +10882,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:10992: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.max = max  # type: ignore[assignment]
 
         @doc(
@@ -10875,8 +10900,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # pandas\core\generic.py:11009: error: Cannot assign to a method
-        # [assignment]
+        # error: Cannot assign to a method
         cls.min = min  # type: ignore[assignment]
 
     @final

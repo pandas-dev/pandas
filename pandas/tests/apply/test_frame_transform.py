@@ -4,7 +4,11 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
@@ -202,7 +206,7 @@ def test_transform_bad_dtype(op, frame_or_series):
 
     # tshift is deprecated
     warn = None if op != "tshift" else FutureWarning
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
+    with tm.assert_produces_warning(warn):
         with pytest.raises(ValueError, match=msg):
             obj.transform(op)
         with pytest.raises(ValueError, match=msg):

@@ -1,5 +1,9 @@
 """ test label based indexing with loc """
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 from io import StringIO
 import re
 
@@ -1804,25 +1808,51 @@ class TestLocListlike:
         with pytest.raises(KeyError, match=msg):
             ser2.to_frame().loc[box(ci2)]
 
+    def test_loc_getitem_many_missing_labels_inside_error_message_limited(self):
+        # GH#34272
+        n = 10000
+        missing_labels = [f"missing_{label}" for label in range(n)]
+        ser = Series({"a": 1, "b": 2, "c": 3})
+        # regex checks labels between 4 and 9995 are replaced with ellipses
+        error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
+        with pytest.raises(KeyError, match=error_message_regex):
+            ser.loc[["a", "c"] + missing_labels]
 
-def test_series_loc_getitem_label_list_missing_values():
-    # gh-11428
-    key = np.array(
-        ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
-    )
-    s = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
-    with pytest.raises(KeyError, match="with any missing labels"):
-        s.loc[key]
+    def test_loc_getitem_missing_labels_inside_matched_in_error_message(self):
+        # GH#34272
+        ser = Series({"a": 1, "b": 2, "c": 3})
+        error_message_regex = "missing_0.*missing_1.*missing_2"
+        with pytest.raises(KeyError, match=error_message_regex):
+            ser.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
 
+    def test_loc_getitem_long_text_missing_labels_inside_error_message_limited(self):
+        # GH#34272
+        ser = Series({"a": 1, "b": 2, "c": 3})
+        missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
+        # regex checks for very long labels there are new lines between each
+        error_message_regex = (
+            "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
+        )
+        with pytest.raises(KeyError, match=error_message_regex):
+            ser.loc[["a", "c"] + missing_labels]
 
-def test_series_getitem_label_list_missing_integer_values():
-    # GH: 25927
-    s = Series(
-        index=np.array([9730701000001104, 10049011000001109]),
-        data=np.array([999000011000001104, 999000011000001104]),
-    )
-    with pytest.raises(KeyError, match="with any missing labels"):
-        s.loc[np.array([9730701000001104, 10047311000001102])]
+    def test_loc_getitem_series_label_list_missing_values(self):
+        # gh-11428
+        key = np.array(
+            ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
+        )
+        ser = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[key]
+
+    def test_loc_getitem_series_label_list_missing_integer_values(self):
+        # GH: 25927
+        ser = Series(
+            index=np.array([9730701000001104, 10049011000001109]),
+            data=np.array([999000011000001104, 999000011000001104]),
+        )
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[np.array([9730701000001104, 10047311000001102])]
 
 
 @pytest.mark.parametrize(

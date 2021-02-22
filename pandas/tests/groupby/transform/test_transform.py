@@ -4,7 +4,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_timedelta64_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -767,6 +770,18 @@ def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
         exp = exp.astype("float")
 
     comp_func(result, exp)
+
+
+def test_transform_ffill():
+    # GH 24211
+    data = [["a", 0.0], ["a", float("nan")], ["b", 1.0], ["b", float("nan")]]
+    df = DataFrame(data, columns=["key", "values"])
+    result = df.groupby("key").transform("ffill")
+    expected = DataFrame({"values": [0.0, 0.0, 1.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
+    result = df.groupby("key")["values"].transform("ffill")
+    expected = Series([0.0, 0.0, 1.0, 1.0], name="values")
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("mix_groupings", [True, False])

@@ -13,7 +13,12 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int8_t, int64_t, ndarray, uint8_t
+from numpy cimport (
+    int8_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
 
@@ -63,7 +68,10 @@ from pandas._libs.tslibs.fields import (
     round_nsint64,
 )
 
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     cmp_scalar,
@@ -74,8 +82,14 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.offsets cimport is_offset_object, to_offset
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds, is_any_td_scalar
+from pandas._libs.tslibs.offsets cimport (
+    is_offset_object,
+    to_offset,
+)
+from pandas._libs.tslibs.timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from pandas._libs.tslibs.timedeltas import Timedelta
 

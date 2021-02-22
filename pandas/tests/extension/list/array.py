@@ -15,7 +15,10 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
-from pandas.api.types import is_object_dtype, is_string_dtype
+from pandas.api.types import (
+    is_object_dtype,
+    is_string_dtype,
+)
 from pandas.core.arrays import ExtensionArray
 
 

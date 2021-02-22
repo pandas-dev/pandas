@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm, concat
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    _testing as tm,
+    concat,
+)
 from pandas.tests.strings.test_strings import assert_series_or_index_equal
 
 
