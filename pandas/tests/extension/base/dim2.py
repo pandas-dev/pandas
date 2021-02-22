@@ -7,7 +7,10 @@ import pytest
 from pandas.compat import np_version_under1p17
 
 import pandas as pd
-from pandas.core.arrays import FloatingArray, IntegerArray
+from pandas.core.arrays import (
+    FloatingArray,
+    IntegerArray,
+)
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
