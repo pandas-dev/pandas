@@ -1410,7 +1410,7 @@ Often it's useful to obtain the lower (or upper) triangular form of a correlatio
 
     corr_mat.where(mask)
 
-The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the ``distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>``__ matrix for a ``DataFrame`` object.
+The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a ``DataFrame`` object.
 
 .. ipython:: python
 
