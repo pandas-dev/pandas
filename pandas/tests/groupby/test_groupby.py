@@ -1716,6 +1716,46 @@ def test_pivot_table_values_key_error():
         )
 
 
+@pytest.mark.parametrize("columns", [["C"]])
+# @pytest.mark.parametrize("columns", ["C", ["C"]])
+@pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
+@pytest.mark.parametrize(
+    "data",
+    [
+        3 * ["a"],
+        3 * [0],
+        3 * [0.0],
+        ["a", 0, 0.0],
+        [0, 0.0, "a"],
+    ],
+)
+def test_empty_ndframe_groupby(columns, keys, data, groupby_func):
+    # GH8093 & GH26411
+    df = DataFrame([data], columns=["A", "B", "C"])
+
+    # Get resulting dtype
+    expected_err = None
+    try:
+        expected_dtypes = getattr(
+            df.groupby(keys)[columns], groupby_func
+        )().dtypes.to_dict()
+    except Exception as err:
+        expected_err = err
+
+    df = df.iloc[:0]
+    if expected_err is None:
+        result = getattr(df.groupby(keys)[columns], groupby_func)()
+        expected = df.set_index(keys).astype(expected_dtypes)[columns]
+        if len(keys) == 1:
+            expected.index.name = keys[0]
+        tm.assert_equal(result, expected)
+    else:
+        import re
+
+        with pytest.raises(type(expected_err), match=re.escape(str(expected_err))):
+            getattr(df.groupby(keys)[columns], groupby_func)()
+
+
 @pytest.mark.parametrize("columns", ["C", ["C"]])
 @pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
 @pytest.mark.parametrize(
@@ -1731,13 +1771,12 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op, args",
     [
-        ["sum", ()],
         ["agg", ("sum",)],
         ["apply", ("sum",)],
         ["transform", ("sum",)],
     ],
 )
-def test_empty_dataframe_groupby(columns, keys, dtypes, op, args):
+def test_empty_ndframe_groupby_udf(columns, keys, dtypes, op, args):
     # GH8093 & GH26411
     df = DataFrame(columns=["A", "B", "C"])
     df = df.astype(dtypes)
