@@ -1345,13 +1345,13 @@ class Styler:
 
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
-            If not specified the minimum value of the data will be used.
+            If not specified the minimum value of the data (or gmap) will be used.
 
             .. versionadded:: 1.0.0
 
         vmax : float, optional
             Maximum data value that corresponds to colormap maximum value.
-            If not specified the maximum value of the data will be used.
+            If not specified the maximum value of the data (or gmap) will be used.
 
             .. versionadded:: 1.0.0
 
