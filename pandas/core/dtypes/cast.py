@@ -1234,7 +1234,7 @@ def soft_convert_objects(
     numeric: bool = True,
     timedelta: bool = True,
     copy: bool = True,
-):
+) -> ArrayLike:
     """
     Try to coerce datetime, timedelta, and numeric object-dtype columns
     to inferred dtype.
@@ -1249,7 +1249,7 @@ def soft_convert_objects(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or ExtensionArray
     """
     validate_bool_kwarg(datetime, "datetime")
     validate_bool_kwarg(numeric, "numeric")

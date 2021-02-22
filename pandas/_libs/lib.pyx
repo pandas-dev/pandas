@@ -1986,7 +1986,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray[object]
         Array of object elements to convert.
     na_values : set
         Set of values that should be interpreted as NaN.
@@ -2007,7 +2007,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
     Returns
     -------
-    Array of converted object values to numerical ones.
+    np.ndarray
+        Array of converted object values to numerical ones.
     """
     if len(values) == 0:
         return np.array([], dtype='i8')
@@ -2159,7 +2160,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray[object]
         Array of object elements to convert.
     try_float : bool, default False
         If an array-like object contains only float or NaN values is
@@ -2179,7 +2180,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     Returns
     -------
-    Array of converted object values to more specific dtypes if applicable.
+    np.ndarray or ExtensionArray
     """
     cdef:
         Py_ssize_t i, n
@@ -2309,7 +2310,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     if seen.datetimetz_:
         if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
-            return DatetimeIndex(objects)
+            dti = DatetimeIndex(objects)
+
+            # unbox to DatetimeArray
+            return dti._data
         seen.object_ = True
 
     if not seen.object_:
