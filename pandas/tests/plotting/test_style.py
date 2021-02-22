@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     IndexSlice,
@@ -166,7 +164,6 @@ class TestGetStandardColors:
             get_standard_colors(color=color, num_colors=5)
 
 
-@td.skip_if_no_mpl
 class TestStylerMatplotlibDep:
     def test_background_gradient(self):
         df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
@@ -222,7 +219,6 @@ class TestStylerMatplotlibDep:
                 text_color_threshold=text_color_threshold
             )._compute()
 
-    @td.skip_if_no_mpl
     def test_background_gradient_axis(self):
         df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
 
