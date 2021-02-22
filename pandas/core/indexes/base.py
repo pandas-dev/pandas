@@ -2941,18 +2941,20 @@ class Index(IndexOpsMixin, PandasObject):
             and other.is_monotonic
             and not (self.has_duplicates and other.has_duplicates)
         ):
+            # Both are unique and monotonic, so can use outer join
             try:
                 return self._outer_indexer(lvals, rvals)[0]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
-                result = list(lvals)
+                value_list = list(lvals)
 
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
-                result.extend([x for x in rvals if x not in value_set])
-                return Index(result)._values  # do type inference here
+                value_list.extend([x for x in rvals if x not in value_set])
+                return Index(value_list)._values  # do type inference here
 
         elif not other.is_unique and not self.is_unique:
+            # self and other both have duplicates
             result = algos.union_with_duplicates(lvals, rvals)
             return _maybe_try_sort(result, sort)
 

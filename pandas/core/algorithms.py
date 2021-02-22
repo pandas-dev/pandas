@@ -2279,16 +2279,16 @@ def _sort_tuples(values: np.ndarray):
     return values[indexer]
 
 
-def union_with_duplicates(lvals, rvals) -> np.ndarray:
+def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
 
     Parameters
     ----------
-    lvals: np.ndarray
+    lvals:
         left values which is ordered in front.
-    rvals: np.ndarray
+    rvals:
         right values ordered after lvals.
 
     Returns
@@ -2298,7 +2298,7 @@ def union_with_duplicates(lvals, rvals) -> np.ndarray:
     indexer = []
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
-    l_count, r_count = l_count._align_series(r_count, fill_value=0)
+    l_count, r_count = l_count.align(r_count, fill_value=0)
     unique_array = unique(np.append(lvals, rvals))
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count[value], r_count[value]))
