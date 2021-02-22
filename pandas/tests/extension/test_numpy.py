@@ -226,22 +226,6 @@ class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
             request.node.add_marker(mark)
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        # We override just to change the expected dtype following expected.reset_index
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
-        result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
-
-        index = pd.Index(index, name="B")
-        expected = pd.Series([3, 1, 4], index=index, name="A")
-        if as_index:
-            self.assert_series_equal(result, expected)
-        else:
-            expected = expected.reset_index()
-            expected["B"] = expected["B"].astype(data_for_grouping.dtype)
-            self.assert_frame_equal(result, expected)
-
 
 class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
     @skip_nested
