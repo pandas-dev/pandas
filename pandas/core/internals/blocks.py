@@ -2150,6 +2150,7 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
 
     __slots__ = ()
     is_extension = True
+
     _validate_ndim = True
     _can_consolidate = True
 
