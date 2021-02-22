@@ -1324,11 +1324,11 @@ class Styler:
             Matplotlib colormap.
         low : float
             Compress the color range at the low end. This is a multiple of the data
-            range to extend below the minimum; sound values usually in [0, 0.5],
+            range to extend below the minimum; good values usually in [0, 1],
             defaults to 0.
         high : float
             Compress the color range at the high end. This is a multiple of the data
-            range to extend above the maximum; sound values usually in [0, 0.5],
+            range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
@@ -1359,6 +1359,8 @@ class Styler:
             Gradient map for determining the background colors. If not supplied
             will use the input data from rows, columns or frame. Must be an
             identical shape for sampling columns, rows or DataFrame based on ``axis``.
+            If supplied ``vmin`` and ``vmax`` should be given relative to this
+            gradient map.
 
             .. versionadded:: 1.3.0
 
@@ -1369,16 +1371,66 @@ class Styler:
         Notes
         -----
         When using ``low`` and ``high`` the range
-        of the data is extended at the low end effectively by
-        `data.min - low * data.range` and at the high end by
-        `data.max + high * data.range` before the colors are normalized and determined.
+        of the gradient, given by the data if ``gmap`` is not given or by ``gmap``,
+        is extended at the low end effectively by
+        `map.min - low * map.range` and at the high end by
+        `map.max + high * map.range` before the colors are normalized and determined.
 
-        If combining with ``vmin`` and ``vmax`` the `data.min`, `data.max` and
-        `data.range` are replaced by values according to the values derived from
+        If combining with ``vmin`` and ``vmax`` the `map.min`, `map.max` and
+        `map.range` are replaced by values according to the values derived from
         ``vmin`` and ``vmax``.
 
         This method will preselect numeric columns and ignore non-numeric columns
         unless a ``gmap`` is supplied in which case no preselection occurs.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
+        ...          'Temp (c)': [21.6, 22.4, 24.5],
+        ...          'Rain (mm)': [5.0, 13.3, 0.0],
+        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
+        ... })
+
+        Shading the values column-wise
+
+        >>> df.style.background_gradient(axis=0)
+
+        .. figure:: ../../_static/style/bg_ax0.png
+
+        Shading all values collectively
+
+        >>> df.style.background_gradient(axis=None)
+
+        .. figure:: ../../_static/style/bg_axNone.png
+
+        Compress the color map from the both the low and high ends
+
+        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
+
+        .. figure:: ../../_static/style/bg_axNone_lowhigh.png
+
+        Manually setting minimum and maximum gradient thresholds
+
+        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
+
+        .. figure:: ../../_static/style/bg_axNone_vminvmax.png
+
+        Setting the gradient map and applying to all columns with a new colormap
+
+        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+
+        .. figure:: ../../_static/style/bg_gmap.png
+
+        Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
+        explicitly state the numeric columns here to match the gmap shape
+
+        >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
+        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
+        ... )
+
+        .. figure:: ../../_static/style/bg_axNone_gmap.png
         """
         if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
