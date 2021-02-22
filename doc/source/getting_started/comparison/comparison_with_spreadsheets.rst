@@ -365,6 +365,48 @@ In Excel, there are `merging of tables can be done through a VLOOKUP
 * It will include all columns from the lookup table, instead of just a single specified column
 * It supports :ref:`more complex join operations <merging.join>`
 
+GroupBy
+--------------------
+
+In Excel, this can be done by using the Query Editor. 
+You can group the values in various rows into a single value by grouping the rows according to the values in one or more columns
+Then using the Query Editor ribbon, Right-click the column header that you want to group on, 
+and click `Group By <https://support.microsoft.com/en-us/office/group-rows-in-a-table-power-query-e1b9e916-6fcc-40bf-a6e8-ef928240adf1>`_. 
+
+Power Query has two types of Group By operations: 
+
+* Aggregate a column with an aggregate function 
+* Perform a row operation
+  
+To aggregate a column, select the column to perform the Aggregate Operation on from the Column drop-down. 
+A Row Operation does not require a Column, since data is grouped based on table rows.
+
+.. image:: ../../_static/spreadsheets/group-by.png
+
+The equivalent in pandas:
+We can use the `Group By <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html>`_ operation.
+For example -
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        [
+            ("bird", "Falconiformes", 389.0),
+            ("bird", "Psittaciformes", 24.0),
+            ("mammal", "Carnivora", 80.2),
+            ("mammal", "Primates", np.nan),
+            ("mammal", "Carnivora", 58),
+        ],
+        index=["falcon", "parrot", "lion", "monkey", "leopard"],
+        columns=("class", "order", "max_speed"),
+    )
+    df
+
+    # default is axis=0
+    grouped = df.groupby("class")
+    grouped = df.groupby("order", axis="columns")
+    grouped = df.groupby(["class", "order"])
+
 
 Other considerations
 --------------------

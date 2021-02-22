@@ -1318,7 +1318,7 @@ class TestSeriesConstructors:
             td.astype("int64")
 
         # invalid casting
-        msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to \[int32\]"
+        msg = r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to \[int32\]"
         with pytest.raises(TypeError, match=msg):
             td.astype("int32")
 

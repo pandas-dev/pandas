@@ -35,7 +35,7 @@ class TestIntervalIndex:
         tm.assert_series_equal(expected, indexer_sl(ser)[ser >= 2])
 
     @pytest.mark.parametrize("direction", ["increasing", "decreasing"])
-    def test_nonoverlapping_monotonic(self, direction, closed, indexer_sl):
+    def test_getitem_nonoverlapping_monotonic(self, direction, closed, indexer_sl):
         tpls = [(0, 1), (2, 3), (4, 5)]
         if direction == "decreasing":
             tpls = tpls[::-1]
@@ -60,7 +60,7 @@ class TestIntervalIndex:
         for key, expected in zip(idx.mid, ser):
             assert indexer_sl(ser)[key] == expected
 
-    def test_non_matching(self, series_with_interval_index, indexer_sl):
+    def test_getitem_non_matching(self, series_with_interval_index, indexer_sl):
         ser = series_with_interval_index.copy()
 
         # this is a departure from our current
@@ -72,7 +72,7 @@ class TestIntervalIndex:
             indexer_sl(ser)[[-1, 3]]
 
     @pytest.mark.arm_slow
-    def test_large_series(self):
+    def test_loc_getitem_large_series(self):
         ser = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))
         )
