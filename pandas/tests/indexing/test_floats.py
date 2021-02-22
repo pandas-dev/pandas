@@ -498,7 +498,6 @@ class TestFloatIndexers:
         assert s.loc[3] == 2
         assert s.iloc[3] == 3
 
-    @pytest.mark.parametrize("indexer_sl", [tm.getitem, tm.loc])
     def test_floating_misc(self, indexer_sl):
 
         # related 236

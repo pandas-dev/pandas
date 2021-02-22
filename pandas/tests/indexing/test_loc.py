@@ -756,7 +756,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[3:]
         tm.assert_series_equal(result.dtypes, expected)
 
-    @pytest.mark.parametrize("indexer_sl", [tm.setitem, tm.loc])
     def test_setitem_new_key_tz(self, indexer_sl):
         # GH#12862 should not raise on assigning the second value
         vals = [
