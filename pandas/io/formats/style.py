@@ -1466,7 +1466,14 @@ class Styler:
         if gmap is None:
             gmap = s.to_numpy(dtype=float)
         else:
-            gmap = np.asarray(gmap, dtype=float).reshape(s.shape)
+            try:
+                gmap = np.asarray(gmap, dtype=float).reshape(s.shape)
+            except ValueError:
+                raise ValueError(
+                    "supplied 'gmap' is not right shape for data over "
+                    f"selected 'axis': got {np.asarray(gmap).shape}, "
+                    f"expected {s.shape}"
+                )
         with _mpl(Styler.background_gradient) as (plt, colors):
             smin = np.nanmin(gmap) if vmin is None else vmin
             smax = np.nanmax(gmap) if vmax is None else vmax

@@ -2056,6 +2056,15 @@ class TestStylerMatplotlibDep:
         result = df.style.background_gradient(axis=axis, gmap=gmap)._compute().ctx
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "gmap, axis", [([1, 2, 3], 0), ([1, 2], 1), (np.array([[1, 2], [1, 2]]), None)]
+    )
+    def test_background_gradient_gmap_raises(self, gmap, axis):
+        df = DataFrame([[1, 2, 3], [1, 2, 3]])
+        msg = "supplied 'gmap' is not right shape"
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(gmap=gmap, axis=axis)._compute()
+
 
 def test_block_names():
     # catch accidental removal of a block
