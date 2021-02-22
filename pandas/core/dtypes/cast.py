@@ -1500,8 +1500,8 @@ def maybe_infer_to_datetimelike(
 
 
 def maybe_cast_to_datetime(
-    value: Union[ArrayLike, list], dtype: Optional[DtypeObj]
-) -> Union[ArrayLike, list]:
+    value: Union[ExtensionArray, np.ndarray, list], dtype: Optional[DtypeObj]
+) -> Union[ExtensionArray, np.ndarray, list]:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1599,6 +1599,8 @@ def maybe_cast_to_datetime(
             getattr(value, "dtype", None)
         ) and not is_datetime64_dtype(dtype):
             if is_object_dtype(dtype):
+                value = cast(np.ndarray, value)
+
                 if value.dtype != DT64NS_DTYPE:
                     value = value.astype(DT64NS_DTYPE)
                 ints = np.asarray(value).view("i8")
@@ -1607,20 +1609,20 @@ def maybe_cast_to_datetime(
             # we have a non-castable dtype that was passed
             raise TypeError(f"Cannot cast datetime64 to {dtype}")
 
-    else:
-
-        is_array = isinstance(value, np.ndarray)
-
-        # catch a datetime/timedelta that is not of ns variety
-        # and no coercion specified
-        if is_array and value.dtype.kind in ["M", "m"]:
+    elif isinstance(value, np.ndarray):
+        if value.dtype.kind in ["M", "m"]:
+            # catch a datetime/timedelta that is not of ns variety
+            # and no coercion specified
             value = sanitize_to_nanoseconds(value)
 
+        elif value.dtype == object:
+            value = maybe_infer_to_datetimelike(value)
+
+    else:
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
         # conversion
-        elif not is_array or value.dtype == object:
-            value = maybe_infer_to_datetimelike(value)
+        value = maybe_infer_to_datetimelike(value)
 
     return value
 
