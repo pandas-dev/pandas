@@ -384,7 +384,7 @@ A Row Operation does not require a Column, since data is grouped based on table 
 .. image:: ../../_static/spreadsheets/group-by.png
 
 The equivalent in pandas:
-We can use the `Group By <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html>`_ operation.
+We can use the `Group By operation <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html>`_ .
 For example -
 
 .. ipython:: python
