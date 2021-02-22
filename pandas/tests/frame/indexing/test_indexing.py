@@ -53,6 +53,8 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match="random"):
             float_frame["random"]
 
+    def test_getitem2(self, float_frame):
+
         df = float_frame.copy()
         df["$10"] = np.random.randn(len(df))
 
@@ -64,56 +66,6 @@ class TestDataFrameIndexing:
 
         res = df["@awesome_domain"]
         tm.assert_numpy_array_equal(ad, res.values)
-
-    def test_getitem_dupe_cols(self):
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
-        msg = "\"None of [Index(['baf'], dtype='object')] are in the [columns]\""
-        with pytest.raises(KeyError, match=re.escape(msg)):
-            df[["baf"]]
-
-    @pytest.mark.parametrize(
-        "idx_type",
-        [
-            list,
-            iter,
-            Index,
-            set,
-            lambda l: dict(zip(l, range(len(l)))),
-            lambda l: dict(zip(l, range(len(l)))).keys(),
-        ],
-        ids=["list", "iter", "Index", "set", "dict", "dict_keys"],
-    )
-    @pytest.mark.parametrize("levels", [1, 2])
-    def test_getitem_listlike(self, idx_type, levels, float_frame):
-        # GH 21294
-
-        if levels == 1:
-            frame, missing = float_frame, "food"
-        else:
-            # MultiIndex columns
-            frame = DataFrame(
-                np.random.randn(8, 3),
-                columns=Index(
-                    [("foo", "bar"), ("baz", "qux"), ("peek", "aboo")],
-                    name=("sth", "sth2"),
-                ),
-            )
-            missing = ("good", "food")
-
-        keys = [frame.columns[1], frame.columns[0]]
-        idx = idx_type(keys)
-        idx_check = list(idx_type(keys))
-
-        result = frame[idx]
-
-        expected = frame.loc[:, idx_check]
-        expected.columns.names = frame.columns.names
-
-        tm.assert_frame_equal(result, expected)
-
-        idx = idx_type(keys + [missing])
-        with pytest.raises(KeyError, match="not in index"):
-            frame[idx]
 
     def test_setitem_list(self, float_frame):
 
@@ -134,6 +86,8 @@ class TestDataFrameIndexing:
         )
         with pytest.raises(ValueError, match=msg):
             data["A"] = newcolumndata
+
+    def test_setitem_list2(self):
 
         df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
@@ -479,21 +433,6 @@ class TestDataFrameIndexing:
         df.loc[0] = np.nan
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_tuple(self, float_frame):
-        float_frame["A", "B"] = float_frame["A"]
-        assert ("A", "B") in float_frame.columns
-
-        result = float_frame["A", "B"]
-        expected = float_frame["A"]
-        tm.assert_series_equal(result, expected, check_names=False)
-
-    def test_setitem_always_copy(self, float_frame):
-        s = float_frame["A"].copy()
-        float_frame["E"] = s
-
-        float_frame["E"][5:10] = np.nan
-        assert notna(s[5:10]).all()
-
     def test_setitem_boolean(self, float_frame):
         df = float_frame.copy()
         values = float_frame.values
@@ -687,22 +626,6 @@ class TestDataFrameIndexing:
         assert len(dm.columns) == 3
         assert dm[2].dtype == np.object_
 
-    def test_setitem_clear_caches(self):
-        # see gh-304
-        df = DataFrame(
-            {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
-        )
-        df.insert(2, "z", np.nan)
-
-        # cache it
-        foo = df["z"]
-        df.loc[df.index[2:], "z"] = 42
-
-        expected = Series([np.nan, np.nan, 42, 42], index=df.index, name="z")
-
-        assert df["z"] is not foo
-        tm.assert_series_equal(df["z"], expected)
-
     def test_setitem_None(self, float_frame):
         # GH #766
         float_frame[None] = float_frame["A"]
@@ -725,17 +648,6 @@ class TestDataFrameIndexing:
         result.loc[result.b.isna(), "a"] = result.a
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.parametrize("dtype", ["float", "int64"])
-    @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
-    def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
-        # see gh-10126
-        kwargs["dtype"] = dtype
-        df = DataFrame(**kwargs)
-
-        df2 = df.copy()
-        df[df > df2] = 47
-        tm.assert_frame_equal(df, df2)
-
     def test_setitem_with_empty_listlike(self):
         # GH #17101
         index = Index([], name="idx")
@@ -743,13 +655,6 @@ class TestDataFrameIndexing:
         result["A"] = []
         expected = DataFrame(columns=["A"], index=index)
         tm.assert_index_equal(result.index, expected.index)
-
-    def test_setitem_scalars_no_index(self):
-        # GH16823 / 17894
-        df = DataFrame()
-        df["foo"] = 1
-        expected = DataFrame(columns=["foo"]).astype(np.int64)
-        tm.assert_frame_equal(df, expected)
 
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -1218,17 +1123,6 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=msg):
             df.loc[True] = 0
 
-    def test_getitem_list_duplicates(self):
-        # #1943
-        df = DataFrame(np.random.randn(4, 4), columns=list("AABC"))
-        df.columns.name = "foo"
-
-        result = df[["B", "C"]]
-        assert result.columns.name == "foo"
-
-        expected = df.iloc[:, 2:]
-        tm.assert_frame_equal(result, expected)
-
     # TODO: rename?  remove?
     def test_single_element_ix_dont_upcast(self, float_frame):
         float_frame["E"] = 1
@@ -1628,9 +1522,11 @@ class TestDataFrameIndexingUInt64:
         idx = df["A"].rename("foo")
 
         # setitem
+        assert "C" not in df.columns
         df["C"] = idx
         tm.assert_series_equal(df["C"], Series(idx, name="C"))
 
+        assert "D" not in df.columns
         df["D"] = "foo"
         df["D"] = idx
         tm.assert_series_equal(df["D"], Series(idx, name="D"))

@@ -580,6 +580,25 @@ class TestDataFrameSetItemWithExpansion:
         ser.name = "E"
         tm.assert_series_equal(result2.sort_index(), ser.sort_index())
 
+    def test_setitem_scalars_no_index(self):
+        # GH#16823 / GH#17894
+        df = DataFrame()
+        df["foo"] = 1
+        expected = DataFrame(columns=["foo"]).astype(np.int64)
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_newcol_tuple_key(self, float_frame):
+        assert (
+            "A",
+            "B",
+        ) not in float_frame.columns
+        float_frame["A", "B"] = float_frame["A"]
+        assert ("A", "B") in float_frame.columns
+
+        result = float_frame["A", "B"]
+        expected = float_frame["A"]
+        tm.assert_series_equal(result, expected, check_names=False)
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):
@@ -658,3 +677,40 @@ class TestDataFrameSetItemBooleanMask:
         df[mask] = ["b", 2]
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
+
+    @pytest.mark.parametrize("dtype", ["float", "int64"])
+    @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
+    def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
+        # see GH#10126
+        kwargs["dtype"] = dtype
+        df = DataFrame(**kwargs)
+
+        df2 = df.copy()
+        df[df > df2] = 47
+        tm.assert_frame_equal(df, df2)
+
+
+class TestDataFrameSetitemCopyViewSemantics:
+    def test_setitem_always_copy(self, float_frame):
+        assert "E" not in float_frame.columns
+        s = float_frame["A"].copy()
+        float_frame["E"] = s
+
+        float_frame["E"][5:10] = np.nan
+        assert notna(s[5:10]).all()
+
+    def test_setitem_clear_caches(self):
+        # see GH#304
+        df = DataFrame(
+            {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
+        )
+        df.insert(2, "z", np.nan)
+
+        # cache it
+        foo = df["z"]
+        df.loc[df.index[2:], "z"] = 42
+
+        expected = Series([np.nan, np.nan, 42, 42], index=df.index, name="z")
+
+        assert df["z"] is not foo
+        tm.assert_series_equal(df["z"], expected)
