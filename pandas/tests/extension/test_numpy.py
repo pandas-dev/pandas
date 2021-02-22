@@ -189,11 +189,6 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         # AssertionError
         super().test_getitem_scalar(data)
 
-    @skip_nested
-    def test_take_series(self, data):
-        # ValueError: PandasArray must be 1-dimensional.
-        super().test_take_series(data)
-
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     def test_groupby_extension_apply(
@@ -223,13 +218,6 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         super().test_shift_fill_value(data)
 
     @skip_nested
-    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
-    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
-    def test_unique(self, data, box, method):
-        # Fails creating expected
-        super().test_unique(data, box, method)
-
-    @skip_nested
     def test_fillna_copy_frame(self, data_missing):
         # The "scalar" for this array isn't a scalar.
         super().test_fillna_copy_frame(data_missing)
@@ -244,30 +232,9 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         # Test setup fails.
         super().test_searchsorted(data_for_sorting, as_series)
 
-    @skip_nested
-    def test_where_series(self, data, na_value, as_frame):
-        # Test setup fails.
-        super().test_where_series(data, na_value, as_frame)
-
-    @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
-    def test_repeat(self, data, repeats, as_series, use_numpy, request):
-        if data.dtype.numpy_dtype == object and repeats != 0:
-            mark = pytest.mark.xfail(reason="mask shapes mismatch")
-            request.node.add_marker(mark)
-        super().test_repeat(data, repeats, as_series, use_numpy)
-
     @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
-
-    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
-    def test_equals(self, data, na_value, as_series, box, request):
-        # Fails creating with _from_sequence
-        if box is pd.DataFrame and data.dtype.numpy_dtype == object:
-            mark = pytest.mark.xfail(reason="AssertionError in _get_same_shape_values")
-            request.node.add_marker(mark)
-
-        super().test_equals(data, na_value, as_series, box)
 
 
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
@@ -289,8 +256,11 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
-    @skip_nested
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+        opname = all_arithmetic_operators
+        if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
+            mark = pytest.mark.xfail(reason="Fails for object dtype")
+            request.node.add_marker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
     @skip_nested
@@ -326,11 +296,6 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
         super().test_fillna_scalar(data_missing)
 
     @skip_nested
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        # Non-scalar "scalar" values.
-        super().test_fillna_series_method(data_missing, fillna_method)
-
-    @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_series(data_missing)
@@ -357,20 +322,6 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
     def test_merge(self, data, na_value):
         # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
-
-    @skip_nested
-    def test_merge_on_extension_array(self, data):
-        # Fails creating expected
-        super().test_merge_on_extension_array(data)
-
-    @skip_nested
-    def test_merge_on_extension_array_duplicates(self, data):
-        # Fails creating expected
-        super().test_merge_on_extension_array_duplicates(data)
-
-    @skip_nested
-    def test_transpose_frame(self, data):
-        super().test_transpose_frame(data)
 
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
