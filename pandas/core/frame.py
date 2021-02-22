@@ -4035,7 +4035,7 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     value = com.asarray_tuplesafe(value)
             elif isinstance(value, Index):
-                value = value.copy(deep=True)
+                value = value.copy(deep=True)._values
             else:
                 value = value.copy()
 

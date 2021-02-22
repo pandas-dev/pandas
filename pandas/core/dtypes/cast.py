@@ -1422,7 +1422,7 @@ def maybe_infer_to_datetimelike(
     v = np.array(v, copy=False)
 
     # we only care about object dtypes
-    if not is_object_dtype(v):
+    if not is_object_dtype(v.dtype):
         return value
 
     shape = v.shape
@@ -1500,7 +1500,7 @@ def maybe_infer_to_datetimelike(
 
 
 def maybe_cast_to_datetime(
-    raw_value: Union[ArrayLike, list], dtype: Optional[DtypeObj]
+    value: Union[ArrayLike, list], dtype: Optional[DtypeObj]
 ) -> Union[ArrayLike, list]:
     """
     try to cast the array/value to a datetimelike dtype, converting float
@@ -1509,12 +1509,8 @@ def maybe_cast_to_datetime(
     from pandas.core.tools.datetimes import to_datetime
     from pandas.core.tools.timedeltas import to_timedelta
 
-    if not is_list_like(raw_value):
+    if not is_list_like(value):
         raise TypeError("value must be listlike")
-    elif isinstance(raw_value, list):
-        value = np.array(raw_value, copy=False)
-    else:
-        value = raw_value
 
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
@@ -1569,26 +1565,28 @@ def maybe_cast_to_datetime(
 
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors="raise")
+                            dti = to_datetime(value, errors="raise")
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
-                            if value.tz is not None:
-                                value = value.tz_localize(None)
-                            value = value._values
+                            if dti.tz is not None:
+                                dti = dti.tz_localize(None)
+                            value = dti._values
                         elif is_datetime64tz:
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
-                            value = to_datetime(value, errors="raise").array
-                            if is_dt_string:
+                            dta = to_datetime(value, errors="raise").array
+                            if dta.tz is not None:
+                                value = dta.astype(dtype, copy=False)
+                            elif is_dt_string:
                                 # Strings here are naive, so directly localize
-                                value = value.tz_localize(dtype.tz)
+                                value = dta.tz_localize(dtype.tz)
                             else:
                                 # Numeric values are UTC at this point,
                                 # so localize and convert
-                                value = value.tz_localize("UTC").tz_convert(dtype.tz)
+                                value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                         elif is_timedelta64:
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
@@ -1621,12 +1619,7 @@ def maybe_cast_to_datetime(
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
         # conversion
-        elif not (
-            is_array
-            and not (
-                issubclass(value.dtype.type, np.integer) or value.dtype == np.object_
-            )
-        ):
+        elif not is_array or value.dtype == object:
             value = maybe_infer_to_datetimelike(value)
 
     return value
