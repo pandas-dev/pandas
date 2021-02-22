@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
@@ -181,28 +182,36 @@ class TestStylerMatplotlibDep:
         assert result[(1, 0)] == [("background-color", "#fff7fb"), ("color", "#000000")]
 
     @pytest.mark.parametrize(
-        "c_map,expected",
+        "cmap, expected",
         [
             (
-                None,
+                "PuBu",
                 {
-                    (0, 0): [("background-color", "#440154"), ("color", "#f1f1f1")],
-                    (1, 0): [("background-color", "#fde725"), ("color", "#000000")],
+                    (4, 5): [("background-color", "#86b0d3"), ("color", "#000000")],
+                    (4, 6): [("background-color", "#83afd3"), ("color", "#f1f1f1")],
                 },
             ),
             (
                 "YlOrRd",
                 {
-                    (0, 0): [("background-color", "#ffffcc"), ("color", "#000000")],
-                    (1, 0): [("background-color", "#800026"), ("color", "#f1f1f1")],
+                    (4, 8): [("background-color", "#fd913e"), ("color", "#000000")],
+                    (4, 9): [("background-color", "#fd8f3d"), ("color", "#f1f1f1")],
+                },
+            ),
+            (
+                None,
+                {
+                    (7, 0): [("background-color", "#48c16e"), ("color", "#f1f1f1")],
+                    (7, 1): [("background-color", "#4cc26c"), ("color", "#000000")],
                 },
             ),
         ],
     )
-    def test_text_color_threshold(self, c_map, expected):
-        df = DataFrame([1, 2], columns=["A"])
-        result = df.style.background_gradient(cmap=c_map)._compute().ctx
-        assert result == expected
+    def test_text_color_threshold(self, cmap, expected):
+        df = DataFrame(np.arange(100).reshape(10, 10))
+        result = df.style.background_gradient(cmap=cmap, axis=None)._compute().ctx
+        for k in expected.keys():
+            assert result[k] == expected[k]
 
     @pytest.mark.parametrize("text_color_threshold", [1.1, "1", -1, [2, 2]])
     def test_text_color_threshold_raises(self, text_color_threshold):
