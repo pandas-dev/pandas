@@ -4063,7 +4063,7 @@ class DataFrame(NDFrame, OpsMixin):
         return value
 
     @property
-    def _series(self) -> Dict[IndexLabel, Series]:
+    def _series(self):
         return {
             item: Series(
                 self._mgr.iget(idx), index=self.index, name=item, fastpath=True
