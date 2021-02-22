@@ -1,7 +1,6 @@
 import operator
 import re
 
-from numba import NumbaWarning
 import numpy as np
 import pytest
 
@@ -194,8 +193,7 @@ wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
 frame_kernels_raise = [x for x in frame_kernels if x not in wont_fail]
 
 
-# mypy doesn't allow adding lists of different types
-# https://github.com/python/mypy/issues/5492
+@pytest.mark.xfail(strict=False)
 @pytest.mark.parametrize("op", [*frame_kernels_raise, lambda x: x + 1])
 def test_transform_bad_dtype(op, frame_or_series):
     # GH 35964
@@ -206,7 +204,7 @@ def test_transform_bad_dtype(op, frame_or_series):
     msg = "Transform function failed"
 
     # tshift is deprecated
-    warn = NumbaWarning if op != "tshift" else FutureWarning
+    warn = None if op != "tshift" else FutureWarning
     with tm.assert_produces_warning(warn):
         with pytest.raises(ValueError, match=msg):
             obj.transform(op)

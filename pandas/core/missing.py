@@ -707,7 +707,8 @@ def _backfill_1d(values, limit=None, mask=None):
 
 
 def _pad_2d(values, limit=None, mask=None):
-    values, mask = _fillna_prep(values, mask)
+    if mask is None:
+        mask = isna(values)
 
     if np.all(values.shape):
         algos_numba.pad_2d_inplace(values, mask, limit=limit)
@@ -718,14 +719,9 @@ def _pad_2d(values, limit=None, mask=None):
 
 
 def _backfill_2d(values, limit=None, mask=None):
-    values, mask = _fillna_prep(values, mask)
-
-    if np.all(values.shape):
-        algos.backfill_2d_inplace(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
-    return values
+    if mask is not None:
+        mask = mask[:, ::-1]
+    return _pad_2d(values[:, ::-1], limit, mask)[:, ::-1]
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
