@@ -36,8 +36,7 @@ _slice_iloc_msg = re.escape(
 
 class TestiLoc(Base):
     @pytest.mark.parametrize("key", [2, -1, [0, 1, 2]])
-    def test_iloc_getitem_int(self, key):
-        # integer
+    def test_iloc_getitem_int_and_list_int(self, key):
         self.check_result(
             "iloc",
             key,

@@ -756,8 +756,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[3:]
         tm.assert_series_equal(result.dtypes, expected)
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc])
-    def test_setitem_new_key_tz(self, indexer):
+    @pytest.mark.parametrize("indexer_sl", [tm.setitem, tm.loc])
+    def test_setitem_new_key_tz(self, indexer_sl):
         # GH#12862 should not raise on assigning the second value
         vals = [
             pd.to_datetime(42).tz_localize("UTC"),
@@ -766,8 +766,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = Series(vals, index=["foo", "bar"])
 
         ser = Series(dtype=object)
-        indexer(ser)["foo"] = vals[0]
-        indexer(ser)["bar"] = vals[1]
+        indexer_sl(ser)["foo"] = vals[0]
+        indexer_sl(ser)["bar"] = vals[1]
 
         tm.assert_series_equal(ser, expected)
 
@@ -1562,15 +1562,15 @@ class TestLabelSlicing:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "ix",
+        "index",
         [
             pd.period_range(start="2017-01-01", end="2018-01-01", freq="M"),
             timedelta_range(start="1 day", end="2 days", freq="1H"),
         ],
     )
-    def test_loc_getitem_label_slice_period(self, ix):
-        ser = ix.to_series()
-        result = ser.loc[: ix[-2]]
+    def test_loc_getitem_label_slice_period_timedelta(self, index):
+        ser = index.to_series()
+        result = ser.loc[: index[-2]]
         expected = ser.iloc[:-1]
 
         tm.assert_series_equal(result, expected)
