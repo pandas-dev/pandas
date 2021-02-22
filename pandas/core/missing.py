@@ -710,7 +710,7 @@ def _pad_2d(values, limit=None, mask=None):
     values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
-        algos.pad_2d_inplace(values, mask, limit=limit)
+        algos_numba.pad_2d_inplace(values, mask, limit=limit)
     else:
         # for test coverage
         pass

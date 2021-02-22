@@ -620,34 +620,49 @@ def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) ->
             val = values[i]
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
-#     cdef:
-#         Py_ssize_t i, j, N, K
-#         algos_t val
-#         int lim, fill_count = 0
+def pad_2d_inplace(
+    values: np.ndarray, mask: np.ndarray, limit: int | None = None
+) -> None:
+    _validate_limit(limit)
+    _pad_2d_inplace(values, mask, limit)
 
-#     K, N = (<object>values).shape
 
-#     # GH#2778
-#     if N == 0:
-#         return
+@numba.jit
+def _pad_2d_inplace(values, mask, limit=None):
+    if values.shape[1]:
+        if limit is None:
+            _pad_2d_inplace_no_limit(values, mask)
+        else:
+            _pad_2d_inplace_with_limit(values, mask, limit)
 
-#     lim = validate_limit(N, limit)
 
-#     for j in range(K):
-#         fill_count = 0
-#         val = values[j, 0]
-#         for i in range(N):
-#             if mask[j, i]:
-#                 if fill_count >= lim:
-#                     continue
-#                 fill_count += 1
-#                 values[j, i] = val
-#             else:
-#                 fill_count = 0
-#                 val = values[j, i]
+@numba.jit
+def _pad_2d_inplace_no_limit(values, mask):
+    K, N = values.shape
+    for j in range(K):
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+
+
+@numba.jit
+def _pad_2d_inplace_with_limit(values, mask, limit):
+    K, N = values.shape
+    for j in range(K):
+        fill_count = 0
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                if fill_count >= limit:
+                    continue
+                fill_count += 1
+                values[j, i] = val
+            else:
+                fill_count = 0
+                val = values[j, i]
 
 
 # """

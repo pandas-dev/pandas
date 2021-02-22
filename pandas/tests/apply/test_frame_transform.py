@@ -1,6 +1,7 @@
 import operator
 import re
 
+from numba import NumbaWarning
 import numpy as np
 import pytest
 
@@ -205,7 +206,7 @@ def test_transform_bad_dtype(op, frame_or_series):
     msg = "Transform function failed"
 
     # tshift is deprecated
-    warn = None if op != "tshift" else FutureWarning
+    warn = NumbaWarning if op != "tshift" else FutureWarning
     with tm.assert_produces_warning(warn):
         with pytest.raises(ValueError, match=msg):
             obj.transform(op)
