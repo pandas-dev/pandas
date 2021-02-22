@@ -4014,7 +4014,7 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, value):
+    def _sanitize_column(self, value) -> ArrayLike:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
@@ -4025,7 +4025,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray or ExtensionArray
         """
         self._ensure_valid_index(value)
 
@@ -4039,7 +4039,7 @@ class DataFrame(NDFrame, OpsMixin):
             value = value.copy()
             value = sanitize_index(value, self.index)
 
-        elif isinstance(value, Index) or is_sequence(value):
+        elif is_sequence(value):
 
             # turn me into an ndarray
             value = sanitize_index(value, self.index)
@@ -4049,7 +4049,7 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     value = com.asarray_tuplesafe(value)
             elif isinstance(value, Index):
-                value = value.copy(deep=True)
+                value = value.copy(deep=True)._values
             else:
                 value = value.copy()
 
