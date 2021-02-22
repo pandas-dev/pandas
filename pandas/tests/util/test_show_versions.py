@@ -38,6 +38,7 @@ def get_captured_output(capsys):
 )
 @pytest.mark.filterwarnings("ignore:Setuptools is replacing distutils:UserWarning")
 def test_show_versions(tmpdir):
+    # GH39701
     as_json = os.path.join(tmpdir, "test_output.json")
 
     pd.show_versions(as_json=as_json)
@@ -56,11 +57,12 @@ def test_show_versions(tmpdir):
 
 
 def test_show_versions_console_json(capsys):
+    # GH39701
     pd.show_versions(as_json=True)
-    result = get_captured_output(capsys)
+    stdout = capsys.readouterr().out
 
     # check valid json is printed to the console if as_json is True
-    result = json.loads(result)
+    result = json.loads(stdout)
 
     # Basic check that each version element is found in output
     expected = {
@@ -73,8 +75,9 @@ def test_show_versions_console_json(capsys):
 
 def test_show_versions_console(capsys):
     # gh-32041
+    # GH39701
     pd.show_versions(as_json=False)
-    result = get_captured_output(capsys)
+    result = capsys.readouterr().out
 
     # check header
     assert "INSTALLED VERSIONS" in result
@@ -91,8 +94,9 @@ def test_show_versions_console(capsys):
 
 
 def test_json_output_match(capsys, tmpdir):
+    # GH39701
     pd.show_versions(as_json=True)
-    result_console = get_captured_output(capsys)
+    result_console = capsys.readouterr().out
 
     out_path = os.path.join(tmpdir, "test_json.json")
     pd.show_versions(as_json=out_path)
