@@ -258,13 +258,13 @@ class FloatingArray(NumericArray):
         super().__init__(values, mask, copy=copy)
 
     def __neg__(self):
-        return type(self)(-self._data, self._mask)
+        return type(self)(-self._data, self._mask.copy())
 
     def __pos__(self):
-        return self
+        return self.copy()
 
     def __abs__(self):
-        return type(self)(abs(self._data), self._mask)
+        return type(self)(abs(self._data), self._mask.copy())
 
     @classmethod
     def _from_sequence(
