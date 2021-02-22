@@ -186,6 +186,15 @@ class TestSetitemBooleanMask:
         ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length(self):
+        # GH#30567
+        ser = Series([None] * 10)
+        mask = [False] * 3 + [True] * 5 + [False] * 2
+        ser[mask] = range(5)
+        result = ser
+        expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        tm.assert_series_equal(result, expected)
+
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):

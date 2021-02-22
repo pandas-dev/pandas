@@ -466,7 +466,7 @@ class Styler:
                     }
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
-                        es["attributes"] = [f'colspan="{colspan}"']
+                        es["attributes"] = f'colspan="{colspan}"'
                     row_es.append(es)
                 head.append(row_es)
 
@@ -517,7 +517,7 @@ class Styler:
                 }
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
-                    es["attributes"] = [f'rowspan="{rowspan}"']
+                    es["attributes"] = f'rowspan="{rowspan}"'
                 row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
@@ -529,6 +529,7 @@ class Styler:
                     "value": value,
                     "display_value": formatter(value),
                     "is_visible": (c not in hidden_columns),
+                    "attributes": "",
                 }
 
                 # only add an id if the cell has a style
@@ -1427,7 +1428,7 @@ class Styler:
                     The relative luminance as a value from 0 to 1
                 """
                 r, g, b = (
-                    x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055 ** 2.4)
+                    x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
                     for x in rgba[:3]
                 )
                 return 0.2126 * r + 0.7152 * g + 0.0722 * b
