@@ -2,6 +2,8 @@ import pytest
 
 from pandas import DataFrame
 
+pytest.importorskip("jinja2")
+
 
 def bar_grad(a=None, b=None, c=None, d=None):
     """Used in multiple tests to simplify formatting of expected result"""

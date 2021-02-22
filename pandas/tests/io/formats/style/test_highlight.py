@@ -1,6 +1,9 @@
 import numpy as np
+import pytest
 
 from pandas import DataFrame
+
+pytest.importorskip("jinja2")
 
 
 class TestStylerHighlight:

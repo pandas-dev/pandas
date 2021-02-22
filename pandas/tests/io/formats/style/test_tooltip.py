@@ -3,7 +3,7 @@ import pytest
 
 from pandas import DataFrame
 
-jinja2 = pytest.importorskip("jinja2")
+pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 
 

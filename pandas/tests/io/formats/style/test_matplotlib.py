@@ -8,6 +8,7 @@ from pandas import (
 )
 
 pytest.importorskip("matplotlib")
+pytest.importorskip("jinja2")
 
 
 class TestStylerMatplotlibDep:
