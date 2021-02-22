@@ -1423,7 +1423,7 @@ class Styler:
         .. figure:: ../../_static/style/bg_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
-        explicitly state the numeric columns here to match the gmap shape
+        explicitly state the numeric columns here to match the ``gmap`` shape
 
         >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
         >>> df.style.background_gradient(axis=None, gmap=gmap,
