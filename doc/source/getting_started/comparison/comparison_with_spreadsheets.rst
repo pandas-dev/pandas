@@ -378,7 +378,7 @@ Power Query has two types of Group By operations:
 * Aggregate a column with an aggregate function
 * Perform a row operation
 
-To aggregate a column, select the column to perform the Aggregate Operation on from the Column drop-down. 
+To aggregate a column, select the column to perform the Aggregate Operation on from the Column drop-down.
 A Row Operation does not require a Column, since data is grouped based on table rows.
 
 .. image:: ../../_static/spreadsheets/group-by.png
@@ -406,7 +406,6 @@ For example -
     grouped = df.groupby("class")
     grouped = df.groupby("order", axis="columns")
     grouped = df.groupby(["class", "order"])
-
 
 Other considerations
 --------------------
