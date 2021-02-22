@@ -320,7 +320,7 @@ def test_abs_nullable_int(any_signed_nullable_int_dtype, source, target):
 
 
 @pytest.mark.parametrize("op", ["__neg__", "__abs__"])
-def test_unary_op_does_not_propagate_mask_on_assignment(op):
+def test_unary_op_does_not_propagate_mask(op):
     # https://github.com/pandas-dev/pandas/issues/39943
     s = pd.Series([1, 2, 3], dtype="Int64")
     result = getattr(s, op)()
