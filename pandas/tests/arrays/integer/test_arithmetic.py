@@ -317,3 +317,13 @@ def test_abs_nullable_int(any_signed_nullable_int_dtype, source, target):
     result = abs(s)
     expected = pd.array(target, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["__neg__", "__abs__"])
+def test_unary_op_does_not_propagate_mask_on_assignment(op):
+    # https://github.com/pandas-dev/pandas/issues/39943
+    s = pd.Series([1, 2, 3], dtype="Int64")
+    result = getattr(s, op)()
+    expected = result.copy(deep=True)
+    s[0] = None
+    tm.assert_series_equal(result, expected)
