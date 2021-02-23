@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
+    NaT,
     Series,
     TimedeltaIndex,
     timedelta_range,
@@ -43,7 +43,7 @@ class TestTimedeltaIndexOps:
                 "1 days 09:00:00",
                 "1 days 08:00:00",
                 "1 days 08:00:00",
-                pd.NaT,
+                NaT,
             ]
         )
 
@@ -53,7 +53,7 @@ class TestTimedeltaIndexOps:
         for obj in [idx, Series(idx)]:
             tm.assert_series_equal(obj.value_counts(), expected)
 
-        exp_idx = TimedeltaIndex(["1 days 09:00:00", "1 days 08:00:00", pd.NaT])
+        exp_idx = TimedeltaIndex(["1 days 09:00:00", "1 days 08:00:00", NaT])
         expected = Series([3, 2, 1], index=exp_idx)
 
         for obj in [idx, Series(idx)]:
@@ -191,34 +191,9 @@ class TestTimedeltaIndexOps:
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
 
-    def test_repeat(self):
-        index = timedelta_range("1 days", periods=2, freq="D")
-        exp = TimedeltaIndex(["1 days", "1 days", "2 days", "2 days"])
-        for res in [index.repeat(2), np.repeat(index, 2)]:
-            tm.assert_index_equal(res, exp)
-            assert res.freq is None
-
-        index = TimedeltaIndex(["1 days", "NaT", "3 days"])
-        exp = TimedeltaIndex(
-            [
-                "1 days",
-                "1 days",
-                "1 days",
-                "NaT",
-                "NaT",
-                "NaT",
-                "3 days",
-                "3 days",
-                "3 days",
-            ]
-        )
-        for res in [index.repeat(3), np.repeat(index, 3)]:
-            tm.assert_index_equal(res, exp)
-            assert res.freq is None
-
     def test_nat(self):
-        assert TimedeltaIndex._na_value is pd.NaT
-        assert TimedeltaIndex([])._na_value is pd.NaT
+        assert TimedeltaIndex._na_value is NaT
+        assert TimedeltaIndex([])._na_value is NaT
 
         idx = TimedeltaIndex(["1 days", "2 days"])
         assert idx._can_hold_na
