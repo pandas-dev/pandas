@@ -100,9 +100,7 @@ def ignore_na(request):
 
 @pytest.fixture(
     params=[
-        pytest.param(
-            "numba", marks=td.skip_if_no("numba", "0.46.0")
-        ),  # type: ignore[list-item]
+        pytest.param("numba", marks=td.skip_if_no("numba", "0.46.0")),
         "cython",
     ]
 )
@@ -318,7 +316,7 @@ def halflife_with_times(request):
         "float64",
         "m8[ns]",
         "M8[ns]",
-        pytest.param(  # type: ignore[list-item]
+        pytest.param(
             "datetime64[ns, UTC]",
             marks=pytest.mark.skip(
                 "direct creation of extension dtype datetime64[ns, UTC] "

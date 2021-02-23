@@ -14,13 +14,8 @@ skip_if_no_pyarrow = td.skip_if_no("pyarrow", min_version="1.0.0")
 
 @pytest.fixture(
     params=[
-        # pandas\tests\arrays\string_\test_string.py:16: error: List item 1 has
-        # incompatible type "ParameterSet"; expected
-        # "Sequence[Collection[object]]"  [list-item]
         "string",
-        pytest.param(
-            "arrow_string", marks=skip_if_no_pyarrow
-        ),  # type:ignore[list-item]
+        pytest.param("arrow_string", marks=skip_if_no_pyarrow),
     ]
 )
 def dtype(request):
