@@ -1921,10 +1921,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return RollingGroupby(
             self._selected_obj,
             *args,
-            _grouping_indices=self.grouper.indices,
-            _grouping_keys=self.grouper.names,
-            _grouping_codes=self.grouper.codes,
-            _grouping_levels=self.grouper.levels,
+            _grouper=self.grouper,
             **kwargs,
         )
 
@@ -1941,10 +1938,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return ExpandingGroupby(
             self._selected_obj,
             *args,
-            _grouping_indices=self.grouper.indices,
-            _grouping_keys=self.grouper.names,
-            _grouping_codes=self.grouper.codes,
-            _grouping_levels=self.grouper.levels,
+            _grouper=self.grouper,
             **kwargs,
         )
 
@@ -1960,10 +1954,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return ExponentialMovingWindowGroupby(
             self._selected_obj,
             *args,
-            _grouping_indices=self.grouper.indices,
-            _grouping_keys=self.grouper.names,
-            _grouping_codes=self.grouper.codes,
-            _grouping_levels=self.grouper.levels,
+            _grouper=self.grouper,
             **kwargs,
         )
 

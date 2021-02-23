@@ -576,7 +576,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._grouping_indices,
+            groupby_indicies=self._grouper.indices,
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
