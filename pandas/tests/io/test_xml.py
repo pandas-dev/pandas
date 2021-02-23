@@ -21,7 +21,9 @@ CHECK LIST
 [x] - ValueError: "Values for parser can only be lxml or etree."
 
 etree
-[x] - ImportError: "lxml not found, please install or use the etree parser."
+[X] - ImportError: "lxml not found, please install or use the etree parser."
+[X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
+[X] - TypeError: "expected str, bytes or os.PathLike object, not type"
 [X] - ValueError: "Either element or attributes can be parsed not both."
 [X] - ValueError: "xpath does not return any nodes..."
 [X] - SyntaxError: "You have used an incorrect or unsupported XPath"
@@ -43,6 +45,8 @@ etree
 
 lxml
 [X] - ValueError: "Either element or attributes can be parsed not both."
+[X] - TypeError: "cannot parse from 'NoneType'"
+[X] - TypeError: "cannot parse from 'type'"
 [X] - XSLTApplyError: "Cannot resolve URI"
 [X] - XSLTParseError: "document is not a stylesheet"
 [X] - ValueError: "xpath does not return any nodes."
@@ -235,26 +239,54 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
 
 
 @td.skip_if_no("lxml")
-def test_wrong_file_path_lxml(datapath):
+def test_wrong_file_path_lxml():
     from lxml.etree import XMLSyntaxError
+
+    filename = os.path.join("data", "html", "books.xml")
 
     with pytest.raises(
         XMLSyntaxError,
         match=("Start tag expected, '<' not found"),
     ):
-        filename = os.path.join("data", "html", "books.xml")
         read_xml(filename, parser="lxml")
 
 
-def test_wrong_file_path_etree(datapath):
+def test_wrong_file_path_etree():
     from xml.etree.ElementTree import ParseError
+
+    filename = os.path.join("data", "html", "books.xml")
 
     with pytest.raises(
         ParseError,
         match=("not well-formed"),
     ):
-        filename = os.path.join("data", "html", "books.xml")
         read_xml(filename, parser="etree")
+
+
+@td.skip_if_no("lxml")
+def test_none_path_buffer_lxml(parser):
+    with pytest.raises(TypeError, match=("cannot parse from 'NoneType'")):
+        read_xml(None, parser="lxml")
+
+
+def test_none_path_buffer_etree(parser):
+    with pytest.raises(
+        TypeError, match=("expected str, bytes or os.PathLike object, not NoneType")
+    ):
+        read_xml(None, parser="etree")
+
+
+@td.skip_if_no("lxml")
+def test_not_path_buffer_lxml(parser):
+    with pytest.raises(TypeError, match=("cannot parse from 'type'")):
+        read_xml(DataFrame, parser="lxml")
+
+
+def test_not_path_buffer_etree(parser):
+    with pytest.raises(
+        TypeError, match=("expected str, bytes or os.PathLike object, not type")
+    ):
+        read_xml(DataFrame, parser="etree")
 
 
 @tm.network
@@ -870,6 +902,14 @@ def test_wrong_stylesheet():
         match=("Start tag expected, '<' not found"),
     ):
         read_xml(kml, stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+def test_stylesheet_not_path_buffer():
+    kml = os.path.join("data", "xml", "cta_rail_lines.kml")
+
+    with pytest.raises(TypeError, match=("cannot parse from 'type'")):
+        read_xml(kml, stylesheet=DataFrame)
 
 
 def test_stylesheet_with_etree(datapath):

@@ -1076,9 +1076,7 @@ def test_stylesheet_wrong_path(datapath):
 
 @td.skip_if_no("lxml")
 def test_stylesheet_not_path_buffer():
-    with pytest.raises(
-        TypeError, match=("argument of type 'function' is not iterable")
-    ):
+    with pytest.raises(TypeError, match=("cannot parse from 'type'")):
         geom_df.to_xml(stylesheet=DataFrame)
 
 

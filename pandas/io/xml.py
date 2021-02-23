@@ -199,7 +199,11 @@ class _XMLFrameParser:
         It returns input types (2) and (3) unchanged.
         """
         filepath_or_buffer = stringify_path(filepath_or_buffer)
+
         if (
+            isinstance(filepath_or_buffer, str)
+            and not filepath_or_buffer.startswith(("<?xml", "<"))
+        ) and (
             not isinstance(filepath_or_buffer, str)
             or is_url(filepath_or_buffer)
             or is_fsspec_url(filepath_or_buffer)
@@ -394,8 +398,7 @@ class _EtreeFrameParser(_XMLFrameParser):
     def _validate_names(self) -> None:
         if self.names:
             parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
-            if parent:
-                children = parent.findall("*")
+            children = parent.findall("*") if parent else []
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):
@@ -412,11 +415,6 @@ class _EtreeFrameParser(_XMLFrameParser):
             XMLParser,
             parse,
         )
-
-        if isinstance(self.path_or_buffer, str) and self.path_or_buffer.startswith(
-            ("<?xml", "<")
-        ):
-            self.path_or_buffer = self.path_or_buffer.encode(self.encoding)
 
         handle_data = self._get_data_from_filepath(self.path_or_buffer)
         self.xml_data = self._preprocess_data(handle_data)
@@ -611,9 +609,6 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
 
-        if isinstance(raw_doc, str) and raw_doc.startswith(("<?xml", "<")):
-            raw_doc = raw_doc.encode(self.encoding)
-
         handle_data = self._get_data_from_filepath(raw_doc)
         xml_data = self._preprocess_data(handle_data)
 
@@ -623,7 +618,7 @@ class _LxmlFrameParser(_XMLFrameParser):
             r = fromstring(
                 xml_data.getvalue().encode(self.encoding), parser=curr_parser
             )
-        elif isinstance(xml_data, io.BytesIO):
+        else:
             r = parse(xml_data, parser=curr_parser)
 
         return r

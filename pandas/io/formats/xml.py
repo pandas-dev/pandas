@@ -277,7 +277,11 @@ class BaseXMLFormatter:
         It returns input types (2) and (3) unchanged.
         """
         filepath_or_buffer = stringify_path(filepath_or_buffer)
+
         if (
+            isinstance(filepath_or_buffer, str)
+            and not filepath_or_buffer.startswith(("<?xml", "<"))
+        ) and (
             not isinstance(filepath_or_buffer, str)
             or is_url(filepath_or_buffer)
             or is_fsspec_url(filepath_or_buffer)
@@ -609,9 +613,6 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
         style_doc = self.stylesheet
 
-        if isinstance(style_doc, str) and style_doc.startswith(("<?xml", "<")):
-            style_doc = io.StringIO(style_doc)
-
         handle_data = self._get_data_from_filepath(style_doc)
         xml_data = self._preprocess_data(handle_data)
 
@@ -621,7 +622,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             r = fromstring(
                 xml_data.getvalue().encode(self.encoding), parser=curr_parser
             )
-        elif isinstance(xml_data, io.BytesIO):
+        else:
             r = parse(xml_data, parser=curr_parser)
 
         return r
