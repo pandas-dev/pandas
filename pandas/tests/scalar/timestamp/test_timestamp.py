@@ -1,7 +1,10 @@
 """ test the scalar Timestamp """
 
 import calendar
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import locale
 import unicodedata
 
@@ -9,13 +12,23 @@ from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
-from pytz import timezone, utc
+from pytz import (
+    timezone,
+    utc,
+)
 
-from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
+from pandas._libs.tslibs.timezones import (
+    dateutil_gettz as gettz,
+    get_timezone,
+)
 from pandas.compat import np_datetime64_compat
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Timedelta, Timestamp
+from pandas import (
+    NaT,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 
 from pandas.tseries import offsets
@@ -494,7 +507,7 @@ class TestTimestampConversion:
         ts = Timestamp("2011-01-01 9:00:00.123456789")
 
         # Warn the user of data loss (nanoseconds).
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             expected = datetime(2011, 1, 1, 9, 0, 0, 123456)
             result = ts.to_pydatetime()
             assert result == expected
@@ -528,13 +541,13 @@ class TestTimestampConversion:
         # Ensure that converting to datetime and back only loses precision
         # by going from nanoseconds to microseconds.
         exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+        with tm.assert_produces_warning(exp_warning):
             pydt_max = Timestamp.max.to_pydatetime()
 
         assert Timestamp(pydt_max).value / 1000 == Timestamp.max.value / 1000
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+        with tm.assert_produces_warning(exp_warning):
             pydt_min = Timestamp.min.to_pydatetime()
 
         # The next assertion can be enabled once GH#39221 is merged

@@ -1,6 +1,10 @@
 import pytest
 
-from pandas import DataFrame, HDFStore, _testing as tm
+from pandas import (
+    DataFrame,
+    HDFStore,
+    _testing as tm,
+)
 from pandas.tests.io.pytables.common import (
     ensure_clean_path,
     ensure_clean_store,

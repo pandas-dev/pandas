@@ -4,7 +4,10 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex
+from pandas import (
+    CategoricalIndex,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 

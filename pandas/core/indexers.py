@@ -8,7 +8,11 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Any, AnyArrayLike, ArrayLike
+from pandas._typing import (
+    Any,
+    AnyArrayLike,
+    ArrayLike,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -18,7 +22,10 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
@@ -337,7 +344,7 @@ def length_of_indexer(indexer, target=None) -> int:
     raise AssertionError("cannot find the length of the indexer")
 
 
-def deprecate_ndim_indexing(result, stacklevel=3):
+def deprecate_ndim_indexing(result, stacklevel: int = 3):
     """
     Helper function to raise the deprecation warning for multi-dimensional
     indexing on 1D Series/Index.

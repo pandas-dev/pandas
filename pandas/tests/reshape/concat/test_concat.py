@@ -1,4 +1,7 @@
-from collections import abc, deque
+from collections import (
+    abc,
+    deque,
+)
 from decimal import Decimal
 from warnings import catch_warnings
 
@@ -6,7 +9,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -29,7 +39,7 @@ class TestConcatenate:
         result = concat([df, df2, df3], axis=1, copy=False)
 
         for b in result._mgr.blocks:
-            if b.is_float:
+            if b.dtype.kind == "f":
                 assert b.values.base is df._mgr.blocks[0].values.base
             elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
@@ -40,7 +50,7 @@ class TestConcatenate:
         df4 = DataFrame(np.random.randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for b in result._mgr.blocks:
-            if b.is_float:
+            if b.dtype.kind == "f":
                 assert b.values.base is None
             elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base

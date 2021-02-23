@@ -11,7 +11,10 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
+from pandas.core.dtypes.common import (
+    is_period_dtype,
+    needs_i8_conversion,
+)
 
 import pandas as pd
 from pandas import (
@@ -108,7 +111,10 @@ class TestCommon:
         assert index.names == [name]
 
     def test_copy_and_deepcopy(self, index_flat):
-        from copy import copy, deepcopy
+        from copy import (
+            copy,
+            deepcopy,
+        )
 
         index = index_flat
 
@@ -158,9 +164,8 @@ class TestCommon:
         except NotImplementedError:
             pass
 
-        for dropna in [False, True]:
-            result = idx._get_unique_index(dropna=dropna)
-            tm.assert_index_equal(result, idx_unique)
+        result = idx._get_unique_index()
+        tm.assert_index_equal(result, idx_unique)
 
         # nans:
         if not index._can_hold_na:
@@ -188,10 +193,10 @@ class TestCommon:
         assert idx_nan.dtype == index.dtype
         assert idx_unique_nan.dtype == index.dtype
 
-        for dropna, expected in zip([False, True], [idx_unique_nan, idx_unique]):
-            for i in [idx_nan, idx_unique_nan]:
-                result = i._get_unique_index(dropna=dropna)
-                tm.assert_index_equal(result, expected)
+        expected = idx_unique_nan
+        for i in [idx_nan, idx_unique_nan]:
+            result = i._get_unique_index()
+            tm.assert_index_equal(result, expected)
 
     def test_searchsorted_monotonic(self, index_flat):
         # GH17271

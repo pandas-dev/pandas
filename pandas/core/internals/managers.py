@@ -19,12 +19,23 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
+from pandas._libs import (
+    internals as libinternals,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    Shape,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_dtype_equal,
@@ -32,14 +43,25 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import array_equals, isna
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCPandasArray,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    array_equals,
+    isna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Float64Index, Index, ensure_index
+from pandas.core.indexes.api import (
+    Float64Index,
+    Index,
+    ensure_index,
+)
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
@@ -47,12 +69,15 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
+    ensure_block_shape,
     extend_blocks,
     get_block_type,
     make_block,
-    safe_reshape,
 )
-from pandas.core.internals.ops import blockwise_all, operate_blockwise
+from pandas.core.internals.ops import (
+    blockwise_all,
+    operate_blockwise,
+)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -190,7 +215,7 @@ class BlockManager(DataManager):
             assert isinstance(self, SingleBlockManager)  # for mypy
             blk = self.blocks[0]
             arr = blk.values[:0]
-            nb = blk.make_block_same_class(arr, placement=slice(0, 0), ndim=1)
+            nb = blk.make_block_same_class(arr, placement=slice(0, 0))
             blocks = [nb]
         else:
             blocks = []
@@ -255,7 +280,7 @@ class BlockManager(DataManager):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return algos.take_1d(dtypes, self.blknos, allow_fill=False)
+        return algos.take_nd(dtypes, self.blknos, allow_fill=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -942,12 +967,8 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
-        return SingleBlockManager(
-            block.make_block_same_class(
-                values, placement=slice(0, len(values)), ndim=1
-            ),
-            self.axes[1],
-        )
+        nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
+        return SingleBlockManager(nb, self.axes[1])
 
     def iget_values(self, i: int) -> ArrayLike:
         """
@@ -1013,8 +1034,11 @@ class BlockManager(DataManager):
                 return value
 
         else:
+            if value.ndim == 2:
+                value = value.T
+
             if value.ndim == self.ndim - 1:
-                value = safe_reshape(value, (1,) + value.shape)
+                value = ensure_block_shape(value, ndim=2)
 
                 def value_getitem(placement):
                     return value
@@ -1135,9 +1159,11 @@ class BlockManager(DataManager):
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
-        if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+        if value.ndim == 2:
+            value = value.T
+        elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
-            value = safe_reshape(value, (1,) + value.shape)
+            value = ensure_block_shape(value, ndim=2)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
@@ -1215,7 +1241,7 @@ class BlockManager(DataManager):
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
-            self.axes[axis]._can_reindex(indexer)
+            self.axes[axis]._validate_can_reindex(indexer)
 
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
@@ -1302,10 +1328,10 @@ class BlockManager(DataManager):
             blknos = self.blknos[slobj]
             blklocs = self.blklocs[slobj]
         else:
-            blknos = algos.take_1d(
+            blknos = algos.take_nd(
                 self.blknos, slobj, fill_value=-1, allow_fill=allow_fill
             )
-            blklocs = algos.take_1d(
+            blklocs = algos.take_nd(
                 self.blklocs, slobj, fill_value=-1, allow_fill=allow_fill
             )
 
@@ -1395,16 +1421,11 @@ class BlockManager(DataManager):
             consolidate=False,
         )
 
-    def equals(self, other: object) -> bool:
-        if not isinstance(other, BlockManager):
-            return False
-
-        self_axes, other_axes = self.axes, other.axes
-        if len(self_axes) != len(other_axes):
-            return False
-        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
-            return False
-
+    def _equal_values(self: T, other: T) -> bool:
+        """
+        Used in .equals defined in base class. Only check the column values
+        assuming shape and indexes have already been checked.
+        """
         if self.ndim == 1:
             # For SingleBlockManager (i.e.Series)
             if other.ndim != 1:
