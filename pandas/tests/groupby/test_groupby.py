@@ -1740,10 +1740,10 @@ def test_pivot_table_values_key_error():
 def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
 
+    override_dtype = None
     if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="wrong dtype from _wrap_series_output")
-        )
+        # sum/product of bools is an integer
+        override_dtype = "int64"
 
     df = DataFrame([3 * values], columns=list("ABC"))
     df = df.iloc[:0]
@@ -1755,6 +1755,8 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         result = getattr(gb, method)(op)
 
     expected = df.set_index(keys)[columns]
+    if override_dtype is not None:
+        expected = expected.astype(override_dtype)
     if len(keys) == 1:
         expected.index.name = keys[0]
     tm.assert_equal(result, expected)
