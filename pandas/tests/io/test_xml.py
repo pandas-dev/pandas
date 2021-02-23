@@ -906,9 +906,14 @@ def test_wrong_stylesheet():
 
 @td.skip_if_no("lxml")
 def test_stylesheet_not_path_buffer():
+    from lxml.etree import XMLSyntaxError
+
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    with pytest.raises(TypeError, match=("cannot parse from 'type'")):
+    with pytest.raises(
+        (TypeError, XMLSyntaxError),
+        match=("cannot parse from 'type'|Start tag expected, '<' not found"),
+    ):
         read_xml(kml, stylesheet=DataFrame)
 
 

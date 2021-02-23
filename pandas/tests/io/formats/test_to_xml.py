@@ -1076,7 +1076,12 @@ def test_stylesheet_wrong_path(datapath):
 
 @td.skip_if_no("lxml")
 def test_stylesheet_not_path_buffer():
-    with pytest.raises(TypeError, match=("cannot parse from 'type'")):
+    from lxml.etree import XMLSyntaxError
+
+    with pytest.raises(
+        (TypeError, XMLSyntaxError),
+        match=("cannot parse from 'type'|Start tag expected, '<' not found"),
+    ):
         geom_df.to_xml(stylesheet=DataFrame)
 
 

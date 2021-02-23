@@ -271,7 +271,7 @@ class BaseXMLFormatter:
         The method accepts three input types:
             1. filepath (string-like)
             2. file-like object (e.g. open file object, StringIO)
-            3. XML bytes
+            3. XML string or bytes
 
         This method turns (1) into (2) to simplify the rest of the processing.
         It returns input types (2) and (3) unchanged.
