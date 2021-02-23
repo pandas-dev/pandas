@@ -9,6 +9,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.base import SpecificationError
 from pandas.core.indexes.datetimes import date_range
 
 dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
@@ -475,9 +476,9 @@ def test_agg_misc():
 
     # errors
     # invalid names in the agg specification
-    msg = "\"Column 'B' does not exist!\""
+    msg = r"Column\(s\) \['B'\] do not exist"
     for t in cases:
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(SpecificationError, match=msg):
             t[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
 
@@ -526,8 +527,8 @@ def test_try_aggregate_non_existing_column():
     df = DataFrame(data).set_index("dt")
 
     # Error as we don't have 'z' column
-    msg = "\"Column 'z' does not exist!\""
-    with pytest.raises(KeyError, match=msg):
+    msg = r"Column\(s\) \['z'\] do not exist"
+    with pytest.raises(SpecificationError, match=msg):
         df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
 

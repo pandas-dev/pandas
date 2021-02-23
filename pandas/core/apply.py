@@ -535,13 +535,6 @@ class Apply(metaclass=abc.ABCMeta):
         """
         assert how in ("apply", "agg", "transform")
 
-        if obj.ndim != 1:
-            # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
-            if len(cols) > 0:
-                cols_sorted = list(safe_sort(list(cols)))
-                raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
-
         # Can't use func.values(); wouldn't work for a Series
         if (
             how == "agg"
@@ -550,6 +543,13 @@ class Apply(metaclass=abc.ABCMeta):
         ) or (any(is_dict_like(v) for _, v in func.items())):
             # GH 15931 - deprecation of renaming keys
             raise SpecificationError("nested renamer is not supported")
+
+        if obj.ndim != 1:
+            # Check for missing columns on a frame
+            cols = set(func.keys()) - set(obj.columns)
+            if len(cols) > 0:
+                cols_sorted = list(safe_sort(list(cols)))
+                raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
 
 
 class FrameApply(Apply):
