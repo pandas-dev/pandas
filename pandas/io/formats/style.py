@@ -1935,11 +1935,25 @@ class Styler:
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.arange(1,100).reshape(10,10)+1)
-        >>> df.style.highlight_quantile(q_low=0.5, q_high=0.7, axis=None)
-        >>> df.style.highlight_quantile(q_low=0.5, q_high=0.7, axis=0)
-        >>> df.style.highlight_quantile(q_low=0.5, q_high=0.7, axis=1)
-        >>> df.style.highlight_quantile(q_low=0.5, props='font-weight:bold;color:red')
+        Using ``axis=None`` and apply a quantile to all collective data
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
+        >>> df.style.highlight_quantile(axis=None, q_low=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_axNone.png
+
+        Or highlight quantiles row-wise or column-wise, in this case by row-wise
+
+        >>> df.style.highlight_quantile(axis=1, q_low=0.8, color="#fffd75")
+
+        .. figure:: ../../_static/style/hq_ax1.png
+
+        Use ``props`` instead of default background coloring
+
+        >>> df.style.highlight_quantile(axis=None, q_low=0.2, q_high=0.8,
+        ...     props='font-weight:bold;color:#e83e8c')
+
+        .. figure:: ../../_static/style/hq_props.png
         """
 
         def f(
