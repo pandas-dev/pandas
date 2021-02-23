@@ -24,7 +24,7 @@ def test_nested_renamer(box, method, func):
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"B": "sum"}, {"B": ["sum"]}])
 def test_missing_column(method, func):
-    # GH ???
+    # GH 40004
     obj = DataFrame({"A": [1]})
     match = re.escape("Column(s) ['B'] do not exist")
     with pytest.raises(SpecificationError, match=match):
