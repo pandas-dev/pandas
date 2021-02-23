@@ -32,6 +32,7 @@ from pandas._typing import (
     Shape,
     final,
 )
+from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -378,7 +379,7 @@ class Block(PandasObject):
 
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
-    @property
+    @property  # TODO: for reasons unclear, caching shape here breaks 8 tests
     def shape(self) -> Shape:
         return self.values.shape
 
@@ -1564,7 +1565,7 @@ class ExtensionBlock(Block):
         if self.ndim == 2 and len(self.mgr_locs) > 1:
             raise ValueError("need to split... for now")
 
-    @property
+    @cache_readonly
     def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
@@ -2144,6 +2145,10 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
         #  since that return an object-dtype ndarray of Timestamps.
         return self.values._data
 
+    def get_block_values_for_json(self):
+        # Not necessary to override, but helps perf
+        return self.values._data
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -2168,6 +2173,7 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
     __init__ = Block.__init__
     take_nd = Block.take_nd
     _unstack = Block._unstack
+    get_block_values_for_json = Block.get_block_values_for_json
 
     # TODO: we still share these with ExtensionBlock (and not DatetimeBlock)
     # ['interpolate', 'quantile']
