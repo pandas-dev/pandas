@@ -241,7 +241,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     unit = get_datetime64_unit(arr.flat[0])
     if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
-        # <built-in function ensure_datetime64ns> returned a result with an error set
+        # built-in function ensure_datetime64ns returned a result with an error
         raise ValueError("datetime64/timedelta64 must have a unit specified")
 
     if unit == NPY_FR_ns:
