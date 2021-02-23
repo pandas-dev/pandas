@@ -3264,6 +3264,9 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
+            if isinstance(value, DataFrame):
+                # GH#39931 reindex since iloc does not align
+                value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
@@ -4000,7 +4003,7 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, value):
+    def _sanitize_column(self, value) -> ArrayLike:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
@@ -4011,7 +4014,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray or ExtensionArray
         """
         self._ensure_valid_index(value)
 
@@ -4025,7 +4028,7 @@ class DataFrame(NDFrame, OpsMixin):
             value = value.copy()
             value = sanitize_index(value, self.index)
 
-        elif isinstance(value, Index) or is_sequence(value):
+        elif is_sequence(value):
 
             # turn me into an ndarray
             value = sanitize_index(value, self.index)
@@ -4035,7 +4038,7 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     value = com.asarray_tuplesafe(value)
             elif isinstance(value, Index):
-                value = value.copy(deep=True)
+                value = value.copy(deep=True)._values
             else:
                 value = value.copy()
 
