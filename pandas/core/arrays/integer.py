@@ -348,13 +348,13 @@ class IntegerArray(NumericArray):
         super().__init__(values, mask, copy=copy)
 
     def __neg__(self):
-        return type(self)(-self._data, self._mask)
+        return type(self)(-self._data, self._mask.copy())
 
     def __pos__(self):
         return self
 
     def __abs__(self):
-        return type(self)(np.abs(self._data), self._mask)
+        return type(self)(np.abs(self._data), self._mask.copy())
 
     @classmethod
     def _from_sequence(
