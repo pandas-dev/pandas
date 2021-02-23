@@ -280,7 +280,7 @@ def test_infer_freq_tz(tz_naive_fixture, expected, dates):
     ],
 )
 @pytest.mark.parametrize(
-    "freq", ["3H", "10T", "3601S", "3600001L", "3600000001U", "3600000000001N"]
+    "freq", ["H", "3H", "10T", "3601S", "3600001L", "3600000001U", "3600000000001N"]
 )
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772

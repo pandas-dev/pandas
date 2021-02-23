@@ -49,7 +49,46 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-def concatenate_block_managers(
+def concatenate_array_managers(
+    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+) -> Manager:
+    """
+    Concatenate array managers into one.
+
+    Parameters
+    ----------
+    mgrs_indexers : list of (ArrayManager, {axis: indexer,...}) tuples
+    axes : list of Index
+    concat_axis : int
+    copy : bool
+
+    Returns
+    -------
+    ArrayManager
+    """
+    # reindex all arrays
+    mgrs = []
+    for mgr, indexers in mgrs_indexers:
+        for ax, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(axes[ax], indexer, axis=ax, allow_dups=True)
+        mgrs.append(mgr)
+
+    if concat_axis == 1:
+        # concatting along the rows -> concat the reindexed arrays
+        # TODO(ArrayManager) doesn't yet preserve the correct dtype
+        arrays = [
+            concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            for j in range(len(mgrs[0].arrays))
+        ]
+        return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
+    else:
+        # concatting along the columns -> combine reindexed arrays in a single manager
+        assert concat_axis == 0
+        arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+        return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
+
+
+def concatenate_managers(
     mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
@@ -66,20 +105,9 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
+    # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-
-        if concat_axis == 1:
-            # TODO for now only fastpath without indexers
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = [
-                concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))], axis=0)
-                for j in range(len(mgrs[0].arrays))
-            ]
-            return ArrayManager(arrays, [axes[1], axes[0]])
-        elif concat_axis == 0:
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-            return ArrayManager(arrays, [axes[1], axes[0]])
+        return concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -118,11 +146,8 @@ def concatenate_block_managers(
             else:
                 b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
-            b = make_block(
-                _concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement,
-                ndim=len(axes),
-            )
+            new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            b = make_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
     return BlockManager(blocks, axes)
