@@ -1748,13 +1748,11 @@ def test_empty_groupby(columns, keys, values, method, op, request):
     df = DataFrame([3 * values], columns=list("ABC"))
     df = df.iloc[:0]
 
-    args = ()
-
     gb = df.groupby(keys)[columns]
     if method == "attr":
-        result = getattr(gb, op)(*args)
+        result = getattr(gb, op)()
     else:
-        result = getattr(gb, method)(op, *args)
+        result = getattr(gb, method)(op)
 
     expected = df.set_index(keys)[columns]
     if len(keys) == 1:
