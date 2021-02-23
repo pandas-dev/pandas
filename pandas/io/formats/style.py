@@ -782,13 +782,12 @@ class Styler:
             self.data,
             precision=self.precision,
             caption=self.caption,
-            uuid=self.uuid,
             table_attributes=self.table_attributes,
             cell_ids=self.cell_ids,
             na_rep=self.na_rep,
-            uuid_len=self.uuid_len,
         )
 
+        styler.uuid = self.uuid
         styler.hidden_index = self.hidden_index
 
         if deepcopy:
