@@ -53,7 +53,6 @@ from pandas.core.dtypes.common import (
     is_ea_dtype,
     is_extension_array_dtype,
     is_list_like,
-    is_object_dtype,
     is_sparse,
     is_strict_ea,
     pandas_dtype,
@@ -116,6 +115,8 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
+
+_dtype_obj = np.dtype(object)  # comparison is faster than is_object_dtype
 
 
 class Block(PandasObject):
@@ -278,9 +279,9 @@ class Block(PandasObject):
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
         """
-        if is_object_dtype(dtype):
-            return self.values.astype(object)
-        return np.asarray(self.values)
+        if dtype == _dtype_obj:
+            return self.values.astype(_dtype_obj)
+        return self.values
 
     @final
     def get_block_values_for_json(self) -> np.ndarray:
@@ -1999,6 +2000,11 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
     def array_values(self):
         return self.values
+
+    def get_values(self, dtype: Optional[DtypeObj] = None) -> np.ndarray:
+        # We override instead of putting the np.asarray in Block.values for
+        #  performance.
+        return np.asarray(Block.get_values(self, dtype))
 
     def putmask(self, mask, new) -> List[Block]:
         mask = extract_bool_array(mask)
