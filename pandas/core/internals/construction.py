@@ -128,7 +128,7 @@ def arrays_to_mgr(
 
 
 def masked_rec_array_to_mgr(
-    data: MaskedRecords, index, columns, dtype: Optional[DtypeObj], copy: bool, typ=None
+    data: MaskedRecords, index, columns, dtype: Optional[DtypeObj], copy: bool, typ: str
 ):
     """
     Extract from a masked rec array and create the manager.
@@ -181,12 +181,7 @@ def mgr_to_mgr(mgr, typ: str):
             new_mgr = mgr
         else:
             new_mgr = arrays_to_mgr(
-                mgr.arrays,
-                mgr.axes[0],
-                mgr.axes[1],
-                mgr.axes[0],
-                dtype=None,
-                typ="block",
+                mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], typ="block"
             )
     elif typ == "array":
         if isinstance(mgr, ArrayManager):
@@ -287,7 +282,7 @@ def init_ndarray(
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None, typ=None):
+def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
