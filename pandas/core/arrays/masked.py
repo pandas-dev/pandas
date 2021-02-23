@@ -172,7 +172,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
-        return type(self)(~self._data, self._mask)
+        return type(self)(~self._data, self._mask.copy())
 
     def to_numpy(
         self,
