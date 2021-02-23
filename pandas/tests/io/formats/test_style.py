@@ -112,7 +112,6 @@ class TestStyler:
             )
             self.styler.set_tooltips(ttips)
             self.styler.cell_ids = not self.styler.cell_ids
-            self.styler.format("{:.2%}")
 
         if do_render:
             self.styler.render()
