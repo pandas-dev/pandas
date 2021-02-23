@@ -6,6 +6,7 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -14,20 +15,17 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import na_value_for_dtype
 
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 
 def take_nd(
-    arr,
+    arr: ArrayLike,
     indexer,
     axis: int = 0,
     out: Optional[np.ndarray] = None,
     fill_value=lib.no_default,
     allow_fill: bool = True,
-):
+) -> ArrayLike:
 
     """
     Specialized Cython take which sets NaN values in one pass
@@ -37,7 +35,7 @@ def take_nd(
 
     Parameters
     ----------
-    arr : array-like
+    arr : np.ndarray or ExtensionArray
         Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
@@ -62,8 +60,6 @@ def take_nd(
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
-
-    arr = extract_array(arr, extract_numpy=True)
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
