@@ -1391,6 +1391,7 @@ class TestMerge:
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
 
+        # make each underlying block array / column array read-only
         for arr in data1._mgr.arrays:
             arr.flags.writeable = False
 
