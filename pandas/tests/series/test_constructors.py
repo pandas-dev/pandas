@@ -403,6 +403,15 @@ class TestSeriesConstructors:
         result = x.person_name.loc[0]
         assert result == expected
 
+    def test_constructor_series_to_categorical(self):
+        # see GH#16524: test conversion of Series to Categorical
+        series = Series(["a", "b", "c"])
+
+        result = Series(series, dtype="category")
+        expected = Series(["a", "b", "c"], dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_categorical_dtype(self):
         result = Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
