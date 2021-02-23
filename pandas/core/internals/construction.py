@@ -233,7 +233,6 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
 
     if is_extension_array_dtype(values) and not is_ea_dtype(values):
         # i.e. Datetime64TZ
-        # TODO: combine into _prep_ndarray?
         values = extract_array(values, extract_numpy=True)
         if copy:
             values = values.copy()
@@ -270,10 +269,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         if values.ndim == 2 and values.shape[0] != 1:
             # transpose and separate blocks
 
-            # TODO: do this in one go
             dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
-            dvals_list = [extract_array(x, extract_numpy=True) for x in dvals_list]
-            # TODO: unpack DatetimeIndex directly in maybe_infer_to_datetimelike
             for n in range(len(dvals_list)):
                 dvals_list[n] = dvals_list[n].reshape(1, -1)
 

@@ -379,7 +379,7 @@ class Block(PandasObject):
 
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
-    @property  # TODO: for reasons unclear, caching shape here breaks 8 tests
+    @property
     def shape(self) -> Shape:
         return self.values.shape
 
