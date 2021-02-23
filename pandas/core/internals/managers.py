@@ -128,7 +128,7 @@ class BlockManager(DataManager):
     ----------
     blocks: Sequence of Block
     axes: Sequence of Index
-    do_integrity_check: bool, default True
+    verify_integrity: bool, default True
 
     Notes
     -----
@@ -151,7 +151,7 @@ class BlockManager(DataManager):
         self,
         blocks: Sequence[Block],
         axes: Sequence[Index],
-        do_integrity_check: bool = True,
+        verify_integrity: bool = True,
     ):
         self.axes = [ensure_index(ax) for ax in axes]
         self.blocks: Tuple[Block, ...] = tuple(blocks)
@@ -163,7 +163,7 @@ class BlockManager(DataManager):
                     f"number of axes ({self.ndim})"
                 )
 
-        if do_integrity_check:
+        if verify_integrity:
             self._verify_integrity()
 
         # Populate known_consolidate, blknos, and blklocs lazily
@@ -176,7 +176,7 @@ class BlockManager(DataManager):
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
-        return cls(blocks, axes, do_integrity_check=False)
+        return cls(blocks, axes, verify_integrity=False)
 
     @property
     def blknos(self):
@@ -760,7 +760,7 @@ class BlockManager(DataManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
+        bm = type(self)(new_blocks, new_axes, verify_integrity=False)
         return bm
 
     @property
@@ -1499,7 +1499,7 @@ class SingleBlockManager(BlockManager):
         self,
         block: Block,
         axis: Index,
-        do_integrity_check: bool = False,
+        verify_integrity: bool = False,
         fastpath=lib.no_default,
     ):
         assert isinstance(block, Block), type(block)
@@ -1523,7 +1523,7 @@ class SingleBlockManager(BlockManager):
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], do_integrity_check=False)
+        return cls(blocks[0], axes[0], verify_integrity=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> SingleBlockManager:
