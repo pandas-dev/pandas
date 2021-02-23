@@ -420,7 +420,10 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-            val = extract_array(val, extract_numpy=True)
+            # extract_array should be preferred? But that gives failures for
+            # `extension/test_numpy.py`
+            # val = extract_array(val, extract_numpy=True)
+            val = val._values
         else:
             if isinstance(val, dict):
                 if oindex is None:
