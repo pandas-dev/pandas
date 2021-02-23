@@ -784,3 +784,42 @@ class TestDataFrameSetitemCopyViewSemantics:
 
         assert df["z"] is not foo
         tm.assert_series_equal(df["z"], expected)
+
+    def test_setitem_duplicate_columns_not_inplace(self):
+        # GH#39510
+        cols = ["A", "B"] * 2
+        df = DataFrame(0.0, index=[0], columns=cols)
+        df_copy = df.copy()
+        df_view = df[:]
+        df["B"] = (2, 5)
+
+        expected = DataFrame([[0.0, 2, 0.0, 5]], columns=cols)
+        tm.assert_frame_equal(df_view, df_copy)
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.xfail(reason="Setitem with same dtype still changing inplace")
+    @pytest.mark.parametrize("value", [1, np.array([[1], [1]]), [[1], [1]]])
+    def test_setitem_same_dtype_not_inplace(self, value):
+        # GH#39510
+        cols = ["A", "B"]
+        df = DataFrame(0, index=[0, 1], columns=cols)
+        df_copy = df.copy()
+        df_view = df[:]
+        df[["B"]] = value
+
+        expected = DataFrame([[0, 1], [0, 1]], columns=cols)
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df_view, df_copy)
+
+    @pytest.mark.parametrize("value", [1.0, np.array([[1.0], [1.0]]), [[1.0], [1.0]]])
+    def test_setitem_listlike_key_scalar_value_not_inplace(self, value):
+        # GH#39510
+        cols = ["A", "B"]
+        df = DataFrame(0, index=[0, 1], columns=cols)
+        df_copy = df.copy()
+        df_view = df[:]
+        df[["B"]] = value
+
+        expected = DataFrame([[0, 1.0], [0, 1.0]], columns=cols)
+        tm.assert_frame_equal(df_view, df_copy)
+        tm.assert_frame_equal(df, expected)
