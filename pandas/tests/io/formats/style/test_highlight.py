@@ -89,6 +89,23 @@ class TestStylerHighlight:
         assert result == expected
 
     @pytest.mark.parametrize(
+        "arg, map, axis",
+        [
+            ("start", [1, 2, 3], 0),
+            ("start", [1, 2], 1),
+            ("start", np.array([[1, 2], [1, 2]]), None),
+            ("stop", [1, 2, 3], 0),
+            ("stop", [1, 2], 1),
+            ("stop", np.array([[1, 2], [1, 2]]), None),
+        ],
+    )
+    def test_highlight_range_raises(self, arg, map, axis):
+        df = DataFrame([[1, 2, 3], [1, 2, 3]])
+        msg = f"supplied '{arg}' is not right shape"
+        with pytest.raises(ValueError, match=msg):
+            df.style.highlight_range(**{arg: map, "axis": axis})._compute()
+
+    @pytest.mark.parametrize(
         "kwargs",
         [
             {"q_low": 0.5, "q_high": 1, "axis": 1},  # test basic range

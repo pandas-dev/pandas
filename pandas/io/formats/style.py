@@ -1816,25 +1816,39 @@ class Styler:
 
         Examples
         --------
-        Using datetimes
-
-        >>> df = pd.DataFrame({'dates': pd.date_range(start='2021-01-01', periods=10)})
-        >>> df.style.highlight_range(start=pd.to_datetime('2021-01-05'))
-
         Basic usage
 
-        >>> df = pd.DataFrame([[1,2], [3,4]])
-        >>> df.style.highlight_range(start=1, stop=3)
+        >>> df = pd.DataFrame({
+        ...     'One': [1.2, 1.6, 1.5],
+        ...     'Two': [2.9, 2.1, 2.5],
+        ...     'Three': [3.1, 3.2, 3.8],
+        ... })
+        >>> df.style.highlight_range(start=2.1, stop=2.9)
+
+        .. figure:: ../../_static/style/hr_basic.png
+
+        Using a range input sequnce along an ``axis``, in this case setting a ``start``
+        and ``stop`` for each column individually
+
+        >>> df.style.highlight_range(start=[1.4, 2.4, 3.4], stop=[1.6, 2.6, 3.6],
+        ...     axis=1, color="#fffd75")
+
+        .. figure:: ../../_static/style/hr_seq.png
+
+        Using ``axis=None`` and providing the ``start`` argument as an array that
+        matches the input DataFrame, with a constant ``stop``
+
+        >>> df.style.highlight_range(start=[[2,2,3],[2,2,3],[3,3,3]], stop=3.5,
+        ...     axis=None, color="#fffd75")
+
+        .. figure:: ../../_static/style/hr_axNone.png
 
         Using ``props`` instead of default background coloring
 
-        >>> df.style.highlight_range(start=1, stop=3, props='font-weight:bold;')
+        >>> df.style.highlight_range(start=1.5, stop=3.5,
+        ...     props='font-weight:bold;color:#e83e8c')
 
-        Using ``start`` and ``stop`` sequences or array-like objects with ``axis``
-
-        >>> df.style.highlight_range(start=[0.9, 2.9], stop=[1.1, 3.1], axis=0)
-        >>> df.style.highlight_range(start=[0.9, 2.9], stop=[1.1, 3.1], axis=1)
-        >>> df.style.highlight_range(start=pd.DataFrame([[1,2],[10,4]]), axis=None)
+        .. figure:: ../../_static/style/hr_props.png
         """
 
         def f(
@@ -1843,12 +1857,20 @@ class Styler:
             d: Optional[Union[Scalar, Sequence]] = None,
             u: Optional[Union[Scalar, Sequence]] = None,
         ) -> np.ndarray:
-            def realign(x):
+            def realign(x, arg):
                 if np.iterable(x) and not isinstance(x, str):
-                    return np.asarray(x).reshape(data.shape)
+                    try:
+                        return np.asarray(x).reshape(data.shape)
+                    except ValueError:
+                        raise ValueError(
+                            f"supplied '{arg}' is not right shape for "
+                            "data over selected 'axis': got "
+                            f"{np.asarray(x).shape}, expected "
+                            f"{data.shape}"
+                        )
                 return x
 
-            d, u = realign(d), realign(u)
+            d, u = realign(d, "start"), realign(u, "stop")
             ge_d = data >= d if d is not None else np.full_like(data, True, dtype=bool)
             le_u = data <= u if u is not None else np.full_like(data, True, dtype=bool)
             return np.where(ge_d & le_u, props, "")
