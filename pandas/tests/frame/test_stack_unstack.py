@@ -122,7 +122,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     # TODO(ArrayManager) iset with multiple elements not yet implemented
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) iset
+    # @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) iset
     def test_unstack_fill_frame(self):
 
         # From a dataframe
@@ -905,7 +905,7 @@ class TestDataFrameReshape:
 
         right = DataFrame(vals, columns=cols, index=idx)
         if using_array_manager:
-            # with ArrayManager preserve dtype where possible
+            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
             cols = right.columns[[1, 2, 3, 5]]
             right[cols] = right[cols].astype("int64")
         tm.assert_frame_equal(left, right)
@@ -1931,7 +1931,7 @@ Thur,Lunch,Yes,51.51,17"""
             ),
         )
         if using_array_manager:
-            # with ArrayManager preserve dtype where possible
+            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
             expected[("v", "cb")] = expected[("v", "cb")].astype("int64")
             expected[("is_", "cb")] = expected[("is_", "cb")].astype("int64")
         tm.assert_frame_equal(result, expected)

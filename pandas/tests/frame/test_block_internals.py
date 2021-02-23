@@ -31,7 +31,7 @@ from pandas.core.internals import (
 # structure
 
 
-# TODO(ArrayManager) check which of those tests need to be rewritten the test the
+# TODO(ArrayManager) check which of those tests need to be rewritten to test the
 # equivalent for ArrayManager
 pytestmark = td.skip_array_manager_invalid_test
 

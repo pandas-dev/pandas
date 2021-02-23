@@ -702,7 +702,6 @@ class TestDataFrameSubclassing:
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) equals
     def test_equals_subclass(self):
         # https://github.com/pandas-dev/pandas/pull/34402
         # allow subclass in both directions
