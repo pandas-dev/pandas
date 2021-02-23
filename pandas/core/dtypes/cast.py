@@ -1345,7 +1345,9 @@ def soft_convert_objects(
                 values, convert_datetime=datetime, convert_timedelta=timedelta
             )
         except (OutOfBoundsDatetime, ValueError):
-            return values
+            # error: Incompatible return value type (got "ndarray", expected
+            # "ExtensionArray")
+            return values  # type: ignore[return-value]
 
     if numeric and is_object_dtype(values.dtype):
         converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
@@ -1354,7 +1356,8 @@ def soft_convert_objects(
         values = converted if not isna(converted).all() else values
         values = values.copy() if copy else values
 
-    return values
+    # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
+    return values  # type: ignore[return-value]
 
 
 def convert_dtypes(
@@ -1528,12 +1531,16 @@ def maybe_infer_to_datetimelike(
                 pass
             else:
                 dti = DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
-                return dti._data
+                # error: Incompatible return value type (got "DatetimeArray", expected
+                # "ndarray")  [return-value]
+                return dti._data  # type: ignore[return-value]
         except TypeError:
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             pass
 
-        return v.reshape(shape)
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return v.reshape(shape)  # type: ignore[return-value]
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
         # safe coerce to timedelta64

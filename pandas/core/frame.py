@@ -4308,7 +4308,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
+            # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
+            # Any]"; expected "ndarray"
+            new_values = take_2d_multi(
+                self.values, indexer, fill_value=fill_value  # type: ignore[arg-type]
+            )
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
