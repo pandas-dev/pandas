@@ -445,6 +445,15 @@ class TestDataFrameSetItem:
         tm.assert_series_equal(df["C"], df["C"])
         tm.assert_series_equal(df["C"], df["E"], check_names=False)
 
+    def test_setitem_categorical(self):
+        # GH#35369
+        df = DataFrame({"h": Series(list("mn")).astype("category")})
+        df.h = df.h.cat.reorder_categories(["n", "m"])
+        expected = DataFrame(
+            {"h": Categorical(["m", "n"]).reorder_categories(["n", "m"])}
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -566,3 +575,12 @@ class TestDataFrameSetItemBooleanMask:
         expected = df.copy()
         expected.values[np.array(mask)] = np.nan
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc])
+    def test_setitem_boolean_mask_aligning(self, indexer):
+        # GH#39931
+        df = DataFrame({"a": [1, 4, 2, 3], "b": [5, 6, 7, 8]})
+        expected = df.copy()
+        mask = df["a"] >= 3
+        indexer(df)[mask] = indexer(df)[mask].sort_values("a")
+        tm.assert_frame_equal(df, expected)

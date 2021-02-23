@@ -39,7 +39,7 @@ class TestConcatenate:
         result = concat([df, df2, df3], axis=1, copy=False)
 
         for b in result._mgr.blocks:
-            if b.is_float:
+            if b.dtype.kind == "f":
                 assert b.values.base is df._mgr.blocks[0].values.base
             elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
@@ -50,7 +50,7 @@ class TestConcatenate:
         df4 = DataFrame(np.random.randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for b in result._mgr.blocks:
-            if b.is_float:
+            if b.dtype.kind == "f":
                 assert b.values.base is None
             elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
