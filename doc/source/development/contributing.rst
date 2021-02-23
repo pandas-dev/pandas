@@ -163,7 +163,7 @@ with a full pandas development environment.
 
 There is a script to help you with this::
 
-    ./docker.sh
+    ./scripts/docker.sh
 
 When prompted, enter your Github username.
 
