@@ -161,7 +161,7 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_not_yet_implemented
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_drop_multiindex_not_lexsorted(self):
         # GH#11640
 
