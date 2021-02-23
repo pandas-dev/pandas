@@ -71,6 +71,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -167,6 +168,29 @@ def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scal
     elif isinstance(value, (np.timedelta64, timedelta)):
         value = Timedelta(value)
 
+    return value
+
+
+def maybe_box_native(value: Scalar) -> Scalar:
+    """
+    If passed a scalar cast the scalar to a python native type.
+
+    Parameters
+    ----------
+    value : scalar or Series
+
+    Returns
+    -------
+    scalar or Series
+    """
+    if is_datetime_or_timedelta_dtype(value):
+        value = maybe_box_datetimelike(value)
+    elif is_float(value):
+        value = float(value)
+    elif is_integer(value):
+        value = int(value)
+    elif is_bool(value):
+        value = bool(value)
     return value
 
 
@@ -1210,7 +1234,7 @@ def soft_convert_objects(
     numeric: bool = True,
     timedelta: bool = True,
     copy: bool = True,
-):
+) -> ArrayLike:
     """
     Try to coerce datetime, timedelta, and numeric object-dtype columns
     to inferred dtype.
@@ -1225,7 +1249,7 @@ def soft_convert_objects(
 
     Returns
     -------
-    np.ndarray
+    np.ndarray or ExtensionArray
     """
     validate_bool_kwarg(datetime, "datetime")
     validate_bool_kwarg(numeric, "numeric")
@@ -1408,7 +1432,7 @@ def maybe_infer_to_datetimelike(
     if not len(v):
         return value
 
-    def try_datetime(v):
+    def try_datetime(v: np.ndarray) -> ArrayLike:
         # safe coerce to datetime64
         try:
             # GH19671
@@ -1427,14 +1451,15 @@ def maybe_infer_to_datetimelike(
             except (ValueError, TypeError):
                 pass
             else:
-                return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
+                dti = DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
+                return dti._data
         except TypeError:
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             pass
 
         return v.reshape(shape)
 
-    def try_timedelta(v):
+    def try_timedelta(v: np.ndarray) -> np.ndarray:
         # safe coerce to timedelta64
 
         # will try first with a string & object conversion

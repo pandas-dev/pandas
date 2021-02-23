@@ -1,5 +1,6 @@
 """ test label based indexing with loc """
 from datetime import (
+    date,
     datetime,
     time,
     timedelta,
@@ -266,7 +267,7 @@ class TestLoc2:
         s = Series([1, 2, 3])
         msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
         with pytest.raises(IndexError, match=msg):
-            _ = s.loc[index]
+            s.loc[index]
 
     def test_loc_getitem_int_slice(self):
         # TODO: test something here?
@@ -408,7 +409,11 @@ class TestLoc2:
             }
         )
 
-    def test_loc_setitem_consistency(self, frame_for_consistency):
+    @pytest.mark.parametrize(
+        "val",
+        [0, np.array(0, dtype=np.int64), np.array([0, 0, 0, 0, 0], dtype=np.int64)],
+    )
+    def test_loc_setitem_consistency(self, frame_for_consistency, val):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
         expected = DataFrame(
@@ -418,15 +423,7 @@ class TestLoc2:
             }
         )
         df = frame_for_consistency.copy()
-        df.loc[:, "date"] = 0
-        tm.assert_frame_equal(df, expected)
-
-        df = frame_for_consistency.copy()
-        df.loc[:, "date"] = np.array(0, dtype=np.int64)
-        tm.assert_frame_equal(df, expected)
-
-        df = frame_for_consistency.copy()
-        df.loc[:, "date"] = np.array([0, 0, 0, 0, 0], dtype=np.int64)
+        df.loc[:, "date"] = val
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_dt64_to_str(self, frame_for_consistency):
@@ -553,8 +550,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_loc_setitem_frame(self):
         df = DataFrame(np.random.randn(4, 4), index=list("abcd"), columns=list("ABCD"))
-
-        result = df.iloc[0, 0]
 
         df.loc["a", "A"] = 1
         result = df.loc["a", "A"]
@@ -762,7 +757,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[3:]
         tm.assert_series_equal(result.dtypes, expected)
 
-    def test_setitem_new_key_tz(self):
+    def test_setitem_new_key_tz(self, indexer_sl):
         # GH#12862 should not raise on assigning the second value
         vals = [
             pd.to_datetime(42).tz_localize("UTC"),
@@ -771,14 +766,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = Series(vals, index=["foo", "bar"])
 
         ser = Series(dtype=object)
-        ser["foo"] = vals[0]
-        ser["bar"] = vals[1]
-
-        tm.assert_series_equal(ser, expected)
-
-        ser = Series(dtype=object)
-        ser.loc["foo"] = vals[0]
-        ser.loc["bar"] = vals[1]
+        indexer_sl(ser)["foo"] = vals[0]
+        indexer_sl(ser)["bar"] = vals[1]
 
         tm.assert_series_equal(ser, expected)
 
@@ -1104,7 +1093,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.index = timedelta_range(start="0s", periods=10, freq="s")
         expected = df.loc[Timedelta("0s") :, :]
         result = df.loc["0s":, :]
-        tm.assert_frame_equal(expected, result)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "val,expected", [(2 ** 63 - 1, Series([1])), (2 ** 63, Series([2]))]
@@ -1120,12 +1109,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_setitem_int_label_with_float64index(self):
         # note labels are floats
         ser = Series(["a", "b", "c"], index=[0, 0.5, 1])
-        tmp = ser.copy()
+        expected = ser.copy()
 
         ser.loc[1] = "zoo"
-        tmp.iloc[2] = "zoo"
+        expected.iloc[2] = "zoo"
 
-        tm.assert_series_equal(ser, tmp)
+        tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
         "indexer, expected",
@@ -1152,6 +1141,94 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         )
 
         tm.assert_frame_equal(expected, df)
+
+    def test_loc_setitem_categorical_values_partial_column_slice(self):
+        # Assigning a Category to parts of a int/... column uses the values of
+        # the Categorical
+        df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
+        exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
+        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+        tm.assert_frame_equal(df, exp)
+
+    def test_loc_setitem_single_row_categorical(self):
+        # GH#25495
+        df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
+        categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
+        df.loc[:, "Alpha"] = categories
+
+        result = df["Alpha"]
+        expected = Series(categories, index=df.index, name="Alpha")
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_datetime_coercion(self):
+        # GH#1048
+        df = DataFrame({"c": [Timestamp("2010-10-01")] * 3})
+        df.loc[0:1, "c"] = np.datetime64("2008-08-08")
+        assert Timestamp("2008-08-08") == df.loc[0, "c"]
+        assert Timestamp("2008-08-08") == df.loc[1, "c"]
+        df.loc[2, "c"] = date(2005, 5, 5)
+        with tm.assert_produces_warning(FutureWarning):
+            # Comparing Timestamp to date obj is deprecated
+            assert Timestamp("2005-05-05") == df.loc[2, "c"]
+        assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
+
+    @pytest.mark.parametrize("idxer", ["var", ["var"]])
+    def test_loc_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
+        # GH#11365
+        tz = tz_naive_fixture
+        idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
+        expected = DataFrame(1.2, index=idx, columns=["var"])
+        result = DataFrame(index=idx, columns=["var"])
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_setitem_time_key(self):
+        index = date_range("2012-01-01", "2012-01-05", freq="30min")
+        df = DataFrame(np.random.randn(len(index), 5), index=index)
+        akey = time(12, 0, 0)
+        bkey = slice(time(13, 0, 0), time(14, 0, 0))
+        ainds = [24, 72, 120, 168]
+        binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
+
+        result = df.copy()
+        result.loc[akey] = 0
+        result = result.loc[akey]
+        expected = df.loc[akey].copy()
+        expected.loc[:] = 0
+        tm.assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.loc[akey] = 0
+        result.loc[akey] = df.iloc[ainds]
+        tm.assert_frame_equal(result, df)
+
+        result = df.copy()
+        result.loc[bkey] = 0
+        result = result.loc[bkey]
+        expected = df.loc[bkey].copy()
+        expected.loc[:] = 0
+        tm.assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.loc[bkey] = 0
+        result.loc[bkey] = df.iloc[binds]
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("key", ["A", ["A"], ("A", slice(None))])
+    def test_loc_setitem_unsorted_multiindex_columns(self, key):
+        # GH#38601
+        mi = MultiIndex.from_tuples([("A", 4), ("B", "3"), ("A", "2")])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        obj = df.copy()
+        obj.loc[:, key] = np.zeros((2, 2), dtype=int)
+        expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
+        tm.assert_frame_equal(obj, expected)
+
+        df = df.sort_index(1)
+        df.loc[:, key] = np.zeros((2, 2), dtype=int)
+        expected = expected.sort_index(1)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocWithMultiIndex:
@@ -1282,6 +1359,31 @@ class TestLocWithMultiIndex:
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_getitem_preserves_index_level_category_dtype(self):
+        # GH#15166
+        df = DataFrame(
+            data=np.arange(2, 22, 2),
+            index=MultiIndex(
+                levels=[CategoricalIndex(["a", "b"]), range(10)],
+                codes=[[0] * 5 + [1] * 5, range(10)],
+                names=["Index1", "Index2"],
+            ),
+        )
+
+        expected = CategoricalIndex(
+            ["a", "b"],
+            categories=["a", "b"],
+            ordered=False,
+            name="Index1",
+            dtype="category",
+        )
+
+        result = df.index.levels[0]
+        tm.assert_index_equal(result, expected)
+
+        result = df.loc[["a"]].index.levels[0]
+        tm.assert_index_equal(result, expected)
+
 
 class TestLocSetitemWithExpansion:
     @pytest.mark.slow
@@ -1363,23 +1465,8 @@ class TestLocCallable:
         res = df.loc[lambda x: x.A > 2]
         tm.assert_frame_equal(res, df.loc[df.A > 2])
 
-        res = df.loc[lambda x: x.A > 2]
-        tm.assert_frame_equal(res, df.loc[df.A > 2])
-
-        res = df.loc[lambda x: x.A > 2]
-        tm.assert_frame_equal(res, df.loc[df.A > 2])
-
-        res = df.loc[lambda x: x.A > 2]
-        tm.assert_frame_equal(res, df.loc[df.A > 2])
-
         res = df.loc[lambda x: x.B == "b", :]
         tm.assert_frame_equal(res, df.loc[df.B == "b", :])
-
-        res = df.loc[lambda x: x.B == "b", :]
-        tm.assert_frame_equal(res, df.loc[df.B == "b", :])
-
-        res = df.loc[lambda x: x.A > 2, lambda x: x.columns == "B"]
-        tm.assert_frame_equal(res, df.loc[df.A > 2, [False, True, False]])
 
         res = df.loc[lambda x: x.A > 2, lambda x: x.columns == "B"]
         tm.assert_frame_equal(res, df.loc[df.A > 2, [False, True, False]])
@@ -1387,25 +1474,13 @@ class TestLocCallable:
         res = df.loc[lambda x: x.A > 2, lambda x: "B"]
         tm.assert_series_equal(res, df.loc[df.A > 2, "B"])
 
-        res = df.loc[lambda x: x.A > 2, lambda x: "B"]
-        tm.assert_series_equal(res, df.loc[df.A > 2, "B"])
-
         res = df.loc[lambda x: x.A > 2, lambda x: ["A", "B"]]
         tm.assert_frame_equal(res, df.loc[df.A > 2, ["A", "B"]])
-
-        res = df.loc[lambda x: x.A > 2, lambda x: ["A", "B"]]
-        tm.assert_frame_equal(res, df.loc[df.A > 2, ["A", "B"]])
-
-        res = df.loc[lambda x: x.A == 2, lambda x: ["A", "B"]]
-        tm.assert_frame_equal(res, df.loc[df.A == 2, ["A", "B"]])
 
         res = df.loc[lambda x: x.A == 2, lambda x: ["A", "B"]]
         tm.assert_frame_equal(res, df.loc[df.A == 2, ["A", "B"]])
 
         # scalar
-        res = df.loc[lambda x: 1, lambda x: "A"]
-        assert res == df.loc[1, "A"]
-
         res = df.loc[lambda x: 1, lambda x: "A"]
         assert res == df.loc[1, "A"]
 
@@ -1416,17 +1491,8 @@ class TestLocCallable:
         res = df.loc[lambda x: x.A > 2, ["A", "B"]]
         tm.assert_frame_equal(res, df.loc[df.A > 2, ["A", "B"]])
 
-        res = df.loc[lambda x: x.A > 2, ["A", "B"]]
-        tm.assert_frame_equal(res, df.loc[df.A > 2, ["A", "B"]])
-
         res = df.loc[[2, 3], lambda x: ["A", "B"]]
         tm.assert_frame_equal(res, df.loc[[2, 3], ["A", "B"]])
-
-        res = df.loc[[2, 3], lambda x: ["A", "B"]]
-        tm.assert_frame_equal(res, df.loc[[2, 3], ["A", "B"]])
-
-        res = df.loc[3, lambda x: ["A", "B"]]
-        tm.assert_series_equal(res, df.loc[3, ["A", "B"]])
 
         res = df.loc[3, lambda x: ["A", "B"]]
         tm.assert_series_equal(res, df.loc[3, ["A", "B"]])
@@ -1436,9 +1502,6 @@ class TestLocCallable:
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
 
         # return label
-        res = df.loc[lambda x: ["A", "C"]]
-        tm.assert_frame_equal(res, df.loc[["A", "C"]])
-
         res = df.loc[lambda x: ["A", "C"]]
         tm.assert_frame_equal(res, df.loc[["A", "C"]])
 
@@ -1611,18 +1674,16 @@ class TestLabelSlicing:
         expected = 2
         assert result == expected
 
-    def test_loc_getitem_label_slice_period(self):
-        ix = pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
-        ser = ix.to_series()
-        result = ser.loc[: ix[-2]]
-        expected = ser.iloc[:-1]
-
-        tm.assert_series_equal(result, expected)
-
-    def test_loc_getitem_label_slice_timedelta64(self):
-        ix = timedelta_range(start="1 day", end="2 days", freq="1H")
-        ser = ix.to_series()
-        result = ser.loc[: ix[-2]]
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.period_range(start="2017-01-01", end="2018-01-01", freq="M"),
+            timedelta_range(start="1 day", end="2 days", freq="1H"),
+        ],
+    )
+    def test_loc_getitem_label_slice_period_timedelta(self, index):
+        ser = index.to_series()
+        result = ser.loc[: index[-2]]
         expected = ser.iloc[:-1]
 
         tm.assert_series_equal(result, expected)
@@ -1716,23 +1777,13 @@ class TestLocBooleanMask:
             )
             tm.assert_frame_equal(expected, result)
 
-    def test_loc_setitem_mask_with_datetimeindex_tz(self):
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_loc_setitem_mask_with_datetimeindex_tz(self, tz):
         # GH#16889
         # support .loc with alignment and tz-aware DatetimeIndex
         mask = np.array([True, False, True, False])
 
-        idx = date_range("20010101", periods=4, tz="UTC")
-        df = DataFrame({"a": np.arange(4)}, index=idx).astype("float64")
-
-        result = df.copy()
-        result.loc[mask, :] = df.loc[mask, :]
-        tm.assert_frame_equal(result, df)
-
-        result = df.copy()
-        result.loc[mask] = df.loc[mask]
-        tm.assert_frame_equal(result, df)
-
-        idx = date_range("20010101", periods=4)
+        idx = date_range("20010101", periods=4, tz=tz)
         df = DataFrame({"a": np.arange(4)}, index=idx).astype("float64")
 
         result = df.copy()
@@ -1808,25 +1859,51 @@ class TestLocListlike:
         with pytest.raises(KeyError, match=msg):
             ser2.to_frame().loc[box(ci2)]
 
+    def test_loc_getitem_many_missing_labels_inside_error_message_limited(self):
+        # GH#34272
+        n = 10000
+        missing_labels = [f"missing_{label}" for label in range(n)]
+        ser = Series({"a": 1, "b": 2, "c": 3})
+        # regex checks labels between 4 and 9995 are replaced with ellipses
+        error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
+        with pytest.raises(KeyError, match=error_message_regex):
+            ser.loc[["a", "c"] + missing_labels]
 
-def test_series_loc_getitem_label_list_missing_values():
-    # gh-11428
-    key = np.array(
-        ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
-    )
-    s = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
-    with pytest.raises(KeyError, match="with any missing labels"):
-        s.loc[key]
+    def test_loc_getitem_missing_labels_inside_matched_in_error_message(self):
+        # GH#34272
+        ser = Series({"a": 1, "b": 2, "c": 3})
+        error_message_regex = "missing_0.*missing_1.*missing_2"
+        with pytest.raises(KeyError, match=error_message_regex):
+            ser.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
 
+    def test_loc_getitem_long_text_missing_labels_inside_error_message_limited(self):
+        # GH#34272
+        ser = Series({"a": 1, "b": 2, "c": 3})
+        missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
+        # regex checks for very long labels there are new lines between each
+        error_message_regex = (
+            "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
+        )
+        with pytest.raises(KeyError, match=error_message_regex):
+            ser.loc[["a", "c"] + missing_labels]
 
-def test_series_getitem_label_list_missing_integer_values():
-    # GH: 25927
-    s = Series(
-        index=np.array([9730701000001104, 10049011000001109]),
-        data=np.array([999000011000001104, 999000011000001104]),
-    )
-    with pytest.raises(KeyError, match="with any missing labels"):
-        s.loc[np.array([9730701000001104, 10047311000001102])]
+    def test_loc_getitem_series_label_list_missing_values(self):
+        # gh-11428
+        key = np.array(
+            ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
+        )
+        ser = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[key]
+
+    def test_loc_getitem_series_label_list_missing_integer_values(self):
+        # GH: 25927
+        ser = Series(
+            index=np.array([9730701000001104, 10049011000001109]),
+            data=np.array([999000011000001104, 999000011000001104]),
+        )
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[np.array([9730701000001104, 10047311000001102])]
 
 
 @pytest.mark.parametrize(

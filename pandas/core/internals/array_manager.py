@@ -802,7 +802,7 @@ class ArrayManager(DataManager):
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
-            self._axes[axis]._can_reindex(indexer)
+            self._axes[axis]._validate_can_reindex(indexer)
 
         # if axis >= self.ndim:
         #     raise IndexError("Requested axis not found in manager")
@@ -831,7 +831,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axis
 
-        return type(self)(new_arrays, new_axes)
+        return type(self)(new_arrays, new_axes, do_integrity_check=False)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
