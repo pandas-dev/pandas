@@ -141,6 +141,7 @@ from pandas.core.aggregation import (
     reconstruct_func,
     relabel_result,
 )
+from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -3264,6 +3265,9 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
+            if isinstance(value, DataFrame):
+                # GH#39931 reindex since iloc does not align
+                value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
@@ -4186,9 +4190,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            new_values = algorithms.take_2d_multi(
-                self.values, indexer, fill_value=fill_value
-            )
+            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
