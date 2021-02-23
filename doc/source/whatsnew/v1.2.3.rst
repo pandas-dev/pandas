@@ -15,8 +15,9 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
-- Fixed regression in :func:`pandas.to_excel` raising ``KeyError`` when giving duplicate columns with ``columns`` attribute (:issue:`39695`)
--
+- Fixed regression in :meth:`~DataFrame.to_excel` raising ``KeyError`` when giving duplicate columns with ``columns`` attribute (:issue:`39695`)
+- Fixed regression in :class:`IntegerArray` unary ops propagating mask on assignment (:issue:`39943`)
+- Fixed regression in :meth:`DataFrame.__setitem__` not aligning :class:`DataFrame` on right-hand side for boolean indexer (:issue:`39931`)
 
 .. ---------------------------------------------------------------------------
 

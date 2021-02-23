@@ -172,7 +172,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
-        return type(self)(~self._data, self._mask)
+        return type(self)(~self._data, self._mask.copy())
 
     # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
     # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],

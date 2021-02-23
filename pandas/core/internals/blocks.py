@@ -17,7 +17,6 @@ import numpy as np
 
 from pandas._libs import (
     Interval,
-    NaT,
     Period,
     Timestamp,
     algos as libalgos,
@@ -45,6 +44,7 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_upcast,
+    sanitize_to_nanoseconds,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -72,6 +72,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
+    na_value_for_dtype,
 )
 
 import pandas.core.algorithms as algos
@@ -95,11 +96,13 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     PandasArray,
-    TimedeltaArray,
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -128,7 +131,6 @@ class Block(PandasObject):
 
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
-    is_float = False
     is_bool = False
     is_object = False
     is_extension = False
@@ -1346,7 +1348,7 @@ class Block(PandasObject):
         data = self.values if inplace else self.values.copy()
 
         # only deal with floats
-        if not self.is_float:
+        if self.dtype.kind != "f":
             if self.dtype.kind not in ["i", "u"]:
                 return [self]
             data = data.astype(np.float64)
@@ -2037,7 +2039,6 @@ class NumericBlock(Block):
 
 class FloatBlock(NumericBlock):
     __slots__ = ()
-    is_float = True
 
     def to_native_types(
         self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
@@ -2179,8 +2180,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     is_numeric = False
     _can_hold_na = True
-    _dtype: np.dtype
-    _holder: Type[Union[DatetimeArray, TimedeltaArray]]
 
     @classmethod
     def _maybe_coerce_values(cls, values):
@@ -2196,25 +2195,26 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
         Returns
         -------
         values : ndarray[datetime64ns/timedelta64ns]
-
-        Overridden by DatetimeTZBlock.
         """
-        if values.dtype != cls._dtype:
-            # non-nano we will convert to nano
-            if values.dtype.kind != cls._dtype.kind:
-                # caller is responsible for ensuring td64/dt64 dtype
-                raise TypeError(values.dtype)  # pragma: no cover
-
-            values = cls._holder._from_sequence(values)._data
-
-        if isinstance(values, cls._holder):
+        values = extract_array(values, extract_numpy=True)
+        if isinstance(values, np.ndarray):
+            values = sanitize_to_nanoseconds(values)
+        elif isinstance(values.dtype, np.dtype):
+            # i.e. not datetime64tz
             values = values._data
 
-        assert isinstance(values, np.ndarray), type(values)
         return values
 
     def array_values(self):
-        return self._holder._simple_new(self.values)
+        return ensure_wrapped_if_datetimelike(self.values)
+
+    @property
+    def _holder(self):
+        return type(self.array_values())
+
+    @property
+    def fill_value(self):
+        return na_value_for_dtype(self.dtype)
 
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
@@ -2226,10 +2226,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-    is_datetime = True
-    fill_value = np.datetime64("NaT", "ns")
-    _dtype = fill_value.dtype
-    _holder = DatetimeArray
 
     def set_inplace(self, locs, values):
         """
@@ -2250,41 +2246,15 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     _can_hold_na = True
     is_numeric = False
 
-    _holder = DatetimeArray
-
     internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     diff = DatetimeBlock.diff
-    fill_value = NaT
     where = DatetimeBlock.where
     putmask = DatetimeLikeBlockMixin.putmask
     fillna = DatetimeLikeBlockMixin.fillna
 
     array_values = ExtensionBlock.array_values
-
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Input validation for values passed to __init__. Ensure that
-        we have datetime64TZ, coercing if necessary.
-
-        Parameters
-        ----------
-        values : array-like
-            Must be convertible to datetime64
-
-        Returns
-        -------
-        values : DatetimeArray
-        """
-        if not isinstance(values, cls._holder):
-            values = cls._holder(values)
-
-        if values.tz is None:
-            raise ValueError("cannot create a DatetimeTZBlock without a tz")
-
-        return values
 
     @property
     def is_view(self) -> bool:
@@ -2301,9 +2271,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
-    _holder = TimedeltaArray
-    fill_value = np.timedelta64("NaT", "ns")
-    _dtype = fill_value.dtype
 
 
 class ObjectBlock(Block):

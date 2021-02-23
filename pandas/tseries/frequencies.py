@@ -246,16 +246,17 @@ class _FrequencyInferer:
             return None
 
         delta = self.deltas[0]
-        if _is_multiple(delta, _ONE_DAY):
+        if delta and _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
             return "BH"
+
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values
         # will not work around DST transitions.  See #8772
-        elif not self.is_unique_asi8:
+        if not self.is_unique_asi8:
             return None
 
         delta = self.deltas_asi8[0]
