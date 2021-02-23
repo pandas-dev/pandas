@@ -88,7 +88,7 @@ def concatenate_array_managers(
         return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
 
 
-def concatenate_block_managers(
+def concatenate_managers(
     mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
