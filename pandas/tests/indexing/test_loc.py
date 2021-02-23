@@ -1,5 +1,6 @@
 """ test label based indexing with loc """
 from datetime import (
+    date,
     datetime,
     time,
     timedelta,
@@ -1179,6 +1180,94 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_frame_equal(expected, df)
 
+    def test_loc_setitem_categorical_values_partial_column_slice(self):
+        # Assigning a Category to parts of a int/... column uses the values of
+        # the Categorical
+        df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
+        exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
+        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+        tm.assert_frame_equal(df, exp)
+
+    def test_loc_setitem_single_row_categorical(self):
+        # GH#25495
+        df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
+        categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
+        df.loc[:, "Alpha"] = categories
+
+        result = df["Alpha"]
+        expected = Series(categories, index=df.index, name="Alpha")
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_datetime_coercion(self):
+        # GH#1048
+        df = DataFrame({"c": [Timestamp("2010-10-01")] * 3})
+        df.loc[0:1, "c"] = np.datetime64("2008-08-08")
+        assert Timestamp("2008-08-08") == df.loc[0, "c"]
+        assert Timestamp("2008-08-08") == df.loc[1, "c"]
+        df.loc[2, "c"] = date(2005, 5, 5)
+        with tm.assert_produces_warning(FutureWarning):
+            # Comparing Timestamp to date obj is deprecated
+            assert Timestamp("2005-05-05") == df.loc[2, "c"]
+        assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
+
+    @pytest.mark.parametrize("idxer", ["var", ["var"]])
+    def test_loc_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
+        # GH#11365
+        tz = tz_naive_fixture
+        idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
+        expected = DataFrame(1.2, index=idx, columns=["var"])
+        result = DataFrame(index=idx, columns=["var"])
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_setitem_time_key(self):
+        index = date_range("2012-01-01", "2012-01-05", freq="30min")
+        df = DataFrame(np.random.randn(len(index), 5), index=index)
+        akey = time(12, 0, 0)
+        bkey = slice(time(13, 0, 0), time(14, 0, 0))
+        ainds = [24, 72, 120, 168]
+        binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
+
+        result = df.copy()
+        result.loc[akey] = 0
+        result = result.loc[akey]
+        expected = df.loc[akey].copy()
+        expected.loc[:] = 0
+        tm.assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.loc[akey] = 0
+        result.loc[akey] = df.iloc[ainds]
+        tm.assert_frame_equal(result, df)
+
+        result = df.copy()
+        result.loc[bkey] = 0
+        result = result.loc[bkey]
+        expected = df.loc[bkey].copy()
+        expected.loc[:] = 0
+        tm.assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.loc[bkey] = 0
+        result.loc[bkey] = df.iloc[binds]
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("key", ["A", ["A"], ("A", slice(None))])
+    def test_loc_setitem_unsorted_multiindex_columns(self, key):
+        # GH#38601
+        mi = MultiIndex.from_tuples([("A", 4), ("B", "3"), ("A", "2")])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        obj = df.copy()
+        obj.loc[:, key] = np.zeros((2, 2), dtype=int)
+        expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
+        tm.assert_frame_equal(obj, expected)
+
+        df = df.sort_index(1)
+        df.loc[:, key] = np.zeros((2, 2), dtype=int)
+        expected = expected.sort_index(1)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
@@ -1307,6 +1396,31 @@ class TestLocWithMultiIndex:
 
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_getitem_preserves_index_level_category_dtype(self):
+        # GH#15166
+        df = DataFrame(
+            data=np.arange(2, 22, 2),
+            index=MultiIndex(
+                levels=[CategoricalIndex(["a", "b"]), range(10)],
+                codes=[[0] * 5 + [1] * 5, range(10)],
+                names=["Index1", "Index2"],
+            ),
+        )
+
+        expected = CategoricalIndex(
+            ["a", "b"],
+            categories=["a", "b"],
+            ordered=False,
+            name="Index1",
+            dtype="category",
+        )
+
+        result = df.index.levels[0]
+        tm.assert_index_equal(result, expected)
+
+        result = df.loc[["a"]].index.levels[0]
+        tm.assert_index_equal(result, expected)
 
 
 class TestLocSetitemWithExpansion:
