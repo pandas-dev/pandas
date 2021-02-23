@@ -831,7 +831,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axis
 
-        return type(self)(new_arrays, new_axes)
+        return type(self)(new_arrays, new_axes, do_integrity_check=False)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """

@@ -156,7 +156,7 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
-<https://github.com/trifacta/vega>`__ to create plots within Jupyter Notebook.
+<https://github.com/vega/vega>`__ to create plots within Jupyter Notebook.
 
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
