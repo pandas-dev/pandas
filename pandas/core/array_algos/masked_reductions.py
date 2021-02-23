@@ -3,7 +3,10 @@ masked_reductions.py is for reduction algorithms using a mask-based approach
 for missing values.
 """
 
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 
 import numpy as np
 
