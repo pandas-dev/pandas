@@ -57,15 +57,6 @@ class TestStylerMatplotlibDep:
         for k in expected.keys():
             assert result[k] == expected[k]
 
-    @pytest.mark.parametrize("text_color_threshold", [1.1, "1", -1, [2, 2]])
-    def test_text_color_threshold_raises(self, text_color_threshold):
-        df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
-        msg = "`text_color_threshold` must be a value from 0 to 1."
-        with pytest.raises(ValueError, match=msg):
-            df.style.background_gradient(
-                text_color_threshold=text_color_threshold
-            )._compute()
-
     def test_background_gradient_axis(self):
         df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
 
@@ -106,3 +97,52 @@ class TestStylerMatplotlibDep:
         assert ctx2[(0, 0)] == ctx1[(0, 0)]
         assert ctx2[(1, 0)] == ctx1[(1, 0)]
         assert ctx2[(2, 0)] == ctx1[(2, 0)]
+
+    @pytest.mark.parametrize(
+        "axis, gmap, expected",
+        [
+            (
+                0,
+                [1, 2],
+                {
+                    (0, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 0): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                    (0, 1): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                },
+            ),
+            (
+                1,
+                [1, 2],
+                {
+                    (0, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (0, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                    (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                },
+            ),
+            (
+                None,
+                np.array([[2, 1], [1, 2]]),
+                {
+                    (0, 0): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                    (1, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (0, 1): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                },
+            ),
+        ],
+    )
+    def test_background_gradient_gmap(self, axis, gmap, expected):
+        df = DataFrame([[1, 2], [2, 1]])
+        result = df.style.background_gradient(axis=axis, gmap=gmap)._compute().ctx
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "gmap, axis", [([1, 2, 3], 0), ([1, 2], 1), (np.array([[1, 2], [1, 2]]), None)]
+    )
+    def test_background_gradient_gmap_raises(self, gmap, axis):
+        df = DataFrame([[1, 2, 3], [1, 2, 3]])
+        msg = "supplied 'gmap' is not right shape"
+        with pytest.raises(ValueError, match=msg):
+            df.style.background_gradient(gmap=gmap, axis=axis)._compute()
