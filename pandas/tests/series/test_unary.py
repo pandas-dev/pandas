@@ -31,7 +31,7 @@ class TestSeriesUnaryOps:
         dtype = any_nullable_numeric_dtype
         ser = Series(source, dtype=dtype)
         neg_result, pos_result, abs_result = -ser, +ser, abs(ser)
-        if dtype.startswith('U'):
+        if dtype.startswith("U"):
             neg_target = -Series(source, dtype=dtype)
         else:
             neg_target = Series(neg_target, dtype=dtype)
