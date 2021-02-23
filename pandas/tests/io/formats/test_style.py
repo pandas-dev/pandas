@@ -119,6 +119,9 @@ class TestStyler:
         s_copy = copy.copy(self.styler)
         s_deepcopy = copy.deepcopy(self.styler)
 
+        self.styler._update_ctx(self.attrs)
+        self.styler.highlight_max()
+
         # Check for identity
         assert self.styler is not s_copy
         assert self.styler.ctx is s_copy.ctx  # shallow
@@ -156,8 +159,6 @@ class TestStyler:
             )
 
         # Check for equality (and changes in referenced objects)
-        self.styler._update_ctx(self.attrs)
-        self.styler.highlight_max()
         assert self.styler.ctx == s_copy.ctx
         assert self.styler._todo == s_copy._todo
         assert self.styler.table_styles == s_copy.table_styles
@@ -177,8 +178,6 @@ class TestStyler:
             assert self.styler.tooltips.table_styles == s_copy.tooltips.table_styles
 
         # Check for equality (and changes in original objects)
-        self.styler._update_ctx(self.attrs)
-        self.styler.highlight_max()
         assert self.styler.ctx != s_deepcopy.ctx
         assert s_deepcopy._todo == []
         assert self.styler._todo != s_deepcopy._todo
