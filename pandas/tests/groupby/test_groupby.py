@@ -10,6 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     Grouper,
     Index,
@@ -18,6 +19,7 @@ from pandas import (
     Timestamp,
     date_range,
     read_csv,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
@@ -1716,76 +1718,45 @@ def test_pivot_table_values_key_error():
         )
 
 
-@pytest.mark.parametrize("columns", [["C"]])
-# @pytest.mark.parametrize("columns", ["C", ["C"]])
-@pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
-@pytest.mark.parametrize(
-    "data",
-    [
-        3 * ["a"],
-        3 * [0],
-        3 * [0.0],
-        ["a", 0, 0.0],
-        [0, 0.0, "a"],
-    ],
-)
-def test_empty_ndframe_groupby(columns, keys, data, groupby_func):
-    # GH8093 & GH26411
-    df = DataFrame([data], columns=["A", "B", "C"])
-
-    # Get resulting dtype
-    expected_err = None
-    try:
-        expected_dtypes = getattr(
-            df.groupby(keys)[columns], groupby_func
-        )().dtypes.to_dict()
-    except Exception as err:
-        expected_err = err
-
-    df = df.iloc[:0]
-    if expected_err is None:
-        result = getattr(df.groupby(keys)[columns], groupby_func)()
-        expected = df.set_index(keys).astype(expected_dtypes)[columns]
-        if len(keys) == 1:
-            expected.index.name = keys[0]
-        tm.assert_equal(result, expected)
-    else:
-        import re
-
-        with pytest.raises(type(expected_err), match=re.escape(str(expected_err))):
-            getattr(df.groupby(keys)[columns], groupby_func)()
-
-
 @pytest.mark.parametrize("columns", ["C", ["C"]])
 @pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
 @pytest.mark.parametrize(
-    "dtypes",
+    "values",
     [
-        "object",
-        "int",
-        "float",
-        {"A": "object", "B": "int", "C": "float"},
-        {"A": "int", "B": "float", "C": "object"},
+        [True],
+        [0],
+        [0.0],
+        ["a"],
+        [Categorical([0])],
+        [to_datetime(0)],
+        [date_range(0, 1, 1, tz="US/Eastern")],
+        [pd.array([0], dtype="Int64")],
     ],
 )
+@pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
-    "op, args",
-    [
-        ["agg", ("sum",)],
-        ["apply", ("sum",)],
-        ["transform", ("sum",)],
-    ],
+    "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_ndframe_groupby_udf(columns, keys, dtypes, op, args):
+def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
-    df = DataFrame(columns=["A", "B", "C"])
-    df = df.astype(dtypes)
 
-    result = getattr(df.groupby(keys)[columns], op)(*args)
-    if op == "transform":
-        expected = df[columns]
+    if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="wrong dtype from _wrap_series_output")
+        )
+
+    df = DataFrame([3 * values], columns=list("ABC"))
+    df = df.iloc[:0]
+
+    args = ()
+
+    gb = df.groupby(keys)[columns]
+    if method == "attr":
+        result = getattr(gb, op)(*args)
     else:
-        expected = df.set_index(keys)[columns]
+        result = getattr(gb, method)(op, *args)
+
+    expected = df.set_index(keys)[columns]
     if len(keys) == 1:
         expected.index.name = keys[0]
     tm.assert_equal(result, expected)
