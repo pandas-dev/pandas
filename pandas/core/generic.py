@@ -6513,6 +6513,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     pad = ffill
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: FrameOrSeries,
         axis=None,
