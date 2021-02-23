@@ -89,7 +89,7 @@ class TestStyler:
 
     @pytest.mark.parametrize("do_changes", [True, False])
     @pytest.mark.parametrize("do_render", [True, False])
-    def test_copy(self, do_changes, do_render):
+    def test_copy_wrapped(self, do_changes, do_render):
         # Updated in GH39708
         # Change some defaults (to check later if they are copied)
         if do_changes:
@@ -97,7 +97,6 @@ class TestStyler:
             self.styler.set_table_styles(style)
             attributes = 'class="foo" data-bar'
             self.styler.set_table_attributes(attributes)
-            self.styler.uuid_len += 1
             self.styler.hidden_index = not self.styler.hidden_index
             self.styler.hide_columns("A")
             classes = pd.DataFrame(
@@ -118,100 +117,90 @@ class TestStyler:
         if do_render:
             self.styler.render()
 
-        s2 = copy.copy(self.styler)
+        s_copy = copy.copy(self.styler)
+        s_deepcopy = copy.deepcopy(self.styler)
 
         # Check for identity
-        assert self.styler is not s2
-        assert self.styler.ctx is s2.ctx  # shallow
-        assert self.styler._todo is s2._todo
-        assert self.styler.table_styles is s2.table_styles
-        assert self.styler.hidden_columns is s2.hidden_columns
-        assert self.styler.cell_context is s2.cell_context
-        assert self.styler.tooltips is s2.tooltips
+        assert self.styler is not s_copy
+        assert self.styler.ctx is s_copy.ctx  # shallow
+        assert self.styler._todo is s_copy._todo
+        assert self.styler.table_styles is s_copy.table_styles
+        assert self.styler.hidden_columns is s_copy.hidden_columns
+        assert self.styler.cell_context is s_copy.cell_context
+        assert self.styler.tooltips is s_copy.tooltips
         if do_changes:  # self.styler.tooltips is not None
-            assert self.styler.tooltips.tt_data is s2.tooltips.tt_data
+            assert self.styler.tooltips.tt_data is s_copy.tooltips.tt_data
+            assert (
+                self.styler.tooltips.class_properties
+                is s_copy.tooltips.class_properties
+            )
+            assert self.styler.tooltips.table_styles is s_copy.tooltips.table_styles
+
+        # Check for non-identity
+        assert self.styler is not s_deepcopy
+        assert self.styler.ctx is not s_deepcopy.ctx
+        assert self.styler._todo is not s_deepcopy._todo
+        assert self.styler.hidden_columns is not s_deepcopy.hidden_columns
+        assert self.styler.cell_context is not s_deepcopy.cell_context
+        if do_changes:  # self.styler.table_style is not None
+            assert self.styler.table_styles is not s_deepcopy.table_styles
+        if do_changes:  # self.styler.tooltips is not None
+            assert self.styler.tooltips is not s_deepcopy.tooltips
+            assert self.styler.tooltips.tt_data is not s_deepcopy.tooltips.tt_data
+            assert (
+                self.styler.tooltips.class_properties
+                is not s_deepcopy.tooltips.class_properties
+            )
+            assert (
+                self.styler.tooltips.table_styles
+                is not s_deepcopy.tooltips.table_styles
+            )
 
         # Check for equality (and changes in referenced objects)
         self.styler._update_ctx(self.attrs)
         self.styler.highlight_max()
-        assert self.styler.ctx == s2.ctx
-        assert self.styler._todo == s2._todo
-        assert self.styler.table_styles == s2.table_styles
-        assert self.styler.table_attributes == s2.table_attributes
-        assert self.styler.cell_ids == s2.cell_ids
-        assert self.styler.uuid_len == s2.uuid_len
-        assert self.styler.hidden_index == s2.hidden_index
-        assert self.styler.hidden_columns == s2.hidden_columns
-        assert self.styler.cell_context == s2.cell_context
+        assert self.styler.ctx == s_copy.ctx
+        assert self.styler._todo == s_copy._todo
+        assert self.styler.table_styles == s_copy.table_styles
+        assert self.styler.table_attributes == s_copy.table_attributes
+        assert self.styler.cell_ids == s_copy.cell_ids
+        assert self.styler.hidden_index == s_copy.hidden_index
+        assert self.styler.hidden_columns == s_copy.hidden_columns
+        assert self.styler.cell_context == s_copy.cell_context
         if do_changes:  # self.styler.table_style is not None
-            self.styler.table_styles[0]["selector"] = "ti"
-            assert self.styler.table_styles == s2.table_styles
+            assert self.styler.table_styles == s_copy.table_styles
         if do_changes:  # self.styler.tooltips is not None
-            tm.assert_frame_equal(self.styler.tooltips.tt_data, s2.tooltips.tt_data)
-
-    @pytest.mark.parametrize("do_changes", [True, False])
-    @pytest.mark.parametrize("do_render", [True, False])
-    def test_deepcopy(self, do_changes, do_render):
-        # Updated in GH39708
-        # Change some defaults (to check later if they are copied)
-        if do_changes:
-            style = [{"selector": "th", "props": [("foo", "bar")]}]
-            self.styler.set_table_styles(style)
-            attributes = 'class="foo" data-bar'
-            self.styler.set_table_attributes(attributes)
-            self.styler.uuid_len += 1
-            self.styler.hidden_index = not self.styler.hidden_index
-            self.styler.hide_columns("A")
-            classes = pd.DataFrame(
-                [["favorite-val red", ""], [None, "blue my-val"]],
-                index=self.df.index,
-                columns=self.df.columns,
+            tm.assert_frame_equal(self.styler.tooltips.tt_data, s_copy.tooltips.tt_data)
+            assert (
+                self.styler.tooltips.class_properties
+                == s_copy.tooltips.class_properties
             )
-            self.styler.set_td_classes(classes)
-            ttips = pd.DataFrame(
-                data=[["Favorite", ""], [np.nan, "my"]],
-                columns=self.df.columns,
-                index=self.df.index,
-            )
-            self.styler.set_tooltips(ttips)
-            self.styler.cell_ids = not self.styler.cell_ids
-            self.styler.format("{:.2%}")
-
-        if do_render:
-            self.styler.render()
-
-        s2 = copy.deepcopy(self.styler)
-
-        # Check for non-identity
-        assert self.styler is not s2
-        assert self.styler.ctx is not s2.ctx
-        assert self.styler._todo is not s2._todo
-        assert self.styler.hidden_columns is not s2.hidden_columns
-        assert self.styler.cell_context is not s2.cell_context
-        if do_changes:  # self.styler.table_style is not None
-            assert self.styler.table_styles is not s2.table_styles
-        if do_changes:  # self.styler.tooltips is not None
-            assert self.styler.tooltips is not s2.tooltips
-            assert self.styler.tooltips.tt_data is not s2.tooltips.tt_data
+            assert self.styler.tooltips.table_styles == s_copy.tooltips.table_styles
 
         # Check for equality (and changes in original objects)
         self.styler._update_ctx(self.attrs)
         self.styler.highlight_max()
-        assert self.styler.ctx != s2.ctx
-        assert s2._todo == []
-        assert self.styler._todo != s2._todo
-        assert self.styler.table_styles == s2.table_styles
-        assert self.styler.table_attributes == s2.table_attributes
-        assert self.styler.cell_ids == s2.cell_ids
-        assert self.styler.uuid_len == s2.uuid_len
-        assert self.styler.hidden_index == s2.hidden_index
-        assert self.styler.hidden_columns == s2.hidden_columns
-        assert self.styler.cell_context == s2.cell_context
+        assert self.styler.ctx != s_deepcopy.ctx
+        assert s_deepcopy._todo == []
+        assert self.styler._todo != s_deepcopy._todo
+        assert self.styler.table_styles == s_deepcopy.table_styles
+        assert self.styler.table_attributes == s_deepcopy.table_attributes
+        assert self.styler.cell_ids == s_deepcopy.cell_ids
+        assert self.styler.hidden_index == s_deepcopy.hidden_index
+        assert self.styler.hidden_columns == s_deepcopy.hidden_columns
+        assert self.styler.cell_context == s_deepcopy.cell_context
         if do_changes:  # self.styler.table_style is not None
             self.styler.table_styles[0]["selector"] = "ti"
-            assert self.styler.table_styles != s2.table_styles
+            assert self.styler.table_styles != s_deepcopy.table_styles
         if do_changes:  # self.styler.tooltips is not None
-            tm.assert_frame_equal(self.styler.tooltips.tt_data, s2.tooltips.tt_data)
+            tm.assert_frame_equal(
+                self.styler.tooltips.tt_data, s_deepcopy.tooltips.tt_data
+            )
+            assert (
+                self.styler.tooltips.class_properties
+                == s_deepcopy.tooltips.class_properties
+            )
+            assert self.styler.tooltips.table_styles == s_deepcopy.tooltips.table_styles
 
     def test_clear(self):
         # updated in GH 39396
