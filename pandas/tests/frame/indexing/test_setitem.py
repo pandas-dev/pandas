@@ -404,3 +404,12 @@ class TestDataFrameSetItemBooleanMask:
         expected = df.copy()
         expected.values[np.array(mask)] = np.nan
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("indexer", [lambda x: x, lambda x: x.loc])
+    def test_setitem_boolean_mask_aligning(self, indexer):
+        # GH#39931
+        df = DataFrame({"a": [1, 4, 2, 3], "b": [5, 6, 7, 8]})
+        expected = df.copy()
+        mask = df["a"] >= 3
+        indexer(df)[mask] = indexer(df)[mask].sort_values("a")
+        tm.assert_frame_equal(df, expected)
