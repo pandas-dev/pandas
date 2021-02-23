@@ -153,6 +153,9 @@ jobs:
       run: |
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
+        pytest pandas/tests/frame/test_constructors.py --array-manager
+        pytest pandas/tests/frame/constructors/ --array-manager
+
         pytest pandas/tests/arithmetic/ --array-manager
         pytest pandas/tests/reshape/merge --array-manager
 

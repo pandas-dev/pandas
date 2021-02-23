@@ -741,7 +741,13 @@ class ArrayManager(DataManager):
 
         value = extract_array(value, extract_numpy=True)
         if value.ndim == 2:
-            value = value[0, :]
+            if value.shape[0] == 1:
+                value = value[0, :]
+            else:
+                raise ValueError(
+                    f"expected 1D array, got array with shape {value.shape}"
+                )
+
         # TODO self.arrays can be empty
         # assert len(value) == len(self.arrays[0])
 
