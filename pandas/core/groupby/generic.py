@@ -84,7 +84,10 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.base import SpecificationError
+from pandas.core.base import (
+    DataError,
+    SpecificationError,
+)
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -1166,6 +1169,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  continue and exclude the block
         # NotImplementedError -> "ohlc" with wrong dtype
         new_mgr = data.grouped_reduce(blk_func, ignore_failures=True)
+
+        if not len(new_mgr):
+            raise DataError("No numeric types to aggregate")
+
         return new_mgr
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
