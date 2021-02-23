@@ -55,6 +55,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.base import DataError
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
@@ -402,6 +403,43 @@ class BlockManager(DataManager):
             indexer = np.arange(self.shape[0])
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
+
+    def grouped_reduce(
+        self: T, func: Callable, ignore_failures: bool = False
+    ) -> Tuple[T, np.ndarray]:
+        """
+        Apply grouped reduction function blockwise, returning a new BlockManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop blocks where func raises TypeError.
+
+        Returns
+        -------
+        BlockManager
+        """
+        result_blocks: List[Block] = []
+
+        for blk in self.blocks:
+            try:
+                applied = blk.apply(func)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
+            result_blocks = extend_blocks(applied, result_blocks)
+
+        if len(result_blocks) == 0:
+            raise DataError("No numeric types to aggregate")
+
+        index = Index(range(result_blocks[0].values.shape[-1]))
+
+        if ignore_failures:
+            return self._combine(result_blocks, index=index)
+
+        return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
     def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """

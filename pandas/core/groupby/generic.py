@@ -15,7 +15,6 @@ import copy
 from functools import partial
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -25,7 +24,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Sequence,
     Type,
     TypeVar,
     Union,
@@ -86,10 +84,7 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.base import (
-    DataError,
-    SpecificationError,
-)
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -114,10 +109,6 @@ from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
-
-if TYPE_CHECKING:
-    from pandas.core.internals import Block
-
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -1074,7 +1065,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         agg_mgr = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
-        return self._wrap_agged_blocks(agg_mgr.blocks, items=agg_mgr.items)
+        return self._wrap_agged_manager(agg_mgr)
 
     def _cython_agg_blocks(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1174,11 +1165,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
         # NotImplementedError -> "ohlc" with wrong dtype
-        new_mgr = data.apply(blk_func, ignore_failures=True)
-
-        if not len(new_mgr):
-            raise DataError("No numeric types to aggregate")
-
+        new_mgr = data.grouped_reduce(blk_func, ignore_failures=True)
         return new_mgr
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
@@ -1748,17 +1735,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: Sequence[Block], items: Index) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
         if not self.as_index:
-            index = np.arange(blocks[0].values.shape[-1])
-            mgr = BlockManager(blocks, axes=[items, index])
+            index = np.arange(mgr.shape[1])
+            mgr.set_axis(1, ibase.Index(index))
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr = BlockManager(blocks, axes=[items, index])
+            mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
         if self.axis == 1:
@@ -1808,13 +1795,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
             return counted
 
-        new_mgr = data.apply(hfunc)
+        new_mgr = data.grouped_reduce(hfunc)
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
-        # _wrap_agged_blocks() returns. GH 35028
+        # _wrap_agged_manager() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_blocks(new_mgr.blocks, items=data.items)
+            result = self._wrap_agged_manager(new_mgr)
 
         return self._reindex_output(result, fill_value=0)
 
