@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional
 
 import numpy as np
@@ -55,7 +57,7 @@ def take_nd(
 
     Returns
     -------
-    subarray : array-like
+    subarray : np.ndarray or ExtensionArray
         May be the same type as the input, or cast to an ndarray.
     """
     if fill_value is lib.no_default:
@@ -67,6 +69,17 @@ def take_nd(
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
+    return _take_nd_ndarray(arr, indexer, axis, out, fill_value, allow_fill)
+
+
+def _take_nd_ndarray(
+    arr: np.ndarray,
+    indexer,
+    axis: int,
+    out: Optional[np.ndarray],
+    fill_value,
+    allow_fill: bool,
+) -> np.ndarray:
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, axis, out, fill_value, allow_fill
