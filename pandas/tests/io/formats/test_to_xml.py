@@ -1334,7 +1334,7 @@ def test_compression_output(parser, comp):
 
 @pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
 @pytest.mark.parametrize("compfile", ["xml.bz2", "xml.gz", "xml.xz", "xml.zip"])
-def test_unmatched_suffix_comp(parser, comp, compfile):
+def test_filename_and_suffix_comp(parser, comp, compfile):
     with tm.ensure_clean(filename=compfile) as path:
         geom_df.to_xml(path, parser=parser, compression=comp)
 

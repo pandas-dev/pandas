@@ -186,23 +186,6 @@ class _XMLFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _preprocess_data(self, data):
-        """
-        Convert extracted raw data.
-
-        This method will return underlying data of extracted XML content.
-        The data either has a `read` attribute (e.g. a file object or a
-        StringIO/BytesIO) or is a string or bytes that is an XML document.
-        """
-
-        if isinstance(data, str):
-            data = io.StringIO(data)
-
-        elif isinstance(data, bytes):
-            data = io.BytesIO(data)
-
-        return data
-
     def _get_data_from_filepath(self, filepath_or_buffer):
         """
         Extract raw XML data.
@@ -236,6 +219,23 @@ class _XMLFrameParser:
                 )
 
         return filepath_or_buffer
+
+    def _preprocess_data(self, data):
+        """
+        Convert extracted raw data.
+
+        This method will return underlying data of extracted XML content.
+        The data either has a `read` attribute (e.g. a file object or a
+        StringIO/BytesIO) or is a string or bytes that is an XML document.
+        """
+
+        if isinstance(data, str):
+            data = io.StringIO(data)
+
+        elif isinstance(data, bytes):
+            data = io.BytesIO(data)
+
+        return data
 
     def _parse_doc(self):
         """
@@ -418,11 +418,11 @@ class _EtreeFrameParser(_XMLFrameParser):
         ):
             self.path_or_buffer = self.path_or_buffer.encode(self.encoding)
 
-        data = self._get_data_from_filepath(self.path_or_buffer)
-        self.data = self._preprocess_data(data)
+        handle_data = self._get_data_from_filepath(self.path_or_buffer)
+        self.xml_data = self._preprocess_data(handle_data)
 
         curr_parser = XMLParser(encoding=self.encoding)
-        r = parse(self.data, parser=curr_parser)
+        r = parse(self.xml_data, parser=curr_parser)
 
         return r
 
@@ -604,8 +604,8 @@ class _LxmlFrameParser(_XMLFrameParser):
 
     def _parse_doc(self):
         from lxml.etree import (
-            XML,
             XMLParser,
+            fromstring,
             parse,
         )
 
@@ -614,19 +614,17 @@ class _LxmlFrameParser(_XMLFrameParser):
         if isinstance(raw_doc, str) and raw_doc.startswith(("<?xml", "<")):
             raw_doc = raw_doc.encode(self.encoding)
 
-        data = self._get_data_from_filepath(raw_doc)
-        self.data = self._preprocess_data(data)
+        handle_data = self._get_data_from_filepath(raw_doc)
+        xml_data = self._preprocess_data(handle_data)
 
         curr_parser = XMLParser(encoding=self.encoding)
 
-        if isinstance(self.data, str):
-            r = XML(self.data.encode(self.encoding), parser=curr_parser)
-        elif isinstance(self.data, bytes):
-            r = XML(self.data, parser=curr_parser)
-        elif isinstance(self.data, io.StringIO):
-            r = XML(self.data.getvalue().encode(self.encoding), parser=curr_parser)
-        elif isinstance(self.data, io.BytesIO):
-            r = parse(self.data, parser=curr_parser)
+        if isinstance(xml_data, io.StringIO):
+            r = fromstring(
+                xml_data.getvalue().encode(self.encoding), parser=curr_parser
+            )
+        elif isinstance(xml_data, io.BytesIO):
+            r = parse(xml_data, parser=curr_parser)
 
         return r
 
@@ -917,8 +915,6 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
     """
-
-    path_or_buffer = stringify_path(path_or_buffer)
 
     return _parse(
         path_or_buffer=path_or_buffer,

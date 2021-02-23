@@ -264,22 +264,6 @@ class BaseXMLFormatter:
 
         raise AbstractMethodError(self)
 
-    def _preprocess_data(self, data):
-        """
-        Convert extracted raw data.
-
-        This method will return underlying data of extracted XML content.
-        The data either has a `read` attribute (e.g. a file object or a
-        StringIO/BytesIO) or is a string or bytes that is an XML document.
-        """
-        if isinstance(data, str):
-            data = io.StringIO(data)
-
-        elif isinstance(data, bytes):
-            data = io.BytesIO(data)
-
-        return data
-
     def _get_data_from_filepath(self, filepath_or_buffer):
         """
         Extract raw XML data.
@@ -313,6 +297,22 @@ class BaseXMLFormatter:
                 )
 
         return filepath_or_buffer
+
+    def _preprocess_data(self, data):
+        """
+        Convert extracted raw data.
+
+        This method will return underlying data of extracted XML content.
+        The data either has a `read` attribute (e.g. a file object or a
+        StringIO/BytesIO) or is a string or bytes that is an XML document.
+        """
+        if isinstance(data, str):
+            data = io.StringIO(data)
+
+        elif isinstance(data, bytes):
+            data = io.BytesIO(data)
+
+        return data
 
     def write_output(self) -> Optional[str]:
         xml_doc = self.build_tree()
@@ -602,8 +602,8 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         """
 
         from lxml.etree import (
-            XML,
             XMLParser,
+            fromstring,
             parse,
         )
 
@@ -612,19 +612,17 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         if isinstance(style_doc, str) and style_doc.startswith(("<?xml", "<")):
             style_doc = io.StringIO(style_doc)
 
-        data = self._get_data_from_filepath(style_doc)
-        self.data = self._preprocess_data(data)
+        handle_data = self._get_data_from_filepath(style_doc)
+        xml_data = self._preprocess_data(handle_data)
 
         curr_parser = XMLParser(encoding=self.encoding)
 
-        if isinstance(self.data, str):
-            r = XML(self.data.encode(self.encoding), parser=curr_parser)
-        elif isinstance(self.data, bytes):
-            r = XML(self.data, parser=curr_parser)
-        elif isinstance(self.data, io.StringIO):
-            r = XML(self.data.getvalue().encode(self.encoding), parser=curr_parser)
-        elif isinstance(self.data, io.BytesIO):
-            r = parse(self.data, parser=curr_parser)
+        if isinstance(xml_data, io.StringIO):
+            r = fromstring(
+                xml_data.getvalue().encode(self.encoding), parser=curr_parser
+            )
+        elif isinstance(xml_data, io.BytesIO):
+            r = parse(xml_data, parser=curr_parser)
 
         return r
 
