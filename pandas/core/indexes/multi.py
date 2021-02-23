@@ -1109,7 +1109,7 @@ class MultiIndex(Index):
         return MultiIndexUIntEngine(self.levels, self.codes, offsets)
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable[..., MultiIndex]:
         return type(self).from_tuples
 
     @doc(Index._shallow_copy)
@@ -1122,7 +1122,7 @@ class MultiIndex(Index):
         result = type(self)(
             levels=self.levels,
             codes=self.codes,
-            sortorder=None,
+            sortorder=self.sortorder,
             names=self.names,
             verify_integrity=False,
         )

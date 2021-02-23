@@ -773,7 +773,8 @@ class ExcelFormatter:
             series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 if styles is not None:
-                    xlstyle = self.style_converter(";".join(styles[i, colidx]))
+                    css = ";".join([a + ":" + str(v) for (a, v) in styles[i, colidx]])
+                    xlstyle = self.style_converter(css)
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
 
     def get_formatted_cells(self) -> Iterable[ExcelCell]:
