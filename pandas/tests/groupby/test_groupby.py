@@ -1737,7 +1737,7 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op, request):
+def test_empty_groupby(columns, keys, values, method, op):
     # GH8093 & GH26411
 
     override_dtype = None
