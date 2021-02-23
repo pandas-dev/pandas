@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -80,6 +82,67 @@ class TestGetitemListLike:
         # Check that we get the correct value in the KeyError
         with pytest.raises(KeyError, match=r"\['y'\] not in index"):
             df[["x", "y", "z"]]
+
+    def test_getitem_list_duplicates(self):
+        # GH#1943
+        df = DataFrame(np.random.randn(4, 4), columns=list("AABC"))
+        df.columns.name = "foo"
+
+        result = df[["B", "C"]]
+        assert result.columns.name == "foo"
+
+        expected = df.iloc[:, 2:]
+        tm.assert_frame_equal(result, expected)
+
+    def test_getitem_dupe_cols(self):
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
+        msg = "\"None of [Index(['baf'], dtype='object')] are in the [columns]\""
+        with pytest.raises(KeyError, match=re.escape(msg)):
+            df[["baf"]]
+
+    @pytest.mark.parametrize(
+        "idx_type",
+        [
+            list,
+            iter,
+            Index,
+            set,
+            lambda l: dict(zip(l, range(len(l)))),
+            lambda l: dict(zip(l, range(len(l)))).keys(),
+        ],
+        ids=["list", "iter", "Index", "set", "dict", "dict_keys"],
+    )
+    @pytest.mark.parametrize("levels", [1, 2])
+    def test_getitem_listlike(self, idx_type, levels, float_frame):
+        # GH#21294
+
+        if levels == 1:
+            frame, missing = float_frame, "food"
+        else:
+            # MultiIndex columns
+            frame = DataFrame(
+                np.random.randn(8, 3),
+                columns=Index(
+                    [("foo", "bar"), ("baz", "qux"), ("peek", "aboo")],
+                    name=("sth", "sth2"),
+                ),
+            )
+            missing = ("good", "food")
+
+        keys = [frame.columns[1], frame.columns[0]]
+        idx = idx_type(keys)
+        idx_check = list(idx_type(keys))
+
+        result = frame[idx]
+
+        expected = frame.loc[:, idx_check]
+        expected.columns.names = frame.columns.names
+
+        tm.assert_frame_equal(result, expected)
+
+        idx = idx_type(keys + [missing])
+        with pytest.raises(KeyError, match="not in index"):
+            frame[idx]
 
 
 class TestGetitemCallable:
@@ -257,6 +320,13 @@ class TestGetitemBooleanMask:
         tm.assert_frame_equal(result, expected)
         result.dtypes
         str(result)
+
+    def test_getitem_empty_frame_with_boolean(self):
+        # Test for issue GH#11859
+
+        df = DataFrame()
+        df2 = df[df > 0]
+        tm.assert_frame_equal(df, df2)
 
 
 class TestGetitemSlice:
