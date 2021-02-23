@@ -794,7 +794,7 @@ class Styler:
             styler.ctx = copy.deepcopy(self.ctx)
             styler._todo = copy.deepcopy(self._todo)
             styler.table_styles = copy.deepcopy(self.table_styles)
-            styler.hidden_columns = copy.deepcopy(self.hidden_columns)
+            styler.hidden_columns = copy.copy(self.hidden_columns)
             styler.cell_context = copy.deepcopy(self.cell_context)
             styler.tooltips = copy.deepcopy(self.tooltips)
         else:
