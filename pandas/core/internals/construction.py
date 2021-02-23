@@ -284,7 +284,6 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
             block_values = [datelike_vals]
-            block_values = [extract_array(x, extract_numpy=True) for x in block_values]
             if values.ndim == 2:
                 block_values = [ensure_block_shape(x, 2) for x in block_values]
 
