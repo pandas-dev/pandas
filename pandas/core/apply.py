@@ -548,6 +548,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
 
+        # TODO: GH 39993 - Avoid special-casing by replacing with lambda
         if f == "size" and isinstance(obj, ABCDataFrame):
             # Special-cased because DataFrame.size returns a single scalar
             value = obj.shape[self.axis]
