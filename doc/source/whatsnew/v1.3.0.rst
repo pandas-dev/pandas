@@ -367,6 +367,7 @@ Datetimelike
 - Bug in :meth:`Timestamp.round`, :meth:`Timestamp.floor`, :meth:`Timestamp.ceil` for values near the implementation bounds of :class:`Timestamp` (:issue:`39244`)
 - Bug in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, :meth:`Timedelta.ceil` for values near the implementation bounds of :class:`Timedelta` (:issue:`38964`)
 - Bug in :func:`date_range` incorrectly creating :class:`DatetimeIndex` containing ``NaT`` instead of raising ``OutOfBoundsDatetime`` in corner cases (:issue:`24124`)
+- Bug in :func:`infer_freq` incorrectly fails to infer 'H' frequency of :class:`DatetimeIndex` if the latter has a timezone and crosses DST boundaries (:issue:`39556`)
 
 Timedelta
 ^^^^^^^^^
