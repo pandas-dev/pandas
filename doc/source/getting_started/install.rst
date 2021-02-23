@@ -273,16 +273,6 @@ Computation
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 SciPy                     1.12.0             Miscellaneous statistical functions
-<<<<<<< HEAD
-xlsxwriter                1.0.2              Excel writing
-blosc                     1.17.0             Compression for HDF5
-fsspec                    0.7.4              Handling files aside from local and HTTP
-fastparquet               0.4.0              Parquet reading / writing
-gcsfs                     0.6.0              Google Cloud Storage access
-html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                      4.3.0              | HTML parser for read_html (see :ref:`note <optional_html>`)
-                                             | XML parser for read_xml and tree builder for to_xml
-matplotlib                2.2.3              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
 xarray                    0.12.3             pandas-like API for N-dimensional data
@@ -335,6 +325,15 @@ top-level :func:`~pandas.read_html` function:
 .. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
 .. _lxml: https://lxml.de
 .. _tabulate: https://github.com/astanin/python-tabulate
+
+XML
+^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+lxml                      4.3.0              XML parser for read_xml and tree builder for to_xml
+========================= ================== =============================================================
 
 SQL databases
 ^^^^^^^^^^^^^
