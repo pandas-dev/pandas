@@ -53,12 +53,15 @@ class TimeIntsToPydatetime:
     # TODO: fold? freq?
 
     def setup(self, box, size, tz):
+        if box == "date" and tz is not None:
+            # tz is ignored, so avoid running redundant benchmarks
+            raise NotImplementedError  # skip benchmark
+        if size == 10 ** 6 and tz is _tzs[-1]:
+            # This is cumbersomely-slow, so skip to trim runtime
+            raise NotImplementedError  # skip benchmark
+
         arr = np.random.randint(0, 10, size=size, dtype="i8")
         self.i8data = arr
 
     def time_ints_to_pydatetime(self, box, size, tz):
-        if box == "date":
-            # ints_to_pydatetime does not allow non-None tz with date;
-            #  this will mean doing some duplicate benchmarks
-            tz = None
         ints_to_pydatetime(self.i8data, tz, box=box)
