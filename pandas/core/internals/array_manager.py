@@ -141,18 +141,20 @@ class ArrayManager(DataManager):
         axis = 1 if axis == 0 else 0
         return axis
 
-    # TODO can be shared
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(
+        self, axis: int, new_labels: Index, verify_integrity: bool = True
+    ) -> None:
         # Caller is responsible for ensuring we have an Index object.
         axis = self._normalize_axis(axis)
-        old_len = len(self._axes[axis])
-        new_len = len(new_labels)
+        if verify_integrity:
+            old_len = len(self._axes[axis])
+            new_len = len(new_labels)
 
-        if new_len != old_len:
-            raise ValueError(
-                f"Length mismatch: Expected axis has {old_len} elements, new "
-                f"values have {new_len} elements"
-            )
+            if new_len != old_len:
+                raise ValueError(
+                    f"Length mismatch: Expected axis has {old_len} elements, new "
+                    f"values have {new_len} elements"
+                )
 
         self._axes[axis] = new_labels
 

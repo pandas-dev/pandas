@@ -235,16 +235,19 @@ class BlockManager(DataManager):
     def ndim(self) -> int:
         return len(self.axes)
 
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(
+        self, axis: int, new_labels: Index, verify_integrity: bool = True
+    ) -> None:
         # Caller is responsible for ensuring we have an Index object.
-        old_len = len(self.axes[axis])
-        new_len = len(new_labels)
+        if verify_integrity:
+            old_len = len(self.axes[axis])
+            new_len = len(new_labels)
 
-        if new_len != old_len:
-            raise ValueError(
-                f"Length mismatch: Expected axis has {old_len} elements, new "
-                f"values have {new_len} elements"
-            )
+            if new_len != old_len:
+                raise ValueError(
+                    f"Length mismatch: Expected axis has {old_len} elements, new "
+                    f"values have {new_len} elements"
+                )
 
         self.axes[axis] = new_labels
 
