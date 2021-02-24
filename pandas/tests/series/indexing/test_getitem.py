@@ -36,6 +36,21 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_float_keys_tuple_values(self):
+        # see GH#13509
+
+        # unique Index
+        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name="foo")
+        result = ser[0.0]
+        assert result == (1, 1)
+
+        # non-unique Index
+        expected = Series([(1, 1), (2, 2)], index=[0.0, 0.0], name="foo")
+        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name="foo")
+
+        result = ser[0.0]
+        tm.assert_series_equal(result, expected)
+
     def test_getitem_unrecognized_scalar(self):
         # GH#32684 a scalar key that is not recognized by lib.is_scalar
 
