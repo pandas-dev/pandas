@@ -327,7 +327,7 @@ def test_array_multiindex_raises():
         ),
         # GH#26406 tz is preserved in Categorical[dt64tz]
         (
-            pd.Categorical(pd.date_range("2016-01-01", periods=2, tz="US/Pacific")),
+            pd.Categorical(date_range("2016-01-01", periods=2, tz="US/Pacific")),
             np.array(
                 [
                     Timestamp("2016-01-01", tz="US/Pacific"),
