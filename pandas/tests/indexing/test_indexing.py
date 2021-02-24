@@ -726,7 +726,7 @@ class TestMisc:
         tm.assert_series_equal(df2.loc[:, "a"], df2.iloc[:, 0])
 
     @pytest.mark.parametrize("size", [5, 999999, 1000000])
-    def test_loc_setitem_range_in_series_indexing(self, size):
+    def test_loc_range_in_series_indexing(self, size):
         # range can cause an indexing error
         # GH 11652
         s = Series(index=range(size), dtype=np.float64)
