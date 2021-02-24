@@ -26,6 +26,7 @@ from typing import (
 )
 import warnings
 
+from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import (
@@ -1315,11 +1316,7 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and not is_extension:
-        try:
-            inferred_dtype = lib.infer_dtype(input_array)
-        except ValueError:
-            # Required to catch due to Period.  Can remove once GH 23553 is fixed
-            inferred_dtype = input_array.dtype
+        inferred_dtype = lib.infer_dtype(input_array)
 
         if not convert_string and is_string_dtype(inferred_dtype):
             inferred_dtype = input_array.dtype
@@ -1591,8 +1588,17 @@ def maybe_cast_to_datetime(
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except ValueError:
+                    except ParserError:
+                        # Note: ParserError subclasses ValueError
+                        # str that we can't parse to datetime
                         pass
+                    except ValueError as err:
+                        if "mixed datetimes and integers in passed array" in str(err):
+                            # equiv: going through construct_1d_ndarray_preserving_na
+                            value = np.array(value, dtype=dtype)
+                            # TODO: just let array_to_datetime handle that?
+                        else:
+                            raise
 
         # coerce datetimelike to object
         elif is_datetime64_dtype(
