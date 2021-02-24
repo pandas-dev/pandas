@@ -61,47 +61,6 @@ def test_fancy_setitem():
     assert (s[48:54] == -3).all()
 
 
-def test_slicing_datetimes():
-    # GH 7523
-
-    # unique
-    df = DataFrame(
-        np.arange(4.0, dtype="float64"),
-        index=[datetime(2001, 1, i, 10, 00) for i in [1, 2, 3, 4]],
-    )
-    result = df.loc[datetime(2001, 1, 1, 10) :]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[: datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[datetime(2001, 1, 1, 10) : datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-
-    result = df.loc[datetime(2001, 1, 1, 11) :]
-    expected = df.iloc[1:]
-    tm.assert_frame_equal(result, expected)
-    result = df.loc["20010101 11":]
-    tm.assert_frame_equal(result, expected)
-
-    # duplicates
-    df = DataFrame(
-        np.arange(5.0, dtype="float64"),
-        index=[datetime(2001, 1, i, 10, 00) for i in [1, 2, 2, 3, 4]],
-    )
-
-    result = df.loc[datetime(2001, 1, 1, 10) :]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[: datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[datetime(2001, 1, 1, 10) : datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-
-    result = df.loc[datetime(2001, 1, 1, 11) :]
-    expected = df.iloc[1:]
-    tm.assert_frame_equal(result, expected)
-    result = df.loc["20010101 11":]
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("tz_source", ["pytz", "dateutil"])
 def test_getitem_setitem_datetime_tz(tz_source):
     if tz_source == "pytz":
@@ -353,7 +312,7 @@ def test_indexing_with_duplicate_datetimeindex(
     assert ts[datetime(2000, 1, 6)] == 0
 
 
-def test_indexing_over_size_cutoff(monkeypatch):
+def test_loc_getitem_over_size_cutoff(monkeypatch):
     # #1821
 
     monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 1000)
