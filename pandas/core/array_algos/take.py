@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional
 
 import numpy as np
@@ -6,6 +8,7 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -14,20 +17,17 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import na_value_for_dtype
 
-from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 
 def take_nd(
-    arr,
+    arr: ArrayLike,
     indexer,
     axis: int = 0,
     out: Optional[np.ndarray] = None,
     fill_value=lib.no_default,
     allow_fill: bool = True,
-):
+) -> ArrayLike:
 
     """
     Specialized Cython take which sets NaN values in one pass
@@ -37,7 +37,7 @@ def take_nd(
 
     Parameters
     ----------
-    arr : array-like
+    arr : np.ndarray or ExtensionArray
         Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
@@ -57,13 +57,11 @@ def take_nd(
 
     Returns
     -------
-    subarray : array-like
+    subarray : np.ndarray or ExtensionArray
         May be the same type as the input, or cast to an ndarray.
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
-
-    arr = extract_array(arr, extract_numpy=True)
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
@@ -71,6 +69,17 @@ def take_nd(
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
+    return _take_nd_ndarray(arr, indexer, axis, out, fill_value, allow_fill)
+
+
+def _take_nd_ndarray(
+    arr: np.ndarray,
+    indexer,
+    axis: int,
+    out: Optional[np.ndarray],
+    fill_value,
+    allow_fill: bool,
+) -> np.ndarray:
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, axis, out, fill_value, allow_fill

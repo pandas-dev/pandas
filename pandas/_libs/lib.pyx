@@ -1468,7 +1468,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_decimal_array(values):
             return "decimal"
 
-    elif is_complex(val):
+    elif util.is_complex_object(val):
         if is_complex_array(values):
             return "complex"
 

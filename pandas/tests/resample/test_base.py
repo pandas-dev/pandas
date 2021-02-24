@@ -218,7 +218,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         getattr(empty_series_dti.resample("d"), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
-        # (ex: doing mean with dtype of np.object)
+        # (ex: doing mean with dtype of np.object_)
         pass
 
 

@@ -874,12 +874,16 @@ class _MergeOperation:
                 if take_left is None:
                     lvals = result[name]._values
                 else:
+                    # TODO: can we pin down take_left's type earlier?
+                    take_left = extract_array(take_left, extract_numpy=True)
                     lfill = na_value_for_dtype(take_left.dtype)
                     lvals = algos.take_nd(take_left, left_indexer, fill_value=lfill)
 
                 if take_right is None:
                     rvals = result[name]._values
                 else:
+                    # TODO: can we pin down take_right's type earlier?
+                    take_right = extract_array(take_right, extract_numpy=True)
                     rfill = na_value_for_dtype(take_right.dtype)
                     rvals = algos.take_nd(take_right, right_indexer, fill_value=rfill)
 
