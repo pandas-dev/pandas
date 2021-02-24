@@ -124,7 +124,7 @@ def nested_to_record(
 def _simple_json_normalize(
     ds: Union[Dict, List[Dict]],
     sep: str = ".",
-) -> DataFrame:
+) -> Union[List[dict], dict]:
     """
     A optimized basic json_normalize
 
@@ -143,15 +143,19 @@ def _simple_json_normalize(
     Returns
     -------
     frame : DataFrame
-    Normalize semi-structured JSON data into a flat table.
+    d - dict or list of dicts, matching `normalised_json_object`
 
     Examples
     --------
     IN[52]: _simple_json_normalize(dict(flat1=1,dict1=dict(c=1,d=2),
                                     nested=dict(e=dict(c=1,d=2),d=2)))
     Out[52]:
-       flat1  dict1.c  dict1.d  nested.e.c  nested.e.d  nested.d
-    0      1        1        2           1           2         2
+    {'dict1.c': 1,
+     'dict1.d': 2,
+     'flat1': 1,
+     'nested.d': 2,
+     'nested.e.c': 1,
+     'nested.e.d': 2}
 
     """
 
@@ -196,17 +200,13 @@ def _simple_json_normalize(
         )
         return {**top_dict_, **nested_dict_}
 
+    normalised_json_object = {}
     # expect a dictionary, as most jsons are. However, lists are perfectly valid
     if isinstance(ds, dict):
         normalised_json_object = _normalise_json_ordered(data=ds, separator=sep)
-        df = pd.DataFrame(
-            data=[normalised_json_object.values()],
-            columns=list(normalised_json_object.keys()),
-        )
     elif isinstance(ds, list):
         normalised_json_object = [_simple_json_normalize(row, sep=sep) for row in ds]
-        df = pd.DataFrame(normalised_json_object)
-    return df
+    return normalised_json_object
 
 
 def _json_normalize(
@@ -371,14 +371,13 @@ def _json_normalize(
     else:
         raise NotImplementedError
 
-    if not [
-        x
+    if all(
+        True if x is None else False
         for x in (record_path, meta, meta_prefix, record_prefix, max_level)
-        if x is None
-    ]:
+    ):
         # for very basic use case of pd.json_normalize(data), this is quick and
         # consistent with pandas ordering of json data
-        return _simple_json_normalize(data, sep=sep)
+        return pd.DataFrame(_simple_json_normalize(data, sep=sep))
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
