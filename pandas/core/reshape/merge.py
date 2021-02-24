@@ -76,7 +76,7 @@ import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
-from pandas.core.internals import concatenate_block_managers
+from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -720,7 +720,7 @@ class _MergeOperation:
         lindexers = {1: left_indexer} if left_indexer is not None else {}
         rindexers = {1: right_indexer} if right_indexer is not None else {}
 
-        result_data = concatenate_block_managers(
+        result_data = concatenate_managers(
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
@@ -874,12 +874,16 @@ class _MergeOperation:
                 if take_left is None:
                     lvals = result[name]._values
                 else:
+                    # TODO: can we pin down take_left's type earlier?
+                    take_left = extract_array(take_left, extract_numpy=True)
                     lfill = na_value_for_dtype(take_left.dtype)
                     lvals = algos.take_nd(take_left, left_indexer, fill_value=lfill)
 
                 if take_right is None:
                     rvals = result[name]._values
                 else:
+                    # TODO: can we pin down take_right's type earlier?
+                    take_right = extract_array(take_right, extract_numpy=True)
                     rfill = na_value_for_dtype(take_right.dtype)
                     rvals = algos.take_nd(take_right, right_indexer, fill_value=rfill)
 
@@ -1616,7 +1620,7 @@ class _OrderedMerge(_MergeOperation):
         lindexers = {1: left_join_indexer} if left_join_indexer is not None else {}
         rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
 
-        result_data = concatenate_block_managers(
+        result_data = concatenate_managers(
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,

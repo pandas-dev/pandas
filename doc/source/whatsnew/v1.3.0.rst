@@ -269,6 +269,7 @@ Performance improvements
 - Performance improvement in :meth:`core.window.rolling.RollingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` (:issue:`39591`)
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
 - Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
+- Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
 
 .. ---------------------------------------------------------------------------
 
@@ -437,6 +438,7 @@ Groupby/resample/rolling
 - Bug in :meth:`core.window.rolling.RollingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.corr` where the groupby column would return 0 instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 - Bug in :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` where 1 would be returned instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 - Bug in :meth:`.GroupBy.mean`, :meth:`.GroupBy.median` and :meth:`DataFrame.pivot_table` not propagating metadata (:issue:`28283`)
+- Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly when window is an offset and dates are in descending order (:issue:`40002`)
 - Bug in :meth:`DataFrameGroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` if a :class:`:meth:`core.window.rolling.RollingGroupby` object was created (:issue:`39732`)
 
 Reshaping
