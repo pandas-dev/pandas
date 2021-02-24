@@ -189,9 +189,10 @@ def _simple_json_normalize(
         """
         top_dict_ = {k: v for k, v in data.items() if not isinstance(v, dict)}
         nested_dict_ = _normalise_json(
-            {k: v for k, v in data.items() if isinstance(v, dict)},
-            separator=separator,
+            data={k: v for k, v in data.items() if isinstance(v, dict)},
+            key_string="",
             new_dict={},
+            separator=separator,
         )
         return {**top_dict_, **nested_dict_}
 
