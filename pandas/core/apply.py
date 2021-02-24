@@ -159,6 +159,10 @@ class Apply(metaclass=abc.ABCMeta):
     def index(self) -> Index:
         return self.obj.index
 
+    @property
+    def agg_axis(self) -> Index:
+        return self.obj._get_agg_axis(self.axis)
+
     @abc.abstractmethod
     def apply(self) -> FrameOrSeriesUnion:
         pass
@@ -541,17 +545,26 @@ class Apply(metaclass=abc.ABCMeta):
         f = self.f
         if not isinstance(f, str):
             return None
+
+        obj = self.obj
+
+        # TODO: GH 39993 - Avoid special-casing by replacing with lambda
+        if f == "size" and isinstance(obj, ABCDataFrame):
+            # Special-cased because DataFrame.size returns a single scalar
+            value = obj.shape[self.axis]
+            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
-        func = getattr(self.obj, f, None)
+        func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
             if "axis" in sig.args:
                 self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")
-        return self.obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
+        return obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
 
     def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
         """
@@ -612,10 +625,6 @@ class FrameApply(Apply):
     @cache_readonly
     def dtypes(self) -> Series:
         return self.obj.dtypes
-
-    @property
-    def agg_axis(self) -> Index:
-        return self.obj._get_agg_axis(self.axis)
 
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
