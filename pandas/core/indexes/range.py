@@ -171,6 +171,13 @@ class RangeIndex(Int64Index):
         """
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
+    @property
+    def array(self):
+        raise ValueError(
+            f"{type(self).__name__} has no single backing array. Use "
+            f"'{type(self).__name__}.to_numpy()' to get a NumPy array."
+        )
+
     @cache_readonly
     def _cached_int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
@@ -485,12 +492,17 @@ class RangeIndex(Int64Index):
         --------
         numpy.ndarray.argsort
         """
+        ascending = kwargs.pop("ascending", True)  # EA compat
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
-            return np.arange(len(self))
+            result = np.arange(len(self))
         else:
-            return np.arange(len(self) - 1, -1, -1)
+            result = np.arange(len(self) - 1, -1, -1)
+
+        if not ascending:
+            result = result[::-1]
+        return result
 
     def factorize(
         self, sort: bool = False, na_sentinel: Optional[int] = -1
@@ -870,7 +882,11 @@ class RangeIndex(Int64Index):
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
-        other = extract_array(other, extract_numpy=True)
+        if isinstance(other, RangeIndex):
+            # TODO: in some cases we can likely be more efficient, especially add/sub
+            other = other._values
+        else:
+            other = extract_array(other, extract_numpy=True)
         attrs = self._get_attributes_dict()
 
         left, right = self, other

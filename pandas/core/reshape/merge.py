@@ -47,7 +47,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas import Categorical, Index, MultiIndex
+from pandas import Categorical, Index, MultiIndex, RangeIndex
 from pandas.core import groupby
 import pandas.core.algorithms as algos
 import pandas.core.common as com
@@ -2032,8 +2032,14 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-    lk = extract_array(lk, extract_numpy=True)
-    rk = extract_array(rk, extract_numpy=True)
+    if not isinstance(lk, RangeIndex):
+        lk = extract_array(lk, extract_numpy=True)
+    else:
+        lk = np.array(lk)  # TODO: more efficient option?
+    if not isinstance(rk, RangeIndex):
+        rk = extract_array(rk, extract_numpy=True)
+    else:
+        rk = np.array(rk)  # TODO: more efficient option?
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values

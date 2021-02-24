@@ -99,7 +99,13 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    PandasArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
 
 if TYPE_CHECKING:
     from pandas import PeriodIndex, TimedeltaIndex
@@ -197,7 +203,11 @@ def box_expected(expected, box_cls, transpose=True):
     subclass of box_cls
     """
     if box_cls is pd.array:
-        expected = pd.array(expected)
+        if isinstance(expected, pd.RangeIndex):
+            # pd.array would return an IntegerArray
+            expected = PandasArray(expected._values)
+        else:
+            expected = pd.array(expected)
     elif box_cls is pd.Index:
         expected = pd.Index(expected)
     elif box_cls is pd.Series:
