@@ -158,9 +158,9 @@ def _simple_json_normalize(
     # intended as a performance improvement, see #15621
     def _normalise_json(
         data: object,
-        key_string: str = "",
-        new_dict: Dict = None,
-        separator: str = ".",
+        key_string: str,
+        new_dict: Dict,
+        separator: str,
     ):
         """
         Main recursive function, maintains object types, not ordering
@@ -172,11 +172,10 @@ def _simple_json_normalize(
                 new_key = f"{key_string}{separator}{key}"
                 _normalise_json(
                     data=value,
+                    # to avoid adding the separator to the start of every key
                     key_string=new_key
                     if new_key[len(separator) - 1] != separator
-                    else new_key[
-                        len(separator) :
-                    ],  # to avoid adding the separator to the start of every key
+                    else new_key[len(separator) :],
                     new_dict=new_dict,
                     separator=separator,
                 )
@@ -184,7 +183,7 @@ def _simple_json_normalize(
             new_dict[key_string] = data
         return new_dict
 
-    def _normalise_json_ordered(data: Dict, separator: str = "."):
+    def _normalise_json_ordered(data: Dict, separator: str):
         """
         Order the top level keys and then recursively go to depth
         """
