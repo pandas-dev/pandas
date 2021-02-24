@@ -286,7 +286,7 @@ class BlockManager(DataManager):
         return algos.take_nd(dtypes, self.blknos, allow_fill=False)
 
     @property
-    def arrays(self):
+    def arrays(self) -> List[ArrayLike]:
         """
         Quick access to the backing arrays of the Blocks.
 
@@ -294,8 +294,7 @@ class BlockManager(DataManager):
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
-        for blk in self.blocks:
-            yield blk.values
+        return [blk.values for blk in self.blocks]
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
