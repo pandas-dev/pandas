@@ -81,10 +81,7 @@ class TestTimedeltas:
     def test_to_timedelta_oob_non_nano(self):
         arr = np.array([pd.NaT.value + 1], dtype="timedelta64[s]")
 
-        msg = (
-            r"Out of bounds for nanosecond timedelta64\[s\] "
-            "-9223372036854775807 seconds"
-        )
+        msg = r"Out of bounds for nanosecond timedelta64\[s\] -9223372036854775807"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             to_timedelta(arr)
 
