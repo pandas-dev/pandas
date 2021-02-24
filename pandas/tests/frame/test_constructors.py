@@ -160,9 +160,11 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = (
-            "Wrong number of items passed 2, placement implies 1"
-            "|Expected a 1D array, got an array with shape \\(4, 2\\)"
+        msg = "|".join(
+            [
+                "Wrong number of items passed 2, placement implies 1",
+                "Expected a 1D array, got an array with shape \\(4, 2\\)",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
@@ -2065,9 +2067,11 @@ class TestDataFrameConstructors:
 
     def test_construct_from_listlikes_mismatched_lengths(self):
         # invalid (shape)
-        msg = (
-            r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)|"
-            "Passed arrays should have the same length as the rows Index"
+        msg = "|".join(
+            [
+                r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)",
+                "Passed arrays should have the same length as the rows Index",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
