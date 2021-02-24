@@ -301,17 +301,21 @@ def test_wrong_file_path_etree():
 
 @td.skip_if_no("lxml")
 def test_none_file_path_lxml():
-    xml_var = None
-    with pytest.raises(AttributeError, match="__enter__"):
-        read_xml(xml_var, parser="lxml")
+    with tm.ensure_clean("test.xml") as path:
+        xml_var = geom_df.to_xml(path)
+
+        with pytest.raises(AttributeError, match="__enter__"):
+            read_xml(xml_var, parser="lxml")
 
 
 def test_none_file_path_etree():
-    xml_var = None
-    with pytest.raises(
-        TypeError, match="expected str, bytes or os.PathLike object, not NoneType"
-    ):
-        read_xml(xml_var, parser="etree")
+    with tm.ensure_clean("test.xml") as path:
+        xml_var = geom_df.to_xml(path)
+
+        with pytest.raises(
+            TypeError, match="expected str, bytes or os.PathLike object, not NoneType"
+        ):
+            read_xml(xml_var, parser="etree")
 
 
 @tm.network
@@ -957,7 +961,7 @@ def test_stylesheet_with_etree(datapath):
 def test_empty_stylesheet(val):
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    read_xml(kml, parser="etree", stylesheet=val)
+    read_xml(kml, stylesheet=val)
 
 
 @tm.network
