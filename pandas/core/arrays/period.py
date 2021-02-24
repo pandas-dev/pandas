@@ -181,6 +181,8 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods = ["strftime", "to_timestamp", "asfreq"]
 
+    __setstate__ = dtl.DatelikeOps.__setstate__
+
     # --------------------------------------------------------------------
     # Constructors
 
@@ -201,10 +203,10 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         if isinstance(values, type(self)):
             if freq is not None and freq != values.freq:
                 raise raise_on_incompatible(values, freq)
-            values, freq = values._data, values.freq
+            values, freq = values._ndarray, values.freq
 
         values = np.array(values, dtype="int64", copy=copy)
-        self._data = values
+        self._ndarray = values
         if freq is None:
             raise ValueError("freq is not specified and cannot be inferred")
         self._dtype = PeriodDtype(freq)
@@ -347,7 +349,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
         if type is not None:
             if pyarrow.types.is_integer(type):
-                return pyarrow.array(self._data, mask=self.isna(), type=type)
+                return pyarrow.array(self._ndarray, mask=self.isna(), type=type)
             elif isinstance(type, ArrowPeriodType):
                 # ensure we have the same freq
                 if self.freqstr != type.freq:
@@ -361,7 +363,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
                 )
 
         period_type = ArrowPeriodType(self.freqstr)
-        storage_array = pyarrow.array(self._data, mask=self.isna(), type="int64")
+        storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
     # --------------------------------------------------------------------
