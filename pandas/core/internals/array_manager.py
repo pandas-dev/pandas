@@ -215,6 +215,32 @@ class ArrayManager(DataManager):
         indexer = np.arange(self.shape[0])
         return new_mgr, indexer
 
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+        """
+        Apply grouped reduction function columnwise, returning a new ArrayManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop columns where func raises TypeError.
+
+        Returns
+        -------
+        ArrayManager
+        """
+        result_arrays: List[ArrayLike] = []
+
+        # TODO ignore_failures
+        result_arrays = [func(arr) for arr in self.arrays]
+
+        if len(result_arrays) == 0:
+            index = Index([None])  # placeholder
+        else:
+            index = Index(range(result_arrays[0].shape[0]))
+
+        return type(self)(result_arrays, [index, self.items])
+
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.

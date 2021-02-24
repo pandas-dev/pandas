@@ -24,7 +24,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Tuple,
     Type,
     TypeVar,
     Union,
@@ -184,31 +183,6 @@ def pin_allowlisted_properties(klass: Type[FrameOrSeries], allowlist: FrozenSet[
         return cls
 
     return pinner
-
-
-def _cast_agg_result(
-    result, values: ArrayLike, how: str, reshape1d: bool = True
-) -> ArrayLike:
-    # see if we can cast the values to the desired dtype
-    # this may not be the original dtype
-    assert not isinstance(result, DataFrame)
-
-    dtype = maybe_cast_result_dtype(values.dtype, how)
-    result = maybe_downcast_numeric(result, dtype)
-
-    if isinstance(values, Categorical) and isinstance(result, np.ndarray):
-        # If the Categorical op didn't raise, it is dtype-preserving
-        result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
-        # Note this will have result.dtype == dtype from above
-
-    elif reshape1d and isinstance(result, np.ndarray) and result.ndim == 1:
-        # We went through a SeriesGroupByPath and need to reshape
-        # GH#32223 includes case with IntegerArray values
-        result = result.reshape(1, -1)
-        # test_groupby_duplicate_columns gets here with
-        #  result.dtype == int64, values.dtype=object, how="min"
-
-    return result
 
 
 @pin_allowlisted_properties(Series, base.series_apply_allowlist)
@@ -1104,27 +1078,47 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ) -> DataFrame:
-        if isinstance(self.obj._mgr, BlockManager):
-            agg_mgr = self._cython_agg_blocks(
-                how, alt=alt, numeric_only=numeric_only, min_count=min_count
-            )
-            return self._wrap_agged_manager(agg_mgr)
-        elif isinstance(self.obj._mgr, ArrayManager):
-            agg_arrays, columns = self._cython_agg_arrays(
-                how, alt=alt, numeric_only=numeric_only, min_count=min_count
-            )
-            return self._wrap_agged_arrays(agg_arrays, columns)
-        else:
-            raise TypeError("Unknown manager type")
+        agg_mgr = self._cython_agg_manager(
+            how, alt=alt, numeric_only=numeric_only, min_count=min_count
+        )
+        return self._wrap_agged_manager(agg_mgr)
 
-    def _cython_agg_blocks(
+    def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ) -> BlockManager:
 
-        data: BlockManager = self._get_data_to_aggregate()
+        data: Manager = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
+
+        using_array_manager = isinstance(data, ArrayManager)
+
+        def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
+            # see if we can cast the values to the desired dtype
+            # this may not be the original dtype
+            assert not isinstance(result, DataFrame)
+
+            dtype = maybe_cast_result_dtype(values.dtype, how)
+            result = maybe_downcast_numeric(result, dtype)
+
+            if isinstance(values, Categorical) and isinstance(result, np.ndarray):
+                # If the Categorical op didn't raise, it is dtype-preserving
+                result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
+                # Note this will have result.dtype == dtype from above
+
+            elif (
+                not using_array_manager
+                and isinstance(result, np.ndarray)
+                and result.ndim == 1
+            ):
+                # We went through a SeriesGroupByPath and need to reshape
+                # GH#32223 includes case with IntegerArray values
+                result = result.reshape(1, -1)
+                # test_groupby_duplicate_columns gets here with
+                #  result.dtype == int64, values.dtype=object, how="min"
+
+            return result
 
         def py_fallback(bvalues: ArrayLike) -> ArrayLike:
             # if self.grouper.aggregate fails, we fall back to a pure-python
@@ -1169,50 +1163,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = mgr.blocks[0].values
                 return result
 
-        def blk_func(bvalues: ArrayLike) -> ArrayLike:
-
-            try:
-                result = self.grouper._cython_operation(
-                    "aggregate", bvalues, how, axis=1, min_count=min_count
-                )
-            except NotImplementedError:
-                # generally if we have numeric_only=False
-                # and non-applicable functions
-                # try to python agg
-
-                if alt is None:
-                    # we cannot perform the operation
-                    # in an alternate way, exclude the block
-                    assert how == "ohlc"
-                    raise
-
-                result = py_fallback(bvalues)
-
-            return _cast_agg_result(result, bvalues, how)
-
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
-        # NotImplementedError -> "ohlc" with wrong dtype
-        new_mgr = data.grouped_reduce(blk_func, ignore_failures=True)
-
-        if not len(new_mgr):
-            raise DataError("No numeric types to aggregate")
-
-        return new_mgr
-
-    def _cython_agg_arrays(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> Tuple[List[ArrayLike], Index]:
-
-        data: ArrayManager = self._get_data_to_aggregate()
-
-        if numeric_only:
-            data = data.get_numeric_data(copy=False)
-
-        def py_fallback(bvalues: ArrayLike) -> ArrayLike:
-            # TODO(ArrayManager)
-            raise NotImplementedError
-
         def array_func(values: ArrayLike) -> ArrayLike:
 
             try:
@@ -1232,30 +1182,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 result = py_fallback(values)
 
-            return _cast_agg_result(result, values, how, reshape1d=False)
+            return cast_agg_result(result, values, how)
 
-        result_arrays = [array_func(arr) for arr in data.arrays]
+        # TypeError -> we may have an exception in trying to aggregate
+        #  continue and exclude the block
+        # NotImplementedError -> "ohlc" with wrong dtype
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
-        if not len(result_arrays):
+        if not len(new_mgr):
             raise DataError("No numeric types to aggregate")
 
-        return result_arrays, data.axes[0]
-
-    def _wrap_agged_arrays(self, arrays: List[ArrayLike], columns: Index) -> DataFrame:
-        if not self.as_index:
-            index = np.arange(arrays[0].shape[0])
-            mgr = ArrayManager(arrays, axes=[index, columns])
-            result = self.obj._constructor(mgr)
-            self._insert_inaxis_grouper_inplace(result)
-        else:
-            index = self.grouper.result_index
-            mgr = ArrayManager(arrays, axes=[index, columns])
-            result = self.obj._constructor(mgr)
-
-        if self.axis == 1:
-            result = result.T
-
-        return self._reindex_output(result)._convert(datetime=True)
+        return new_mgr
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
@@ -1828,17 +1765,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: Manager) -> DataFrame:
+        # TODO clean this up
+        axis = 1 if isinstance(mgr, BlockManager) else 0
+        axes = mgr.axes if isinstance(mgr, BlockManager) else mgr._axes
         if not self.as_index:
             index = np.arange(mgr.shape[1])
-            mgr.axes[1] = ibase.Index(index)
+            axes[axis] = ibase.Index(index)
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr.axes[1] = index
+            axes[axis] = index
             result = self.obj._constructor(mgr)
 
         if self.axis == 1:
