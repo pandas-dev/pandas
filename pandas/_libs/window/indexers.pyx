@@ -88,7 +88,7 @@ def calculate_variable_window_bounds(
 
             # left endpoint is closed
             if left_closed:
-                start_bound -= 1
+                start_bound -= 1 * index_growth_sign
 
             # advance the start bound until we are
             # within the constraint
