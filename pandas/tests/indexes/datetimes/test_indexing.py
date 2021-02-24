@@ -617,7 +617,8 @@ class TestGetIndexer:
             pd.Timedelta("1 hour").to_timedelta64(),
             "foo",
         ]
-        with pytest.raises(ValueError, match="abbreviation w/o a number"):
+        msg = "Could not convert 'foo' to NumPy timedelta"
+        with pytest.raises(ValueError, match=msg):
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")

@@ -1591,7 +1591,7 @@ def maybe_cast_to_datetime(
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except (ValueError, TypeError):
+                    except ValueError:
                         pass
 
         # coerce datetimelike to object

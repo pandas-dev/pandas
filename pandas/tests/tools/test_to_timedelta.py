@@ -108,9 +108,10 @@ class TestTimedeltas:
             to_timedelta(time(second=1))
         assert to_timedelta(time(second=1), errors="coerce") is pd.NaT
 
-        msg = "unit abbreviation w/o a number"
+        msg = "Could not convert 'foo' to NumPy timedelta"
         with pytest.raises(ValueError, match=msg):
             to_timedelta(["foo", "bar"])
+
         tm.assert_index_equal(
             TimedeltaIndex([pd.NaT, pd.NaT]),
             to_timedelta(["foo", "bar"], errors="coerce"),
