@@ -255,13 +255,13 @@ def test_transform(string_series):
         # multiple items in list
         # these are in the order as if we are applying both functions per
         # series and then concatting
-        expected = pd.concat([f_sqrt, f_abs], axis=1)
+        expected = concat([f_sqrt, f_abs], axis=1)
         expected.columns = ["sqrt", "absolute"]
         result = string_series.apply([np.sqrt, np.abs])
         tm.assert_frame_equal(result, expected)
 
         # dict, provide renaming
-        expected = pd.concat([f_sqrt, f_abs], axis=1)
+        expected = concat([f_sqrt, f_abs], axis=1)
         expected.columns = ["foo", "bar"]
         expected = expected.unstack().rename("series")
 
