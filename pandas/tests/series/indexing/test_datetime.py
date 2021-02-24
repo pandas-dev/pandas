@@ -102,10 +102,17 @@ def test_slicing_datetimes():
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem_setitem_datetime_tz_pytz():
+@pytest.mark.parametrize("tz_source", ["pytz", "dateutil"])
+def test_getitem_setitem_datetime_tz(tz_source):
+    if tz_source == "pytz":
+        tzget = pytz.timezone
+    else:
+        # handle special case for utc in dateutil
+        tzget = lambda x: tzutc() if x == "UTC" else gettz(x)
+
     N = 50
     # testing with timezone, GH #2785
-    rng = date_range("1/1/1990", periods=N, freq="H", tz="US/Eastern")
+    rng = date_range("1/1/1990", periods=N, freq="H", tz=tzget("US/Eastern"))
     ts = Series(np.random.randn(N), index=rng)
 
     # also test Timestamp tz handling, GH #2789
@@ -121,51 +128,15 @@ def test_getitem_setitem_datetime_tz_pytz():
 
     # repeat with datetimes
     result = ts.copy()
-    result[datetime(1990, 1, 1, 9, tzinfo=pytz.timezone("UTC"))] = 0
-    result[datetime(1990, 1, 1, 9, tzinfo=pytz.timezone("UTC"))] = ts[4]
+    result[datetime(1990, 1, 1, 9, tzinfo=tzget("UTC"))] = 0
+    result[datetime(1990, 1, 1, 9, tzinfo=tzget("UTC"))] = ts[4]
     tm.assert_series_equal(result, ts)
 
     result = ts.copy()
-
-    # comparison dates with datetime MUST be localized!
-    date = pytz.timezone("US/Central").localize(datetime(1990, 1, 1, 3))
-    result[date] = 0
-    result[date] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-
-def test_getitem_setitem_datetime_tz_dateutil():
-
-    tz = (
-        lambda x: tzutc() if x == "UTC" else gettz(x)
-    )  # handle special case for utc in dateutil
-
-    N = 50
-
-    # testing with timezone, GH #2785
-    rng = date_range("1/1/1990", periods=N, freq="H", tz="America/New_York")
-    ts = Series(np.random.randn(N), index=rng)
-
-    # also test Timestamp tz handling, GH #2789
-    result = ts.copy()
-    result["1990-01-01 09:00:00+00:00"] = 0
-    result["1990-01-01 09:00:00+00:00"] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-    result = ts.copy()
-    result["1990-01-01 03:00:00-06:00"] = 0
-    result["1990-01-01 03:00:00-06:00"] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-    # repeat with datetimes
-    result = ts.copy()
-    result[datetime(1990, 1, 1, 9, tzinfo=tz("UTC"))] = 0
-    result[datetime(1990, 1, 1, 9, tzinfo=tz("UTC"))] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-    result = ts.copy()
-    result[datetime(1990, 1, 1, 3, tzinfo=tz("America/Chicago"))] = 0
-    result[datetime(1990, 1, 1, 3, tzinfo=tz("America/Chicago"))] = ts[4]
+    dt = Timestamp(1990, 1, 1, 3).tz_localize(tzget("US/Central"))
+    dt = dt.to_pydatetime()
+    result[dt] = 0
+    result[dt] = ts[4]
     tm.assert_series_equal(result, ts)
 
 
