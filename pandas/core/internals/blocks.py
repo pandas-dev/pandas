@@ -1186,7 +1186,6 @@ class Block(PandasObject):
 
         return self.astype(new_dtype, copy=False)
 
-    @final
     def interpolate(
         self,
         method: str = "pad",
@@ -1293,11 +1292,10 @@ class Block(PandasObject):
 
         # only deal with floats
         if self.dtype.kind != "f":
-            if self.dtype.kind not in ["i", "u"]:
-                return [self]
-            data = data.astype(np.float64)
+            # bc we already checked that can_hold_na, we dont have int dtype here
+            return [self]
 
-        if fill_value is None:
+        if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = self.fill_value
 
         if method in ("krogh", "piecewise_polynomial", "pchip"):
