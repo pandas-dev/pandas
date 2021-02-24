@@ -104,7 +104,7 @@ class IsinAlmostFullWithRandomInt:
 
 class IsinWithRandomFloat:
     params = [
-        [np.float64, np.object],
+        [np.float64, np.object_],
         [
             1_300,
             2_000,
@@ -134,7 +134,7 @@ class IsinWithRandomFloat:
 
 class IsinWithArangeSorted:
     params = [
-        [np.float64, np.int64, np.uint64, np.object],
+        [np.float64, np.int64, np.uint64, np.object_],
         [
             1_000,
             2_000,
@@ -155,7 +155,7 @@ class IsinWithArangeSorted:
 
 class IsinWithArange:
     params = [
-        [np.float64, np.int64, np.uint64, np.object],
+        [np.float64, np.int64, np.uint64, np.object_],
         [
             1_000,
             2_000,
