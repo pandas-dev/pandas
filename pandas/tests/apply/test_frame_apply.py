@@ -1415,12 +1415,6 @@ def test_non_callable_aggregates(how):
 
     tm.assert_series_equal(result, expected)
 
-    # Just a string attribute arg same as calling df.arg
-    result = getattr(df, how)("size")
-    expected = df.size
-
-    assert result == expected
-
 
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_size_as_str(how, axis):
