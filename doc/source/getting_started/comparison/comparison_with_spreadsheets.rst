@@ -368,9 +368,9 @@ In Excel, there are `merging of tables can be done through a VLOOKUP
 GroupBy
 -------
 
-In Excel, this can be done by using the Query Editor.
+In Excel, this can be done by using the `Query Editor <https://support.microsoft.com/en-us/office/introduction-to-the-query-editor-power-query-1d6cdb63-bf70-4ae8-a7d5-6ae9547004d9>`_.
 You can group the values in various rows into a single value by grouping the rows according to the values in one or more columns
-Then using the Query Editor ribbon, Right-click the column header that you want to group on,
+Then using the `Query Editor ribbon <https://support.microsoft.com/en-us/office/combine-data-from-multiple-data-sources-power-query-70cfe661-5a2a-4d9d-a4fe-586cc7878c7d>` , Right-click the column header that you want to group on,
 and click `Group By <https://support.microsoft.com/en-us/office/group-rows-in-a-table-power-query-e1b9e916-6fcc-40bf-a6e8-ef928240adf1>`_.
 
 Power Query has two types of Group By operations:
