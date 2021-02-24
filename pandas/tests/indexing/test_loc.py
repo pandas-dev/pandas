@@ -1230,6 +1230,39 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = expected.sort_index(1)
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_uint_drop(self, any_int_dtype):
+        # see GH#18311
+        # assigning series.loc[0] = 4 changed series.dtype to int
+        series = Series([1, 2, 3], dtype=any_int_dtype)
+        series.loc[0] = 4
+        expected = Series([4, 2, 3], dtype=any_int_dtype)
+        tm.assert_series_equal(series, expected)
+
+    def test_loc_setitem_td64_non_nano(self):
+        # GH#14155
+        ser = Series(10 * [np.timedelta64(10, "m")])
+        ser.loc[[1, 2, 3]] = np.timedelta64(20, "m")
+        expected = Series(10 * [np.timedelta64(10, "m")])
+        expected.loc[[1, 2, 3]] = Timedelta(np.timedelta64(20, "m"))
+        tm.assert_series_equal(ser, expected)
+
+    def test_loc_setitem_2d_to_1d_raises(self):
+        data = np.random.randn(2, 2)
+        ser = Series(range(2))
+
+        msg = "|".join(
+            [
+                r"shape mismatch: value array of shape \(2,2\)",
+                r"cannot reshape array of size 4 into shape \(2,\)",
+            ]
+        )
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[range(2)] = data
+
+        msg = r"could not broadcast input array from shape \(2,2\) into shape \(2,?\)"
+        with pytest.raises(ValueError, match=msg):
+            ser.loc[:] = data
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
