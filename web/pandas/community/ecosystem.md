@@ -6,7 +6,7 @@ encouraging because it means pandas is not only helping users to handle
 their data tasks but also that it provides a better starting point for
 developers to build powerful and more focused data tools. The creation
 of libraries that complement pandas' functionality also allows pandas
-development to remain focused around it's original requirements.
+development to remain focused around its original requirements.
 
 This is an inexhaustive list of projects that build on pandas in order
 to provide tools in the PyData space. For a list of projects that depend

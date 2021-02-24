@@ -5,7 +5,12 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import Timedelta, merge_asof, read_csv, to_datetime
+from pandas import (
+    Timedelta,
+    merge_asof,
+    read_csv,
+    to_datetime,
+)
 import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
 
@@ -98,7 +103,7 @@ class TestAsOfMerge:
         pd.merge_asof(trades, quotes, on="time", by="ticker")
 
         pd.merge_asof(
-            trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("2ms")
+            trades, quotes, on="time", by="ticker", tolerance=Timedelta("2ms")
         )
 
         expected = pd.DataFrame(
@@ -126,7 +131,7 @@ class TestAsOfMerge:
             quotes,
             on="time",
             by="ticker",
-            tolerance=pd.Timedelta("10ms"),
+            tolerance=Timedelta("10ms"),
             allow_exact_matches=False,
         )
         tm.assert_frame_equal(result, expected)
@@ -223,12 +228,12 @@ class TestAsOfMerge:
         # MultiIndex is prohibited
         trades = self.trades.set_index(["time", "price"])
         quotes = self.quotes.set_index("time")
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match="left can only have one index"):
             merge_asof(trades, quotes, left_index=True, right_index=True)
 
         trades = self.trades.set_index("time")
         quotes = self.quotes.set_index(["time", "bid"])
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match="right can only have one index"):
             merge_asof(trades, quotes, left_index=True, right_index=True)
 
     def test_on_and_index(self):
@@ -236,14 +241,16 @@ class TestAsOfMerge:
         # "on" parameter and index together is prohibited
         trades = self.trades.set_index("time")
         quotes = self.quotes.set_index("time")
-        with pytest.raises(MergeError):
+        msg = 'Can only pass argument "left_on" OR "left_index" not both.'
+        with pytest.raises(MergeError, match=msg):
             merge_asof(
                 trades, quotes, left_on="price", left_index=True, right_index=True
             )
 
         trades = self.trades.set_index("time")
         quotes = self.quotes.set_index("time")
-        with pytest.raises(MergeError):
+        msg = 'Can only pass argument "right_on" OR "right_index" not both.'
+        with pytest.raises(MergeError, match=msg):
             merge_asof(
                 trades, quotes, right_on="bid", left_index=True, right_index=True
             )
@@ -439,7 +446,9 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(expected, result)
 
-        with pytest.raises(MergeError):
+        with pytest.raises(
+            MergeError, match="left_by and right_by must be same length"
+        ):
             pd.merge_asof(
                 left,
                 right,
@@ -478,13 +487,15 @@ class TestAsOfMerge:
         trades = self.trades
         quotes = self.quotes
 
-        with pytest.raises(MergeError):
+        msg = r"incompatible merge keys \[1\] .* must be the same type"
+
+        with pytest.raises(MergeError, match=msg):
             merge_asof(trades, quotes, left_on="time", right_on="bid", by="ticker")
 
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match="can only asof on a key for left"):
             merge_asof(trades, quotes, on=["time", "ticker"], by="ticker")
 
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match="can only asof on a key for left"):
             merge_asof(trades, quotes, by="ticker")
 
     def test_with_duplicates(self, datapath):
@@ -513,7 +524,9 @@ class TestAsOfMerge:
         trades = self.trades
         quotes = self.quotes
 
-        with pytest.raises(MergeError):
+        msg = "allow_exact_matches must be boolean, passed foo"
+
+        with pytest.raises(MergeError, match=msg):
             merge_asof(
                 trades, quotes, on="time", by="ticker", allow_exact_matches="foo"
             )
@@ -535,12 +548,14 @@ class TestAsOfMerge:
             tolerance=1,
         )
 
+        msg = r"incompatible tolerance .*, must be compat with type .*"
+
         # incompat
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match=msg):
             merge_asof(trades, quotes, on="time", by="ticker", tolerance=1)
 
         # invalid
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match=msg):
             merge_asof(
                 trades.reset_index(),
                 quotes.reset_index(),
@@ -549,13 +564,15 @@ class TestAsOfMerge:
                 tolerance=1.0,
             )
 
+        msg = "tolerance must be positive"
+
         # invalid negative
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match=msg):
             merge_asof(
                 trades, quotes, on="time", by="ticker", tolerance=-Timedelta("1s")
             )
 
-        with pytest.raises(MergeError):
+        with pytest.raises(MergeError, match=msg):
             merge_asof(
                 trades.reset_index(),
                 quotes.reset_index(),
@@ -572,13 +589,13 @@ class TestAsOfMerge:
         # we require that we are already sorted on time & quotes
         assert not trades.time.is_monotonic
         assert not quotes.time.is_monotonic
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="left keys must be sorted"):
             merge_asof(trades, quotes, on="time", by="ticker")
 
         trades = self.trades.sort_values("time")
         assert trades.time.is_monotonic
         assert not quotes.time.is_monotonic
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="right keys must be sorted"):
             merge_asof(trades, quotes, on="time", by="ticker")
 
         quotes = self.quotes.sort_values("time")
@@ -591,7 +608,7 @@ class TestAsOfMerge:
     @pytest.mark.parametrize(
         "tolerance",
         [Timedelta("1day"), datetime.timedelta(days=1)],
-        ids=["pd.Timedelta", "datetime.timedelta"],
+        ids=["Timedelta", "datetime.timedelta"],
     )
     def test_tolerance(self, tolerance):
 
@@ -652,7 +669,7 @@ class TestAsOfMerge:
                 "value2": list("ABCDE"),
             }
         )
-        result = pd.merge_asof(left, right, on="date", tolerance=pd.Timedelta("1 day"))
+        result = pd.merge_asof(left, right, on="date", tolerance=Timedelta("1 day"))
 
         expected = pd.DataFrame(
             {
@@ -698,7 +715,7 @@ class TestAsOfMerge:
             left_index=True,
             right_index=True,
             by="ticker",
-            tolerance=pd.Timedelta("1day"),
+            tolerance=Timedelta("1day"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -792,7 +809,7 @@ class TestAsOfMerge:
             df2,
             on="time",
             allow_exact_matches=False,
-            tolerance=pd.Timedelta("10ms"),
+            tolerance=Timedelta("10ms"),
         )
         expected = pd.DataFrame(
             {
@@ -827,7 +844,7 @@ class TestAsOfMerge:
             df2,
             on="time",
             allow_exact_matches=False,
-            tolerance=pd.Timedelta("10ms"),
+            tolerance=Timedelta("10ms"),
         )
         expected = pd.DataFrame(
             {
@@ -1156,7 +1173,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_merge_datatype_error_raises(self):
-        msg = r"incompatible merge keys \[0\] .*, must be the same type"
+        msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
 
         left = pd.DataFrame({"left_val": [1, 5, 10], "a": ["a", "b", "c"]})
         right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7], "a": [1, 2, 3, 6, 7]})
@@ -1342,9 +1359,9 @@ class TestAsOfMerge:
 
     def test_left_index_right_index_tolerance(self):
         # https://github.com/pandas-dev/pandas/issues/35558
-        dr1 = pd.date_range(
-            start="1/1/2020", end="1/20/2020", freq="2D"
-        ) + pd.Timedelta(seconds=0.4)
+        dr1 = pd.date_range(start="1/1/2020", end="1/20/2020", freq="2D") + Timedelta(
+            seconds=0.4
+        )
         dr2 = pd.date_range(start="1/1/2020", end="2/1/2020")
 
         df1 = pd.DataFrame({"val1": "foo"}, index=pd.DatetimeIndex(dr1))
@@ -1358,6 +1375,42 @@ class TestAsOfMerge:
             df2,
             left_index=True,
             right_index=True,
-            tolerance=pd.Timedelta(seconds=0.5),
+            tolerance=Timedelta(seconds=0.5),
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{"on": "x"}, {"left_index": True, "right_index": True}]
+)
+@pytest.mark.parametrize(
+    "data",
+    [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
+)
+def test_merge_asof_non_numerical_dtype(kwargs, data):
+    # GH#29130
+    left = pd.DataFrame({"x": data}, index=data)
+    right = pd.DataFrame({"x": data}, index=data)
+    with pytest.raises(
+        MergeError,
+        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+    ):
+        pd.merge_asof(left, right, **kwargs)
+
+
+def test_merge_asof_non_numerical_dtype_object():
+    # GH#29130
+    left = pd.DataFrame({"a": ["12", "13", "15"], "left_val1": ["a", "b", "c"]})
+    right = pd.DataFrame({"a": ["a", "b", "c"], "left_val": ["d", "e", "f"]})
+    with pytest.raises(
+        MergeError,
+        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+    ):
+        pd.merge_asof(
+            left,
+            right,
+            left_on="left_val1",
+            right_on="a",
+            left_by="a",
+            right_by="left_val",
+        )

@@ -8,10 +8,20 @@ import pytest
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import iNaT, is_null_datetimelike
+from pandas._libs.tslibs import (
+    iNaT,
+    is_null_datetimelike,
+)
 
-from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.common import (
+    is_float,
+    is_scalar,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -22,7 +32,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
+from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    NaT,
+    Series,
+    TimedeltaIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 now = pd.Timestamp.now()
@@ -90,8 +107,8 @@ class TestIsNA:
         assert not isna_f(-np.inf)
 
         # type
-        assert not isna_f(type(pd.Series(dtype=object)))
-        assert not isna_f(type(pd.Series(dtype=np.float64)))
+        assert not isna_f(type(Series(dtype=object)))
+        assert not isna_f(type(Series(dtype=np.float64)))
         assert not isna_f(type(pd.DataFrame()))
 
         # series
@@ -225,7 +242,7 @@ class TestIsNA:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime_other_units(self):
-        idx = pd.DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
+        idx = DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
@@ -247,16 +264,16 @@ class TestIsNA:
             tm.assert_numpy_array_equal(isna(values), exp)
             tm.assert_numpy_array_equal(notna(values), ~exp)
 
-            exp = pd.Series([False, True, False])
-            s = pd.Series(values)
+            exp = Series([False, True, False])
+            s = Series(values)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
-            s = pd.Series(values, dtype=object)
+            s = Series(values, dtype=object)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
 
     def test_timedelta_other_units(self):
-        idx = pd.TimedeltaIndex(["1 days", "NaT", "2 days"])
+        idx = TimedeltaIndex(["1 days", "NaT", "2 days"])
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
@@ -278,11 +295,11 @@ class TestIsNA:
             tm.assert_numpy_array_equal(isna(values), exp)
             tm.assert_numpy_array_equal(notna(values), ~exp)
 
-            exp = pd.Series([False, True, False])
-            s = pd.Series(values)
+            exp = Series([False, True, False])
+            s = Series(values)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
-            s = pd.Series(values, dtype=object)
+            s = Series(values, dtype=object)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
 
@@ -292,11 +309,11 @@ class TestIsNA:
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
 
-        exp = pd.Series([False, True, False])
-        s = pd.Series(idx)
+        exp = Series([False, True, False])
+        s = Series(idx)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
-        s = pd.Series(idx, dtype=object)
+        s = Series(idx, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
@@ -472,8 +489,8 @@ def test_array_equivalent_nested():
     "dtype, na_value",
     [
         # Datetime-like
-        (np.dtype("M8[ns]"), NaT),
-        (np.dtype("m8[ns]"), NaT),
+        (np.dtype("M8[ns]"), np.datetime64("NaT", "ns")),
+        (np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")),
         (DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]"), NaT),
         (PeriodDtype("M"), NaT),
         # Integer
@@ -499,7 +516,11 @@ def test_array_equivalent_nested():
 )
 def test_na_value_for_dtype(dtype, na_value):
     result = na_value_for_dtype(dtype)
-    assert result is na_value
+    # identify check doesnt work for datetime64/timedelta64("NaT") bc they
+    #  are not singletons
+    assert result is na_value or (
+        isna(result) and isna(na_value) and type(result) is type(na_value)
+    )
 
 
 class TestNAObj:
@@ -649,3 +670,25 @@ class TestLibMissing:
 
         for value in never_na_vals:
             assert not is_null_datetimelike(value)
+
+    def test_is_matching_na(self, nulls_fixture, nulls_fixture2):
+        left = nulls_fixture
+        right = nulls_fixture2
+
+        assert libmissing.is_matching_na(left, left)
+
+        if left is right:
+            assert libmissing.is_matching_na(left, right)
+        elif is_float(left) and is_float(right):
+            # np.nan vs float("NaN") we consider as matching
+            assert libmissing.is_matching_na(left, right)
+        else:
+            assert not libmissing.is_matching_na(left, right)
+
+    def test_is_matching_na_nan_matches_none(self):
+
+        assert not libmissing.is_matching_na(None, np.nan)
+        assert not libmissing.is_matching_na(np.nan, None)
+
+        assert libmissing.is_matching_na(None, np.nan, nan_matches_none=True)
+        assert libmissing.is_matching_na(np.nan, None, nan_matches_none=True)

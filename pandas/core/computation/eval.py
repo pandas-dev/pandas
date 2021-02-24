@@ -10,7 +10,10 @@ from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import ENGINES
-from pandas.core.computation.expr import PARSERS, Expr
+from pandas.core.computation.expr import (
+    PARSERS,
+    Expr,
+)
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
@@ -52,12 +55,11 @@ def _check_engine(engine: Optional[str]) -> str:
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
-    if engine == "numexpr":
-        if not NUMEXPR_INSTALLED:
-            raise ImportError(
-                "'numexpr' is not installed or an unsupported version. Cannot use "
-                "engine='numexpr' for query/eval if 'numexpr' is not installed"
-            )
+    if engine == "numexpr" and not NUMEXPR_INSTALLED:
+        raise ImportError(
+            "'numexpr' is not installed or an unsupported version. Cannot use "
+            "engine='numexpr' for query/eval if 'numexpr' is not installed"
+        )
 
     return engine
 
@@ -212,7 +214,8 @@ def eval(
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3.
-        deprecated:: 1.0.0
+
+        .. deprecated:: 1.0.0
 
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
@@ -241,7 +244,8 @@ def eval(
 
     Returns
     -------
-    ndarray, numeric scalar, DataFrame, Series
+    ndarray, numeric scalar, DataFrame, Series, or None
+        The completion value of evaluating the given code or None if ``inplace=True``.
 
     Raises
     ------

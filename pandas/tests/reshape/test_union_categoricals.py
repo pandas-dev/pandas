@@ -4,7 +4,11 @@ import pytest
 from pandas.core.dtypes.concat import union_categoricals
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, Series
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -72,13 +76,13 @@ class TestUnionCategoricals:
     def test_union_categoricals_nan(self):
         # GH 13759
         res = union_categoricals(
-            [pd.Categorical([1, 2, np.nan]), pd.Categorical([3, 2, np.nan])]
+            [Categorical([1, 2, np.nan]), Categorical([3, 2, np.nan])]
         )
         exp = Categorical([1, 2, np.nan, 3, 2, np.nan])
         tm.assert_categorical_equal(res, exp)
 
         res = union_categoricals(
-            [pd.Categorical(["A", "B"]), pd.Categorical(["B", "B", np.nan])]
+            [Categorical(["A", "B"]), Categorical(["B", "B", np.nan])]
         )
         exp = Categorical(["A", "B", "B", "B", np.nan])
         tm.assert_categorical_equal(res, exp)
@@ -86,7 +90,7 @@ class TestUnionCategoricals:
         val1 = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-03-01"), pd.NaT]
         val2 = [pd.NaT, pd.Timestamp("2011-01-01"), pd.Timestamp("2011-02-01")]
 
-        res = union_categoricals([pd.Categorical(val1), pd.Categorical(val2)])
+        res = union_categoricals([Categorical(val1), Categorical(val2)])
         exp = Categorical(
             val1 + val2,
             categories=[
@@ -100,22 +104,22 @@ class TestUnionCategoricals:
         # all NaN
         res = union_categoricals(
             [
-                pd.Categorical(np.array([np.nan, np.nan], dtype=object)),
-                pd.Categorical(["X"]),
+                Categorical(np.array([np.nan, np.nan], dtype=object)),
+                Categorical(["X"]),
             ]
         )
         exp = Categorical([np.nan, np.nan, "X"])
         tm.assert_categorical_equal(res, exp)
 
         res = union_categoricals(
-            [pd.Categorical([np.nan, np.nan]), pd.Categorical([np.nan, np.nan])]
+            [Categorical([np.nan, np.nan]), Categorical([np.nan, np.nan])]
         )
         exp = Categorical([np.nan, np.nan, np.nan, np.nan])
         tm.assert_categorical_equal(res, exp)
 
     def test_union_categoricals_empty(self):
         # GH 13759
-        res = union_categoricals([pd.Categorical([]), pd.Categorical([])])
+        res = union_categoricals([Categorical([]), Categorical([])])
         exp = Categorical([])
         tm.assert_categorical_equal(res, exp)
 
@@ -275,7 +279,8 @@ class TestUnionCategoricals:
 
         c1 = Categorical(["b", "a"], categories=["b", "a", "c"], ordered=True)
         c2 = Categorical(["a", "c"], categories=["b", "a", "c"], ordered=True)
-        with pytest.raises(TypeError):
+        msg = "Cannot use sort_categories=True with ordered Categoricals"
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, c2], sort_categories=True)
 
     def test_union_categoricals_sort_false(self):
@@ -331,7 +336,7 @@ class TestUnionCategoricals:
     def test_union_categorical_unwrap(self):
         # GH 14173
         c1 = Categorical(["a", "b"])
-        c2 = pd.Series(["b", "c"], dtype="category")
+        c2 = Series(["b", "c"], dtype="category")
         result = union_categoricals([c1, c2])
         expected = Categorical(["a", "b", "b", "c"])
         tm.assert_categorical_equal(result, expected)
@@ -344,5 +349,6 @@ class TestUnionCategoricals:
         result = union_categoricals([c1, c2])
         tm.assert_categorical_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "all components to combine must be Categorical"
+        with pytest.raises(TypeError, match=msg):
             union_categoricals([c1, ["a", "b", "c"]])

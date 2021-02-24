@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -100,7 +102,7 @@ class TestDataFrameClip:
 
         result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
 
-        expected = pd.DataFrame(res, columns=original.columns, index=original.index)
+        expected = DataFrame(res, columns=original.columns, index=original.index)
         if inplace:
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)

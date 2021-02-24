@@ -8,7 +8,7 @@ Version 0.19.1 (November 3, 2016)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a minor bug-fix release from 0.19.0 and includes some small regression fixes,
@@ -29,7 +29,7 @@ Performance improvements
 - Fixed performance regression in ``Series.asof(where)`` when ``where`` is a scalar (:issue:`14461`)
 - Improved performance in ``DataFrame.asof(where)`` when ``where`` is a scalar (:issue:`14461`)
 - Improved performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
-- Improved performance in certain types of `loc` indexing with a MultiIndex (:issue:`14551`).
+- Improved performance in certain types of ``loc`` indexing with a MultiIndex (:issue:`14551`).
 
 
 .. _whatsnew_0191.bug_fixes:

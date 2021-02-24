@@ -1,7 +1,17 @@
 from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import Any, Callable, List, Mapping, Optional, Tuple, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
@@ -78,8 +88,9 @@ def deprecate(
 
         {dedent(doc)}"""
         )
-
-    return wrapper
+    # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
+    # Callable[...,Any]]", expected "Callable[[F], F]")
+    return wrapper  # type: ignore[return-value]
 
 
 def deprecate_kwarg(
@@ -278,6 +289,9 @@ def deprecate_nonkeyword_arguments(
             allow_args = allowed_args
         else:
             spec = inspect.getfullargspec(func)
+
+            # We must have some defaults if we are deprecating default-less
+            assert spec.defaults is not None  # for mypy
             allow_args = spec.args[: -len(spec.defaults)]
 
         @wraps(func)
@@ -358,10 +372,10 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
 
         for docstring in docstrings:
             if hasattr(docstring, "_docstring_components"):
-                # error: Item "str" of "Union[str, Callable[..., Any]]" has no
-                # attribute "_docstring_components"  [union-attr]
-                # error: Item "function" of "Union[str, Callable[..., Any]]"
-                # has no attribute "_docstring_components"  [union-attr]
+                # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
+                # "_docstring_components"
+                # error: Item "function" of "Union[str, Callable[..., Any]]" has no
+                # attribute "_docstring_components"
                 docstring_components.extend(
                     docstring._docstring_components  # type: ignore[union-attr]
                 )

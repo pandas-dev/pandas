@@ -1,71 +1,94 @@
 """
 Routines for filling missing data.
 """
+from __future__ import annotations
 
-from typing import Any, List, Optional, Set, Union
+from functools import partial
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Set,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import algos, lib
-from pandas._typing import DtypeObj
+from pandas._libs import (
+    algos,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Axis,
+    DtypeObj,
+)
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     ensure_float64,
+    is_array_like,
     is_integer_dtype,
     is_numeric_v_string_like,
-    is_scalar,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
 
+if TYPE_CHECKING:
+    from pandas import Index
 
-def mask_missing(arr, values_to_mask):
+
+def check_value_size(value, mask: np.ndarray, length: int):
+    """
+    Validate the size of the values passed to ExtensionArray.fillna.
+    """
+    if is_array_like(value):
+        if len(value) != length:
+            raise ValueError(
+                f"Length of 'value' does not match. Got ({len(value)}) "
+                f" expected {length}"
+            )
+        value = value[mask]
+
+    return value
+
+
+def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
+
+    Parameters
+    ----------
+    arr : ArrayLike
+    values_to_mask: list, tuple, or scalar
+
+    Returns
+    -------
+    np.ndarray[bool]
     """
-    dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
-
-    try:
-        values_to_mask = np.array(values_to_mask, dtype=dtype)
-
-    except Exception:
-        values_to_mask = np.array(values_to_mask, dtype=object)
+    # When called from Block.replace/replace_list, values_to_mask is a scalar
+    #  known to be holdable by arr.
+    # When called from Series._single_replace, values_to_mask is tuple or list
+    dtype, values_to_mask = infer_dtype_from(values_to_mask)
+    values_to_mask = np.array(values_to_mask, dtype=dtype)
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
-    mask = None
+    # GH 21977
+    mask = np.zeros(arr.shape, dtype=bool)
     for x in nonna:
-        if mask is None:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                mask = False
-            else:
-                mask = arr == x
-
-            # if x is a string and arr is not, then we get False and we must
-            # expand the mask to size arr.shape
-            if is_scalar(mask):
-                mask = np.zeros(arr.shape, dtype=bool)
+        if is_numeric_v_string_like(arr, x):
+            # GH#29553 prevent numpy deprecation warnings
+            pass
         else:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                mask |= False
-            else:
-                mask |= arr == x
+            mask |= arr == x
 
     if na_mask.any():
-        if mask is None:
-            mask = isna(arr)
-        else:
-            mask |= isna(arr)
-
-    # GH 21977
-    if mask is None:
-        mask = np.zeros(arr.shape, dtype=bool)
+        mask |= isna(arr)
 
     return mask
 
@@ -156,7 +179,7 @@ def find_valid_index(values, how: str):
     if how == "first":
         idxpos = is_valid[::].argmax()
 
-    if how == "last":
+    elif how == "last":
         idxpos = len(values) - 1 - is_valid[::-1].argmax()
 
     chk_notna = is_valid[idxpos]
@@ -167,7 +190,7 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues: np.ndarray,
+    xvalues: Index,
     yvalues: np.ndarray,
     method: Optional[str] = "linear",
     limit: Optional[int] = None,
@@ -189,9 +212,7 @@ def interpolate_1d(
     valid = ~invalid
 
     if not valid.any():
-        # have to call np.asarray(xvalues) since xvalues could be an Index
-        # which can't be mutated
-        result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
+        result = np.empty(xvalues.shape, dtype=np.float64)
         result.fill(np.nan)
         return result
 
@@ -199,8 +220,7 @@ def interpolate_1d(
         return yvalues
 
     if method == "time":
-        if not getattr(xvalues, "is_all_dates", None):
-            # if not issubclass(xvalues.dtype.type, np.datetime64):
+        if not needs_i8_conversion(xvalues.dtype):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -264,20 +284,18 @@ def interpolate_1d(
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
 
-    yvalues = getattr(yvalues, "values", yvalues)
     result = yvalues.copy()
 
-    # xvalues to pass to NumPy/SciPy
+    # xarr to pass to NumPy/SciPy
+    xarr = xvalues._values
+    if needs_i8_conversion(xarr.dtype):
+        # GH#1646 for dt64tz
+        xarr = xarr.view("i8")
 
-    xvalues = getattr(xvalues, "values", xvalues)
     if method == "linear":
-        inds = xvalues
+        inds = xarr
     else:
-        inds = np.asarray(xvalues)
-
-        # hack for DatetimeIndex, #1646
-        if needs_i8_conversion(inds.dtype):
-            inds = inds.view(np.int64)
+        inds = np.asarray(xarr)
 
         if method in ("values", "index"):
             if inds.dtype == np.object_:
@@ -327,7 +345,7 @@ def _interpolate_scipy_wrapper(
         "piecewise_polynomial": _from_derivatives,
     }
 
-    if getattr(x, "is_all_dates", False):
+    if getattr(x, "_is_all_dates", False):
         # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
@@ -540,18 +558,92 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
     return P(x)
 
 
+def _interpolate_with_limit_area(
+    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+) -> ArrayLike:
+    """
+    Apply interpolation and limit_area logic to values along a to-be-specified axis.
+
+    Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str
+        Interpolation method. Could be "bfill" or "pad"
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
+    """
+
+    invalid = isna(values)
+
+    if not invalid.all():
+        first = find_valid_index(values, "first")
+        last = find_valid_index(values, "last")
+
+        values = interpolate_2d(
+            values,
+            method=method,
+            limit=limit,
+        )
+
+        if limit_area == "inside":
+            invalid[first : last + 1] = False
+        elif limit_area == "outside":
+            invalid[:first] = invalid[last + 1 :] = False
+
+        values[invalid] = np.nan
+
+    return values
+
+
 def interpolate_2d(
     values,
-    method="pad",
-    axis=0,
-    limit=None,
-    fill_value=None,
-    dtype: Optional[DtypeObj] = None,
+    method: str = "pad",
+    axis: Axis = 0,
+    limit: Optional[int] = None,
+    limit_area: Optional[str] = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
+
+       Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str, default "pad"
+        Interpolation method. Could be "bfill" or "pad"
+    axis: 0 or 1
+        Interpolation axis
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str, optional
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
     """
+    if limit_area is not None:
+        return np.apply_along_axis(
+            partial(
+                _interpolate_with_limit_area,
+                method=method,
+                limit=limit,
+                limit_area=limit_area,
+            ),
+            axis,
+            values,
+        )
+
     orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
@@ -563,31 +655,26 @@ def interpolate_2d(
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
-    if fill_value is None:
-        mask = None
-    else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), fill_value)
-
     method = clean_fill_method(method)
+    tvalues = transf(values)
     if method == "pad":
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        result = _pad_2d(tvalues, limit=limit)
     else:
-        values = transf(
-            backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
-        )
+        result = _backfill_2d(tvalues, limit=limit)
 
+    result = transf(result)
     # reshape back
     if ndim == 1:
-        values = values[0]
+        result = result[0]
 
-    if orig_values.dtype.kind == "M":
-        # convert float back to datetime64
-        values = values.astype(orig_values.dtype)
+    if orig_values.dtype.kind in ["m", "M"]:
+        # convert float back to datetime64/timedelta64
+        result = result.view(orig_values.dtype)
 
-    return values
+    return result
 
 
-def _cast_values_for_fillna(values, dtype: DtypeObj):
+def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
     """
     Cast values to a dtype that algos.pad and algos.backfill can handle.
     """
@@ -597,42 +684,44 @@ def _cast_values_for_fillna(values, dtype: DtypeObj):
     if needs_i8_conversion(dtype):
         values = values.view(np.int64)
 
-    elif is_integer_dtype(values):
+    elif is_integer_dtype(values) and not has_mask:
         # NB: this check needs to come after the datetime64 check above
+        # has_mask check to avoid casting i8 values that have already
+        #  been cast from PeriodDtype
         values = ensure_float64(values)
 
     return values
 
 
-def _fillna_prep(values, mask=None, dtype: Optional[DtypeObj] = None):
-    # boilerplate for pad_1d, backfill_1d, pad_2d, backfill_2d
-    if dtype is None:
-        dtype = values.dtype
+def _fillna_prep(values, mask=None):
+    # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
+    dtype = values.dtype
 
-    if mask is None:
+    has_mask = mask is not None
+    if not has_mask:
         # This needs to occur before datetime/timedeltas are cast to int64
         mask = isna(values)
 
-    values = _cast_values_for_fillna(values, dtype)
+    values = _cast_values_for_fillna(values, dtype, has_mask)
 
     mask = mask.view(np.uint8)
     return values, mask
 
 
-def pad_1d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _pad_1d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
     return values
 
 
-def backfill_1d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _backfill_1d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
     return values
 
 
-def pad_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _pad_2d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
         algos.pad_2d_inplace(values, mask, limit=limit)
@@ -642,8 +731,8 @@ def pad_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
     return values
 
 
-def backfill_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _backfill_2d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
         algos.backfill_2d_inplace(values, mask, limit=limit)
@@ -653,7 +742,7 @@ def backfill_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None)
     return values
 
 
-_fill_methods = {"pad": pad_1d, "backfill": backfill_1d}
+_fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
 def get_fill_func(method):
@@ -722,15 +811,15 @@ def _interp_limit(invalid, fw_limit, bw_limit):
             # just use forwards
             return f_idx
         else:
-            b_idx = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx))
+            b_idx_inv = list(inner(invalid[::-1], bw_limit))
+            b_idx = set(N - 1 - np.asarray(b_idx_inv))
             if fw_limit == 0:
                 return b_idx
 
     return f_idx & b_idx
 
 
-def _rolling_window(a, window):
+def _rolling_window(a: np.ndarray, window: int):
     """
     [True, True, False, True, False], 2 ->
 

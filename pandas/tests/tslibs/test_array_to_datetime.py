@@ -1,12 +1,18 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 
 from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import iNaT, tslib
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas._libs import (
+    iNaT,
+    tslib,
+)
+from pandas.compat import np_array_datetime64_compat
 
 from pandas import Timestamp
 import pandas._testing as tm
@@ -117,7 +123,7 @@ def test_number_looking_strings_not_into_datetime(data):
 @pytest.mark.parametrize("errors", ["coerce", "raise"])
 def test_coerce_outside_ns_bounds(invalid_date, errors):
     arr = np.array([invalid_date], dtype="object")
-    kwargs = dict(values=arr, errors=errors)
+    kwargs = {"values": arr, "errors": errors}
 
     if errors == "raise":
         msg = "Out of bounds nanosecond timestamp"
@@ -144,7 +150,7 @@ def test_coerce_outside_ns_bounds_one_valid():
 @pytest.mark.parametrize("errors", ["ignore", "coerce"])
 def test_coerce_of_invalid_datetimes(errors):
     arr = np.array(["01-01-2013", "not_a_date", "1"], dtype=object)
-    kwargs = dict(values=arr, errors=errors)
+    kwargs = {"values": arr, "errors": errors}
 
     if errors == "ignore":
         # Without coercing, the presence of any invalid

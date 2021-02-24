@@ -23,7 +23,10 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
 
-from pandas.tseries.offsets import Day, Nano
+from pandas.tseries.offsets import (
+    Day,
+    Nano,
+)
 
 
 def test_qcut():
@@ -166,10 +169,10 @@ def test_qcut_list_like_labels(labels, expected):
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
-        (dict(duplicates="drop"), None),
-        (dict(), "Bin edges must be unique"),
-        (dict(duplicates="raise"), "Bin edges must be unique"),
-        (dict(duplicates="foo"), "invalid value for 'duplicates' parameter"),
+        ({"duplicates": "drop"}, None),
+        ({}, "Bin edges must be unique"),
+        ({"duplicates": "raise"}, "Bin edges must be unique"),
+        ({"duplicates": "foo"}, "invalid value for 'duplicates' parameter"),
     ],
 )
 def test_qcut_duplicates_bin(kwargs, msg):

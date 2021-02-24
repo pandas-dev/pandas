@@ -8,7 +8,7 @@ Version 0.21.1 (December 12, 2017)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a minor bug-fix release in the 0.21.x series and includes some small regression fixes,
@@ -34,7 +34,7 @@ Highlights include:
 Restore Matplotlib datetime converter registration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas implements some matplotlib converters for nicely formatting the axis
+pandas implements some matplotlib converters for nicely formatting the axis
 labels on plots with ``datetime`` or ``Period`` values. Prior to pandas 0.21.0,
 these were implicitly registered with matplotlib, as a side effect of ``import
 pandas``.

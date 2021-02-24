@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -17,6 +20,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    date_range,
     isna,
     timedelta_range,
     to_timedelta,
@@ -55,14 +59,14 @@ class TestReductions:
         if not isinstance(obj, PeriodIndex):
             expected = getattr(obj.values, opname)()
         else:
-            expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
-        try:
-            assert result == expected
-        except TypeError:
-            # comparing tz-aware series with np.array results in
-            # TypeError
+            expected = Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
+
+        if getattr(obj, "tz", None) is not None:
+            # We need to de-localize before comparing to the numpy-produced result
             expected = expected.astype("M8[ns]").astype("int64")
             assert result.value == expected
+        else:
+            assert result == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize(
@@ -184,7 +188,7 @@ class TestReductions:
         df = DataFrame(
             pd.date_range("2016-01-01 00:00:00", periods=3, tz="UTC"), columns=["a"]
         )
-        df["b"] = df.a.subtract(pd.Timedelta(seconds=3600))
+        df["b"] = df.a.subtract(Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
         expected = df[expected_col].rename(None)
         tm.assert_series_equal(result, expected)
@@ -351,6 +355,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
+                f"'TimedeltaArray' does not implement reduction '{opname}'",
             ]
         )
 
@@ -363,11 +368,11 @@ class TestIndexReductions:
     def test_minmax_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # monotonic
-        idx1 = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
+        idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
         assert idx1.is_monotonic
 
         # non-monotonic
-        idx2 = pd.DatetimeIndex(
+        idx2 = DatetimeIndex(
             ["2011-01-01", pd.NaT, "2011-01-03", "2011-01-02", pd.NaT], tz=tz
         )
         assert not idx2.is_monotonic
@@ -469,19 +474,19 @@ class TestIndexReductions:
     def test_minmax_period(self):
 
         # monotonic
-        idx1 = pd.PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         assert not idx1.is_monotonic
         assert idx1[1:].is_monotonic
 
         # non-monotonic
-        idx2 = pd.PeriodIndex(
+        idx2 = PeriodIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], freq="D"
         )
         assert not idx2.is_monotonic
 
         for idx in [idx1, idx2]:
-            assert idx.min() == pd.Period("2011-01-01", freq="D")
-            assert idx.max() == pd.Period("2011-01-03", freq="D")
+            assert idx.min() == Period("2011-01-01", freq="D")
+            assert idx.max() == Period("2011-01-03", freq="D")
         assert idx1.argmin() == 1
         assert idx2.argmin() == 0
         assert idx1.argmax() == 3
@@ -525,9 +530,17 @@ class TestIndexReductions:
     def test_min_max_categorical(self):
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
-        with pytest.raises(TypeError):
+        msg = (
+            r"Categorical is not ordered for operation min\n"
+            r"you can use .as_ordered\(\) to change the Categorical to an ordered one\n"
+        )
+        with pytest.raises(TypeError, match=msg):
             ci.min()
-        with pytest.raises(TypeError):
+        msg = (
+            r"Categorical is not ordered for operation max\n"
+            r"you can use .as_ordered\(\) to change the Categorical to an ordered one\n"
+        )
+        with pytest.raises(TypeError, match=msg):
             ci.max()
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=True)
@@ -642,41 +655,58 @@ class TestSeriesReductions:
             df = DataFrame(np.empty((10, 0)), dtype=dtype)
             assert (getattr(df, method)(1) == unit).all()
 
-            s = pd.Series([1], dtype=dtype)
+            s = Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
             result = getattr(s, method)(skipna=False, min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan], dtype=dtype)
+            s = Series([np.nan], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan, 1], dtype=dtype)
+            s = Series([np.nan, 1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty_multi(self, method, unit):
-        s = pd.Series(
+        s = Series(
             [1, np.nan, np.nan, np.nan],
             index=pd.MultiIndex.from_product([("a", "b"), (0, 1)]),
         )
         # 1 / 0 by default
         result = getattr(s, method)(level=0)
-        expected = pd.Series([1, unit], index=["a", "b"])
+        expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=0
         result = getattr(s, method)(level=0, min_count=0)
-        expected = pd.Series([1, unit], index=["a", "b"])
+        expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=1
         result = getattr(s, method)(level=0, min_count=1)
-        expected = pd.Series([1, np.nan], index=["a", "b"])
+        expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["mean"])
+    @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
+    def test_ops_consistency_on_empty_nullable(self, method, dtype):
+
+        # GH#34814
+        # consistency for nullable dtypes on empty or ALL-NA mean
+
+        # empty series
+        eser = Series([], dtype=dtype)
+        result = getattr(eser, method)()
+        assert result is pd.NA
+
+        # ALL-NA series
+        nser = Series([np.nan], dtype=dtype)
+        result = getattr(nser, method)()
+        assert result is pd.NA
 
     @pytest.mark.parametrize("method", ["mean", "median", "std", "var"])
     def test_ops_consistency_on_empty(self, method):
@@ -695,6 +725,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
+                    "'TimedeltaArray' does not implement reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -842,13 +873,13 @@ class TestSeriesReductions:
 
         # Float64Index
         # GH#5914
-        s = pd.Series([1, 2, 3], [1.1, 2.1, 3.1])
+        s = Series([1, 2, 3], [1.1, 2.1, 3.1])
         result = s.idxmax()
         assert result == 3.1
         result = s.idxmin()
         assert result == 1.1
 
-        s = pd.Series(s.index, s.index)
+        s = Series(s.index, s.index)
         result = s.idxmax()
         assert result == 3.1
         result = s.idxmin()
@@ -874,20 +905,24 @@ class TestSeriesReductions:
         assert not s2.any(skipna=True)
 
         # Check level.
-        s = pd.Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
+        s = Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
         tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
-        # bool_only is not implemented with level option.
-        with pytest.raises(NotImplementedError):
+        msg = "Option bool_only is not implemented with option level"
+        with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True, level=0)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True, level=0)
 
         # bool_only is not implemented alone.
-        with pytest.raises(NotImplementedError):
+        # TODO GH38810 change this error message to:
+        # "Series.any does not implement bool_only"
+        msg = "Series.any does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        with pytest.raises(NotImplementedError):
+        msg = "Series.all does not implement numeric_only."
+        with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 
     def test_all_any_boolean(self):
@@ -906,7 +941,7 @@ class TestSeriesReductions:
         assert not s4.any(skipna=False)
 
         # Check level TODO(GH-33449) result should also be boolean
-        s = pd.Series(
+        s = Series(
             [False, False, True, True, False, True],
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
@@ -916,16 +951,58 @@ class TestSeriesReductions:
 
     def test_any_axis1_bool_only(self):
         # GH#32432
-        df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+        df = DataFrame({"A": [True, False], "B": [1, 2]})
         result = df.any(axis=1, bool_only=True)
-        expected = pd.Series([True, False])
+        expected = Series([True, False])
         tm.assert_series_equal(result, expected)
+
+    def test_any_all_datetimelike(self):
+        # GH#38723 these may not be the desired long-term behavior (GH#34479)
+        #  but in the interim should be internally consistent
+        dta = date_range("1995-01-02", periods=3)._data
+        ser = Series(dta)
+        df = DataFrame(ser)
+
+        assert dta.all()
+        assert dta.any()
+
+        assert ser.all()
+        assert ser.any()
+
+        assert df.any().all()
+        assert df.all().all()
+
+        dta = dta.tz_localize("UTC")
+        ser = Series(dta)
+        df = DataFrame(ser)
+
+        assert dta.all()
+        assert dta.any()
+
+        assert ser.all()
+        assert ser.any()
+
+        assert df.any().all()
+        assert df.all().all()
+
+        tda = dta - dta[0]
+        ser = Series(tda)
+        df = DataFrame(ser)
+
+        assert tda.any()
+        assert not tda.all()
+
+        assert ser.any()
+        assert not ser.all()
+
+        assert df.any().all()
+        assert not df.all().any()
 
     def test_timedelta64_analytics(self):
 
         # index min/max
         dti = pd.date_range("2012-1-1", periods=3, freq="D")
-        td = Series(dti) - pd.Timestamp("20120101")
+        td = Series(dti) - Timestamp("20120101")
 
         result = td.idxmin()
         assert result == 0
@@ -956,40 +1033,48 @@ class TestSeriesReductions:
 
         # max/min
         result = td.max()
-        expected = pd.Timedelta("2 days")
+        expected = Timedelta("2 days")
         assert result == expected
 
         result = td.min()
-        expected = pd.Timedelta("1 days")
+        expected = Timedelta("1 days")
         assert result == expected
 
     @pytest.mark.parametrize(
         "test_input,error_type",
         [
-            (pd.Series([], dtype="float64"), ValueError),
+            (Series([], dtype="float64"), ValueError),
             # For strings, or any Series with dtype 'O'
-            (pd.Series(["foo", "bar", "baz"]), TypeError),
-            (pd.Series([(1,), (2,)]), TypeError),
+            (Series(["foo", "bar", "baz"]), TypeError),
+            (Series([(1,), (2,)]), TypeError),
             # For mixed data types
-            (pd.Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"]), TypeError),
+            (Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"]), TypeError),
         ],
     )
     def test_assert_idxminmax_raises(self, test_input, error_type):
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
-        with pytest.raises(error_type):
+        msg = (
+            "reduction operation 'argmin' not allowed for this dtype|"
+            "attempt to get argmin of an empty sequence"
+        )
+        with pytest.raises(error_type, match=msg):
             test_input.idxmin()
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=msg):
             test_input.idxmin(skipna=False)
-        with pytest.raises(error_type):
+        msg = (
+            "reduction operation 'argmax' not allowed for this dtype|"
+            "attempt to get argmax of an empty sequence"
+        )
+        with pytest.raises(error_type, match=msg):
             test_input.idxmax()
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=msg):
             test_input.idxmax(skipna=False)
 
     def test_idxminmax_with_inf(self):
         # For numeric data with NA and Inf (GH #13595)
-        s = pd.Series([0, -np.inf, np.inf, np.nan])
+        s = Series([0, -np.inf, np.inf, np.nan])
 
         assert s.idxmin() == 1
         assert np.isnan(s.idxmin(skipna=False))
@@ -1015,8 +1100,8 @@ class TestDatetime64SeriesReductions:
         "nat_ser",
         [
             Series([pd.NaT, pd.NaT]),
-            Series([pd.NaT, pd.Timedelta("nat")]),
-            Series([pd.Timedelta("nat"), pd.Timedelta("nat")]),
+            Series([pd.NaT, Timedelta("nat")]),
+            Series([Timedelta("nat"), Timedelta("nat")]),
         ],
     )
     def test_minmax_nat_series(self, nat_ser):
@@ -1029,9 +1114,9 @@ class TestDatetime64SeriesReductions:
     @pytest.mark.parametrize(
         "nat_df",
         [
-            pd.DataFrame([pd.NaT, pd.NaT]),
-            pd.DataFrame([pd.NaT, pd.Timedelta("nat")]),
-            pd.DataFrame([pd.Timedelta("nat"), pd.Timedelta("nat")]),
+            DataFrame([pd.NaT, pd.NaT]),
+            DataFrame([pd.NaT, Timedelta("nat")]),
+            DataFrame([Timedelta("nat"), Timedelta("nat")]),
         ],
     )
     def test_minmax_nat_dataframe(self, nat_df):
@@ -1047,8 +1132,8 @@ class TestDatetime64SeriesReductions:
 
         the_min = rng2.min()
         the_max = rng2.max()
-        assert isinstance(the_min, pd.Timestamp)
-        assert isinstance(the_max, pd.Timestamp)
+        assert isinstance(the_min, Timestamp)
+        assert isinstance(the_max, Timestamp)
         assert the_min == rng[0]
         assert the_max == rng[-1]
 
@@ -1061,13 +1146,13 @@ class TestDatetime64SeriesReductions:
         df = DataFrame({"TS": rng, "V": np.random.randn(len(rng)), "L": lvls})
 
         result = df.TS.max()
-        exp = pd.Timestamp(df.TS.iat[-1])
-        assert isinstance(result, pd.Timestamp)
+        exp = Timestamp(df.TS.iat[-1])
+        assert isinstance(result, Timestamp)
         assert result == exp
 
         result = df.TS.min()
-        exp = pd.Timestamp(df.TS.iat[0])
-        assert isinstance(result, pd.Timestamp)
+        exp = Timestamp(df.TS.iat[0])
+        assert isinstance(result, Timestamp)
         assert result == exp
 
 
@@ -1335,7 +1420,7 @@ class TestSeriesMode:
         expected = Series(["foo", np.nan])
         s = Series([1, "foo", "foo", np.nan, np.nan])
 
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 

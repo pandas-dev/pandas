@@ -38,7 +38,7 @@ Enhancements
 Optional integer NA support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
+pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
 
 .. note::
 
@@ -376,7 +376,7 @@ Other enhancements
 - :func:`DataFrame.to_html` now accepts ``render_links`` as an argument, allowing the user to generate HTML with links to any URLs that appear in the DataFrame.
   See the :ref:`section on writing HTML <io.html>` in the IO docs for example usage. (:issue:`2679`)
 - :func:`pandas.read_csv` now supports pandas extension types as an argument to ``dtype``, allowing the user to use pandas extension types when reading CSVs. (:issue:`23228`)
-- The :meth:`~DataFrame.shift` method now accepts `fill_value` as an argument, allowing the user to specify a value which will be used instead of NA/NaT in the empty periods. (:issue:`15486`)
+- The :meth:`~DataFrame.shift` method now accepts ``fill_value`` as an argument, allowing the user to specify a value which will be used instead of NA/NaT in the empty periods. (:issue:`15486`)
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether ``NaN``/``NaT`` values should be considered (:issue:`17534`)
 - :func:`DataFrame.to_csv` and :func:`Series.to_csv` now support the ``compression`` keyword when a file handle is passed. (:issue:`21227`)
@@ -384,7 +384,7 @@ Other enhancements
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
 - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
 - :func:`DataFrame.to_gbq` and :func:`read_gbq` signature and documentation updated to
-  reflect changes from the `Pandas-GBQ library version 0.8.0
+  reflect changes from the `pandas-gbq library version 0.8.0
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0>`__.
   Adds a ``credentials`` argument, which enables the use of any kind of
   `google-auth credentials
@@ -419,7 +419,7 @@ Other enhancements
 - :meth:`Index.difference`, :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference` now have an optional ``sort`` parameter to control whether the results should be sorted if possible (:issue:`17839`, :issue:`24471`)
 - :meth:`read_excel()` now accepts ``usecols`` as a list of column names or callable (:issue:`18273`)
 - :meth:`MultiIndex.to_flat_index` has been added to flatten multiple levels into a single-level :class:`Index` object.
-- :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` can write mixed sting columns to Stata strl format (:issue:`23633`)
+- :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` can write mixed string columns to Stata strl format (:issue:`23633`)
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the ``axis`` parameter (:issue:`8839`)
 - :meth:`DataFrame.to_records` now accepts ``index_dtypes`` and ``column_dtypes`` parameters to allow different data types in stored column and index records (:issue:`18146`)
 - :class:`IntervalIndex` has gained the :attr:`~IntervalIndex.is_overlapping` attribute to indicate if the ``IntervalIndex`` contains any overlapping intervals (:issue:`23309`)
@@ -432,7 +432,7 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.24.0 includes a number of API breaking changes.
+pandas 0.24.0 includes a number of API breaking changes.
 
 
 .. _whatsnew_0240.api_breaking.deps:
@@ -474,8 +474,8 @@ and replaced it with references to ``pyarrow`` (:issue:`21639` and :issue:`23053
 
 .. _whatsnew_0240.api_breaking.csv_line_terminator:
 
-`os.linesep` is used for ``line_terminator`` of ``DataFrame.to_csv``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``os.linesep`` is used for ``line_terminator`` of ``DataFrame.to_csv``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`DataFrame.to_csv` now uses :func:`os.linesep` rather than ``'\n'``
 for the default line terminator (:issue:`20353`).
@@ -510,7 +510,7 @@ even when ``'\n'`` was passed in ``line_terminator``.
 
 *New behavior* on Windows:
 
-Passing ``line_terminator`` explicitly, set thes ``line terminator`` to that character.
+Passing ``line_terminator`` explicitly, set the ``line terminator`` to that character.
 
 .. code-block:: ipython
 
@@ -556,8 +556,8 @@ You must pass in the ``line_terminator`` explicitly, even in this case.
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
-Proper handling of `np.NaN` in a string data-typed column with the Python engine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Proper handling of ``np.NaN`` in a string data-typed column with the Python engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There was bug in :func:`read_excel` and :func:`read_csv` with the Python
 engine, where missing values turned to ``'nan'`` with ``dtype=str`` and
@@ -1198,7 +1198,7 @@ Other API changes
 - :meth:`DataFrame.set_index` now gives a better (and less frequent) KeyError, raises a ``ValueError`` for incorrect types,
   and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
-- :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
+- :class:`DateOffset` attribute ``_cacheable`` and method ``_should_cache`` have been removed (:issue:`23118`)
 - :meth:`Series.searchsorted`, when supplied a scalar value to search for, now returns a scalar instead of an array (:issue:`23801`).
 - :meth:`Categorical.searchsorted`, when supplied a scalar value to search for, now returns a scalar instead of an array (:issue:`23466`).
 - :meth:`Categorical.searchsorted` now raises a ``KeyError`` rather that a ``ValueError``, if a searched for key is not found in its categories (:issue:`23466`).
@@ -1217,7 +1217,7 @@ Extension type changes
 
 **Equality and hashability**
 
-Pandas now requires that extension dtypes be hashable (i.e. the respective
+pandas now requires that extension dtypes be hashable (i.e. the respective
 ``ExtensionDtype`` objects; hashability is not a requirement for the values
 of the corresponding ``ExtensionArray``). The base class implements
 a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
@@ -1317,7 +1317,7 @@ Deprecations
 - Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
 - :func:`pandas.api.types.is_period` is deprecated in favor of ``pandas.api.types.is_period_dtype`` (:issue:`23917`)
 - :func:`pandas.api.types.is_datetimetz` is deprecated in favor of ``pandas.api.types.is_datetime64tz`` (:issue:`23917`)
-- Creating a :class:`TimedeltaIndex`, :class:`DatetimeIndex`, or :class:`PeriodIndex` by passing range arguments `start`, `end`, and `periods` is deprecated in favor of :func:`timedelta_range`, :func:`date_range`, or :func:`period_range` (:issue:`23919`)
+- Creating a :class:`TimedeltaIndex`, :class:`DatetimeIndex`, or :class:`PeriodIndex` by passing range arguments ``start``, ``end``, and ``periods`` is deprecated in favor of :func:`timedelta_range`, :func:`date_range`, or :func:`period_range` (:issue:`23919`)
 - Passing a string alias like ``'datetime64[ns, UTC]'`` as the ``unit`` parameter to :class:`DatetimeTZDtype` is deprecated. Use :class:`DatetimeTZDtype.construct_from_string` instead (:issue:`23990`).
 - The ``skipna`` parameter of :meth:`~pandas.api.types.infer_dtype` will switch to ``True`` by default in a future version of pandas (:issue:`17066`, :issue:`24050`)
 - In :meth:`Series.where` with Categorical data, providing an ``other`` that is not present in the categories is deprecated. Convert the categorical to a different dtype or add the ``other`` to the categories first (:issue:`24077`).
@@ -1534,7 +1534,7 @@ Performance improvements
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
-- Improved performance of :func:`concat` for `Series` objects (:issue:`23404`)
+- Improved performance of :func:`concat` for ``Series`` objects (:issue:`23404`)
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 - Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
 - Fixed a performance regression on Windows with Python 3.7 of :func:`read_csv` (:issue:`23516`)
@@ -1602,7 +1602,7 @@ Datetimelike
 - Bug in :class:`DataFrame` when creating a new column from an ndarray of :class:`Timestamp` objects with timezones creating an object-dtype column, rather than datetime with timezone (:issue:`23932`)
 - Bug in :class:`Timestamp` constructor which would drop the frequency of an input :class:`Timestamp` (:issue:`22311`)
 - Bug in :class:`DatetimeIndex` where calling ``np.array(dtindex, dtype=object)`` would incorrectly return an array of ``long`` objects (:issue:`23524`)
-- Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`23524`)
+- Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and ``dtype=object`` would incorrectly raise a ``ValueError`` (:issue:`23524`)
 - Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
 - Bug in :class:`Categorical.__setitem__` not allowing setting with another ``Categorical`` when both are unordered and have the same categories, but in a different order (:issue:`24142`)
 - Bug in :func:`date_range` where using dates with millisecond resolution or higher could return incorrect values or the wrong number of values in the index (:issue:`24110`)
@@ -1622,7 +1622,7 @@ Timedelta
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype division by ``Timedelta``-like scalar incorrectly returning ``timedelta64[ns]`` dtype instead of ``float64`` dtype (:issue:`20088`, :issue:`22163`)
 - Bug in adding a :class:`Index` with object dtype to a :class:`Series` with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`22390`)
 - Bug in multiplying a :class:`Series` with numeric dtype against a ``timedelta`` object (:issue:`22390`)
-- Bug in :class:`Series` with numeric dtype when adding or subtracting an an array or ``Series`` with ``timedelta64`` dtype (:issue:`22390`)
+- Bug in :class:`Series` with numeric dtype when adding or subtracting an array or ``Series`` with ``timedelta64`` dtype (:issue:`22390`)
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
@@ -1647,7 +1647,7 @@ Timezones
 - Bug in :class:`Series` constructor which would coerce tz-aware and tz-naive :class:`Timestamp` to tz-aware (:issue:`13051`)
 - Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 - Bug in :class:`DatetimeIndex` where constructing with an integer and tz would not localize correctly (:issue:`12619`)
-- Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show `first` and `last` result (:issue:`21328`)
+- Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show ``first`` and ``last`` result (:issue:`21328`)
 - Bug in :class:`DatetimeIndex` comparisons failing to raise ``TypeError`` when comparing timezone-aware ``DatetimeIndex`` against ``np.datetime64`` (:issue:`22074`)
 - Bug in ``DataFrame`` assignment with a timezone-aware scalar (:issue:`19843`)
 - Bug in :func:`DataFrame.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
@@ -1693,7 +1693,7 @@ Numeric
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 - Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2\ :sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
 - Calls such as :meth:`DataFrame.round` with a non-unique :meth:`CategoricalIndex` now return expected data. Previously, data would be improperly duplicated (:issue:`21809`).
-- Added ``log10``, `floor` and `ceil` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`, :issue:`24353`)
+- Added ``log10``, ``floor`` and ``ceil`` to the list of supported functions in :meth:`DataFrame.eval` (:issue:`24139`, :issue:`24353`)
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 - Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Reduction methods like :meth:`Series.sum` now accept the default value of ``keepdims=False`` when called from a NumPy ufunc, rather than raising a ``TypeError``. Full support for ``keepdims`` has not been implemented (:issue:`24356`).
@@ -1755,8 +1755,8 @@ Missing
 
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
-- :func:`Series.isin` now treats all NaN-floats as equal also for ``np.object``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
-- :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for ``np.object``-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
+- :func:`Series.isin` now treats all NaN-floats as equal also for ``np.object_``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
+- :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for ``np.object_``-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
 - :class:`DataFrame` and :class:`Series` now properly handle numpy masked arrays with hardened masks. Previously, constructing a DataFrame or Series from a masked array with a hard mask would create a pandas object containing the underlying value, rather than the expected NaN. (:issue:`24574`)
 - Bug in :class:`DataFrame` constructor where ``dtype`` argument was not honored when handling numpy masked record arrays. (:issue:`24874`)
 
@@ -1859,7 +1859,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`pandas.concat` when joining resampled DataFrames with timezone aware index (:issue:`13783`)
-- Bug in :func:`pandas.concat` when joining only `Series` the `names` argument of `concat` is no longer ignored (:issue:`23490`)
+- Bug in :func:`pandas.concat` when joining only ``Series`` the ``names`` argument of ``concat`` is no longer ignored (:issue:`23490`)
 - Bug in :meth:`Series.combine_first` with ``datetime64[ns, tz]`` dtype which would return tz-naive result (:issue:`21469`)
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``datetime64[ns, tz]`` dtype (:issue:`21546`)
 - Bug in :meth:`DataFrame.where` with an empty DataFrame and empty ``cond`` having non-bool dtype (:issue:`21947`)
@@ -1868,7 +1868,7 @@ Reshaping
 - :func:`pandas.core.groupby.GroupBy.rank` now raises a ``ValueError`` when an invalid value is passed for argument ``na_option`` (:issue:`22124`)
 - Bug in :func:`get_dummies` with Unicode attributes in Python 2 (:issue:`22084`)
 - Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
-- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
@@ -1885,7 +1885,7 @@ Reshaping
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken (:issue:`22227`).
 - Bug in :class:`DataFrame` prevented list subclasses to be used to construction (:issue:`21226`)
-- Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a missleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
+- Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a misleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
 - Bug in :func:`DataFrame.unstack` where a ``ValueError`` was raised when unstacking timezone aware values (:issue:`18338`)
 - Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issue:`19420`)
 - Bug in :func:`merge_asof` where a ``TypeError`` was raised when ``by_col`` were timezone aware values (:issue:`21184`)
@@ -1925,7 +1925,7 @@ Build changes
 Other
 ^^^^^
 
-- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
+- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before pandas. (:issue:`24113`)
 
 
 .. _whatsnew_0.24.0.contributors:

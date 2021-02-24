@@ -2,23 +2,39 @@
 Operator classes for eval.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial
 import operator
-from typing import Callable, Iterable, Optional, Union
+from typing import (
+    Callable,
+    Iterable,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_scalar,
+)
 
 import pandas.core.common as com
-from pandas.core.computation.common import ensure_decoded, result_type_many
+from pandas.core.computation.common import (
+    ensure_decoded,
+    result_type_many,
+)
 from pandas.core.computation.scope import DEFAULT_GLOBALS
 
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+from pandas.io.formats.printing import (
+    pprint_thing,
+    pprint_thing_encoded,
+)
 
 REDUCTIONS = ("sum", "prod")
 
@@ -69,7 +85,8 @@ class UndefinedVariableError(NameError):
 class Term:
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
-        supr_new = super(Term, klass).__new__
+        # error: Argument 2 for "super" not an instance of argument 1
+        supr_new = super(Term, klass).__new__  # type: ignore[misc]
         return supr_new(klass)
 
     is_local: bool
@@ -201,7 +218,7 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands: Iterable[Union[Term, "Op"]], encoding=None):
+    def __init__(self, op: str, operands: Iterable[Union[Term, Op]], encoding=None):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = encoding
@@ -589,7 +606,8 @@ class MathCall(Op):
         self.func = func
 
     def __call__(self, env):
-        operands = [op(env) for op in self.operands]
+        # error: "Op" not callable
+        operands = [op(env) for op in self.operands]  # type: ignore[operator]
         with np.errstate(all="ignore"):
             return self.func.func(*operands)
 
@@ -600,7 +618,10 @@ class MathCall(Op):
 
 class FuncNode:
     def __init__(self, name: str):
-        from pandas.core.computation.check import NUMEXPR_INSTALLED, NUMEXPR_VERSION
+        from pandas.core.computation.check import (
+            NUMEXPR_INSTALLED,
+            NUMEXPR_VERSION,
+        )
 
         if name not in MATHOPS or (
             NUMEXPR_INSTALLED

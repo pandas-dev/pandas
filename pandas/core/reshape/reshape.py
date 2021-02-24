@@ -1,11 +1,18 @@
+from __future__ import annotations
+
 import itertools
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
 import pandas._libs.algos as libalgos
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
+from pandas._typing import Dtype
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -25,7 +32,10 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -137,7 +147,7 @@ class _Unstacker:
     @cache_readonly
     def sorted_labels(self):
         indexer, to_sort = self._indexer_and_to_sort
-        return [l.take(indexer) for l in to_sort]
+        return [line.take(indexer) for line in to_sort]
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
@@ -258,7 +268,7 @@ class _Unstacker:
     def get_new_columns(self, value_columns):
         if value_columns is None:
             if self.lift == 0:
-                return self.removed_level._shallow_copy(name=self.removed_name)
+                return self.removed_level._rename(name=self.removed_name)
 
             lev = self.removed_level.insert(0, item=self.removed_level._na_value)
             return lev.rename(self.removed_name)
@@ -399,6 +409,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 def unstack(obj, level, fill_value=None):
+
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -416,6 +427,13 @@ def unstack(obj, level, fill_value=None):
             return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)
+    elif not isinstance(obj.index, MultiIndex):
+        # GH 36113
+        # Give nicer error messages when unstack a Series whose
+        # Index is not a MultiIndex.
+        raise ValueError(
+            f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
+        )
     else:
         if is_extension_array_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
@@ -433,9 +451,10 @@ def _unstack_frame(obj, level, fill_value=None):
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(mgr)
     else:
-        return _Unstacker(
-            obj.index, level=level, constructor=obj._constructor
-        ).get_result(obj._values, value_columns=obj.columns, fill_value=fill_value)
+        unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
+        return unstacker.get_result(
+            obj._values, value_columns=obj.columns, fill_value=fill_value
+        )
 
 
 def _unstack_extension_series(series, level, fill_value):
@@ -513,7 +532,7 @@ def stack(frame, level=-1, dropna=True):
             verify_integrity=False,
         )
 
-    if frame._is_homogeneous_type:
+    if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)
@@ -609,7 +628,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = roll_columns
 
-    if not this.columns.is_lexsorted():
+    if not this.columns._is_lexsorted():
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
@@ -618,28 +637,26 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
     # tuple list excluding level for grouping columns
     if len(frame.columns.levels) > 2:
-        tuples = list(
-            zip(
-                *[
-                    lev.take(level_codes)
-                    for lev, level_codes in zip(
-                        this.columns.levels[:-1], this.columns.codes[:-1]
-                    )
-                ]
-            )
-        )
+        levs = []
+        for lev, level_codes in zip(this.columns.levels[:-1], this.columns.codes[:-1]):
+            if -1 in level_codes:
+                lev = np.append(lev, None)
+            levs.append(np.take(lev, level_codes))
+        tuples = list(zip(*levs))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
         new_names = this.columns.names[:-1]
         new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
     else:
-        new_columns = this.columns.levels[0]._shallow_copy(name=this.columns.names[0])
+        new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
         unique_groups = new_columns
 
     # time to ravel the values
     new_data = {}
     level_vals = this.columns.levels[-1]
     level_codes = sorted(set(this.columns.codes[-1]))
-    level_vals_used = level_vals[level_codes]
+    level_vals_nan = level_vals.insert(len(level_vals), None)
+
+    level_vals_used = np.take(level_vals_nan, level_codes)
     levsize = len(level_codes)
     drop_cols = []
     for key in unique_groups:
@@ -660,7 +677,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
-            chunk.columns = level_vals.take(chunk.columns.codes[-1])
+            chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if frame._is_homogeneous_type and is_extension_array_dtype(
@@ -724,12 +741,12 @@ def get_dummies(
     data,
     prefix=None,
     prefix_sep="_",
-    dummy_na=False,
+    dummy_na: bool = False,
     columns=None,
-    sparse=False,
-    drop_first=False,
-    dtype=None,
-) -> "DataFrame":
+    sparse: bool = False,
+    drop_first: bool = False,
+    dtype: Optional[Dtype] = None,
+) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
 
@@ -913,7 +930,7 @@ def _get_dummies_1d(
     dummy_na=False,
     sparse=False,
     drop_first=False,
-    dtype=None,
+    dtype: Optional[Dtype] = None,
 ):
     from pandas.core.reshape.concat import concat
 

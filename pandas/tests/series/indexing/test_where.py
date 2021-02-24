@@ -4,7 +4,12 @@ import pytest
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, isna
+from pandas import (
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -349,7 +354,7 @@ def test_where_dups():
 
 def test_where_numeric_with_string():
     # GH 9280
-    s = pd.Series([1, 2, 3])
+    s = Series([1, 2, 3])
     w = s.where(s > 1, "X")
 
     assert not is_integer(w[0])
@@ -418,22 +423,22 @@ def test_where_datetime_conversion():
 
     # GH 15701
     timestamps = ["2016-12-31 12:00:04+00:00", "2016-12-31 12:00:04.010000+00:00"]
-    s = Series([pd.Timestamp(t) for t in timestamps])
+    s = Series([Timestamp(t) for t in timestamps])
     rs = s.where(Series([False, True]))
     expected = Series([pd.NaT, s[1]])
     tm.assert_series_equal(rs, expected)
 
 
 def test_where_dt_tz_values(tz_naive_fixture):
-    ser1 = pd.Series(
+    ser1 = Series(
         pd.DatetimeIndex(["20150101", "20150102", "20150103"], tz=tz_naive_fixture)
     )
-    ser2 = pd.Series(
+    ser2 = Series(
         pd.DatetimeIndex(["20160514", "20160515", "20160516"], tz=tz_naive_fixture)
     )
-    mask = pd.Series([True, True, False])
+    mask = Series([True, True, False])
     result = ser1.where(mask, ser2)
-    exp = pd.Series(
+    exp = Series(
         pd.DatetimeIndex(["20150101", "20150102", "20160516"], tz=tz_naive_fixture)
     )
     tm.assert_series_equal(exp, result)
@@ -441,9 +446,9 @@ def test_where_dt_tz_values(tz_naive_fixture):
 
 def test_where_sparse():
     # GH#17198 make sure we dont get an AttributeError for sp_index
-    ser = pd.Series(pd.arrays.SparseArray([1, 2]))
+    ser = Series(pd.arrays.SparseArray([1, 2]))
     result = ser.where(ser >= 2, 0)
-    expected = pd.Series(pd.arrays.SparseArray([0, 2]))
+    expected = Series(pd.arrays.SparseArray([0, 2]))
     tm.assert_series_equal(result, expected)
 
 
@@ -452,3 +457,43 @@ def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     ser = Series([], dtype=float)
     result = ser.where([])
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize("klass", [Series, pd.DataFrame])
+def test_where_categorical(klass):
+    # https://github.com/pandas-dev/pandas/issues/18888
+    exp = klass(
+        pd.Categorical(["A", "A", "B", "B", np.nan], categories=["A", "B", "C"]),
+        dtype="category",
+    )
+    df = klass(["A", "A", "B", "B", "C"], dtype="category")
+    res = df.where(df != "C")
+    tm.assert_equal(exp, res)
+
+
+def test_where_datetimelike_categorical(tz_naive_fixture):
+    # GH#37682
+    tz = tz_naive_fixture
+
+    dr = pd.date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
+    lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])
+    rvals = pd.Categorical([dr[0], pd.NaT, dr[2]])
+
+    mask = np.array([True, True, False])
+
+    # DatetimeIndex.where
+    res = lvals.where(mask, rvals)
+    tm.assert_index_equal(res, dr)
+
+    # DatetimeArray.where
+    res = lvals._data.where(mask, rvals)
+    tm.assert_datetime_array_equal(res, dr._data)
+
+    # Series.where
+    res = Series(lvals).where(mask, rvals)
+    tm.assert_series_equal(res, Series(dr))
+
+    # DataFrame.where
+    res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
+
+    tm.assert_frame_equal(res, pd.DataFrame(dr))

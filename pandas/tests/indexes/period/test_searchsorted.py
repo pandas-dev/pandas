@@ -2,9 +2,15 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
-from pandas.compat.numpy import np_version_under1p18
+from pandas.compat import np_version_under1p18
 
-from pandas import NaT, Period, PeriodIndex, Series, array
+from pandas import (
+    NaT,
+    Period,
+    PeriodIndex,
+    Series,
+    array,
+)
 import pandas._testing as tm
 
 
@@ -62,7 +68,7 @@ class TestSearchsorted:
         msg = "|".join(
             [
                 "searchsorted requires compatible dtype or scalar",
-                "Unexpected type for 'value'",
+                "value should be a 'Period', 'NaT', or array of those. Got",
             ]
         )
         with pytest.raises(TypeError, match=msg):

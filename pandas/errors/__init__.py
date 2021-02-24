@@ -6,7 +6,10 @@ Expose public exceptions & warnings
 
 from pandas._config.config import OptionError
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, OutOfBoundsTimedelta
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 
 class NullFrequencyError(ValueError):
@@ -225,7 +228,7 @@ class DuplicateLabelError(ValueError):
 
 class InvalidIndexError(Exception):
     """
-    Exception raised when attemping to use an invalid index key.
+    Exception raised when attempting to use an invalid index key.
 
     .. versionadded:: 1.1.0
     """

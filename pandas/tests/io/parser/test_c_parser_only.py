@@ -5,7 +5,11 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import BytesIO, StringIO, TextIOWrapper
+from io import (
+    BytesIO,
+    StringIO,
+    TextIOWrapper,
+)
 import mmap
 import os
 import tarfile
@@ -13,10 +17,14 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
 
 
@@ -48,11 +56,15 @@ def test_buffer_rd_bytes(c_parser_only):
     )
     parser = c_parser_only
 
-    for _ in range(100):
-        try:
-            parser.read_csv(StringIO(data), compression="gzip", delim_whitespace=True)
-        except Exception:
-            pass
+    with tm.assert_produces_warning(RuntimeWarning):
+        # compression has no effect when passing a non-binary object as input
+        for _ in range(100):
+            try:
+                parser.read_csv(
+                    StringIO(data), compression="gzip", delim_whitespace=True
+                )
+            except Exception:
+                pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -116,20 +128,20 @@ nan 2
                 "the dtype datetime64 is not supported for parsing, "
                 "pass this column using parse_dates instead"
             ),
-            dict(dtype={"A": "datetime64", "B": "float64"}),
+            {"dtype": {"A": "datetime64", "B": "float64"}},
         ),
         (
             (
                 "the dtype datetime64 is not supported for parsing, "
                 "pass this column using parse_dates instead"
             ),
-            dict(dtype={"A": "datetime64", "B": "float64"}, parse_dates=["B"]),
+            {"dtype": {"A": "datetime64", "B": "float64"}, "parse_dates": ["B"]},
         ),
         (
             "the dtype timedelta64 is not supported for parsing",
-            dict(dtype={"A": "timedelta64", "B": "float64"}),
+            {"dtype": {"A": "timedelta64", "B": "float64"}},
         ),
-        ("the dtype <U8 is not supported for parsing", dict(dtype={"A": "U8"})),
+        ("the dtype <U8 is not supported for parsing", {"dtype": {"A": "U8"}}),
     ],
     ids=["dt64-0", "dt64-1", "td64", "<U8"],
 )
@@ -300,9 +312,9 @@ def test_grow_boundary_at_cap(c_parser_only):
     parser = c_parser_only
 
     def test_empty_header_read(count):
-        s = StringIO("," * count)
-        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
-        df = parser.read_csv(s)
+        with StringIO("," * count) as s:
+            expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
+            df = parser.read_csv(s)
         tm.assert_frame_equal(df, expected)
 
     for cnt in range(1, 101):
@@ -375,10 +387,10 @@ def test_parse_trim_buffers(c_parser_only):
     )
 
     # Iterate over the CSV file in chunks of `chunksize` lines
-    chunks_ = parser.read_csv(
+    with parser.read_csv(
         StringIO(csv_data), header=None, dtype=object, chunksize=chunksize
-    )
-    result = concat(chunks_, axis=0, ignore_index=True)
+    ) as chunks_:
+        result = concat(chunks_, axis=0, ignore_index=True)
 
     # Check for data corruption if there was no segfault
     tm.assert_frame_equal(result, expected)
@@ -386,14 +398,14 @@ def test_parse_trim_buffers(c_parser_only):
     # This extra test was added to replicate the fault in gh-5291.
     # Force 'utf-8' encoding, so that `_string_convert` would take
     # a different execution branch.
-    chunks_ = parser.read_csv(
+    with parser.read_csv(
         StringIO(csv_data),
         header=None,
         dtype=object,
         chunksize=chunksize,
         encoding="utf_8",
-    )
-    result = concat(chunks_, axis=0, ignore_index=True)
+    ) as chunks_:
+        result = concat(chunks_, axis=0, ignore_index=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -648,64 +660,6 @@ def test_1000_sep_with_decimal(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
-@pytest.mark.parametrize(
-    "value,expected",
-    [
-        ("-1,0", -1.0),
-        ("-1,2e0", -1.2),
-        ("-1e0", -1.0),
-        ("+1e0", 1.0),
-        ("+1e+0", 1.0),
-        ("+1e-1", 0.1),
-        ("+,1e1", 1.0),
-        ("+1,e0", 1.0),
-        ("-,1e1", -1.0),
-        ("-1,e0", -1.0),
-        ("0,1", 0.1),
-        ("1,", 1.0),
-        (",1", 0.1),
-        ("-,1", -0.1),
-        ("1_,", 1.0),
-        ("1_234,56", 1234.56),
-        ("1_234,56e0", 1234.56),
-        # negative cases; must not parse as float
-        ("_", "_"),
-        ("-_", "-_"),
-        ("-_1", "-_1"),
-        ("-_1e0", "-_1e0"),
-        ("_1", "_1"),
-        ("_1,", "_1,"),
-        ("_1,_", "_1,_"),
-        ("_1e0", "_1e0"),
-        ("1,2e_1", "1,2e_1"),
-        ("1,2e1_0", "1,2e1_0"),
-        ("1,_2", "1,_2"),
-        (",1__2", ",1__2"),
-        (",1e", ",1e"),
-        ("-,1e", "-,1e"),
-        ("1_000,000_000", "1_000,000_000"),
-        ("1,e1_2", "1,e1_2"),
-    ],
-)
-def test_1000_sep_decimal_float_precision(
-    c_parser_only, value, expected, float_precision
-):
-    # test decimal and thousand sep handling in across 'float_precision'
-    # parsers
-    parser = c_parser_only
-    df = parser.read_csv(
-        StringIO(value),
-        sep="|",
-        thousands="_",
-        decimal=",",
-        header=None,
-        float_precision=float_precision,
-    )
-    val = df.iloc[0, 0]
-    assert val == expected
-
-
 def test_float_precision_options(c_parser_only):
     # GH 17154, 36228
     parser = c_parser_only
@@ -717,7 +671,10 @@ def test_float_precision_options(c_parser_only):
 
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
-    assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    if IS64:
+        assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    else:
+        assert df.iloc[0, 0] == df3.iloc[0, 0]
 
     msg = "Unrecognized float_precision option: junk"
 

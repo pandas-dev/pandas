@@ -3,10 +3,20 @@
 """
 
 import ast
-from functools import partial, reduce
+from functools import (
+    partial,
+    reduce,
+)
 from keyword import iskeyword
 import tokenize
-from typing import Callable, Optional, Set, Tuple, Type, TypeVar
+from typing import (
+    Callable,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -31,7 +41,10 @@ from pandas.core.computation.ops import (
     UndefinedVariableError,
     is_term,
 )
-from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
+from pandas.core.computation.parsing import (
+    clean_backtick_quoted_toks,
+    tokenize_string,
+)
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing
@@ -496,15 +509,14 @@ class BaseExprVisitor(ast.NodeVisitor):
                 f"'{lhs.type}' and '{rhs.type}'"
             )
 
-        if self.engine != "pytables":
-            if (
-                res.op in CMP_OPS_SYMS
-                and getattr(lhs, "is_datetime", False)
-                or getattr(rhs, "is_datetime", False)
-            ):
-                # all date ops must be done in python bc numexpr doesn't work
-                # well with NaT
-                return self._maybe_eval(res, self.binary_ops)
+        if self.engine != "pytables" and (
+            res.op in CMP_OPS_SYMS
+            and getattr(lhs, "is_datetime", False)
+            or getattr(rhs, "is_datetime", False)
+        ):
+            # all date ops must be done in python bc numexpr doesn't work
+            # well with NaT
+            return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
@@ -559,11 +571,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
-        import pandas as pd
+        from pandas import eval as pd_eval
 
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
-        result = pd.eval(
+        result = pd_eval(
             slobj, local_dict=self.env, engine=self.engine, parser=self.parser
         )
         try:
@@ -571,7 +583,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             v = value.value[result]
         except AttributeError:
             # an Op instance
-            lhs = pd.eval(
+            lhs = pd_eval(
                 value, local_dict=self.env, engine=self.engine, parser=self.parser
             )
             v = lhs[result]
@@ -660,7 +672,10 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError(f"Invalid function call {node.func.id}")
+            # error: "expr" has no attribute "id"
+            raise ValueError(
+                f"Invalid function call {node.func.id}"  # type: ignore[attr-defined]
+            )
         if hasattr(res, "value"):
             res = res.value
 
@@ -681,7 +696,11 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    raise ValueError(f"keyword error in function call '{node.func.id}'")
+                    # error: "expr" has no attribute "id"
+                    raise ValueError(
+                        "keyword error in function call "  # type: ignore[attr-defined]
+                        f"'{node.func.id}'"
+                    )
 
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value

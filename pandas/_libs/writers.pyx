@@ -1,8 +1,14 @@
 import cython
 import numpy as np
 
-from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_LENGTH
-from numpy cimport ndarray, uint8_t
+from cpython cimport (
+    PyBytes_GET_SIZE,
+    PyUnicode_GET_LENGTH,
+)
+from numpy cimport (
+    ndarray,
+    uint8_t,
+)
 
 ctypedef fused pandas_string:
     str
@@ -108,7 +114,7 @@ def convert_json_to_lines(arr: object) -> str:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
-    return narr.tobytes().decode('utf-8')
+    return narr.tobytes().decode('utf-8') + '\n'  # GH:36888
 
 
 # stata, pytables

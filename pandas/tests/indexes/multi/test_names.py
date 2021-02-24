@@ -31,7 +31,7 @@ def test_changing_names(idx):
 
     view = idx.view()
     copy = idx.copy()
-    shallow_copy = idx._shallow_copy()
+    shallow_copy = idx._view()
 
     # changing names should not change level names on object
     new_names = [name + "a" for name in idx.names]
@@ -56,7 +56,9 @@ def test_take_preserve_name(idx):
 def test_copy_names():
     # Check that adding a "names" parameter to the copy is honored
     # GH14302
-    multi_idx = pd.Index([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
+    with tm.assert_produces_warning(FutureWarning):
+        # subclass-specific kwargs to pd.Index
+        multi_idx = pd.Index([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
     multi_idx1 = multi_idx.copy()
 
     assert multi_idx.equals(multi_idx1)
@@ -127,14 +129,14 @@ def test_duplicate_level_names_access_raises(idx):
 
 
 def test_get_names_from_levels():
-    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    idx = MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
 
     assert idx.levels[0].name == "a"
     assert idx.levels[1].name == "b"
 
 
 def test_setting_names_from_levels_raises():
-    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    idx = MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
     with pytest.raises(RuntimeError, match="set_names"):
         idx.levels[0].name = "foo"
 
@@ -148,3 +150,56 @@ def test_setting_names_from_levels_raises():
     assert pd.Index._no_setting_name is False
     assert pd.Int64Index._no_setting_name is False
     assert pd.RangeIndex._no_setting_name is False
+
+
+@pytest.mark.parametrize("func", ["rename", "set_names"])
+@pytest.mark.parametrize(
+    "rename_dict, exp_names",
+    [
+        ({"x": "z"}, ["z", "y", "z"]),
+        ({"x": "z", "y": "x"}, ["z", "x", "z"]),
+        ({"y": "z"}, ["x", "z", "x"]),
+        ({}, ["x", "y", "x"]),
+        ({"z": "a"}, ["x", "y", "x"]),
+        ({"y": "z", "a": "b"}, ["x", "z", "x"]),
+    ],
+)
+def test_name_mi_with_dict_like_duplicate_names(func, rename_dict, exp_names):
+    # GH#20421
+    mi = MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=["x", "y", "x"])
+    result = getattr(mi, func)(rename_dict)
+    expected = MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=exp_names)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["rename", "set_names"])
+@pytest.mark.parametrize(
+    "rename_dict, exp_names",
+    [
+        ({"x": "z"}, ["z", "y"]),
+        ({"x": "z", "y": "x"}, ["z", "x"]),
+        ({"a": "z"}, ["x", "y"]),
+        ({}, ["x", "y"]),
+    ],
+)
+def test_name_mi_with_dict_like(func, rename_dict, exp_names):
+    # GH#20421
+    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+    result = getattr(mi, func)(rename_dict)
+    expected = MultiIndex.from_arrays([[1, 2], [3, 4]], names=exp_names)
+    tm.assert_index_equal(result, expected)
+
+
+def test_index_name_with_dict_like_raising():
+    # GH#20421
+    ix = pd.Index([1, 2])
+    msg = "Can only pass dict-like as `names` for MultiIndex."
+    with pytest.raises(TypeError, match=msg):
+        ix.set_names({"x": "z"})
+
+
+def test_multiindex_name_and_level_raising():
+    # GH#20421
+    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+    with pytest.raises(TypeError, match="Can not pass level for dictlike `names`."):
+        mi.set_names(names={"x": "z"}, level={"x": "z"})

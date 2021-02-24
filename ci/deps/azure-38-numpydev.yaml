@@ -12,7 +12,7 @@ dependencies:
 
   # pandas dependencies
   - pytz
-  - pip
+  - pip=20.2
   - pip:
     - cython==0.29.21 # GH#34014
     - "git+git://github.com/dateutil/dateutil.git"

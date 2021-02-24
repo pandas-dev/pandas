@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.arrays.categorical.common import TestCategorical
 
@@ -179,6 +184,20 @@ class TestCategoricalOps:
         tm.assert_numpy_array_equal(cat == 4, np.array([False, False, False]))
         tm.assert_numpy_array_equal(cat != 4, np.array([True, True, True]))
 
+    def test_comparison_with_tuple(self):
+        cat = Categorical(np.array(["foo", (0, 1), 3, (0, 1)], dtype=object))
+
+        result = cat == "foo"
+        expected = np.array([True, False, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat == (0, 1)
+        expected = np.array([False, True, False, True], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat != (0, 1)
+        tm.assert_numpy_array_equal(result, ~expected)
+
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
         self, compare_operators_no_eq_ne
     ):
@@ -323,8 +342,8 @@ class TestCategoricalOps:
     def test_compare_unordered_different_order(self):
         # https://github.com/pandas-dev/pandas/issues/16603#issuecomment-
         # 349290078
-        a = pd.Categorical(["a"], categories=["a", "b"])
-        b = pd.Categorical(["b"], categories=["b", "a"])
+        a = Categorical(["a"], categories=["a", "b"])
+        b = Categorical(["b"], categories=["b", "a"])
         assert not a.equals(b)
 
     def test_numeric_like_ops(self):
@@ -353,7 +372,7 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"Categorical cannot perform the operation {op}"
+            msg = f"'Categorical' does not implement reduction '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
@@ -362,7 +381,7 @@ class TestCategoricalOps:
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
         with pytest.raises(
-            TypeError, match="Categorical cannot perform the operation sum"
+            TypeError, match="'Categorical' does not implement reduction 'sum'"
         ):
             np.sum(s)
 
@@ -381,50 +400,3 @@ class TestCategoricalOps:
         msg = "Object with dtype category cannot perform the numpy op log"
         with pytest.raises(TypeError, match=msg):
             np.log(s)
-
-    def test_contains(self):
-        # GH21508
-        c = pd.Categorical(list("aabbca"), categories=list("cab"))
-
-        assert "b" in c
-        assert "z" not in c
-        assert np.nan not in c
-        with pytest.raises(TypeError, match="unhashable type: 'list'"):
-            assert [1] in c
-
-        # assert codes NOT in index
-        assert 0 not in c
-        assert 1 not in c
-
-        c = pd.Categorical(list("aabbca") + [np.nan], categories=list("cab"))
-        assert np.nan in c
-
-    @pytest.mark.parametrize(
-        "item, expected",
-        [
-            (pd.Interval(0, 1), True),
-            (1.5, True),
-            (pd.Interval(0.5, 1.5), False),
-            ("a", False),
-            (pd.Timestamp(1), False),
-            (pd.Timedelta(1), False),
-        ],
-        ids=str,
-    )
-    def test_contains_interval(self, item, expected):
-        # GH 23705
-        cat = Categorical(pd.IntervalIndex.from_breaks(range(3)))
-        result = item in cat
-        assert result is expected
-
-    def test_contains_list(self):
-        # GH#21729
-        cat = Categorical([1, 2, 3])
-
-        assert "a" not in cat
-
-        with pytest.raises(TypeError, match="unhashable type"):
-            ["a"] in cat
-
-        with pytest.raises(TypeError, match="unhashable type"):
-            ["a", "b"] in cat

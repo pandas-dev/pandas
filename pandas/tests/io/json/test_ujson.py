@@ -15,10 +15,24 @@ import pytz
 
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
+import pandas.util._test_decorators as td
 
-from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    NaT,
+    Series,
+    Timedelta,
+    date_range,
+)
 import pandas._testing as tm
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def _clean_dict(d):
@@ -241,8 +255,11 @@ class TestUltraJSONTests:
     def test_invalid_double_precision(self, invalid_val):
         double_input = 30.12345678901234567890
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
-
-        with pytest.raises(expected_exception):
+        msg = (
+            r"Invalid value '.*' for option 'double_precision', max is '15'|"
+            r"an integer is required \(got type "
+        )
+        with pytest.raises(expected_exception, match=msg):
             ujson.encode(double_input, double_precision=invalid_val)
 
     def test_encode_string_conversion2(self):
@@ -447,13 +464,13 @@ class TestUltraJSONTests:
         decoded_input.member = O2()
         decoded_input.member.member = decoded_input
 
-        with pytest.raises(OverflowError):
+        with pytest.raises(OverflowError, match="Maximum recursion level reached"):
             ujson.encode(decoded_input)
 
     def test_decode_jibberish(self):
         jibberish = "fdsa sda v9sa fdsa"
-
-        with pytest.raises(ValueError):
+        msg = "Unexpected character found when decoding 'false'"
+        with pytest.raises(ValueError, match=msg):
             ujson.decode(jibberish)
 
     @pytest.mark.parametrize(
@@ -466,12 +483,13 @@ class TestUltraJSONTests:
         ],
     )
     def test_decode_broken_json(self, broken_json):
-        with pytest.raises(ValueError):
+        msg = "Expected object or value"
+        with pytest.raises(ValueError, match=msg):
             ujson.decode(broken_json)
 
     @pytest.mark.parametrize("too_big_char", ["[", "{"])
     def test_decode_depth_too_big(self, too_big_char):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Reached object decoding depth limit"):
             ujson.decode(too_big_char * (1024 * 1024))
 
     @pytest.mark.parametrize(
@@ -485,13 +503,27 @@ class TestUltraJSONTests:
         ],
     )
     def test_decode_bad_string(self, bad_string):
-        with pytest.raises(ValueError):
+        msg = (
+            "Unexpected character found when decoding|"
+            "Unmatched ''\"' when when decoding 'string'"
+        )
+        with pytest.raises(ValueError, match=msg):
             ujson.decode(bad_string)
 
-    @pytest.mark.parametrize("broken_json", ['{{1337:""}}', '{{"key":"}', "[[[true"])
-    def test_decode_broken_json_leak(self, broken_json):
+    @pytest.mark.parametrize(
+        "broken_json, err_msg",
+        [
+            (
+                '{{1337:""}}',
+                "Key name of object must be 'string' when decoding 'object'",
+            ),
+            ('{{"key":"}', "Unmatched ''\"' when when decoding 'string'"),
+            ("[[[true", "Unexpected character found when decoding array value (2)"),
+        ],
+    )
+    def test_decode_broken_json_leak(self, broken_json, err_msg):
         for _ in range(1000):
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=re.escape(err_msg)):
                 ujson.decode(broken_json)
 
     @pytest.mark.parametrize(
@@ -503,7 +535,12 @@ class TestUltraJSONTests:
         ],
     )
     def test_decode_invalid_dict(self, invalid_dict):
-        with pytest.raises(ValueError):
+        msg = (
+            "Key name of object must be 'string' when decoding 'object'|"
+            "No ':' found when decoding object value|"
+            "Expected object or value"
+        )
+        with pytest.raises(ValueError, match=msg):
             ujson.decode(invalid_dict)
 
     @pytest.mark.parametrize(
@@ -567,7 +604,7 @@ class TestUltraJSONTests:
         assert str(bigNum) == encoding
 
         # GH20599
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Value is too big"):
             assert ujson.loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
@@ -757,10 +794,10 @@ class TestNumpyJSONTests:
     def test_array_list(self):
         arr_list = [
             "a",
-            list(),
-            dict(),
-            dict(),
-            list(),
+            [],
+            {},
+            {},
+            [],
             42,
             97.8,
             ["a", "b"],
@@ -789,21 +826,70 @@ class TestNumpyJSONTests:
             ujson.encode(np.array(1))
 
     @pytest.mark.parametrize(
-        "bad_input,exc_type,kwargs",
+        "bad_input,exc_type,err_msg,kwargs",
         [
-            ([{}, []], ValueError, {}),
-            ([42, None], TypeError, {}),
-            ([["a"], 42], ValueError, {}),
-            ([42, {}, "a"], TypeError, {}),
-            ([42, ["a"], 42], ValueError, {}),
-            (["a", "b", [], "c"], ValueError, {}),
-            ([{"a": "b"}], ValueError, dict(labelled=True)),
-            ({"a": {"b": {"c": 42}}}, ValueError, dict(labelled=True)),
-            ([{"a": 42, "b": 23}, {"c": 17}], ValueError, dict(labelled=True)),
+            (
+                [{}, []],
+                ValueError,
+                "nesting not supported for object or variable length dtypes",
+                {},
+            ),
+            (
+                [42, None],
+                TypeError,
+                "int() argument must be a string, a bytes-like object or a number, "
+                "not 'NoneType'",
+                {},
+            ),
+            (
+                [["a"], 42],
+                ValueError,
+                "Cannot decode multidimensional arrays with variable length elements "
+                "to numpy",
+                {},
+            ),
+            (
+                [42, {}, "a"],
+                TypeError,
+                "int() argument must be a string, a bytes-like object or a number, "
+                "not 'dict'",
+                {},
+            ),
+            (
+                [42, ["a"], 42],
+                ValueError,
+                "invalid literal for int() with base 10: 'a'",
+                {},
+            ),
+            (
+                ["a", "b", [], "c"],
+                ValueError,
+                "nesting not supported for object or variable length dtypes",
+                {},
+            ),
+            (
+                [{"a": "b"}],
+                ValueError,
+                "Cannot decode multidimensional arrays with variable length elements "
+                "to numpy",
+                {"labelled": True},
+            ),
+            (
+                {"a": {"b": {"c": 42}}},
+                ValueError,
+                "labels only supported up to 2 dimensions",
+                {"labelled": True},
+            ),
+            (
+                [{"a": 42, "b": 23}, {"c": 17}],
+                ValueError,
+                "cannot reshape array of size 3 into shape (2,1)",
+                {"labelled": True},
+            ),
         ],
     )
-    def test_array_numpy_except(self, bad_input, exc_type, kwargs):
-        with pytest.raises(exc_type):
+    def test_array_numpy_except(self, bad_input, exc_type, err_msg, kwargs):
+        with pytest.raises(exc_type, match=re.escape(err_msg)):
             ujson.decode(ujson.dumps(bad_input), numpy=True, **kwargs)
 
     def test_array_numpy_labelled(self):
@@ -852,8 +938,8 @@ class TestPandasJSONTests:
             columns=["x", "y", "z"],
             dtype=dtype,
         )
-        encode_kwargs = {} if orient is None else dict(orient=orient)
-        decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        encode_kwargs = {} if orient is None else {"orient": orient}
+        decode_kwargs = {} if numpy is None else {"numpy": numpy}
         assert (df.dtypes == dtype).all()
 
         output = ujson.decode(ujson.encode(df, **encode_kwargs), **decode_kwargs)
@@ -884,7 +970,7 @@ class TestPandasJSONTests:
         )
 
         nested = {"df1": df, "df2": df.copy()}
-        kwargs = {} if orient is None else dict(orient=orient)
+        kwargs = {} if orient is None else {"orient": orient}
 
         exp = {
             "df1": ujson.decode(ujson.encode(df, **kwargs)),
@@ -902,7 +988,7 @@ class TestPandasJSONTests:
             columns=["x", "y", "z"],
             dtype=int,
         )
-        kwargs = {} if orient is None else dict(orient=orient)
+        kwargs = {} if orient is None else {"orient": orient}
 
         output = DataFrame(
             *ujson.decode(ujson.encode(df, **kwargs), numpy=True, labelled=True)
@@ -925,8 +1011,8 @@ class TestPandasJSONTests:
         ).sort_values()
         assert s.dtype == dtype
 
-        encode_kwargs = {} if orient is None else dict(orient=orient)
-        decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        encode_kwargs = {} if orient is None else {"orient": orient}
+        decode_kwargs = {} if numpy is None else {"numpy": numpy}
 
         output = ujson.decode(ujson.encode(s, **encode_kwargs), **decode_kwargs)
         assert s.dtype == dtype
@@ -953,7 +1039,7 @@ class TestPandasJSONTests:
             [10, 20, 30, 40, 50, 60], name="series", index=[6, 7, 8, 9, 10, 15]
         ).sort_values()
         nested = {"s1": s, "s2": s.copy()}
-        kwargs = {} if orient is None else dict(orient=orient)
+        kwargs = {} if orient is None else {"orient": orient}
 
         exp = {
             "s1": ujson.decode(ujson.encode(s, **kwargs)),
@@ -1034,7 +1120,11 @@ class TestPandasJSONTests:
         ],
     )
     def test_decode_invalid_array(self, invalid_arr):
-        with pytest.raises(ValueError):
+        msg = (
+            "Expected object or value|Trailing data|"
+            "Unexpected character found when decoding array value"
+        )
+        with pytest.raises(ValueError, match=msg):
             ujson.decode(invalid_arr)
 
     @pytest.mark.parametrize("arr", [[], [31337]])
@@ -1049,18 +1139,18 @@ class TestPandasJSONTests:
         "too_extreme_num", ["9223372036854775808", "-90223372036854775809"]
     )
     def test_decode_too_extreme_numbers(self, too_extreme_num):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Value is too big|Value is too small"):
             ujson.decode(too_extreme_num)
 
     def test_decode_with_trailing_whitespaces(self):
         assert {} == ujson.decode("{}\n\t ")
 
     def test_decode_with_trailing_non_whitespaces(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Trailing data"):
             ujson.decode("{}\n\t a")
 
     def test_decode_array_with_big_int(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Value is too big"):
             ujson.loads("[18446098363113800555]")
 
     @pytest.mark.parametrize(

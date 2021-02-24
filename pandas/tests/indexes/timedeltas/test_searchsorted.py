@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import Series, TimedeltaIndex, Timestamp, array
+from pandas import (
+    Series,
+    TimedeltaIndex,
+    Timestamp,
+    array,
+)
 import pandas._testing as tm
 
 
@@ -21,6 +26,6 @@ class TestSearchSorted:
     )
     def test_searchsorted_invalid_argument_dtype(self, arg):
         idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
-        msg = "searchsorted requires compatible dtype"
+        msg = "value should be a 'Timedelta', 'NaT', or array of those. Got"
         with pytest.raises(TypeError, match=msg):
             idx.searchsorted(arg)

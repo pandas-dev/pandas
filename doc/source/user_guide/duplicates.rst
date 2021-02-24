@@ -29,8 +29,8 @@ duplicates present. The output can't be determined, and so pandas raises.
 .. ipython:: python
    :okexcept:
 
-   s1 = pd.Series([0, 1, 2], index=['a', 'b', 'b'])
-   s1.reindex(['a', 'b', 'c'])
+   s1 = pd.Series([0, 1, 2], index=["a", "b", "b"])
+   s1.reindex(["a", "b", "c"])
 
 Other methods, like indexing, can give very surprising results. Typically
 indexing with a scalar will *reduce dimensionality*. Slicing a ``DataFrame``
@@ -39,30 +39,30 @@ return a scalar. But with duplicates, this isn't the case.
 
 .. ipython:: python
 
-   df1 = pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=['A', 'A', 'B'])
+   df1 = pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "A", "B"])
    df1
 
 We have duplicates in the columns. If we slice ``'B'``, we get back a ``Series``
 
 .. ipython:: python
 
-   df1['B']  # a series
+   df1["B"]  # a series
 
 But slicing ``'A'`` returns a ``DataFrame``
 
 
 .. ipython:: python
 
-   df1['A']  # a DataFrame
+   df1["A"]  # a DataFrame
 
 This applies to row labels as well
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({"A": [0, 1, 2]}, index=['a', 'a', 'b'])
+   df2 = pd.DataFrame({"A": [0, 1, 2]}, index=["a", "a", "b"])
    df2
-   df2.loc['b', 'A']  # a scalar
-   df2.loc['a', 'A']  # a Series
+   df2.loc["b", "A"]  # a scalar
+   df2.loc["a", "A"]  # a Series
 
 Duplicate Label Detection
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -79,7 +79,7 @@ unique with :attr:`Index.is_unique`:
 .. note::
 
    Checking whether an index is unique is somewhat expensive for large datasets.
-   Pandas does cache this result, so re-checking on the same index is very fast.
+   pandas does cache this result, so re-checking on the same index is very fast.
 
 :meth:`Index.duplicated` will return a boolean ndarray indicating whether a
 label is repeated.
@@ -121,29 +121,24 @@ will be raised.
 .. ipython:: python
    :okexcept:
 
-   pd.Series(
-       [0, 1, 2],
-       index=['a', 'b', 'b']
-   ).set_flags(allows_duplicate_labels=False)
+   pd.Series([0, 1, 2], index=["a", "b", "b"]).set_flags(allows_duplicate_labels=False)
 
 This applies to both row and column labels for a :class:`DataFrame`
 
 .. ipython:: python
    :okexcept:
 
-   pd.DataFrame(
-       [[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],
-   ).set_flags(allows_duplicate_labels=False)
+   pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],).set_flags(
+       allows_duplicate_labels=False
+   )
 
 This attribute can be checked or set with :attr:`~DataFrame.flags.allows_duplicate_labels`,
 which indicates whether that object can have duplicate labels.
 
 .. ipython:: python
 
-   df = (
-       pd.DataFrame({"A": [0, 1, 2, 3]},
-                    index=['x', 'y', 'X', 'Y'])
-         .set_flags(allows_duplicate_labels=False)
+   df = pd.DataFrame({"A": [0, 1, 2, 3]}, index=["x", "y", "X", "Y"]).set_flags(
+       allows_duplicate_labels=False
    )
    df
    df.flags.allows_duplicate_labels
@@ -198,7 +193,7 @@ operations.
 .. ipython:: python
    :okexcept:
 
-   s1 = pd.Series(0, index=['a', 'b']).set_flags(allows_duplicate_labels=False)
+   s1 = pd.Series(0, index=["a", "b"]).set_flags(allows_duplicate_labels=False)
    s1
    s1.head().rename({"a": "b"})
 

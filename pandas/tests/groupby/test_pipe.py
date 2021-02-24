@@ -1,7 +1,10 @@
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -42,7 +45,7 @@ def test_pipe_args():
     # Test passing args to the pipe method of DataFrameGroupBy.
     # Issue #17871
 
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "group": ["A", "A", "B", "B", "C"],
             "x": [1.0, 2.0, 3.0, 2.0, 5.0],
@@ -64,7 +67,7 @@ def test_pipe_args():
     result = df.groupby("group").pipe(f, 0).pipe(g, 10).pipe(h, 100)
 
     # Assert the results here
-    index = pd.Index(["A", "B", "C"], name="group")
+    index = Index(["A", "B", "C"], name="group")
     expected = pd.Series([-79.5160891089, -78.4839108911, -80], index=index)
 
     tm.assert_series_equal(expected, result)

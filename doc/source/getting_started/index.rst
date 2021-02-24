@@ -533,7 +533,7 @@ pandas has great support for time series and has an extensive set of tools for w
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets do not only contain numerical data. pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
+Data sets do not only contain numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
 
 .. raw:: html
 
@@ -618,6 +618,22 @@ the pandas-equivalent operations compared to software you already know:
 .. container:: custom-button
 
     :ref:`Learn more <compare_with_stata>`
+
+.. raw:: html
+
+                    </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                    <div class="card text-center intro-card shadow">
+                    <img src="../_static/spreadsheets/logo_excel.svg" class="card-img-top" alt="Excel logo" height="52">
+                    <div class="card-body flex-fill">
+                        <p class="card-text">Users of <a href="https://en.wikipedia.org/wiki/Microsoft_Excel">Excel</a>
+                            or other spreadsheet programs will find that many of the concepts are transferrable to pandas.</p>
+
+.. container:: custom-button
+
+    :ref:`Learn more <compare_with_spreadsheets>`
 
 .. raw:: html
 

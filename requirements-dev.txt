@@ -1,19 +1,20 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-numpy>=1.16.5
+numpy>=1.16.5, <1.20
 python-dateutil>=2.7.3
 pytz
 asv
 cython>=0.29.21
-black==19.10b0
+black==20.8b1
 cpplint
-flake8<3.8.0
+flake8
 flake8-comprehensions>=3.1.0
-flake8-rst>=0.6.0,<=0.7.0
 isort>=5.2.1
-mypy==0.782
+mypy==0.800
+pre-commit>=2.9.2
 pycodestyle
+pyupgrade
 gitpython
 gitdb
 sphinx
@@ -37,10 +38,11 @@ pytest>=5.0.1
 pytest-cov
 pytest-xdist>=1.21
 pytest-asyncio
+pytest-instafail
 seaborn
 statsmodels
 ipywidgets
-nbformat
+nbformat==5.0.8
 notebook>=5.7.5
 pip
 blosc
@@ -64,7 +66,7 @@ fastparquet>=0.3.2
 pyarrow>=0.15.0
 python-snappy
 pyqt5>=5.9.2
-tables>=3.4.4
+tables>=3.5.1
 s3fs>=0.4.0
 fsspec>=0.7.4
 gcsfs>=0.6.0
@@ -74,6 +76,5 @@ cftime
 pyreadstat
 tabulate>=0.8.3
 natsort
-git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
-git+https://github.com/numpy/numpydoc
-pyflakes>=2.2.0
+git+https://github.com/pandas-dev/pydata-sphinx-theme.git@2488b7defbd3d753dd5fcfc890fc4a7e79d25103
+numpydoc < 1.2

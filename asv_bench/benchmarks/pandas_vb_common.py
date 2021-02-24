@@ -15,7 +15,7 @@ for imp in ["pandas._libs.lib", "pandas.lib"]:
 
 # Compatibility import for the testing module
 try:
-    import pandas._testing as tm  # noqa
+    import pandas._testing as tm
 except ImportError:
     import pandas.util.testing as tm  # noqa
 

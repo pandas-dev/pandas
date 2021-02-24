@@ -1,5 +1,14 @@
 """ Google BigQuery support """
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -31,10 +40,8 @@ def read_gbq(
     credentials=None,
     use_bqstorage_api: Optional[bool] = None,
     max_results: Optional[int] = None,
-    private_key=None,
-    verbose=None,
     progress_bar_type: Optional[str] = None,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Load data from Google BigQuery.
 
@@ -197,7 +204,7 @@ def read_gbq(
 
 
 def to_gbq(
-    dataframe: "DataFrame",
+    dataframe: DataFrame,
     destination_table: str,
     project_id: Optional[str] = None,
     chunksize: Optional[int] = None,
@@ -208,8 +215,6 @@ def to_gbq(
     location: Optional[str] = None,
     progress_bar: bool = True,
     credentials=None,
-    verbose=None,
-    private_key=None,
 ) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(
@@ -224,6 +229,4 @@ def to_gbq(
         location=location,
         progress_bar=progress_bar,
         credentials=credentials,
-        verbose=verbose,
-        private_key=private_key,
     )

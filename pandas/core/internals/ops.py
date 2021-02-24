@@ -1,13 +1,20 @@
+from __future__ import annotations
+
 from collections import namedtuple
-from typing import TYPE_CHECKING, Iterator, List, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Iterator,
+    List,
+    Tuple,
+)
 
 import numpy as np
 
 from pandas._typing import ArrayLike
 
 if TYPE_CHECKING:
-    from pandas.core.internals.blocks import Block  # noqa:F401
-    from pandas.core.internals.managers import BlockManager  # noqa:F401
+    from pandas.core.internals.blocks import Block
+    from pandas.core.internals.managers import BlockManager
 
 
 BlockPairInfo = namedtuple(
@@ -16,7 +23,7 @@ BlockPairInfo = namedtuple(
 
 
 def _iter_block_pairs(
-    left: "BlockManager", right: "BlockManager"
+    left: BlockManager, right: BlockManager
 ) -> Iterator[BlockPairInfo]:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
@@ -44,12 +51,12 @@ def _iter_block_pairs(
 
 
 def operate_blockwise(
-    left: "BlockManager", right: "BlockManager", array_op
-) -> "BlockManager":
+    left: BlockManager, right: BlockManager, array_op
+) -> BlockManager:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
-    res_blks: List["Block"] = []
+    res_blks: List[Block] = []
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
         res_values = array_op(lvals, rvals)
         if left_ea and not right_ea and hasattr(res_values, "reshape"):
@@ -73,11 +80,11 @@ def operate_blockwise(
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
 
-    new_mgr = type(right)(res_blks, axes=right.axes, do_integrity_check=False)
+    new_mgr = type(right)(res_blks, axes=right.axes, verify_integrity=False)
     return new_mgr
 
 
-def _reset_block_mgr_locs(nbs: List["Block"], locs):
+def _reset_block_mgr_locs(nbs: List[Block], locs):
     """
     Reset mgr_locs to correspond to our original DataFrame.
     """
@@ -90,7 +97,7 @@ def _reset_block_mgr_locs(nbs: List["Block"], locs):
 
 
 def _get_same_shape_values(
-    lblk: "Block", rblk: "Block", left_ea: bool, right_ea: bool
+    lblk: Block, rblk: Block, left_ea: bool, right_ea: bool
 ) -> Tuple[ArrayLike, ArrayLike]:
     """
     Slice lblk.values to align with rblk.  Squeeze if we have EAs.
@@ -120,7 +127,7 @@ def _get_same_shape_values(
     return lvals, rvals
 
 
-def blockwise_all(left: "BlockManager", right: "BlockManager", op) -> bool:
+def blockwise_all(left: BlockManager, right: BlockManager, op) -> bool:
     """
     Blockwise `all` reduction.
     """

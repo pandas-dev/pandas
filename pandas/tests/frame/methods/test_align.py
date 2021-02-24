@@ -1,12 +1,44 @@
 import numpy as np
 import pytest
+import pytz
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestDataFrameAlign:
+    def test_frame_align_aware(self):
+        idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
+        idx2 = date_range("2001", periods=5, freq="2H", tz="US/Eastern")
+        df1 = DataFrame(np.random.randn(len(idx1), 3), idx1)
+        df2 = DataFrame(np.random.randn(len(idx2), 3), idx2)
+        new1, new2 = df1.align(df2)
+        assert df1.index.tz == new1.index.tz
+        assert df2.index.tz == new2.index.tz
+
+        # different timezones convert to UTC
+
+        # frame with frame
+        df1_central = df1.tz_convert("US/Central")
+        new1, new2 = df1.align(df1_central)
+        assert new1.index.tz == pytz.UTC
+        assert new2.index.tz == pytz.UTC
+
+        # frame with Series
+        new1, new2 = df1.align(df1_central[0], axis=0)
+        assert new1.index.tz == pytz.UTC
+        assert new2.index.tz == pytz.UTC
+
+        df1[0].align(df1_central, axis=0)
+        assert new1.index.tz == pytz.UTC
+        assert new2.index.tz == pytz.UTC
+
     def test_align_float(self, float_frame):
         af, bf = float_frame.align(float_frame)
         assert af._mgr is not float_frame._mgr
@@ -133,8 +165,8 @@ class TestDataFrameAlign:
         "l_ordered,r_ordered,expected",
         [
             [True, True, pd.CategoricalIndex],
-            [True, False, pd.Index],
-            [False, True, pd.Index],
+            [True, False, Index],
+            [False, True, Index],
             [False, False, pd.CategoricalIndex],
         ],
     )
@@ -169,9 +201,9 @@ class TestDataFrameAlign:
         midx = pd.MultiIndex.from_product(
             [range(2), range(3), range(2)], names=("a", "b", "c")
         )
-        idx = pd.Index(range(2), name="b")
-        df1 = pd.DataFrame(np.arange(12, dtype="int64"), index=midx)
-        df2 = pd.DataFrame(np.arange(2, dtype="int64"), index=idx)
+        idx = Index(range(2), name="b")
+        df1 = DataFrame(np.arange(12, dtype="int64"), index=midx)
+        df2 = DataFrame(np.arange(2, dtype="int64"), index=idx)
 
         # these must be the same results (but flipped)
         res1l, res1r = df1.align(df2, join="left")
@@ -180,7 +212,7 @@ class TestDataFrameAlign:
         expl = df1
         tm.assert_frame_equal(expl, res1l)
         tm.assert_frame_equal(expl, res2r)
-        expr = pd.DataFrame([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
+        expr = DataFrame([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
         tm.assert_frame_equal(expr, res1r)
         tm.assert_frame_equal(expr, res2l)
 
@@ -190,24 +222,24 @@ class TestDataFrameAlign:
         exp_idx = pd.MultiIndex.from_product(
             [range(2), range(2), range(2)], names=("a", "b", "c")
         )
-        expl = pd.DataFrame([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
+        expl = DataFrame([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
         tm.assert_frame_equal(expl, res1l)
         tm.assert_frame_equal(expl, res2r)
-        expr = pd.DataFrame([0, 0, 1, 1] * 2, index=exp_idx)
+        expr = DataFrame([0, 0, 1, 1] * 2, index=exp_idx)
         tm.assert_frame_equal(expr, res1r)
         tm.assert_frame_equal(expr, res2l)
 
     def test_align_series_combinations(self):
-        df = pd.DataFrame({"a": [1, 3, 5], "b": [1, 3, 5]}, index=list("ACE"))
-        s = pd.Series([1, 2, 4], index=list("ABD"), name="x")
+        df = DataFrame({"a": [1, 3, 5], "b": [1, 3, 5]}, index=list("ACE"))
+        s = Series([1, 2, 4], index=list("ABD"), name="x")
 
         # frame + series
         res1, res2 = df.align(s, axis=0)
-        exp1 = pd.DataFrame(
+        exp1 = DataFrame(
             {"a": [1, np.nan, 3, np.nan, 5], "b": [1, np.nan, 3, np.nan, 5]},
             index=list("ABCDE"),
         )
-        exp2 = pd.Series([1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x")
+        exp2 = Series([1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x")
 
         tm.assert_frame_equal(res1, exp1)
         tm.assert_series_equal(res2, exp2)

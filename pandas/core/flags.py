@@ -10,7 +10,7 @@ class Flags:
     Parameters
     ----------
     obj : Series or DataFrame
-        The object these flags are associated with
+        The object these flags are associated with.
     allows_duplicate_labels : bool, default True
         Whether to allow duplicate labels in this object. By default,
         duplicate labels are permitted. Setting this to ``False`` will

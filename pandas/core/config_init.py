@@ -85,8 +85,9 @@ with cf.config_prefix("compute"):
 
 pc_precision_doc = """
 : int
-    Floating point output precision (number of significant digits). This is
-    only a suggestion
+    Floating point output precision in terms of number of places after the
+    decimal, for regular formatting as well as scientific notation. Similar
+    to ``precision`` in :meth:`numpy.set_printoptions`.
 """
 
 pc_colspace_doc = """
@@ -249,7 +250,7 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-    when pretty-printing a long sequence, no more then `max_seq_items`
+    When pretty-printing a long sequence, no more then `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
 
@@ -482,6 +483,12 @@ with cf.config_prefix("mode"):
     cf.register_option(
         "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
     )
+    cf.register_option(
+        "data_manager",
+        "block",
+        "Internal data manager type",
+        validator=is_one_of_factory(["block", "array"]),
+    )
 
 cf.deprecate_option(
     "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
@@ -523,7 +530,7 @@ with cf.config_prefix("io.excel.xls"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=str,
+        validator=is_one_of_factory(_xls_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsm"):
@@ -531,7 +538,7 @@ with cf.config_prefix("io.excel.xlsm"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsm", others=", ".join(_xlsm_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsm_options + ["auto"]),
     )
 
 
@@ -540,7 +547,7 @@ with cf.config_prefix("io.excel.xlsx"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsx_options + ["auto"]),
     )
 
 
@@ -549,7 +556,7 @@ with cf.config_prefix("io.excel.ods"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
-        validator=str,
+        validator=is_one_of_factory(_ods_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsb"):
@@ -557,7 +564,7 @@ with cf.config_prefix("io.excel.xlsb"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsb_options + ["auto"]),
     )
 
 # Set up the io.excel specific writer configuration.
@@ -580,6 +587,13 @@ with cf.config_prefix("io.excel.xls"):
         writer_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
         validator=str,
     )
+cf.deprecate_option(
+    "io.excel.xls.writer",
+    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
+    "removed in a future version of pandas. This is the only engine in pandas that "
+    "supports writing in the xls format. Install openpyxl and write to an "
+    "xlsx file instead.",
+)
 
 with cf.config_prefix("io.excel.xlsm"):
     cf.register_option(

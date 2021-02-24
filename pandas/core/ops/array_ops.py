@@ -5,13 +5,21 @@ ExtensionArrays.
 from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Tuple
+from typing import Any
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
-from pandas._typing import ArrayLike
+from pandas._libs import (
+    Timedelta,
+    Timestamp,
+    lib,
+    ops as libops,
+)
+from pandas._typing import (
+    ArrayLike,
+    Shape,
+)
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -27,9 +35,17 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -41,8 +57,6 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         y = construct_1d_object_array_from_listlike(y)
 
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # Note: these checks can be for ABCIndex and not ABCIndexClass
-        #  because that is the only object-dtype class.
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
@@ -57,7 +71,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     return result.reshape(x.shape)
 
 
-def masked_arith_op(x: np.ndarray, y, op):
+def _masked_arith_op(x: np.ndarray, y, op):
     """
     If the given arithmetic operation fails, attempt it again on
     only the non-null elements of the input array(s).
@@ -111,12 +125,12 @@ def masked_arith_op(x: np.ndarray, y, op):
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], y)
 
-    result, _ = maybe_upcast_putmask(result, ~mask, np.nan)
+    result = maybe_upcast_putmask(result, ~mask)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
 
-def na_arithmetic_op(left, right, op, is_cmp: bool = False):
+def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -147,7 +161,7 @@ def na_arithmetic_op(left, right, op, is_cmp: bool = False):
             #  In this case we do not fall back to the masked op, as that
             #  will handle complex numbers incorrectly, see GH#32047
             raise
-        result = masked_arith_op(left, right, op)
+        result = _masked_arith_op(left, right, op)
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
@@ -177,9 +191,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
-    lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = maybe_upcast_datetimelike_array(right)
-    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
+    lvalues = ensure_wrapped_if_datetimelike(left)
+    rvalues = ensure_wrapped_if_datetimelike(right)
+    rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
@@ -187,7 +201,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
     else:
         with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op)
+            res_values = _na_arithmetic_op(lvalues, rvalues, op)
 
     return res_values
 
@@ -208,7 +222,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     ndarray or ExtensionArray
     """
     # NB: We assume extract_array has already been called on left and right
-    lvalues = maybe_upcast_datetimelike_array(left)
+    lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
 
     rvalues = lib.item_from_zerodim(rvalues)
@@ -248,7 +262,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             # suppress warnings from numpy about element-wise comparison
             warnings.simplefilter("ignore", DeprecationWarning)
             with np.errstate(all="ignore"):
-                res_values = na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+                res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 
@@ -333,7 +347,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
-    lvalues = maybe_upcast_datetimelike_array(left)
+    lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
 
     if should_extension_dispatch(lvalues, rvalues):
@@ -402,32 +416,7 @@ def get_array_op(op):
         raise NotImplementedError(op_name)
 
 
-def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
-    """
-    If we have an ndarray that is either datetime64 or timedelta64, wrap in EA.
-
-    Parameters
-    ----------
-    obj : ndarray or ExtensionArray
-
-    Returns
-    -------
-    ndarray or ExtensionArray
-    """
-    if isinstance(obj, np.ndarray):
-        if obj.dtype.kind == "m":
-            from pandas.core.arrays import TimedeltaArray
-
-            return TimedeltaArray._from_sequence(obj)
-        if obj.dtype.kind == "M":
-            from pandas.core.arrays import DatetimeArray
-
-            return DatetimeArray._from_sequence(obj)
-
-    return obj
-
-
-def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
+def _maybe_upcast_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -446,7 +435,10 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
 
     if type(obj) is timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta

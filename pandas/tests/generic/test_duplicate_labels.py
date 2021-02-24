@@ -37,8 +37,8 @@ class TestPreserves:
             operator.methodcaller("add", 1),
             operator.methodcaller("rename", str.upper),
             operator.methodcaller("rename", "name"),
-            pytest.param(operator.methodcaller("abs"), marks=not_implemented),
-            # TODO: test np.abs
+            operator.methodcaller("abs"),
+            np.abs,
         ],
     )
     def test_preserved_series(self, func):
@@ -203,7 +203,7 @@ class TestPreserves:
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]).set_flags(
                     allows_duplicate_labels=False
                 ),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -213,7 +213,7 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -221,7 +221,7 @@ class TestPreserves:
             (
                 pd.DataFrame({"A": [0, 1]}, index=["a", "b"]),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 True,
             ),
         ],
@@ -275,7 +275,8 @@ class TestRaises:
         result = cls(**axes)
         assert result.flags.allows_duplicate_labels is True
 
-        with pytest.raises(pd.errors.DuplicateLabelError):
+        msg = "Index has duplicates."
+        with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             cls(**axes).set_flags(allows_duplicate_labels=False)
 
     @pytest.mark.parametrize(
@@ -287,7 +288,8 @@ class TestRaises:
         ],
     )
     def test_setting_allows_duplicate_labels_raises(self, data):
-        with pytest.raises(pd.errors.DuplicateLabelError):
+        msg = "Index has duplicates."
+        with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             data.flags.allows_duplicate_labels = False
 
         assert data.flags.allows_duplicate_labels is True
@@ -297,7 +299,8 @@ class TestRaises:
     )
     def test_series_raises(self, func):
         s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
-        with pytest.raises(pd.errors.DuplicateLabelError):
+        msg = "Index has duplicates."
+        with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             func(s)
 
     @pytest.mark.parametrize(
@@ -309,9 +312,7 @@ class TestRaises:
             pytest.param(
                 operator.itemgetter(("a", ["A", "A"])), "loc", marks=not_implemented
             ),
-            pytest.param(
-                operator.itemgetter((["a", "a"], "A")), "loc", marks=not_implemented
-            ),
+            (operator.itemgetter((["a", "a"], "A")), "loc"),
             # iloc
             (operator.itemgetter([0, 0]), "iloc"),
             pytest.param(
@@ -332,7 +333,8 @@ class TestRaises:
         else:
             target = df
 
-        with pytest.raises(pd.errors.DuplicateLabelError):
+        msg = "Index has duplicates."
+        with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             getter(target)
 
     @pytest.mark.parametrize(
@@ -352,7 +354,8 @@ class TestRaises:
         ],
     )
     def test_concat_raises(self, objs, kwargs):
-        with pytest.raises(pd.errors.DuplicateLabelError):
+        msg = "Index has duplicates."
+        with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             pd.concat(objs, **kwargs)
 
     @not_implemented
@@ -361,7 +364,8 @@ class TestRaises:
             allows_duplicate_labels=False
         )
         b = pd.DataFrame({"B": [0, 1, 2]}, index=["a", "b", "b"])
-        with pytest.raises(pd.errors.DuplicateLabelError):
+        msg = "Index has duplicates."
+        with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             pd.merge(a, b, left_index=True, right_index=True)
 
 
@@ -381,13 +385,14 @@ class TestRaises:
     ids=lambda x: type(x).__name__,
 )
 def test_raises_basic(idx):
-    with pytest.raises(pd.errors.DuplicateLabelError):
+    msg = "Index has duplicates."
+    with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
         pd.Series(1, index=idx).set_flags(allows_duplicate_labels=False)
 
-    with pytest.raises(pd.errors.DuplicateLabelError):
+    with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
         pd.DataFrame({"A": [1, 1]}, index=idx).set_flags(allows_duplicate_labels=False)
 
-    with pytest.raises(pd.errors.DuplicateLabelError):
+    with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
         pd.DataFrame([[1, 2]], columns=idx).set_flags(allows_duplicate_labels=False)
 
 
@@ -412,7 +417,8 @@ def test_format_duplicate_labels_message_multi():
 
 def test_dataframe_insert_raises():
     df = pd.DataFrame({"A": [1, 2]}).set_flags(allows_duplicate_labels=False)
-    with pytest.raises(ValueError, match="Cannot specify"):
+    msg = "Cannot specify"
+    with pytest.raises(ValueError, match=msg):
         df.insert(0, "A", [3, 4], allow_duplicates=True)
 
 

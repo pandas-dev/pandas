@@ -3,25 +3,36 @@ Module for formatting output data in HTML.
 """
 
 from textwrap import dedent
-from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 from pandas._config import get_option
 
 from pandas._libs import lib
 
-from pandas import MultiIndex, option_context
+from pandas import (
+    MultiIndex,
+    option_context,
+)
 
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
-    TableFormatter,
-    buffer_put_lines,
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
 
 
-class HTMLFormatter(TableFormatter):
+class HTMLFormatter:
     """
     Internal class for formatting output data in html.
     This class is intended for shared functionality between
@@ -38,6 +49,8 @@ class HTMLFormatter(TableFormatter):
         formatter: DataFrameFormatter,
         classes: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
         border: Optional[int] = None,
+        table_id: Optional[str] = None,
+        render_links: bool = False,
     ) -> None:
         self.fmt = formatter
         self.classes = classes
@@ -51,13 +64,34 @@ class HTMLFormatter(TableFormatter):
         if border is None:
             border = cast(int, get_option("display.html.border"))
         self.border = border
-        self.table_id = self.fmt.table_id
-        self.render_links = self.fmt.render_links
+        self.table_id = table_id
+        self.render_links = render_links
 
         self.col_space = {
             column: f"{value}px" if isinstance(value, int) else value
             for column, value in self.fmt.col_space.items()
         }
+
+    def to_string(self) -> str:
+        lines = self.render()
+        if any(isinstance(x, str) for x in lines):
+            lines = [str(x) for x in lines]
+        return "\n".join(lines)
+
+    def render(self) -> List[str]:
+        self._write_table()
+
+        if self.should_show_dimensions:
+            by = chr(215)  # ×
+            self.write(
+                f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
+            )
+
+        return self.elements
+
+    @property
+    def should_show_dimensions(self):
+        return self.fmt.should_show_dimensions
 
     @property
     def show_row_idx_names(self) -> bool:
@@ -186,20 +220,6 @@ class HTMLFormatter(TableFormatter):
 
         indent -= indent_delta
         self.write("</tr>", indent)
-
-    def render(self) -> List[str]:
-        self._write_table()
-
-        if self.should_show_dimensions:
-            by = chr(215)  # ×
-            self.write(
-                f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
-            )
-
-        return self.elements
-
-    def write_result(self, buf: IO[str]) -> None:
-        buffer_put_lines(buf, self.render())
 
     def _write_table(self, indent: int = 0) -> None:
         _classes = ["dataframe"]  # Default class.
@@ -370,7 +390,7 @@ class HTMLFormatter(TableFormatter):
 
     def _get_formatted_values(self) -> Dict[int, List[str]]:
         with option_context("display.max_colwidth", None):
-            fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
+            fmt_values = {i: self.fmt.format_col(i) for i in range(self.ncols)}
         return fmt_values
 
     def _write_body(self, indent: int) -> None:
@@ -565,7 +585,7 @@ class NotebookFormatter(HTMLFormatter):
     """
 
     def _get_formatted_values(self) -> Dict[int, List[str]]:
-        return {i: self.fmt._format_col(i) for i in range(self.ncols)}
+        return {i: self.fmt.format_col(i) for i in range(self.ncols)}
 
     def _get_columns_formatted_values(self) -> List[str]:
         return self.columns.format()

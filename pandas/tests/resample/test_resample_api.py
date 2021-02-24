@@ -1,11 +1,13 @@
-from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -298,6 +300,21 @@ def test_agg_consistency():
         r.agg({"r1": "mean", "r2": "sum"})
 
 
+def test_agg_consistency_int_str_column_mix():
+    # GH#39025
+    df = DataFrame(
+        np.random.randn(1000, 2),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=[1, "a"],
+    )
+
+    r = df.resample("3T")
+
+    msg = r"Column\(s\) \[2, 'b'\] do not exist"
+    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        r.agg({2: "mean", "b": "sum"})
+
+
 # TODO: once GH 14008 is fixed, move these tests into
 # `Base` test class
 
@@ -428,7 +445,7 @@ def test_agg_misc():
     msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
-            t[["A", "B"]].agg(OrderedDict([("result1", np.sum), ("result2", np.mean)]))
+            t[["A", "B"]].agg({"result1": np.sum, "result2": np.mean})
 
     # agg with different hows
     expected = pd.concat(
@@ -438,7 +455,7 @@ def test_agg_misc():
         [("A", "sum"), ("A", "std"), ("B", "mean"), ("B", "std")]
     )
     for t in cases:
-        result = t.agg(OrderedDict([("A", ["sum", "std"]), ("B", ["mean", "std"])]))
+        result = t.agg({"A": ["sum", "std"], "B": ["mean", "std"]})
         tm.assert_frame_equal(result, expected, check_like=True)
 
     # equivalent of using a selection list / or not
@@ -572,7 +589,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     # date parser. Some would result in OutOfBoundsError (ValueError) while
     # others would result in OverflowError when passed into Timestamp.
     # We catch these errors and move on to the correct branch.
-    df = pd.DataFrame(
+    df = DataFrame(
         list(range(200)),
         index=pd.date_range(
             start="2017-01-01", freq="15min", periods=200, tz="Europe/Berlin"
@@ -580,7 +597,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [47.5, 143.5, 195.5],
         index=pd.date_range(
             start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
@@ -596,10 +613,10 @@ def test_resample_agg_readonly():
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 
-    ser = pd.Series(arr, index=index)
+    ser = Series(arr, index=index)
     rs = ser.resample("1D")
 
-    expected = pd.Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+    expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
 
     result = rs.agg("last")
     tm.assert_series_equal(result, expected)
@@ -612,3 +629,80 @@ def test_resample_agg_readonly():
 
     result = rs.agg("min")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start,end,freq,data,resample_freq,origin,closed,exp_data,exp_end,exp_periods",
+    [
+        (
+            "2000-10-01 23:30:00",
+            "2000-10-02 00:26:00",
+            "7min",
+            [0, 3, 6, 9, 12, 15, 18, 21, 24],
+            "17min",
+            "end",
+            None,
+            [0, 18, 27, 63],
+            "20001002 00:26:00",
+            4,
+        ),
+        (
+            "20200101 8:26:35",
+            "20200101 9:31:58",
+            "77s",
+            [1] * 51,
+            "7min",
+            "end",
+            "right",
+            [1, 6, 5, 6, 5, 6, 5, 6, 5, 6],
+            "2020-01-01 09:30:45",
+            10,
+        ),
+        (
+            "2000-10-01 23:30:00",
+            "2000-10-02 00:26:00",
+            "7min",
+            [0, 3, 6, 9, 12, 15, 18, 21, 24],
+            "17min",
+            "end",
+            "left",
+            [0, 18, 27, 39, 24],
+            "20001002 00:43:00",
+            5,
+        ),
+        (
+            "2000-10-01 23:30:00",
+            "2000-10-02 00:26:00",
+            "7min",
+            [0, 3, 6, 9, 12, 15, 18, 21, 24],
+            "17min",
+            "end_day",
+            None,
+            [3, 15, 45, 45],
+            "2000-10-02 00:29:00",
+            4,
+        ),
+    ],
+)
+def test_end_and_end_day_origin(
+    start,
+    end,
+    freq,
+    data,
+    resample_freq,
+    origin,
+    closed,
+    exp_data,
+    exp_end,
+    exp_periods,
+):
+    rng = date_range(start, end, freq=freq)
+    ts = Series(data, index=rng)
+
+    res = ts.resample(resample_freq, origin=origin, closed=closed).sum()
+    expected = Series(
+        exp_data,
+        index=date_range(end=exp_end, freq=resample_freq, periods=exp_periods),
+    )
+
+    tm.assert_series_equal(res, expected)

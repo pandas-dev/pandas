@@ -3,13 +3,17 @@ aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     Iterable,
     List,
     Optional,
@@ -18,15 +22,23 @@ from typing import (
     Union,
 )
 
-from pandas._typing import AggFuncType, Axis, FrameOrSeries, Label
+from pandas._typing import (
+    AggFuncType,
+    FrameOrSeries,
+)
 
-from pandas.core.dtypes.common import is_dict_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_dict_like,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
 
 
 def reconstruct_func(
@@ -279,9 +291,9 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 def relabel_result(
     result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Iterable[Label],
+    columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Label, Series]:
+) -> Dict[Hashable, Series]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -308,10 +320,10 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, Series] = {}
+    reordered_result_in_dict: Dict[Hashable, Series] = {}
     idx = 0
 
-    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
@@ -373,8 +385,7 @@ def validate_func_kwargs(
     >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
     (['one', 'two'], ['min', 'max'])
     """
-    no_arg_message = "Must provide 'func' or named aggregation **kwargs."
-    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
     for col_func in kwargs.values():
@@ -382,100 +393,6 @@ def validate_func_kwargs(
             raise TypeError(tuple_given_message.format(type(col_func).__name__))
         func.append(col_func)
     if not columns:
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
-
-
-def transform(
-    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs,
-) -> FrameOrSeries:
-    """
-    Transform a DataFrame or Series
-
-    Parameters
-    ----------
-    obj : DataFrame or Series
-        Object to compute the transform on.
-    func : string, function, list, or dictionary
-        Function(s) to compute the transform with.
-    axis : {0 or 'index', 1 or 'columns'}
-        Axis along which the function is applied:
-
-        * 0 or 'index': apply function to each column.
-        * 1 or 'columns': apply function to each row.
-
-    Returns
-    -------
-    DataFrame or Series
-        Result of applying ``func`` along the given axis of the
-        Series or DataFrame.
-
-    Raises
-    ------
-    ValueError
-        If the transform function fails or does not transform.
-    """
-    from pandas.core.reshape.concat import concat
-
-    is_series = obj.ndim == 1
-
-    if obj._get_axis_number(axis) == 1:
-        assert not is_series
-        return transform(obj.T, func, 0, *args, **kwargs).T
-
-    if isinstance(func, list):
-        if is_series:
-            func = {com.get_callable_name(v) or v: v for v in func}
-        else:
-            func = {col: func for col in obj}
-
-    if isinstance(func, dict):
-        if not is_series:
-            cols = sorted(set(func.keys()) - set(obj.columns))
-            if len(cols) > 0:
-                raise SpecificationError(f"Column(s) {cols} do not exist")
-
-        if any(isinstance(v, dict) for v in func.values()):
-            # GH 15931 - deprecation of renaming keys
-            raise SpecificationError("nested renamer is not supported")
-
-        results = {}
-        for name, how in func.items():
-            colg = obj._gotitem(name, ndim=1)
-            try:
-                results[name] = transform(colg, how, 0, *args, **kwargs)
-            except Exception as e:
-                if str(e) == "Function did not transform":
-                    raise e
-
-        # combine results
-        if len(results) == 0:
-            raise ValueError("Transform function failed")
-        return concat(results, axis=1)
-
-    # func is either str or callable
-    try:
-        if isinstance(func, str):
-            result = obj._try_aggregate_string_function(func, *args, **kwargs)
-        else:
-            f = obj._get_cython_func(func)
-            if f and not args and not kwargs:
-                result = getattr(obj, f)()
-            else:
-                try:
-                    result = obj.apply(func, args=args, **kwargs)
-                except Exception:
-                    result = func(obj, *args, **kwargs)
-    except Exception:
-        raise ValueError("Transform function failed")
-
-    # Functions that transform may return empty Series/DataFrame
-    # when the dtype is not appropriate
-    if isinstance(result, (ABCSeries, ABCDataFrame)) and result.empty:
-        raise ValueError("Transform function failed")
-    if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-        obj.index
-    ):
-        raise ValueError("Function did not transform")
-
-    return result

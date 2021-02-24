@@ -49,9 +49,22 @@ Implementation
 """
 
 from collections import namedtuple
-from contextlib import ContextDecorator, contextmanager
+from contextlib import (
+    ContextDecorator,
+    contextmanager,
+)
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    cast,
+)
 import warnings
 
 from pandas._typing import F
@@ -392,7 +405,7 @@ class option_context(ContextDecorator):
     """
 
     def __init__(self, *args):
-        if not (len(args) % 2 == 0 and len(args) >= 2):
+        if len(args) % 2 != 0 or len(args) < 2:
             raise ValueError(
                 "Need to invoke as option_context(pat, val, [(pat, val), ...])."
             )
@@ -648,7 +661,7 @@ def _build_option_description(k: str) -> str:
         s += f"\n    [default: {o.defval}] [currently: {_get_option(k, True)}]"
 
     if d:
-        rkey = d.rkey if d.rkey else ""
+        rkey = d.rkey or ""
         s += "\n    (Deprecated"
         s += f", use `{rkey}` instead."
         s += ")"
