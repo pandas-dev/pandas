@@ -141,40 +141,32 @@ import pandas._libs_numba.util as util
 #     return result
 
 
-# @cython.wraparound(False)
-# @cython.boundscheck(False)
-# def is_lexsorted(list_of_arrays: list) -> bint:
-#     cdef:
-#         Py_ssize_t i
-#         Py_ssize_t n, nlevels
-#         int64_t k, cur, pre
-#         ndarray arr
-#         bint result = True
+def is_lexsorted(list_of_arrays: list[np.ndarray]) -> bool:
+    nlevels = len(list_of_arrays)
+    n = len(list_of_arrays[0])
+    arr = np.concatenate(list_of_arrays)
+    arr = arr.reshape(nlevels, n)
+    return _is_lexsorted(arr)
 
-#     nlevels = len(list_of_arrays)
-#     n = len(list_of_arrays[0])
 
-#     cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
-#     for i in range(nlevels):
-#         arr = list_of_arrays[i]
-#         assert arr.dtype.name == 'int64'
-#         vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
+@numba.njit
+def _is_lexsorted(vecs: np.ndarray) -> bool:
+    result = True
+    nlevels, n = vecs.shape
 
-#     # Assume uniqueness??
-#     with nogil:
-#         for i in range(1, n):
-#             for k in range(nlevels):
-#                 cur = vecs[k][i]
-#                 pre = vecs[k][i -1]
-#                 if cur == pre:
-#                     continue
-#                 elif cur > pre:
-#                     break
-#                 else:
-#                     result = False
-#                     break
-#     free(vecs)
-#     return result
+    for i in range(1, n):
+        for k in range(nlevels):
+            cur = vecs[k, i]
+            pre = vecs[k, i - 1]
+            if cur == pre:
+                continue
+            elif cur > pre:
+                break
+            else:
+                result = False
+                break
+
+    return result
 
 
 # @cython.boundscheck(False)
