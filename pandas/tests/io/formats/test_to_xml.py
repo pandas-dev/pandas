@@ -1075,12 +1075,6 @@ def test_stylesheet_wrong_path(datapath):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_not_path_buffer():
-    with pytest.raises(AttributeError, match=("__enter__")):
-        geom_df.to_xml(stylesheet=DataFrame)
-
-
-@td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_stylesheet(val):
     geom_df.to_xml(stylesheet=val)

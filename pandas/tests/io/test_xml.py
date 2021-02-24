@@ -23,7 +23,6 @@ CHECK LIST
 etree
 [X] - ImportError: "lxml not found, please install or use the etree parser."
 [X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
-[X] - TypeError: "expected str, bytes or os.PathLike object, not type"
 [X] - ValueError: "Either element or attributes can be parsed not both."
 [X] - ValueError: "xpath does not return any nodes..."
 [X] - SyntaxError: "You have used an incorrect or unsupported XPath"
@@ -237,6 +236,28 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     tm.assert_frame_equal(df_str, df_expected)
 
 
+@td.skip_if_no("lxml")
+def test_closed_file_lxml(datapath):
+    xml = datapath("io", "data", "xml", "baby_names.xml")
+
+    with open(xml, "rb") as f:
+        f.read()
+
+    with pytest.raises(ValueError, match="I/O operation on closed file"):
+        read_xml(f, parser="lxml")
+
+
+def test_closed_file_etree(datapath):
+    xml = datapath("io", "data", "xml", "baby_names.xml")
+
+    with open(xml, "rb") as f:
+        f.read()
+
+    with pytest.raises(ValueError, match="read of closed file"):
+        read_xml(f, parser="etree")
+
+
+@td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_lxml(val):
     from lxml.etree import XMLSyntaxError
@@ -279,29 +300,18 @@ def test_wrong_file_path_etree():
 
 
 @td.skip_if_no("lxml")
-def test_none_path_buffer_lxml():
-    with pytest.raises(AttributeError, match=("__enter__")):
-        read_xml(None, parser="lxml")
+def test_none_file_path_lxml():
+    xml_var = None
+    with pytest.raises(AttributeError, match="__enter__"):
+        read_xml(xml_var, parser="lxml")
 
 
-def test_none_path_buffer_etree():
+def test_none_file_path_etree():
+    xml_var = None
     with pytest.raises(
-        TypeError, match=("expected str, bytes or os.PathLike object, not NoneType")
+        TypeError, match="expected str, bytes or os.PathLike object, not NoneType"
     ):
-        read_xml(None, parser="etree")
-
-
-@td.skip_if_no("lxml")
-def test_not_path_buffer_lxml():
-    with pytest.raises(AttributeError, match=("__enter__")):
-        read_xml(DataFrame, parser="lxml")
-
-
-def test_not_path_buffer_etree():
-    with pytest.raises(
-        TypeError, match=("expected str, bytes or os.PathLike object, not type")
-    ):
-        read_xml(DataFrame, parser="etree")
+        read_xml(xml_var, parser="etree")
 
 
 @tm.network
@@ -921,9 +931,14 @@ def test_wrong_stylesheet():
 
 @td.skip_if_no("lxml")
 def test_stylesheet_not_path_buffer():
+    from lxml.etree import XMLSyntaxError
+
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    with pytest.raises(AttributeError, match=("__enter__")):
+    with pytest.raises(
+        (AttributeError, XMLSyntaxError),
+        match=("__enter__|Start tag expected, '<' not found"),
+    ):
         read_xml(kml, stylesheet={"a": 1})
 
 
@@ -935,6 +950,14 @@ def test_stylesheet_with_etree(datapath):
         ValueError, match=("To use stylesheet, you need lxml installed")
     ):
         read_xml(kml, parser="etree", stylesheet=xsl)
+
+
+@td.skip_if_no("lxml")
+@pytest.mark.parametrize("val", ["", b""])
+def test_empty_stylesheet(val):
+    kml = os.path.join("data", "xml", "cta_rail_lines.kml")
+
+    read_xml(kml, parser="etree", stylesheet=val)
 
 
 @tm.network
