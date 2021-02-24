@@ -384,7 +384,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         if not self.xml_declaration:
             self.out_xml = self.remove_declaration()
 
-        if self.stylesheet:
+        if self.stylesheet is not None:
             raise ValueError(
                 "To use stylesheet, you need lxml installed and selected as parser."
             )
@@ -526,7 +526,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             xml_declaration=self.xml_declaration,
         )
 
-        if self.stylesheet:
+        if self.stylesheet is not None:
             self.out_xml = self.transform_doc()
 
         return self.out_xml

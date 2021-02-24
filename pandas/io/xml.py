@@ -268,7 +268,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
     def parse_data(self) -> List[Dict[str, Optional[str]]]:
 
-        if self.stylesheet:
+        if self.stylesheet is not None:
             raise ValueError(
                 "To use stylesheet, you need lxml installed and selected as parser."
             )
@@ -446,7 +446,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         self.xml_doc = self._parse_doc()
 
-        if self.stylesheet:
+        if self.stylesheet is not None:
             self.is_style = True
             self.xsl_doc = self._parse_doc()
             self.xml_doc = self._transform_doc()

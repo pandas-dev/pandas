@@ -302,7 +302,7 @@ def test_wrong_file_path_etree():
 @td.skip_if_no("lxml")
 def test_none_file_path_lxml():
     with tm.ensure_clean("test.xml") as path:
-        xml_var = geom_df.to_xml(path)
+        xml_var = geom_df.to_xml(path, parser="lxml")
 
         with pytest.raises(AttributeError, match="__enter__"):
             read_xml(xml_var, parser="lxml")
@@ -310,7 +310,7 @@ def test_none_file_path_lxml():
 
 def test_none_file_path_etree():
     with tm.ensure_clean("test.xml") as path:
-        xml_var = geom_df.to_xml(path)
+        xml_var = geom_df.to_xml(path, parser="etree")
 
         with pytest.raises(
             TypeError, match="expected str, bytes or os.PathLike object, not NoneType"
@@ -959,9 +959,14 @@ def test_stylesheet_with_etree(datapath):
 @td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_stylesheet(val):
+    from lxml.etree import XMLSyntaxError
+
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    read_xml(kml, stylesheet=val)
+    with pytest.raises(
+        XMLSyntaxError, match=("Document is empty|Start tag expected, '<' not found")
+    ):
+        read_xml(kml, stylesheet=val)
 
 
 @tm.network

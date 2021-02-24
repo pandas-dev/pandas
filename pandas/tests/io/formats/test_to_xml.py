@@ -1077,7 +1077,12 @@ def test_stylesheet_wrong_path(datapath):
 @td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_stylesheet(val):
-    geom_df.to_xml(stylesheet=val)
+    from lxml.etree import XMLSyntaxError
+
+    with pytest.raises(
+        XMLSyntaxError, match=("Document is empty|Start tag expected, '<' not found")
+    ):
+        geom_df.to_xml(stylesheet=val)
 
 
 @td.skip_if_no("lxml")
