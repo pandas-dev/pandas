@@ -448,13 +448,19 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_applied_output(
-        self, keys: Index, values: Optional[List[Any]], not_indexed_same: bool = False
+        self,
+        data: Series,
+        keys: Index,
+        values: Optional[List[Any]],
+        not_indexed_same: bool = False,
     ) -> FrameOrSeriesUnion:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
 
         Parameters
         ----------
+        data : Series
+            Input data for groupby operation.
         keys : Index
             Keys of groups that Series was grouped by.
         values : Optional[List[Any]]
@@ -469,7 +475,10 @@ class SeriesGroupBy(GroupBy[Series]):
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
-                [], name=self._selection_name, index=keys, dtype=np.float64
+                [],
+                name=self._selection_name,
+                index=self.grouper.result_index,
+                dtype=data.dtype,
             )
         assert values is not None
 
@@ -1227,9 +1236,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self.obj._constructor(result, columns=result_columns)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
         if len(keys) == 0:
-            return self.obj._constructor(index=keys)
+            result = self.obj._constructor(
+                index=self.grouper.result_index, columns=data.columns
+            )
+            result = result.astype(data.dtypes.to_dict(), copy=False)
+            return result
 
         # GH12824
         first_not_none = next(com.not_none(*values), None)

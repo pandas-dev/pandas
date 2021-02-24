@@ -10,6 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     Grouper,
     Index,
@@ -18,6 +19,7 @@ from pandas import (
     Timestamp,
     date_range,
     read_csv,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
@@ -1716,15 +1718,48 @@ def test_pivot_table_values_key_error():
         )
 
 
-def test_empty_dataframe_groupby():
-    # GH8093
-    df = DataFrame(columns=["A", "B", "C"])
+@pytest.mark.parametrize("columns", ["C", ["C"]])
+@pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
+@pytest.mark.parametrize(
+    "values",
+    [
+        [True],
+        [0],
+        [0.0],
+        ["a"],
+        [Categorical([0])],
+        [to_datetime(0)],
+        [date_range(0, 1, 1, tz="US/Eastern")],
+        [pd.array([0], dtype="Int64")],
+    ],
+)
+@pytest.mark.parametrize("method", ["attr", "agg", "apply"])
+@pytest.mark.parametrize(
+    "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
+)
+def test_empty_groupby(columns, keys, values, method, op):
+    # GH8093 & GH26411
 
-    result = df.groupby("A").sum()
-    expected = DataFrame(columns=["B", "C"], dtype=np.float64)
-    expected.index.name = "A"
+    override_dtype = None
+    if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
+        # sum/product of bools is an integer
+        override_dtype = "int64"
 
-    tm.assert_frame_equal(result, expected)
+    df = DataFrame([3 * values], columns=list("ABC"))
+    df = df.iloc[:0]
+
+    gb = df.groupby(keys)[columns]
+    if method == "attr":
+        result = getattr(gb, op)()
+    else:
+        result = getattr(gb, method)(op)
+
+    expected = df.set_index(keys)[columns]
+    if override_dtype is not None:
+        expected = expected.astype(override_dtype)
+    if len(keys) == 1:
+        expected.index.name = keys[0]
+    tm.assert_equal(result, expected)
 
 
 def test_tuple_as_grouping():
