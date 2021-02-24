@@ -1085,7 +1085,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> BlockManager:
+    ) -> Manager:
 
         data: Manager = self._get_data_to_aggregate()
 

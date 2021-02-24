@@ -231,8 +231,6 @@ class ArrayManager(DataManager):
         -------
         ArrayManager
         """
-        result_arrays: List[ArrayLike] = []
-
         # TODO ignore_failures
         result_arrays = [func(arr) for arr in self.arrays]
 
