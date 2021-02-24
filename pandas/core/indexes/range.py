@@ -896,11 +896,8 @@ class RangeIndex(Int64Index):
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
-        if isinstance(other, RangeIndex):
-            # TODO: in some cases we can likely be more efficient, especially add/sub
-            other = other._values
-        else:
-            other = extract_array(other, extract_numpy=True)
+        # TODO: if other is a RangeIndex we may have more efficient options
+        other = extract_array(other, extract_numpy=True, range_compat=True)
         attrs = self._get_attributes_dict()
 
         left, right = self, other

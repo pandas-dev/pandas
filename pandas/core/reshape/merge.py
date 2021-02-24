@@ -70,7 +70,6 @@ from pandas import (
     Categorical,
     Index,
     MultiIndex,
-    RangeIndex,
 )
 from pandas.core import groupby
 import pandas.core.algorithms as algos
@@ -2059,14 +2058,9 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-    if not isinstance(lk, RangeIndex):
-        lk = extract_array(lk, extract_numpy=True)
-    else:
-        lk = np.array(lk)  # TODO: more efficient option?
-    if not isinstance(rk, RangeIndex):
-        rk = extract_array(rk, extract_numpy=True)
-    else:
-        rk = np.array(rk)  # TODO: more efficient option?
+    lk = extract_array(lk, extract_numpy=True, range_compat=True)
+    rk = extract_array(rk, extract_numpy=True, range_compat=True)
+    # TODO: if either is a RangeIndex, we can likely factorize more efficiently?
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
