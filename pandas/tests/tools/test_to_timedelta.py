@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsTimedelta
+
 import pandas as pd
 from pandas import (
     Series,
@@ -14,6 +16,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
+from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
@@ -74,6 +77,19 @@ class TestTimedeltas:
         result = to_timedelta(arr)
         expected = TimedeltaIndex([np.timedelta64(1, "D")] * 5)
         tm.assert_index_equal(result, expected)
+
+    def test_to_timedelta_oob_non_nano(self):
+        arr = np.array([pd.NaT.value + 1], dtype="timedelta64[s]")
+
+        msg = r"Out of bounds for nanosecond timedelta64\[s\] -9223372036854775807"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            to_timedelta(arr)
+
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            TimedeltaIndex(arr)
+
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            TimedeltaArray._from_sequence(arr)
 
     def test_to_timedelta_dataframe(self):
         # GH 11776
