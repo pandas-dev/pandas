@@ -1068,7 +1068,7 @@ def test_stylesheet_wrong_path(datapath):
     xsl = os.path.join("data", "xml", "row_field_output.xslt")
 
     with pytest.raises(
-        (XMLSyntaxError),
+        XMLSyntaxError,
         match=("Start tag expected, '<' not found"),
     ):
         geom_df.to_xml(stylesheet=xsl)
@@ -1076,13 +1076,14 @@ def test_stylesheet_wrong_path(datapath):
 
 @td.skip_if_no("lxml")
 def test_stylesheet_not_path_buffer():
-    from lxml.etree import XMLSyntaxError
-
-    with pytest.raises(
-        (TypeError, XMLSyntaxError),
-        match=("cannot parse from 'type'|Start tag expected, '<' not found"),
-    ):
+    with pytest.raises(AttributeError, match=("__enter__")):
         geom_df.to_xml(stylesheet=DataFrame)
+
+
+@td.skip_if_no("lxml")
+@pytest.mark.parametrize("val", ["", b""])
+def test_empty_string_stylesheet(val):
+    geom_df.to_xml(stylesheet=val)
 
 
 @td.skip_if_no("lxml")

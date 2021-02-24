@@ -610,16 +610,16 @@ class _LxmlFrameParser(_XMLFrameParser):
         raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
 
         handle_data = self._get_data_from_filepath(raw_doc)
-        xml_data = self._preprocess_data(handle_data)
 
-        curr_parser = XMLParser(encoding=self.encoding)
+        with self._preprocess_data(handle_data) as xml_data:
+            curr_parser = XMLParser(encoding=self.encoding)
 
-        if isinstance(xml_data, io.StringIO):
-            r = fromstring(
-                xml_data.getvalue().encode(self.encoding), parser=curr_parser
-            )
-        else:
-            r = parse(xml_data, parser=curr_parser)
+            if isinstance(xml_data, io.StringIO):
+                r = fromstring(
+                    xml_data.getvalue().encode(self.encoding), parser=curr_parser
+                )
+            else:
+                r = parse(xml_data, parser=curr_parser)
 
         return r
 
