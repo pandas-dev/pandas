@@ -33,7 +33,7 @@ def test_hash_error(index):
 
 def test_copy_dtype_deprecated(index):
     # GH#35853
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         index.copy(dtype=object)
 
 

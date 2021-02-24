@@ -88,7 +88,7 @@ class ArrayManager(DataManager):
     ----------
     arrays : Sequence of arrays
     axes : Sequence of Index
-    do_integrity_check : bool, default True
+    verify_integrity : bool, default True
 
     """
 
@@ -104,14 +104,14 @@ class ArrayManager(DataManager):
         self,
         arrays: List[Union[np.ndarray, ExtensionArray]],
         axes: List[Index],
-        do_integrity_check: bool = True,
+        verify_integrity: bool = True,
     ):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
         self.arrays = arrays
 
-        if do_integrity_check:
+        if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
             self._verify_integrity()
 
@@ -650,7 +650,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        return type(self)(arrays, new_axes, do_integrity_check=False)
+        return type(self)(arrays, new_axes, verify_integrity=False)
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """
@@ -849,7 +849,7 @@ class ArrayManager(DataManager):
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
-            self._axes[axis]._can_reindex(indexer)
+            self._axes[axis]._validate_can_reindex(indexer)
 
         # if axis >= self.ndim:
         #     raise IndexError("Requested axis not found in manager")
@@ -878,7 +878,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axis
 
-        return type(self)(new_arrays, new_axes)
+        return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
@@ -956,7 +956,7 @@ class ArrayManager(DataManager):
         new_columns = unstacker.get_new_columns(self._axes[1])
         new_axes = [new_index, new_columns]
 
-        return type(self)(new_arrays, new_axes, do_integrity_check=False)
+        return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     # TODO
     # equals
