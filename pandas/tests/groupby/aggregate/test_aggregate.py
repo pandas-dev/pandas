@@ -148,11 +148,13 @@ def test_agg_apply_corner(ts, tsframe):
     # DataFrame
     grouped = tsframe.groupby(tsframe["A"] * np.nan)
     exp_df = DataFrame(
-        columns=tsframe.columns, dtype=float, index=Index([], dtype=np.float64)
+        columns=tsframe.columns,
+        dtype=float,
+        index=Index([], name="A", dtype=np.float64),
     )
-    tm.assert_frame_equal(grouped.sum(), exp_df, check_names=False)
-    tm.assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
-    tm.assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0], check_names=False)
+    tm.assert_frame_equal(grouped.sum(), exp_df)
+    tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
+    tm.assert_frame_equal(grouped.apply(np.sum), exp_df)
 
 
 def test_agg_grouping_is_list_tuple(ts):
