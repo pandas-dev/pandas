@@ -423,7 +423,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index, dtype: Optional[DtypeObj]):
+def _homogenize(data, index: Index, dtype: Optional[DtypeObj]):
     oindex = None
     homogenized = []
 
