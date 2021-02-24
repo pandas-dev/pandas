@@ -521,6 +521,9 @@ def sanitize_array(
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
     else:
+        # realize e.g. generators
+        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
+        data = list(data)
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     subarr = _sanitize_ndim(subarr, data, dtype, index)
@@ -594,13 +597,18 @@ def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
     return arr
 
 
-def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
+def _try_cast(
+    arr: Union[list, np.ndarray],
+    dtype: Optional[DtypeObj],
+    copy: bool,
+    raise_cast_failure: bool,
+) -> ArrayLike:
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
     Parameters
     ----------
-    arr : ndarray, list, tuple, iterator (catchall)
+    arr : ndarray or list
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
@@ -608,6 +616,10 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
     raise_cast_failure : bool
         If True, and if a dtype is specified, raise errors during casting.
         Otherwise an object array is returned.
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
     """
     # perf shortcut as this is the most common case
     if (
