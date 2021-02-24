@@ -424,7 +424,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                 val = val.reindex(index, copy=False)
             # TODO extract_array should be preferred, but that gives failures for
             # `extension/test_numpy.py` (extract_array will convert numpy arrays
-            # to PandasArray)
+            # to PandasArray), see https://github.com/pandas-dev/pandas/issues/40021
             # val = extract_array(val, extract_numpy=True)
             val = val._values
         else:
