@@ -1527,6 +1527,17 @@ class TestLocSetitemWithExpansion:
         df.loc[df.new_col == "new", "time"] = v
         tm.assert_series_equal(df.loc[df.new_col == "new", "time"], v)
 
+    def test_loc_setitem_with_expansion_inf_upcast_empty(self):
+        # Test with np.inf in columns
+        df = DataFrame()
+        df.loc[0, 0] = 1
+        df.loc[1, 1] = 2
+        df.loc[0, np.inf] = 3
+
+        result = df.columns
+        expected = pd.Float64Index([0, 1, np.inf])
+        tm.assert_index_equal(result, expected)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
