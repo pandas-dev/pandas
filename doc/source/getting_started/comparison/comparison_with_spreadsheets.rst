@@ -366,7 +366,7 @@ In Excel, there are `merging of tables can be done through a VLOOKUP
 * It supports :ref:`more complex join operations <merging.join>`
 
 GroupBy
---------------------
+-------
 
 In Excel, this can be done by using the Query Editor.
 You can group the values in various rows into a single value by grouping the rows according to the values in one or more columns
