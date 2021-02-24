@@ -28,6 +28,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas._libs_numba import algos as algos_numba
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -1290,7 +1291,7 @@ class SelectNSeries(SelectN):
         narr = len(arr)
         n = min(n, narr)
 
-        kth_val = algos.kth_smallest(arr.copy(), n - 1)
+        kth_val = algos_numba.kth_smallest(arr.copy(), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 

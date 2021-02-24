@@ -230,34 +230,36 @@ import pandas._libs_numba.util as util
 #     return result, counts
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
-#     cdef:
-#         Py_ssize_t i, j, l, m, n = a.shape[0]
-#         numeric x
+@numba.njit
+def kth_smallest(a: np.ndarray, k):
+    n = a.shape[0]
 
-#     with nogil:
-#         l = 0
-#         m = n - 1
+    l = 0
+    m = n - 1
 
-#         while l < m:
-#             x = a[k]
-#             i = l
-#             j = m
+    while l < m:
+        x = a[k]
+        i = l
+        j = m
 
-#             while 1:
-#                 while a[i] < x: i += 1
-#                 while x < a[j]: j -= 1
-#                 if i <= j:
-#                     swap(&a[i], &a[j])
-#                     i += 1; j -= 1
+        while 1:
+            while a[i] < x:
+                i += 1
+            while x < a[j]:
+                j -= 1
+            if i <= j:
+                a[i], a[j] = a[j], a[i]
+                i += 1
+                j -= 1
 
-#                 if i > j: break
+            if i > j:
+                break
 
-#             if j < k: l = i
-#             if k < i: m = j
-#     return a[k]
+        if j < k:
+            l = i
+        if k < i:
+            m = j
+    return a[k]
 
 
 # # ----------------------------------------------------------------------
