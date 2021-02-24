@@ -128,7 +128,7 @@ class BlockManager(DataManager):
     ----------
     blocks: Sequence of Block
     axes: Sequence of Index
-    do_integrity_check: bool, default True
+    verify_integrity: bool, default True
 
     Notes
     -----
@@ -151,7 +151,7 @@ class BlockManager(DataManager):
         self,
         blocks: Sequence[Block],
         axes: Sequence[Index],
-        do_integrity_check: bool = True,
+        verify_integrity: bool = True,
     ):
         self.axes = [ensure_index(ax) for ax in axes]
         self.blocks: Tuple[Block, ...] = tuple(blocks)
@@ -163,7 +163,7 @@ class BlockManager(DataManager):
                     f"number of axes ({self.ndim})"
                 )
 
-        if do_integrity_check:
+        if verify_integrity:
             self._verify_integrity()
 
         # Populate known_consolidate, blknos, and blklocs lazily
@@ -176,7 +176,7 @@ class BlockManager(DataManager):
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
-        return cls(blocks, axes, do_integrity_check=False)
+        return cls(blocks, axes, verify_integrity=False)
 
     @property
     def blknos(self):
@@ -281,6 +281,18 @@ class BlockManager(DataManager):
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
         return algos.take_nd(dtypes, self.blknos, allow_fill=False)
+
+    @property
+    def arrays(self):
+        """
+        Quick access to the backing arrays of the Blocks.
+
+        Only for compatibility with ArrayManager for testing convenience.
+        Not to be used in actual code, and return value is not the same as the
+        ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
+        """
+        for blk in self.blocks:
+            yield blk.values
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -390,6 +402,41 @@ class BlockManager(DataManager):
             indexer = np.arange(self.shape[0])
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
+
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+        """
+        Apply grouped reduction function blockwise, returning a new BlockManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop blocks where func raises TypeError.
+
+        Returns
+        -------
+        BlockManager
+        """
+        result_blocks: List[Block] = []
+
+        for blk in self.blocks:
+            try:
+                applied = blk.apply(func)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
+            result_blocks = extend_blocks(applied, result_blocks)
+
+        if len(result_blocks) == 0:
+            index = Index([None])  # placeholder
+        else:
+            index = Index(range(result_blocks[0].values.shape[-1]))
+
+        if ignore_failures:
+            return self._combine(result_blocks, index=index)
+
+        return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
     def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """
@@ -748,7 +795,7 @@ class BlockManager(DataManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
+        bm = type(self)(new_blocks, new_axes, verify_integrity=False)
         return bm
 
     @property
@@ -1487,7 +1534,7 @@ class SingleBlockManager(BlockManager):
         self,
         block: Block,
         axis: Index,
-        do_integrity_check: bool = False,
+        verify_integrity: bool = False,
         fastpath=lib.no_default,
     ):
         assert isinstance(block, Block), type(block)
@@ -1511,7 +1558,7 @@ class SingleBlockManager(BlockManager):
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], do_integrity_check=False)
+        return cls(blocks[0], axes[0], verify_integrity=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> SingleBlockManager:

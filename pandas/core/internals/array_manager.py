@@ -79,7 +79,7 @@ class ArrayManager(DataManager):
     ----------
     arrays : Sequence of arrays
     axes : Sequence of Index
-    do_integrity_check : bool, default True
+    verify_integrity : bool, default True
 
     """
 
@@ -95,14 +95,14 @@ class ArrayManager(DataManager):
         self,
         arrays: List[Union[np.ndarray, ExtensionArray]],
         axes: List[Index],
-        do_integrity_check: bool = True,
+        verify_integrity: bool = True,
     ):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
         self.arrays = arrays
 
-        if do_integrity_check:
+        if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
             self._verify_integrity()
 
@@ -480,31 +480,34 @@ class ArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return False
 
+    def _get_data_subset(self, predicate: Callable) -> ArrayManager:
+        indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
+        arrays = [self.arrays[i] for i in indices]
+        # TODO copy?
+        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="int64")]]
+        return type(self)(arrays, new_axes, verify_integrity=False)
+
     def get_bool_data(self, copy: bool = False) -> ArrayManager:
         """
+        Select columns that are bool-dtype.
+
         Parameters
         ----------
         copy : bool, default False
             Whether to copy the blocks
         """
-        mask = np.array([is_bool_dtype(t) for t in self.get_dtypes()], dtype="object")
-        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
-        # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][mask]]
-        return type(self)(arrays, new_axes)
+        return self._get_data_subset(lambda arr: is_bool_dtype(arr.dtype))
 
     def get_numeric_data(self, copy: bool = False) -> ArrayManager:
         """
+        Select columns that have a numeric dtype.
+
         Parameters
         ----------
         copy : bool, default False
             Whether to copy the blocks
         """
-        mask = np.array([is_numeric_dtype(t) for t in self.get_dtypes()])
-        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
-        # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][mask]]
-        return type(self)(arrays, new_axes)
+        return self._get_data_subset(lambda arr: is_numeric_dtype(arr.dtype))
 
     def copy(self: T, deep=True) -> T:
         """
@@ -607,7 +610,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        return type(self)(arrays, new_axes, do_integrity_check=False)
+        return type(self)(arrays, new_axes, verify_integrity=False)
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """
@@ -831,7 +834,7 @@ class ArrayManager(DataManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axis
 
-        return type(self)(new_arrays, new_axes)
+        return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
@@ -909,7 +912,7 @@ class ArrayManager(DataManager):
         new_columns = unstacker.get_new_columns(self._axes[1])
         new_axes = [new_index, new_columns]
 
-        return type(self)(new_arrays, new_axes, do_integrity_check=False)
+        return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     # TODO
     # equals

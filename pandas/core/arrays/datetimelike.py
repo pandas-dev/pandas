@@ -156,7 +156,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _infer_matches: Tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: Tuple[Type, ...]
-    _data: np.ndarray
+    _ndarray: np.ndarray
 
     def __init__(self, data, dtype: Optional[Dtype] = None, freq=None, copy=False):
         raise AbstractMethodError(self)
