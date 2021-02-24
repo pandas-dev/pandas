@@ -236,14 +236,8 @@ def __internal_pivot_table(
         )
 
     # discard the top level
-    if (
-        values_passed
-        and not values_multi
-        and not table.empty
-        and (table.columns.nlevels > 1)
-    ):
-        table = table[values[0]]
-
+    if values_passed and not values_multi and table.columns.nlevels > 1:
+        table = table.droplevel(0, axis=1)
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 
@@ -650,7 +644,6 @@ def crosstab(
         **dict(zip(unique_colnames, columns)),
     }
     df = DataFrame(data, index=common_idx)
-    original_df_cols = df.columns
 
     if values is None:
         df["__dummy__"] = 0
@@ -660,7 +653,7 @@ def crosstab(
         kwargs = {"aggfunc": aggfunc}
 
     table = df.pivot_table(
-        ["__dummy__"],
+        "__dummy__",
         index=unique_rownames,
         columns=unique_colnames,
         margins=margins,
@@ -668,12 +661,6 @@ def crosstab(
         dropna=dropna,
         **kwargs,
     )
-
-    # GH18321, after pivoting, an extra top level of column index of `__dummy__` is
-    # created, and this extra level should not be included in the further steps
-    if not table.empty:
-        cols_diff = df.columns.difference(original_df_cols)[0]
-        table = table[cols_diff]
 
     # Post-process
     if normalize is not False:
