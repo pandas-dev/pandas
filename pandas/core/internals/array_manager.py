@@ -519,35 +519,37 @@ class ArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return False
 
+    def _get_data_subset(self, predicate: Callable) -> ArrayManager:
+        indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
+        arrays = [self.arrays[i] for i in indices]
+        # TODO copy?
+        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="int64")]]
+        return type(self)(arrays, new_axes, verify_integrity=False)
+
     def get_bool_data(self, copy: bool = False) -> ArrayManager:
         """
         Select columns that are bool-dtype and object-dtype columns that are all-bool.
-        """
-        arrays = []
-        indices = []
-        for i, arr in enumerate(self.arrays):
-            if is_bool_dtype(arr.dtype) or (
-                is_object_dtype(arr.dtype) and lib.is_bool_array(arr)
-            ):
-                arrays.append(arr)
-                indices.append(i)
 
-        # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][indices]]
-        return type(self)(arrays, new_axes)
-
-    def get_numeric_data(self, copy: bool = False) -> ArrayManager:
-        """
         Parameters
         ----------
         copy : bool, default False
             Whether to copy the blocks
         """
-        mask = np.array([is_numeric_dtype(t) for t in self.get_dtypes()])
-        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
-        # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][mask]]
-        return type(self)(arrays, new_axes)
+        return self._get_data_subset(
+            lambda arr: is_bool_dtype(arr.dtype)
+            or (is_object_dtype(arr.dtype) and lib.is_bool_array(arr))
+        )
+
+    def get_numeric_data(self, copy: bool = False) -> ArrayManager:
+        """
+        Select columns that have a numeric dtype.
+
+        Parameters
+        ----------
+        copy : bool, default False
+            Whether to copy the blocks
+        """
+        return self._get_data_subset(lambda arr: is_numeric_dtype(arr.dtype))
 
     def copy(self: T, deep=True) -> T:
         """
