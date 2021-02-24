@@ -32,7 +32,6 @@ from pandas._typing import (
     Shape,
     final,
 )
-from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -1563,7 +1562,7 @@ class ExtensionBlock(Block):
         if self.ndim == 2 and len(self.mgr_locs) > 1:
             raise ValueError("need to split... for now")
 
-    @cache_readonly
+    @property
     def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
