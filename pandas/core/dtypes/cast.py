@@ -1594,9 +1594,11 @@ def maybe_cast_to_datetime(
                         pass
                     except ValueError as err:
                         if "mixed datetimes and integers in passed array" in str(err):
-                            # equiv: going through construct_1d_ndarray_preserving_na
-                            value = np.array(value, dtype=dtype)
-                            # TODO: just let array_to_datetime handle that?
+                            # array_to_datetime does not allow this;
+                            # when called from _try_cast, this will be followed
+                            #  by a call to construct_1d_ndarray_preserving_na
+                            #  which will convert these
+                            pass
                         else:
                             raise
 
