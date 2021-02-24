@@ -15,6 +15,7 @@ from pandas.tseries.frequencies import to_offset
 from .tslib import (
     _sizes,
     _tzs,
+    tzlocal_obj,
 )
 
 try:
@@ -129,7 +130,7 @@ class TimeDT64ArrToPeriodArr:
     param_names = ["size", "freq", "tz"]
 
     def setup(self, size, freq, tz):
-        if size == 10 ** 6 and tz is _tzs[-1]:
+        if size == 10 ** 6 and tz is tzlocal_obj:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 

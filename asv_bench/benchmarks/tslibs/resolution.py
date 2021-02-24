@@ -27,6 +27,7 @@ except ImportError:
 from .tslib import (
     _sizes,
     _tzs,
+    tzlocal_obj,
 )
 
 
@@ -39,7 +40,7 @@ class TimeResolution:
     param_names = ["unit", "size", "tz"]
 
     def setup(self, unit, size, tz):
-        if size == 10 ** 6 and tz is _tzs[-1]:
+        if size == 10 ** 6 and tz is tzlocal_obj:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 

@@ -32,13 +32,14 @@ try:
 except ImportError:
     from pandas._libs.tslib import ints_to_pydatetime
 
+tzlocal_obj = tzlocal()
 _tzs = [
     None,
     timezone.utc,
     timezone(timedelta(minutes=60)),
     pytz.timezone("US/Pacific"),
     gettz("Asia/Tokyo"),
-    tzlocal(),
+    tzlocal_obj,
 ]
 _sizes = [0, 1, 100, 10 ** 4, 10 ** 6]
 

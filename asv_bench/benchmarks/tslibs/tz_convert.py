@@ -6,6 +6,7 @@ from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from .tslib import (
     _sizes,
     _tzs,
+    tzlocal_obj,
 )
 
 try:
@@ -24,7 +25,7 @@ class TimeTZConvert:
     param_names = ["size", "tz"]
 
     def setup(self, size, tz):
-        if size == 10 ** 6 and tz is _tzs[-1]:
+        if size == 10 ** 6 and tz is tzlocal_obj:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 
