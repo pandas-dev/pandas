@@ -44,7 +44,6 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_dtype_equal,
     is_list_like,
     is_scalar,
@@ -58,13 +57,15 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
+from pandas.core import (
+    missing,
+    ops,
+)
 from pandas.core.algorithms import (
     factorize_array,
     isin,
     unique,
 )
-from pandas.core.missing import get_fill_func
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -696,18 +697,11 @@ class ExtensionArray:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f"expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = get_fill_func(method)
+                func = missing.get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
