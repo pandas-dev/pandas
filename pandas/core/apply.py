@@ -270,6 +270,9 @@ class Apply(metaclass=abc.ABCMeta):
         args = self.args
         kwargs = self.kwargs
 
+        # transform is currently only for Series/DataFrame
+        assert isinstance(obj, ABCNDFrame)
+
         if len(func) == 0:
             raise ValueError("No transform functions were provided")
 
