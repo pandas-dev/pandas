@@ -155,6 +155,7 @@ jobs:
         pytest pandas/tests/frame/methods --array-manager
         pytest pandas/tests/groupby/aggregate/ --array-manager
         pytest pandas/tests/arithmetic/ --array-manager
+        pytest pandas/tests/reshape/merge --array-manager
 
         # indexing subset (temporary since other tests don't pass yet)
         pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean --array-manager

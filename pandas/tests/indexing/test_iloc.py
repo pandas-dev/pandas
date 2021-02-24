@@ -35,28 +35,11 @@ _slice_iloc_msg = re.escape(
 
 
 class TestiLoc(Base):
-    def test_iloc_getitem_int(self):
-        # integer
+    @pytest.mark.parametrize("key", [2, -1, [0, 1, 2]])
+    def test_iloc_getitem_int_and_list_int(self, key):
         self.check_result(
             "iloc",
-            2,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-    def test_iloc_getitem_neg_int(self):
-        # neg integer
-        self.check_result(
-            "iloc",
-            -1,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-    def test_iloc_getitem_list_int(self):
-        self.check_result(
-            "iloc",
-            [0, 1, 2],
+            key,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
@@ -371,7 +354,7 @@ class TestiLocBaseIndependent:
         s = Series([1, 2, 3])
         msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
         with pytest.raises(IndexError, match=msg):
-            _ = s.iloc[index]
+            s.iloc[index]
 
     def test_iloc_getitem_slice(self):
         df = DataFrame(
@@ -921,7 +904,7 @@ class TestiLocBaseIndependent:
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
 
-    @pytest.mark.parametrize("indexer", [lambda x: x.loc, lambda x: x.iloc])
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
     def test_iloc_getitem_read_only_values(self, indexer):
         # GH#10043 this is fundamentally a test for iloc, but test loc while
         #  we're here
@@ -990,6 +973,39 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"x": [1, 9], "y": [2.0, 99.0]})
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_getitem_float_duplicates(self):
+        df = DataFrame(
+            np.random.randn(3, 3), index=[0.1, 0.2, 0.2], columns=list("abc")
+        )
+        expect = df.iloc[1:]
+        tm.assert_frame_equal(df.loc[0.2], expect)
+
+        expect = df.iloc[1:, 0]
+        tm.assert_series_equal(df.loc[0.2, "a"], expect)
+
+        df.index = [1, 0.2, 0.2]
+        expect = df.iloc[1:]
+        tm.assert_frame_equal(df.loc[0.2], expect)
+
+        expect = df.iloc[1:, 0]
+        tm.assert_series_equal(df.loc[0.2, "a"], expect)
+
+        df = DataFrame(
+            np.random.randn(4, 3), index=[1, 0.2, 0.2, 1], columns=list("abc")
+        )
+        expect = df.iloc[1:-1]
+        tm.assert_frame_equal(df.loc[0.2], expect)
+
+        expect = df.iloc[1:-1, 0]
+        tm.assert_series_equal(df.loc[0.2, "a"], expect)
+
+        df.index = [0.1, 0.2, 2, 0.2]
+        expect = df.iloc[[1, -1]]
+        tm.assert_frame_equal(df.loc[0.2], expect)
+
+        expect = df.iloc[[1, -1], 0]
+        tm.assert_series_equal(df.loc[0.2, "a"], expect)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
@@ -1012,6 +1028,14 @@ class TestILocErrors:
 
         with pytest.raises(IndexError, match=_slice_iloc_msg):
             obj.iloc[3.0] = 0
+
+    def test_iloc_getitem_setitem_fancy_exceptions(self, float_frame):
+        with pytest.raises(IndexingError, match="Too many indexers"):
+            float_frame.iloc[:, :, :]
+
+        with pytest.raises(IndexError, match="too many indices for array"):
+            # GH#32257 we let numpy do validation, get their exception
+            float_frame.iloc[:, :, :] = 1
 
 
 class TestILocSetItemDuplicateColumns:

@@ -11,9 +11,8 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     ObjectBlock,
     TimeDeltaBlock,
     make_block,
-    safe_reshape,
 )
-from pandas.core.internals.concat import concatenate_block_managers
+from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
     BlockManager,
     SingleBlockManager,
@@ -31,13 +30,12 @@ __all__ = [
     "FloatBlock",
     "ObjectBlock",
     "TimeDeltaBlock",
-    "safe_reshape",
     "make_block",
     "DataManager",
     "ArrayManager",
     "BlockManager",
     "SingleBlockManager",
-    "concatenate_block_managers",
+    "concatenate_managers",
     # those two are preserved here for downstream compatibility (GH-33892)
     "create_block_manager_from_arrays",
     "create_block_manager_from_blocks",

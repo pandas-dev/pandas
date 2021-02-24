@@ -27,7 +27,7 @@ import pandas._testing as tm
 def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
     # GH 8594
     mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    s = pd.Series([10, 20, 30], index=mi)
+    s = Series([10, 20, 30], index=mi)
     df = DataFrame([10, 20, 30], index=mi)
 
     with pytest.raises(KeyError, match=msg):
@@ -40,7 +40,7 @@ def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
 def test_drop_errors_ignore(labels, level):
     # GH 8594
     mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    s = pd.Series([10, 20, 30], index=mi)
+    s = Series([10, 20, 30], index=mi)
     df = DataFrame([10, 20, 30], index=mi)
 
     expected_s = s.drop(labels, level=level, errors="ignore")
@@ -161,7 +161,7 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_not_yet_implemented
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_drop_multiindex_not_lexsorted(self):
         # GH#11640
 
