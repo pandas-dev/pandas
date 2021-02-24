@@ -266,14 +266,11 @@ class TestFancy:
 
         # ToDo: check_index_type can be True after GH 11497
 
-    def test_dups_fancy_indexing_missing_label(self):
+    @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
+    def test_dups_fancy_indexing_missing_label(self, vals):
 
         # GH 4619; duplicate indexer with missing label
-        df = DataFrame({"A": [0, 1, 2]})
-        with pytest.raises(KeyError, match="with any missing labels"):
-            df.loc[[0, 8, 0]]
-
-        df = DataFrame({"A": list("abc")})
+        df = DataFrame({"A": vals})
         with pytest.raises(KeyError, match="with any missing labels"):
             df.loc[[0, 8, 0]]
 
@@ -455,9 +452,6 @@ class TestFancy:
         df2.loc[mask, cols] = dft.loc[mask, cols]
         tm.assert_frame_equal(df2, expected)
 
-        df2.loc[mask, cols] = dft.loc[mask, cols]
-        tm.assert_frame_equal(df2, expected)
-
         # with an ndarray on rhs
         # coerces to float64 because values has float64 dtype
         # GH 14001
@@ -470,8 +464,6 @@ class TestFancy:
             }
         )
         df2 = df.copy()
-        df2.loc[mask, cols] = dft.loc[mask, cols].values
-        tm.assert_frame_equal(df2, expected)
         df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
 
@@ -1013,52 +1005,3 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
-
-
-def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
-    # GH 30567
-    ser = Series([None] * 10)
-    mask = [False] * 3 + [True] * 5 + [False] * 2
-    ser[mask] = range(5)
-    result = ser
-    expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
-    tm.assert_series_equal(result, expected)
-
-
-def test_missing_labels_inside_loc_matched_in_error_message():
-    # GH34272
-    s = Series({"a": 1, "b": 2, "c": 3})
-    error_message_regex = "missing_0.*missing_1.*missing_2"
-    with pytest.raises(KeyError, match=error_message_regex):
-        s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
-
-
-def test_many_missing_labels_inside_loc_error_message_limited():
-    # GH34272
-    n = 10000
-    missing_labels = [f"missing_{label}" for label in range(n)]
-    s = Series({"a": 1, "b": 2, "c": 3})
-    # regex checks labels between 4 and 9995 are replaced with ellipses
-    error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
-    with pytest.raises(KeyError, match=error_message_regex):
-        s.loc[["a", "c"] + missing_labels]
-
-
-def test_long_text_missing_labels_inside_loc_error_message_limited():
-    # GH34272
-    s = Series({"a": 1, "b": 2, "c": 3})
-    missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
-    # regex checks for very long labels there are new lines between each
-    error_message_regex = "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
-    with pytest.raises(KeyError, match=error_message_regex):
-        s.loc[["a", "c"] + missing_labels]
-
-
-def test_setitem_categorical():
-    # https://github.com/pandas-dev/pandas/issues/35369
-    df = DataFrame({"h": Series(list("mn")).astype("category")})
-    df.h = df.h.cat.reorder_categories(["n", "m"])
-    expected = DataFrame(
-        {"h": pd.Categorical(["m", "n"]).reorder_categories(["n", "m"])}
-    )
-    tm.assert_frame_equal(df, expected)
