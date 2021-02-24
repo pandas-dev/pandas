@@ -276,7 +276,7 @@ def test_cython_with_timestamp_and_nat(op, data):
         "cummax",
     ],
 )
-def test_read_only_buffer_source_agg(agg, using_array_manager):
+def test_read_only_buffer_source_agg(agg):
     # https://github.com/pandas-dev/pandas/issues/36014
     df = DataFrame(
         {
@@ -284,10 +284,7 @@ def test_read_only_buffer_source_agg(agg, using_array_manager):
             "species": ["setosa", "setosa", "setosa", "setosa", "setosa"],
         }
     )
-    if using_array_manager:
-        df._mgr.arrays[0].flags.writeable = False
-    else:
-        df._mgr.blocks[0].values.flags.writeable = False
+    df._mgr.arrays[0].flags.writeable = False
 
     result = df.groupby(["species"]).agg({"sepal_length": agg})
     expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})
