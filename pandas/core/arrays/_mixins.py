@@ -285,7 +285,11 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-        value = missing.check_value_size(value, mask, len(self))
+        # error: Argument 2 to "check_value_size" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
+        value = missing.check_value_size(
+            value, mask, len(self)  # type: ignore[arg-type]
+        )
 
         # error: "ExtensionArray" has no attribute "any"
         if mask.any():  # type: ignore[attr-defined]

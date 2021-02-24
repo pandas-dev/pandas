@@ -534,7 +534,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            result = take_nd(new_cats, libalgos.ensure_platform_int(self._codes))
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Categorical")
+            result = take_nd(  # type: ignore[assignment]
+                new_cats, libalgos.ensure_platform_int(self._codes)
+            )
 
         # error: Incompatible return value type (got "Categorical", expected "ndarray")
         return result  # type: ignore[return-value]

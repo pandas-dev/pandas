@@ -1660,7 +1660,11 @@ def maybe_cast_to_datetime(
 
                     try:
                         if is_datetime64:
-                            dti = to_datetime(value, errors="raise")
+                            # error: No overload variant of "to_datetime" matches
+                            # argument types "ndarray", "str"
+                            dti = to_datetime(  # type: ignore[call-overload]
+                                value, errors="raise"
+                            )
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
                             if dti.tz is not None:
@@ -1672,16 +1676,38 @@ def maybe_cast_to_datetime(
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
-                            dta = to_datetime(value, errors="raise").array
+                            # error: No overload variant of "to_datetime" matches
+                            # argument types "ndarray", "str"
+                            dta = to_datetime(  # type: ignore[call-overload]
+                                value, errors="raise"
+                            ).array
                             if dta.tz is not None:
                                 value = dta.astype(dtype, copy=False)
                             elif is_dt_string:
                                 # Strings here are naive, so directly localize
-                                value = dta.tz_localize(dtype.tz)
+
+                                # error: Item "dtype[Any]" of "Union[dtype[Any],
+                                # ExtensionDtype, None]" has no attribute "tz"
+                                # error: Item "ExtensionDtype" of "Union[dtype[Any],
+                                # ExtensionDtype, None]" has no attribute "tz"
+                                # error: Item "None" of "Union[dtype[Any],
+                                # ExtensionDtype, None]" has no attribute "tz"
+                                value = dta.tz_localize(
+                                    dtype.tz  # type: ignore[union-attr]
+                                )
                             else:
                                 # Numeric values are UTC at this point,
                                 # so localize and convert
-                                value = dta.tz_localize("UTC").tz_convert(dtype.tz)
+
+                                # error: Item "dtype[Any]" of "Union[dtype[Any],
+                                # ExtensionDtype, None]" has no attribute "tz"
+                                # error: Item "ExtensionDtype" of "Union[dtype[Any],
+                                # ExtensionDtype, None]" has no attribute "tz"
+                                # error: Item "None" of "Union[dtype[Any],
+                                # ExtensionDtype, None]" has no attribute "tz"
+                                value = dta.tz_localize("UTC").tz_convert(
+                                    dtype.tz  # type: ignore[union-attr]
+                                )
                         elif is_timedelta64:
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:

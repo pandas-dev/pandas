@@ -684,7 +684,11 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_nd(values, indexer))
 
-    content = np.vstack(aligned_values)
+    # error: Argument 1 to "vstack" has incompatible type "List[ExtensionArray]";
+    # expected "Sequence[Union[Union[int, float, complex, str, bytes, generic],
+    # Sequence[Union[int, float, complex, str, bytes, generic]],
+    # Sequence[Sequence[Any]], _SupportsArray]]"
+    content = np.vstack(aligned_values)  # type: ignore[arg-type]
 
     # error: Incompatible return value type (got "Tuple[ndarray, Union[Index,
     # List[Any]]]", expected "Tuple[List[Union[Union[str, int, float, bool], Union[Any,

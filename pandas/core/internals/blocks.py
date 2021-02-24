@@ -1403,7 +1403,9 @@ class Block(PandasObject):
         else:
             allow_fill = True
 
-        new_values = algos.take_nd(
+        # error: Value of type variable "ArrayLike" of "take_nd" cannot be
+        # "Union[ndarray, ExtensionArray]"
+        new_values = algos.take_nd(  # type: ignore[type-var]
             values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
         )
 
