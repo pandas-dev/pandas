@@ -80,12 +80,12 @@ def concatenate_array_managers(
             concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
-        return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
+        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
     else:
         # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-        return ArrayManager(arrays, [axes[1], axes[0]], do_integrity_check=False)
+        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
 
 
 def concatenate_managers(

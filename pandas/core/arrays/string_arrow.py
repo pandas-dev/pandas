@@ -33,13 +33,13 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
 )
-from pandas.core.missing import get_fill_func
 
 try:
     import pyarrow as pa
@@ -385,25 +385,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f"expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = get_fill_func(method)
-                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
-                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
-                new_values = func(
-                    self.to_numpy(object),  # type: ignore[arg-type]
-                    limit=limit,
-                    mask=mask,
-                )
+                func = missing.get_fill_func(method)
+                new_values = func(self.to_numpy(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value
