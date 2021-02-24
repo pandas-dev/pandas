@@ -395,7 +395,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                data = sanitize_array(data, index, dtype, copy, raise_cast_failure=True)
+                data = sanitize_array(data, index, dtype, copy)
 
                 data = SingleBlockManager.from_array(data, index)
 

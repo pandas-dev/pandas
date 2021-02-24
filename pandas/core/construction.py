@@ -456,11 +456,29 @@ def sanitize_array(
     index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
-    raise_cast_failure: bool = False,
+    raise_cast_failure: bool = True,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
     coerce to the dtype if specified.
+
+    Parameters
+    ----------
+    data : Any
+    index : Index or None, default None
+    dtype : np.dtype, ExtensionDtype, or None, default None
+    copy : bool, default False
+    raise_cast_failure : bool, default True
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+
+    Notes
+    -----
+    raise_cast_failure=False is only intended to be True when called from the
+    DataFrame constructor, as the dtype keyword there may be interpreted as only
+    applying to a subset of columns, see GH#24435.
     """
 
     if isinstance(data, ma.MaskedArray):
