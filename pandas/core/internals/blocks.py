@@ -2260,8 +2260,6 @@ class ObjectBlock(Block):
             if isinstance(values, np.ndarray):
                 # TODO(EA2D): allow EA once reshape is supported
                 values = values.reshape(shape)
-            if isinstance(values, ABCIndex):
-                values = values._data
             return values
 
         if self.ndim == 2:

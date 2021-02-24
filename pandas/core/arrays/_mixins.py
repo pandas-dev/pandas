@@ -20,7 +20,10 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.inference import is_array_like
@@ -36,6 +39,7 @@ from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
+from pandas.core.sorting import nargminmax
 
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
@@ -186,6 +190,20 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def _values_for_argsort(self):
         return self._ndarray
+
+    def argmin(self, axis: int = 0, skipna: bool = True):
+        # override base class by adding axis keyword
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
+        return nargminmax(self, "argmin", axis=axis)
+
+    def argmax(self, axis: int = 0, skipna: bool = True):
+        # override base class by adding axis keyword
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
+        return nargminmax(self, "argmax", axis=axis)
 
     def copy(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = self._ndarray.copy()
