@@ -80,7 +80,7 @@ def operate_blockwise(
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
 
-    new_mgr = type(right)(res_blks, axes=right.axes, do_integrity_check=False)
+    new_mgr = type(right)(res_blks, axes=right.axes, verify_integrity=False)
     return new_mgr
 
 
