@@ -24,7 +24,10 @@ from pandas._libs.tslibs import (
     iNaT,
     to_offset,
 )
-from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.conversion import (
+    ensure_timedelta64ns,
+    precision_from_unit,
+)
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
@@ -982,8 +985,7 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
     elif is_timedelta64_dtype(data.dtype):
         if data.dtype != TD64NS_DTYPE:
             # non-nano unit
-            # TODO: watch out for overflows
-            data = data.astype(TD64NS_DTYPE)
+            data = ensure_timedelta64ns(data)
             copy = False
 
     else:
@@ -1025,8 +1027,8 @@ def ints_to_td64ns(data, unit="ns"):
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        # TODO: watch out for overflows when converting from lower-resolution
-        data = data.astype("timedelta64[ns]")
+        data = ensure_timedelta64ns(data)
+
         # the astype conversion makes a copy, so we can avoid re-copying later
         copy_made = True
 
