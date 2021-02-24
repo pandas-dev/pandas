@@ -2,7 +2,10 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.core.reshape.merge import MergeError, merge
+from pandas.core.reshape.merge import (
+    MergeError,
+    merge,
+)
 
 
 @pytest.mark.parametrize(

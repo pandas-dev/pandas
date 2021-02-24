@@ -24,9 +24,17 @@ import warnings
 
 import numpy as np
 
-from pandas._libs.tslibs import BaseOffset, to_offset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    to_offset,
+)
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import ArrayLike, Axis, FrameOrSeries, FrameOrSeriesUnion
+from pandas._typing import (
+    ArrayLike,
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -50,14 +58,29 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import DataError, SelectionMixin
+from pandas.core.base import (
+    DataError,
+    SelectionMixin,
+)
 import pandas.core.common as common
 from pandas.core.construction import extract_array
-from pandas.core.groupby.base import GotItemMixin, ShallowMixin
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.groupby.base import (
+    GotItemMixin,
+    ShallowMixin,
+)
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.reshape.concat import concat
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
-from pandas.core.window.common import flex_binary_moment, zsqrt
+from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
+    maybe_use_numba,
+)
+from pandas.core.window.common import (
+    flex_binary_moment,
+    zsqrt,
+)
 from pandas.core.window.doc import (
     _shared_docs,
     args_compat,
@@ -84,7 +107,10 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.internals import Block  # noqa:F401
 
 
@@ -510,7 +536,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             return self._apply_tablewise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
-        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
@@ -994,7 +1020,7 @@ class Window(BaseWindow):
         axis="",
     )
     def aggregate(self, func, *args, **kwargs):
-        result, how = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
 
             # these must apply directly

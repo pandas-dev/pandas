@@ -4,7 +4,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 pytestmark = td.skip_array_manager_not_yet_implemented

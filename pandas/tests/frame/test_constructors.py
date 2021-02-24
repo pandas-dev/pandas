@@ -1,5 +1,12 @@
-from collections import OrderedDict, abc
-from datetime import date, datetime, timedelta
+from collections import (
+    OrderedDict,
+    abc,
+)
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 import functools
 import itertools
 import re
@@ -13,13 +20,18 @@ import pytz
 from pandas.compat import np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
     MultiIndex,
@@ -32,7 +44,11 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.arrays import IntervalArray, PeriodArray, SparseArray
+from pandas.arrays import (
+    IntervalArray,
+    PeriodArray,
+    SparseArray,
+)
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -48,6 +64,19 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_constructor_from_tzaware_datetimeindex(self):
+        # don't cast a DatetimeIndex WITH a tz, leave as object
+        # GH#6032
+        naive = DatetimeIndex(["2013-1-1 13:00", "2013-1-2 14:00"], name="B")
+        idx = naive.tz_localize("US/Pacific")
+
+        expected = Series(np.array(idx.tolist(), dtype="object"), name="B")
+        assert expected.dtype == idx.dtype
+
+        # convert index to series
+        result = Series(idx)
+        tm.assert_series_equal(result, expected)
+
     def test_array_of_dt64_nat_with_td64dtype_raises(self, frame_or_series):
         # GH#39462
         nat = np.datetime64("NaT", "ns")
@@ -2179,7 +2208,7 @@ class TestDataFrameConstructors:
 
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
-        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
         with pytest.raises(ValueError, match="Shape of passed values"):
             DataFrame(dti, index=range(4))
 

@@ -108,7 +108,10 @@ from pandas.core.arrays import (
 )
 
 if TYPE_CHECKING:
-    from pandas import PeriodIndex, TimedeltaIndex
+    from pandas import (
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 _N = 30
 _K = 4
@@ -217,8 +220,10 @@ def box_expected(expected, box_cls, transpose=True):
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
-            #  vectors of the same length.
+            #  vectors of the same length. But convert to two rows to avoid
+            #  single-row special cases in datetime arithmetic
             expected = expected.T
+            expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)
@@ -569,7 +574,7 @@ def makeCustomIndex(
         "p": makePeriodIndex,
     }.get(idx_type)
     if idx_func:
-        # pandas\_testing.py:2120: error: Cannot call function of unknown type
+        # error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]
         # but we need to fill in the name
         if names:

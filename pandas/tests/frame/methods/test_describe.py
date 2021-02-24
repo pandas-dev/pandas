@@ -4,7 +4,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 # TODO(ArrayManager) quantile is needed for describe()
@@ -277,7 +283,7 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
     def test_datetime_is_numeric_includes_datetime(self):
-        df = DataFrame({"a": pd.date_range("2012", periods=3), "b": [1, 2, 3]})
+        df = DataFrame({"a": date_range("2012", periods=3), "b": [1, 2, 3]})
         result = df.describe(datetime_is_numeric=True)
         expected = DataFrame(
             {
@@ -385,3 +391,14 @@ class TestDataFrameDescribe:
         msg = "exclude must be None when include is 'all'"
         with pytest.raises(ValueError, match=msg):
             df.describe(include="all", exclude=exclude)
+
+    def test_describe_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
+            columns=["bar", "a", "a"],
+            dtype="float64",
+        )
+        result = df.describe()
+        ser = df.iloc[:, 0].describe()
+        expected = pd.concat([ser, ser, ser], keys=df.columns, axis=1)
+        tm.assert_frame_equal(result, expected)

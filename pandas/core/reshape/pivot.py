@@ -16,17 +16,37 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, IndexLabel
-from pandas.util._decorators import Appender, Substitution
+from pandas._typing import (
+    AggFuncType,
+    AggFuncTypeBase,
+    AggFuncTypeDict,
+    FrameOrSeriesUnion,
+    IndexLabel,
+)
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_list_like,
+    is_scalar,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
-from pandas.core.indexes.api import Index, MultiIndex, get_objs_combined_axis
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    get_objs_combined_axis,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
@@ -40,11 +60,11 @@ if TYPE_CHECKING:
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data,
+    data: DataFrame,
     values=None,
     index=None,
     columns=None,
-    aggfunc="mean",
+    aggfunc: AggFuncType = "mean",
     fill_value=None,
     margins=False,
     dropna=True,
@@ -58,7 +78,7 @@ def pivot_table(
         pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
-            table = pivot_table(
+            _table = __internal_pivot_table(
                 data,
                 values=values,
                 index=index,
@@ -70,11 +90,42 @@ def pivot_table(
                 margins_name=margins_name,
                 observed=observed,
             )
-            pieces.append(table)
+            pieces.append(_table)
             keys.append(getattr(func, "__name__", func))
 
-        return concat(pieces, keys=keys, axis=1)
+        table = concat(pieces, keys=keys, axis=1)
+        return table.__finalize__(data, method="pivot_table")
 
+    table = __internal_pivot_table(
+        data,
+        values,
+        index,
+        columns,
+        aggfunc,
+        fill_value,
+        margins,
+        dropna,
+        margins_name,
+        observed,
+    )
+    return table.__finalize__(data, method="pivot_table")
+
+
+def __internal_pivot_table(
+    data: DataFrame,
+    values,
+    index,
+    columns,
+    aggfunc: Union[AggFuncTypeBase, AggFuncTypeDict],
+    fill_value,
+    margins: bool,
+    dropna: bool,
+    margins_name: str,
+    observed: bool,
+) -> DataFrame:
+    """
+    Helper of :func:`pandas.pivot_table` for any non-list ``aggfunc``.
+    """
     keys = index + columns
 
     values_passed = values is not None

@@ -4,7 +4,10 @@ import warnings
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
-from pandas._libs.tslibs import Timestamp, tzconversion
+from pandas._libs.tslibs import (
+    Timestamp,
+    tzconversion,
+)
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTH_ALIASES,
@@ -12,7 +15,10 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
-from pandas._libs.tslibs.fields import build_field_sarray, month_position_check
+from pandas._libs.tslibs.fields import (
+    build_field_sarray,
+    month_position_check,
+)
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
     Day,
@@ -240,16 +246,17 @@ class _FrequencyInferer:
             return None
 
         delta = self.deltas[0]
-        if _is_multiple(delta, _ONE_DAY):
+        if delta and _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
             return "BH"
+
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values
         # will not work around DST transitions.  See #8772
-        elif not self.is_unique_asi8:
+        if not self.is_unique_asi8:
             return None
 
         delta = self.deltas_asi8[0]

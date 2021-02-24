@@ -4,17 +4,32 @@ Routines for filling missing data.
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Set,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import algos, lib
-from pandas._typing import ArrayLike, Axis, DtypeObj
+from pandas._libs import (
+    algos,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Axis,
+    DtypeObj,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     ensure_float64,
+    is_array_like,
     is_integer_dtype,
     is_numeric_v_string_like,
     needs_i8_conversion,
@@ -23,6 +38,21 @@ from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas import Index
+
+
+def check_value_size(value, mask: np.ndarray, length: int):
+    """
+    Validate the size of the values passed to ExtensionArray.fillna.
+    """
+    if is_array_like(value):
+        if len(value) != length:
+            raise ValueError(
+                f"Length of 'value' does not match. Got ({len(value)}) "
+                f" expected {length}"
+            )
+        value = value[mask]
+
+    return value
 
 
 def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:

@@ -7,10 +7,17 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.offsets import BusinessHour, CustomBusinessHour, Nano
+from pandas._libs.tslibs.offsets import (
+    BusinessHour,
+    CustomBusinessHour,
+    Nano,
+)
 
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import Base, assert_offset_equal
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    assert_offset_equal,
+)
 
 
 class TestCustomBusinessHour(Base):

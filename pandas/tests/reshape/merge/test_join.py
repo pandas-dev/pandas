@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -13,7 +15,11 @@ from pandas import (
     merge,
 )
 import pandas._testing as tm
-from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
+from pandas.tests.reshape.merge.test_merge import (
+    NGROUPS,
+    N,
+    get_test_data,
+)
 
 a_ = np.array
 
@@ -547,6 +553,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = DataFrame(np.random.randn(20, 6), columns=["a", "b", "c", "d", "e", "f"])

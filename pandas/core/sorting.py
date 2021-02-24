@@ -16,7 +16,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import algos, hashtable, lib
+from pandas._libs import (
+    algos,
+    hashtable,
+    lib,
+)
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import IndexKeyFunc
 
@@ -25,7 +29,10 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCRangeIndex
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
+    ABCRangeIndex,
+)
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
