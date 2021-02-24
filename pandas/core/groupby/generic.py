@@ -1745,14 +1745,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
         if not self.as_index:
             index = np.arange(mgr.shape[1])
-            mgr.set_axis(1, ibase.Index(index))
+            mgr.axes[1] = ibase.Index(index)
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr.set_axis(1, index)
+            mgr.axes[1] = index
             result = self.obj._constructor(mgr)
 
         if self.axis == 1:
