@@ -745,7 +745,7 @@ class ArrayManager(DataManager):
                 value = value[0, :]
             else:
                 raise ValueError(
-                    f"expected 1D array, got array with shape {value.shape}"
+                    f"Expected a 1D array, got an array with shape {value.shape}"
                 )
 
         # TODO self.arrays can be empty

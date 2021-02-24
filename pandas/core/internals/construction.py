@@ -422,8 +422,9 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-            # extract_array should be preferred? But that gives failures for
-            # `extension/test_numpy.py`
+            # TODO extract_array should be preferred, but that gives failures for
+            # `extension/test_numpy.py` (extract_array will convert numpy arrays
+            # to PandasArray)
             # val = extract_array(val, extract_numpy=True)
             val = val._values
         else:

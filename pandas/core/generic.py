@@ -5753,6 +5753,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Internal ONLY - only works for BlockManager
         """
         mgr = self._mgr
+        # convert to BlockManager if needed -> this way support ArrayManager as well
         mgr = mgr_to_mgr(mgr, "block")
         mgr = cast(BlockManager, mgr)
         return {

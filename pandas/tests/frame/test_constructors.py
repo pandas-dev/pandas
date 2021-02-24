@@ -162,7 +162,7 @@ class TestDataFrameConstructors:
         # this is not ok
         msg = (
             "Wrong number of items passed 2, placement implies 1"
-            "|expected 1D array, got array"
+            "|Expected a 1D array, got an array with shape \\(4, 2\\)"
         )
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))

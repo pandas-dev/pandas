@@ -564,6 +564,8 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
+        # first check if a Manager is passed without any other arguments
+        # -> use fastpath (without checking Manager type)
         if (
             index is None
             and columns is None
