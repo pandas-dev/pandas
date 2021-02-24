@@ -8374,7 +8374,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             How to rank NaN values:
 
             * keep: assign NaN rank to NaN values
-            * top: assign smallest rank to NaN values if ascending
+            * top: assign lowest rank to NaN values if ascending
             * bottom: assign highest rank to NaN values if ascending.
 
         ascending : bool, default True
