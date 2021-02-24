@@ -27,5 +27,5 @@ def test_missing_column(method, func):
     # GH 40004
     obj = DataFrame({"A": [1]})
     match = re.escape("Column(s) ['B'] do not exist")
-    with pytest.raises(SpecificationError, match=match):
+    with pytest.raises(KeyError, match=match):
         getattr(obj, method)(func)

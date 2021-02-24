@@ -685,7 +685,7 @@ class TestNamedAggregationDataFrame:
     def test_missing_raises(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2]})
         match = re.escape("Column(s) ['C'] do not exist")
-        with pytest.raises(SpecificationError, match=match):
+        with pytest.raises(KeyError, match=match):
             df.groupby("A").agg(c=("C", "sum"))
 
     def test_agg_namedtuple(self):
@@ -762,7 +762,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
     )
     df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
 
-    with pytest.raises(SpecificationError, match="do not exist"):
+    with pytest.raises(KeyError, match="do not exist"):
         df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
 
 

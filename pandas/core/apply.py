@@ -552,7 +552,7 @@ class Apply(metaclass=abc.ABCMeta):
             cols = set(func.keys()) - set(obj.columns)
             if len(cols) > 0:
                 cols_sorted = list(safe_sort(list(cols)))
-                raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
+                raise KeyError(f"Column(s) {cols_sorted} do not exist")
 
 
 class FrameApply(Apply):
