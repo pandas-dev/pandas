@@ -87,7 +87,6 @@ class NormalizeJSON(BaseIO):
                 "hello2": "string"}
         data = [data for i in range(100)]
 
-
     def time_normalize_json(self, data):
         json_normalize(data)
 
