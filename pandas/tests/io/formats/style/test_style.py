@@ -607,6 +607,9 @@ class TestStyler:
         assert ctx["body"][0][2]["display_value"] == "1.00"
         assert ctx["body"][1][1]["display_value"] == "2.00"
 
+        with pytest.raises(KeyError, match="are in the [columns]"):
+            df.style.format({"a": "{:.0f}"}, subset=["b"])
+
     @pytest.mark.parametrize("formatter", [5, True, [2.0]])
     def test_display_format_raises(self, formatter):
         with pytest.raises(TypeError, match="expected str or callable"):
