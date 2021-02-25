@@ -351,7 +351,7 @@ class TestCategoricalIndex2:
             # having 2**32 - 2**31 categories would be very memory-intensive,
             # so we cheat a bit with the dtype
             ci = CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
-            ci.values._codes = ci.values._codes.astype("int64")
+            ci.values._ndarray = ci.values._ndarray.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
 
