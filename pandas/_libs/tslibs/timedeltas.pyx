@@ -347,9 +347,13 @@ def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="rais
         for i in range(n):
             try:
                 result[i] = convert_to_timedelta64(values[i], parsed_unit)
-            except ValueError:
+            except ValueError as err:
                 if errors == 'coerce':
                     result[i] = NPY_NAT
+                elif "unit abbreviation w/o a number" in str(err):
+                    # re-raise with more pertinent message
+                    msg = f"Could not convert '{values[i]}' to NumPy timedelta"
+                    raise ValueError(msg) from err
                 else:
                     raise
 
