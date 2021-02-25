@@ -41,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
     FrameOrSeriesUnion,
+    Manager,
 )
 from pandas.util._decorators import (
     Appender,
@@ -105,7 +106,10 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import BlockManager
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -1072,19 +1076,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ) -> DataFrame:
-        agg_mgr = self._cython_agg_blocks(
+        agg_mgr = self._cython_agg_manager(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
         return self._wrap_agged_manager(agg_mgr)
 
-    def _cython_agg_blocks(
+    def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> BlockManager:
+    ) -> Manager:
 
-        data: BlockManager = self._get_data_to_aggregate()
+        data: Manager = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
+
+        using_array_manager = isinstance(data, ArrayManager)
 
         def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
             # see if we can cast the values to the desired dtype
@@ -1099,7 +1105,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
                 # Note this will have result.dtype == dtype from above
 
-            elif isinstance(result, np.ndarray) and result.ndim == 1:
+            elif (
+                not using_array_manager
+                and isinstance(result, np.ndarray)
+                and result.ndim == 1
+            ):
                 # We went through a SeriesGroupByPath and need to reshape
                 # GH#32223 includes case with IntegerArray values
                 result = result.reshape(1, -1)
@@ -1151,11 +1161,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = mgr.blocks[0].values
                 return result
 
-        def blk_func(bvalues: ArrayLike) -> ArrayLike:
+        def array_func(values: ArrayLike) -> ArrayLike:
 
             try:
                 result = self.grouper._cython_operation(
-                    "aggregate", bvalues, how, axis=1, min_count=min_count
+                    "aggregate", values, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -1168,14 +1178,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                result = py_fallback(bvalues)
+                result = py_fallback(values)
 
-            return cast_agg_result(result, bvalues, how)
+            return cast_agg_result(result, values, how)
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
         # NotImplementedError -> "ohlc" with wrong dtype
-        new_mgr = data.grouped_reduce(blk_func, ignore_failures=True)
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
         if not len(new_mgr):
             raise DataError("No numeric types to aggregate")
@@ -1668,7 +1678,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             return self.obj._constructor(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self) -> BlockManager:
+    def _get_data_to_aggregate(self) -> Manager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
             return obj.T._mgr
@@ -1753,17 +1763,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: Manager) -> DataFrame:
         if not self.as_index:
             index = np.arange(mgr.shape[1])
-            mgr.axes[1] = ibase.Index(index)
+            mgr.set_axis(1, ibase.Index(index), verify_integrity=False)
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr.axes[1] = index
+            mgr.set_axis(1, index, verify_integrity=False)
             result = self.obj._constructor(mgr)
 
         if self.axis == 1:

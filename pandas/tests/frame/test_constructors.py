@@ -64,6 +64,10 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_construct_from_list_of_datetimes(self):
+        df = DataFrame([datetime.now(), datetime.now()])
+        assert df[0].dtype == np.dtype("M8[ns]")
+
     def test_constructor_from_tzaware_datetimeindex(self):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH#6032
@@ -85,6 +89,8 @@ class TestDataFrameConstructors:
             arr = arr.reshape(1, 1)
 
         msg = "Could not convert object to NumPy timedelta"
+        if frame_or_series is Series:
+            msg = "Invalid type for timedelta scalar: <class 'numpy.datetime64'>"
         with pytest.raises(ValueError, match=msg):
             frame_or_series(arr, dtype="m8[ns]")
 
