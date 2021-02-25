@@ -36,6 +36,32 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_float_keys_tuple_values(self):
+        # see GH#13509
+
+        # unique Index
+        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name="foo")
+        result = ser[0.0]
+        assert result == (1, 1)
+
+        # non-unique Index
+        expected = Series([(1, 1), (2, 2)], index=[0.0, 0.0], name="foo")
+        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name="foo")
+
+        result = ser[0.0]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_unrecognized_scalar(self):
+        # GH#32684 a scalar key that is not recognized by lib.is_scalar
+
+        # a series that might be produced via `frame.dtypes`
+        ser = Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
+
+        key = ser.index[1]
+
+        result = ser[key]
+        assert result == 2
+
     def test_getitem_negative_out_of_bounds(self):
         ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
@@ -595,3 +621,8 @@ def test_getitem_categorical_str():
     with tm.assert_produces_warning(FutureWarning):
         result = ser.index.get_value(ser, "a")
     tm.assert_series_equal(result, expected)
+
+
+def test_slice_can_reorder_not_uniquely_indexed():
+    ser = Series(1, index=["a", "a", "b", "b", "c"])
+    ser[::-1]  # it works!
