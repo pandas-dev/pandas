@@ -260,7 +260,7 @@ def test_transform_missing_columns(axis):
     # GH#35964
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     match = re.escape("Column(s) ['C'] do not exist")
-    with pytest.raises(SpecificationError, match=match):
+    with pytest.raises(KeyError, match=match):
         df.transform({"C": "cumsum"})
 
 
@@ -276,7 +276,7 @@ def test_transform_mixed_column_name_dtypes():
     # GH39025
     df = DataFrame({"a": ["1"]})
     msg = r"Column\(s\) \[1, 'b'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         df.transform({"a": int, 1: str, "b": int})
 
 

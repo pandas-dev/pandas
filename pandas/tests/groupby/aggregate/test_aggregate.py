@@ -4,6 +4,7 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 import datetime
 import functools
 from functools import partial
+import re
 
 import numpy as np
 import pytest
@@ -685,7 +686,8 @@ class TestNamedAggregationDataFrame:
 
     def test_missing_raises(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2]})
-        with pytest.raises(KeyError, match="Column 'C' does not exist"):
+        match = re.escape("Column(s) ['C'] do not exist")
+        with pytest.raises(KeyError, match=match):
             df.groupby("A").agg(c=("C", "sum"))
 
     def test_agg_namedtuple(self):
@@ -762,7 +764,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
     )
     df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
 
-    with pytest.raises(KeyError, match="does not exist"):
+    with pytest.raises(KeyError, match="do not exist"):
         df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
 
 

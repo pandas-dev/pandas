@@ -296,7 +296,7 @@ def test_agg_consistency():
     r = df.resample("3T")
 
     msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
-    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         r.agg({"r1": "mean", "r2": "sum"})
 
 
@@ -311,7 +311,7 @@ def test_agg_consistency_int_str_column_mix():
     r = df.resample("3T")
 
     msg = r"Column\(s\) \[2, 'b'\] do not exist"
-    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         r.agg({2: "mean", "b": "sum"})
 
 
@@ -444,7 +444,7 @@ def test_agg_misc():
 
     msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(KeyError, match=msg):
             t[["A", "B"]].agg({"result1": np.sum, "result2": np.mean})
 
     # agg with different hows
@@ -475,7 +475,7 @@ def test_agg_misc():
 
     # errors
     # invalid names in the agg specification
-    msg = "\"Column 'B' does not exist!\""
+    msg = r"Column\(s\) \['B'\] do not exist"
     for t in cases:
         with pytest.raises(KeyError, match=msg):
             t[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
@@ -526,7 +526,7 @@ def test_try_aggregate_non_existing_column():
     df = DataFrame(data).set_index("dt")
 
     # Error as we don't have 'z' column
-    msg = "\"Column 'z' does not exist!\""
+    msg = r"Column\(s\) \['z'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
