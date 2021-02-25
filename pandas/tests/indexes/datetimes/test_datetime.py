@@ -217,7 +217,7 @@ class TestDatetimeIndex:
         # optionally, object
         result = np.asarray(idx, dtype=object)
 
-        expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
+        expected = np.array([Timestamp("2000-01-01"), Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_asarray_tz_aware(self):
@@ -235,7 +235,7 @@ class TestDatetimeIndex:
 
         # Future behavior with no warning
         expected = np.array(
-            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
+            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)]
         )
         result = np.asarray(idx, dtype=object)
 

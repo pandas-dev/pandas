@@ -344,7 +344,7 @@ class TestPeriodIndex:
 
     def test_intersection_equal_duplicates(self):
         # GH#38302
-        idx = pd.period_range("2011-01-01", periods=2)
+        idx = period_range("2011-01-01", periods=2)
         idx_dup = idx.append(idx)
         result = idx_dup.intersection(idx_dup)
         tm.assert_index_equal(result, idx)
