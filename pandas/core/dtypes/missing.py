@@ -1,6 +1,7 @@
 """
 missing types & inference
 """
+from decimal import Decimal
 from functools import partial
 
 import numpy as np
@@ -610,20 +611,24 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):
         return False
-    if dtype.kind == "M":
+    elif dtype.kind == "M":
         if isinstance(dtype, np.dtype):
             # i.e. not tzaware
-            return not isinstance(obj, np.timedelta64)
+            return not isinstance(obj, (np.timedelta64, Decimal))
         # we have to rule out tznaive dt64("NaT")
-        return not isinstance(obj, (np.timedelta64, np.datetime64))
-    if dtype.kind == "m":
-        return not isinstance(obj, np.datetime64)
-    if dtype.kind in ["i", "u", "f", "c"]:
+        return not isinstance(obj, (np.timedelta64, np.datetime64, Decimal))
+    elif dtype.kind == "m":
+        return not isinstance(obj, (np.datetime64, Decimal))
+    elif dtype.kind in ["i", "u", "f", "c"]:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
+    elif dtype == np.dtype(object):
+        # This is needed for Categorical, but is kind of weird
+        return True
+
     # must be PeriodDType
-    return not isinstance(obj, (np.datetime64, np.timedelta64))
+    return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
 
 
 def isna_all(arr: ArrayLike) -> bool:
