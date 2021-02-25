@@ -20,11 +20,24 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
 )
+from pandas.core.dtypes.generic import ABCPandasArray
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
+from pandas.core.internals import managers
 from pandas.tests.extension import base
+
+
+def _extract_array_patched(obj):
+    if isinstance(obj, (pd.Index, pd.Series)):
+        obj = obj._values
+    if isinstance(obj, ABCPandasArray):
+        # TODO for reasons unclear, we get here in a couple of tests
+        #  with PandasArray._typ *not* patched
+        obj = obj.to_numpy()
+
+    return obj
 
 
 @pytest.fixture(params=["float", "object"])
@@ -51,6 +64,7 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
+        m.setattr(managers, "_extract_array", _extract_array_patched)
         yield
 
 
@@ -414,4 +428,8 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
 
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(BaseNumPyTests, base.Dim2CompatTests):
     pass

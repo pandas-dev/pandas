@@ -6,6 +6,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 import locale
 
 from dateutil.parser import parse
@@ -2446,9 +2447,15 @@ def test_nullable_integer_to_datetime():
 
 @pytest.mark.parametrize("klass", [np.array, list])
 def test_na_to_datetime(nulls_fixture, klass):
-    result = pd.to_datetime(klass([nulls_fixture]))
 
-    assert result[0] is pd.NaT
+    if isinstance(nulls_fixture, Decimal):
+        with pytest.raises(TypeError, match="not convertible to datetime"):
+            pd.to_datetime(klass([nulls_fixture]))
+
+    else:
+        result = pd.to_datetime(klass([nulls_fixture]))
+
+        assert result[0] is pd.NaT
 
 
 def test_empty_string_datetime_coerce__format():
