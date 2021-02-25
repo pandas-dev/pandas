@@ -121,8 +121,6 @@ class TestDataFrameReshape:
         expected = unstacked["w"]
         tm.assert_frame_equal(result, expected)
 
-    # TODO(ArrayManager) iset with multiple elements not yet implemented
-    # @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) iset
     def test_unstack_fill_frame(self):
 
         # From a dataframe
@@ -1705,7 +1703,6 @@ Thur,Lunch,Yes,51.51,17"""
 
         tm.assert_frame_equal(result3, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_stack_multiple_bug(self):
         # bug when some uniques are not present in the data GH#3170
         id_col = ([1] * 3) + ([2] * 3)
