@@ -369,8 +369,16 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
 
-    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
-        res_values = np.delete(self._ndarray, loc)
+    def delete(
+        self: NDArrayBackedExtensionArrayT, loc, axis: int = 0
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc, axis=axis)
+        return self._from_backing_data(res_values)
+
+    def swapaxes(
+        self: NDArrayBackedExtensionArrayT, axis1, axis2
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = self._ndarray.swapaxes(axis1, axis2)
         return self._from_backing_data(res_values)
 
     # ------------------------------------------------------------------------
