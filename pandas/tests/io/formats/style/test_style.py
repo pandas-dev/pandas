@@ -565,6 +565,121 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "-"
         assert ctx["body"][1][2]["display_value"] == "-"
 
+    def test_display_format(self):
+        df = DataFrame(np.random.random(size=(2, 2)))
+        ctx = df.style.format("{:0.1f}")._translate()
+
+        assert all(["display_value" in c for c in row] for row in ctx["body"])
+        assert all(
+            [len(c["display_value"]) <= 3 for c in row[1:]] for row in ctx["body"]
+        )
+        assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
+
+    def test_display_format_subset_interaction(self):
+        # GH40032
+        # test subset and formatter interaction in conjunction with other methods
+        df = DataFrame([[np.nan, 1], [2, np.nan]], columns=["a", "b"], index=["x", "y"])
+
+        ctx = df.style.format({"a": "{:.1f}"}).set_na_rep("X")._translate()
+        assert ctx["body"][0][1]["display_value"] == "X"
+        assert ctx["body"][1][2]["display_value"] == "X"
+        ctx = df.style.format({"a": "{:.1f}"}, na_rep="Y").set_na_rep("X")._translate()
+        assert ctx["body"][0][1]["display_value"] == "Y"
+        assert ctx["body"][1][2]["display_value"] == "Y"
+        ctx = (
+            df.style.format("{:.1f}", na_rep="Y", subset=["a"])
+            .set_na_rep("X")
+            ._translate()
+        )
+        assert ctx["body"][0][1]["display_value"] == "Y"
+        assert ctx["body"][1][2]["display_value"] == "X"
+
+        ctx = df.style.format({"a": "{:.1f}"}).set_precision(2)._translate()
+        assert ctx["body"][0][2]["display_value"] == "1.00"
+        assert ctx["body"][1][1]["display_value"] == "2.0"
+        ctx = df.style.format("{:.1f}").set_precision(2)._translate()
+        assert ctx["body"][0][2]["display_value"] == "1.0"
+        assert ctx["body"][1][1]["display_value"] == "2.0"
+        ctx = df.style.format("{:.1f}", subset=["a"]).set_precision(2)._translate()
+        assert ctx["body"][0][2]["display_value"] == "1.00"
+        assert ctx["body"][1][1]["display_value"] == "2.0"
+        ctx = df.style.format(None, subset=["a"]).set_precision(2)._translate()
+        assert ctx["body"][0][2]["display_value"] == "1.00"
+        assert ctx["body"][1][1]["display_value"] == "2.00"
+
+    @pytest.mark.parametrize("formatter", [5, True, [2.0]])
+    def test_display_format_raises(self, formatter):
+        with pytest.raises(TypeError, match="expected str or callable"):
+            self.df.style.format(formatter)
+
+    def test_display_set_precision(self):
+        # Issue #13257
+        df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
+        s = Styler(df)
+
+        ctx = s.set_precision(1)._translate()
+
+        assert s.precision == 1
+        assert ctx["body"][0][1]["display_value"] == "1.0"
+        assert ctx["body"][0][2]["display_value"] == "2.0"
+        assert ctx["body"][1][1]["display_value"] == "3.2"
+        assert ctx["body"][1][2]["display_value"] == "4.6"
+
+        ctx = s.set_precision(2)._translate()
+        assert s.precision == 2
+        assert ctx["body"][0][1]["display_value"] == "1.00"
+        assert ctx["body"][0][2]["display_value"] == "2.01"
+        assert ctx["body"][1][1]["display_value"] == "3.21"
+        assert ctx["body"][1][2]["display_value"] == "4.57"
+
+        ctx = s.set_precision(3)._translate()
+        assert s.precision == 3
+        assert ctx["body"][0][1]["display_value"] == "1.000"
+        assert ctx["body"][0][2]["display_value"] == "2.009"
+        assert ctx["body"][1][1]["display_value"] == "3.212"
+        assert ctx["body"][1][2]["display_value"] == "4.566"
+
+    def test_format_subset(self):
+        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
+        ctx = df.style.format(
+            {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
+        )._translate()
+        expected = "0.1"
+        raw_11 = "1.123400"
+        assert ctx["body"][0][1]["display_value"] == expected
+        assert ctx["body"][1][1]["display_value"] == raw_11
+        assert ctx["body"][0][2]["display_value"] == "12.34%"
+
+        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
+        assert ctx["body"][0][1]["display_value"] == expected
+        assert ctx["body"][1][1]["display_value"] == raw_11
+
+        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice["a"])._translate()
+        assert ctx["body"][0][1]["display_value"] == expected
+        assert ctx["body"][0][2]["display_value"] == "0.123400"
+
+        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, "a"])._translate()
+        assert ctx["body"][0][1]["display_value"] == expected
+        assert ctx["body"][1][1]["display_value"] == raw_11
+
+        ctx = df.style.format(
+            "{:0.1f}", subset=pd.IndexSlice[[0, 1], ["a"]]
+        )._translate()
+        assert ctx["body"][0][1]["display_value"] == expected
+        assert ctx["body"][1][1]["display_value"] == "1.1"
+        assert ctx["body"][0][2]["display_value"] == "0.123400"
+        assert ctx["body"][1][2]["display_value"] == raw_11
+
+    def test_display_dict(self):
+        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
+        ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
+        assert ctx["body"][0][1]["display_value"] == "0.1"
+        assert ctx["body"][0][2]["display_value"] == "12.34%"
+        df["c"] = ["aaa", "bbb"]
+        ctx = df.style.format({"a": "{:0.1f}", "c": str.upper})._translate()
+        assert ctx["body"][0][1]["display_value"] == "0.1"
+        assert ctx["body"][0][3]["display_value"] == "AAA"
+
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
@@ -679,108 +794,6 @@ class TestStyler:
         style2.use(result)
         assert style1._todo == style2._todo
         style2.render()
-
-    def test_display_format(self):
-        df = DataFrame(np.random.random(size=(2, 2)))
-        ctx = df.style.format("{:0.1f}")._translate()
-
-        assert all(["display_value" in c for c in row] for row in ctx["body"])
-        assert all(
-            [len(c["display_value"]) <= 3 for c in row[1:]] for row in ctx["body"]
-        )
-        assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
-
-    @pytest.mark.parametrize(
-        "kwargs, prec",
-        [
-            ({"formatter": "{:.1f}", "subset": pd.IndexSlice["x", :]}, 2),
-            ({"formatter": "{:.2f}", "subset": pd.IndexSlice[:, "a"]}, 1),
-        ],
-    )
-    def test_display_format_subset_interaction(self, kwargs, prec):
-        # test subset and formatter interaction in conjunction with other methods
-        df = DataFrame([[np.nan, 1], [2, np.nan]], columns=["a", "b"], index=["x", "y"])
-        ctx = df.style.format(**kwargs).set_na_rep("-").set_precision(prec)._translate()
-        assert ctx["body"][0][1]["display_value"] == "-"
-        assert ctx["body"][0][2]["display_value"] == "1.0"
-        assert ctx["body"][1][1]["display_value"] == "2.00"
-        assert ctx["body"][1][2]["display_value"] == "-"
-        ctx = df.style.format(**kwargs)._translate()
-        assert ctx["body"][0][1]["display_value"] == "nan"
-        assert ctx["body"][1][2]["display_value"] == "nan"
-
-    @pytest.mark.parametrize("formatter", [5, True, [2.0]])
-    def test_display_format_raises(self, formatter):
-        with pytest.raises(TypeError, match="expected str or callable"):
-            self.df.style.format(formatter)
-
-    def test_display_set_precision(self):
-        # Issue #13257
-        df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
-        s = Styler(df)
-
-        ctx = s.set_precision(1)._translate()
-
-        assert s.precision == 1
-        assert ctx["body"][0][1]["display_value"] == "1.0"
-        assert ctx["body"][0][2]["display_value"] == "2.0"
-        assert ctx["body"][1][1]["display_value"] == "3.2"
-        assert ctx["body"][1][2]["display_value"] == "4.6"
-
-        ctx = s.set_precision(2)._translate()
-        assert s.precision == 2
-        assert ctx["body"][0][1]["display_value"] == "1.00"
-        assert ctx["body"][0][2]["display_value"] == "2.01"
-        assert ctx["body"][1][1]["display_value"] == "3.21"
-        assert ctx["body"][1][2]["display_value"] == "4.57"
-
-        ctx = s.set_precision(3)._translate()
-        assert s.precision == 3
-        assert ctx["body"][0][1]["display_value"] == "1.000"
-        assert ctx["body"][0][2]["display_value"] == "2.009"
-        assert ctx["body"][1][1]["display_value"] == "3.212"
-        assert ctx["body"][1][2]["display_value"] == "4.566"
-
-    def test_display_subset(self):
-        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
-        ctx = df.style.format(
-            {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
-        )._translate()
-        expected = "0.1"
-        raw_11 = "1.123400"
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice["a"])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][0][2]["display_value"] == "0.123400"
-
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, "a"])._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == raw_11
-
-        ctx = df.style.format(
-            "{:0.1f}", subset=pd.IndexSlice[[0, 1], ["a"]]
-        )._translate()
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == "1.1"
-        assert ctx["body"][0][2]["display_value"] == "0.123400"
-        assert ctx["body"][1][2]["display_value"] == raw_11
-
-    def test_display_dict(self):
-        df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
-        ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
-        assert ctx["body"][0][1]["display_value"] == "0.1"
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-        df["c"] = ["aaa", "bbb"]
-        ctx = df.style.format({"a": "{:0.1f}", "c": str.upper})._translate()
-        assert ctx["body"][0][1]["display_value"] == "0.1"
-        assert ctx["body"][0][3]["display_value"] == "AAA"
 
     def test_bad_apply_shape(self):
         df = DataFrame([[1, 2], [3, 4]])
