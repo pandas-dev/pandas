@@ -17,6 +17,8 @@
 # )
 # from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value  # noqa
 
+from decimal import Decimal
+
 # from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 # from pandas.compat import IS64
 import numba
@@ -110,7 +112,16 @@ def checknull(val: object) -> bool:
     The difference between `checknull` and `checknull_old` is that `checknull`
     does *not* consider INF or NEGINF to be NA.
     """
-    return val is NA or is_null_datetimelike(val, inat_is_null=False)
+    return (
+        val is NA or is_null_datetimelike(val, inat_is_null=False) or is_decimal_na(val)
+    )
+
+
+def is_decimal_na(val: object) -> bool:
+    """
+    Is this a decimal.Decimal object Decimal("NAN").
+    """
+    return isinstance(val, Decimal) and val != val
 
 
 # cpdef bint checknull_old(object val):
