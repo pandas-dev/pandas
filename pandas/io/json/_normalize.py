@@ -374,7 +374,7 @@ def _json_normalize(
     if None not in (record_prefix, meta, meta_prefix, record_prefix, max_level):
         # for very basic use case of pd.json_normalize(data), this is quick and
         # consistent with pandas ordering of json data
-        return pd.DataFrame(_simple_json_normalize(data, sep=sep))
+        return DataFrame(_simple_json_normalize(data, sep=sep))
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
