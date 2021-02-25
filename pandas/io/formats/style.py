@@ -330,9 +330,12 @@ class Styler:
         data = self.data.loc[subset]
 
         if not isinstance(formatter, dict):
-            formatter = {col: formatter for col in data.columns}
+            columns = data.columns
+            formatter = {col: formatter for col in columns}
+        else:
+            columns = formatter.keys()
 
-        for col in data.columns:
+        for col in columns:
             try:
                 format_func = formatter[col]
             except KeyError:

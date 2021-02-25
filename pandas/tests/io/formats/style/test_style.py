@@ -585,7 +585,7 @@ class TestStyler:
         assert ctx["body"][1][2]["display_value"] == "X"
         ctx = df.style.format({"a": "{:.1f}"}, na_rep="Y").set_na_rep("X")._translate()
         assert ctx["body"][0][1]["display_value"] == "Y"
-        assert ctx["body"][1][2]["display_value"] == "Y"
+        assert ctx["body"][1][2]["display_value"] == "X"
         ctx = (
             df.style.format("{:.1f}", na_rep="Y", subset=["a"])
             .set_na_rep("X")
