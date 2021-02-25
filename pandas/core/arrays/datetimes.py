@@ -238,13 +238,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _dtype: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
-    def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy=False):
+    def __new__(cls, values, dtype=DT64NS_DTYPE, freq=None, copy=False):
         if isinstance(values, (ABCSeries, ABCIndex)):
             values = values._values
 
         inferred_freq = getattr(values, "_freq", None)
 
-        if isinstance(values, type(self)):
+        if isinstance(values, cls):
             # validation
             dtz = getattr(dtype, "tz", None)
             if dtz and values.tz is None:
@@ -303,12 +303,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # be incorrect(ish?) for the array as a whole
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
 
-        self._ndarray = values
-        self._dtype = dtype
-        self._freq = freq
+        obj = cls._simple_new(values, freq=freq, dtype=dtype)
 
         if inferred_freq is None and freq is not None:
-            type(self)._validate_frequency(self, freq)
+            cls._validate_frequency(obj, freq)
+        return obj
 
     @classmethod
     def _simple_new(
@@ -319,10 +318,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             assert values.dtype == "i8"
             values = values.view(DT64NS_DTYPE)
 
-        result = object.__new__(cls)
-        result._ndarray = values
+        result = cls._simpler_new(values, dtype)
         result._freq = freq
-        result._dtype = dtype
         return result
 
     @classmethod
@@ -2005,7 +2002,9 @@ def sequence_to_dt64ns(
     if is_datetime64tz_dtype(data_dtype):
         # DatetimeArray -> ndarray
         tz = _maybe_infer_tz(tz, data.tz)
-        result = data._data
+        if isinstance(data, ABCIndex):
+            data = data._data
+        result = data._ndarray
 
     elif is_datetime64_dtype(data_dtype):
         # tz-naive DatetimeArray or ndarray[datetime64]

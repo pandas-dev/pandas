@@ -168,14 +168,14 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     _freq = None
 
-    def __init__(self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy=False):
+    def __new__(cls, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy=False):
         values = extract_array(values)
 
         inferred_freq = getattr(values, "_freq", None)
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
 
-        if isinstance(values, type(self)):
+        if isinstance(values, cls):
             if explicit_none:
                 # dont inherit from values
                 pass
@@ -216,12 +216,11 @@ class TimedeltaArray(dtl.TimelikeOps):
         if freq:
             freq = to_offset(freq)
 
-        self._ndarray = values
-        self._dtype = dtype
-        self._freq = freq
+        obj = cls._simple_new(values, freq=freq, dtype=dtype)
 
         if inferred_freq is None and freq is not None:
-            type(self)._validate_frequency(self, freq)
+            cls._validate_frequency(obj, freq)
+        return obj
 
     @classmethod
     def _simple_new(
@@ -233,10 +232,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             assert values.dtype == "i8"
             values = values.view(TD64NS_DTYPE)
 
-        result = object.__new__(cls)
-        result._ndarray = values
+        result = cls._simpler_new(values, TD64NS_DTYPE)
         result._freq = to_offset(freq)
-        result._dtype = TD64NS_DTYPE
         return result
 
     @classmethod

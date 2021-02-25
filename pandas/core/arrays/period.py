@@ -223,6 +223,10 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
         return cls(values, freq=freq, dtype=dtype)
 
+    def _from_backing_data(self: PeriodArray, arr: np.ndarray) -> PeriodArray:
+        # Note: we do not retain `freq`
+        return type(self)._simple_new(arr, dtype=self.dtype)
+
     @classmethod
     def _from_sequence(
         cls: Type[PeriodArray],

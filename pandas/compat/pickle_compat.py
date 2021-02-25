@@ -13,9 +13,15 @@ from typing import (
 )
 import warnings
 
+import numpy as np
+
 from pandas._libs.tslibs import BaseOffset
 
 from pandas import Index
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -207,6 +213,13 @@ def load_newobj(self):
     # compat
     if issubclass(cls, Index):
         obj = object.__new__(cls)
+    elif issubclass(cls, DatetimeArray) and not args:
+        arr = np.array([], dtype="M8[ns]")
+        obj = cls.__new__(cls, arr, arr.dtype)
+    elif issubclass(cls, TimedeltaArray) and not args:
+        arr = np.array([], dtype="m8[ns]")
+        obj = cls.__new__(cls, arr, arr.dtype)
+
     else:
         obj = cls.__new__(cls, *args)
 

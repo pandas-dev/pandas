@@ -158,9 +158,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _recognized_scalars: Tuple[Type, ...]
     _ndarray: np.ndarray
 
-    def __init__(self, data, dtype: Optional[Dtype] = None, freq=None, copy=False):
-        raise AbstractMethodError(self)
-
     @classmethod
     def _simple_new(
         cls: Type[DatetimeLikeArrayT],
@@ -254,6 +251,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # NDArrayBackedExtensionArray compat
 
     def __setstate__(self, state):
+        # TODO: how is NDArrayBacked.__setstate__ getting called?  we
+        #  aren't doing super().__setstate__(state) here
         if isinstance(state, dict):
             if "_data" in state and "_ndarray" not in state:
                 # backward compat, changed what is property vs attribute
@@ -271,12 +270,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @cache_readonly
     def _data(self) -> np.ndarray:
         return self._ndarray
-
-    def _from_backing_data(
-        self: DatetimeLikeArrayT, arr: np.ndarray
-    ) -> DatetimeLikeArrayT:
-        # Note: we do not retain `freq`
-        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -1680,10 +1673,15 @@ _ceil_example = """>>> rng.ceil('H')
     """
 
 
-class TimelikeOps(DatetimeLikeArrayMixin):
+class TimelikeOps(lib.NDArrayBacked, DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
+
+    def copy(self):
+        result = lib.NDArrayBacked.copy(self)
+        result._freq = self._freq
+        return result
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
