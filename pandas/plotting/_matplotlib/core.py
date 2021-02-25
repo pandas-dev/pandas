@@ -593,12 +593,11 @@ class MPLPlot:
         handles = []
         labels = []
         title = ""
-
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
                 # Replace leg.LegendHandles because it misses marker info
-                handles.extend(handle)
+                handles.extend([i for i in handle if i not in self.legend_handles])
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -641,6 +640,8 @@ class MPLPlot:
         other_leg = None
         if other_ax is not None:
             other_leg = other_ax.get_legend()
+            other_handle, _ = other_ax.get_legend_handles_labels()
+            handle.extend(other_handle)
         if leg is None and other_leg is not None:
             leg = other_leg
             ax = other_ax
