@@ -499,7 +499,7 @@ class Styler:
             head.append(index_header_row)
 
         body = []
-        for r, idx in enumerate(self.data.index):
+        for r, row_tup in enumerate(self.data.itertuples()):
             row_es = []
             for c, value in enumerate(rlabels[r]):
                 rid = [
@@ -520,10 +520,9 @@ class Styler:
                     es["attributes"] = f'rowspan="{rowspan}"'
                 row_es.append(es)
 
-            for c, col in enumerate(self.data.columns):
+            for c, value in enumerate(row_tup[1:]):
                 cs = [DATA_CLASS, f"row{r}", f"col{c}"]
                 formatter = self._display_funcs[(r, c)]
-                value = self.data.iloc[r, c]
                 row_dict = {
                     "type": "td",
                     "value": value,
