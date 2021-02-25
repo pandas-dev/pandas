@@ -167,7 +167,7 @@ def _simple_json_normalize(
         separator: str,
     ):
         """
-        Main recursive function, maintains object types, not ordering
+        Main recursive function
         Designed for the most basic use case of pd.json_normalize(data)
         (i.e. no bells or whistlers)
         """
@@ -371,10 +371,7 @@ def _json_normalize(
     else:
         raise NotImplementedError
 
-    if all(
-        True if x is None else False
-        for x in (record_path, meta, meta_prefix, record_prefix, max_level)
-    ):
+    if None not in (record_prefix, meta, meta_prefix, record_prefix, max_level):
         # for very basic use case of pd.json_normalize(data), this is quick and
         # consistent with pandas ordering of json data
         return pd.DataFrame(_simple_json_normalize(data, sep=sep))
