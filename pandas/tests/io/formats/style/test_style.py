@@ -565,12 +565,12 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "-"
         assert ctx["body"][1][2]["display_value"] == "-"
 
-    def test_format_with_bad_na_rep(self):
-        # GH 21527 28358
-        df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
-        msg = "Expected a string, got -1 instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(None, na_rep=-1)
+    # def test_format_with_bad_na_rep(self):
+    #     # GH 21527 28358
+    #     df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+    #     msg = "Expected a string, got -1 instead"
+    #     with pytest.raises(TypeError, match=msg):
+    #         df.style.format(None, na_rep=-1)
 
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
@@ -697,15 +697,10 @@ class TestStyler:
         )
         assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
 
-    def test_display_format_raises(self):
-        df = DataFrame(np.random.randn(2, 2))
-        msg = "Expected a template string or callable, got 5 instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(5)
-
-        msg = "Expected a template string or callable, got True instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(True)
+    @pytest.mark.parametrize("formatter", [5, True, [2.0]])
+    def test_display_format_raises(self, formatter):
+        with pytest.raises(TypeError, match="expected str or callable"):
+            self.df.style.format(formatter)
 
     def test_display_set_precision(self):
         # Issue #13257
