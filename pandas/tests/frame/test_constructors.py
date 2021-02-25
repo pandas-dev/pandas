@@ -65,6 +65,10 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_construct_from_list_of_datetimes(self):
+        df = DataFrame([datetime.now(), datetime.now()])
+        assert df[0].dtype == np.dtype("M8[ns]")
+
     def test_constructor_from_tzaware_datetimeindex(self):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH#6032
