@@ -16,8 +16,10 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :meth:`~DataFrame.to_excel` raising ``KeyError`` when giving duplicate columns with ``columns`` attribute (:issue:`39695`)
-- Fixed regression in :class:`IntegerArray` unary ops propagating mask on assignment (:issue:`39943`)
+- Fixed regression in nullable integer unary ops propagating mask on assignment (:issue:`39943`)
 - Fixed regression in :meth:`DataFrame.__setitem__` not aligning :class:`DataFrame` on right-hand side for boolean indexer (:issue:`39931`)
+- Fixed regression in :meth:`~DataFrame.to_json` failing to use ``compression`` with URL-like paths that are internally opened in binary mode or with user-provided file objects that are opened in binary mode (:issue:`39985`)
+-
 
 .. ---------------------------------------------------------------------------
 

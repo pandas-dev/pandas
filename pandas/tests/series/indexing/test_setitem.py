@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    Categorical,
     DatetimeIndex,
     Index,
     MultiIndex,
@@ -63,6 +64,81 @@ class TestSetitemDT64Values:
         expected.iloc[0] = np.nan
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
+    def test_setitem_with_tz(self, tz, indexer_sli):
+        orig = Series(date_range("2016-01-01", freq="H", periods=3, tz=tz))
+        assert orig.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-01-01 00:00", tz=tz),
+                Timestamp("2011-01-01 00:00", tz=tz),
+                Timestamp("2016-01-01 02:00", tz=tz),
+            ]
+        )
+
+        # scalar
+        ser = orig.copy()
+        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+        tm.assert_series_equal(ser, exp)
+
+        # vector
+        vals = Series(
+            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
+            index=[1, 2],
+        )
+        assert vals.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-01-01 00:00", tz=tz),
+                Timestamp("2011-01-01 00:00", tz=tz),
+                Timestamp("2012-01-01 00:00", tz=tz),
+            ]
+        )
+
+        ser = orig.copy()
+        indexer_sli(ser)[[1, 2]] = vals
+        tm.assert_series_equal(ser, exp)
+
+    def test_setitem_with_tz_dst(self, indexer_sli):
+        # GH XXX TODO: fill in GH ref
+        tz = "US/Eastern"
+        orig = Series(date_range("2016-11-06", freq="H", periods=3, tz=tz))
+        assert orig.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-11-06 00:00-04:00", tz=tz),
+                Timestamp("2011-01-01 00:00-05:00", tz=tz),
+                Timestamp("2016-11-06 01:00-05:00", tz=tz),
+            ]
+        )
+
+        # scalar
+        ser = orig.copy()
+        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+        tm.assert_series_equal(ser, exp)
+
+        # vector
+        vals = Series(
+            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
+            index=[1, 2],
+        )
+        assert vals.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-11-06 00:00", tz=tz),
+                Timestamp("2011-01-01 00:00", tz=tz),
+                Timestamp("2012-01-01 00:00", tz=tz),
+            ]
+        )
+
+        ser = orig.copy()
+        indexer_sli(ser)[[1, 2]] = vals
+        tm.assert_series_equal(ser, exp)
+
 
 class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
@@ -117,6 +193,13 @@ class TestSetitemSlices:
         ser[:4] = 0
         assert (ser[:4] == 0).all()
         assert not (ser[4:] == 0).any()
+
+    def test_setitem_slicestep(self):
+        # caught this bug when writing tests
+        series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
+
+        series[::2] = 0
+        assert (series[::2] == 0).all()
 
 
 class TestSetitemBooleanMask:
@@ -303,6 +386,25 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
+    def test_setitem_with_expansion_type_promotion(self):
+        # GH#12599
+        ser = Series(dtype=object)
+        ser["a"] = Timestamp("2016-01-01")
+        ser["b"] = 3.0
+        ser["c"] = "foo"
+        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_not_contained(self, string_series):
+        # set item that's not contained
+        ser = string_series.copy()
+        assert "foobar" not in ser.index
+        ser["foobar"] = 1
+
+        app = Series([1], index=["foobar"], name="series")
+        expected = string_series.append(app)
+        tm.assert_series_equal(ser, expected)
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
@@ -331,6 +433,43 @@ def test_setitem_slice_into_readonly_backing_data():
         series[1:3] = 1
 
     assert not array.any()
+
+
+def test_setitem_categorical_assigning_ops():
+    orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
+    ser = orig.copy()
+    ser[:] = "a"
+    exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[1] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[ser.index > 0] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[[False, True]] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser.index = ["x", "y"]
+    ser["y"] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]), index=["x", "y"])
+    tm.assert_series_equal(ser, exp)
+
+
+def test_setitem_nan_into_categorical():
+    # ensure that one can set something to np.nan
+    ser = Series(Categorical([1, 2, 3]))
+    exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
+    ser[1] = np.nan
+    tm.assert_series_equal(ser, exp)
 
 
 class TestSetitemCasting:
