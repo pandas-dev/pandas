@@ -337,25 +337,6 @@ class TestPeriodIndex(DatetimeLike):
         assert isinstance(result[0], Period)
         assert result[0].freq == index.freq
 
-    def test_is_full(self):
-        index = PeriodIndex([2005, 2007, 2009], freq="A")
-        assert not index.is_full
-
-        index = PeriodIndex([2005, 2006, 2007], freq="A")
-        assert index.is_full
-
-        index = PeriodIndex([2005, 2005, 2007], freq="A")
-        assert not index.is_full
-
-        index = PeriodIndex([2005, 2005, 2006], freq="A")
-        assert index.is_full
-
-        index = PeriodIndex([2006, 2005, 2005], freq="A")
-        with pytest.raises(ValueError, match="Index is not monotonic"):
-            index.is_full
-
-        assert index[:0].is_full
-
     def test_with_multi_index(self):
         # #1705
         index = date_range("1/1/2012", periods=4, freq="12H")

@@ -85,46 +85,6 @@ class TestPeriodIndexOps:
 
         tm.assert_index_equal(idx.unique(), exp_idx)
 
-    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
-    def test_drop_duplicates_metadata(self, freq):
-        # GH 10115
-        idx = pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
-        result = idx.drop_duplicates()
-        tm.assert_index_equal(idx, result)
-        assert idx.freq == result.freq
-
-        idx_dup = idx.append(idx)  # freq will not be reset
-        result = idx_dup.drop_duplicates()
-        tm.assert_index_equal(idx, result)
-        assert idx.freq == result.freq
-
-    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
-    @pytest.mark.parametrize(
-        "keep, expected, index",
-        [
-            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
-            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
-            (
-                False,
-                np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
-                np.arange(5, 10),
-            ),
-        ],
-    )
-    def test_drop_duplicates(self, freq, keep, expected, index):
-        # to check Index/Series compat
-        idx = pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
-        idx = idx.append(idx[:5])
-
-        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
-        expected = idx[~expected]
-
-        result = idx.drop_duplicates(keep=keep)
-        tm.assert_index_equal(result, expected)
-
-        result = Series(idx).drop_duplicates(keep=keep)
-        tm.assert_series_equal(result, Series(expected, index=index))
-
     def test_order_compat(self):
         def _check_freq(index, expected_index):
             if isinstance(index, PeriodIndex):

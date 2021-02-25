@@ -197,46 +197,6 @@ class TestDatetimeIndexOps:
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
         assert ordered.freq is None
 
-    def test_drop_duplicates_metadata(self, freq_sample):
-        # GH 10115
-        idx = date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
-        result = idx.drop_duplicates()
-        tm.assert_index_equal(idx, result)
-        assert idx.freq == result.freq
-
-        idx_dup = idx.append(idx)
-        assert idx_dup.freq is None  # freq is reset
-        result = idx_dup.drop_duplicates()
-        expected = idx._with_freq(None)
-        tm.assert_index_equal(result, expected)
-        assert result.freq is None
-
-    @pytest.mark.parametrize(
-        "keep, expected, index",
-        [
-            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
-            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
-            (
-                False,
-                np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
-                np.arange(5, 10),
-            ),
-        ],
-    )
-    def test_drop_duplicates(self, freq_sample, keep, expected, index):
-        # to check Index/Series compat
-        idx = date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
-        idx = idx.append(idx[:5])
-
-        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
-        expected = idx[~expected]
-
-        result = idx.drop_duplicates(keep=keep)
-        tm.assert_index_equal(result, expected)
-
-        result = Series(idx).drop_duplicates(keep=keep)
-        tm.assert_series_equal(result, Series(expected, index=index))
-
     def test_infer_freq(self, freq_sample):
         # GH 11018
         idx = date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
