@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -45,6 +46,7 @@ def test_agg_regression1(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile/describe
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
 
@@ -134,6 +136,7 @@ def test_groupby_aggregation_multi_level_column():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
@@ -212,6 +215,7 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
     if reduction_func in ("idxmax", "idxmin"):
@@ -491,6 +495,7 @@ def test_agg_index_has_complex_internals(index):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_agg_split_block():
     # https://github.com/pandas-dev/pandas/issues/31522
     df = DataFrame(
@@ -508,6 +513,7 @@ def test_agg_split_block():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_agg_split_object_part_datetime():
     # https://github.com/pandas-dev/pandas/pull/31616
     df = DataFrame(
@@ -1199,6 +1205,7 @@ def test_aggregate_datetime_objects():
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_aggregate_numeric_object_dtype():
     # https://github.com/pandas-dev/pandas/issues/39329
     # simplified case: multiple object columns where one is all-NaN
