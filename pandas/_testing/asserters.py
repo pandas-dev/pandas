@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
@@ -630,12 +631,12 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif is_categorical_dtype(left):
+    elif is_categorical_dtype(left) or isinstance(left, PandasDtype):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif is_categorical_dtype(right):
+    elif is_categorical_dtype(right) or isinstance(right, PandasDtype):
         right = repr(right)
 
     msg += f"""
