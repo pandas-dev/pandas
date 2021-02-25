@@ -2655,15 +2655,17 @@ cdef class NDArrayBacked:
 
     obj = cls._simpler_new(arr, arr.dtype)
 
+    # for foo in [arr, dta, obj]: ...
+
     %timeit foo.copy()
-    299 ns ± 30 ns per loop     # <-- arr underlying ndarray
+    299 ns ± 30 ns per loop     # <-- arr underlying ndarray (for reference)
     530 ns ± 9.24 ns per loop   # <-- dta with cython NDArrayBacked
     1.66 µs ± 46.3 ns per loop  # <-- dta without cython NDArrayBacked
     328 ns ± 5.29 ns per loop   # <-- obj with NDArrayBacked.__cinit__
     371 ns ± 6.97 ns per loop   # <-- obj with NDArrayBacked._simpler_new
 
     %timeit foo.T
-    125 ns ± 6.27 ns per loop   # <-- arr underlying ndarray
+    125 ns ± 6.27 ns per loop   # <-- arr underlying ndarray (for reference)
     226 ns ± 7.66 ns per loop   # <-- dta with cython NDArrayBacked
     911 ns ± 16.6 ns per loop   # <-- dta without cython NDArrayBacked
     215 ns ± 4.54 ns per loop   # <-- obj with NDArrayBacked._simpler_new
