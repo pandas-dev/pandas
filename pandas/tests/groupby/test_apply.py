@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -84,6 +86,7 @@ def test_apply_trivial_fail():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 def test_fast_apply():
     # make sure that fast apply is correctly called
     # rather than raising any kind of error
@@ -213,6 +216,7 @@ def test_group_apply_once_per_group2(capsys):
     assert result == expected
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 @pytest.mark.xfail(reason="GH-34998")
 def test_apply_fast_slow_identical():
     # GH 31613
@@ -233,6 +237,7 @@ def test_apply_fast_slow_identical():
     tm.assert_frame_equal(fast_df, slow_df)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 @pytest.mark.parametrize(
     "func",
     [
@@ -313,6 +318,7 @@ def test_groupby_as_index_apply(df):
     tm.assert_index_equal(res, ind)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_apply_concat_preserve_names(three_group):
     grouped = three_group.groupby(["A", "B"])
 
@@ -1003,9 +1009,10 @@ def test_apply_function_with_indexing_return_column():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-34998")
-def test_apply_with_timezones_aware():
+def test_apply_with_timezones_aware(using_array_manager, request):
     # GH: 27212
+    if not using_array_manager:
+        request.node.add_marker(pytest.mark.xfail(reason="GH-34998"))
 
     dates = ["2001-01-01"] * 2 + ["2001-01-02"] * 2 + ["2001-01-03"] * 2
     index_no_tz = pd.DatetimeIndex(dates)

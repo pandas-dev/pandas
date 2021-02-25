@@ -4,6 +4,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_timedelta64_dtype,
@@ -161,8 +163,11 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis_1(request, transformation_func):
+def test_transform_axis_1(request, transformation_func, using_array_manager):
     # GH 36308
+    if using_array_manager and transformation_func == "pct_change":
+        # TODO(ArrayManager) column-wise shift
+        pytest.skip("ArrayManager: column-wise not yet implemented")
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -183,6 +188,8 @@ def test_transform_axis_1(request, transformation_func):
     tm.assert_equal(result, expected)
 
 
+# TODO(ArrayManager) groupby().transform returns DataFrame backed by BlockManager
+@td.skip_array_manager_not_yet_implemented
 def test_transform_axis_ts(tsframe):
 
     # make sure that we are setting the axes
