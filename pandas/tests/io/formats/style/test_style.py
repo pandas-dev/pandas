@@ -565,13 +565,6 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "-"
         assert ctx["body"][1][2]["display_value"] == "-"
 
-    # def test_format_with_bad_na_rep(self):
-    #     # GH 21527 28358
-    #     df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
-    #     msg = "Expected a string, got -1 instead"
-    #     with pytest.raises(TypeError, match=msg):
-    #         df.style.format(None, na_rep=-1)
-
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
@@ -696,6 +689,25 @@ class TestStyler:
             [len(c["display_value"]) <= 3 for c in row[1:]] for row in ctx["body"]
         )
         assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
+
+    @pytest.mark.parametrize(
+        "kwargs, prec",
+        [
+            ({"formatter": "{:.1f}", "subset": pd.IndexSlice["x", :]}, 2),
+            ({"formatter": "{:.2f}", "subset": pd.IndexSlice[:, "a"]}, 1),
+        ],
+    )
+    def test_display_format_subset_interaction(self, kwargs, prec):
+        # test subset and formatter interaction in conjunction with other methods
+        df = DataFrame([[np.nan, 1], [2, np.nan]], columns=["a", "b"], index=["x", "y"])
+        ctx = df.style.format(**kwargs).set_na_rep("-").set_precision(prec)._translate()
+        assert ctx["body"][0][1]["display_value"] == "-"
+        assert ctx["body"][0][2]["display_value"] == "1.0"
+        assert ctx["body"][1][1]["display_value"] == "2.00"
+        assert ctx["body"][1][2]["display_value"] == "-"
+        ctx = df.style.format(**kwargs)._translate()
+        assert ctx["body"][0][1]["display_value"] == "nan"
+        assert ctx["body"][1][2]["display_value"] == "nan"
 
     @pytest.mark.parametrize("formatter", [5, True, [2.0]])
     def test_display_format_raises(self, formatter):

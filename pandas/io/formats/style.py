@@ -223,6 +223,10 @@ class Styler:
         if isinstance(x, (float, complex)):
             return f"{x:.{self.precision}f}"
         return x
+        # if self.na_rep is None:
+        #     return x
+        # else:
+        #     return self.na_rep if pd.isna(x) else x
 
     def _maybe_wrap_formatter(
         self,
@@ -244,12 +248,14 @@ class Styler:
                 f"'formatter' expected str or callable, got {type(formatter)}"
             )
 
-        if all((na_rep is None, self.na_rep is None)):
-            return func
-        elif na_rep is not None:
+        if na_rep is not None:
             return lambda x: na_rep if pd.isna(x) else func(x)
-        elif self.na_rep is not None:
-            return lambda x: self.na_rep if pd.isna(x) else func(x)
+        else:
+            return (
+                lambda x: self.na_rep
+                if all((self.na_rep is not None, pd.isna(x)))
+                else func(x)
+            )
 
     def format(
         self,
@@ -284,7 +290,7 @@ class Styler:
         See Also
         --------
         Styler.set_na_rep : Set the missing data representation on a Styler.
-        Styler.set_precision :Set the precision used to display values.
+        Styler.set_precision : Set the precision used to display values.
 
         Notes
         -----
