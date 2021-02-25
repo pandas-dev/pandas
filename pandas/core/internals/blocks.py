@@ -180,7 +180,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        values : np.ndarray, ExtensionArray, Index
+        values : np.ndarray or ExtensionArray
 
         Returns
         -------
@@ -352,7 +352,7 @@ class Block(PandasObject):
     @final
     def __setstate__(self, state):
         self.mgr_locs = libinternals.BlockPlacement(state[0])
-        self.values = state[1]
+        self.values = extract_array(state[1], extract_numpy=True)
         self.ndim = self.values.ndim
 
     def _slice(self, slicer):
@@ -1183,7 +1183,6 @@ class Block(PandasObject):
 
         return self.astype(new_dtype, copy=False)
 
-    @final
     def interpolate(
         self,
         method: str = "pad",
@@ -1290,11 +1289,10 @@ class Block(PandasObject):
 
         # only deal with floats
         if self.dtype.kind != "f":
-            if self.dtype.kind not in ["i", "u"]:
-                return [self]
-            data = data.astype(np.float64)
+            # bc we already checked that can_hold_na, we dont have int dtype here
+            return [self]
 
-        if fill_value is None:
+        if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = self.fill_value
 
         if method in ("krogh", "piecewise_polynomial", "pchip"):
@@ -1622,7 +1620,7 @@ class ExtensionBlock(Block):
 
         Parameters
         ----------
-        values : Index, Series, ExtensionArray
+        values : np.ndarray or ExtensionArray
 
         Returns
         -------
@@ -2108,7 +2106,7 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
         Parameters
         ----------
-        values : array-like
+        values : np.ndarray or ExtensionArray
             Must be convertible to datetime64/timedelta64
 
         Returns
