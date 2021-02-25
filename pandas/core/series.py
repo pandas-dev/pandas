@@ -3119,7 +3119,7 @@ Keep all original rows and also all original values
         axis : {0 or 'index'}, default 0
             Axis to direct sorting. The value 'index' is accepted for
             compatibility with DataFrame.sort_values.
-        ascending : bool, default True
+        ascending : bool or list of bools, default True
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
