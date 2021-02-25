@@ -1,13 +1,23 @@
 from datetime import datetime
 from io import StringIO
 import re
-from typing import Dict, List, Union
+from typing import (
+    Dict,
+    List,
+    Union,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -1587,7 +1597,6 @@ class TestDataFrameReplace:
 
     @pytest.mark.xfail(
         reason="category dtype gets changed to object type after replace, see #35268",
-        strict=True,
     )
     def test_replace_dict_category_type(self, input_category_df, expected_category_df):
         """

@@ -9,7 +9,10 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, is_platform_windows
+from pandas.compat import (
+    PY38,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -938,7 +941,8 @@ class TestParquetFastParquet(Base):
 
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-        self.check_error_on_write(df, fp, ValueError, "cannot infer type for")
+        # error from fastparquet -> don't check exact error message
+        self.check_error_on_write(df, fp, ValueError, None)
 
         # mixed
         df = pd.DataFrame({"a": ["a", 1, 2.0]})

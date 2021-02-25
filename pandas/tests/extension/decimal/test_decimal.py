@@ -7,9 +7,14 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import infer_dtype
 from pandas.tests.extension import base
-
-from .array import DecimalArray, DecimalDtype, make_data, to_decimal
+from pandas.tests.extension.decimal.array import (
+    DecimalArray,
+    DecimalDtype,
+    make_data,
+    to_decimal,
+)
 
 
 @pytest.fixture
@@ -116,6 +121,13 @@ class TestDtype(BaseDecimal, base.BaseDtypeTests):
     def test_hashable(self, dtype):
         pass
 
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype(self, data, data_missing, skipna):
+        # here overriding base test to ensure we fall back to return
+        # "unknown-array" for an EA pandas doesn't know
+        assert infer_dtype(data, skipna=skipna) == "unknown-array"
+        assert infer_dtype(data_missing, skipna=skipna) == "unknown-array"
+
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
@@ -166,13 +178,6 @@ class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
 class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
-        if any(x != x for x in all_data):
-            mark = pytest.mark.xfail(
-                reason="tm.assert_series_equal incorrectly raises",
-                raises=AssertionError,
-            )
-            request.node.add_marker(mark)
-
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])
@@ -200,12 +205,6 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    def test_groupby_apply_identity(self, data_for_grouping, request):
-        if any(x != x for x in data_for_grouping):
-            mark = pytest.mark.xfail(reason="tm.assert_series_equal raises incorrectly")
-            request.node.add_marker(mark)
-        super().test_groupby_apply_identity(data_for_grouping)
-
     def test_groupby_agg_extension(self, data_for_grouping):
         super().test_groupby_agg_extension(data_for_grouping)
 

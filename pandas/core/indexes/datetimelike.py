@@ -17,11 +17,25 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import BaseOffset, Resolution, Tick
+from pandas._libs import (
+    NaT,
+    Timedelta,
+    iNaT,
+    join as libjoin,
+    lib,
+)
+from pandas._libs.tslibs import (
+    BaseOffset,
+    Resolution,
+    Tick,
+)
 from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import (
+    Appender,
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -35,11 +49,18 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+)
 from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
@@ -129,7 +150,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._cache = {}
 
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
+        result._index_data = values._ndarray
 
         result._reset_identity()
         return result
@@ -144,7 +165,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     @property
     def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._data
+        return self._data._ndarray
 
     def __array_wrap__(self, result, context=None):
         """
@@ -231,10 +252,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
-
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return tolerance
+        return super()._convert_tolerance(tolerance, target)
 
     def tolist(self) -> List:
         """
@@ -609,12 +627,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_insert_freq(loc, item)
         return result
 
-    def _validate_fill_value(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
-        return self._data._validate_setitem_value(value)
-
     # --------------------------------------------------------------------
     # Join/Set Methods
 
@@ -714,13 +726,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left._values[lslice]
-            # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
-            # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"  [arg-type]
-            result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
+            result = left._values[lslice]
 
-        return self._wrap_setop_result(other, result)
+        return result
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         # Note: we only get here with len(self) > 0 and len(other) > 0
@@ -797,7 +805,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
-            result = self._shallow_copy(dates)._with_freq("infer")
+            result = type(self)._simple_new(dates, name=self.name)
+            result = result._with_freq("infer")
             return result
         else:
             left, right = other, self

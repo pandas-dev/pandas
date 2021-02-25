@@ -14,10 +14,16 @@ from cpython.datetime cimport (
 )
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
-from cpython.object cimport Py_EQ, PyObject_RichCompareBool
+from cpython.object cimport (
+    Py_EQ,
+    PyObject_RichCompareBool,
+)
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
-from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
+from cpython.tuple cimport (
+    PyTuple_New,
+    PyTuple_SET_ITEM,
+)
 
 PyDateTime_IMPORT
 
@@ -66,19 +72,30 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 from pandas._libs cimport util
-from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX, is_nan
+from pandas._libs.util cimport (
+    INT64_MAX,
+    INT64_MIN,
+    UINT64_MAX,
+    is_nan,
+)
 
 from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.period import Period
 
 from pandas._libs.missing cimport (
     C_NA,
     checknull,
+    is_matching_na,
     is_null_datetime64,
     is_null_timedelta64,
     isnaobj,
 )
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT, checknull_with_nat
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+    checknull_with_nat,
+)
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
@@ -584,8 +601,10 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                     return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
-            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            elif not (
+                PyObject_RichCompareBool(x, y, Py_EQ)
+                or is_matching_na(x, y, nan_matches_none=True)
+            ):
                 return False
         except ValueError:
             # Avoid raising ValueError when comparing Numpy arrays to other types
@@ -1040,11 +1059,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
 cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     return (
-        isinstance(obj, abc.Iterable)
+        # equiv: `isinstance(obj, abc.Iterable)`
+        hasattr(obj, "__iter__") and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
         # exclude zero-dimensional numpy arrays, effectively scalars
-        and not (util.is_array(obj) and obj.ndim == 0)
+        and not cnp.PyArray_IsZeroDim(obj)
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
     )
@@ -1079,6 +1099,7 @@ _TYPE_MAP = {
     "timedelta64[ns]": "timedelta64",
     "m": "timedelta64",
     "interval": "interval",
+    Period: "period",
 }
 
 # types only exist on certain platform
@@ -1230,8 +1251,8 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base"]:
-        val = getattr(dtype, attr)
+    for attr in ["name", "kind", "base", "type"]:
+        val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
     return None
@@ -1272,6 +1293,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - time
     - period
     - mixed
+    - unknown-array
 
     Raises
     ------
@@ -1284,6 +1306,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'unknown-array' is the catchall for something that *is* an array (has
+      a dtype attribute), but has a dtype unknown to pandas (e.g. external
+      extension array)
 
     Examples
     --------
@@ -1352,12 +1377,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # e.g. categoricals
         dtype = value.dtype
         if not isinstance(dtype, np.dtype):
-            value = _try_infer_map(value.dtype)
-            if value is not None:
-                return value
-
-            # its ndarray-like but we can't handle
-            raise ValueError(f"cannot infer type for {type(value)}")
+            inferred = _try_infer_map(value.dtype)
+            if inferred is not None:
+                return inferred
+            return "unknown-array"
 
         # Unwrap Series/Index
         values = np.asarray(value)
@@ -1445,7 +1468,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_decimal_array(values):
             return "decimal"
 
-    elif is_complex(val):
+    elif util.is_complex_object(val):
         if is_complex_array(values):
             return "complex"
 
@@ -1963,7 +1986,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray[object]
         Array of object elements to convert.
     na_values : set
         Set of values that should be interpreted as NaN.
@@ -1984,7 +2007,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
     Returns
     -------
-    Array of converted object values to numerical ones.
+    np.ndarray
+        Array of converted object values to numerical ones.
     """
     if len(values) == 0:
         return np.array([], dtype='i8')
@@ -2136,7 +2160,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray[object]
         Array of object elements to convert.
     try_float : bool, default False
         If an array-like object contains only float or NaN values is
@@ -2156,7 +2180,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
     Returns
     -------
-    Array of converted object values to more specific dtypes if applicable.
+    np.ndarray or ExtensionArray
     """
     cdef:
         Py_ssize_t i, n
@@ -2286,7 +2310,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     if seen.datetimetz_:
         if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
-            return DatetimeIndex(objects)
+            dti = DatetimeIndex(objects)
+
+            # unbox to DatetimeArray
+            return dti._data
         seen.object_ = True
 
     if not seen.object_:

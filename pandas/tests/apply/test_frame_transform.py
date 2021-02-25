@@ -4,7 +4,11 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
@@ -202,7 +206,7 @@ def test_transform_bad_dtype(op, frame_or_series):
 
     # tshift is deprecated
     warn = None if op != "tshift" else FutureWarning
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
+    with tm.assert_produces_warning(warn):
         with pytest.raises(ValueError, match=msg):
             obj.transform(op)
         with pytest.raises(ValueError, match=msg):
@@ -256,7 +260,7 @@ def test_transform_missing_columns(axis):
     # GH#35964
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     match = re.escape("Column(s) ['C'] do not exist")
-    with pytest.raises(SpecificationError, match=match):
+    with pytest.raises(KeyError, match=match):
         df.transform({"C": "cumsum"})
 
 
@@ -272,5 +276,15 @@ def test_transform_mixed_column_name_dtypes():
     # GH39025
     df = DataFrame({"a": ["1"]})
     msg = r"Column\(s\) \[1, 'b'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         df.transform({"a": int, 1: str, "b": int})
+
+
+def test_transform_empty_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/39636
+    df = DataFrame([], columns=["col1", "col2"])
+    result = df.transform(lambda x: x + 10)
+    tm.assert_frame_equal(result, df)
+
+    result = df["col1"].transform(lambda x: x + 10)
+    tm.assert_series_equal(result, df["col1"])

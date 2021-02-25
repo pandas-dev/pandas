@@ -1,11 +1,22 @@
-from datetime import time, timedelta
+from datetime import (
+    time,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsTimedelta
+
 import pandas as pd
-from pandas import Series, TimedeltaIndex, isna, to_timedelta
+from pandas import (
+    Series,
+    TimedeltaIndex,
+    isna,
+    to_timedelta,
+)
 import pandas._testing as tm
+from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
@@ -67,6 +78,19 @@ class TestTimedeltas:
         expected = TimedeltaIndex([np.timedelta64(1, "D")] * 5)
         tm.assert_index_equal(result, expected)
 
+    def test_to_timedelta_oob_non_nano(self):
+        arr = np.array([pd.NaT.value + 1], dtype="timedelta64[s]")
+
+        msg = r"Out of bounds for nanosecond timedelta64\[s\] -9223372036854775807"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            to_timedelta(arr)
+
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            TimedeltaIndex(arr)
+
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            TimedeltaArray._from_sequence(arr)
+
     def test_to_timedelta_dataframe(self):
         # GH 11776
         arr = np.arange(10).reshape(2, 5)
@@ -100,9 +124,10 @@ class TestTimedeltas:
             to_timedelta(time(second=1))
         assert to_timedelta(time(second=1), errors="coerce") is pd.NaT
 
-        msg = "unit abbreviation w/o a number"
+        msg = "Could not convert 'foo' to NumPy timedelta"
         with pytest.raises(ValueError, match=msg):
             to_timedelta(["foo", "bar"])
+
         tm.assert_index_equal(
             TimedeltaIndex([pd.NaT, pd.NaT]),
             to_timedelta(["foo", "bar"], errors="coerce"),

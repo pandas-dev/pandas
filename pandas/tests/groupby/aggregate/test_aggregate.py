@@ -4,16 +4,24 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 import datetime
 import functools
 from functools import partial
+import re
 
 import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
@@ -38,6 +46,7 @@ def test_agg_regression1(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile/describe
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
 
@@ -127,6 +136,7 @@ def test_groupby_aggregation_multi_level_column():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
@@ -141,11 +151,13 @@ def test_agg_apply_corner(ts, tsframe):
     # DataFrame
     grouped = tsframe.groupby(tsframe["A"] * np.nan)
     exp_df = DataFrame(
-        columns=tsframe.columns, dtype=float, index=Index([], dtype=np.float64)
+        columns=tsframe.columns,
+        dtype=float,
+        index=Index([], name="A", dtype=np.float64),
     )
-    tm.assert_frame_equal(grouped.sum(), exp_df, check_names=False)
-    tm.assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
-    tm.assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0], check_names=False)
+    tm.assert_frame_equal(grouped.sum(), exp_df)
+    tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
+    tm.assert_frame_equal(grouped.apply(np.sum), exp_df)
 
 
 def test_agg_grouping_is_list_tuple(ts):
@@ -203,6 +215,7 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
     if reduction_func in ("idxmax", "idxmin"):
@@ -482,6 +495,7 @@ def test_agg_index_has_complex_internals(index):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_agg_split_block():
     # https://github.com/pandas-dev/pandas/issues/31522
     df = DataFrame(
@@ -499,6 +513,7 @@ def test_agg_split_block():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_agg_split_object_part_datetime():
     # https://github.com/pandas-dev/pandas/pull/31616
     df = DataFrame(
@@ -677,7 +692,8 @@ class TestNamedAggregationDataFrame:
 
     def test_missing_raises(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2]})
-        with pytest.raises(KeyError, match="Column 'C' does not exist"):
+        match = re.escape("Column(s) ['C'] do not exist")
+        with pytest.raises(KeyError, match=match):
             df.groupby("A").agg(c=("C", "sum"))
 
     def test_agg_namedtuple(self):
@@ -754,7 +770,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
     )
     df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
 
-    with pytest.raises(KeyError, match="does not exist"):
+    with pytest.raises(KeyError, match="do not exist"):
         df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
 
 
@@ -1187,3 +1203,28 @@ def test_aggregate_datetime_objects():
     result = df.groupby("A").B.max()
     expected = df.set_index("A")["B"]
     tm.assert_series_equal(result, expected)
+
+
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
+def test_aggregate_numeric_object_dtype():
+    # https://github.com/pandas-dev/pandas/issues/39329
+    # simplified case: multiple object columns where one is all-NaN
+    # -> gets split as the all-NaN is inferred as float
+    df = DataFrame(
+        {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": [np.nan] * 4},
+    ).astype(object)
+    result = df.groupby("key").min()
+    expected = DataFrame(
+        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [np.nan, np.nan]}
+    ).set_index("key")
+    tm.assert_frame_equal(result, expected)
+
+    # same but with numbers
+    df = DataFrame(
+        {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": range(4)},
+    ).astype(object)
+    result = df.groupby("key").min()
+    expected = DataFrame(
+        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]}
+    ).set_index("key")
+    tm.assert_frame_equal(result, expected)

@@ -3,7 +3,14 @@ import pytest
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, Series, crosstab
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    crosstab,
+)
 import pandas._testing as tm
 
 
@@ -233,7 +240,10 @@ class TestCrosstab:
         s2 = Series([4, 5, 6], index=[4, 5, 6])
 
         actual = crosstab(s1, s2)
-        expected = DataFrame()
+        expected = DataFrame(
+            index=Index([], dtype="int64", name="row_0"),
+            columns=Index([], dtype="int64", name="col_0"),
+        )
 
         tm.assert_frame_equal(actual, expected)
 

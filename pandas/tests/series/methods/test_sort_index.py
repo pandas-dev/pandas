@@ -3,7 +3,12 @@ import random
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, IntervalIndex, MultiIndex, Series
+from pandas import (
+    DatetimeIndex,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
