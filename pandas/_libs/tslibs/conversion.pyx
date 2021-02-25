@@ -2,7 +2,12 @@ import cython
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int32_t, int64_t, intp_t, ndarray
+from numpy cimport (
+    int32_t,
+    int64_t,
+    intp_t,
+    ndarray,
+)
 
 cnp.import_array()
 
@@ -234,6 +239,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
+    if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # without raising explicitly here, we end up with a SystemError
+        # built-in function ensure_datetime64ns returned a result with an error
+        raise ValueError("datetime64/timedelta64 must have a unit specified")
+
     if unit == NPY_FR_ns:
         if copy:
             arr = arr.copy()

@@ -1,14 +1,23 @@
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 from dateutil.tz import tzoffset
 import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas._libs import iNaT, lib
+from pandas._libs import (
+    iNaT,
+    lib,
+)
 
-from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -31,7 +40,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray, period_array
+from pandas.core.arrays import (
+    IntervalArray,
+    period_array,
+)
 from pandas.core.internals.blocks import NumericBlock
 
 
@@ -390,6 +402,15 @@ class TestSeriesConstructors:
 
         result = x.person_name.loc[0]
         assert result == expected
+
+    def test_constructor_series_to_categorical(self):
+        # see GH#16524: test conversion of Series to Categorical
+        series = Series(["a", "b", "c"])
+
+        result = Series(series, dtype="category")
+        expected = Series(["a", "b", "c"], dtype="category")
+
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_categorical_dtype(self):
         result = Series(
@@ -1306,12 +1327,12 @@ class TestSeriesConstructors:
             td.astype("int64")
 
         # invalid casting
-        msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to \[int32\]"
+        msg = r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to \[int32\]"
         with pytest.raises(TypeError, match=msg):
             td.astype("int32")
 
         # this is an invalid casting
-        msg = "Could not convert object to NumPy timedelta"
+        msg = "Could not convert 'foo' to NumPy timedelta"
         with pytest.raises(ValueError, match=msg):
             Series([timedelta(days=1), "foo"], dtype="m8[ns]")
 

@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
-from typing import Any, Callable, List, Optional, Sequence, Type, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -20,7 +28,10 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas._libs.tslibs.offsets import Tick, delta_to_tick
+from pandas._libs.tslibs.offsets import (
+    Tick,
+    delta_to_tick,
+)
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
@@ -29,8 +40,15 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import AnyArrayLike, Dtype, NpDtype
-from pandas.util._decorators import cache_readonly, doc
+from pandas._typing import (
+    AnyArrayLike,
+    Dtype,
+    NpDtype,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -49,7 +67,10 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
@@ -160,6 +181,8 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods = ["strftime", "to_timestamp", "asfreq"]
 
+    __setstate__ = dtl.DatelikeOps.__setstate__
+
     # --------------------------------------------------------------------
     # Constructors
 
@@ -180,10 +203,10 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         if isinstance(values, type(self)):
             if freq is not None and freq != values.freq:
                 raise raise_on_incompatible(values, freq)
-            values, freq = values._data, values.freq
+            values, freq = values._ndarray, values.freq
 
         values = np.array(values, dtype="int64", copy=copy)
-        self._data = values
+        self._ndarray = values
         if freq is None:
             raise ValueError("freq is not specified and cannot be inferred")
         self._dtype = PeriodDtype(freq)
@@ -326,7 +349,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
         if type is not None:
             if pyarrow.types.is_integer(type):
-                return pyarrow.array(self._data, mask=self.isna(), type=type)
+                return pyarrow.array(self._ndarray, mask=self.isna(), type=type)
             elif isinstance(type, ArrowPeriodType):
                 # ensure we have the same freq
                 if self.freqstr != type.freq:
@@ -340,7 +363,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
                 )
 
         period_type = ArrowPeriodType(self.freqstr)
-        storage_array = pyarrow.array(self._data, mask=self.isna(), type="int64")
+        storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
     # --------------------------------------------------------------------

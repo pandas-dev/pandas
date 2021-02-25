@@ -1,7 +1,11 @@
 import numpy as np
 
 import pandas as pd
-from pandas import PeriodIndex, date_range, period_range
+from pandas import (
+    PeriodIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 

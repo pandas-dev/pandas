@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas import DataFrame, date_range
+from pandas import (
+    DataFrame,
+    date_range,
+)
 import pandas._testing as tm
 
 

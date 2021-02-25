@@ -9,13 +9,26 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import is_dtype_equal, is_float, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    is_float,
+    pandas_dtype,
+)
 
 import pandas as pd
-from pandas.api.extensions import no_default, register_extension_dtype
-from pandas.api.types import is_list_like, is_scalar
+from pandas.api.extensions import (
+    no_default,
+    register_extension_dtype,
+)
+from pandas.api.types import (
+    is_list_like,
+    is_scalar,
+)
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+from pandas.core.arrays import (
+    ExtensionArray,
+    ExtensionScalarOpsMixin,
+)
 from pandas.core.indexers import check_array_indexer
 
 

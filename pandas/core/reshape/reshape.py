@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import itertools
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
 import numpy as np
 
@@ -28,7 +32,10 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -422,7 +429,7 @@ def unstack(obj, level, fill_value=None):
             return obj.T.stack(dropna=False)
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
-        # Give nicer error messages when unstack a  Series whose
+        # Give nicer error messages when unstack a Series whose
         # Index is not a MultiIndex.
         raise ValueError(
             f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
@@ -444,9 +451,10 @@ def _unstack_frame(obj, level, fill_value=None):
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(mgr)
     else:
-        return _Unstacker(
-            obj.index, level=level, constructor=obj._constructor
-        ).get_result(obj._values, value_columns=obj.columns, fill_value=fill_value)
+        unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
+        return unstacker.get_result(
+            obj._values, value_columns=obj.columns, fill_value=fill_value
+        )
 
 
 def _unstack_extension_series(series, level, fill_value):

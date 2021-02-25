@@ -156,7 +156,7 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
-<https://github.com/trifacta/vega>`__ to create plots within Jupyter Notebook.
+<https://github.com/vega/vega>`__ to create plots within Jupyter Notebook.
 
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -475,6 +475,14 @@ Pandas-Genomics provides extension types and extension arrays for working with g
 storing numeric arrays with units. These arrays can be stored inside pandas'
 Series and DataFrame. Operations between Series and DataFrame columns which
 use pint's extension array are then units aware.
+
+`Text Extensions for Pandas`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Text Extensions for Pandas <https://ibm.biz/text-extensions-for-pandas>``
+provides extension types to cover common data structures for representing natural language
+data, plus library integrations that convert the outputs of popular natural language
+processing libraries into Pandas DataFrames.
 
 .. _ecosystem.accessors:
 

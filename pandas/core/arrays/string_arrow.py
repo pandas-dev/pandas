@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 from distutils.version import LooseVersion
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import Dtype, NpDtype
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    Dtype,
+    NpDtype,
+)
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -20,10 +33,13 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.indexers import check_array_indexer, validate_indices
-from pandas.core.missing import get_fill_func
+from pandas.core.indexers import (
+    check_array_indexer,
+    validate_indices,
+)
 
 try:
     import pyarrow as pa
@@ -364,18 +380,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f"expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = get_fill_func(method)
+                func = missing.get_fill_func(method)
                 new_values = func(self.to_numpy(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values)
             else:
@@ -615,7 +624,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
 
         vc = self._data.value_counts()
 

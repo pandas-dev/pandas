@@ -39,14 +39,16 @@ class DocBuilder:
 
     def __init__(
         self,
-        num_jobs=0,
+        num_jobs="auto",
         include_api=True,
+        whatsnew=False,
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
     ):
         self.num_jobs = num_jobs
         self.include_api = include_api
+        self.whatsnew = whatsnew
         self.verbosity = verbosity
         self.warnings_are_errors = warnings_are_errors
 
@@ -56,6 +58,8 @@ class DocBuilder:
             os.environ["SPHINX_PATTERN"] = single_doc
         elif not include_api:
             os.environ["SPHINX_PATTERN"] = "-api"
+        elif whatsnew:
+            os.environ["SPHINX_PATTERN"] = "whatsnew"
 
         self.single_doc_html = None
         if single_doc and single_doc.endswith(".rst"):
@@ -131,7 +135,7 @@ class DocBuilder:
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
-            cmd += ["-j", str(self.num_jobs)]
+            cmd += ["-j", self.num_jobs]
         if self.warnings_are_errors:
             cmd += ["-W", "--keep-going"]
         if self.verbosity:
@@ -235,6 +239,9 @@ class DocBuilder:
                 self._open_browser(self.single_doc_html)
             else:
                 self._add_redirects()
+                if self.whatsnew:
+                    self._open_browser(os.path.join("whatsnew", "index.html"))
+
         return ret_code
 
     def latex(self, force=False):
@@ -297,10 +304,16 @@ def main():
         "command", nargs="?", default="html", help=f"command to run: {joined}"
     )
     argparser.add_argument(
-        "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"
+        "--num-jobs", default="auto", help="number of jobs used by sphinx-build"
     )
     argparser.add_argument(
         "--no-api", default=False, help="omit api and autosummary", action="store_true"
+    )
+    argparser.add_argument(
+        "--whatsnew",
+        default=False,
+        help="only build whatsnew (and api for links)",
+        action="store_true",
     )
     argparser.add_argument(
         "--single",
@@ -353,6 +366,7 @@ def main():
     builder = DocBuilder(
         args.num_jobs,
         not args.no_api,
+        args.whatsnew,
         args.single,
         args.verbosity,
         args.warnings_are_errors,

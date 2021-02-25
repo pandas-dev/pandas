@@ -1,11 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import re
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Timedelta, TimedeltaIndex, notna, timedelta_range
+from pandas import (
+    Index,
+    Timedelta,
+    TimedeltaIndex,
+    notna,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 

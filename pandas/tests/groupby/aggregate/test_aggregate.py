@@ -4,6 +4,7 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 import datetime
 import functools
 from functools import partial
+import re
 
 import numpy as np
 import pytest
@@ -13,7 +14,13 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
@@ -141,11 +148,13 @@ def test_agg_apply_corner(ts, tsframe):
     # DataFrame
     grouped = tsframe.groupby(tsframe["A"] * np.nan)
     exp_df = DataFrame(
-        columns=tsframe.columns, dtype=float, index=Index([], dtype=np.float64)
+        columns=tsframe.columns,
+        dtype=float,
+        index=Index([], name="A", dtype=np.float64),
     )
-    tm.assert_frame_equal(grouped.sum(), exp_df, check_names=False)
-    tm.assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
-    tm.assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0], check_names=False)
+    tm.assert_frame_equal(grouped.sum(), exp_df)
+    tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
+    tm.assert_frame_equal(grouped.apply(np.sum), exp_df)
 
 
 def test_agg_grouping_is_list_tuple(ts):
@@ -677,7 +686,8 @@ class TestNamedAggregationDataFrame:
 
     def test_missing_raises(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2]})
-        with pytest.raises(KeyError, match="Column 'C' does not exist"):
+        match = re.escape("Column(s) ['C'] do not exist")
+        with pytest.raises(KeyError, match=match):
             df.groupby("A").agg(c=("C", "sum"))
 
     def test_agg_namedtuple(self):
@@ -754,7 +764,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
     )
     df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
 
-    with pytest.raises(KeyError, match="does not exist"):
+    with pytest.raises(KeyError, match="do not exist"):
         df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
 
 

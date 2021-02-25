@@ -7,52 +7,115 @@ We check for cases of ``Series`` and ``pd.Series`` appearing in the same file
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run inconsistent-namespace-usage --all-files
+
+To automatically fixup a given file, you can pass `--replace`, e.g.
+
+    python scripts/check_for_inconsistent_pandas_namespace.py test_me.py --replace
+
+though note that you may need to manually fixup some imports and that you will also
+need the additional dependency `tokenize-rt` (which is left out from the pre-commit
+hook so that it uses the same virtualenv as the other local ones).
 """
 
 import argparse
-from pathlib import Path
-import re
-from typing import Optional, Sequence
+import ast
+from typing import (
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
-PATTERN = r"""
-    (
-        (?<!pd\.)(?<!\w)    # check class_name doesn't start with pd. or character
-        ([A-Z]\w+)\(        # match DataFrame but not pd.DataFrame or tm.makeDataFrame
-        .*                  # match anything
-        pd\.\2\(            # only match e.g. pd.DataFrame
-    )|
-    (
-        pd\.([A-Z]\w+)\(    # only match e.g. pd.DataFrame
-        .*                  # match anything
-        (?<!pd\.)(?<!\w)    # check class_name doesn't start with pd. or character
-        \4\(                # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
+EXCLUDE = {
+    "array",  # `import array` and `pd.array` should both be allowed
+    "eval",  # built-in, different from `pd.eval`
+    "np",  # pd.np is deprecated but still tested
+}
+Offset = Tuple[int, int]
+
+
+class Visitor(ast.NodeVisitor):
+    def __init__(self) -> None:
+        self.pandas_namespace: MutableMapping[Offset, str] = {}
+        self.no_namespace: Set[str] = set()
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if (
+            isinstance(node.value, ast.Name)
+            and node.value.id == "pd"
+            and node.attr not in EXCLUDE
+        ):
+            self.pandas_namespace[(node.lineno, node.col_offset)] = node.attr
+        self.generic_visit(node)
+
+    def visit_Name(self, node: ast.Name) -> None:
+        if node.id not in EXCLUDE:
+            self.no_namespace.add(node.id)
+        self.generic_visit(node)
+
+
+def replace_inconsistent_pandas_namespace(visitor: Visitor, content: str) -> str:
+    from tokenize_rt import (
+        reversed_enumerate,
+        src_to_tokens,
+        tokens_to_src,
     )
-    """
-ERROR_MESSAGE = "Found both `pd.{class_name}` and `{class_name}` in {path}"
+
+    tokens = src_to_tokens(content)
+    for n, i in reversed_enumerate(tokens):
+        if (
+            i.offset in visitor.pandas_namespace
+            and visitor.pandas_namespace[i.offset] in visitor.no_namespace
+        ):
+            # Replace `pd`
+            tokens[n] = i._replace(src="")
+            # Replace `.`
+            tokens[n + 1] = tokens[n + 1]._replace(src="")
+
+    new_src: str = tokens_to_src(tokens)
+    return new_src
+
+
+def check_for_inconsistent_pandas_namespace(
+    content: str, path: str, *, replace: bool
+) -> Optional[str]:
+    tree = ast.parse(content)
+
+    visitor = Visitor()
+    visitor.visit(tree)
+
+    inconsistencies = visitor.no_namespace.intersection(
+        visitor.pandas_namespace.values()
+    )
+    if not inconsistencies:
+        # No inconsistent namespace usage, nothing to replace.
+        return content
+
+    if not replace:
+        msg = ERROR_MESSAGE.format(name=inconsistencies.pop(), path=path)
+        raise RuntimeError(msg)
+
+    return replace_inconsistent_pandas_namespace(visitor, content)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("paths", nargs="*", type=Path)
+    parser.add_argument("paths", nargs="*")
+    parser.add_argument("--replace", action="store_true")
     args = parser.parse_args(argv)
 
-    pattern = re.compile(
-        PATTERN.encode(),
-        flags=re.MULTILINE | re.DOTALL | re.VERBOSE,
-    )
     for path in args.paths:
-        contents = path.read_bytes()
-        match = pattern.search(contents)
-        if match is None:
+        with open(path, encoding="utf-8") as fd:
+            content = fd.read()
+        new_content = check_for_inconsistent_pandas_namespace(
+            content, path, replace=args.replace
+        )
+        if not args.replace or new_content is None:
             continue
-        if match.group(2) is not None:
-            raise AssertionError(
-                ERROR_MESSAGE.format(class_name=match.group(2).decode(), path=str(path))
-            )
-        if match.group(4) is not None:
-            raise AssertionError(
-                ERROR_MESSAGE.format(class_name=match.group(4).decode(), path=str(path))
-            )
+        with open(path, "w", encoding="utf-8") as fd:
+            fd.write(new_content)
 
 
 if __name__ == "__main__":
