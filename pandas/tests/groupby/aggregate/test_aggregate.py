@@ -495,7 +495,6 @@ def test_agg_index_has_complex_internals(index):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_agg_split_block():
     # https://github.com/pandas-dev/pandas/issues/31522
     df = DataFrame(
@@ -513,7 +512,6 @@ def test_agg_split_block():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_agg_split_object_part_datetime():
     # https://github.com/pandas-dev/pandas/pull/31616
     df = DataFrame(
@@ -1205,7 +1203,6 @@ def test_aggregate_datetime_objects():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) agg py_fallback
 def test_aggregate_numeric_object_dtype():
     # https://github.com/pandas-dev/pandas/issues/39329
     # simplified case: multiple object columns where one is all-NaN

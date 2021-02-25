@@ -1120,7 +1120,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             return result
 
-        def py_fallback(bvalues: ArrayLike) -> ArrayLike:
+        def py_fallback(values: ArrayLike) -> ArrayLike:
             # if self.grouper.aggregate fails, we fall back to a pure-python
             #  solution
 
@@ -1128,11 +1128,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             obj: FrameOrSeriesUnion
 
             # call our grouper again with only this block
-            if isinstance(bvalues, ExtensionArray):
+            if isinstance(values, ExtensionArray) or values.ndim == 1:
                 # TODO(EA2D): special case not needed with 2D EAs
-                obj = Series(bvalues)
+                obj = Series(values)
             else:
-                obj = DataFrame(bvalues.T)
+                # TODO special case not needed with ArrayManager
+                obj = DataFrame(values.T)
                 if obj.shape[1] == 1:
                     # Avoid call to self.values that can occur in DataFrame
                     #  reductions; see GH#28949
