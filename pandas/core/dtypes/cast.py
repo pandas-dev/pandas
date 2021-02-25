@@ -26,7 +26,6 @@ from typing import (
 )
 import warnings
 
-from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import (
@@ -1588,19 +1587,10 @@ def maybe_cast_to_datetime(
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except ParserError:
-                        # Note: ParserError subclasses ValueError
-                        # str that we can't parse to datetime
+                    except ValueError:
+                        # TODO(GH#40048): only catch dateutil's ParserError
+                        #  once we can reliably import it in all supported versions
                         pass
-                    except ValueError as err:
-                        if "mixed datetimes and integers in passed array" in str(err):
-                            # array_to_datetime does not allow this;
-                            # when called from _try_cast, this will be followed
-                            #  by a call to construct_1d_ndarray_preserving_na
-                            #  which will convert these
-                            pass
-                        else:
-                            raise
 
         # coerce datetimelike to object
         elif is_datetime64_dtype(

@@ -89,8 +89,6 @@ class TestDataFrameConstructors:
             arr = arr.reshape(1, 1)
 
         msg = "Could not convert object to NumPy timedelta"
-        if frame_or_series is Series:
-            msg = "Invalid type for timedelta scalar: <class 'numpy.datetime64'>"
         with pytest.raises(ValueError, match=msg):
             frame_or_series(arr, dtype="m8[ns]")
 
