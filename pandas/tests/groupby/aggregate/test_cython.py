@@ -41,10 +41,12 @@ from pandas.core.groupby.groupby import DataError
         "max",
     ],
 )
-def test_cythonized_aggers(op_name, using_array_manager):
+def test_cythonized_aggers(op_name, using_array_manager, request):
     if using_array_manager and op_name in {"count", "sem"}:
         # TODO(ArrayManager) groupby count/sem
-        pytest.skip("ArrayManager groupby count/sem not yet implemented")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="ArrayManager groupby count/sem not implemented")
+        )
     data = {
         "A": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1.0, np.nan, np.nan],
         "B": ["A", "B"] * 6,
