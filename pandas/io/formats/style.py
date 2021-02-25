@@ -299,7 +299,9 @@ class Styler:
         have default formatter applied.
 
         The default formatter currently expresses floats and complex numbers with the
-        precision defined by ``Styler.precision``, leaving all other types unformatted.
+        precision defined by ``Styler.precision``, leaving all other types unformatted,
+        and replacing missing values with the string defined in ``Styler.na_rep``, if
+        set.
 
         Examples
         --------
