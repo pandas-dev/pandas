@@ -223,10 +223,6 @@ class Styler:
         if isinstance(x, (float, complex)):
             return f"{x:.{self.precision}f}"
         return x
-        # if self.na_rep is None:
-        #     return x
-        # else:
-        #     return self.na_rep if pd.isna(x) else x
 
     def _maybe_wrap_formatter(
         self,
