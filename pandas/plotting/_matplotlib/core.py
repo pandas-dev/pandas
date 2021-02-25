@@ -593,6 +593,7 @@ class MPLPlot:
         handles = []
         labels = []
         title = ""
+
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
