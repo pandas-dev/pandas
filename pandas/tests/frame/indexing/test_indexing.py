@@ -98,114 +98,7 @@ class TestDataFrameIndexing:
         expected = Series(["1", "2"], df.columns, name=1)
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_list_of_tuples(self, float_frame):
-        tuples = list(zip(float_frame["A"], float_frame["B"]))
-        float_frame["tuples"] = tuples
-
-        result = float_frame["tuples"]
-        expected = Series(tuples, index=float_frame.index, name="tuples")
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "columns,box,expected",
-        [
-            (
-                ["A", "B", "C", "D"],
-                7,
-                DataFrame(
-                    [[7, 7, 7, 7], [7, 7, 7, 7], [7, 7, 7, 7]],
-                    columns=["A", "B", "C", "D"],
-                ),
-            ),
-            (
-                ["C", "D"],
-                [7, 8],
-                DataFrame(
-                    [[1, 2, 7, 8], [3, 4, 7, 8], [5, 6, 7, 8]],
-                    columns=["A", "B", "C", "D"],
-                ),
-            ),
-            (
-                ["A", "B", "C"],
-                np.array([7, 8, 9], dtype=np.int64),
-                DataFrame([[7, 8, 9], [7, 8, 9], [7, 8, 9]], columns=["A", "B", "C"]),
-            ),
-            (
-                ["B", "C", "D"],
-                [[7, 8, 9], [10, 11, 12], [13, 14, 15]],
-                DataFrame(
-                    [[1, 7, 8, 9], [3, 10, 11, 12], [5, 13, 14, 15]],
-                    columns=["A", "B", "C", "D"],
-                ),
-            ),
-            (
-                ["C", "A", "D"],
-                np.array([[7, 8, 9], [10, 11, 12], [13, 14, 15]], dtype=np.int64),
-                DataFrame(
-                    [[8, 2, 7, 9], [11, 4, 10, 12], [14, 6, 13, 15]],
-                    columns=["A", "B", "C", "D"],
-                ),
-            ),
-            (
-                ["A", "C"],
-                DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
-                DataFrame(
-                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
-                ),
-            ),
-        ],
-    )
-    def test_setitem_list_missing_columns(self, columns, box, expected):
-        # GH 29334
-        df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-        df[columns] = box
-        tm.assert_frame_equal(df, expected)
-
-    def test_setitem_multi_index(self):
-        # GH7655, test that assigning to a sub-frame of a frame
-        # with multi-index columns aligns both rows and columns
-        it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]
-
-        cols = MultiIndex.from_product(it)
-        index = date_range("20141006", periods=20)
-        vals = np.random.randint(1, 1000, (len(index), len(cols)))
-        df = DataFrame(vals, columns=cols, index=index)
-
-        i, j = df.index.values.copy(), it[-1][:]
-
-        np.random.shuffle(i)
-        df["jim"] = df["jolie"].loc[i, ::-1]
-        tm.assert_frame_equal(df["jim"], df["jolie"])
-
-        np.random.shuffle(j)
-        df[("joe", "first")] = df[("jolie", "last")].loc[i, j]
-        tm.assert_frame_equal(df[("joe", "first")], df[("jolie", "last")])
-
-        np.random.shuffle(j)
-        df[("joe", "last")] = df[("jolie", "first")].loc[i, j]
-        tm.assert_frame_equal(df[("joe", "last")], df[("jolie", "first")])
-
-    @pytest.mark.parametrize(
-        "cols, values, expected",
-        [
-            (["C", "D", "D", "a"], [1, 2, 3, 4], 4),  # with duplicates
-            (["D", "C", "D", "a"], [1, 2, 3, 4], 4),  # mixed order
-            (["C", "B", "B", "a"], [1, 2, 3, 4], 4),  # other duplicate cols
-            (["C", "B", "a"], [1, 2, 3], 3),  # no duplicates
-            (["B", "C", "a"], [3, 2, 1], 1),  # alphabetical order
-            (["C", "a", "B"], [3, 2, 1], 2),  # in the middle
-        ],
-    )
-    def test_setitem_same_column(self, cols, values, expected):
-        # GH 23239
-        df = DataFrame([values], columns=cols)
-        df["a"] = df["a"]
-        result = df["a"].values[0]
-        assert result == expected
-
-    def test_getitem_boolean(
-        self, float_string_frame, mixed_float_frame, mixed_int_frame, datetime_frame
-    ):
+    def test_getitem_boolean(self, mixed_float_frame, mixed_int_frame, datetime_frame):
         # boolean indexing
         d = datetime_frame.index[10]
         indexer = datetime_frame.index > d
@@ -242,12 +135,9 @@ class TestDataFrameIndexing:
         # test df[df > 0]
         for df in [
             datetime_frame,
-            float_string_frame,
             mixed_float_frame,
             mixed_int_frame,
         ]:
-            if df is float_string_frame:
-                continue
 
             data = df._get_numeric_data()
             bif = df[df > 0]
@@ -348,6 +238,7 @@ class TestDataFrameIndexing:
         expected = df.loc[Index([1, 10])]
         tm.assert_frame_equal(result, expected)
 
+    def test_getitem_ix_mixed_integer2(self):
         # 11320
         df = DataFrame(
             {
@@ -419,6 +310,7 @@ class TestDataFrameIndexing:
         assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
 
+    def test_setitem2(self):
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
         df.iloc[0] = np.nan
@@ -507,34 +399,6 @@ class TestDataFrameIndexing:
         assert float_frame["something"].dtype == np.int64
         float_frame["something"] = 2.5
         assert float_frame["something"].dtype == np.float64
-
-        # GH 7704
-        # dtype conversion on setting
-        df = DataFrame(np.random.rand(30, 3), columns=tuple("ABC"))
-        df["event"] = np.nan
-        df.loc[10, "event"] = "foo"
-        result = df.dtypes
-        expected = Series(
-            [np.dtype("float64")] * 3 + [np.dtype("object")],
-            index=["A", "B", "C", "event"],
-        )
-        tm.assert_series_equal(result, expected)
-
-        # Test that data type is preserved . #5782
-        df = DataFrame({"one": np.arange(6, dtype=np.int8)})
-        df.loc[1, "one"] = 6
-        assert df.dtypes.one == np.dtype(np.int8)
-        df.one = np.int8(7)
-        assert df.dtypes.one == np.dtype(np.int8)
-
-    def test_setitem_boolean_column(self, float_frame):
-        expected = float_frame.copy()
-        mask = float_frame["A"] > 0
-
-        float_frame.loc[mask, "B"] = 0
-        expected.values[mask.values, 1] = 0
-
-        tm.assert_frame_equal(float_frame, expected)
 
     def test_setitem_corner(self, float_frame):
         # corner case
@@ -908,17 +772,6 @@ class TestDataFrameIndexing:
         result = cp.loc[1.0:5.0]
         assert (result == 0).values.all()
 
-    def test_setitem_single_column_mixed(self):
-        df = DataFrame(
-            np.random.randn(5, 3),
-            index=["a", "b", "c", "d", "e"],
-            columns=["foo", "bar", "baz"],
-        )
-        df["str"] = "qux"
-        df.loc[df.index[::2], "str"] = np.nan
-        expected = np.array([np.nan, "qux", np.nan, "qux", np.nan], dtype=object)
-        tm.assert_almost_equal(df["str"].values, expected)
-
     def test_setitem_single_column_mixed_datetime(self):
         df = DataFrame(
             np.random.randn(5, 3),
@@ -1182,24 +1035,6 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_duplicates(self):
-
-        df = DataFrame(np.random.rand(3, 3), columns=list("ABC"), index=list("aab"))
-
-        result = df.iloc[0]
-        assert isinstance(result, Series)
-        tm.assert_almost_equal(result.values, df.values[0])
-
-        result = df.T.iloc[:, 0]
-        assert isinstance(result, Series)
-        tm.assert_almost_equal(result.values, df.values[0])
-
-        # #2259
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, 1, 2])
-        result = df.iloc[:, [0]]
-        expected = df.take([0], axis=1)
-        tm.assert_frame_equal(result, expected)
-
     def test_loc_duplicates(self):
         # gh-17105
 
@@ -1226,10 +1061,6 @@ class TestDataFrameIndexing:
         df = DataFrame(0, index=trange, columns=["A", "B"])
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
-
-    def test_set_dataframe_column_ns_dtype(self):
-        x = DataFrame([datetime.now(), datetime.now()])
-        assert x[0].dtype == np.dtype("M8[ns]")
 
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):
         # GH 12981
@@ -1265,33 +1096,6 @@ class TestDataFrameIndexing:
             index=list("ABCDEFGH"),
         )
         tm.assert_series_equal(result, expected)
-
-    def test_loc_getitem_index_namedtuple(self):
-        from collections import namedtuple
-
-        IndexType = namedtuple("IndexType", ["a", "b"])
-        idx1 = IndexType("foo", "bar")
-        idx2 = IndexType("baz", "bof")
-        index = Index([idx1, idx2], name="composite_index", tupleize_cols=False)
-        df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
-
-        result = df.loc[IndexType("foo", "bar")]["A"]
-        assert result == 1
-
-    @pytest.mark.parametrize("tpl", [(1,), (1, 2)])
-    def test_loc_getitem_index_single_double_tuples(self, tpl):
-        # GH 20991
-        idx = Index(
-            [(1,), (1, 2)],
-            name="A",
-            tupleize_cols=False,
-        )
-        df = DataFrame(index=idx)
-
-        result = df.loc[[tpl]]
-        idx = Index([tpl], name="A", tupleize_cols=False)
-        expected = DataFrame(index=idx)
-        tm.assert_frame_equal(result, expected)
 
     def test_getitem_boolean_indexing_mixed(self):
         df = DataFrame(
@@ -1346,7 +1150,7 @@ class TestDataFrameIndexing:
             data=[[0, 0, 1, 2], [1, 0, 3, 4], [0, 1, 1, 2], [1, 1, 3, 4]],
         )
         dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
-
+        # TODO: Is this test for pivot_table?
         with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 
@@ -1364,27 +1168,6 @@ class TestDataFrameIndexing:
         expected = Series([1, 3], index=index, name=name)
 
         result = dg["x", 0]
-        tm.assert_series_equal(result, expected)
-
-    def test_loc_getitem_interval_index(self):
-        # GH 19977
-        index = pd.interval_range(start=0, periods=3)
-        df = DataFrame(
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=index, columns=["A", "B", "C"]
-        )
-
-        expected = 1
-        result = df.loc[0.5, "A"]
-        tm.assert_almost_equal(result, expected)
-
-        index = pd.interval_range(start=0, periods=3, closed="both")
-        df = DataFrame(
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=index, columns=["A", "B", "C"]
-        )
-
-        index_exp = pd.interval_range(start=0, periods=2, freq=1, closed="both")
-        expected = Series([1, 4], index=index_exp, name="A")
-        result = df.loc[1, "A"]
         tm.assert_series_equal(result, expected)
 
     def test_getitem_interval_index_partial_indexing(self):

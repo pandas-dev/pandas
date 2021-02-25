@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    Categorical,
     DatetimeIndex,
     Index,
     MultiIndex,
@@ -192,6 +193,13 @@ class TestSetitemSlices:
         ser[:4] = 0
         assert (ser[:4] == 0).all()
         assert not (ser[4:] == 0).any()
+
+    def test_setitem_slicestep(self):
+        # caught this bug when writing tests
+        series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
+
+        series[::2] = 0
+        assert (series[::2] == 0).all()
 
 
 class TestSetitemBooleanMask:
@@ -425,6 +433,43 @@ def test_setitem_slice_into_readonly_backing_data():
         series[1:3] = 1
 
     assert not array.any()
+
+
+def test_setitem_categorical_assigning_ops():
+    orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
+    ser = orig.copy()
+    ser[:] = "a"
+    exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[1] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[ser.index > 0] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[[False, True]] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser.index = ["x", "y"]
+    ser["y"] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]), index=["x", "y"])
+    tm.assert_series_equal(ser, exp)
+
+
+def test_setitem_nan_into_categorical():
+    # ensure that one can set something to np.nan
+    ser = Series(Categorical([1, 2, 3]))
+    exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
+    ser[1] = np.nan
+    tm.assert_series_equal(ser, exp)
 
 
 class TestSetitemCasting:

@@ -23,6 +23,7 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
     Period,
     PeriodIndex,
@@ -466,6 +467,111 @@ class TestDataFrameSetItem:
         result["A"] = []
         expected = DataFrame(columns=["A"], index=index)
         tm.assert_index_equal(result.index, expected.index)
+
+    @pytest.mark.parametrize(
+        "cols, values, expected",
+        [
+            (["C", "D", "D", "a"], [1, 2, 3, 4], 4),  # with duplicates
+            (["D", "C", "D", "a"], [1, 2, 3, 4], 4),  # mixed order
+            (["C", "B", "B", "a"], [1, 2, 3, 4], 4),  # other duplicate cols
+            (["C", "B", "a"], [1, 2, 3], 3),  # no duplicates
+            (["B", "C", "a"], [3, 2, 1], 1),  # alphabetical order
+            (["C", "a", "B"], [3, 2, 1], 2),  # in the middle
+        ],
+    )
+    def test_setitem_same_column(self, cols, values, expected):
+        # GH#23239
+        df = DataFrame([values], columns=cols)
+        df["a"] = df["a"]
+        result = df["a"].values[0]
+        assert result == expected
+
+    def test_setitem_multi_index(self):
+        # GH#7655, test that assigning to a sub-frame of a frame
+        # with multi-index columns aligns both rows and columns
+        it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]
+
+        cols = MultiIndex.from_product(it)
+        index = date_range("20141006", periods=20)
+        vals = np.random.randint(1, 1000, (len(index), len(cols)))
+        df = DataFrame(vals, columns=cols, index=index)
+
+        i, j = df.index.values.copy(), it[-1][:]
+
+        np.random.shuffle(i)
+        df["jim"] = df["jolie"].loc[i, ::-1]
+        tm.assert_frame_equal(df["jim"], df["jolie"])
+
+        np.random.shuffle(j)
+        df[("joe", "first")] = df[("jolie", "last")].loc[i, j]
+        tm.assert_frame_equal(df[("joe", "first")], df[("jolie", "last")])
+
+        np.random.shuffle(j)
+        df[("joe", "last")] = df[("jolie", "first")].loc[i, j]
+        tm.assert_frame_equal(df[("joe", "last")], df[("jolie", "first")])
+
+    @pytest.mark.parametrize(
+        "columns,box,expected",
+        [
+            (
+                ["A", "B", "C", "D"],
+                7,
+                DataFrame(
+                    [[7, 7, 7, 7], [7, 7, 7, 7], [7, 7, 7, 7]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "D"],
+                [7, 8],
+                DataFrame(
+                    [[1, 2, 7, 8], [3, 4, 7, 8], [5, 6, 7, 8]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "B", "C"],
+                np.array([7, 8, 9], dtype=np.int64),
+                DataFrame([[7, 8, 9], [7, 8, 9], [7, 8, 9]], columns=["A", "B", "C"]),
+            ),
+            (
+                ["B", "C", "D"],
+                [[7, 8, 9], [10, 11, 12], [13, 14, 15]],
+                DataFrame(
+                    [[1, 7, 8, 9], [3, 10, 11, 12], [5, 13, 14, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "A", "D"],
+                np.array([[7, 8, 9], [10, 11, 12], [13, 14, 15]], dtype=np.int64),
+                DataFrame(
+                    [[8, 2, 7, 9], [11, 4, 10, 12], [14, 6, 13, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "C"],
+                DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                DataFrame(
+                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
+                ),
+            ),
+        ],
+    )
+    def test_setitem_list_missing_columns(self, columns, box, expected):
+        # GH#29334
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df[columns] = box
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_list_of_tuples(self, float_frame):
+        tuples = list(zip(float_frame["A"], float_frame["B"]))
+        float_frame["tuples"] = tuples
+
+        result = float_frame["tuples"]
+        expected = Series(tuples, index=float_frame.index, name="tuples")
+        tm.assert_series_equal(result, expected)
 
 
 class TestSetitemTZAwareValues:
