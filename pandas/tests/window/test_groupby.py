@@ -83,6 +83,9 @@ class TestRolling:
 
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
@@ -92,6 +95,9 @@ class TestRolling:
 
         result = getattr(r, f)(ddof=1)
         expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -100,10 +106,14 @@ class TestRolling:
     def test_rolling_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
+
         result = r.quantile(0.4, interpolation=interpolation)
         expected = g.apply(
             lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
         )
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
@@ -137,6 +147,9 @@ class TestRolling:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_apply_mutability(self):
@@ -643,6 +656,16 @@ class TestRolling:
         )
         tm.assert_index_equal(result.index, expected_index)
 
+    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
+        # GH 39732
+        g = self.frame.groupby("A")
+        expected = g.apply(lambda x: x.rolling(4).sum()).index
+        _ = g.rolling(window=4)
+        result = g.apply(lambda x: x.rolling(4).sum()).index
+        tm.assert_index_equal(result, expected)
+        assert not g.mutated
+        assert not g.grouper.mutated
+
 
 class TestExpanding:
     def setup_method(self):
@@ -657,6 +680,9 @@ class TestExpanding:
 
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.expanding(), f)())
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
@@ -666,6 +692,9 @@ class TestExpanding:
 
         result = getattr(r, f)(ddof=0)
         expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -674,10 +703,14 @@ class TestExpanding:
     def test_expanding_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.expanding()
+
         result = r.quantile(0.4, interpolation=interpolation)
         expected = g.apply(
             lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
         )
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
@@ -715,6 +748,9 @@ class TestExpanding:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
 
