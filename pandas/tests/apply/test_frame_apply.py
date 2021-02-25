@@ -748,13 +748,13 @@ def test_frame_apply_dont_convert_datetime64():
 
 def test_apply_non_numpy_dtype():
     # GH 12244
-    df = DataFrame({"dt": pd.date_range("2015-01-01", periods=3, tz="Europe/Brussels")})
+    df = DataFrame({"dt": date_range("2015-01-01", periods=3, tz="Europe/Brussels")})
     result = df.apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
     result = df.apply(lambda x: x + pd.Timedelta("1day"))
     expected = DataFrame(
-        {"dt": pd.date_range("2015-01-02", periods=3, tz="Europe/Brussels")}
+        {"dt": date_range("2015-01-02", periods=3, tz="Europe/Brussels")}
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1149,11 +1149,9 @@ def test_agg_transform(axis, float_frame):
         result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
         if axis in {0, "index"}:
-            expected.columns = pd.MultiIndex.from_product(
-                [float_frame.columns, ["sqrt"]]
-            )
+            expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
         else:
-            expected.index = pd.MultiIndex.from_product([float_frame.index, ["sqrt"]])
+            expected.index = MultiIndex.from_product([float_frame.index, ["sqrt"]])
         tm.assert_frame_equal(result, expected)
 
         # multiple items in list
@@ -1162,11 +1160,11 @@ def test_agg_transform(axis, float_frame):
         result = float_frame.apply([np.abs, np.sqrt], axis=axis)
         expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
         if axis in {0, "index"}:
-            expected.columns = pd.MultiIndex.from_product(
+            expected.columns = MultiIndex.from_product(
                 [float_frame.columns, ["absolute", "sqrt"]]
             )
         else:
-            expected.index = pd.MultiIndex.from_product(
+            expected.index = MultiIndex.from_product(
                 [float_frame.index, ["absolute", "sqrt"]]
             )
         tm.assert_frame_equal(result, expected)
@@ -1228,7 +1226,7 @@ def test_agg_multiple_mixed_no_warning():
             "A": [1, 2, 3],
             "B": [1.0, 2.0, 3.0],
             "C": ["foo", "bar", "baz"],
-            "D": pd.date_range("20130101", periods=3),
+            "D": date_range("20130101", periods=3),
         }
     )
     expected = DataFrame(
@@ -1343,7 +1341,7 @@ def test_nuiscance_columns():
             "A": [1, 2, 3],
             "B": [1.0, 2.0, 3.0],
             "C": ["foo", "bar", "baz"],
-            "D": pd.date_range("20130101", periods=3),
+            "D": date_range("20130101", periods=3),
         }
     )
 
@@ -1415,11 +1413,21 @@ def test_non_callable_aggregates(how):
 
     tm.assert_series_equal(result, expected)
 
-    # Just a string attribute arg same as calling df.arg
-    result = getattr(df, how)("size")
-    expected = df.size
 
-    assert result == expected
+@pytest.mark.parametrize("how", ["agg", "apply"])
+def test_size_as_str(how, axis):
+    # GH 39934
+    df = DataFrame(
+        {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
+    )
+    # Just a string attribute arg same as calling df.arg
+    # on the columns
+    result = getattr(df, how)("size", axis=axis)
+    if axis == 0 or axis == "index":
+        expected = Series(df.shape[0], index=df.columns, name="size")
+    else:
+        expected = Series(df.shape[1], index=df.index, name="size")
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_listlike_result():
