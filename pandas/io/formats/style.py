@@ -236,7 +236,7 @@ class Styler:
         if formatter is None:
             func = self._default_formatter
         elif isinstance(formatter, str):
-            func = lambda x: formatter.format(x)
+            func = lambda x: formatter.format(x)  # type: ignore  # mypy issue 10136
         elif callable(formatter):
             func = formatter
         else:
@@ -256,7 +256,7 @@ class Styler:
     def format(
         self,
         formatter: Optional[
-            Union[Dict[Any, Union[str, Callable]], str, Callable]
+            Union[Dict[Any, Optional[Union[str, Callable]]], str, Callable]
         ] = None,
         subset=None,
         na_rep: Optional[str] = None,
