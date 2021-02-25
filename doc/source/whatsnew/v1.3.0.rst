@@ -325,6 +325,7 @@ Numeric
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising ``IndexError`` (:issue:`38932`)
 - Bug in :func:`select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36569`)
 - Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.agg` when passed argument ``func="size"`` would operate on the entire ``DataFrame`` instead of rows or columns (:issue:`39934`)
+- Bug in :meth:`DataFrame.transform` would raise ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
 -
 
 Conversion
@@ -378,7 +379,7 @@ Missing
 ^^^^^^^
 
 - Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
--
+- Bug in :func:`isna`, and :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna` (and the corresponding ``notna`` functions) not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
 -
 
 MultiIndex
@@ -443,6 +444,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly when window is an offset and dates are in descending order (:issue:`40002`)
 - Bug in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` on an empty ``Series`` or ``DataFrame`` would lose index, columns, and/or data types when directly using the methods ``idxmax``, ``idxmin``, ``mad``, ``min``, ``max``, ``sum``, ``prod``, and ``skew`` or using them through ``apply``, ``aggregate``, or ``resample`` (:issue:`26411`)
 - Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
+- Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
 -
 
 Reshaping
