@@ -8,6 +8,7 @@ from pandas import (
     date_range,
     read_json,
     timedelta_range,
+    json_normalize
 )
 
 from ..pandas_vb_common import (
@@ -75,6 +76,20 @@ class ReadJSONLines(BaseIO):
 
     def peakmem_read_json_lines_nrows(self, index):
         read_json(self.fname, orient="records", lines=True, nrows=15000)
+
+
+class NormalizeJSON(BaseIO):
+
+    def setup(self, orient, frame):
+        data = {"hello": ["thisisatest", 999898, "mixed types"],
+                "nest1": {"nest2": {"nest3": "nest3_value", "nest3_int": 3445}},
+                "nest1_list": {"nest2": ["blah", 32423, 546456.876, 92030234]},
+                "hello2": "string"}
+        data = [data for i in range(100)]
+
+
+    def time_normalize_json(self, data):
+        json_normalize(data)
 
 
 class ToJSON(BaseIO):
