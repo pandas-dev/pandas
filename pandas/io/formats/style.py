@@ -219,40 +219,6 @@ class Styler:
     def _default_display_func(self, x):
         return self._maybe_wrap_formatter(formatter=None)(x)
 
-    def _default_formatter(self, x):
-        if isinstance(x, (float, complex)):
-            return f"{x:.{self.precision}f}"
-        return x
-
-    def _maybe_wrap_formatter(
-        self,
-        formatter: Optional[Union[Callable, str]] = None,
-        na_rep: Optional[str] = None,
-    ) -> Callable:
-        """
-        Allows formatters to be expressed as str, callable or None, where None returns
-        a default formatting function. wraps with na_rep where it is available.
-        """
-        if isinstance(formatter, str):
-            func = lambda x: formatter.format(x)
-        elif callable(formatter):
-            func = formatter
-        elif formatter is None:
-            func = self._default_formatter
-        else:
-            raise TypeError(
-                f"'formatter' expected str or callable, got {type(formatter)}"
-            )
-
-        if na_rep is not None:
-            return lambda x: na_rep if pd.isna(x) else func(x)
-        else:
-            return (
-                lambda x: self.na_rep
-                if all((self.na_rep is not None, pd.isna(x)))
-                else func(x)
-            )
-
     def set_tooltips(self, ttips: DataFrame) -> Styler:
         """
         Add string based tooltips that will appear in the `Styler` HTML result. These
@@ -1340,6 +1306,40 @@ class Styler:
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
+
+    def _default_formatter(self, x):
+        if isinstance(x, (float, complex)):
+            return f"{x:.{self.precision}f}"
+        return x
+
+    def _maybe_wrap_formatter(
+        self,
+        formatter: Optional[Union[Callable, str]] = None,
+        na_rep: Optional[str] = None,
+    ) -> Callable:
+        """
+        Allows formatters to be expressed as str, callable or None, where None returns
+        a default formatting function. wraps with na_rep where it is available.
+        """
+        if isinstance(formatter, str):
+            func = lambda x: formatter.format(x)
+        elif callable(formatter):
+            func = formatter
+        elif formatter is None:
+            func = self._default_formatter
+        else:
+            raise TypeError(
+                f"'formatter' expected str or callable, got {type(formatter)}"
+            )
+
+        if na_rep is not None:
+            return lambda x: na_rep if pd.isna(x) else func(x)
+        else:
+            return (
+                lambda x: self.na_rep
+                if all((self.na_rep is not None, pd.isna(x)))
+                else func(x)
+            )
 
     # -----------------------------------------------------------------------
     # A collection of "builtin" styles
