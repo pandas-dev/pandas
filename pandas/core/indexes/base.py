@@ -141,7 +141,10 @@ from pandas.core.base import (
     PandasObject,
 )
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops import get_op_result_name
@@ -2912,7 +2915,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._wrap_setop_result(other, result)
 
-    def _union(self, other, sort):
+    def _union(self, other: Index, sort):
         """
         Specific union logic should go here. In subclasses, union behavior
         should be overwritten here rather than in `self.union`.
@@ -3041,7 +3044,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = self._intersection(other, sort=sort)
         return self._wrap_setop_result(other, result)
 
-    def _intersection(self, other, sort=False):
+    def _intersection(self, other: Index, sort=False):
         """
         intersection specialized to the case with matching dtypes.
         """
@@ -3055,13 +3058,14 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
             else:
-                return algos.unique1d(result)
+                # TODO: algos.unique1d should preserve DTA/TDA
+                res = algos.unique1d(result)
+                return ensure_wrapped_if_datetimelike(res)
 
         try:
             indexer = other.get_indexer(lvals)
-        except (InvalidIndexError, IncompatibleFrequency):
+        except InvalidIndexError:
             # InvalidIndexError raised by get_indexer if non-unique
-            # IncompatibleFrequency raised by PeriodIndex.get_indexer
             indexer, _ = other.get_indexer_non_unique(lvals)
 
         mask = indexer != -1
