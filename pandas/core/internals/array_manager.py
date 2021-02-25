@@ -16,7 +16,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -33,6 +36,8 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
+    is_object_dtype,
+    is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
@@ -50,7 +55,11 @@ from pandas.core.dtypes.missing import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+    sanitize_array,
+)
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
     Index,
@@ -141,18 +150,20 @@ class ArrayManager(DataManager):
         axis = 1 if axis == 0 else 0
         return axis
 
-    # TODO can be shared
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(
+        self, axis: int, new_labels: Index, verify_integrity: bool = True
+    ) -> None:
         # Caller is responsible for ensuring we have an Index object.
         axis = self._normalize_axis(axis)
-        old_len = len(self._axes[axis])
-        new_len = len(new_labels)
+        if verify_integrity:
+            old_len = len(self._axes[axis])
+            new_len = len(new_labels)
 
-        if new_len != old_len:
-            raise ValueError(
-                f"Length mismatch: Expected axis has {old_len} elements, new "
-                f"values have {new_len} elements"
-            )
+            if new_len != old_len:
+                raise ValueError(
+                    f"Length mismatch: Expected axis has {old_len} elements, new "
+                    f"values have {new_len} elements"
+                )
 
         self._axes[axis] = new_labels
 
@@ -201,19 +212,73 @@ class ArrayManager(DataManager):
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
     ) -> Tuple[T, np.ndarray]:
-        # TODO this still fails because `func` assumes to work on 2D arrays
-        # TODO implement ignore_failures
-        assert self.ndim == 2
+        """
+        Apply reduction function column-wise, returning a single-row ArrayManager.
 
-        res_arrays = []
-        for arr in self.arrays:
-            res = func(arr, axis=0)
-            res_arrays.append(np.array([res]))
+        Parameters
+        ----------
+        func : reduction function
+        ignore_failures : bool, default False
+            Whether to drop columns where func raises TypeError.
 
-        index = Index([None])  # placeholder
-        new_mgr = type(self)(res_arrays, [index, self.items])
-        indexer = np.arange(self.shape[0])
+        Returns
+        -------
+        ArrayManager
+        np.ndarray
+            Indexer of column indices that are retained.
+        """
+        result_arrays: List[np.ndarray] = []
+        result_indices: List[int] = []
+        for i, arr in enumerate(self.arrays):
+            try:
+                res = func(arr, axis=0)
+            except TypeError:
+                if not ignore_failures:
+                    raise
+            else:
+                # TODO NaT doesn't preserve dtype, so we need to ensure to create
+                # a timedelta result array if original was timedelta
+                # what if datetime results in timedelta? (eg std)
+                if res is NaT and is_timedelta64_ns_dtype(arr.dtype):
+                    result_arrays.append(np.array(["NaT"], dtype="timedelta64[ns]"))
+                else:
+                    result_arrays.append(sanitize_array([res], None))
+                result_indices.append(i)
+
+        index = Index._simple_new(np.array([None], dtype=object))  # placeholder
+        if ignore_failures:
+            indexer = np.array(result_indices)
+            columns = self.items[result_indices]
+        else:
+            indexer = np.arange(self.shape[0])
+            columns = self.items
+
+        new_mgr = type(self)(result_arrays, [index, columns])
         return new_mgr, indexer
+
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+        """
+        Apply grouped reduction function columnwise, returning a new ArrayManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop columns where func raises TypeError.
+
+        Returns
+        -------
+        ArrayManager
+        """
+        # TODO ignore_failures
+        result_arrays = [func(arr) for arr in self.arrays]
+
+        if len(result_arrays) == 0:
+            index = Index([None])  # placeholder
+        else:
+            index = Index(range(result_arrays[0].shape[0]))
+
+        return type(self)(result_arrays, [index, self.items])
 
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
@@ -330,7 +395,7 @@ class ArrayManager(DataManager):
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
                 arr = arr._data  # type: ignore[union-attr]
-            elif arr.dtype.kind == "m":
+            elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
                 # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
                 arr = arr._data  # type: ignore[union-attr]
             if isinstance(arr, np.ndarray):
@@ -480,31 +545,37 @@ class ArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return False
 
+    def _get_data_subset(self, predicate: Callable) -> ArrayManager:
+        indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
+        arrays = [self.arrays[i] for i in indices]
+        # TODO copy?
+        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="int64")]]
+        return type(self)(arrays, new_axes, verify_integrity=False)
+
     def get_bool_data(self, copy: bool = False) -> ArrayManager:
         """
+        Select columns that are bool-dtype and object-dtype columns that are all-bool.
+
         Parameters
         ----------
         copy : bool, default False
             Whether to copy the blocks
         """
-        mask = np.array([is_bool_dtype(t) for t in self.get_dtypes()], dtype="object")
-        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
-        # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][mask]]
-        return type(self)(arrays, new_axes)
+        return self._get_data_subset(
+            lambda arr: is_bool_dtype(arr.dtype)
+            or (is_object_dtype(arr.dtype) and lib.is_bool_array(arr))
+        )
 
     def get_numeric_data(self, copy: bool = False) -> ArrayManager:
         """
+        Select columns that have a numeric dtype.
+
         Parameters
         ----------
         copy : bool, default False
             Whether to copy the blocks
         """
-        mask = np.array([is_numeric_dtype(t) for t in self.get_dtypes()])
-        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
-        # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][mask]]
-        return type(self)(arrays, new_axes)
+        return self._get_data_subset(lambda arr: is_numeric_dtype(arr.dtype))
 
     def copy(self: T, deep=True) -> T:
         """
@@ -689,6 +760,10 @@ class ArrayManager(DataManager):
             if isinstance(value, np.ndarray) and value.ndim == 2:
                 assert value.shape[1] == 1
                 value = value[0, :]
+
+            # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
+            # but we should avoid that and pass directly the proper array
+            value = ensure_wrapped_if_datetimelike(value)
 
             assert isinstance(value, (np.ndarray, ExtensionArray))
             assert value.ndim == 1
