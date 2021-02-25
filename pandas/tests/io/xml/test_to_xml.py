@@ -4,6 +4,7 @@ from io import (
 )
 import os
 import sys
+from typing import Union
 
 import numpy as np
 import pytest
@@ -135,6 +136,17 @@ from_file_expected = """\
 </data>"""
 
 
+def equalize_decl(doc):
+    # etree and lxml differ on quotes and case in xml declaration
+    if doc is not None:
+        doc = doc.replace(
+            '<?xml version="1.0" encoding="utf-8"?',
+            "<?xml version='1.0' encoding='utf-8'?",
+        )
+
+    return doc
+
+
 @pytest.fixture(params=["rb", "r"])
 def mode(request):
     return request.param
@@ -157,11 +169,7 @@ def test_file_output_str_read(datapath, parser):
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
 
-        # etree and lxml differs on quotes and case in xml declaration
-        output = output.replace(
-            '<?xml version="1.0" encoding="utf-8"?',
-            "<?xml version='1.0' encoding='utf-8'?",
-        )
+        output = equalize_decl(output)
 
         assert output == from_file_expected
 
@@ -175,11 +183,7 @@ def test_file_output_bytes_read(datapath, parser):
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
 
-        # etree and lxml differs on quotes and case in xml declaration
-        output = output.replace(
-            '<?xml version="1.0" encoding="utf-8"?',
-            "<?xml version='1.0' encoding='utf-8'?",
-        )
+        output = equalize_decl(output)
 
         assert output == from_file_expected
 
@@ -189,12 +193,7 @@ def test_str_output(datapath, parser):
     df_file = read_xml(filename, parser=parser)
 
     output = df_file.to_xml(parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == from_file_expected
 
@@ -244,11 +243,7 @@ def test_index_false(datapath, parser):
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
 
-        # etree and lxml differs on quotes and case in xml declaration
-        output = output.replace(
-            '<?xml version="1.0" encoding="utf-8"?',
-            "<?xml version='1.0' encoding='utf-8'?",
-        )
+        output = equalize_decl(output)
 
         assert output == expected
 
@@ -290,11 +285,7 @@ def test_index_false_rename_row_root(datapath, parser):
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
 
-        # etree and lxml differs on quotes and case in xml declaration
-        output = output.replace(
-            '<?xml version="1.0" encoding="utf-8"?',
-            "<?xml version='1.0' encoding='utf-8'?",
-        )
+        output = equalize_decl(output)
 
         assert output == expected
 
@@ -327,24 +318,14 @@ na_expected = """\
 
 def test_na_elem_output(datapath, parser):
     output = geom_df.to_xml(parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == na_expected
 
 
 def test_na_empty_str_elem_option(datapath, parser):
     output = geom_df.to_xml(na_rep="", parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == na_expected
 
@@ -374,12 +355,7 @@ def test_na_empty_elem_option(datapath, parser):
 </data>"""
 
     output = geom_df.to_xml(na_rep="0.0", parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -401,12 +377,7 @@ def test_attrs_cols_nan_output(datapath, parser):
 </data>"""
 
     output = geom_df.to_xml(attr_cols=["shape", "degrees", "sides"], parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -433,12 +404,7 @@ doc:degrees="180" doc:sides="3.0"/>
         prefix="doc",
         parser=parser,
     )
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -480,12 +446,7 @@ def test_elems_cols_nan_output(datapath, parser):
     output = geom_df.to_xml(
         index=False, elem_cols=["degrees", "sides", "shape"], parser=parser
     )
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == elems_cols_expected
 
@@ -524,12 +485,7 @@ def test_elems_and_attrs_cols(datapath, parser):
         attr_cols=["shape"],
         parser=parser,
     )
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == elems_cols_expected
 
@@ -579,12 +535,7 @@ def test_hierarchical_columns(datapath, parser):
     ).round(2)
 
     output = pvt.to_xml(parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -615,12 +566,7 @@ sum_mass="2667.54" mean_mass="333.44"/>
     ).round(2)
 
     output = pvt.to_xml(attr_cols=list(pvt.reset_index().columns.values), parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -662,12 +608,7 @@ def test_multi_index(datapath, parser):
     )
 
     output = agg.to_xml(parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -694,12 +635,7 @@ sum="189.23" mean="94.61"/>
         .round(2)
     )
     output = agg.to_xml(attr_cols=list(agg.reset_index().columns.values), parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -732,12 +668,7 @@ def test_default_namespace(parser):
 </data>"""
 
     output = geom_df.to_xml(namespaces={"": "http://example.com"}, parser=parser)
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -772,12 +703,7 @@ def test_namespace_prefix(parser):
     output = geom_df.to_xml(
         namespaces={"doc": "http://example.com"}, prefix="doc", parser=parser
     )
-
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert output == expected
 
@@ -819,18 +745,14 @@ def test_namespace_prefix_and_default(parser):
         prefix="doc",
         parser=parser,
     )
+    output = equalize_decl(output)
 
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
-
-    # etree and lxml differs on order of namespace prefixes
-    output = output.replace(
-        'xmlns:doc="http://other.org" xmlns="http://example.com"',
-        'xmlns="http://example.com" xmlns:doc="http://other.org"',
-    )
+    if output is not None:
+        # etree and lxml differs on order of namespace prefixes
+        output = output.replace(
+            'xmlns:doc="http://other.org" xmlns="http://example.com"',
+            'xmlns="http://example.com" xmlns:doc="http://other.org"',
+        )
 
     assert output == expected
 
@@ -879,11 +801,12 @@ def test_encoding_option_str(datapath, parser):
 
     output = df_file.to_xml(encoding="ISO-8859-1", parser=parser)
 
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="ISO-8859-1"?',
-        "<?xml version='1.0' encoding='ISO-8859-1'?",
-    )
+    if output is not None:
+        # etree and lxml differ on quotes and case in xml declaration
+        output = output.replace(
+            '<?xml version="1.0" encoding="ISO-8859-1"?',
+            "<?xml version='1.0' encoding='ISO-8859-1'?",
+        )
 
     assert output == encoding_expected
 
@@ -956,13 +879,12 @@ def test_no_pretty_print_with_decl():
         "</row></data>"
     )
 
-    output = geom_df.to_xml(pretty_print=False)
+    output = geom_df.to_xml(pretty_print=False, parser="lxml")
+    output = equalize_decl(output)
 
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
-    output = output.replace(" />", "/>")
+    # etree adds space for closed tags
+    if output is not None:
+        output = output.replace(" />", "/>")
 
     assert output == expected
 
@@ -1037,14 +959,17 @@ def test_stylesheet_file_like(datapath, mode):
 
 @td.skip_if_no("lxml")
 def test_stylesheet_io(datapath, mode):
-    xsl = datapath("io", "data", "xml", "row_field_output.xsl")
+    xsl_path = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    with open(xsl, mode) as f:
-        xsl_obj = f.read()
+    xsl_obj: Union[BytesIO, StringIO]
 
-    xsl_io = BytesIO(xsl_obj) if isinstance(xsl_obj, bytes) else StringIO(xsl_obj)
+    with open(xsl_path, mode) as f:
+        if mode == "rb":
+            xsl_obj = BytesIO(f.read())
+        else:
+            xsl_obj = StringIO(f.read())
 
-    output = geom_df.to_xml(stylesheet=xsl_io)
+    output = geom_df.to_xml(stylesheet=xsl_obj)
 
     assert output == xsl_expected
 
@@ -1202,7 +1127,10 @@ def test_style_to_csv():
     </xsl:template>
 </xsl:stylesheet>"""
 
-    out_csv = geom_df.to_csv(line_terminator="\n").strip()
+    out_csv = geom_df.to_csv(line_terminator="\n")
+
+    if out_csv is not None:
+        out_csv = out_csv.strip()
     out_xml = geom_df.to_xml(stylesheet=xsl)
 
     assert out_csv == out_xml
@@ -1326,11 +1254,7 @@ def test_compression_output(parser, comp):
         ) as handle_obj:
             output = handle_obj.handle.read()
 
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert geom_xml == output.strip()
 
@@ -1348,11 +1272,7 @@ def test_filename_and_suffix_comp(parser, comp, compfile):
         ) as handle_obj:
             output = handle_obj.handle.read()
 
-    # etree and lxml differs on quotes and case in xml declaration
-    output = output.replace(
-        '<?xml version="1.0" encoding="utf-8"?',
-        "<?xml version='1.0' encoding='utf-8'?",
-    )
+    output = equalize_decl(output)
 
     assert geom_xml == output.strip()
 

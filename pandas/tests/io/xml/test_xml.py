@@ -3,6 +3,7 @@ from io import (
     StringIO,
 )
 import os
+from typing import Union
 from urllib.error import HTTPError
 
 import numpy as np
@@ -349,7 +350,7 @@ def test_file_handle_close(datapath, parser):
     xml_file = datapath("io", "data", "xml", "books.xml")
 
     with open(xml_file, "rb") as f:
-        read_xml(f.read(), parser=parser)
+        read_xml(BytesIO(f.read()), parser=parser)
 
         assert not f.closed
 
@@ -678,7 +679,9 @@ def test_names_option_wrong_type(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
     with pytest.raises(TypeError, match=("is not a valid type for names")):
-        read_xml(filename, names="Col1, Col2, Col3", parser=parser)
+        read_xml(
+            filename, names="Col1, Col2, Col3", parser=parser  # type: ignore[arg-type]
+        )
 
 
 # ENCODING
@@ -769,7 +772,14 @@ def test_stylesheet_file_like(datapath, mode):
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
     with open(xsl, mode) as f:
-        read_xml(kml, stylesheet=f)
+        df_style = read_xml(
+            kml,
+            xpath=".//k:Placemark",
+            namespaces={"k": "http://www.opengis.net/kml/2.2"},
+            stylesheet=f,
+        )
+
+    tm.assert_frame_equal(df_kml, df_style)
 
 
 @td.skip_if_no("lxml")
@@ -777,11 +787,22 @@ def test_stylesheet_io(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    with open(xsl, mode) as f:
-        xsl_obj = f.read()
+    xsl_obj: Union[BytesIO, StringIO]
 
-    xsl_io = BytesIO(xsl_obj) if isinstance(xsl_obj, bytes) else StringIO(xsl_obj)
-    read_xml(kml, stylesheet=xsl_io)
+    with open(xsl, mode) as f:
+        if mode == "rb":
+            xsl_obj = BytesIO(f.read())
+        else:
+            xsl_obj = StringIO(f.read())
+
+    df_style = read_xml(
+        kml,
+        xpath=".//k:Placemark",
+        namespaces={"k": "http://www.opengis.net/kml/2.2"},
+        stylesheet=xsl_obj,
+    )
+
+    tm.assert_frame_equal(df_kml, df_style)
 
 
 @td.skip_if_no("lxml")
@@ -912,12 +933,19 @@ def test_wrong_stylesheet():
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_file_close(datapath):
+def test_stylesheet_file_close(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    with open(xsl, "rb") as f:
-        read_xml(kml, stylesheet=f.read())
+    xsl_obj: Union[BytesIO, StringIO]
+
+    with open(xsl, mode) as f:
+        if mode == "rb":
+            xsl_obj = BytesIO(f.read())
+        else:
+            xsl_obj = StringIO(f.read())
+
+        read_xml(kml, stylesheet=xsl_obj)
 
         assert not f.closed
 
