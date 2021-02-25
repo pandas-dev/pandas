@@ -293,10 +293,10 @@ class Styler:
         This method assigns a formatting function to each cell in the DataFrame. Where
         arguments are given as string this is wrapped to a callable as ``str.format(x)``
 
-        The ``subset`` argument is all encompassing. If a dict key for ``formatter`` is
-        not included within the ``subset`` columns it will be ignored. Any cells
-        included within the subset that do not correspond to dict key columns will
-        have default formatter applied.
+        If the ``subset`` argument is given as well as the ``formatter`` argument in
+        dict form then the intersection of the ``subset`` and the columns as keys
+        of the dict are used to define the formatting region. Keys in the dict that
+        do not exist in the ``subset`` will raise a ``KeyError``.
 
         The default formatter currently expresses floats and complex numbers with the
         precision defined by ``Styler.precision``, leaving all other types unformatted,
@@ -322,8 +322,8 @@ class Styler:
         ...         .set_na_rep('SOFT')
                a     b     c       d
         x  1.900     2   1.9   1.900
-        y   HARD  HARD  HARD   SOFT
-        z   SOFT  SOFT  SOFT   SOFT
+        y   SOFT  HARD  HARD    SOFT
+        z   SOFT  SOFT  SOFT    SOFT
         """
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
