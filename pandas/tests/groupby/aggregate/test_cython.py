@@ -281,7 +281,7 @@ def test_read_only_buffer_source_agg(agg):
             "species": ["setosa", "setosa", "setosa", "setosa", "setosa"],
         }
     )
-    df._mgr.blocks[0].values.flags.writeable = False
+    df._mgr.arrays[0].flags.writeable = False
 
     result = df.groupby(["species"]).agg({"sepal_length": agg})
     expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})

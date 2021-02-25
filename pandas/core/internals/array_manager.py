@@ -150,18 +150,20 @@ class ArrayManager(DataManager):
         axis = 1 if axis == 0 else 0
         return axis
 
-    # TODO can be shared
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(
+        self, axis: int, new_labels: Index, verify_integrity: bool = True
+    ) -> None:
         # Caller is responsible for ensuring we have an Index object.
         axis = self._normalize_axis(axis)
-        old_len = len(self._axes[axis])
-        new_len = len(new_labels)
+        if verify_integrity:
+            old_len = len(self._axes[axis])
+            new_len = len(new_labels)
 
-        if new_len != old_len:
-            raise ValueError(
-                f"Length mismatch: Expected axis has {old_len} elements, new "
-                f"values have {new_len} elements"
-            )
+            if new_len != old_len:
+                raise ValueError(
+                    f"Length mismatch: Expected axis has {old_len} elements, new "
+                    f"values have {new_len} elements"
+                )
 
         self._axes[axis] = new_labels
 
@@ -253,6 +255,30 @@ class ArrayManager(DataManager):
 
         new_mgr = type(self)(result_arrays, [index, columns])
         return new_mgr, indexer
+
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+        """
+        Apply grouped reduction function columnwise, returning a new ArrayManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop columns where func raises TypeError.
+
+        Returns
+        -------
+        ArrayManager
+        """
+        # TODO ignore_failures
+        result_arrays = [func(arr) for arr in self.arrays]
+
+        if len(result_arrays) == 0:
+            index = Index([None])  # placeholder
+        else:
+            index = Index(range(result_arrays[0].shape[0]))
+
+        return type(self)(result_arrays, [index, self.items])
 
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
@@ -369,7 +395,7 @@ class ArrayManager(DataManager):
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
                 arr = arr._data  # type: ignore[union-attr]
-            elif arr.dtype.kind == "m":
+            elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
                 # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
                 arr = arr._data  # type: ignore[union-attr]
             if isinstance(arr, np.ndarray):
