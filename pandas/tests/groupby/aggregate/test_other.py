@@ -439,7 +439,7 @@ def test_agg_over_numpy_arrays():
 def test_agg_tzaware_non_datetime_result(as_period):
     # discussed in GH#29589, fixed in GH#29641, operating on tzaware values
     #  with function that is not dtype-preserving
-    dti = pd.date_range("2012-01-01", periods=4, tz="UTC")
+    dti = date_range("2012-01-01", periods=4, tz="UTC")
     if as_period:
         dti = dti.tz_localize(None).to_period("D")
 

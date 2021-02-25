@@ -930,7 +930,7 @@ def test_groupby_apply_datetime_result_dtypes():
         pd.CategoricalIndex(list("abc")),
         pd.interval_range(0, 3),
         pd.period_range("2020", periods=3, freq="D"),
-        pd.MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
+        MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
     ],
 )
 def test_apply_index_has_complex_internals(index):
@@ -1070,7 +1070,7 @@ def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
 
     expected = df.iloc[[0, 2, 3]]
     expected = expected.reset_index()
-    expected.index = pd.MultiIndex.from_frame(expected[["A", "B", "idx"]])
+    expected.index = MultiIndex.from_frame(expected[["A", "B", "idx"]])
     expected = expected.drop(columns="idx")
 
     tm.assert_frame_equal(result, expected)
@@ -1086,7 +1086,7 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
 
     df = DataFrame(
         np.random.random([6, 4]),
-        columns=pd.MultiIndex.from_product([["A", "B"], [1, 2]]),
+        columns=MultiIndex.from_product([["A", "B"], [1, 2]]),
     )
 
     by_rows = df.T.groupby(axis=0, level=0).apply(

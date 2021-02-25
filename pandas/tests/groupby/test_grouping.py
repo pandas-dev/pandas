@@ -611,7 +611,7 @@ class TestGrouping:
 
     def test_list_grouper_with_nat(self):
         # GH 14715
-        df = DataFrame({"date": pd.date_range("1/1/2011", periods=365, freq="D")})
+        df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
         grouper = pd.Grouper(key="date", freq="AS")
 
