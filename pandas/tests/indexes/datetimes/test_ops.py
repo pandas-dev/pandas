@@ -204,22 +204,6 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
 
-    def test_nat(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        assert DatetimeIndex._na_value is pd.NaT
-        assert DatetimeIndex([])._na_value is pd.NaT
-
-        idx = DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
-        assert idx._can_hold_na
-
-        assert idx.hasnans is False
-
-        idx = DatetimeIndex(["2011-01-01", "NaT"], tz=tz)
-        assert idx._can_hold_na
-
-        tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans is True
-
     @pytest.mark.parametrize("values", [["20180101", "20180103", "20180105"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "2B", BDay(2), "48H", Hour(48)])
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])

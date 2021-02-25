@@ -234,22 +234,6 @@ class TestPeriodIndexOps:
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
 
-    def test_nat(self):
-        assert PeriodIndex._na_value is NaT
-        assert PeriodIndex([], freq="M")._na_value is NaT
-
-        idx = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
-        assert idx._can_hold_na
-
-        tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert idx.hasnans is False
-
-        idx = PeriodIndex(["2011-01-01", "NaT"], freq="D")
-        assert idx._can_hold_na
-
-        tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans is True
-
     def test_freq_setter_deprecated(self):
         # GH 20678
         idx = pd.period_range("2018Q1", periods=4, freq="Q")

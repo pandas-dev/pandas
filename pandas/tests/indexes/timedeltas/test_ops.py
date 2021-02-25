@@ -151,22 +151,6 @@ class TestTimedeltaIndexOps:
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
 
-    def test_nat(self):
-        assert TimedeltaIndex._na_value is NaT
-        assert TimedeltaIndex([])._na_value is NaT
-
-        idx = TimedeltaIndex(["1 days", "2 days"])
-        assert idx._can_hold_na
-
-        tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert idx.hasnans is False
-
-        idx = TimedeltaIndex(["1 days", "NaT"])
-        assert idx._can_hold_na
-
-        tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans is True
-
     @pytest.mark.parametrize("values", [["0 days", "2 days", "4 days"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "48H", Hour(48)])
     def test_freq_setter(self, values, freq):
