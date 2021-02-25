@@ -265,13 +265,15 @@ class Styler:
         Parameters
         ----------
         formatter : str, callable, dict or None
-            If ``formatter`` is None, the default formatter is used.
+            Format specification to use for displaying values. If ``None``, the default
+            formatter is used. If ``dict``, keys should corresponcd to column names,
+            and values should be string or callable.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
         na_rep : str, optional
-            Representation for missing values.
-            If ``na_rep`` is None, no special formatting is applied.
+            Representation for missing values. If ``None``, will revert to using
+            ``Styler.na_rep``
 
             .. versionadded:: 1.0.0
 
@@ -279,23 +281,45 @@ class Styler:
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.set_na_rep : Set the missing data representation on a Styler.
+        Styler.set_precision :Set the precision used to display values.
+
         Notes
         -----
-        ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
-        ``a`` is one of
+        This method assigns a formatting function to each cell in the DataFrame. Where
+        arguments are given as string this is wrapped to a callable as ``str.format(x)``
 
-        - str: this will be wrapped in: ``a.format(x)``
-        - callable: called with the value of an individual cell
+        The ``subset`` argument is all encompassing. If a dict key for ``formatter`` is
+        not included within the ``subset`` columns it will be ignored. Any cells
+        included within the subset that do not correspond to dict key columns will
+        have default formatter applied.
 
-        The default display value for numeric values is the "general" (``g``)
-        format with ``pd.options.display.precision`` precision.
+        The default formatter currently expresses floats and complex numbers with the
+        precision defined by ``Styler.precision``, leaving all other types unformatted.
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
-        >>> df.style.format("{:.2%}")
-        >>> df['c'] = ['a', 'b', 'c', 'd']
-        >>> df.style.format({'c': str.upper})
+        >>> df = pd.DataFrame([[1.0, 2.0],[3.0, 4.0]], columns=['a', 'b'])
+        >>> df.style.format({'a': '{:.0f}'})
+            a          b
+        0   1   2.000000
+        1   3   4.000000
+
+        >>> df = pd.DataFrame(np.nan,
+        ...                   columns=['a', 'b', 'c', 'd'],
+        ...                   index=['x', 'y', 'z'])
+        >>> df.iloc[0, :] = 1.9
+        >>> df.style.set_precision(3)
+        ...         .format({'b': '{:.0f}', 'c': '{:.1f}'.format},
+        ...                 na_rep='HARD',
+        ...                 subset=pd.IndexSlice[['y','x'], ['a', 'b', 'c']])
+        ...         .set_na_rep('SOFT')
+               a     b     c       d
+        x  1.900     2   1.9   1.900
+        y   HARD  HARD  HARD   SOFT
+        z   SOFT  SOFT  SOFT   SOFT
         """
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
@@ -1047,7 +1071,7 @@ class Styler:
 
     def set_precision(self, precision: int) -> Styler:
         """
-        Set the precision used to render.
+        Set the precision used to display values.
 
         Parameters
         ----------
