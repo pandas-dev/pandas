@@ -253,101 +253,6 @@ class Styler:
                 else func(x)
             )
 
-    def format(
-        self,
-        formatter: Optional[
-            Union[Dict[Any, Optional[Union[str, Callable]]], str, Callable]
-        ] = None,
-        subset=None,
-        na_rep: Optional[str] = None,
-    ) -> Styler:
-        """
-        Format the text display value of cells.
-
-        Parameters
-        ----------
-        formatter : str, callable, dict or None
-            Format specification to use for displaying values. If ``None``, the default
-            formatter is used. If ``dict``, keys should corresponcd to column names,
-            and values should be string or callable.
-        subset : IndexSlice
-            An argument to ``DataFrame.loc`` that restricts which elements
-            ``formatter`` is applied to.
-        na_rep : str, optional
-            Representation for missing values. If ``None``, will revert to using
-            ``Styler.na_rep``
-
-            .. versionadded:: 1.0.0
-
-        Returns
-        -------
-        self : Styler
-
-        See Also
-        --------
-        Styler.set_na_rep : Set the missing data representation on a Styler.
-        Styler.set_precision : Set the precision used to display values.
-
-        Notes
-        -----
-        This method assigns a formatting function to each cell in the DataFrame. Where
-        arguments are given as string this is wrapped to a callable as ``str.format(x)``
-
-        If the ``subset`` argument is given as well as the ``formatter`` argument in
-        dict form then the intersection of the ``subset`` and the columns as keys
-        of the dict are used to define the formatting region. Keys in the dict that
-        do not exist in the ``subset`` will raise a ``KeyError``.
-
-        The default formatter currently expresses floats and complex numbers with the
-        precision defined by ``Styler.precision``, leaving all other types unformatted,
-        and replacing missing values with the string defined in ``Styler.na_rep``, if
-        set.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([[1.0, 2.0],[3.0, 4.0]], columns=['a', 'b'])
-        >>> df.style.format({'a': '{:.0f}'})
-            a          b
-        0   1   2.000000
-        1   3   4.000000
-
-        >>> df = pd.DataFrame(np.nan,
-        ...                   columns=['a', 'b', 'c', 'd'],
-        ...                   index=['x', 'y', 'z'])
-        >>> df.iloc[0, :] = 1.9
-        >>> df.style.set_precision(3)
-        ...         .format({'b': '{:.0f}', 'c': '{:.1f}'.format},
-        ...                 na_rep='HARD',
-        ...                 subset=pd.IndexSlice[['y','x'], ['a', 'b', 'c']])
-        ...         .set_na_rep('SOFT')
-               a     b     c       d
-        x  1.900     2   1.9   1.900
-        y   SOFT  HARD  HARD    SOFT
-        z   SOFT  SOFT  SOFT    SOFT
-        """
-        subset = slice(None) if subset is None else subset
-        subset = _non_reducing_slice(subset)
-        data = self.data.loc[subset]
-
-        if not isinstance(formatter, dict):
-            columns = data.columns
-            formatter = {col: formatter for col in columns}
-        else:
-            columns = formatter.keys()
-
-        for col in columns:
-            try:
-                format_func = formatter[col]
-            except KeyError:
-                format_func = None
-            format_func = self._maybe_wrap_formatter(format_func, na_rep=na_rep)
-
-            for row, value in data[[col]].itertuples():
-                i, j = self.index.get_loc(row), self.columns.get_loc(col)
-                self._display_funcs[(i, j)] = format_func
-
-        return self
-
     def set_tooltips(self, ttips: DataFrame) -> Styler:
         """
         Add string based tooltips that will appear in the `Styler` HTML result. These
@@ -692,6 +597,101 @@ class Styler:
             d = self.tooltips._translate(self.data, self.uuid, d)
 
         return d
+
+    def format(
+        self,
+        formatter: Optional[
+            Union[Dict[Any, Optional[Union[str, Callable]]], str, Callable]
+        ] = None,
+        subset=None,
+        na_rep: Optional[str] = None,
+    ) -> Styler:
+        """
+        Format the text display value of cells.
+
+        Parameters
+        ----------
+        formatter : str, callable, dict or None
+            Format specification to use for displaying values. If ``None``, the default
+            formatter is used. If ``dict``, keys should corresponcd to column names,
+            and values should be string or callable.
+        subset : IndexSlice
+            An argument to ``DataFrame.loc`` that restricts which elements
+            ``formatter`` is applied to.
+        na_rep : str, optional
+            Representation for missing values. If ``None``, will revert to using
+            ``Styler.na_rep``
+
+            .. versionadded:: 1.0.0
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.set_na_rep : Set the missing data representation on a Styler.
+        Styler.set_precision : Set the precision used to display values.
+
+        Notes
+        -----
+        This method assigns a formatting function to each cell in the DataFrame. Where
+        arguments are given as string this is wrapped to a callable as ``str.format(x)``
+
+        If the ``subset`` argument is given as well as the ``formatter`` argument in
+        dict form then the intersection of the ``subset`` and the columns as keys
+        of the dict are used to define the formatting region. Keys in the dict that
+        do not exist in the ``subset`` will raise a ``KeyError``.
+
+        The default formatter currently expresses floats and complex numbers with the
+        precision defined by ``Styler.precision``, leaving all other types unformatted,
+        and replacing missing values with the string defined in ``Styler.na_rep``, if
+        set.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1.0, 2.0],[3.0, 4.0]], columns=['a', 'b'])
+        >>> df.style.format({'a': '{:.0f}'})
+            a          b
+        0   1   2.000000
+        1   3   4.000000
+
+        >>> df = pd.DataFrame(np.nan,
+        ...                   columns=['a', 'b', 'c', 'd'],
+        ...                   index=['x', 'y', 'z'])
+        >>> df.iloc[0, :] = 1.9
+        >>> df.style.set_precision(3)
+        ...         .format({'b': '{:.0f}', 'c': '{:.1f}'.format},
+        ...                 na_rep='HARD',
+        ...                 subset=pd.IndexSlice[['y','x'], ['a', 'b', 'c']])
+        ...         .set_na_rep('SOFT')
+               a     b     c       d
+        x  1.900     2   1.9   1.900
+        y   SOFT  HARD  HARD    SOFT
+        z   SOFT  SOFT  SOFT    SOFT
+        """
+        subset = slice(None) if subset is None else subset
+        subset = _non_reducing_slice(subset)
+        data = self.data.loc[subset]
+
+        if not isinstance(formatter, dict):
+            columns = data.columns
+            formatter = {col: formatter for col in columns}
+        else:
+            columns = formatter.keys()
+
+        for col in columns:
+            try:
+                format_func = formatter[col]
+            except KeyError:
+                format_func = None
+            format_func = self._maybe_wrap_formatter(format_func, na_rep=na_rep)
+
+            for row, value in data[[col]].itertuples():
+                i, j = self.index.get_loc(row), self.columns.get_loc(col)
+                self._display_funcs[(i, j)] = format_func
+
+        return self
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
