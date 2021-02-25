@@ -13,6 +13,7 @@ from typing import (
 )
 
 from pandas._typing import (
+    Buffer,
     CompressionOptions,
     FilePathOrBuffer,
     StorageOptions,
@@ -182,16 +183,16 @@ class BaseXMLFormatter:
         Adjust Data Frame to fit xml output.
 
         This method will adjust underlying data frame for xml output,
-        including replacing missing entities and including indexes.
+        including optionally replacing missing values and including indexes.
         """
 
-        na_dict = {"None": self.na_rep, "NaN": self.na_rep, "nan": self.na_rep}
+        df = self.fmt.frame
 
-        df = (
-            (self.fmt.frame.reset_index().applymap(str).replace(na_dict))
-            if self.index
-            else self.fmt.frame.applymap(str).replace(na_dict)
-        )
+        if self.index:
+            df = df.reset_index()
+
+        if self.na_rep:
+            df = df.replace({None: self.na_rep, float("nan"): self.na_rep})
 
         return df.to_dict(orient="index")
 
@@ -264,67 +265,12 @@ class BaseXMLFormatter:
 
         raise AbstractMethodError(self)
 
-    def _get_data_from_filepath(self, filepath_or_buffer):
-        """
-        Extract raw XML data.
-
-        The method accepts three input types:
-            1. filepath (string-like)
-            2. file-like object (e.g. open file object, StringIO)
-            3. XML string or bytes
-
-        This method turns (1) into (2) to simplify the rest of the processing.
-        It returns input types (2) and (3) unchanged.
-        """
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
-
-        if (
-            isinstance(filepath_or_buffer, str)
-            and not filepath_or_buffer.startswith(("<?xml", "<"))
-        ) and (
-            not isinstance(filepath_or_buffer, str)
-            or is_url(filepath_or_buffer)
-            or is_fsspec_url(filepath_or_buffer)
-            or file_exists(filepath_or_buffer)
-        ):
-            with get_handle(
-                filepath_or_buffer,
-                "r",
-                encoding=self.encoding,
-                compression=self.compression,
-                storage_options=self.storage_options,
-            ) as handle_obj:
-                filepath_or_buffer = (
-                    handle_obj.handle.read()
-                    if hasattr(handle_obj.handle, "read")
-                    else handle_obj.handle
-                )
-
-        return filepath_or_buffer
-
-    def _preprocess_data(self, data):
-        """
-        Convert extracted raw data.
-
-        This method will return underlying data of extracted XML content.
-        The data either has a `read` attribute (e.g. a file object or a
-        StringIO/BytesIO) or is a string or bytes that is an XML document.
-        """
-        if isinstance(data, str):
-            data = io.StringIO(data)
-
-        elif isinstance(data, bytes):
-            data = io.BytesIO(data)
-
-        return data
-
     def write_output(self) -> Optional[str]:
         xml_doc = self.build_tree()
 
         out_str: Optional[str]
 
         if self.path_or_buffer is not None:
-            # apply compression and byte/text conversion
             with get_handle(
                 self.path_or_buffer,
                 "wb",
@@ -424,8 +370,13 @@ class EtreeXMLFormatter(BaseXMLFormatter):
 
             attr_name = f"{self.prefix_uri}{flat_col}"
             try:
-                if self.d[col] is not None:
-                    self.elem_row.attrib[attr_name] = str(self.d[col])
+                val = (
+                    None
+                    if self.d[col] is None or self.d[col] != self.d[col]
+                    else str(self.d[col])
+                )
+                if val is not None:
+                    self.elem_row.attrib[attr_name] = val
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
 
@@ -446,7 +397,11 @@ class EtreeXMLFormatter(BaseXMLFormatter):
 
             elem_name = f"{self.prefix_uri}{flat_col}"
             try:
-                val = None if self.d[col] in [None, ""] else str(self.d[col])
+                val = (
+                    None
+                    if self.d[col] in [None, ""] or self.d[col] != self.d[col]
+                    else str(self.d[col])
+                )
                 SubElement(self.elem_row, elem_name).text = val
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
@@ -570,8 +525,13 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
             attr_name = f"{self.prefix_uri}{flat_col}"
             try:
-                if self.d[col] is not None:
-                    self.elem_row.attrib[attr_name] = self.d[col]
+                val = (
+                    None
+                    if self.d[col] is None or self.d[col] != self.d[col]
+                    else str(self.d[col])
+                )
+                if val is not None:
+                    self.elem_row.attrib[attr_name] = val
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
 
@@ -592,7 +552,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
             elem_name = f"{self.prefix_uri}{flat_col}"
             try:
-                val = None if self.d[col] in [None, ""] else str(self.d[col])
+                val = (
+                    None
+                    if self.d[col] in [None, ""] or self.d[col] != self.d[col]
+                    else str(self.d[col])
+                )
                 SubElement(self.elem_row, elem_name).text = val
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
@@ -613,9 +577,14 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
         style_doc = self.stylesheet
 
-        handle_data = self._get_data_from_filepath(style_doc)
+        handle_data = _get_data_from_filepath(
+            filepath_or_buffer=style_doc,
+            encoding=self.encoding,
+            compression=self.compression,
+            storage_options=self.storage_options,
+        )
 
-        with self._preprocess_data(handle_data) as xml_data:
+        with _preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
@@ -642,3 +611,64 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         new_doc = transformer(self.root)
 
         return bytes(new_doc)
+
+
+def _get_data_from_filepath(
+    filepath_or_buffer,
+    encoding,
+    compression,
+    storage_options,
+) -> Union[str, bytes, Buffer]:
+    """
+    Extract raw XML data.
+
+    The method accepts three input types:
+        1. filepath (string-like)
+        2. file-like object (e.g. open file object, StringIO)
+        3. XML string or bytes
+
+    This method turns (1) into (2) to simplify the rest of the processing.
+    It returns input types (2) and (3) unchanged.
+    """
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
+
+    if (
+        isinstance(filepath_or_buffer, str)
+        and not filepath_or_buffer.startswith(("<?xml", "<"))
+    ) and (
+        not isinstance(filepath_or_buffer, str)
+        or is_url(filepath_or_buffer)
+        or is_fsspec_url(filepath_or_buffer)
+        or file_exists(filepath_or_buffer)
+    ):
+        with get_handle(
+            filepath_or_buffer,
+            "r",
+            encoding=encoding,
+            compression=compression,
+            storage_options=storage_options,
+        ) as handle_obj:
+            filepath_or_buffer = (
+                handle_obj.handle.read()
+                if hasattr(handle_obj.handle, "read")
+                else handle_obj.handle
+            )
+
+    return filepath_or_buffer
+
+
+def _preprocess_data(data) -> Union[io.StringIO, io.BytesIO]:
+    """
+    Convert extracted raw data.
+
+    This method will return underlying data of extracted XML content.
+    The data either has a `read` attribute (e.g. a file object or a
+    StringIO/BytesIO) or is a string or bytes that is an XML document.
+    """
+    if isinstance(data, str):
+        data = io.StringIO(data)
+
+    elif isinstance(data, bytes):
+        data = io.BytesIO(data)
+
+    return data

@@ -11,6 +11,7 @@ from typing import (
 )
 
 from pandas._typing import (
+    Buffer,
     CompressionOptions,
     FilePathOrBuffer,
     StorageOptions,
@@ -185,61 +186,6 @@ class _XMLFrameParser:
             * If value is not a list and less then length of nodes.
         """
         raise AbstractMethodError(self)
-
-    def _get_data_from_filepath(self, filepath_or_buffer):
-        """
-        Extract raw XML data.
-
-        The method accepts three input types:
-            1. filepath (string-like)
-            2. file-like object (e.g. open file object, StringIO)
-            3. XML string or bytes
-
-        This method turns (1) into (2) to simplify the rest of the processing.
-        It returns input types (2) and (3) unchanged.
-        """
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
-
-        if (
-            isinstance(filepath_or_buffer, str)
-            and not filepath_or_buffer.startswith(("<?xml", "<"))
-        ) and (
-            not isinstance(filepath_or_buffer, str)
-            or is_url(filepath_or_buffer)
-            or is_fsspec_url(filepath_or_buffer)
-            or file_exists(filepath_or_buffer)
-        ):
-            with get_handle(
-                filepath_or_buffer,
-                "r",
-                encoding=self.encoding,
-                compression=self.compression,
-                storage_options=self.storage_options,
-            ) as handle_obj:
-                filepath_or_buffer = (
-                    handle_obj.handle.read()
-                    if hasattr(handle_obj.handle, "read")
-                    else handle_obj.handle
-                )
-
-        return filepath_or_buffer
-
-    def _preprocess_data(self, data):
-        """
-        Convert extracted raw data.
-
-        This method will return underlying data of extracted XML content.
-        The data either has a `read` attribute (e.g. a file object or a
-        StringIO/BytesIO) or is a string or bytes that is an XML document.
-        """
-
-        if isinstance(data, str):
-            data = io.StringIO(data)
-
-        elif isinstance(data, bytes):
-            data = io.BytesIO(data)
-
-        return data
 
     def _parse_doc(self):
         """
@@ -416,11 +362,16 @@ class _EtreeFrameParser(_XMLFrameParser):
             parse,
         )
 
-        handle_data = self._get_data_from_filepath(self.path_or_buffer)
-        self.xml_data = self._preprocess_data(handle_data)
+        handle_data = _get_data_from_filepath(
+            filepath_or_buffer=self.path_or_buffer,
+            encoding=self.encoding,
+            compression=self.compression,
+            storage_options=self.storage_options,
+        )
 
-        curr_parser = XMLParser(encoding=self.encoding)
-        r = parse(self.xml_data, parser=curr_parser)
+        with _preprocess_data(handle_data) as xml_data:
+            curr_parser = XMLParser(encoding=self.encoding)
+            r = parse(xml_data, parser=curr_parser)
 
         return r
 
@@ -558,20 +509,23 @@ class _LxmlFrameParser(_XMLFrameParser):
 
     def _validate_path(self) -> None:
 
+        msg = (
+            "xpath does not return any nodes. "
+            "Be sure row level nodes are in xpath. "
+            "If document uses namespaces denoted with "
+            "xmlns, be sure to define namespaces and "
+            "use them in xpath."
+        )
+
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
         children = self.xml_doc.xpath(self.xpath + "/*", namespaces=self.namespaces)
         attrs = self.xml_doc.xpath(self.xpath + "/@*", namespaces=self.namespaces)
 
-        if (elems == [] and attrs == [] and children == []) or (
-            elems != [] and attrs == [] and children == []
-        ):
-            raise ValueError(
-                "xpath does not return any nodes. "
-                "Be sure row level nodes are in xpath. "
-                "If document uses namespaces denoted with "
-                "xmlns, be sure to define namespaces and "
-                "use them in xpath."
-            )
+        if elems == []:
+            raise ValueError(msg)
+
+        if elems != [] and attrs == [] and children == []:
+            raise ValueError(msg)
 
     def _validate_names(self) -> None:
         """
@@ -609,9 +563,14 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
 
-        handle_data = self._get_data_from_filepath(raw_doc)
+        handle_data = _get_data_from_filepath(
+            filepath_or_buffer=raw_doc,
+            encoding=self.encoding,
+            compression=self.compression,
+            storage_options=self.storage_options,
+        )
 
-        with self._preprocess_data(handle_data) as xml_data:
+        with _preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
@@ -622,6 +581,68 @@ class _LxmlFrameParser(_XMLFrameParser):
                 r = parse(xml_data, parser=curr_parser)
 
         return r
+
+
+def _get_data_from_filepath(
+    filepath_or_buffer,
+    encoding,
+    compression,
+    storage_options,
+) -> Union[str, bytes, Buffer]:
+    """
+    Extract raw XML data.
+
+    The method accepts three input types:
+        1. filepath (string-like)
+        2. file-like object (e.g. open file object, StringIO)
+        3. XML string or bytes
+
+    This method turns (1) into (2) to simplify the rest of the processing.
+    It returns input types (2) and (3) unchanged.
+    """
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
+
+    if (
+        isinstance(filepath_or_buffer, str)
+        and not filepath_or_buffer.startswith(("<?xml", "<"))
+    ) and (
+        not isinstance(filepath_or_buffer, str)
+        or is_url(filepath_or_buffer)
+        or is_fsspec_url(filepath_or_buffer)
+        or file_exists(filepath_or_buffer)
+    ):
+        with get_handle(
+            filepath_or_buffer,
+            "r",
+            encoding=encoding,
+            compression=compression,
+            storage_options=storage_options,
+        ) as handle_obj:
+            filepath_or_buffer = (
+                handle_obj.handle.read()
+                if hasattr(handle_obj.handle, "read")
+                else handle_obj.handle
+            )
+
+    return filepath_or_buffer
+
+
+def _preprocess_data(data) -> Union[io.StringIO, io.BytesIO]:
+    """
+    Convert extracted raw data.
+
+    This method will return underlying data of extracted XML content.
+    The data either has a `read` attribute (e.g. a file object or a
+    StringIO/BytesIO) or is a string or bytes that is an XML document.
+    """
+
+    if isinstance(data, str):
+        data = io.StringIO(data)
+
+    elif isinstance(data, bytes):
+        data = io.BytesIO(data)
+
+    return data
 
 
 def _data_to_frame(data, **kwargs) -> DataFrame:
