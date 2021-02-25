@@ -3091,7 +3091,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if weights is not None:
             weights = Series(weights, index=self._selected_obj.index)
-            ws = [weights[idx] for idx in self.indices.values()]
+            ws = [weights.iloc[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
 
