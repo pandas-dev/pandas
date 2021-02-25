@@ -29,6 +29,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
+    FilePathOrBuffer,
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
@@ -49,6 +50,8 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
+
+from pandas.io.formats.format import save_to_buffer
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
@@ -379,8 +382,10 @@ class Styler:
 
     def to_json(self, **kwargs):
         """
-        Applies the ``:meth:DataFrame.to_json`` method to the ``Styler`` object
-        including existing formats.
+        Convert a ``Styler`` object to JSON
+
+        Uses the ``:meth:DataFrame.to_json`` method but includes the set
+        formats applied to ``Styler``.
 
         Parameters
         ----------
@@ -404,11 +409,74 @@ class Styler:
         {"A":{"0":2.00},"B":{"0":2.0},"C":{"0":"2.0"},"D":{"0":"1.999900"}}
         """
         df = self.data.copy()
-        for r in range(len(df.index)):
-            for c in range(len(df.columns)):
+        for r, row_tup in enumerate(df.itertuples()):
+            for c, value in enumerate(row_tup[1:]):
                 formatter = self._display_funcs[(r, c)]
-                df.iloc[r, c] = formatter(self.data.iloc[r, c])
+                df.iloc[r, c] = formatter(value)
         return df.to_json(**kwargs)
+
+    def to_html(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        # columns: Optional[Sequence] = None,
+        # ignored: col_space,
+        # ignored: header
+        # index: bool = True,
+        # na_rep: Optional[str] = "NaN",
+        # formatters: Optional[Dict] = None,
+        # float_format: Optional[Union[Callable, str]] = None,
+        # ignored: sparsify,
+        # ignored: index_names,
+        # ignored: justify
+        # ignored: max_rows
+        # ignored: min_rows
+        # ignored: max_cols
+        # ignored: show_dimensions
+        # ignored: decimal: deprecate in favour of float_format
+        # ignored: bold_rows
+        # ignored: classes
+        # ignored: escape
+        # ignored: notebook
+        # ignored: border
+        encoding: Optional[str] = None,
+        # ignored: table_id
+        no_styles=False,
+    ):
+        """
+        render styler to HTML or file IO
+        """
+        # if columns:
+        #     hidden = [col for col in self.data.columns if col not in columns]
+        #     self.hide_columns(hidden)
+        #
+        # if not index:
+        #     self.hide_index()
+        #
+        # self.set_na_rep(na_rep)
+        #
+        # if float_format:
+        #     float_cols = self.data.select_dtypes(include=[float])
+        #     self.format({col: float_format for col in float_cols})
+        #
+        # if formatters:
+        #     self.format(formatters)
+
+        # Build HTML string..
+        styler_html = self.render(no_styles=no_styles).split("</style>\n")
+        if no_styles:
+            styler_html = ["", styler_html[0]]
+        else:
+            styler_html = ["\n  " + styler_html[0] + "  </style>", styler_html[1]]
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="{'utf-8' if encoding is None else encoding}">{styler_html[0]}
+</head>
+<body>
+{styler_html[1]}</body>
+</html>
+"""
+        return save_to_buffer(html, buf=buf, encoding=encoding)
 
     def _translate(self):
         """
@@ -781,6 +849,7 @@ class Styler:
         * table_styles
         * caption
         * table_attributes
+        * no_styles
         """
         self._compute()
         # TODO: namespace all the pandas keys
