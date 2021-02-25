@@ -233,12 +233,12 @@ class Styler:
         Allows formatters to be expressed as str, callable or None, where None returns
         a default formatting function. wraps with na_rep where it is available.
         """
-        if formatter is None:
-            func = self._default_formatter
-        elif isinstance(formatter, str):
-            func = lambda x: formatter.format(x)  # type: ignore  # mypy issue 10136
+        if isinstance(formatter, str):
+            func = lambda x: formatter.format(x)
         elif callable(formatter):
             func = formatter
+        elif formatter is None:
+            func = self._default_formatter
         else:
             raise TypeError(
                 f"'formatter' expected str or callable, got {type(formatter)}"
