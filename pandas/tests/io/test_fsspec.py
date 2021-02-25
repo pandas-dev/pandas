@@ -248,11 +248,19 @@ def test_pickle_options(fsspectest):
 
 
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
-def test_json_options(fsspectest):
+def test_json_options(fsspectest, compression):
     df = DataFrame({"a": [0]})
-    df.to_json("testmem://afile", storage_options={"test": "json_write"})
+    df.to_json(
+        "testmem://afile",
+        compression=compression,
+        storage_options={"test": "json_write"},
+    )
     assert fsspectest.test[0] == "json_write"
-    out = read_json("testmem://afile", storage_options={"test": "json_read"})
+    out = read_json(
+        "testmem://afile",
+        compression=compression,
+        storage_options={"test": "json_read"},
+    )
     assert fsspectest.test[0] == "json_read"
     tm.assert_frame_equal(df, out)
 
