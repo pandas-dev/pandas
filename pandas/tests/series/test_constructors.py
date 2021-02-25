@@ -403,6 +403,15 @@ class TestSeriesConstructors:
         result = x.person_name.loc[0]
         assert result == expected
 
+    def test_constructor_series_to_categorical(self):
+        # see GH#16524: test conversion of Series to Categorical
+        series = Series(["a", "b", "c"])
+
+        result = Series(series, dtype="category")
+        expected = Series(["a", "b", "c"], dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_categorical_dtype(self):
         result = Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
@@ -1323,7 +1332,7 @@ class TestSeriesConstructors:
             td.astype("int32")
 
         # this is an invalid casting
-        msg = "Could not convert object to NumPy timedelta"
+        msg = "Could not convert 'foo' to NumPy timedelta"
         with pytest.raises(ValueError, match=msg):
             Series([timedelta(days=1), "foo"], dtype="m8[ns]")
 
