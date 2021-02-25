@@ -317,6 +317,43 @@ class TestIsNA:
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
+    def test_decimal(self):
+        # scalars GH#23530
+        a = Decimal(1.0)
+        assert pd.isna(a) is False
+        assert pd.notna(a) is True
+
+        b = Decimal("NaN")
+        assert pd.isna(b) is True
+        assert pd.notna(b) is False
+
+        # array
+        arr = np.array([a, b])
+        expected = np.array([False, True])
+        result = pd.isna(arr)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.notna(arr)
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        # series
+        ser = Series(arr)
+        expected = Series(expected)
+        result = pd.isna(ser)
+        tm.assert_series_equal(result, expected)
+
+        result = pd.notna(ser)
+        tm.assert_series_equal(result, ~expected)
+
+        # index
+        idx = pd.Index(arr)
+        expected = np.array([False, True])
+        result = pd.isna(idx)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.notna(idx)
+        tm.assert_numpy_array_equal(result, ~expected)
+
 
 @pytest.mark.parametrize("dtype_equal", [True, False])
 def test_array_equivalent(dtype_equal):
@@ -619,33 +656,28 @@ never_na_vals = [
 
 
 class TestLibMissing:
-    def test_checknull(self):
-        for value in na_vals:
-            assert libmissing.checknull(value)
+    @pytest.mark.parametrize("func", [libmissing.checknull, isna])
+    def test_checknull(self, func):
+        for value in na_vals + sometimes_na_vals:
+            assert func(value)
 
         for value in inf_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
         for value in int_na_vals:
-            assert not libmissing.checknull(value)
-
-        for value in sometimes_na_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
         for value in never_na_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
     def test_checknull_old(self):
-        for value in na_vals:
+        for value in na_vals + sometimes_na_vals:
             assert libmissing.checknull_old(value)
 
         for value in inf_vals:
             assert libmissing.checknull_old(value)
 
         for value in int_na_vals:
-            assert not libmissing.checknull_old(value)
-
-        for value in sometimes_na_vals:
             assert not libmissing.checknull_old(value)
 
         for value in never_na_vals:
@@ -681,6 +713,9 @@ class TestLibMissing:
             assert libmissing.is_matching_na(left, right)
         elif is_float(left) and is_float(right):
             # np.nan vs float("NaN") we consider as matching
+            assert libmissing.is_matching_na(left, right)
+        elif type(left) is type(right):
+            # e.g. both Decimal("NaN")
             assert libmissing.is_matching_na(left, right)
         else:
             assert not libmissing.is_matching_na(left, right)
