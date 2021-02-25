@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCPandasArray,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -318,6 +317,8 @@ class BlockManager(DataManager):
     def __setstate__(self, state):
         def unpickle_block(values, mgr_locs, ndim: int):
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
+            values = extract_array(values, extract_numpy=True)
             return make_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
@@ -1214,6 +1215,7 @@ class BlockManager(DataManager):
             # TODO(EA2D): special case not needed with 2D EAs
             value = ensure_block_shape(value, ndim=2)
 
+        # TODO: type value as ArrayLike
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
         for blkno, count in _fast_count_smallints(self.blknos[loc:]):
@@ -1675,6 +1677,11 @@ def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
         raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
 
 
+# We define this here so we can override it in tests.extension.test_numpy
+def _extract_array(obj):
+    return extract_array(obj, extract_numpy=True)
+
+
 def create_block_manager_from_arrays(
     arrays, names: Index, axes: List[Index]
 ) -> BlockManager:
@@ -1682,9 +1689,8 @@ def create_block_manager_from_arrays(
     assert isinstance(axes, list)
     assert all(isinstance(x, Index) for x in axes)
 
-    # ensure we dont have any PandasArrays when we call get_block_type
-    # Note: just calling extract_array breaks tests that patch PandasArray._typ.
-    arrays = [x if not isinstance(x, ABCPandasArray) else x.to_numpy() for x in arrays]
+    arrays = [_extract_array(x) for x in arrays]
+
     try:
         blocks = _form_blocks(arrays, names, axes)
         mgr = BlockManager(blocks, axes)
@@ -1694,7 +1700,12 @@ def create_block_manager_from_arrays(
         raise construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
-def construction_error(tot_items, block_shape, axes, e=None):
+def construction_error(
+    tot_items: int,
+    block_shape: Shape,
+    axes: List[Index],
+    e: Optional[ValueError] = None,
+):
     """ raise a helpful message about our construction """
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction
@@ -1718,7 +1729,9 @@ def construction_error(tot_items, block_shape, axes, e=None):
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(arrays, names: Index, axes: List[Index]) -> List[Block]:
+def _form_blocks(
+    arrays: List[ArrayLike], names: Index, axes: List[Index]
+) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
     items_dict: DefaultDict[str, List] = defaultdict(list)
@@ -1838,13 +1851,6 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
 
 def _stack_arrays(tuples, dtype: np.dtype):
 
-    # fml
-    def _asarray_compat(x):
-        if isinstance(x, ABCSeries):
-            return x._values
-        else:
-            return np.asarray(x)
-
     placement, arrays = zip(*tuples)
 
     first = arrays[0]
@@ -1852,7 +1858,7 @@ def _stack_arrays(tuples, dtype: np.dtype):
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
-        stacked[i] = _asarray_compat(arr)
+        stacked[i] = arr
 
     return stacked, placement
 
@@ -1876,7 +1882,7 @@ def _interleaved_dtype(blocks: Sequence[Block]) -> Optional[DtypeObj]:
     return find_common_type([b.dtype for b in blocks])
 
 
-def _consolidate(blocks):
+def _consolidate(blocks: Tuple[Block, ...]) -> List[Block]:
     """
     Merge blocks having same dtype, exclude non-consolidating blocks
     """
