@@ -765,11 +765,12 @@ class TestDataFrameSortIndex:
         "ascending",
         [
             None,
-            (True, None),
-            (False, "True"),
+            [True, None],
+            [False, "True"],
         ],
     )
     def test_sort_index_ascending_bad_value_raises(self, ascending):
+        # GH 39434
         df = DataFrame(np.arange(64))
         length = len(df.index)
         df.index = [(i - length / 2) % length for i in range(length)]

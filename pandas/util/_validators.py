@@ -2,7 +2,11 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
-from typing import Iterable, Sequence, Union
+from typing import (
+    Iterable,
+    Sequence,
+    Union,
+)
 import warnings
 
 import numpy as np
