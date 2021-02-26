@@ -175,6 +175,7 @@ class _HtmlFrameParser:
     
     remove_whitespace : bool
         Whether table row values should have all whitespace replaced with a space.
+        .. versionadded:: 1.3.0
 
     Attributes
     ----------
@@ -196,6 +197,7 @@ class _HtmlFrameParser:
     
     remove_whitespace : bool
         Whether table row values should have all whitespace replaced with a space
+        .. versionadded:: 1.3.0
 
     Notes
     -----
@@ -1059,6 +1061,7 @@ def read_html(
     
     remove_whitespace : bool, default True
         Whether table row values should have all whitespace replaced with a space.
+        .. versionadded:: 1.3.0
 
     Returns
     -------
