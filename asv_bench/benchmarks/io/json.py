@@ -1,6 +1,5 @@
-import sys
-
 import numpy as np
+import sys
 
 from pandas import (
     DataFrame,
@@ -10,7 +9,6 @@ from pandas import (
     timedelta_range,
     json_normalize
 )
-
 from ..pandas_vb_common import (
     BaseIO,
     tm,
@@ -79,16 +77,22 @@ class ReadJSONLines(BaseIO):
 
 
 class NormalizeJSON(BaseIO):
+    fname = "__test__.json"
+    params = [
+        ["split", "columns", "index", "values", "records"],
+        ["df", "df_date_idx", "df_td_int_ts", "df_int_floats", "df_int_float_str"],
+    ]
+    param_names = ["orient", "frame"]
 
     def setup(self, orient, frame):
         data = {"hello": ["thisisatest", 999898, "mixed types"],
                 "nest1": {"nest2": {"nest3": "nest3_value", "nest3_int": 3445}},
                 "nest1_list": {"nest2": ["blah", 32423, 546456.876, 92030234]},
                 "hello2": "string"}
-        data = [data for i in range(100)]
+        self.data = [data for i in range(10000)]
 
-    def time_normalize_json(self, data):
-        json_normalize(data)
+    def time_normalize_json(self, orient, frame):
+        json_normalize(self.data)
 
 
 class ToJSON(BaseIO):
