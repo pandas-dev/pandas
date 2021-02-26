@@ -63,6 +63,7 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     FrameOrSeriesUnion,
+    Frequency,
     IndexKeyFunc,
     IndexLabel,
     Level,
@@ -139,8 +140,8 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import (
     reconstruct_func,
     relabel_result,
-    transform,
 )
+from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -752,10 +753,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if isinstance(self._mgr, ArrayManager):
             return False
-        if self._mgr.any_extension_types:
-            # TODO(EA2D) special case would be unnecessary with 2D EAs
+        blocks = self._mgr.blocks
+        if len(blocks) != 1:
             return False
-        return len(self._mgr.blocks) == 1
+
+        return not self._mgr.any_extension_types
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -3263,6 +3265,9 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
+            if isinstance(value, DataFrame):
+                # GH#39931 reindex since iloc does not align
+                value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
@@ -3999,7 +4004,7 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, value):
+    def _sanitize_column(self, value) -> ArrayLike:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
@@ -4010,7 +4015,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray or ExtensionArray
         """
         self._ensure_valid_index(value)
 
@@ -4024,7 +4029,7 @@ class DataFrame(NDFrame, OpsMixin):
             value = value.copy()
             value = sanitize_index(value, self.index)
 
-        elif isinstance(value, Index) or is_sequence(value):
+        elif is_sequence(value):
 
             # turn me into an ndarray
             value = sanitize_index(value, self.index)
@@ -4034,7 +4039,7 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     value = com.asarray_tuplesafe(value)
             elif isinstance(value, Index):
-                value = value.copy(deep=True)
+                value = value.copy(deep=True)._values
             else:
                 value = value.copy()
 
@@ -4185,9 +4190,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            new_values = algorithms.take_2d_multi(
-                self.values, indexer, fill_value=fill_value
-            )
+            new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
             return self._reindex_with_indexers(
@@ -4678,7 +4681,11 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
-        self, periods=1, freq=None, axis: Axis = 0, fill_value=lib.no_default
+        self,
+        periods=1,
+        freq: Optional[Frequency] = None,
+        axis: Axis = 0,
+        fill_value=lib.no_default,
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
@@ -7727,21 +7734,14 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        from pandas.core.apply import frame_apply
+
         axis = self._get_axis_number(axis)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
-        result = None
-        try:
-            result = self._aggregate(func, axis, *args, **kwargs)
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
-        if result is None:
-            return self.apply(func, axis=axis, args=args, **kwargs)
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.agg()
 
         if relabeling:
             # This is to keep the order to columns occurrence unchanged, and also
@@ -7757,25 +7757,6 @@ NaN 12.3   33.0
 
         return result
 
-    def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
-        from pandas.core.apply import frame_apply
-
-        op = frame_apply(
-            self if axis == 0 else self.T,
-            func=arg,
-            axis=0,
-            args=args,
-            kwargs=kwargs,
-        )
-        result = op.agg()
-
-        if axis == 1:
-            # NDFrame.aggregate returns a tuple, and we need to transpose
-            # only result
-            result = result.T if result is not None else result
-
-        return result
-
     agg = aggregate
 
     @doc(
@@ -7786,7 +7767,10 @@ NaN 12.3   33.0
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame:
-        result = transform(self, func, axis, *args, **kwargs)
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        result = op.transform()
         assert isinstance(result, DataFrame)
         return result
 
@@ -9499,7 +9483,7 @@ NaN 12.3   33.0
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
     def asfreq(
         self,
-        freq,
+        freq: Frequency,
         method=None,
         how: Optional[str] = None,
         normalize: bool = False,
@@ -9545,7 +9529,11 @@ NaN 12.3   33.0
         )
 
     def to_timestamp(
-        self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
+        self,
+        freq: Optional[Frequency] = None,
+        how: str = "start",
+        axis: Axis = 0,
+        copy: bool = True,
     ) -> DataFrame:
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
@@ -9578,7 +9566,9 @@ NaN 12.3   33.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> DataFrame:
+    def to_period(
+        self, freq: Optional[Frequency] = None, axis: Axis = 0, copy: bool = True
+    ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
