@@ -203,8 +203,13 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
         return values.asi8, dtype  # type: ignore[union-attr]
 
     elif is_categorical_dtype(values.dtype):
-        values = cast("Categorical", values)
-        values = values.codes
+        # error: Incompatible types in assignment (expression has type "Categorical",
+        # variable has type "ndarray")
+        values = cast("Categorical", values)  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute "codes"
+        values = values.codes  # type: ignore[assignment,union-attr]
         dtype = pandas_dtype("category")
 
         # we are actually coercing to int64
