@@ -259,6 +259,8 @@ class TestCrosstab:
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna2(self):
+
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
@@ -267,6 +269,8 @@ class TestCrosstab:
         expected.index = Index([1.0, 2.0, "All"], name="a")
         expected.columns = Index([3.0, 4.0, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
+
+    def test_margin_dropna3(self):
 
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, np.nan, 2], "b": [3, 3, 4, 4, 4, 4]}
@@ -277,6 +281,7 @@ class TestCrosstab:
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna4(self):
         # GH 12642
         # _add_margins raises KeyError: Level None not found
         # when margins=True and dropna=False
@@ -287,6 +292,7 @@ class TestCrosstab:
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna5(self):
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
@@ -296,6 +302,7 @@ class TestCrosstab:
         expected.columns = Index([3.0, 4.0, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna6(self):
         a = np.array(["foo", "foo", "foo", "bar", "bar", "foo", "foo"], dtype=object)
         b = np.array(["one", "one", "two", "one", "two", np.nan, "two"], dtype=object)
         c = np.array(
@@ -393,6 +400,12 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(
             crosstab(df.a, df.b, normalize=True, margins=True), all_normal_margins
+        )
+
+    def test_crosstab_normalize_arrays(self):
+        # GH#12578
+        df = DataFrame(
+            {"a": [1, 2, 2, 2, 2], "b": [3, 3, 4, 4, 4], "c": [1, 1, np.nan, 1, 1]}
         )
 
         # Test arrays
@@ -798,7 +811,7 @@ def test_categoricals(a_dtype, b_dtype):
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]
         expected["All"] = expected["All"].astype("int64")
-    print(result)
-    print(expected)
-    print(expected.loc[[0, 2, "All"]])
+    repr(result)
+    repr(expected)
+    repr(expected.loc[[0, 2, "All"]])
     tm.assert_frame_equal(result, expected)

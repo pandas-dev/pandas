@@ -774,7 +774,7 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        result = lib.maybe_convert_objects(result, try_float=0)
+        result = lib.maybe_convert_objects(result, try_float=False)
         result = maybe_cast_result(result, obj, numeric_only=True)
 
         return result, counts

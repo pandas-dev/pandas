@@ -3,9 +3,7 @@ import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
-import pandas as pd
 from pandas import (
-    DataFrame,
     DatetimeIndex,
     Index,
     NaT,
@@ -48,22 +46,6 @@ class TestPeriodIndex(DatetimeLike):
     def test_where(self):
         # This is handled in test_indexing
         pass
-
-    @pytest.mark.parametrize("use_numpy", [True, False])
-    @pytest.mark.parametrize(
-        "index",
-        [
-            period_range("2000-01-01", periods=3, freq="D"),
-            period_range("2001-01-01", periods=3, freq="2D"),
-            PeriodIndex(["2001-01", "NaT", "2003-01"], freq="M"),
-        ],
-    )
-    def test_repeat_freqstr(self, index, use_numpy):
-        # GH10183
-        expected = PeriodIndex([p for p in index for _ in range(3)])
-        result = np.repeat(index, 3) if use_numpy else index.repeat(3)
-        tm.assert_index_equal(result, expected)
-        assert result.freqstr == index.freqstr
 
     def test_no_millisecond_field(self):
         msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
@@ -355,25 +337,6 @@ class TestPeriodIndex(DatetimeLike):
         assert isinstance(result[0], Period)
         assert result[0].freq == index.freq
 
-    def test_is_full(self):
-        index = PeriodIndex([2005, 2007, 2009], freq="A")
-        assert not index.is_full
-
-        index = PeriodIndex([2005, 2006, 2007], freq="A")
-        assert index.is_full
-
-        index = PeriodIndex([2005, 2005, 2007], freq="A")
-        assert not index.is_full
-
-        index = PeriodIndex([2005, 2005, 2006], freq="A")
-        assert index.is_full
-
-        index = PeriodIndex([2006, 2005, 2005], freq="A")
-        with pytest.raises(ValueError, match="Index is not monotonic"):
-            index.is_full
-
-        assert index[:0].is_full
-
     def test_with_multi_index(self):
         # #1705
         index = date_range("1/1/2012", periods=4, freq="12H")
@@ -392,22 +355,6 @@ class TestPeriodIndex(DatetimeLike):
         result = Index(periods)
         assert isinstance(result, PeriodIndex)
 
-    def test_append_concat(self):  # TODO: pd.concat test
-        # #1815
-        d1 = date_range("12/31/1990", "12/31/1999", freq="A-DEC")
-        d2 = date_range("12/31/2000", "12/31/2009", freq="A-DEC")
-
-        s1 = Series(np.random.randn(10), d1)
-        s2 = Series(np.random.randn(10), d2)
-
-        s1 = s1.to_period()
-        s2 = s2.to_period()
-
-        # drops index
-        result = pd.concat([s1, s2])
-        assert isinstance(result.index, PeriodIndex)
-        assert result.index[0] == s1.index[0]
-
     def test_pickle_freq(self):
         # GH2891
         prng = period_range("1/1/2011", "1/1/2012", freq="M")
@@ -422,44 +369,6 @@ class TestPeriodIndex(DatetimeLike):
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
-
-    @pytest.mark.parametrize(
-        "msg, key",
-        [
-            (r"Period\('2019', 'A-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
-            (r"Period\('2019', 'A-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
-            (r"Period\('2019', 'A-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
-            (
-                r"Period\('2018', 'A-DEC'\), Period\('2016', 'A-DEC'\), 'bar'",
-                (Period(2018), Period(2016), "bar"),
-            ),
-            (r"Period\('2018', 'A-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
-            (
-                r"Period\('2017', 'A-DEC'\), 'foo', Period\('2015', 'A-DEC'\)",
-                (Period(2017), "foo", Period(2015)),
-            ),
-            (r"Period\('2017', 'A-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
-        ],
-    )
-    def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
-        # issue 20684
-        """
-        parse_time_string return parameter if type not matched.
-        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
-        If first argument is Period and a tuple has 3 items,
-        process go on not raise exception
-        """
-        df = DataFrame(
-            {
-                "A": [Period(2019), "x1", "x2"],
-                "B": [Period(2018), Period(2016), "y1"],
-                "C": [Period(2017), "z1", Period(2015)],
-                "V1": [1, 2, 3],
-                "V2": [10, 20, 30],
-            }
-        ).set_index(["A", "B", "C"])
-        with pytest.raises(KeyError, match=msg):
-            df.loc[key]
 
     def test_format_empty(self):
         # GH35712

@@ -564,17 +564,23 @@ class TestInference:
             [np.datetime64("2000-01-01"), np.timedelta64(1, "s")], dtype=object
         )
         exp = arr.copy()
-        out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([pd.NaT, np.timedelta64(1, "s")], dtype=object)
         exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[ns]")
-        out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([np.timedelta64(1, "s"), np.nan], dtype=object)
         exp = arr.copy()
-        out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
         tm.assert_numpy_array_equal(out, exp)
 
     @pytest.mark.parametrize(
@@ -587,7 +593,7 @@ class TestInference:
     def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
         arr = np.array([2, np.NaN], dtype=object)
-        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
 
         tm.assert_extension_array_equal(result, exp)
 
@@ -601,7 +607,7 @@ class TestInference:
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
         array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
-        result = lib.maybe_convert_objects(array, convert_datetime=1)
+        result = lib.maybe_convert_objects(array, convert_datetime=True)
         tm.assert_numpy_array_equal(result, array)
 
 
