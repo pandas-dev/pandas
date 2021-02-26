@@ -146,6 +146,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     extract_array,
+    sanitize_array,
     sanitize_masked_array,
 )
 from pandas.core.generic import (
@@ -4044,7 +4045,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # possibly infer to datetimelike
             if is_object_dtype(value.dtype):
-                value = Series(value)._values
+                value = sanitize_array(value, None)
 
         else:
             value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
