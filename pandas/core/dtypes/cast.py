@@ -1829,7 +1829,16 @@ def construct_1d_ndarray_preserving_na(
     else:
         if dtype is not None:
             _disallow_mismatched_datetimelike(values, dtype)
-        subarr = np.array(values, dtype=dtype, copy=copy)
+
+        if (
+            dtype == object
+            and isinstance(values, np.ndarray)
+            and values.dtype.kind in ["m", "M"]
+        ):
+            # TODO(numpy#12550): special-case can be removed
+            subarr = construct_1d_object_array_from_listlike(list(values))
+        else:
+            subarr = np.array(values, dtype=dtype, copy=copy)
 
     return subarr
 
