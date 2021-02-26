@@ -24,6 +24,7 @@ from pandas import (
     Index,
     IndexSlice,
     MultiIndex,
+    Period,
     Series,
     SparseDtype,
     Timedelta,
@@ -145,6 +146,43 @@ class TestLoc(Base):
 
 class TestLoc2:
     # TODO: better name, just separating out things that rely on base class
+    @pytest.mark.parametrize(
+        "msg, key",
+        [
+            (r"Period\('2019', 'A-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
+            (r"Period\('2019', 'A-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
+            (r"Period\('2019', 'A-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
+            (
+                r"Period\('2018', 'A-DEC'\), Period\('2016', 'A-DEC'\), 'bar'",
+                (Period(2018), Period(2016), "bar"),
+            ),
+            (r"Period\('2018', 'A-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
+            (
+                r"Period\('2017', 'A-DEC'\), 'foo', Period\('2015', 'A-DEC'\)",
+                (Period(2017), "foo", Period(2015)),
+            ),
+            (r"Period\('2017', 'A-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
+        ],
+    )
+    def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
+        # GH#20684
+        """
+        parse_time_string return parameter if type not matched.
+        PeriodIndex.get_loc takes returned value from parse_time_string as a tuple.
+        If first argument is Period and a tuple has 3 items,
+        process go on not raise exception
+        """
+        df = DataFrame(
+            {
+                "A": [Period(2019), "x1", "x2"],
+                "B": [Period(2018), Period(2016), "y1"],
+                "C": [Period(2017), "z1", Period(2015)],
+                "V1": [1, 2, 3],
+                "V2": [10, 20, 30],
+            }
+        ).set_index(["A", "B", "C"])
+        with pytest.raises(KeyError, match=msg):
+            df.loc[key]
 
     def test_loc_getitem_missing_unicode_key(self):
         df = DataFrame({"a": [1]})
