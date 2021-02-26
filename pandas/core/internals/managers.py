@@ -234,6 +234,12 @@ class BlockManager(DataManager):
     def ndim(self) -> int:
         return len(self.axes)
 
+    @staticmethod
+    def _normalize_axis(axis):
+        # switch axis to follow BlockManager logic
+        axis = 1 if axis == 0 else 0
+        return axis
+
     def set_axis(
         self, axis: int, new_labels: Index, verify_integrity: bool = True
     ) -> None:
@@ -601,6 +607,7 @@ class BlockManager(DataManager):
         )
 
     def diff(self, n: int, axis: int) -> BlockManager:
+        axis = self._normalize_axis(axis)
         return self.apply("diff", n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> BlockManager:
