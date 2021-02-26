@@ -31,15 +31,9 @@ async def test_tab_complete_ipython6_warning(ip):
     )
     await ip.run_code(code)
 
-    # TODO: remove it when Ipython updates
-    # GH 33567, jedi version raises Deprecation warning in Ipython
-    import jedi
-
-    if jedi.__version__ < "0.17.0":
-        warning = tm.assert_produces_warning(None)
-    else:
-        warning = tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False)
-    with warning:
+    # GH 31324 newer jedi version raises Deprecation warning;
+    #  appears resolved 2021-02-02
+    with tm.assert_produces_warning(None):
         with provisionalcompleter("ignore"):
             list(ip.Completer.completions("rs.", 1))
 
@@ -397,4 +391,35 @@ def test_resample_groupby_agg():
     expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("consolidate", [True, False])
+def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
+    # https://github.com/pandas-dev/pandas/issues/39329
+
+    dates = pd.date_range("2020-01-01", periods=15, freq="D")
+    df1 = DataFrame({"key": "A", "date": dates, "col1": range(15), "col_object": "val"})
+    df2 = DataFrame({"key": "B", "date": dates, "col1": range(15)})
+    df = pd.concat([df1, df2], ignore_index=True)
+    if consolidate:
+        df = df._consolidate()
+
+    result = df.groupby(["key"]).resample("W", on="date").min()
+    idx = pd.MultiIndex.from_arrays(
+        [
+            ["A"] * 3 + ["B"] * 3,
+            pd.to_datetime(["2020-01-05", "2020-01-12", "2020-01-19"] * 2),
+        ],
+        names=["key", "date"],
+    )
+    expected = DataFrame(
+        {
+            "key": ["A"] * 3 + ["B"] * 3,
+            "date": pd.to_datetime(["2020-01-01", "2020-01-06", "2020-01-13"] * 2),
+            "col1": [0, 5, 12] * 2,
+            "col_object": ["val"] * 3 + [np.nan] * 3,
+        },
+        index=idx,
+    )
     tm.assert_frame_equal(result, expected)

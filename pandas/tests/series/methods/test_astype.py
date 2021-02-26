@@ -337,6 +337,11 @@ class TestAstype:
             reload(sys)
             sys.setdefaultencoding(former_encoding)
 
+    def test_astype_bytes(self):
+        # GH#39474
+        result = Series(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes == np.dtype("S3")
+
 
 class TestAstypeCategorical:
     def test_astype_categorical_invalid_conversions(self):

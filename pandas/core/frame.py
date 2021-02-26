@@ -3179,6 +3179,9 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
+            if isinstance(value, DataFrame):
+                # GH#39931 reindex since iloc does not align
+                value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
@@ -3951,8 +3954,8 @@ class DataFrame(NDFrame, OpsMixin):
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
             use DataFrame.melt and DataFrame.loc instead.
-            For an example see :meth:`~pandas.DataFrame.lookup`
-            in the user guide.
+            For further details see
+            :ref:`Looking up values by index/column labels <indexing.lookup>`.
 
         Parameters
         ----------
@@ -5479,7 +5482,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         axis=0,
         level=None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -5500,7 +5503,7 @@ class DataFrame(NDFrame, OpsMixin):
             and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
             If not None, sort on values in specified index level(s).
-        ascending : bool or list of bools, default True
+        ascending : bool or list-like of bools, default True
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False

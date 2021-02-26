@@ -12,9 +12,11 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -169,8 +171,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
         RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like
-        and index is None, then the values in the index are used to
-        reindex the Series after it is created using the keys in the data.
+        and index is None, then the keys in the data are used as the index. If the
+        index is not None, the resulting Series is reindexed with the index values.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
@@ -179,6 +181,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         The name to give to the Series.
     copy : bool, default False
         Copy input data.
+
+    Examples
+    --------
+    Constructing Series from a dictionary with an Index specified
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['a', 'b', 'c'])
+    >>> ser
+    a   1
+    b   2
+    c   3
+    dtype: int64
+
+    The keys of the dictionary match with the Index values, hence the Index
+    values have no effect.
+
+    >>> d = {'a': 1, 'b': 2, 'c': 3}
+    >>> ser = pd.Series(data=d, index=['x', 'y', 'z'])
+    >>> ser
+    x   NaN
+    y   NaN
+    z   NaN
+    dtype: float64
+
+    Note that the Index is first build with the keys from the dictionary.
+    After this the Series is reindexed with the given Index values, hence we
+    get all NaN as a result.
     """
 
     _typ = "series"
@@ -3038,7 +3067,7 @@ Keep all original rows and also all original values
     def sort_values(
         self,
         axis=0,
-        ascending=True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -3056,7 +3085,7 @@ Keep all original rows and also all original values
         axis : {0 or 'index'}, default 0
             Axis to direct sorting. The value 'index' is accepted for
             compatibility with DataFrame.sort_values.
-        ascending : bool, default True
+        ascending : bool or list of bools, default True
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
@@ -3216,6 +3245,7 @@ Keep all original rows and also all original values
             )
 
         if is_list_like(ascending):
+            ascending = cast(Sequence[Union[bool, int]], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3230,7 +3260,7 @@ Keep all original rows and also all original values
 
         # GH 35922. Make sorting stable by leveraging nargsort
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
-        sorted_index = nargsort(values_to_sort, kind, ascending, na_position)
+        sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
@@ -3248,7 +3278,7 @@ Keep all original rows and also all original values
         self,
         axis=0,
         level=None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -3268,7 +3298,7 @@ Keep all original rows and also all original values
             Axis to direct sorting. This can only be 0 for Series.
         level : int, optional
             If not None, sort on values in specified index level(s).
-        ascending : bool or list of bools, default True
+        ascending : bool or list-like of bools, default True
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False

@@ -2503,7 +2503,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def _maybe_coerce_values(self, values):
-        if issubclass(values.dtype.type, (str, bytes)):
+        if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
         return values
 

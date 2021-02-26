@@ -1188,6 +1188,32 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
+def any_int_or_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
 def any_numeric_dtype(request):
     """

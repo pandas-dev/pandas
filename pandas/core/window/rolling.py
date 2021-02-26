@@ -2016,7 +2016,11 @@ class Rolling(RollingAndExpandingMixin):
                 FutureWarning,
             )
             self.min_periods = 0
-        return super().count()
+            result = super().count()
+            self.min_periods = None
+        else:
+            result = super().count()
+        return result
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
