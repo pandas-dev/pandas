@@ -61,51 +61,17 @@ def test_fancy_setitem():
     assert (s[48:54] == -3).all()
 
 
-def test_slicing_datetimes():
-    # GH 7523
+@pytest.mark.parametrize("tz_source", ["pytz", "dateutil"])
+def test_getitem_setitem_datetime_tz(tz_source):
+    if tz_source == "pytz":
+        tzget = pytz.timezone
+    else:
+        # handle special case for utc in dateutil
+        tzget = lambda x: tzutc() if x == "UTC" else gettz(x)
 
-    # unique
-    df = DataFrame(
-        np.arange(4.0, dtype="float64"),
-        index=[datetime(2001, 1, i, 10, 00) for i in [1, 2, 3, 4]],
-    )
-    result = df.loc[datetime(2001, 1, 1, 10) :]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[: datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[datetime(2001, 1, 1, 10) : datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-
-    result = df.loc[datetime(2001, 1, 1, 11) :]
-    expected = df.iloc[1:]
-    tm.assert_frame_equal(result, expected)
-    result = df.loc["20010101 11":]
-    tm.assert_frame_equal(result, expected)
-
-    # duplicates
-    df = DataFrame(
-        np.arange(5.0, dtype="float64"),
-        index=[datetime(2001, 1, i, 10, 00) for i in [1, 2, 2, 3, 4]],
-    )
-
-    result = df.loc[datetime(2001, 1, 1, 10) :]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[: datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-    result = df.loc[datetime(2001, 1, 1, 10) : datetime(2001, 1, 4, 10)]
-    tm.assert_frame_equal(result, df)
-
-    result = df.loc[datetime(2001, 1, 1, 11) :]
-    expected = df.iloc[1:]
-    tm.assert_frame_equal(result, expected)
-    result = df.loc["20010101 11":]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_getitem_setitem_datetime_tz_pytz():
     N = 50
     # testing with timezone, GH #2785
-    rng = date_range("1/1/1990", periods=N, freq="H", tz="US/Eastern")
+    rng = date_range("1/1/1990", periods=N, freq="H", tz=tzget("US/Eastern"))
     ts = Series(np.random.randn(N), index=rng)
 
     # also test Timestamp tz handling, GH #2789
@@ -121,51 +87,15 @@ def test_getitem_setitem_datetime_tz_pytz():
 
     # repeat with datetimes
     result = ts.copy()
-    result[datetime(1990, 1, 1, 9, tzinfo=pytz.timezone("UTC"))] = 0
-    result[datetime(1990, 1, 1, 9, tzinfo=pytz.timezone("UTC"))] = ts[4]
+    result[datetime(1990, 1, 1, 9, tzinfo=tzget("UTC"))] = 0
+    result[datetime(1990, 1, 1, 9, tzinfo=tzget("UTC"))] = ts[4]
     tm.assert_series_equal(result, ts)
 
     result = ts.copy()
-
-    # comparison dates with datetime MUST be localized!
-    date = pytz.timezone("US/Central").localize(datetime(1990, 1, 1, 3))
-    result[date] = 0
-    result[date] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-
-def test_getitem_setitem_datetime_tz_dateutil():
-
-    tz = (
-        lambda x: tzutc() if x == "UTC" else gettz(x)
-    )  # handle special case for utc in dateutil
-
-    N = 50
-
-    # testing with timezone, GH #2785
-    rng = date_range("1/1/1990", periods=N, freq="H", tz="America/New_York")
-    ts = Series(np.random.randn(N), index=rng)
-
-    # also test Timestamp tz handling, GH #2789
-    result = ts.copy()
-    result["1990-01-01 09:00:00+00:00"] = 0
-    result["1990-01-01 09:00:00+00:00"] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-    result = ts.copy()
-    result["1990-01-01 03:00:00-06:00"] = 0
-    result["1990-01-01 03:00:00-06:00"] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-    # repeat with datetimes
-    result = ts.copy()
-    result[datetime(1990, 1, 1, 9, tzinfo=tz("UTC"))] = 0
-    result[datetime(1990, 1, 1, 9, tzinfo=tz("UTC"))] = ts[4]
-    tm.assert_series_equal(result, ts)
-
-    result = ts.copy()
-    result[datetime(1990, 1, 1, 3, tzinfo=tz("America/Chicago"))] = 0
-    result[datetime(1990, 1, 1, 3, tzinfo=tz("America/Chicago"))] = ts[4]
+    dt = Timestamp(1990, 1, 1, 3).tz_localize(tzget("US/Central"))
+    dt = dt.to_pydatetime()
+    result[dt] = 0
+    result[dt] = ts[4]
     tm.assert_series_equal(result, ts)
 
 
@@ -382,7 +312,7 @@ def test_indexing_with_duplicate_datetimeindex(
     assert ts[datetime(2000, 1, 6)] == 0
 
 
-def test_indexing_over_size_cutoff(monkeypatch):
+def test_loc_getitem_over_size_cutoff(monkeypatch):
     # #1821
 
     monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 1000)
@@ -471,6 +401,9 @@ def test_indexing_unordered():
     expected = ts["2011"]
     expected.index = expected.index._with_freq(None)
     tm.assert_series_equal(result, expected)
+
+
+def test_indexing_unordered2():
 
     # diff freq
     rng = date_range(datetime(2005, 1, 1), periods=20, freq="M")
