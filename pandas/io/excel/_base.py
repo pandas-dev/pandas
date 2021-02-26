@@ -204,6 +204,9 @@ na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
     of reading a large file.
+skip_blank_lines : bool, default False
+    If True, skip over blank lines in single-column spreadsheets rather than
+    interpreting as NaN values.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 parse_dates : bool, list-like, or dict, default False
@@ -352,6 +355,7 @@ def read_excel(
     na_values=None,
     keep_default_na=True,
     na_filter=True,
+    skip_blank_lines=True,
     verbose=False,
     parse_dates=False,
     date_parser=None,
@@ -390,6 +394,7 @@ def read_excel(
             na_values=na_values,
             keep_default_na=keep_default_na,
             na_filter=na_filter,
+            skip_blank_lines=skip_blank_lines,
             verbose=verbose,
             parse_dates=parse_dates,
             date_parser=date_parser,
@@ -486,6 +491,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         skiprows=None,
         nrows=None,
         na_values=None,
+        skip_blank_lines=True,
         verbose=False,
         parse_dates=False,
         date_parser=None,
@@ -598,6 +604,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     skiprows=skiprows,
                     nrows=nrows,
                     na_values=na_values,
+                    skip_blank_lines=skip_blank_lines,
                     parse_dates=parse_dates,
                     date_parser=date_parser,
                     thousands=thousands,
@@ -1166,6 +1173,7 @@ class ExcelFile:
         skiprows=None,
         nrows=None,
         na_values=None,
+        skip_blank_lines=True,
         parse_dates=False,
         date_parser=None,
         thousands=None,
@@ -1199,6 +1207,7 @@ class ExcelFile:
             skiprows=skiprows,
             nrows=nrows,
             na_values=na_values,
+            skip_blank_lines=skip_blank_lines,
             parse_dates=parse_dates,
             date_parser=date_parser,
             thousands=thousands,

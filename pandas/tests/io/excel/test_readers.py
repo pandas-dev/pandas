@@ -1185,6 +1185,20 @@ class TestReaders:
         )
         tm.assert_frame_equal(expected, result)
 
+    def test_one_col_skip_blank_line(self, read_ext):
+        file_name = "one_col_blank_line" + read_ext
+        data = [0.5, 1, 2]
+        expected = DataFrame(data, columns=["numbers"])
+        result = pd.read_excel(file_name)
+        tm.assert_frame_equal(expected, result)
+
+    def test_one_col_noskip_blank_line(self, read_ext):
+        file_name = "one_col_blank_line" + read_ext
+        data = [0.5, np.nan, 1, 2]
+        expected = DataFrame(data, columns=["numbers"])
+        result = pd.read_excel(file_name, skip_blank_lines=False)
+        tm.assert_frame_equal(expected, result)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
