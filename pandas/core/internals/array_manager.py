@@ -452,7 +452,11 @@ class ArrayManager(DataManager):
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
-        return self.apply_with_block("diff", n=n, axis=axis)
+        if axis == 1:
+            axis = 0
+        elif axis == 0:
+            assert n == 0
+        return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> ArrayManager:
         return self.apply_with_block("interpolate", **kwargs)
