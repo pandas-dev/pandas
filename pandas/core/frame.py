@@ -177,10 +177,10 @@ from pandas.core.internals import (
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
-    init_dict,
-    init_ndarray,
+    dict_to_mgr,
     masked_rec_array_to_mgr,
     mgr_to_mgr,
+    ndarray_to_mgr,
     nested_data_to_arrays,
     reorder_arrays,
     sanitize_index,
@@ -575,10 +575,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
-            # error: Argument "dtype" to "init_dict" has incompatible type
-            # "Union[ExtensionDtype, str, dtype, Type[object], None]"; expected
-            # "Union[dtype, ExtensionDtype, None]"
-            mgr = init_dict(data, index, columns, dtype=dtype)  # type: ignore[arg-type]
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
@@ -595,16 +592,7 @@ class DataFrame(NDFrame, OpsMixin):
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                # error: Argument "dtype" to "init_ndarray" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                mgr = init_ndarray(
-                    data,
-                    index,
-                    columns,
-                    dtype=dtype,  # type: ignore[arg-type]
-                    copy=copy,
-                )
+                mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
@@ -612,35 +600,11 @@ class DataFrame(NDFrame, OpsMixin):
                 data = {k: data[k] for k in data_columns}
                 if columns is None:
                     columns = data_columns
-                # error: Argument "dtype" to "init_dict" has incompatible type
-                # "Union[ExtensionDtype, str, dtype, Type[object], None]";
-                # expected "Union[dtype, ExtensionDtype, None]"
-                mgr = init_dict(
-                    data, index, columns, dtype=dtype  # type: ignore[arg-type]
-                )
+                mgr = dict_to_mgr(data, index, columns, dtype=dtype)
             elif getattr(data, "name", None) is not None:
-                # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
-                # attribute "name"
-                # error: Argument "dtype" to "init_dict" has incompatible type
-                # "Union[ExtensionDtype, str, dtype, Type[object], None]"; expected
-                # "Union[dtype, ExtensionDtype, None]"
-                mgr = init_dict(
-                    {data.name: data},  # type: ignore[union-attr]
-                    index,
-                    columns,
-                    dtype=dtype,  # type: ignore[arg-type]
-                )
+                mgr = dict_to_mgr({data.name: data}, index, columns, dtype=dtype)
             else:
-                # error: Argument "dtype" to "init_ndarray" has incompatible
-                # type "Union[ExtensionDtype, str, dtype, Type[object], None]";
-                # expected "Union[dtype, ExtensionDtype, None]"
-                mgr = init_ndarray(
-                    data,
-                    index,
-                    columns,
-                    dtype=dtype,  # type: ignore[arg-type]
-                    copy=copy,
-                )
+                mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
@@ -674,24 +638,9 @@ class DataFrame(NDFrame, OpsMixin):
                         dtype=dtype,  # type: ignore[arg-type]
                     )
                 else:
-                    # error: Argument "dtype" to "init_ndarray" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype,
-                    # Type[object], None]"; expected "Union[dtype,
-                    # ExtensionDtype, None]"
-                    mgr = init_ndarray(
-                        data,
-                        index,
-                        columns,
-                        dtype=dtype,  # type: ignore[arg-type]
-                        copy=copy,
-                    )
+                    mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
             else:
-                # error: Argument "dtype" to "init_dict" has incompatible type
-                # "Union[ExtensionDtype, str, dtype, Type[object], None]";
-                # expected "Union[dtype, ExtensionDtype, None]"
-                mgr = init_dict(
-                    {}, index, columns, dtype=dtype  # type: ignore[arg-type]
-                )
+                mgr = dict_to_mgr({}, index, columns, dtype=dtype)
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -728,13 +677,8 @@ class DataFrame(NDFrame, OpsMixin):
                     copy,
                 )
 
-                mgr = init_ndarray(
-                    # error: "List[ExtensionArray]" has no attribute "dtype"
-                    values,
-                    index,
-                    columns,
-                    dtype=values.dtype,  # type: ignore[attr-defined]
-                    copy=False,
+                mgr = ndarray_to_mgr(
+                    values, index, columns, dtype=values.dtype, copy=False
                 )
 
         # ensure correct Manager type according to settings
@@ -5758,7 +5702,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         axis: Axis = 0,
         level: Optional[Level] = None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -5779,7 +5723,7 @@ class DataFrame(NDFrame, OpsMixin):
             and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
             If not None, sort on values in specified index level(s).
-        ascending : bool or list of bools, default True
+        ascending : bool or list-like of bools, default True
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False
