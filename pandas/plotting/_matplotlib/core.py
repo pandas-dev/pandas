@@ -579,11 +579,18 @@ class MPLPlot:
             stringified = map(pprint_thing, self.data.columns.names)
             return ",".join(stringified)
 
-    def _add_legend_handle(self, handle, label, index=None):
+    def _mark_right_label(
+        self, label: Optional[str], index: Optional[int]
+    ) -> Optional[str]:
+        if not self.subplots:  # (right) is only attached when subplots=False
+            if label is not None:
+                if self.mark_right and index is not None:
+                    if self.on_right(index):
+                        label = label + " (right)"
+        return label
+
+    def _add_legend_handle(self, handle: Artist, label: str) -> None:
         if label is not None:
-            if self.mark_right and index is not None:
-                if self.on_right(index):
-                    label = label + " (right)"
             self.legend_handles.append(handle)
             self.legend_labels.append(label)
 
@@ -1174,6 +1181,7 @@ class LinePlot(MPLPlot):
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)  # .encode('utf-8')
+            label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 
             newlines = plotf(
@@ -1186,7 +1194,7 @@ class LinePlot(MPLPlot):
                 is_errorbar=is_errorbar,
                 **kwds,
             )
-            self._add_legend_handle(newlines[0], label, index=i)
+            self._add_legend_handle(newlines[0], label)
 
             if self._is_ts_plot():
 
@@ -1462,6 +1470,7 @@ class BarPlot(MPLPlot):
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)
+            label = self._mark_right_label(label, index=i)
 
             if (("yerr" in kwds) or ("xerr" in kwds)) and (kwds.get("ecolor") is None):
                 kwds["ecolor"] = mpl.rcParams["xtick.color"]
@@ -1512,7 +1521,7 @@ class BarPlot(MPLPlot):
                     log=self.log,
                     **kwds,
                 )
-            self._add_legend_handle(rect, label, index=i)
+            self._add_legend_handle(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data):
         if self.use_index:
