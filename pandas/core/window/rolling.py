@@ -4,6 +4,7 @@ similar to how we have a Groupby object.
 """
 from __future__ import annotations
 
+import copy
 from datetime import timedelta
 from functools import partial
 import inspect
@@ -64,10 +65,6 @@ from pandas.core.base import (
 )
 import pandas.core.common as common
 from pandas.core.construction import extract_array
-from pandas.core.groupby.base import (
-    GotItemMixin,
-    ShallowMixin,
-)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -114,19 +111,10 @@ if TYPE_CHECKING:
     from pandas.core.internals import Block  # noqa:F401
 
 
-class BaseWindow(ShallowMixin, SelectionMixin):
+class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
-    _attributes: List[str] = [
-        "window",
-        "min_periods",
-        "center",
-        "win_type",
-        "axis",
-        "on",
-        "closed",
-        "method",
-    ]
+    _attributes: List[str] = []
     exclusions: Set[str] = set()
 
     def __init__(
@@ -140,10 +128,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
         method: str = "single",
-        **kwargs,
     ):
-
-        self.__dict__.update(kwargs)
         self.obj = obj
         self.on = on
         self.closed = closed
@@ -262,8 +247,12 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
-        self = self._shallow_copy(subset)
-        self._reset_cache()
+        # TODO: Remove once win_type deprecation is enforced
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "win_type", FutureWarning)
+            self = type(self)(
+                subset, **{attr: getattr(self, attr) for attr in self._attributes}
+            )
         if subset.ndim == 2:
             if is_scalar(key) and key in subset or is_list_like(key):
                 self._selection = key
@@ -289,7 +278,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         attrs_list = (
             f"{attr_name}={getattr(self, attr_name)}"
             for attr_name in self._attributes
-            if getattr(self, attr_name, None) is not None
+            if getattr(self, attr_name, None) is not None and attr_name[0] != "_"
         )
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
@@ -544,19 +533,23 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     agg = aggregate
 
 
-class BaseWindowGroupby(GotItemMixin, BaseWindow):
+class BaseWindowGroupby(BaseWindow):
     """
     Provide the groupby windowing facilities.
     """
 
-    def __init__(self, obj, *args, **kwargs):
-        kwargs.pop("parent", None)
-        groupby = kwargs.pop("groupby", None)
-        if groupby is None:
-            groupby, obj = obj, obj._selected_obj
-        self._groupby = groupby
-        self._groupby.mutated = True
-        self._groupby.grouper.mutated = True
+    _attributes = ["_grouper"]
+
+    def __init__(
+        self,
+        obj,
+        *args,
+        _grouper=None,
+        **kwargs,
+    ):
+        if _grouper is None:
+            raise ValueError("Must pass a Grouper object.")
+        self._grouper = _grouper
         super().__init__(obj, *args, **kwargs)
 
     def _apply(
@@ -576,9 +569,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         # 1st set of levels = group by labels
         # 2nd set of levels = original index
         # Ignore 2nd set of levels if a group by label include an index level
-        result_index_names = [
-            grouping.name for grouping in self._groupby.grouper._groupings
-        ]
+        result_index_names = copy.copy(self._grouper.names)
         grouped_object_index = None
 
         column_keys = [
@@ -595,10 +586,10 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             # Our result will have still kept the column in the result
             result = result.drop(columns=column_keys, errors="ignore")
 
-        codes = self._groupby.grouper.codes
-        levels = self._groupby.grouper.levels
+        codes = self._grouper.codes
+        levels = copy.copy(self._grouper.levels)
 
-        group_indices = self._groupby.grouper.indices.values()
+        group_indices = self._grouper.indices.values()
         if group_indices:
             indexer = np.concatenate(list(group_indices))
         else:
@@ -632,7 +623,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
         # Manually drop the grouping column first
-        target = target.drop(columns=self._groupby.grouper.names, errors="ignore")
+        target = target.drop(columns=self._grouper.names, errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func)
         # 1) Determine the levels + codes of the groupby levels
         if other is not None:
@@ -643,12 +634,12 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             result = concat(
                 [
                     result.take(gb_indices).reindex(result.index)
-                    for gb_indices in self._groupby.indices.values()
+                    for gb_indices in self._grouper.indices.values()
                 ]
             )
 
             gb_pairs = (
-                common.maybe_make_list(pair) for pair in self._groupby.indices.keys()
+                common.maybe_make_list(pair) for pair in self._grouper.indices.keys()
             )
             groupby_codes = []
             groupby_levels = []
@@ -662,10 +653,10 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         else:
             # When we evaluate the pairwise=True result, repeat the groupby
             # labels by the number of columns in the original object
-            groupby_codes = self._groupby.grouper.codes
-            groupby_levels = self._groupby.grouper.levels
+            groupby_codes = self._grouper.codes
+            groupby_levels = self._grouper.levels
 
-            group_indices = self._groupby.grouper.indices.values()
+            group_indices = self._grouper.indices.values()
             if group_indices:
                 indexer = np.concatenate(list(group_indices))
             else:
@@ -692,7 +683,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         # 3) Create the resulting index by combining 1) + 2)
         result_codes = groupby_codes + result_codes
         result_levels = groupby_levels + result_levels
-        result_names = self._groupby.grouper.names + result_names
+        result_names = self._grouper.names + result_names
 
         result_index = MultiIndex(
             result_levels, result_codes, names=result_names, verify_integrity=False
@@ -708,9 +699,9 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         # to the groups
         # GH 36197
         if not obj.empty:
-            groupby_order = np.concatenate(
-                list(self._groupby.grouper.indices.values())
-            ).astype(np.int64)
+            groupby_order = np.concatenate(list(self._grouper.indices.values())).astype(
+                np.int64
+            )
             obj = obj.take(groupby_order)
         return super()._create_data(obj)
 
@@ -899,6 +890,17 @@ class Window(BaseWindow):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
     """
+
+    _attributes = [
+        "window",
+        "min_periods",
+        "center",
+        "win_type",
+        "axis",
+        "on",
+        "closed",
+        "method",
+    ]
 
     def validate(self):
         super().validate()
@@ -1390,6 +1392,18 @@ class RollingAndExpandingMixin(BaseWindow):
 
 
 class Rolling(RollingAndExpandingMixin):
+
+    _attributes = [
+        "window",
+        "min_periods",
+        "center",
+        "win_type",
+        "axis",
+        "on",
+        "closed",
+        "method",
+    ]
+
     def validate(self):
         super().validate()
 
@@ -2168,9 +2182,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     Provide a rolling groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return Rolling
+    _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
@@ -2200,7 +2212,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
-            groupby_indicies=self._groupby.indices,
+            groupby_indicies=self._grouper.indices,
             window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,
         )

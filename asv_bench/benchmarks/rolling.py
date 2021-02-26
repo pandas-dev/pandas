@@ -114,7 +114,7 @@ class EWMMethods:
         getattr(self.ewm, method)()
 
     def time_ewm_times(self, constructor, window, dtype, method):
-        self.ewm.mean()
+        self.ewm_times.mean()
 
 
 class VariableWindowMethods(Methods):
