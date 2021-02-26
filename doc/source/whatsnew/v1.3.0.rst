@@ -270,6 +270,7 @@ Performance improvements
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
 - Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
 - Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
+- Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
 
 .. ---------------------------------------------------------------------------
 
@@ -443,6 +444,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.mean`, :meth:`.GroupBy.median` and :meth:`DataFrame.pivot_table` not propagating metadata (:issue:`28283`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly when window is an offset and dates are in descending order (:issue:`40002`)
 - Bug in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` on an empty ``Series`` or ``DataFrame`` would lose index, columns, and/or data types when directly using the methods ``idxmax``, ``idxmin``, ``mad``, ``min``, ``max``, ``sum``, ``prod``, and ``skew`` or using them through ``apply``, ``aggregate``, or ``resample`` (:issue:`26411`)
+- Bug in :meth:`DataFrameGroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` if a :class:`:meth:`core.window.rolling.RollingGroupby` object was created (:issue:`39732`)
 - Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
 - Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
 -
