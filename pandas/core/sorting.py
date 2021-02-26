@@ -419,9 +419,10 @@ def nargminmax(values, method: str, axis: int = 0):
 
     idx = np.arange(values.shape[axis])
     if values.ndim > 1 and values.size > 0:
-        # values.size check is a kludge bc JSONArray can come back with size-0 2D
+        # FIXME: values.size check is a kludge bc JSONArray can come
+        #  back with size-0 2D
         if mask.any():
-            assert False  # just checking
+            raise NotImplementedError
         return func(values, axis=axis)
 
     non_nans = values[~mask]
