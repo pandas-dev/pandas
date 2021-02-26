@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections
 from datetime import datetime
+from decimal import Decimal
 from functools import wraps
 import operator
 import os
@@ -146,7 +147,7 @@ ALL_NUMPY_DTYPES = (
     + BYTES_DTYPES
 )
 
-NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
+NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
