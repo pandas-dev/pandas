@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 from uuid import uuid4
 
@@ -1904,25 +1905,14 @@ class _Tooltips:
         -------
         pseudo_css : List
         """
+        selector_id = "#T_" + uuid + "row" + str(row) + "_col" + str(col)
         return [
             {
-                "selector": "#T_"
-                + uuid
-                + "row"
-                + str(row)
-                + "_col"
-                + str(col)
-                + f":hover .{name}",
+                "selector": selector_id + f":hover .{name}",
                 "props": [("visibility", "visible")],
             },
             {
-                "selector": "#T_"
-                + uuid
-                + "row"
-                + str(row)
-                + "_col"
-                + str(col)
-                + f" .{name}::after",
+                "selector": selector_id + f" .{name}::after",
                 "props": [("content", f'"{text}"')],
             },
         ]
@@ -2089,7 +2079,7 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
         for sublist in [
             [
                 {"selector": x, "props": style["props"]}
-                for x in style["selector"].split(",")
+                for x in cast(str, style["selector"]).split(",")
             ]
             for style in styles
         ]
