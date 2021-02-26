@@ -273,6 +273,7 @@ class IsInLongSeriesLookUpDominates:
     def setup(self, dtype, MaxNumber, series_type):
         N = 10 ** 7
 
+        # https://github.com/pandas-dev/pandas/issues/39844
         if not np_version_under1p20 and dtype in ("Int64", "Float64"):
             raise NotImplementedError
 
@@ -303,6 +304,11 @@ class IsInLongSeriesValuesDominate:
 
     def setup(self, dtype, series_type):
         N = 10 ** 7
+
+        # https://github.com/pandas-dev/pandas/issues/39844
+        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
+            raise NotImplementedError
+
         if series_type == "random":
             np.random.seed(42)
             vals = np.random.randint(0, 10 * N, N)
