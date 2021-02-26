@@ -452,10 +452,12 @@ class ArrayManager(DataManager):
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
+        axis = self._normalize_axis(axis)
         if axis == 1:
-            axis = 0
-        elif axis == 0:
+            # DataFrame only calls this for n=0, in which case performing it
+            # with axis=0 is equivalent
             assert n == 0
+            axis = 0
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> ArrayManager:
