@@ -402,6 +402,9 @@ def test_indexing_unordered():
     expected.index = expected.index._with_freq(None)
     tm.assert_series_equal(result, expected)
 
+
+def test_indexing_unordered2():
+
     # diff freq
     rng = date_range(datetime(2005, 1, 1), periods=20, freq="M")
     ts = Series(np.arange(len(rng)), index=rng)
