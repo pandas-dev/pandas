@@ -96,7 +96,6 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
-    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
@@ -1389,7 +1388,7 @@ def maybe_castable(dtype: np.dtype) -> bool:
 
 
 def maybe_infer_to_datetimelike(
-    value: Union[ArrayLike, Scalar], convert_dates: bool = False
+    value: Union[np.ndarray, List], convert_dates: bool = False
 ):
     """
     we might have a array (or single object) that is datetime like,
@@ -1401,21 +1400,16 @@ def maybe_infer_to_datetimelike(
 
     Parameters
     ----------
-    value : np.array / Series / Index / list-like
+    value : np.ndarray or list
     convert_dates : bool, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
 
     """
-    if isinstance(value, (ABCIndex, ABCExtensionArray)):
-        if not is_object_dtype(value.dtype):
-            raise ValueError("array-like value must be object-dtype")
+    if not isinstance(value, (np.ndarray, list)):
+        raise TypeError(type(value))
 
-    v = value
-
-    if not is_list_like(v):
-        v = [v]
-    v = np.array(v, copy=False)
+    v = np.array(value, copy=False)
 
     # we only care about object dtypes
     if not is_object_dtype(v.dtype):
@@ -1616,7 +1610,7 @@ def maybe_cast_to_datetime(
         elif value.dtype == object:
             value = maybe_infer_to_datetimelike(value)
 
-    else:
+    elif not isinstance(value, ABCExtensionArray):
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
         # conversion
@@ -1829,7 +1823,16 @@ def construct_1d_ndarray_preserving_na(
     else:
         if dtype is not None:
             _disallow_mismatched_datetimelike(values, dtype)
-        subarr = np.array(values, dtype=dtype, copy=copy)
+
+        if (
+            dtype == object
+            and isinstance(values, np.ndarray)
+            and values.dtype.kind in ["m", "M"]
+        ):
+            # TODO(numpy#12550): special-case can be removed
+            subarr = construct_1d_object_array_from_listlike(list(values))
+        else:
+            subarr = np.array(values, dtype=dtype, copy=copy)
 
     return subarr
 
