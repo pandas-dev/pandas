@@ -200,9 +200,10 @@ def mgr_to_mgr(mgr, typ: str):
 # DataFrame Constructor Interface
 
 
-def init_ndarray(
+def ndarray_to_mgr(
     values, index, columns, dtype: Optional[DtypeObj], copy: bool, typ: str
 ):
+    # used in DataFrame.__init__
     # input must be a ndarray, list, Series, index
 
     if isinstance(values, ABCSeries):
@@ -284,10 +285,12 @@ def init_ndarray(
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str):
+def dict_to_mgr(data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
+
+    Used in DataFrame.__init__
     """
     arrays: Union[Sequence[Any], Series]
 

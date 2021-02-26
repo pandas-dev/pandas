@@ -177,10 +177,10 @@ from pandas.core.internals import (
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
-    init_dict,
-    init_ndarray,
+    dict_to_mgr,
     masked_rec_array_to_mgr,
     mgr_to_mgr,
+    ndarray_to_mgr,
     nested_data_to_arrays,
     reorder_arrays,
     sanitize_index,
@@ -585,7 +585,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
-            mgr = init_dict(data, index, columns, dtype=dtype, typ=manager)
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
@@ -598,7 +598,7 @@ class DataFrame(NDFrame, OpsMixin):
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                mgr = init_ndarray(
+                mgr = ndarray_to_mgr(
                     data, index, columns, dtype=dtype, copy=copy, typ=manager
                 )
 
@@ -608,13 +608,13 @@ class DataFrame(NDFrame, OpsMixin):
                 data = {k: data[k] for k in data_columns}
                 if columns is None:
                     columns = data_columns
-                mgr = init_dict(data, index, columns, dtype=dtype, typ=manager)
+                mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
             elif getattr(data, "name", None) is not None:
-                mgr = init_dict(
+                mgr = dict_to_mgr(
                     {data.name: data}, index, columns, dtype=dtype, typ=manager
                 )
             else:
-                mgr = init_ndarray(
+                mgr = ndarray_to_mgr(
                     data, index, columns, dtype=dtype, copy=copy, typ=manager
                 )
 
@@ -633,11 +633,11 @@ class DataFrame(NDFrame, OpsMixin):
                         arrays, columns, index, columns, dtype=dtype, typ=manager
                     )
                 else:
-                    mgr = init_ndarray(
+                    mgr = ndarray_to_mgr(
                         data, index, columns, dtype=dtype, copy=copy, typ=manager
                     )
             else:
-                mgr = init_dict({}, index, columns, dtype=dtype, typ=manager)
+                mgr = dict_to_mgr({}, index, columns, dtype=dtype, typ=manager)
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -662,7 +662,7 @@ class DataFrame(NDFrame, OpsMixin):
                     data, len(index), len(columns), dtype, copy
                 )
 
-                mgr = init_ndarray(
+                mgr = ndarray_to_mgr(
                     values, index, columns, dtype=values.dtype, copy=False, typ=manager
                 )
 
@@ -5651,7 +5651,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         axis: Axis = 0,
         level: Optional[Level] = None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -5672,7 +5672,7 @@ class DataFrame(NDFrame, OpsMixin):
             and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
             If not None, sort on values in specified index level(s).
-        ascending : bool or list of bools, default True
+        ascending : bool or list-like of bools, default True
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False
