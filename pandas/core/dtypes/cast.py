@@ -1024,7 +1024,10 @@ def astype_dt64_to_dt64tz(
 
         # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
-        return values.tz_localize("UTC").tz_convert(dtype.tz)
+        # error: "ExtensionArray" has no attribute "tz_localize"
+        values = values.tz_localize("UTC")  # type:ignore[attr-defined]
+        # error: "ExtensionArray" has no attribute "tz_convert"
+        return values.tz_convert(dtype.tz)  # type:ignore[attr-defined]
 
     else:
         # DatetimeArray/DatetimeIndex.astype behavior
