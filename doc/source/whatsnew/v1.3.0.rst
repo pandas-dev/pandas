@@ -270,6 +270,7 @@ Performance improvements
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
 - Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
 - Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
+- Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
 
 .. ---------------------------------------------------------------------------
 
