@@ -100,7 +100,7 @@ def to_json(
     if path_or_buf is not None:
         # apply compression and byte/text conversion
         with get_handle(
-            path_or_buf, "wt", compression=compression, storage_options=storage_options
+            path_or_buf, "w", compression=compression, storage_options=storage_options
         ) as handles:
             handles.handle.write(s)
     else:
