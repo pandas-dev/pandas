@@ -1,14 +1,16 @@
-import numpy as np
 import sys
+
+import numpy as np
 
 from pandas import (
     DataFrame,
     concat,
     date_range,
+    json_normalize,
     read_json,
     timedelta_range,
-    json_normalize
 )
+
 from ..pandas_vb_common import (
     BaseIO,
     tm,
@@ -85,10 +87,12 @@ class NormalizeJSON(BaseIO):
     param_names = ["orient", "frame"]
 
     def setup(self, orient, frame):
-        data = {"hello": ["thisisatest", 999898, "mixed types"],
-                "nest1": {"nest2": {"nest3": "nest3_value", "nest3_int": 3445}},
-                "nest1_list": {"nest2": ["blah", 32423, 546456.876, 92030234]},
-                "hello2": "string"}
+        data = {
+            "hello": ["thisisatest", 999898, "mixed types"],
+            "nest1": {"nest2": {"nest3": "nest3_value", "nest3_int": 3445}},
+            "nest1_list": {"nest2": ["blah", 32423, 546456.876, 92030234]},
+            "hello2": "string",
+        }
         self.data = [data for i in range(10000)]
 
     def time_normalize_json(self, orient, frame):
