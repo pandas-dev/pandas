@@ -335,7 +335,7 @@ class ExponentialMovingWindow(BaseWindow):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         if self.times is not None:
-            com = 1
+            com = 1.0
             times = self.times.astype(np.float64)
             halflife = float(self.halflife)
         else:
