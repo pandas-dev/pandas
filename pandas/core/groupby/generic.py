@@ -1209,7 +1209,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                result = py_fallback(values)
+                # error: Incompatible types in assignment (expression has type
+                # "ExtensionArray", variable has type "ndarray")
+                result = py_fallback(values)  # type: ignore[assignment]
 
             return cast_agg_result(result, values, how)
 

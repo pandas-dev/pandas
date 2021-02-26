@@ -242,7 +242,11 @@ class ArrayManager(DataManager):
                 if res is NaT and is_timedelta64_ns_dtype(arr.dtype):
                     result_arrays.append(np.array(["NaT"], dtype="timedelta64[ns]"))
                 else:
-                    result_arrays.append(sanitize_array([res], None))
+                    # error: Argument 1 to "append" of "list" has incompatible type
+                    # "ExtensionArray"; expected "ndarray"
+                    result_arrays.append(
+                        sanitize_array([res], None)  # type: ignore[arg-type]
+                    )
                 result_indices.append(i)
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
@@ -253,7 +257,9 @@ class ArrayManager(DataManager):
             indexer = np.arange(self.shape[0])
             columns = self.items
 
-        new_mgr = type(self)(result_arrays, [index, columns])
+        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
+        # expected "List[Union[ndarray, ExtensionArray]]"
+        new_mgr = type(self)(result_arrays, [index, columns])  # type: ignore[arg-type]
         return new_mgr, indexer
 
     def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
@@ -398,8 +404,8 @@ class ArrayManager(DataManager):
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
                 arr = arr._data  # type: ignore[union-attr]
             elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
-                # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
-                arr = arr._data  # type: ignore[union-attr]
+                # error: "ExtensionArray" has no attribute "_data"  [attr-defined]
+                arr = arr._data  # type: ignore[attr-defined]
             if isinstance(arr, np.ndarray):
                 arr = np.atleast_2d(arr)
             block = make_block(arr, placement=slice(0, 1, 1), ndim=2)

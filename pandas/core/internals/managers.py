@@ -297,7 +297,11 @@ class BlockManager(DataManager):
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
-        return [blk.values for blk in self.blocks]
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[ExtensionArray]
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[ndarray]
+        return [blk.values for blk in self.blocks]  # type: ignore[misc]
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]

@@ -467,7 +467,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isinstance(dtype, type):
             # we sometimes pass non-dtype objects, e.g np.ndarray;
             #  pass those through to the underlying ndarray
-            return self._ndarray.view(dtype)
+
+            # error: Incompatible return value type (got "ndarray", expected
+            # "ExtensionArray")
+            return self._ndarray.view(dtype)  # type: ignore[return-value]
 
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
@@ -491,7 +494,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return TimedeltaArray._simple_new(  # type: ignore[return-value]
                 self.asi8.view("m8[ns]"), dtype=dtype
             )
-        return self._ndarray.view(dtype=dtype)
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
+        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
+        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        return self._ndarray.view(dtype=dtype)  # type: ignore[return-value,arg-type]
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface

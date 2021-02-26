@@ -2064,8 +2064,13 @@ def _factorize_keys(
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk = cast("DatetimeArray", lk)._ndarray
-        rk = cast("DatetimeArray", rk)._ndarray
+
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        lk = cast("DatetimeArray", lk)._ndarray  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        rk = cast("DatetimeArray", rk)._ndarray  # type: ignore[assignment]
 
     elif (
         is_categorical_dtype(lk.dtype)

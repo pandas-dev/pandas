@@ -625,7 +625,8 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
-    elif dtype == np.dtype(object):
+    # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
+    elif dtype == np.dtype(object):  # type: ignore[type-var]
         # This is needed for Categorical, but is kind of weird
         return True
 
