@@ -36,7 +36,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -810,28 +809,3 @@ def _convert_object_array(
     arrays = [convert(arr) for arr in content]
 
     return arrays
-
-
-# ---------------------------------------------------------------------
-# Series-Based
-
-
-def sanitize_index(data, index: Index):
-    """
-    Sanitize an index type to return an ndarray of the underlying, pass
-    through a non-Index.
-    """
-    if len(data) != len(index):
-        raise ValueError(
-            "Length of values "
-            f"({len(data)}) "
-            "does not match length of index "
-            f"({len(index)})"
-        )
-
-    if isinstance(data, np.ndarray):
-
-        # coerce datetimelike types to ns
-        data = sanitize_to_nanoseconds(data)
-
-    return data

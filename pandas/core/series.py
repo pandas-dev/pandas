@@ -126,7 +126,6 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
-from pandas.core.internals.construction import sanitize_index
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -388,7 +387,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = [data]
                 index = ibase.default_index(len(data))
             elif is_list_like(data):
-                sanitize_index(data, index)
+                com.require_length_match(data, index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
