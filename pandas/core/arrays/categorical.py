@@ -398,6 +398,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
+            if not isinstance(values, (np.ndarray, list)):
+                # convert e.g. range, tuple to allow for stronger typing
+                #  of maybe_infer_to_datetimelike
+                values = list(values)
             values = maybe_infer_to_datetimelike(values)
             if isinstance(values, np.ndarray):
                 values = sanitize_to_nanoseconds(values)
