@@ -23,7 +23,6 @@ from pandas.util._decorators import (
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
@@ -275,15 +274,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        # TODO: share this with EA base class implementation
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
@@ -357,8 +348,16 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
 
-    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
-        res_values = np.delete(self._ndarray, loc)
+    def delete(
+        self: NDArrayBackedExtensionArrayT, loc, axis: int = 0
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc, axis=axis)
+        return self._from_backing_data(res_values)
+
+    def swapaxes(
+        self: NDArrayBackedExtensionArrayT, axis1, axis2
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = self._ndarray.swapaxes(axis1, axis2)
         return self._from_backing_data(res_values)
 
     # ------------------------------------------------------------------------

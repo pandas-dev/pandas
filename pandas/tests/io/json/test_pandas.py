@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from decimal import Decimal
 from io import StringIO
 import json
 import os
@@ -1742,8 +1743,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = DataFrame([[pd.NA]]).to_json()
         assert result == '{"0":{"0":null}}'
 
-    def test_json_pandas_nulls(self, nulls_fixture):
+    def test_json_pandas_nulls(self, nulls_fixture, request):
         # GH 31615
+        if isinstance(nulls_fixture, Decimal):
+            mark = pytest.mark.xfail(reason="not implemented")
+            request.node.add_marker(mark)
+
         result = DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
 
