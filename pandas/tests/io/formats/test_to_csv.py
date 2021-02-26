@@ -326,7 +326,7 @@ $1$,$2$
             ),
         ],
     )
-    @pytest.mark.parametrize("klass", [pd.DataFrame, pd.Series])
+    @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
     def test_to_csv_single_level_multi_index(self, ind, expected, klass):
         # see gh-19589
         result = klass(pd.Series([1], ind, name="data")).to_csv(

@@ -978,5 +978,5 @@ def test_select_empty_where(where):
     with ensure_clean_path("empty_where.h5") as path:
         with HDFStore(path) as store:
             store.put("df", df, "t")
-            result = pd.read_hdf(store, "df", where=where)
+            result = read_hdf(store, "df", where=where)
             tm.assert_frame_equal(result, df)
