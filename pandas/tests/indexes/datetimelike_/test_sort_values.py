@@ -12,11 +12,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-def _check_freq(index, expected_index):
-    if isinstance(index, PeriodIndex):
-        assert index.freq == expected_index.freq
-
-
 def check_freq_ascending(ordered, orig, ascending):
     """
     Check the expected freq on a PeriodIndex/DatetimeIndex/TimedeltaIndex
