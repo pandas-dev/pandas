@@ -1315,11 +1315,7 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and not is_extension:
-        try:
-            inferred_dtype = lib.infer_dtype(input_array)
-        except ValueError:
-            # Required to catch due to Period.  Can remove once GH 23553 is fixed
-            inferred_dtype = input_array.dtype
+        inferred_dtype = lib.infer_dtype(input_array)
 
         if not convert_string and is_string_dtype(inferred_dtype):
             inferred_dtype = input_array.dtype
@@ -1591,7 +1587,9 @@ def maybe_cast_to_datetime(
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except (ValueError, TypeError):
+                    except ValueError:
+                        # TODO(GH#40048): only catch dateutil's ParserError
+                        #  once we can reliably import it in all supported versions
                         pass
 
         # coerce datetimelike to object
