@@ -1465,12 +1465,14 @@ class Styler:
         if gmap is None:
             gmap = s.to_numpy(dtype=float)
         else:
-            try:
-                gmap = np.asarray(gmap, dtype=float).reshape(s.shape)
-            except ValueError:
+            if s.ndim == 1:  # s is Series(n): gmap can be (n,), (n,1) or (1,n)
+                gmap = np.asarray(gmap, dtype=float).reshape(-1)
+            else:  # s is DataFrame(n,m): gmap must be (n,m)
+                gmap = np.asarray(gmap, dtype=float)
+            if gmap.shape != s.shape:
                 raise ValueError(
                     "supplied 'gmap' is not right shape for data over "
-                    f"selected 'axis': got {np.asarray(gmap).shape}, "
+                    f"selected 'axis': got {gmap.shape}, "
                     f"expected {s.shape}"
                 )
         with _mpl(Styler.background_gradient) as (plt, colors):
