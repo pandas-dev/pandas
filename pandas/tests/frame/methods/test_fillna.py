@@ -265,12 +265,13 @@ class TestFillNA:
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-        # equiv of replace
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
+    @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
+    def test_fillna_dtype_conversion_equiv_replace(self, val):
         df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
-        for v in ["", 1, np.nan, 1.0]:
-            expected = df.replace(np.nan, v)
-            result = df.fillna(v)
-            tm.assert_frame_equal(result, expected)
+        expected = df.replace(np.nan, val)
+        result = df.fillna(val)
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_array_manager_invalid_test
     def test_fillna_datetime_columns(self):
