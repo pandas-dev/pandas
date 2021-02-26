@@ -156,7 +156,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _infer_matches: Tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: Tuple[Type, ...]
-    _data: np.ndarray
+    _ndarray: np.ndarray
 
     def __init__(self, data, dtype: Optional[Dtype] = None, freq=None, copy=False):
         raise AbstractMethodError(self)
@@ -253,9 +253,24 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
+    def __setstate__(self, state):
+        if isinstance(state, dict):
+            if "_data" in state and "_ndarray" not in state:
+                # backward compat, changed what is property vs attribute
+                state["_ndarray"] = state.pop("_data")
+            for key, value in state.items():
+                setattr(self, key, value)
+        else:
+            # PeriodArray, bc it mixes in a cython class
+            if isinstance(state, tuple) and len(state) == 1:
+                state = state[0]
+                self.__setstate__(state)
+            else:
+                raise TypeError(state)
+
     @cache_readonly
-    def _ndarray(self) -> np.ndarray:
-        return self._data
+    def _data(self) -> np.ndarray:
+        return self._ndarray
 
     def _from_backing_data(
         self: DatetimeLikeArrayT, arr: np.ndarray
@@ -294,7 +309,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             An ndarray with int64 dtype.
         """
         # do not cache or you'll create a memory leak
-        return self._data.view("i8")
+        return self._ndarray.view("i8")
 
     # ----------------------------------------------------------------
     # Rendering Methods

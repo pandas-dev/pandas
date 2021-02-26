@@ -178,7 +178,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        values : np.ndarray, ExtensionArray, Index
+        values : np.ndarray or ExtensionArray
 
         Returns
         -------
@@ -354,7 +354,7 @@ class Block(PandasObject):
     @final
     def __setstate__(self, state):
         self.mgr_locs = libinternals.BlockPlacement(state[0])
-        self.values = state[1]
+        self.values = extract_array(state[1], extract_numpy=True)
         self.ndim = self.values.ndim
 
     def _slice(self, slicer):
@@ -1700,7 +1700,7 @@ class ExtensionBlock(Block):
 
         Parameters
         ----------
-        values : Index, Series, ExtensionArray
+        values : np.ndarray or ExtensionArray
 
         Returns
         -------
@@ -2189,7 +2189,7 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
         Parameters
         ----------
-        values : array-like
+        values : np.ndarray or ExtensionArray
             Must be convertible to datetime64/timedelta64
 
         Returns

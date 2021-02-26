@@ -150,7 +150,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._cache = {}
 
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
+        result._index_data = values._ndarray
 
         result._reset_identity()
         return result
@@ -167,7 +167,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # in supertype "Index"
     def values(self) -> np.ndarray:  # type: ignore[override]
         # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._data
+        return self._data._ndarray
 
     def __array_wrap__(self, result, context=None):
         """

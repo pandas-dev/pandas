@@ -373,7 +373,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # infer categories in a factorization step further below
 
         if fastpath:
-            self._codes = coerce_indexer_dtype(values, dtype.categories)
+            self._ndarray = coerce_indexer_dtype(values, dtype.categories)
             self._dtype = self._dtype.update_dtype(dtype)
             return
 
@@ -452,7 +452,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = full_codes
 
         self._dtype = self._dtype.update_dtype(dtype)
-        self._codes = coerce_indexer_dtype(codes, dtype.categories)
+        self._ndarray = coerce_indexer_dtype(codes, dtype.categories)
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -949,7 +949,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = recode_for_categories(
                 cat.codes, cat.categories, new_dtype.categories
             )
-            cat._codes = codes
+            cat._ndarray = codes
         cat._dtype = new_dtype
 
         if not inplace:
@@ -1122,7 +1122,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         cat = self if inplace else self.copy()
         cat._dtype = new_dtype
-        cat._codes = coerce_indexer_dtype(cat._codes, new_dtype.categories)
+        cat._ndarray = coerce_indexer_dtype(cat._ndarray, new_dtype.categories)
         if not inplace:
             return cat
 
@@ -1227,7 +1227,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             new_categories, ordered=self.ordered
         )
         cat._dtype = new_dtype
-        cat._codes = coerce_indexer_dtype(inv, new_dtype.categories)
+        cat._ndarray = coerce_indexer_dtype(inv, new_dtype.categories)
 
         if not inplace:
             return cat
@@ -1411,6 +1411,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if "_dtype" not in state:
             state["_dtype"] = CategoricalDtype(state["_categories"], state["_ordered"])
+
+        if "_codes" in state and "_ndarray" not in state:
+            # backward compat, changed what is property vs attribute
+            state["_ndarray"] = state.pop("_codes")
 
         for k, v in state.items():
             setattr(self, k, v)
@@ -1813,13 +1817,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # NDArrayBackedExtensionArray compat
 
     @property
-    # error: Signature of "_ndarray" incompatible with supertype
-    # "NDArrayBackedExtensionArray"
-    def _ndarray(self) -> np.ndarray:  # type: ignore[override]
-        return self._codes
+    def _codes(self) -> np.ndarray:
+        return self._ndarray
 
     def _from_backing_data(self, arr: np.ndarray) -> Categorical:
-        return self._constructor(arr, dtype=self.dtype, fastpath=True)
+        return type(self)(arr, dtype=self.dtype, fastpath=True)
 
     def _box_func(self, i: int):
         if i == -1:
@@ -1830,7 +1832,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
         code = self.categories.get_loc(key)
-        code = self._codes.dtype.type(code)
+        code = self._ndarray.dtype.type(code)
         return code
 
     # ------------------------------------------------------------------
@@ -2192,7 +2194,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cat = self.copy()
 
         # keep nan in codes
-        cat._codes = unique_codes
+        cat._ndarray = unique_codes
 
         # exclude nan from indexer for categories
         take_codes = unique_codes[unique_codes != -1]

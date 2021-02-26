@@ -159,6 +159,10 @@ class Apply(metaclass=abc.ABCMeta):
     def index(self) -> Index:
         return self.obj.index
 
+    @property
+    def agg_axis(self) -> Index:
+        return self.obj._get_agg_axis(self.axis)
+
     @abc.abstractmethod
     def apply(self) -> FrameOrSeriesUnion:
         pass
@@ -270,20 +274,13 @@ class Apply(metaclass=abc.ABCMeta):
         args = self.args
         kwargs = self.kwargs
 
+        # transform is currently only for Series/DataFrame
+        assert isinstance(obj, ABCNDFrame)
+
         if len(func) == 0:
             raise ValueError("No transform functions were provided")
 
-        if obj.ndim != 1:
-            # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
-            if len(cols) > 0:
-                cols_sorted = list(safe_sort(list(cols)))
-                raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
-
-        # Can't use func.values(); wouldn't work for a Series
-        if any(is_dict_like(v) for _, v in func.items()):
-            # GH 15931 - deprecation of renaming keys
-            raise SpecificationError("nested renamer is not supported")
+        self.validate_dictlike_arg("transform", obj, func)
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
         for name, how in func.items():
@@ -434,6 +431,8 @@ class Apply(metaclass=abc.ABCMeta):
 
         selected_obj = obj._selected_obj
 
+        self.validate_dictlike_arg("agg", selected_obj, arg)
+
         # if we have a dict of any non-scalars
         # eg. {'A' : ['mean']}, normalize all to
         # be list-likes
@@ -445,42 +444,7 @@ class Apply(metaclass=abc.ABCMeta):
                     new_arg[k] = [v]
                 else:
                     new_arg[k] = v
-
-                # the keys must be in the columns
-                # for ndim=2, or renamers for ndim=1
-
-                # ok for now, but deprecated
-                # {'A': { 'ra': 'mean' }}
-                # {'A': { 'ra': ['mean'] }}
-                # {'ra': ['mean']}
-
-                # not ok
-                # {'ra' : { 'A' : 'mean' }}
-                if isinstance(v, dict):
-                    raise SpecificationError("nested renamer is not supported")
-                elif isinstance(selected_obj, ABCSeries):
-                    raise SpecificationError("nested renamer is not supported")
-                elif (
-                    isinstance(selected_obj, ABCDataFrame)
-                    and k not in selected_obj.columns
-                ):
-                    raise KeyError(f"Column '{k}' does not exist!")
-
             arg = new_arg
-
-        else:
-            # deprecation of renaming keys
-            # GH 15931
-            keys = list(arg.keys())
-            if isinstance(selected_obj, ABCDataFrame) and len(
-                selected_obj.columns.intersection(keys)
-            ) != len(keys):
-                cols = list(
-                    safe_sort(
-                        list(set(keys) - set(selected_obj.columns.intersection(keys))),
-                    )
-                )
-                raise SpecificationError(f"Column(s) {cols} do not exist")
 
         from pandas.core.reshape.concat import concat
 
@@ -541,17 +505,26 @@ class Apply(metaclass=abc.ABCMeta):
         f = self.f
         if not isinstance(f, str):
             return None
+
+        obj = self.obj
+
+        # TODO: GH 39993 - Avoid special-casing by replacing with lambda
+        if f == "size" and isinstance(obj, ABCDataFrame):
+            # Special-cased because DataFrame.size returns a single scalar
+            value = obj.shape[self.axis]
+            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
-        func = getattr(self.obj, f, None)
+        func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
             if "axis" in sig.args:
                 self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")
-        return self.obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
+        return obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
 
     def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
         """
@@ -566,6 +539,33 @@ class Apply(metaclass=abc.ABCMeta):
         if not is_list_like(self.f):
             return None
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
+
+    def validate_dictlike_arg(
+        self, how: str, obj: FrameOrSeriesUnion, func: AggFuncTypeDict
+    ) -> None:
+        """
+        Raise if dict-like argument is invalid.
+
+        Ensures that necessary columns exist if obj is a DataFrame, and
+        that a nested renamer is not passed.
+        """
+        assert how in ("apply", "agg", "transform")
+
+        # Can't use func.values(); wouldn't work for a Series
+        if (
+            how == "agg"
+            and isinstance(obj, ABCSeries)
+            and any(is_list_like(v) for _, v in func.items())
+        ) or (any(is_dict_like(v) for _, v in func.items())):
+            # GH 15931 - deprecation of renaming keys
+            raise SpecificationError("nested renamer is not supported")
+
+        if obj.ndim != 1:
+            # Check for missing columns on a frame
+            cols = set(func.keys()) - set(obj.columns)
+            if len(cols) > 0:
+                cols_sorted = list(safe_sort(list(cols)))
+                raise KeyError(f"Column(s) {cols_sorted} do not exist")
 
 
 class FrameApply(Apply):
@@ -612,10 +612,6 @@ class FrameApply(Apply):
     @cache_readonly
     def dtypes(self) -> Series:
         return self.obj.dtypes
-
-    @property
-    def agg_axis(self) -> Index:
-        return self.obj._get_agg_axis(self.axis)
 
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
