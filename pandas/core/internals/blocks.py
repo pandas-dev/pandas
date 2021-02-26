@@ -813,6 +813,17 @@ class Block(PandasObject):
             return [self] if inplace else [self.copy()]
 
         if not self._can_hold_element(value):
+            if self.ndim == 2 and self.shape[0] > 1:
+                # split so that we only upcast where necessary
+                nbs = self._split()
+                res_blocks = extend_blocks(
+                    [
+                        blk.replace(to_replace, value, inplace=inplace, regex=regex)
+                        for blk in nbs
+                    ]
+                )
+                return res_blocks
+
             blk = self.coerce_to_target_dtype(value)
             return blk.replace(
                 to_replace=to_replace,

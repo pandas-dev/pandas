@@ -807,7 +807,7 @@ class TestDataFrameReplace:
 
     def test_replace_mixed_int_block_splitting(self):
 
-        # int block (non)-splitting
+        # int block splitting
         df = DataFrame(
             {
                 "A": Series([1.0, 2.0], dtype="float64"),
@@ -819,7 +819,7 @@ class TestDataFrameReplace:
             {
                 "A": Series([1.0, 2.0], dtype="float64"),
                 "B": Series([0.5, 1], dtype="float64"),
-                "C": Series([1, 2], dtype="float64"),
+                "C": Series([1, 2], dtype="int64"),
             }
         )
         result = df.replace(0, 0.5)
