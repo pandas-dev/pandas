@@ -31,6 +31,7 @@ from pandas.io.stata import (
     StataMissingValue,
     StataReader,
     StataWriterUTF8,
+    ValueLabelTypeMismatch,
     read_stata,
 )
 
@@ -435,7 +436,7 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(io.stata.InvalidColumnName):
+            with tm.assert_produces_warning(InvalidColumnName):
                 original.to_stata(path, None)
 
             written_and_read_again = self.read_dta(path)
@@ -1022,7 +1023,7 @@ class TestStata:
             [original[col].astype("category") for col in original], axis=1
         )
 
-        with tm.assert_produces_warning(io.stata.ValueLabelTypeMismatch):
+        with tm.assert_produces_warning(ValueLabelTypeMismatch):
             original.to_stata(path)
             # should get a warning for mixed content
 
@@ -1652,7 +1653,7 @@ The repeated labels are:\n-+\nwolof
         )
         original.index.name = "index"
 
-        with tm.assert_produces_warning(io.stata.InvalidColumnName):
+        with tm.assert_produces_warning(InvalidColumnName):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_strl=["long", 1], version=117)
                 reread = self.read_dta(path)
