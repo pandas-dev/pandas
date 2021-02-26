@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Set,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -25,6 +26,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
+    F,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -684,7 +686,7 @@ def _fillna_prep(values, mask=None):
     return mask
 
 
-def _datetimelike_compat(func):
+def _datetimelike_compat(func: F) -> F:
     """
     Wrapper to handle datetime64 and timedelta64 dtypes.
     """
@@ -701,7 +703,7 @@ def _datetimelike_compat(func):
 
         return func(values, limit=limit, mask=mask)
 
-    return new_func
+    return cast(F, new_func)
 
 
 @_datetimelike_compat
