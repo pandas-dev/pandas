@@ -398,18 +398,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
+            values = com.convert_to_list_like(values)
             values = maybe_infer_to_datetimelike(values)
-            if isinstance(values, np.ndarray):
+            if isinstance(values, list) and len(values) == 0:
+                # By convention, empty lists result in object dtype:
+                values = np.array([], dtype=object)
+            elif isinstance(values, np.ndarray):
+                # could just call sanitize_array, but that would also raise
+                #  for ndim>1 which we prefer to handle below
                 values = sanitize_to_nanoseconds(values)
             elif not isinstance(values, ExtensionArray):
-                values = com.convert_to_list_like(values)
-
-                # By convention, empty lists result in object dtype:
-                sanitize_dtype = np.dtype("O") if len(values) == 0 else None
+                # i.e. must be a list
                 null_mask = isna(values)
                 if null_mask.any():
+                    # We remove null values here, then below will re-insert
+                    #  them, grep "full_codes"
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
-                values = sanitize_array(values, None, dtype=sanitize_dtype)
+                values = sanitize_array(values, None, dtype=None)
 
         if dtype.categories is None:
             try:
