@@ -15,9 +15,11 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -58,6 +60,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import (
     convert_dtypes,
+    maybe_box_native,
     maybe_cast_to_extension_array,
     validate_numeric_casting,
 )
@@ -93,7 +96,6 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import transform
 from pandas.core.apply import series_apply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
@@ -395,7 +397,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                data = sanitize_array(data, index, dtype, copy, raise_cast_failure=True)
+                data = sanitize_array(data, index, dtype, copy)
 
                 data = SingleBlockManager.from_array(data, index)
 
@@ -1591,7 +1593,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # GH16122
         into_c = com.standardize_mapping(into)
-        return into_c(self.items())
+        return into_c((k, maybe_box_native(v)) for k, v in self.items())
 
     def to_frame(self, name=None) -> DataFrame:
         """
@@ -3099,7 +3101,7 @@ Keep all original rows and also all original values
     def sort_values(
         self,
         axis=0,
-        ascending=True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -3117,7 +3119,7 @@ Keep all original rows and also all original values
         axis : {0 or 'index'}, default 0
             Axis to direct sorting. The value 'index' is accepted for
             compatibility with DataFrame.sort_values.
-        ascending : bool, default True
+        ascending : bool or list of bools, default True
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
@@ -3277,6 +3279,7 @@ Keep all original rows and also all original values
             )
 
         if is_list_like(ascending):
+            ascending = cast(Sequence[Union[bool, int]], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3291,7 +3294,7 @@ Keep all original rows and also all original values
 
         # GH 35922. Make sorting stable by leveraging nargsort
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
-        sorted_index = nargsort(values_to_sort, kind, ascending, na_position)
+        sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
@@ -3309,7 +3312,7 @@ Keep all original rows and also all original values
         self,
         axis=0,
         level=None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -3329,7 +3332,7 @@ Keep all original rows and also all original values
             Axis to direct sorting. This can only be 0 for Series.
         level : int, optional
             If not None, sort on values in specified index level(s).
-        ascending : bool or list of bools, default True
+        ascending : bool or list-like of bools, default True
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False
@@ -4002,26 +4005,6 @@ Keep all original rows and also all original values
 
         op = series_apply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
-        if result is None:
-
-            # we can be called from an inner function which
-            # passes this meta-data
-            kwargs.pop("_axis", None)
-            kwargs.pop("_level", None)
-
-            # try a regular apply, this evaluates lambdas
-            # row-by-row; however if the lambda is expected a Series
-            # expression, e.g.: lambda x: x-x.quantile(0.25)
-            # this will fail, so we can try a vectorized evaluation
-
-            # we cannot FIRST try the vectorized evaluation, because
-            # then .agg and .apply would have different semantics if the
-            # operation is actually defined on the Series, e.g. str
-            try:
-                result = self.apply(func, *args, **kwargs)
-            except (ValueError, AttributeError, TypeError):
-                result = func(self, *args, **kwargs)
-
         return result
 
     agg = aggregate
@@ -4034,7 +4017,10 @@ Keep all original rows and also all original values
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> FrameOrSeriesUnion:
-        return transform(self, func, axis, *args, **kwargs)
+        # Validate axis argument
+        self._get_axis_number(axis)
+        result = series_apply(self, func=func, args=args, kwargs=kwargs).transform()
+        return result
 
     def apply(
         self,
@@ -4145,8 +4131,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        op = series_apply(self, func, convert_dtype, args, kwargs)
-        return op.apply()
+        return series_apply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
         self,

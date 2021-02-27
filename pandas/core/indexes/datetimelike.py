@@ -150,7 +150,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._cache = {}
 
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
+        result._index_data = values._ndarray
 
         result._reset_identity()
         return result
@@ -165,7 +165,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     @property
     def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._data
+        return self._data._ndarray
 
     def __array_wrap__(self, result, context=None):
         """
@@ -627,12 +627,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_insert_freq(loc, item)
         return result
 
-    def _validate_fill_value(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
-        return self._data._validate_setitem_value(value)
-
     # --------------------------------------------------------------------
     # Join/Set Methods
 
@@ -732,13 +726,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left._values[lslice]
-            # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
-            # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"
-            result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
+            result = left._values[lslice]
 
-        return self._wrap_setop_result(other, result)
+        return result
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         # Note: we only get here with len(self) > 0 and len(other) > 0

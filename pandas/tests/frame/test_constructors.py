@@ -64,6 +64,10 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_construct_from_list_of_datetimes(self):
+        df = DataFrame([datetime.now(), datetime.now()])
+        assert df[0].dtype == np.dtype("M8[ns]")
+
     def test_constructor_from_tzaware_datetimeindex(self):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH#6032
@@ -2208,7 +2212,7 @@ class TestDataFrameConstructors:
 
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
-        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
         with pytest.raises(ValueError, match="Shape of passed values"):
             DataFrame(dti, index=range(4))
 

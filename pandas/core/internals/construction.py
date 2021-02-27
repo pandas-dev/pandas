@@ -36,6 +36,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -198,13 +199,8 @@ def mgr_to_mgr(mgr, typ: str):
 # DataFrame Constructor Interface
 
 
-def init_ndarray(
-    values,
-    index,
-    columns,
-    dtype: Optional[DtypeObj],
-    copy: bool,
-):
+def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
+    # used in DataFrame.__init__
     # input must be a ndarray, list, Series, index
 
     if isinstance(values, ABCSeries):
@@ -286,17 +282,14 @@ def init_ndarray(
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(
-    data: Dict,
-    index,
-    columns,
-    *,
-    dtype: Optional[DtypeObj] = None,
-    copy: bool = True,
+def dict_to_mgr(
+    data: Dict, index, columns, *, dtype: Optional[DtypeObj] = None, copy: bool = True
 ):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
+
+    Used in DataFrame.__init__
     """
     arrays: Union[Sequence[Any], Series]
 
@@ -410,7 +403,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
         try:
-            if is_list_like(values[0]) or hasattr(values[0], "len"):
+            if is_list_like(values[0]):
                 values = np.array([convert(v) for v in values])
             elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
                 # GH#21861
@@ -435,7 +428,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index, dtype: Optional[DtypeObj]):
+def _homogenize(data, index: Index, dtype: Optional[DtypeObj]):
     oindex = None
     homogenized = []
 
@@ -860,8 +853,7 @@ def sanitize_index(data, index: Index):
 
     if isinstance(data, np.ndarray):
 
-        # coerce datetimelike types
-        if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=False)
+        # coerce datetimelike types to ns
+        data = sanitize_to_nanoseconds(data)
 
     return data

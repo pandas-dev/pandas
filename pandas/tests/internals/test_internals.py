@@ -123,7 +123,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         assert m is not None, f"incompatible typestr -> {typestr}"
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
-        values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)
+        values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)._data
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
     elif typestr in ("category",):

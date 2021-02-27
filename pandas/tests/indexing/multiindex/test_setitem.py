@@ -15,114 +15,109 @@ import pandas._testing as tm
 import pandas.core.common as com
 
 
+def assert_equal(a, b):
+    assert a == b
+
+
 class TestMultiIndexSetItem:
+    def check(self, target, indexers, value, compare_fn=assert_equal, expected=None):
+        target.loc[indexers] = value
+        result = target.loc[indexers]
+        if expected is None:
+            expected = value
+        compare_fn(result, expected)
+
     def test_setitem_multiindex(self):
-        for index_fn in ("loc",):
+        # GH#7190
+        cols = ["A", "w", "l", "a", "x", "X", "d", "profit"]
+        index = MultiIndex.from_product(
+            [np.arange(0, 100), np.arange(0, 80)], names=["time", "firm"]
+        )
+        t, n = 0, 2
 
-            def assert_equal(a, b):
-                assert a == b
+        df = DataFrame(
+            np.nan,
+            columns=cols,
+            index=index,
+        )
+        self.check(target=df, indexers=((t, n), "X"), value=0)
 
-            def check(target, indexers, value, compare_fn, expected=None):
-                fn = getattr(target, index_fn)
-                fn.__setitem__(indexers, value)
-                result = fn.__getitem__(indexers)
-                if expected is None:
-                    expected = value
-                compare_fn(result, expected)
+        df = DataFrame(-999, columns=cols, index=index)
+        self.check(target=df, indexers=((t, n), "X"), value=1)
 
-            # GH7190
-            index = MultiIndex.from_product(
-                [np.arange(0, 100), np.arange(0, 80)], names=["time", "firm"]
-            )
-            t, n = 0, 2
-            df = DataFrame(
-                np.nan,
-                columns=["A", "w", "l", "a", "x", "X", "d", "profit"],
-                index=index,
-            )
-            check(target=df, indexers=((t, n), "X"), value=0, compare_fn=assert_equal)
+        df = DataFrame(columns=cols, index=index)
+        self.check(target=df, indexers=((t, n), "X"), value=2)
 
-            df = DataFrame(
-                -999, columns=["A", "w", "l", "a", "x", "X", "d", "profit"], index=index
-            )
-            check(target=df, indexers=((t, n), "X"), value=1, compare_fn=assert_equal)
+        # gh-7218: assigning with 0-dim arrays
+        df = DataFrame(-999, columns=cols, index=index)
+        self.check(
+            target=df,
+            indexers=((t, n), "X"),
+            value=np.array(3),
+            expected=3,
+        )
 
-            df = DataFrame(
-                columns=["A", "w", "l", "a", "x", "X", "d", "profit"], index=index
-            )
-            check(target=df, indexers=((t, n), "X"), value=2, compare_fn=assert_equal)
+    def test_setitem_multiindex2(self):
+        # GH#5206
+        df = DataFrame(
+            np.arange(25).reshape(5, 5), columns="A,B,C,D,E".split(","), dtype=float
+        )
+        df["F"] = 99
+        row_selection = df["A"] % 2 == 0
+        col_selection = ["B", "C"]
+        df.loc[row_selection, col_selection] = df["F"]
+        output = DataFrame(99.0, index=[0, 2, 4], columns=["B", "C"])
+        tm.assert_frame_equal(df.loc[row_selection, col_selection], output)
+        self.check(
+            target=df,
+            indexers=(row_selection, col_selection),
+            value=df["F"],
+            compare_fn=tm.assert_frame_equal,
+            expected=output,
+        )
 
-            # gh-7218: assigning with 0-dim arrays
-            df = DataFrame(
-                -999, columns=["A", "w", "l", "a", "x", "X", "d", "profit"], index=index
-            )
-            check(
-                target=df,
-                indexers=((t, n), "X"),
-                value=np.array(3),
-                compare_fn=assert_equal,
-                expected=3,
-            )
+    def test_setitem_multiindex3(self):
+        # GH#11372
+        idx = MultiIndex.from_product(
+            [["A", "B", "C"], date_range("2015-01-01", "2015-04-01", freq="MS")]
+        )
+        cols = MultiIndex.from_product(
+            [["foo", "bar"], date_range("2016-01-01", "2016-02-01", freq="MS")]
+        )
 
-            # GH5206
-            df = DataFrame(
-                np.arange(25).reshape(5, 5), columns="A,B,C,D,E".split(","), dtype=float
-            )
-            df["F"] = 99
-            row_selection = df["A"] % 2 == 0
-            col_selection = ["B", "C"]
-            df.loc[row_selection, col_selection] = df["F"]
-            output = DataFrame(99.0, index=[0, 2, 4], columns=["B", "C"])
-            tm.assert_frame_equal(df.loc[row_selection, col_selection], output)
-            check(
-                target=df,
-                indexers=(row_selection, col_selection),
-                value=df["F"],
-                compare_fn=tm.assert_frame_equal,
-                expected=output,
-            )
+        df = DataFrame(np.random.random((12, 4)), index=idx, columns=cols)
 
-            # GH11372
-            idx = MultiIndex.from_product(
-                [["A", "B", "C"], date_range("2015-01-01", "2015-04-01", freq="MS")]
-            )
-            cols = MultiIndex.from_product(
-                [["foo", "bar"], date_range("2016-01-01", "2016-02-01", freq="MS")]
-            )
+        subidx = MultiIndex.from_tuples(
+            [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
+        )
+        subcols = MultiIndex.from_tuples(
+            [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
+        )
 
-            df = DataFrame(np.random.random((12, 4)), index=idx, columns=cols)
-
-            subidx = MultiIndex.from_tuples(
-                [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
-            )
-            subcols = MultiIndex.from_tuples(
-                [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
-            )
-
-            vals = DataFrame(np.random.random((2, 2)), index=subidx, columns=subcols)
-            check(
-                target=df,
-                indexers=(subidx, subcols),
-                value=vals,
-                compare_fn=tm.assert_frame_equal,
-            )
-            # set all columns
-            vals = DataFrame(np.random.random((2, 4)), index=subidx, columns=cols)
-            check(
-                target=df,
-                indexers=(subidx, slice(None, None, None)),
-                value=vals,
-                compare_fn=tm.assert_frame_equal,
-            )
-            # identity
-            copy = df.copy()
-            check(
-                target=df,
-                indexers=(df.index, df.columns),
-                value=df,
-                compare_fn=tm.assert_frame_equal,
-                expected=copy,
-            )
+        vals = DataFrame(np.random.random((2, 2)), index=subidx, columns=subcols)
+        self.check(
+            target=df,
+            indexers=(subidx, subcols),
+            value=vals,
+            compare_fn=tm.assert_frame_equal,
+        )
+        # set all columns
+        vals = DataFrame(np.random.random((2, 4)), index=subidx, columns=cols)
+        self.check(
+            target=df,
+            indexers=(subidx, slice(None, None, None)),
+            value=vals,
+            compare_fn=tm.assert_frame_equal,
+        )
+        # identity
+        copy = df.copy()
+        self.check(
+            target=df,
+            indexers=(df.index, df.columns),
+            value=df,
+            compare_fn=tm.assert_frame_equal,
+            expected=copy,
+        )
 
     def test_multiindex_setitem(self):
 
@@ -147,6 +142,8 @@ class TestMultiIndexSetItem:
         msg = "cannot align on a multi-index with out specifying the join levels"
         with pytest.raises(TypeError, match=msg):
             df.loc["bar"] *= 2
+
+    def test_multiindex_setitem2(self):
 
         # from SO
         # https://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
@@ -239,17 +236,6 @@ class TestMultiIndexSetItem:
         grp = df.groupby(level=index_cols[:4])
         df["new_col"] = np.nan
 
-        f_index = np.arange(5)
-
-        def f(name, df2):
-            return Series(np.arange(df2.shape[0]), name=df2.index.values[0]).reindex(
-                f_index
-            )
-
-        # FIXME: dont leave commented-out
-        # TODO(wesm): unused?
-        # new_df = pd.concat([f(name, df2) for name, df2 in grp], axis=1).T
-
         # we are actually operating on a copy here
         # but in this case, that's ok
         for name, df2 in grp:
@@ -334,8 +320,10 @@ class TestMultiIndexSetItem:
         cp["a"] = cp["b"].values
         tm.assert_frame_equal(cp["a"], cp["b"])
 
+    def test_frame_setitem_multi_column2(self):
+
         # ---------------------------------------
-        # #1803
+        # GH#1803
         columns = MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")])
         df = DataFrame(index=[1, 3, 5], columns=columns)
 
@@ -356,6 +344,7 @@ class TestMultiIndexSetItem:
         assert sliced_a2.name == ("A", "2")
         assert sliced_b1.name == ("B", "1")
 
+    # TODO: no setitem here?
     def test_getitem_setitem_tuple_plus_columns(
         self, multiindex_year_month_day_dataframe_random_data
     ):
@@ -367,29 +356,23 @@ class TestMultiIndexSetItem:
         expected = df.loc[2000, 1, 6][["A", "B", "C"]]
         tm.assert_series_equal(result, expected)
 
-    def test_getitem_setitem_slice_integers(self):
+    def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
         index = MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
         )
 
-        frame = DataFrame(
+        obj = DataFrame(
             np.random.randn(len(index), 4), index=index, columns=["a", "b", "c", "d"]
         )
-        res = frame.loc[1:2]
-        exp = frame.reindex(frame.index[2:])
-        tm.assert_frame_equal(res, exp)
+        if frame_or_series is not DataFrame:
+            obj = obj["a"]
 
-        frame.loc[1:2] = 7
-        assert (frame.loc[1:2] == 7).values.all()
+        res = obj.loc[1:2]
+        exp = obj.reindex(obj.index[2:])
+        tm.assert_equal(res, exp)
 
-        series = Series(np.random.randn(len(index)), index=index)
-
-        res = series.loc[1:2]
-        exp = series.reindex(series.index[2:])
-        tm.assert_series_equal(res, exp)
-
-        series.loc[1:2] = 7
-        assert (series.loc[1:2] == 7).values.all()
+        obj.loc[1:2] = 7
+        assert (obj.loc[1:2] == 7).values.all()
 
     def test_setitem_change_dtype(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -419,9 +402,9 @@ class TestMultiIndexSetItem:
         )
 
         df = df.set_index(["A", "B"])
-        ix = MultiIndex.from_tuples([(1, 1)])
+        mi = MultiIndex.from_tuples([(1, 1)])
 
-        df.loc[ix, "C"] = "_"
+        df.loc[mi, "C"] = "_"
 
         assert (df.xs((1, 1))["C"] == "_").all()
 
@@ -445,6 +428,33 @@ class TestMultiIndexSetItem:
         df.loc["a", "e"] = np.arange(99, 101, dtype="int64")
         expected = DataFrame({"e": [99, 1, 100]}, index=index)
         tm.assert_frame_equal(df, expected)
+
+
+class TestSetitemWithExpansionMultiIndex:
+    def test_setitem_new_column_mixed_depth(self):
+        arrays = [
+            ["a", "top", "top", "routine1", "routine1", "routine2"],
+            ["", "OD", "OD", "result1", "result2", "result1"],
+            ["", "wx", "wy", "", "", ""],
+        ]
+
+        tuples = sorted(zip(*arrays))
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
+
+        result = df.copy()
+        expected = df.copy()
+        result["b"] = [1, 2, 3, 4]
+        expected["b", "", ""] = [1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+    def test_setitem_new_column_all_na(self):
+        # GH#1534
+        mix = MultiIndex.from_tuples([("1a", "2a"), ("1a", "2b"), ("1a", "2c")])
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
+        s = Series({(1, 1): 1, (1, 2): 2})
+        df["new"] = s
+        assert df["new"].isna().all()
 
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):

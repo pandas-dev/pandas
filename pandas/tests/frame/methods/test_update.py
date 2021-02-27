@@ -137,3 +137,12 @@ class TestDataFrameUpdate:
         result.update(result)
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
+
+    def test_update_with_different_dtype(self):
+        # GH#3217
+        df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
+        df["c"] = np.nan
+        df["c"].update(Series(["foo"], index=[0]))
+
+        expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
+        tm.assert_frame_equal(df, expected)
