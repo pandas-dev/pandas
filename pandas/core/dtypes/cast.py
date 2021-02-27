@@ -94,6 +94,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCSeries,
 )
@@ -238,6 +239,9 @@ def maybe_downcast_to_dtype(
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
+    if isinstance(result, ABCDataFrame):
+        # see test_pivot_table_doctest_case
+        return result
     do_round = False
 
     if isinstance(dtype, str):
