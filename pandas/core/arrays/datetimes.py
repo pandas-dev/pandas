@@ -261,7 +261,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
             if freq is None:
                 freq = values.freq
-            values = values._data
+            values = values._ndarray
 
         if not isinstance(values, np.ndarray):
             raise ValueError(
@@ -303,7 +303,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # be incorrect(ish?) for the array as a whole
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
 
-        self._data = values
+        self._ndarray = values
         self._dtype = dtype
         self._freq = freq
 
@@ -320,7 +320,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             values = values.view(DT64NS_DTYPE)
 
         result = object.__new__(cls)
-        result._data = values
+        result._ndarray = values
         result._freq = freq
         result._dtype = dtype
         return result
@@ -618,7 +618,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         elif self.tz is None and is_datetime64_dtype(dtype) and dtype != self.dtype:
             # unit conversion e.g. datetime64[s]
-            return self._data.astype(dtype)
+            return self._ndarray.astype(dtype)
 
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
@@ -1138,7 +1138,7 @@ default 'raise'
 
             freq = res
 
-        return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)
+        return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
 
     def to_perioddelta(self, freq):
         """

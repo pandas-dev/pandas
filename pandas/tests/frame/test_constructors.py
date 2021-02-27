@@ -64,6 +64,10 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_construct_from_list_of_datetimes(self):
+        df = DataFrame([datetime.now(), datetime.now()])
+        assert df[0].dtype == np.dtype("M8[ns]")
+
     def test_constructor_from_tzaware_datetimeindex(self):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH#6032
@@ -2057,13 +2061,6 @@ class TestDataFrameConstructors:
         msg = r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
-
-    def test_categorical_1d_only(self):
-        # TODO: belongs in Categorical tests
-        # ndim > 1
-        msg = "> 1 ndim Categorical are not supported at this time"
-        with pytest.raises(NotImplementedError, match=msg):
-            Categorical(np.array([list("abcd")]))
 
     def test_constructor_categorical_series(self):
 

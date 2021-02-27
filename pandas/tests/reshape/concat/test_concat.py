@@ -13,6 +13,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    PeriodIndex,
     Series,
     concat,
     date_range,
@@ -24,6 +25,22 @@ from pandas.tests.extension.decimal import to_decimal
 
 
 class TestConcatenate:
+    def test_append_concat(self):
+        # GH#1815
+        d1 = date_range("12/31/1990", "12/31/1999", freq="A-DEC")
+        d2 = date_range("12/31/2000", "12/31/2009", freq="A-DEC")
+
+        s1 = Series(np.random.randn(10), d1)
+        s2 = Series(np.random.randn(10), d2)
+
+        s1 = s1.to_period()
+        s2 = s2.to_period()
+
+        # drops index
+        result = concat([s1, s2])
+        assert isinstance(result.index, PeriodIndex)
+        assert result.index[0] == s1.index[0]
+
     def test_concat_copy(self):
         df = DataFrame(np.random.randn(4, 3))
         df2 = DataFrame(np.random.randint(0, 10, size=4).reshape(4, 1))
@@ -39,7 +56,7 @@ class TestConcatenate:
         result = concat([df, df2, df3], axis=1, copy=False)
 
         for b in result._mgr.blocks:
-            if b.is_float:
+            if b.dtype.kind == "f":
                 assert b.values.base is df._mgr.blocks[0].values.base
             elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base
@@ -50,7 +67,7 @@ class TestConcatenate:
         df4 = DataFrame(np.random.randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for b in result._mgr.blocks:
-            if b.is_float:
+            if b.dtype.kind == "f":
                 assert b.values.base is None
             elif b.dtype.kind in ["i", "u"]:
                 assert b.values.base is df2._mgr.blocks[0].values.base

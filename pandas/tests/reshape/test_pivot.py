@@ -2040,7 +2040,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_empty_aggfunc(self):
-        # GH 9186
+        # GH 9186 & GH 13483
         df = DataFrame(
             {
                 "A": [2, 2, 3, 3, 2],
@@ -2050,7 +2050,8 @@ class TestPivotTable:
             }
         )
         result = df.pivot_table(index="A", columns="D", values="id", aggfunc=np.size)
-        expected = DataFrame()
+        expected = DataFrame(index=Index([], dtype="int64", name="A"))
+        expected.columns.name = "D"
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_no_column_raises(self):
@@ -2061,6 +2062,55 @@ class TestPivotTable:
         foo = DataFrame({"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]})
         with pytest.raises(KeyError, match="notpresent"):
             foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
+
+    def test_pivot_table_doctest_case(self):
+        # TODO: better name.  the relevant characteristic is that
+        #  the call to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
+        #  __internal_pivot_table has `agged[v]` a DataFrame instead of Series,
+        #  i.e agged.columns is not unique
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+            }
+        )
+
+        table = pivot_table(
+            df,
+            values=["D", "E"],
+            index=["A", "C"],
+            aggfunc={"D": np.mean, "E": [min, max, np.mean]},
+        )
+        cols = MultiIndex.from_tuples(
+            [("D", "mean"), ("E", "max"), ("E", "mean"), ("E", "min")]
+        )
+        index = MultiIndex.from_tuples(
+            [("bar", "large"), ("bar", "small"), ("foo", "large"), ("foo", "small")],
+            names=["A", "C"],
+        )
+        vals = np.array(
+            [
+                [5.5, 9.0, 7.5, 6.0],
+                [5.5, 9.0, 8.5, 8.0],
+                [2.0, 5.0, 4.5, 4.0],
+                [2.33333333, 6.0, 4.33333333, 2.0],
+            ]
+        )
+        expected = DataFrame(vals, columns=cols, index=index)
+        tm.assert_frame_equal(table, expected)
 
 
 class TestPivot:

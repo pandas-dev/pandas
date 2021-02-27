@@ -10,6 +10,7 @@ from typing import (
     List,
     Optional,
     Tuple,
+    Type,
 )
 import warnings
 
@@ -171,7 +172,7 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _constructor(self):
+    def _constructor(self) -> Type[Int64Index]:
         """ return the class to use for construction """
         return Int64Index
 
@@ -526,7 +527,7 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other, sort=False):
+    def _intersection(self, other: Index, sort=False):
 
         if not isinstance(other, RangeIndex):
             # Int64Index
@@ -601,7 +602,7 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def _union(self, other, sort):
+    def _union(self, other: Index, sort):
         """
         Form the union of two Index objects and sorts if possible
 

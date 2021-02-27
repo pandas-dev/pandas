@@ -43,6 +43,73 @@ For example:
         storage_options=headers
     )
 
+.. _whatsnew_130.read_to_xml:
+
+Read and write XML documents
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We added I/O support to read and render shallow versions of `XML`_ documents with
+:func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using `lxml`_ as parser,
+both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
+
+.. _XML: https://www.w3.org/standards/xml/core
+.. _lxml: https://lxml.de
+
+.. code-block:: ipython
+
+    In [1]: xml = """<?xml version='1.0' encoding='utf-8'?>
+       ...: <data>
+       ...:  <row>
+       ...:     <shape>square</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides>4.0</sides>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>circle</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides/>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>triangle</shape>
+       ...:     <degrees>180</degrees>
+       ...:     <sides>3.0</sides>
+       ...:  </row>
+       ...:  </data>"""
+
+    In [2]: df = pd.read_xml(xml)
+    In [3]: df
+    Out[3]:
+          shape  degrees  sides
+    0    square      360    4.0
+    1    circle      360    NaN
+    2  triangle      180    3.0
+
+    In [4]: df.to_xml()
+    Out[4]:
+    <?xml version='1.0' encoding='utf-8'?>
+    <data>
+      <row>
+        <index>0</index>
+        <shape>square</shape>
+        <degrees>360</degrees>
+        <sides>4.0</sides>
+      </row>
+      <row>
+        <index>1</index>
+        <shape>circle</shape>
+        <degrees>360</degrees>
+        <sides/>
+      </row>
+      <row>
+        <index>2</index>
+        <shape>triangle</shape>
+        <degrees>180</degrees>
+        <sides>3.0</sides>
+      </row>
+    </data>
+
+For more, see :ref:`io.xml` in the user guide on IO tools.
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
@@ -269,6 +336,8 @@ Performance improvements
 - Performance improvement in :meth:`core.window.rolling.RollingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` (:issue:`39591`)
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
 - Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
+- Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
+- Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
 
 .. ---------------------------------------------------------------------------
 
@@ -300,12 +369,14 @@ Datetimelike
 - Bug in :meth:`Timestamp.round`, :meth:`Timestamp.floor`, :meth:`Timestamp.ceil` for values near the implementation bounds of :class:`Timestamp` (:issue:`39244`)
 - Bug in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, :meth:`Timedelta.ceil` for values near the implementation bounds of :class:`Timedelta` (:issue:`38964`)
 - Bug in :func:`date_range` incorrectly creating :class:`DatetimeIndex` containing ``NaT`` instead of raising ``OutOfBoundsDatetime`` in corner cases (:issue:`24124`)
+- Bug in :func:`infer_freq` incorrectly fails to infer 'H' frequency of :class:`DatetimeIndex` if the latter has a timezone and crosses DST boundaries (:issue:`39556`)
 
 Timedelta
 ^^^^^^^^^
 - Bug in constructing :class:`Timedelta` from ``np.timedelta64`` objects with non-nanosecond units that are out of bounds for ``timedelta64[ns]`` (:issue:`38965`)
 - Bug in constructing a :class:`TimedeltaIndex` incorrectly accepting ``np.datetime64("NaT")`` objects (:issue:`39462`)
 - Bug in constructing :class:`Timedelta` from input string with only symbols and no digits failed to raise an error (:issue:`39710`)
+- Bug in :class:`TimedeltaIndex` and :func:`to_timedelta` failing to raise when passed non-nanosecond ``timedelta64`` arrays that overflow when converting to ``timedelta64[ns]`` (:issue:`40008`)
 
 Timezones
 ^^^^^^^^^
@@ -321,11 +392,14 @@ Numeric
 - Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising ``IndexError`` (:issue:`38932`)
 - Bug in :func:`select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36569`)
+- Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.agg` when passed argument ``func="size"`` would operate on the entire ``DataFrame`` instead of rows or columns (:issue:`39934`)
+- Bug in :meth:`DataFrame.transform` would raise ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
 -
 
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
+- Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
 -
 -
 
@@ -373,7 +447,7 @@ Missing
 ^^^^^^^
 
 - Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
--
+- Bug in :func:`isna`, and :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna` (and the corresponding ``notna`` functions) not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
 -
 
 MultiIndex
@@ -434,6 +508,14 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.resample` would raise when the index was a :class:`PeriodIndex` consisting of ``NaT`` (:issue:`39227`)
 - Bug in :meth:`core.window.rolling.RollingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.corr` where the groupby column would return 0 instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 - Bug in :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` where 1 would be returned instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
+- Bug in :meth:`.GroupBy.mean`, :meth:`.GroupBy.median` and :meth:`DataFrame.pivot_table` not propagating metadata (:issue:`28283`)
+- Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly when window is an offset and dates are in descending order (:issue:`40002`)
+- Bug in :class:`SeriesGroupBy` and :class:`DataFrameGroupBy` on an empty ``Series`` or ``DataFrame`` would lose index, columns, and/or data types when directly using the methods ``idxmax``, ``idxmin``, ``mad``, ``min``, ``max``, ``sum``, ``prod``, and ``skew`` or using them through ``apply``, ``aggregate``, or ``resample`` (:issue:`26411`)
+- Bug in :meth:`DataFrameGroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` if a :class:`:meth:`core.window.rolling.RollingGroupby` object was created (:issue:`39732`)
+- Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
+- Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
+- Bug in :meth:`DataFrameGroupBy.sample` where column selection was not applied to sample result (:issue:`39928`)
+-
 
 Reshaping
 ^^^^^^^^^
@@ -448,6 +530,7 @@ Reshaping
 - Bug in :meth:`DataFrame.sort_values` not reshaping index correctly after sorting on columns, when ``ignore_index=True`` (:issue:`39464`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
+- Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
 
 Sparse
 ^^^^^^
@@ -477,7 +560,9 @@ Other
 - Bug in :class:`Styler` where ``subset`` arg in methods raised an error for some valid multiindex slices (:issue:`33562`)
 - :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
+- Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
+- Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 
 
 .. ---------------------------------------------------------------------------
