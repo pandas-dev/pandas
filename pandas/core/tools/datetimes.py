@@ -248,13 +248,13 @@ def _convert_and_box_cache(
     return _box_as_indexlike(result, utc=None, name=name)
 
 
-def _return_parsed_timezone_results(result, timezones, tz, name):
+def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
     Parameters
     ----------
-    result : ndarray
+    result : ndarray[int64]
         int64 date representations of the dates
     timezones : ndarray
         pytz timezone objects
@@ -287,7 +287,7 @@ def _convert_listlike_datetimes(
     infer_datetime_format: Optional[bool] = None,
     dayfirst: Optional[bool] = None,
     yearfirst: Optional[bool] = None,
-    exact: Optional[bool] = None,
+    exact: bool = True,
 ):
     """
     Helper function for to_datetime. Performs the conversions of 1D listlike
@@ -311,7 +311,7 @@ def _convert_listlike_datetimes(
         dayfirst parsing behavior from to_datetime
     yearfirst : boolean
         yearfirst parsing behavior from to_datetime
-    exact : boolean
+    exact : bool, default True
         exact format matching behavior from to_datetime
 
     Returns

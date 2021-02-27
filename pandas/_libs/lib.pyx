@@ -1562,7 +1562,7 @@ def infer_datetimelike_array(arr: ndarray[object]) -> str:
                 seen_tz_aware = True
 
             if seen_tz_naive and seen_tz_aware:
-                return 'mixed'
+                return "mixed"
         elif util.is_datetime64_object(v):
             # np.datetime64
             seen_datetime = True
