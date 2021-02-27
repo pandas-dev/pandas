@@ -193,7 +193,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
         # 2021-02-21 this occasionally fails on the CI with an unexpected
         #  ResourceWarning that we have been unable to track down,
         #  see GH#38630
-        if "ResourceError" not in str(err) or parser.engine != "python":
+        if "ResourceWarning" not in str(err) or parser.engine != "python":
             raise
 
         # Check the main assertion of the test before re-raising
