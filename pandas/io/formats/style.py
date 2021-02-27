@@ -56,7 +56,10 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
-CSSStyles = List[Dict[str, CSSProperties]]
+CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
+# class CSSDict(TypedDict):  # available when TypedDict is valid in pandas
+#     selector: str
+#     props: CSSProperties
 
 try:
     from matplotlib import colors
@@ -2077,7 +2080,7 @@ def _format_table_styles(styles: CSSStyles) -> CSSStyles:
     return [
         item
         for sublist in [
-            [
+            [  # this is a CSSDict when TypedDict is available to avoid cast.
                 {"selector": x, "props": style["props"]}
                 for x in cast(str, style["selector"]).split(",")
             ]
