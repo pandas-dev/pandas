@@ -698,7 +698,7 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _ensure_dtype_type(value, dtype: DtypeObj):
+def _ensure_dtype_type(value, dtype: np.dtype):
     """
     Ensure that the given value is an instance of the given dtype.
 
@@ -708,21 +708,17 @@ def _ensure_dtype_type(value, dtype: DtypeObj):
     Parameters
     ----------
     value : object
-    dtype : np.dtype or ExtensionDtype
+    dtype : np.dtype
 
     Returns
     -------
     object
     """
     # Start with exceptions in which we do _not_ cast to numpy types
-    if is_extension_array_dtype(dtype):
-        return value
-    elif dtype == np.object_:
-        return value
-    elif isna(value):
-        # e.g. keep np.nan rather than try to cast to np.float32(np.nan)
+    if dtype == np.object_:
         return value
 
+    # Note: before we get here we have already excluded isna(value)
     return dtype.type(value)
 
 
@@ -1139,7 +1135,7 @@ def astype_nansafe(
     if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
 
-    elif not isinstance(dtype, np.dtype):
+    elif not isinstance(dtype, np.dtype):  # pragma: no cover
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if arr.dtype.kind in ["m", "M"] and (
