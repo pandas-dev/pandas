@@ -148,6 +148,7 @@ from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     ensure_key_mapped,
+    get_group_index_sorter,
     nargsort,
 )
 from pandas.core.strings import StringMethods
@@ -4098,9 +4099,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return np.empty(0, dtype="int64")
 
             if len(labels) == 1:
-                lab = ensure_int64(labels[0])
-                sorter, _ = libalgos.groupsort_indexer(lab, 1 + lab.max())
-                return sorter
+                return get_group_index_sorter(labels[0])
 
             # find indexers of beginning of each set of
             # same-key labels w.r.t all but last level
