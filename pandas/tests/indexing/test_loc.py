@@ -1660,6 +1660,7 @@ class TestLocSetitemWithExpansion:
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
     def test_loc_setitem_with_expansion_nonunique_index(self, index, request):
+        # GH#40096
         if not len(index):
             return
         if isinstance(index, IntervalIndex):
