@@ -10,13 +10,18 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
 
 import numpy as np
 
-from pandas._libs import algos, hashtable, lib
+from pandas._libs import (
+    algos,
+    hashtable,
+    lib,
+)
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import IndexKeyFunc
 
@@ -41,7 +46,7 @@ _INT64_MAX = np.iinfo(np.int64).max
 def get_indexer_indexer(
     target: Index,
     level: Union[str, int, List[str], List[int]],
-    ascending: bool,
+    ascending: Union[Sequence[Union[bool, int]], Union[bool, int]],
     kind: str,
     na_position: str,
     sort_remaining: bool,

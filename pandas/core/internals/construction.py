@@ -21,7 +21,12 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, DtypeObj, Manager, Scalar
+from pandas._typing import (
+    Axis,
+    DtypeObj,
+    Manager,
+    Scalar,
+)
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -31,6 +36,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -49,9 +55,15 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
-from pandas.core import algorithms, common as com
+from pandas.core import (
+    algorithms,
+    common as com,
+)
 from pandas.core.arrays import Categorical
-from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.construction import (
+    extract_array,
+    sanitize_array,
+)
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     Index,
@@ -154,7 +166,10 @@ def mgr_to_mgr(mgr, typ: str):
     Convert to specific type of Manager. Does not copy if the type is already
     correct. Does not guarantee a copy otherwise.
     """
-    from pandas.core.internals import ArrayManager, BlockManager
+    from pandas.core.internals import (
+        ArrayManager,
+        BlockManager,
+    )
 
     new_mgr: Manager
 
@@ -180,7 +195,8 @@ def mgr_to_mgr(mgr, typ: str):
 # DataFrame Constructor Interface
 
 
-def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
+def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
+    # used in DataFrame.__init__
     # input must be a ndarray, list, Series, index
 
     if isinstance(values, ABCSeries):
@@ -262,10 +278,12 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
+def dict_to_mgr(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
+
+    Used in DataFrame.__init__
     """
     arrays: Union[Sequence[Any], Series]
 
@@ -363,7 +381,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
         try:
-            if is_list_like(values[0]) or hasattr(values[0], "len"):
+            if is_list_like(values[0]):
                 values = np.array([convert(v) for v in values])
             elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
                 # GH#21861
@@ -388,7 +406,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index, dtype: Optional[DtypeObj]):
+def _homogenize(data, index: Index, dtype: Optional[DtypeObj]):
     oindex = None
     homogenized = []
 
@@ -813,8 +831,7 @@ def sanitize_index(data, index: Index):
 
     if isinstance(data, np.ndarray):
 
-        # coerce datetimelike types
-        if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=False)
+        # coerce datetimelike types to ns
+        data = sanitize_to_nanoseconds(data)
 
     return data

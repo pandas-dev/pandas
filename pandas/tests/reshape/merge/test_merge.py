@@ -1,11 +1,18 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 import random
 import re
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -27,7 +34,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.merge import MergeError, merge
+from pandas.core.reshape.merge import (
+    MergeError,
+    merge,
+)
 
 N = 50
 NGROUPS = 8
@@ -277,17 +287,14 @@ class TestMerge:
         merged["d"] = "peekaboo"
         assert (right["d"] == "bar").all()
 
-    def test_merge_nocopy(self):
+    def test_merge_nocopy(self, using_array_manager):
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
         merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
-        merged.loc[:, "a"] = 6
-        assert (left["a"] == 6).all()
-
-        merged.loc[:, "d"] = "peekaboo"
-        assert (right["d"] == "peekaboo").all()
+        assert np.shares_memory(merged["a"]._values, left["a"]._values)
+        assert np.shares_memory(merged["d"]._values, right["d"]._values)
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -1371,7 +1378,10 @@ class TestMerge:
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
 
-        data1._mgr.blocks[0].values.flags.writeable = False
+        # make each underlying block array / column array read-only
+        for arr in data1._mgr.arrays:
+            arr.flags.writeable = False
+
         data1.merge(data2)  # no error
 
 

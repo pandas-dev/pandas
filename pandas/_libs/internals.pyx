@@ -12,7 +12,10 @@ cdef extern from "Python.h":
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport NPY_INT64, int64_t
+from numpy cimport (
+    NPY_INT64,
+    int64_t,
+)
 
 cnp.import_array()
 

@@ -7,7 +7,12 @@ import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    TimedeltaIndex,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -390,6 +395,18 @@ def test_resample_groupby_agg():
     resampled = df.groupby("cat").resample("Y", on="date")
     expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+def test_empty(keys):
+    # GH 26411
+    df = pd.DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))
+    result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
+    expected = DataFrame(columns=["a", "b"]).set_index(keys, drop=False)
+    if len(keys) == 1:
+        expected.index.name = keys[0]
 
     tm.assert_frame_equal(result, expected)
 

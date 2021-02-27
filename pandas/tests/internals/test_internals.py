@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 import re
 
@@ -23,8 +26,16 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
-from pandas.core.internals import BlockManager, SingleBlockManager, make_block
+from pandas.core.arrays import (
+    DatetimeArray,
+    SparseArray,
+    TimedeltaArray,
+)
+from pandas.core.internals import (
+    BlockManager,
+    SingleBlockManager,
+    make_block,
+)
 
 
 @pytest.fixture
@@ -112,7 +123,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         assert m is not None, f"incompatible typestr -> {typestr}"
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
-        values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)
+        values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)._data
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
     elif typestr in ("category",):
@@ -1254,8 +1265,8 @@ class TestCanHoldElement:
         if inplace:
             # assertion here implies setting was done inplace
 
-            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]"
-            #  has no attribute "blocks"  [union-attr]
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
+            #  attribute "blocks"
             assert df._mgr.blocks[0].values is arr  # type:ignore[union-attr]
         else:
             assert df.dtypes[0] == object

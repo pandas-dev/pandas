@@ -7,16 +7,34 @@ These should not depend on core.internals.
 from __future__ import annotations
 
 from collections import abc
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    OutOfBoundsDatetime,
+)
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype, registry
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    registry,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
@@ -49,7 +67,11 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas import ExtensionArray, Index, Series
+    from pandas import (
+        ExtensionArray,
+        Index,
+        Series,
+    )
 
 
 def array(
@@ -434,11 +456,29 @@ def sanitize_array(
     index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
-    raise_cast_failure: bool = False,
+    raise_cast_failure: bool = True,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
     coerce to the dtype if specified.
+
+    Parameters
+    ----------
+    data : Any
+    index : Index or None, default None
+    dtype : np.dtype, ExtensionDtype, or None, default None
+    copy : bool, default False
+    raise_cast_failure : bool, default True
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+
+    Notes
+    -----
+    raise_cast_failure=False is only intended to be True when called from the
+    DataFrame constructor, as the dtype keyword there may be interpreted as only
+    applying to a subset of columns, see GH#24435.
     """
 
     if isinstance(data, ma.MaskedArray):
@@ -499,6 +539,9 @@ def sanitize_array(
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
     else:
+        # realize e.g. generators
+        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
+        data = list(data)
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     subarr = _sanitize_ndim(subarr, data, dtype, index)
@@ -572,13 +615,18 @@ def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
     return arr
 
 
-def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
+def _try_cast(
+    arr: Union[list, np.ndarray],
+    dtype: Optional[DtypeObj],
+    copy: bool,
+    raise_cast_failure: bool,
+) -> ArrayLike:
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
     Parameters
     ----------
-    arr : ndarray, list, tuple, iterator (catchall)
+    arr : ndarray or list
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
@@ -586,6 +634,10 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
     raise_cast_failure : bool
         If True, and if a dtype is specified, raise errors during casting.
         Otherwise an object array is returned.
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
     """
     # perf shortcut as this is the most common case
     if (
@@ -618,7 +670,7 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
 
-        if not isinstance(subarr, (ABCExtensionArray, ABCIndex)):
+        if not isinstance(subarr, ABCExtensionArray):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise
