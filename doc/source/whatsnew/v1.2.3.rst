@@ -24,6 +24,8 @@ Fixed regressions
   Passing ``ascending=None`` is still considered invalid,
   and the new error message suggests a proper usage
   (``ascending`` must be a boolean or a list-like boolean).
+- Fixed regression in :meth:`DataFrame.transform` and :meth:`Series.transform` giving incorrect column labels when passed a dictionary with a mix of list and non-list values (:issue:`40018`)
+-
 
 .. ---------------------------------------------------------------------------
 
