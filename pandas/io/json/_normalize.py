@@ -376,7 +376,8 @@ def _json_normalize(
         raise NotImplementedError
 
     # check to see if a simple recursive function is possible to
-    # improve performance (see #15621)
+    # improve performance (see #15621) but only for cases such
+    # as pd.Dataframe(data) or pd.Dataframe(data, sep)
     if (
         record_path is None
         and meta is None
