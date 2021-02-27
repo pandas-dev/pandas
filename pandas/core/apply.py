@@ -280,7 +280,7 @@ class Apply(metaclass=abc.ABCMeta):
         if len(func) == 0:
             raise ValueError("No transform functions were provided")
 
-        func = self.validate_dictlike_arg("transform", obj, func)
+        func = self.normalize_dictlike_arg("transform", obj, func)
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
         for name, how in func.items():
@@ -431,7 +431,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         selected_obj = obj._selected_obj
 
-        arg = self.validate_dictlike_arg("agg", selected_obj, arg)
+        arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
         if selected_obj.ndim == 1:
             # key only used for output
@@ -525,7 +525,7 @@ class Apply(metaclass=abc.ABCMeta):
             return None
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
-    def validate_dictlike_arg(
+    def normalize_dictlike_arg(
         self, how: str, obj: FrameOrSeriesUnion, func: AggFuncTypeDict
     ) -> AggFuncTypeDict:
         """
