@@ -2250,7 +2250,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                 break
         elif is_timedelta(val):
             if convert_timedelta:
-                itimedeltas[i] = convert_to_timedelta64(val, 'ns')
+                itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
                 seen.timedelta_ = True
             else:
                 seen.object_ = True
