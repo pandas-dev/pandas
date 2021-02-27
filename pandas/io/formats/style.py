@@ -1469,6 +1469,7 @@ class Styler:
                 gmap = np.asarray(gmap, dtype=float).reshape(-1)
             else:  # s is DataFrame(n,m): gmap must be (n,m)
                 gmap = np.asarray(gmap, dtype=float)
+            assert isinstance(gmap, np.ndarray)  # mypy fix for gmap.shape
             if gmap.shape != s.shape:
                 raise ValueError(
                     "supplied 'gmap' is not right shape for data over "
