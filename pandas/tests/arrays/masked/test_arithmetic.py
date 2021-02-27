@@ -165,11 +165,13 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
 
 
 @pytest.mark.parametrize("op", ["__neg__", "__abs__", "__invert__"])
-def test_unary_op_does_not_propagate_mask(data, op):
+def test_unary_op_does_not_propagate_mask(data, op, request):
     # https://github.com/pandas-dev/pandas/issues/39943
     data, _ = data
     if data.dtype in ["Float32", "Float64"] and op == "__invert__":
-        pytest.xfail("invert is not implemented for float ea dtypes")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="invert is not implemented for float ea dtypes")
+        )
     s = pd.Series(data)
     result = getattr(s, op)()
     expected = result.copy(deep=True)
