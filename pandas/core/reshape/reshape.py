@@ -9,7 +9,6 @@ from typing import (
 
 import numpy as np
 
-import pandas._libs.algos as libalgos
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
 from pandas._typing import Dtype
@@ -42,6 +41,7 @@ from pandas.core.sorting import (
     decons_obs_group_ids,
     get_compressed_ids,
     get_group_index,
+    get_group_index_sorter,
 )
 
 
@@ -139,8 +139,7 @@ class _Unstacker:
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
         ngroups = len(obs_ids)
 
-        indexer = libalgos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = ensure_platform_int(indexer)
+        indexer = get_group_index_sorter(comp_index, ngroups)
 
         return indexer, to_sort
 
