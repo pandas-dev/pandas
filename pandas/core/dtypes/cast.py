@@ -94,7 +94,6 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCExtensionArray,
     ABCSeries,
 )
@@ -232,18 +231,14 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
         raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
-def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
+def maybe_downcast_to_dtype(
+    result: ArrayLike, dtype: Union[str, np.dtype]
+) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
     do_round = False
-
-    if is_scalar(result):
-        return result
-    elif isinstance(result, ABCDataFrame):
-        # occurs in pivot_table doctest
-        return result
 
     if isinstance(dtype, str):
         if dtype == "infer":
@@ -264,6 +259,7 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
                     do_round = True
 
             else:
+                # TODO: complex?  what if result is already non-object?
                 dtype = "object"
 
         dtype = np.dtype(dtype)
@@ -295,7 +291,9 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     return result
 
 
-def maybe_downcast_numeric(result, dtype: DtypeObj, do_round: bool = False):
+def maybe_downcast_numeric(
+    result: ArrayLike, dtype: DtypeObj, do_round: bool = False
+) -> ArrayLike:
     """
     Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
 
