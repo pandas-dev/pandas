@@ -1815,6 +1815,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
+        using_array_manager = isinstance(data, ArrayManager)
+
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
             # TODO(2DEA): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
@@ -1824,6 +1826,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            if using_array_manager:
+                # count_level_2d return (1, N) array for single column
+                # -> extract 1D array
+                counted = counted[0, :]
             return counted
 
         new_mgr = data.grouped_reduce(hfunc)
