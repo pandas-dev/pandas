@@ -53,15 +53,15 @@ def test_apply(float_frame):
         assert result[d] == expected
         assert result.index is float_frame.index
 
-    # GH 9573
-    df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
-    result = df.apply(lambda ts: ts.astype("category"))
-
     # invalid axis
     df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
     msg = "No axis named 2 for object type DataFrame"
     with pytest.raises(ValueError, match=msg):
         df.apply(lambda x: x, 2)
+
+    # GH 9573
+    df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
+    result = df.apply(lambda ts: ts.astype("category"))
 
     assert result.shape == (4, 2)
     assert isinstance(result["c0"].dtype, CategoricalDtype)
