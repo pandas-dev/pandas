@@ -41,11 +41,11 @@ def convert_to_line_delimits(s):
 
 
 def nested_to_record(
-    ds,
-    prefix: str = "",
-    sep: str = ".",
-    level: int = 0,
-    max_level: Optional[int] = None,
+        ds,
+        prefix: str = "",
+        sep: str = ".",
+        level: int = 0,
+        max_level: Optional[int] = None,
 ):
     """
     A simplified json_normalize
@@ -105,7 +105,7 @@ def nested_to_record(
             # only dicts gets recurse-flattened
             # only at level>1 do we rename the rest of the keys
             if not isinstance(v, dict) or (
-                max_level is not None and level >= max_level
+                    max_level is not None and level >= max_level
             ):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
@@ -122,8 +122,8 @@ def nested_to_record(
 
 
 def _simple_json_normalize(
-    ds: Union[Dict, List[Dict]],
-    sep: str = ".",
+        ds: Union[Dict, List[Dict]],
+        sep: str = ".",
 ) -> Union[List[dict], dict]:
     """
     A optimized basic json_normalize
@@ -161,10 +161,10 @@ def _simple_json_normalize(
 
     # intended as a performance improvement, see #15621
     def _normalise_json(
-        data: object,
-        key_string: str,
-        new_dict: Dict,
-        separator: str,
+            data: object,
+            key_string: str,
+            new_dict: Dict,
+            separator: str,
     ):
         """
         Main recursive function
@@ -179,7 +179,7 @@ def _simple_json_normalize(
                     # to avoid adding the separator to the start of every key
                     key_string=new_key
                     if new_key[len(separator) - 1] != separator
-                    else new_key[len(separator) :],
+                    else new_key[len(separator):],
                     new_dict=new_dict,
                     separator=separator,
                 )
@@ -210,14 +210,14 @@ def _simple_json_normalize(
 
 
 def _json_normalize(
-    data: Union[Dict, List[Dict]],
-    record_path: Optional[Union[str, List]] = None,
-    meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
-    meta_prefix: Optional[str] = None,
-    record_prefix: Optional[str] = None,
-    errors: str = "raise",
-    sep: str = ".",
-    max_level: Optional[int] = None,
+        data: Union[Dict, List[Dict]],
+        record_path: Optional[Union[str, List]] = None,
+        meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
+        meta_prefix: Optional[str] = None,
+        record_prefix: Optional[str] = None,
+        errors: str = "raise",
+        sep: str = ".",
+        max_level: Optional[int] = None,
 ) -> DataFrame:
     """
     Normalize semi-structured JSON data into a flat table.
@@ -328,7 +328,7 @@ def _json_normalize(
     """
 
     def _pull_field(
-        js: Dict[str, Any], spec: Union[List, str]
+            js: Dict[str, Any], spec: Union[List, str]
     ) -> Union[Scalar, Iterable]:
         """Internal function to pull field"""
         result = js
@@ -371,7 +371,7 @@ def _json_normalize(
     else:
         raise NotImplementedError
 
-    if None not in (record_prefix, meta, meta_prefix, record_prefix, max_level):
+    if not any((record_prefix, meta, meta_prefix, record_prefix, max_level)):
         # for very basic use case of pd.json_normalize(data), this is quick and
         # consistent with pandas ordering of json data
         return DataFrame(_simple_json_normalize(data, sep=sep))
