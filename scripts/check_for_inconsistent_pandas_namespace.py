@@ -31,6 +31,7 @@ ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
 EXCLUDE = {
     "array",  # `import array` and `pd.array` should both be allowed
     "eval",  # built-in, different from `pd.eval`
+    "io",  # built-in, different from `pd.io`
     "np",  # pd.np is deprecated but still tested
 }
 Offset = Tuple[int, int]
