@@ -307,7 +307,7 @@ def maybe_downcast_numeric(
     -------
     ndarray or ExtensionArray
     """
-    if not isinstance(dtype, np.dtype):
+    if not isinstance(dtype, np.dtype) or not isinstance(result.dtype, np.dtype):
         # e.g. SparseDtype has no itemsize attr
         return result
 
