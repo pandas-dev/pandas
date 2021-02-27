@@ -376,8 +376,14 @@ def _json_normalize(
         raise NotImplementedError
 
     # check to see if a simple recursive function is possible to
-    # improve performance
-    if record_path is None and meta is None and meta_prefix is None and record_prefix is None and max_level is None:
+    # improve performance (see #15621)
+    if (
+        record_path is None
+        and meta is None
+        and meta_prefix is None
+        and record_prefix is None
+        and max_level is None
+    ):
         return DataFrame(_simple_json_normalize(data, sep=sep))
 
     if record_path is None:
