@@ -183,7 +183,6 @@ from pandas.core.internals.construction import (
     ndarray_to_mgr,
     nested_data_to_arrays,
     reorder_arrays,
-    sanitize_index,
     to_arrays,
     treat_as_nested,
 )
@@ -4207,15 +4206,14 @@ class DataFrame(NDFrame, OpsMixin):
             value = _reindex_for_setitem(value, self.index)
 
         elif isinstance(value, ExtensionArray):
-            # Explicitly copy here, instead of in sanitize_index,
-            # as sanitize_index won't copy an EA, even with copy=True
+            # Explicitly copy here
             value = value.copy()
-            value = sanitize_index(value, self.index)
+            com.require_length_match(value, self.index)
 
         elif is_sequence(value):
+            com.require_length_match(value, self.index)
 
             # turn me into an ndarray
-            value = sanitize_index(value, self.index)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
                     value = maybe_convert_platform(value)
