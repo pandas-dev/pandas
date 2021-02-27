@@ -204,7 +204,7 @@ na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
     of reading a large file.
-skip_blank_lines : bool, default False
+skip_blank_lines : bool, default True
     If True, skip over blank lines in single-column spreadsheets rather than
     interpreting as NaN values.
 verbose : bool, default False
