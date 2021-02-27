@@ -1641,7 +1641,12 @@ class _iLocIndexer(_LocationIndexer):
                     # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
-                    self.obj._mgr = self.obj.reindex(labels, axis=i)._mgr
+                    taker = list(range(len(index))) + [-1]
+                    reindexers = {i: (labels, taker)}
+                    new_obj = self.obj._reindex_with_indexers(
+                        reindexers, allow_dups=True
+                    )
+                    self.obj._mgr = new_obj._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
 
