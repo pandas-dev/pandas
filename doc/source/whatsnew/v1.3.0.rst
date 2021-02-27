@@ -514,6 +514,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` if a :class:`:meth:`core.window.rolling.RollingGroupby` object was created (:issue:`39732`)
 - Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
 - Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
+- Bug in :meth:`DataFrameGroupBy.sample` where column selection was not applied to sample result (:issue:`39928`)
 -
 
 Reshaping
