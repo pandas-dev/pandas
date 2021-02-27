@@ -376,7 +376,8 @@ cpdef array_to_datetime(
     bint dayfirst=False,
     bint yearfirst=False,
     bint utc=False,
-    bint require_iso8601=False
+    bint require_iso8601=False,
+    bint allow_mixed=False,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -405,6 +406,8 @@ cpdef array_to_datetime(
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
          indicator whether the datetime string should be iso8601
+    allow_mixed : bool, default False
+        Whether to allow mixed datetimes and integers.
 
     Returns
     -------
@@ -597,7 +600,7 @@ cpdef array_to_datetime(
         return ignore_errors_out_of_bounds_fallback(values), tz_out
 
     except TypeError:
-        return array_to_datetime_object(values, errors, dayfirst, yearfirst)
+        return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
 
     if seen_datetime and seen_integer:
         # we have mixed datetimes & integers
@@ -609,10 +612,12 @@ cpdef array_to_datetime(
                 val = values[i]
                 if is_integer_object(val) or is_float_object(val):
                     result[i] = NPY_NAT
+        elif allow_mixed:
+            pass
         elif is_raise:
             raise ValueError("mixed datetimes and integers in passed array")
         else:
-            return array_to_datetime_object(values, errors, dayfirst, yearfirst)
+            return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
 
     if seen_datetime_offset and not utc_convert:
         # GH#17697
@@ -623,7 +628,7 @@ cpdef array_to_datetime(
         #    (with individual dateutil.tzoffsets) are returned
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
-            return array_to_datetime_object(values, errors, dayfirst, yearfirst)
+            return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
         else:
             tz_offset = out_tzoffset_vals.pop()
             tz_out = pytz.FixedOffset(tz_offset / 60.)
@@ -670,7 +675,7 @@ cdef ignore_errors_out_of_bounds_fallback(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef array_to_datetime_object(
+cdef _array_to_datetime_object(
     ndarray[object] values,
     str errors,
     bint dayfirst=False,
