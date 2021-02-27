@@ -362,14 +362,14 @@ class _EtreeFrameParser(_XMLFrameParser):
             parse,
         )
 
-        handle_data = _get_data_from_filepath(
+        handle_data = get_data_from_filepath(
             filepath_or_buffer=self.path_or_buffer,
             encoding=self.encoding,
             compression=self.compression,
             storage_options=self.storage_options,
         )
 
-        with _preprocess_data(handle_data) as xml_data:
+        with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
             r = parse(xml_data, parser=curr_parser)
 
@@ -382,6 +382,11 @@ class _LxmlFrameParser(_XMLFrameParser):
     full-featured XML library, `lxml`, that supports
     XPath 1.0 and XSLT 1.0.
     """
+
+    from lxml.etree import (
+        Element,
+        ElementTree,
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -554,7 +559,7 @@ class _LxmlFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _parse_doc(self):
+    def _parse_doc(self) -> Union[Element, ElementTree]:
         from lxml.etree import (
             XMLParser,
             fromstring,
@@ -563,14 +568,14 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
 
-        handle_data = _get_data_from_filepath(
+        handle_data = get_data_from_filepath(
             filepath_or_buffer=raw_doc,
             encoding=self.encoding,
             compression=self.compression,
             storage_options=self.storage_options,
         )
 
-        with _preprocess_data(handle_data) as xml_data:
+        with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
@@ -583,7 +588,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         return r
 
 
-def _get_data_from_filepath(
+def get_data_from_filepath(
     filepath_or_buffer,
     encoding,
     compression,
@@ -627,7 +632,7 @@ def _get_data_from_filepath(
     return filepath_or_buffer
 
 
-def _preprocess_data(data) -> Union[io.StringIO, io.BytesIO]:
+def preprocess_data(data) -> Union[io.StringIO, io.BytesIO]:
     """
     Convert extracted raw data.
 

@@ -13,7 +13,6 @@ from typing import (
 )
 
 from pandas._typing import (
-    Buffer,
     CompressionOptions,
     FilePathOrBuffer,
     StorageOptions,
@@ -22,14 +21,12 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.io.common import (
-    file_exists,
-    get_handle,
-    is_fsspec_url,
-    is_url,
-    stringify_path,
-)
+from pandas.io.common import get_handle
 from pandas.io.formats.format import DataFrameFormatter
+from pandas.io.xml import (
+    get_data_from_filepath,
+    preprocess_data,
+)
 
 
 class BaseXMLFormatter:
@@ -436,6 +433,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
     """
 
+    from lxml.etree import (
+        Element,
+        ElementTree,
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -561,7 +563,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
 
-    def parse_doc(self):
+    def parse_doc(self) -> Union[Element, ElementTree]:
         """
         Build tree from stylesheet.
 
@@ -577,14 +579,14 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
         style_doc = self.stylesheet
 
-        handle_data = _get_data_from_filepath(
+        handle_data = get_data_from_filepath(
             filepath_or_buffer=style_doc,
             encoding=self.encoding,
             compression=self.compression,
             storage_options=self.storage_options,
         )
 
-        with _preprocess_data(handle_data) as xml_data:
+        with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
@@ -611,64 +613,3 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         new_doc = transformer(self.root)
 
         return bytes(new_doc)
-
-
-def _get_data_from_filepath(
-    filepath_or_buffer,
-    encoding,
-    compression,
-    storage_options,
-) -> Union[str, bytes, Buffer]:
-    """
-    Extract raw XML data.
-
-    The method accepts three input types:
-        1. filepath (string-like)
-        2. file-like object (e.g. open file object, StringIO)
-        3. XML string or bytes
-
-    This method turns (1) into (2) to simplify the rest of the processing.
-    It returns input types (2) and (3) unchanged.
-    """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)
-
-    if (
-        isinstance(filepath_or_buffer, str)
-        and not filepath_or_buffer.startswith(("<?xml", "<"))
-    ) and (
-        not isinstance(filepath_or_buffer, str)
-        or is_url(filepath_or_buffer)
-        or is_fsspec_url(filepath_or_buffer)
-        or file_exists(filepath_or_buffer)
-    ):
-        with get_handle(
-            filepath_or_buffer,
-            "r",
-            encoding=encoding,
-            compression=compression,
-            storage_options=storage_options,
-        ) as handle_obj:
-            filepath_or_buffer = (
-                handle_obj.handle.read()
-                if hasattr(handle_obj.handle, "read")
-                else handle_obj.handle
-            )
-
-    return filepath_or_buffer
-
-
-def _preprocess_data(data) -> Union[io.StringIO, io.BytesIO]:
-    """
-    Convert extracted raw data.
-
-    This method will return underlying data of extracted XML content.
-    The data either has a `read` attribute (e.g. a file object or a
-    StringIO/BytesIO) or is a string or bytes that is an XML document.
-    """
-    if isinstance(data, str):
-        data = io.StringIO(data)
-
-    elif isinstance(data, bytes):
-        data = io.BytesIO(data)
-
-    return data
