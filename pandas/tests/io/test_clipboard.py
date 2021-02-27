@@ -10,10 +10,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.clipboard import (
-    clipboard_get,
-    clipboard_set,
-)
+pyclip = pytest.importorskip("pyclip")
 
 
 def build_kwargs(sep, excel):
@@ -114,8 +111,7 @@ def df(request):
 def mock_clipboard(monkeypatch, request):
     """Fixture mocking clipboard IO.
 
-    This mocks pandas.io.clipboard.clipboard_get and
-    pandas.io.clipboard.clipboard_set.
+    This mocks pyclip.paste and pyclip.coopy.
 
     This uses a local dict for storing data. The dictionary
     key used is the test ID, available with ``request.node.name``.
@@ -129,27 +125,25 @@ def mock_clipboard(monkeypatch, request):
     def _mock_set(data):
         _mock_data[request.node.name] = data
 
-    def _mock_get():
+    def _mock_get(text=True):
         return _mock_data[request.node.name]
 
-    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", _mock_set)
-    monkeypatch.setattr("pandas.io.clipboard.clipboard_get", _mock_get)
+    monkeypatch.setattr("pyclip.copy", _mock_set)
+    monkeypatch.setattr("pyclip.paste", _mock_get)
 
     yield _mock_data
 
 
-@pytest.mark.clipboard
 def test_mock_clipboard(mock_clipboard):
-    import pandas.io.clipboard
+    import pyclip
 
-    pandas.io.clipboard.clipboard_set("abc")
+    pyclip.copy("abc")
     assert "abc" in set(mock_clipboard.values())
-    result = pandas.io.clipboard.clipboard_get()
+    result = pyclip.paste(text=True)
     assert result == "abc"
 
 
 @pytest.mark.single
-@pytest.mark.clipboard
 @pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
@@ -257,9 +251,8 @@ class TestClipboard:
 
 
 @pytest.mark.single
-@pytest.mark.clipboard
 @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
 def test_raw_roundtrip(data):
     # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
-    clipboard_set(data)
-    assert data == clipboard_get()
+    pyclip.copy(data)
+    assert data == pyclip.paste(text=True)

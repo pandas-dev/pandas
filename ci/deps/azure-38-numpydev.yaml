@@ -20,3 +20,4 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
+    - pyclip

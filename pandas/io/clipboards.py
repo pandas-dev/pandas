@@ -2,6 +2,8 @@
 from io import StringIO
 import warnings
 
+from pandas.compat._optional import import_optional_dependency
+
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas import (
@@ -35,10 +37,11 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
 
-    from pandas.io.clipboard import clipboard_get
     from pandas.io.parsers import read_csv
 
-    text = clipboard_get()
+    pyclip = import_optional_dependency("pyclip")
+
+    text = pyclip.paste(text=True)
 
     # Try to decode (if needed, as "text" might already be a string here).
     try:
@@ -107,7 +110,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise ValueError("clipboard only supports utf-8 encoding")
 
-    from pandas.io.clipboard import clipboard_set
+    pyclip = import_optional_dependency("pyclip")
 
     if excel is None:
         excel = True
@@ -122,7 +125,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             obj.to_csv(buf, sep=sep, encoding="utf-8", **kwargs)
             text = buf.getvalue()
 
-            clipboard_set(text)
+            pyclip.copy(text)
             return
         except TypeError:
             warnings.warn(
@@ -137,4 +140,4 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             objstr = obj.to_string(**kwargs)
     else:
         objstr = str(obj)
-    clipboard_set(objstr)
+    pyclip.copy(objstr)

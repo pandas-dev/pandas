@@ -11,7 +11,7 @@ on:
 env:
   PYTEST_WORKERS: "auto"
   PANDAS_CI: 1
-  PATTERN: ((not slow and not network and not clipboard) or (single and db))
+  PATTERN: ((not slow and not network) or (single and db))
 
 jobs:
   Linux_py37_locale:

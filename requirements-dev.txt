@@ -65,6 +65,7 @@ odfpy
 fastparquet>=0.3.2
 pyarrow>=0.15.0
 python-snappy
+pyclip
 tables>=3.5.1
 s3fs>=0.4.0
 fsspec>=0.7.4

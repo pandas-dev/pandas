@@ -34,3 +34,6 @@ dependencies:
   - xlrd<2.0
   - xlsxwriter
   - xlwt
+  - pip
+  - pip:
+    - pyclip

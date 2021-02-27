@@ -42,7 +42,7 @@ jobs:
         pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
         python setup.py build_ext -q -j2 && \
         python -m pip install --no-build-isolation -e . && \
-        pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
+        pytest -m 'not slow and not network' pandas --junitxml=test-data.xml"
       displayName: 'Run 32-bit manylinux2014 Docker Build / Tests'
 
     - task: PublishTestResults@2
