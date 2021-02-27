@@ -97,7 +97,7 @@ class ResetIndex:
         idx = date_range(start="1/1/2000", periods=1000, freq="H", tz=tz)
         self.df = DataFrame(np.random.randn(1000, 2), index=idx)
 
-    def time_reest_datetimeindex(self, tz):
+    def time_reset_datetimeindex(self, tz):
         self.df.reset_index()
 
 
