@@ -383,11 +383,6 @@ class _LxmlFrameParser(_XMLFrameParser):
     XPath 1.0 and XSLT 1.0.
     """
 
-    from lxml.etree import (
-        Element,
-        ElementTree,
-    )
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -400,11 +395,10 @@ class _LxmlFrameParser(_XMLFrameParser):
         and parse original or transformed XML and return specific nodes.
         """
 
-        self.xml_doc = self._parse_doc()
+        self.xml_doc = self._parse_doc(self.path_or_buffer)
 
         if self.stylesheet is not None:
-            self.is_style = True
-            self.xsl_doc = self._parse_doc()
+            self.xsl_doc = self._parse_doc(self.stylesheet)
             self.xml_doc = self._transform_doc()
 
         self._validate_path()
@@ -559,14 +553,12 @@ class _LxmlFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _parse_doc(self) -> Union[Element, ElementTree]:
+    def _parse_doc(self, raw_doc):
         from lxml.etree import (
             XMLParser,
             fromstring,
             parse,
         )
-
-        raw_doc = self.stylesheet if self.is_style else self.path_or_buffer
 
         handle_data = get_data_from_filepath(
             filepath_or_buffer=raw_doc,
@@ -579,13 +571,13 @@ class _LxmlFrameParser(_XMLFrameParser):
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
-                r = fromstring(
+                doc = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
             else:
-                r = parse(xml_data, parser=curr_parser)
+                doc = parse(xml_data, parser=curr_parser)
 
-        return r
+        return doc
 
 
 def get_data_from_filepath(

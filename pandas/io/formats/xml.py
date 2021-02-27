@@ -433,11 +433,6 @@ class LxmlXMLFormatter(BaseXMLFormatter):
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
     """
 
-    from lxml.etree import (
-        Element,
-        ElementTree,
-    )
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -563,15 +558,17 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
 
-    def parse_doc(self) -> Union[Element, ElementTree]:
+    def transform_doc(self) -> bytes:
         """
-        Build tree from stylesheet.
+        Parse stylesheet from file or buffer and run it.
 
         This method will parse stylesheet object into tree for parsing
-        conditionally by its specific object type.
+        conditionally by its specific object type, then transforms
+        original tree with XSLT script.
         """
 
         from lxml.etree import (
+            XSLT,
             XMLParser,
             fromstring,
             parse,
@@ -590,24 +587,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
-                r = fromstring(
+                xsl_doc = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
             else:
-                r = parse(xml_data, parser=curr_parser)
-
-        return r
-
-    def transform_doc(self) -> bytes:
-        """
-        Transform original tree using stylesheet.
-
-        This method will transform built tree with XSLT script.
-        """
-
-        from lxml.etree import XSLT
-
-        xsl_doc = self.parse_doc()
+                xsl_doc = parse(xml_data, parser=curr_parser)
 
         transformer = XSLT(xsl_doc)
         new_doc = transformer(self.root)
