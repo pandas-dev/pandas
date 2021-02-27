@@ -1389,9 +1389,7 @@ def maybe_castable(dtype: np.dtype) -> bool:
     return dtype.name not in POSSIBLY_CAST_DTYPES
 
 
-def maybe_infer_to_datetimelike(
-    value: Union[np.ndarray, List], convert_dates: bool = False
-):
+def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -1403,13 +1401,10 @@ def maybe_infer_to_datetimelike(
     Parameters
     ----------
     value : np.ndarray or list
-    convert_dates : bool, default False
-       if True try really hard to convert dates (such as datetime.date), other
-       leave inferred dtype 'date' alone
 
     """
     if not isinstance(value, (np.ndarray, list)):
-        raise TypeError(type(value))
+        raise TypeError(type(value))  # pragma: no cover
 
     v = np.array(value, copy=False)
 
@@ -1466,9 +1461,7 @@ def maybe_infer_to_datetimelike(
 
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
-    if inferred_type == "date" and convert_dates:
-        value = try_datetime(v)
-    elif inferred_type == "datetime":
+    if inferred_type == "datetime":
         value = try_datetime(v)
     elif inferred_type == "timedelta":
         value = try_timedelta(v)
