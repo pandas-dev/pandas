@@ -121,7 +121,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
                 sep = "\t"
             buf = StringIO()
 
-            # clipboard_set (pyclip) expects unicode
+            # pyclip.copy expects unicode
             obj.to_csv(buf, sep=sep, encoding="utf-8", **kwargs)
             text = buf.getvalue()
 

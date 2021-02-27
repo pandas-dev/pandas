@@ -101,7 +101,6 @@ dependencies:
   - pyarrow>=0.15.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
-  - pyclip  # pandas.read_clipboard
   - pytables>=3.5.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
   - fsspec>=0.7.4  # for generic remote file operations
@@ -115,3 +114,4 @@ dependencies:
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@2488b7defbd3d753dd5fcfc890fc4a7e79d25103
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+    - pyclip  # pandas.read_clipboard

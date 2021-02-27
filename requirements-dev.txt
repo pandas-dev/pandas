@@ -65,7 +65,6 @@ odfpy
 fastparquet>=0.3.2
 pyarrow>=0.15.0
 python-snappy
-pyclip
 tables>=3.5.1
 s3fs>=0.4.0
 fsspec>=0.7.4
@@ -78,3 +77,4 @@ tabulate>=0.8.3
 natsort
 git+https://github.com/pandas-dev/pydata-sphinx-theme.git@2488b7defbd3d753dd5fcfc890fc4a7e79d25103
 numpydoc < 1.2
+pyclip

@@ -111,7 +111,7 @@ def df(request):
 def mock_clipboard(monkeypatch, request):
     """Fixture mocking clipboard IO.
 
-    This mocks pyclip.paste and pyclip.coopy.
+    This mocks pyclip.paste and pyclip.copy.
 
     This uses a local dict for storing data. The dictionary
     key used is the test ID, available with ``request.node.name``.
