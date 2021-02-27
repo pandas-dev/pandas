@@ -1579,10 +1579,24 @@ def maybe_cast_to_datetime(
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except ValueError:
+                    except ValueError as err:
                         # TODO(GH#40048): only catch dateutil's ParserError
                         #  once we can reliably import it in all supported versions
-                        pass
+                        if "mixed datetimes and integers in passed array" in str(err):
+                            # We need to catch this in array_to_datetime, otherwise
+                            #  we end up going through numpy which will lose nanoseconds
+                            #  from Timestamps
+                            try:
+                                i8vals, tz = tslib.array_to_datetime(
+                                    value, allow_mixed=True
+                                )
+                            except ValueError:
+                                pass
+                            else:
+                                from pandas.core.arrays import DatetimeArray
+
+                                dta = DatetimeArray(i8vals).tz_localize(tz)
+                                value = dta
 
         # coerce datetimelike to object
         elif is_datetime64_dtype(
