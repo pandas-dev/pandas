@@ -326,6 +326,15 @@ top-level :func:`~pandas.read_html` function:
 .. _lxml: https://lxml.de
 .. _tabulate: https://github.com/astanin/python-tabulate
 
+XML
+^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+lxml                      4.3.0              XML parser for read_xml and tree builder for to_xml
+========================= ================== =============================================================
+
 SQL databases
 ^^^^^^^^^^^^^
 

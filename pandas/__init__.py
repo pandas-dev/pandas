@@ -167,6 +167,7 @@ from pandas.io.api import (
     read_feather,
     read_gbq,
     read_html,
+    read_xml,
     read_json,
     read_stata,
     read_sas,

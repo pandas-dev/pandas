@@ -68,6 +68,13 @@ HTML
 
    read_html
 
+XML
+~~~~
+.. autosummary::
+   :toctree: api/
+
+   read_xml
+
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
