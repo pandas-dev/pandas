@@ -2079,13 +2079,6 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
 
-    def test_categorical_1d_only(self):
-        # TODO: belongs in Categorical tests
-        # ndim > 1
-        msg = "> 1 ndim Categorical are not supported at this time"
-        with pytest.raises(NotImplementedError, match=msg):
-            Categorical(np.array([list("abcd")]))
-
     def test_constructor_categorical_series(self):
 
         items = [1, 2, 3, 1]
