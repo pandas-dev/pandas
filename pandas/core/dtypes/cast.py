@@ -1908,6 +1908,13 @@ def maybe_cast_to_integer_array(
     if is_float_dtype(arr) or is_object_dtype(arr):
         raise ValueError("Trying to coerce float values to integers")
 
+    if casted.dtype < arr.dtype:
+        # e.g. orig=[1, 200, 923442] and dtype='int8'
+        raise OverflowError(f"Trying to coerce too-large values to {dtype}")
+
+    # Not sure if this can be reached, but covering our bases
+    raise ValueError(f"values cannot be losslessly cast to {dtype}")
+
 
 def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:
     """

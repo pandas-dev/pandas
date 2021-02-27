@@ -63,6 +63,7 @@ from pandas.core.arrays import Categorical
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
+    try_cast_integer_dtype,
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -229,18 +230,28 @@ def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
+    # TODO: the was_masked check is to avoid breaking a very sketchy-looking
+    #  test_constructor_maskedarray
+    was_masked = isinstance(values, np.ma.MaskedArray)
     values = _prep_ndarray(values, copy=copy)
-
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
-        try:
-            values = construct_1d_ndarray_preserving_na(
-                values.ravel(), dtype=dtype, copy=False
-            ).reshape(values.shape)
-        except Exception as orig:
-            # e.g. ValueError when trying to cast object dtype to float64
-            raise ValueError(
-                f"failed to cast to '{dtype}' (Exception was: {orig})"
-            ) from orig
+        shape = values.shape
+        flat = values.ravel()
+
+        if not was_masked and is_integer_dtype(dtype):
+            values = try_cast_integer_dtype(
+                flat, dtype=dtype, copy=copy, raise_cast_failure=False
+            )
+        else:
+            try:
+                values = construct_1d_ndarray_preserving_na(
+                    flat, dtype=dtype, copy=False
+                )
+            except Exception as err:
+                # e.g. ValueError when trying to cast object dtype to float64
+                msg = f"failed to cast to '{dtype}' (Exception was: {err})"
+                raise ValueError(msg) from err
+        values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
     index, columns = _get_axes(

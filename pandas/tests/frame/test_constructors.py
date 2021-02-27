@@ -328,6 +328,18 @@ class TestDataFrameConstructors:
         assert result[0].dtype == object
         assert result[0][0] == value
 
+    def test_constructor_int8_overflow(self):
+        # we silently ignore casting errors as dtype may not apply to all cols
+        vals = [1, 200, 923442]
+
+        result = DataFrame(vals, dtype="int8")
+        expected = DataFrame(vals)
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame({"A": vals}, dtype="int8")
+        expected = DataFrame({"A": vals})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_ordereddict(self):
         import random
 
@@ -877,7 +889,9 @@ class TestDataFrameConstructors:
         assert 1.0 == frame["A"][1]
         assert 2.0 == frame["C"][2]
 
-        # what is this even checking??
+    def test_constructor_maskedarray2(self):
+
+        # TODO: what is this even checking??
         mat = ma.masked_all((2, 3), dtype=float)
         frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2])
         assert np.all(~np.asarray(frame == frame))
@@ -904,6 +918,7 @@ class TestDataFrameConstructors:
         assert 1 == frame["A"][1]
         assert 2 == frame["C"][2]
 
+    def test_constructor_maskedarray_nonfloat2(self):
         # masked np.datetime64 stays (use NaT as null)
         mat = ma.masked_all((2, 3), dtype="M8[ns]")
         # 2-D input
@@ -924,6 +939,8 @@ class TestDataFrameConstructors:
         frame = DataFrame(mat2, columns=["A", "B", "C"], index=[1, 2])
         assert 1 == frame["A"].view("i8")[1]
         assert 2 == frame["C"].view("i8")[2]
+
+    def test_constructor_maskedarray_nonfloat3(self):
 
         # masked bool promoted to object
         mat = ma.masked_all((2, 3), dtype=bool)

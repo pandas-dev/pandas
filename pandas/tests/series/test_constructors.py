@@ -1563,6 +1563,15 @@ class TestSeriesConstructors:
         expected = Series(n)
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_int8_overflow(self):
+        # see also: test_constructor_int8_overflow in frame tests;
+        #  behavior is different here bc dtype is not ignorable
+
+        vals = [1, 200, 923442]
+        msg = "Trying to coerce too-large values to int8"
+        with pytest.raises(OverflowError, match=msg):
+            Series(vals, dtype="int8")
+
     def test_constructor_list_of_periods_infers_period_dtype(self):
         series = Series(list(period_range("2000-01-01", periods=10, freq="D")))
         assert series.dtype == "Period[D]"

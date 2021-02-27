@@ -498,8 +498,12 @@ def sanitize_array(
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
             try:
+                # Note: we could use try_cast_integer_dtype
+                #  (or even maybe_cast_to_integer_array) but
+                #  we can get non-numpy integer-dtypes here
                 subarr = _try_cast(data, dtype, copy, True)
             except ValueError:
+                # raised if `not (data.astype(dtype) == data).all()`
                 subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here
@@ -615,6 +619,32 @@ def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
     return arr
 
 
+def try_cast_integer_dtype(
+    arr: Union[list, np.ndarray], dtype: np.dtype, copy: bool, raise_cast_failure: bool
+) -> np.ndarray:
+    # Caller is responsible for checking
+    #  - is_integer_dtype(dtype)
+
+    # GH#15832: Check if we are requesting a numeric dtype and
+    #  that we can convert the data to the requested dtype.
+    try:
+        # this will raise if we have e.g. floats
+        return maybe_cast_to_integer_array(arr, dtype, copy=copy)
+    except OverflowError:
+        if not raise_cast_failure:
+            # i.e. reached from DataFrame constructor; ignore dtype
+            #  and cast without silent overflow
+            return np.array(arr, copy=copy)
+        raise
+    except ValueError as err:
+        if "Trying to coerce float values to integers" in str(err):
+            if not raise_cast_failure:
+                # Just do it anyway, i.e. DataFrame(floats, dtype="int64")
+                #  is equivalent to DataFrame(floats).astype("int64")
+                return construct_1d_ndarray_preserving_na(arr, dtype, copy=copy)
+        raise
+
+
 def _try_cast(
     arr: Union[list, np.ndarray],
     dtype: Optional[DtypeObj],
@@ -664,9 +694,7 @@ def _try_cast(
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
-            # this will raise if we have e.g. floats
-            maybe_cast_to_integer_array(arr, dtype)
-            subarr = arr
+            return try_cast_integer_dtype(arr, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
 
