@@ -48,8 +48,6 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
     maybe_cast_to_extension_array,
-    maybe_infer_to_datetimelike,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -396,27 +394,27 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
-            # sanitize_array coerces np.nan to a string under certain versions
-            # of numpy
-            # convert e.g. range, tuple to allow for stronger typing
-            #  of maybe_infer_to_datetimelike
             values = com.convert_to_list_like(values)
-            values = maybe_infer_to_datetimelike(values)
             if isinstance(values, list) and len(values) == 0:
                 # By convention, empty lists result in object dtype:
                 values = np.array([], dtype=object)
             elif isinstance(values, np.ndarray):
-                # could just call sanitize_array, but that would also raise
-                #  for ndim>1 which we prefer to handle below
-                values = sanitize_to_nanoseconds(values)
-            elif not isinstance(values, ExtensionArray):
+                if values.ndim > 1:
+                    # preempt sanitize_array from raising ValueError
+                    raise NotImplementedError(
+                        "> 1 ndim Categorical are not supported at this time"
+                    )
+                values = sanitize_array(values, None)
+            else:
                 # i.e. must be a list
-                null_mask = isna(values)
+                arr = sanitize_array(values, None)
+                null_mask = isna(arr)
                 if null_mask.any():
                     # We remove null values here, then below will re-insert
                     #  them, grep "full_codes"
-                    values = [values[idx] for idx in np.where(~null_mask)[0]]
-                values = sanitize_array(values, None, dtype=None)
+                    arr = [values[idx] for idx in np.where(~null_mask)[0]]
+                    arr = sanitize_array(arr, None)
+                values = arr
 
         if dtype.categories is None:
             try:
