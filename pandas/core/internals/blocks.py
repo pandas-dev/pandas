@@ -618,7 +618,9 @@ class Block(PandasObject):
             if dtypes is None:
                 dtypes = "infer"
 
-            nv = maybe_downcast_to_dtype(values, dtypes)
+            # error: Value of type variable "ArrayLike" of "maybe_downcast_to_dtype"
+            # cannot be "Union[ndarray, ExtensionArray]"
+            nv = maybe_downcast_to_dtype(values, dtypes)  # type: ignore[type-var]
             return [self.make_block(nv)]
 
         # ndim > 1
@@ -861,7 +863,9 @@ class Block(PandasObject):
             )
 
         blk = self if inplace else self.copy()
-        putmask_inplace(blk.values, mask, value)
+        # error: Value of type variable "ArrayLike" of "putmask_inplace" cannot be
+        # "Union[ndarray, ExtensionArray]"
+        putmask_inplace(blk.values, mask, value)  # type: ignore[type-var]
         blocks = blk.convert(numeric=False, copy=False)
         return blocks
 

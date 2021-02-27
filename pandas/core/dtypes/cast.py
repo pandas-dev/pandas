@@ -1550,16 +1550,22 @@ def maybe_infer_to_datetimelike(
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type == "date" and convert_dates:
-        value = try_datetime(v)
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "Union[ndarray, List[Any]]")
+        value = try_datetime(v)  # type: ignore[assignment]
     elif inferred_type == "datetime":
-        value = try_datetime(v)
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "Union[ndarray, List[Any]]")
+        value = try_datetime(v)  # type: ignore[assignment]
     elif inferred_type == "timedelta":
         value = try_timedelta(v)
     elif inferred_type == "nat":
 
         # if all NaT, return as datetime
         if isna(v).all():
-            value = try_datetime(v)
+            # error: Incompatible types in assignment (expression has type
+            # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
+            value = try_datetime(v)  # type: ignore[assignment]
         else:
 
             # We have at least a NaT and a string
@@ -1569,7 +1575,10 @@ def maybe_infer_to_datetimelike(
             if lib.infer_dtype(value, skipna=False) in ["mixed"]:
                 # cannot skip missing values, as NaT implies that the string
                 # is actually a datetime
-                value = try_datetime(v)
+
+                # error: Incompatible types in assignment (expression has type
+                # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
+                value = try_datetime(v)  # type: ignore[assignment]
 
     return value
 
@@ -1737,7 +1746,10 @@ def maybe_cast_to_datetime(
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
         # conversion
-        value = maybe_infer_to_datetimelike(value)
+
+        # error: Argument 1 to "maybe_infer_to_datetimelike" has incompatible type
+        # "Union[ExtensionArray, List[Any]]"; expected "Union[ndarray, List[Any]]"
+        value = maybe_infer_to_datetimelike(value)  # type: ignore[arg-type]
 
     return value
 
@@ -1965,7 +1977,11 @@ def construct_1d_ndarray_preserving_na(
             # TODO(numpy#12550): special-case can be removed
             subarr = construct_1d_object_array_from_listlike(list(values))
         else:
-            subarr = np.array(values, dtype=dtype, copy=copy)
+            # error: Argument "dtype" to "array" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
+            # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+            subarr = np.array(values, dtype=dtype, copy=copy)  # type: ignore[arg-type]
 
     return subarr
 
