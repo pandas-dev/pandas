@@ -98,22 +98,6 @@ def frame_apply(
     )
 
 
-def series_apply(
-    obj: Series,
-    func: AggFuncType,
-    convert_dtype: bool = True,
-    args=None,
-    kwargs=None,
-) -> SeriesApply:
-    return SeriesApply(
-        obj,
-        func,
-        convert_dtype,
-        args,
-        kwargs,
-    )
-
-
 class Apply(metaclass=abc.ABCMeta):
     axis: int
 
