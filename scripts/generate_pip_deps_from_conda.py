@@ -20,7 +20,7 @@ import sys
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-RENAME = {"pytables": "tables", "pyqt": "pyqt5", "dask-core": "dask"}
+RENAME = {"pytables": "tables", "dask-core": "dask"}
 
 
 def conda_package_to_pip(package):
