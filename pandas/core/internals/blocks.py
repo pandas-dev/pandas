@@ -796,7 +796,6 @@ class Block(PandasObject):
         It is used in ObjectBlocks.  It is here for API compatibility.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        original_to_replace = to_replace
 
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
@@ -814,9 +813,20 @@ class Block(PandasObject):
             return [self] if inplace else [self.copy()]
 
         if not self._can_hold_element(value):
-            blk = self.astype(object)
+            if self.ndim == 2 and self.shape[0] > 1:
+                # split so that we only upcast where necessary
+                nbs = self._split()
+                res_blocks = extend_blocks(
+                    [
+                        blk.replace(to_replace, value, inplace=inplace, regex=regex)
+                        for blk in nbs
+                    ]
+                )
+                return res_blocks
+
+            blk = self.coerce_to_target_dtype(value)
             return blk.replace(
-                to_replace=original_to_replace,
+                to_replace=to_replace,
                 value=value,
                 inplace=True,
                 regex=regex,
@@ -824,7 +834,7 @@ class Block(PandasObject):
 
         blk = self if inplace else self.copy()
         putmask_inplace(blk.values, mask, value)
-        blocks = blk.convert(numeric=False, copy=not inplace)
+        blocks = blk.convert(numeric=False, copy=False)
         return blocks
 
     @final
@@ -867,11 +877,7 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        if convert:
-            nbs = block.convert(numeric=False)
-        else:
-            nbs = [block]
-        return nbs
+        return [block]
 
     @final
     def _replace_list(
