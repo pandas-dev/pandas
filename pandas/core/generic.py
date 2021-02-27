@@ -71,6 +71,7 @@ from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_bool_kwarg,
     validate_fillna_kwargs,
 )
@@ -4548,7 +4549,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         axis=0,
         level=None,
-        ascending: bool_t = True,
+        ascending: Union[Union[bool_t, int], Sequence[Union[bool_t, int]]] = True,
         inplace: bool_t = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -4559,6 +4560,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
+        ascending = validate_ascending(ascending)
+
         target = self._get_axis(axis)
 
         indexer = get_indexer_indexer(

@@ -1332,7 +1332,7 @@ class TestSeriesConstructors:
             td.astype("int32")
 
         # this is an invalid casting
-        msg = "Could not convert 'foo' to NumPy timedelta"
+        msg = "Could not convert object to NumPy timedelta"
         with pytest.raises(ValueError, match=msg):
             Series([timedelta(days=1), "foo"], dtype="m8[ns]")
 

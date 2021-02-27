@@ -7,7 +7,6 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Categorical,
     DataFrame,
     IndexSlice,
     MultiIndex,
@@ -175,14 +174,6 @@ def test_setitem(datetime_series, string_series):
     assert not np.isnan(datetime_series[2])
 
 
-def test_setitem_slicestep():
-    # caught this bug when writing tests
-    series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
-
-    series[::2] = 0
-    assert (series[::2] == 0).all()
-
-
 def test_setslice(datetime_series):
     sl = datetime_series[5:20]
     assert len(sl) == len(sl.index)
@@ -214,43 +205,6 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, slice(None, None)]] = 2
 
 
-def test_setitem_categorical_assigning_ops():
-    orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
-    s = orig.copy()
-    s[:] = "a"
-    exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s[1] = "a"
-    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s[s.index > 0] = "a"
-    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s[[False, True]] = "a"
-    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
-    tm.assert_series_equal(s, exp)
-
-    s = orig.copy()
-    s.index = ["x", "y"]
-    s["y"] = "a"
-    exp = Series(Categorical(["b", "a"], categories=["a", "b"]), index=["x", "y"])
-    tm.assert_series_equal(s, exp)
-
-
-def test_setitem_nan_into_categorical():
-    # ensure that one can set something to np.nan
-    ser = Series(Categorical([1, 2, 3]))
-    exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
-    ser[1] = np.nan
-    tm.assert_series_equal(ser, exp)
-
-
 def test_slice(string_series, object_series):
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
@@ -270,33 +224,6 @@ def test_slice(string_series, object_series):
     sl[:] = 0
 
     assert (string_series[10:20] == 0).all()
-
-
-def test_loc_setitem(string_series):
-    inds = string_series.index[[3, 4, 7]]
-
-    result = string_series.copy()
-    result.loc[inds] = 5
-
-    expected = string_series.copy()
-    expected[[3, 4, 7]] = 5
-    tm.assert_series_equal(result, expected)
-
-    result.iloc[5:10] = 10
-    expected[5:10] = 10
-    tm.assert_series_equal(result, expected)
-
-    # set slice with indices
-    d1, d2 = string_series.index[[5, 15]]
-    result.loc[d1:d2] = 6
-    expected[5:16] = 6  # because it's inclusive
-    tm.assert_series_equal(result, expected)
-
-    # set index value
-    string_series.loc[d1] = 4
-    string_series.loc[d2] = 6
-    assert string_series[d1] == 4
-    assert string_series[d2] == 6
 
 
 def test_timedelta_assignment():
