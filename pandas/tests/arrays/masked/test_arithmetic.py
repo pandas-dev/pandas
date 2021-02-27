@@ -169,7 +169,7 @@ def test_unary_op_does_not_propagate_mask(data, op):
     # https://github.com/pandas-dev/pandas/issues/39943
     data, _ = data
     if data.dtype in ["Float32", "Float64"] and op == "__invert__":
-        pytest.skip("invert is not implemented for float ea dtypes")
+        pytest.xfail("invert is not implemented for float ea dtypes")
     s = pd.Series(data)
     result = getattr(s, op)()
     expected = result.copy(deep=True)
