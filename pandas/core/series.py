@@ -96,7 +96,7 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import series_apply
+from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -4003,7 +4003,7 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, func, args=args, kwargs=kwargs)
+        op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
         result = op.agg()
         return result
 
@@ -4019,7 +4019,9 @@ Keep all original rows and also all original values
     ) -> FrameOrSeriesUnion:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = series_apply(self, func=func, args=args, kwargs=kwargs).transform()
+        result = SeriesApply(
+            self, func=func, convert_dtype=True, args=args, kwargs=kwargs
+        ).transform()
         return result
 
     def apply(
@@ -4131,7 +4133,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        return series_apply(self, func, convert_dtype, args, kwargs).apply()
+        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
         self,
