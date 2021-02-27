@@ -760,6 +760,14 @@ class TestSeriesConstructors:
         result = df.loc["216"]
         assert result.dtype == object
 
+    def test_constructor_mixed_int_and_timestamp(self, frame_or_series):
+        # specifically Timestamp with nanos, not datetimes
+        objs = [Timestamp(9), 10, NaT.value]
+        result = frame_or_series(objs, dtype="M8[ns]")
+
+        expected = frame_or_series([Timestamp(9), Timestamp(10), NaT])
+        tm.assert_equal(result, expected)
+
     def test_constructor_datetimes_with_nulls(self):
         # gh-15869
         for arr in [

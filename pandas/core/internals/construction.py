@@ -236,11 +236,19 @@ def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool
         shape = values.shape
         flat = values.ravel()
 
-        if not was_masked and is_integer_dtype(dtype):
+        to_int = is_integer_dtype(dtype)
+        if not was_masked and to_int:
             values = try_cast_integer_dtype(
                 flat, dtype=dtype, copy=copy, raise_cast_failure=False
             )
+        elif not to_int:
+            # Note: we really only need _try_cast, but keeping to exposed funcs
+            values = sanitize_array(
+                flat, None, dtype=dtype, copy=copy, raise_cast_failure=True
+            )
         else:
+            # TODO: we get here with test_constructor_maskedarray_nonfloat2
+            #  which looks like the test may be wrong
             try:
                 values = construct_1d_ndarray_preserving_na(
                     flat, dtype=dtype, copy=False

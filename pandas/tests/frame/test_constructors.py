@@ -1117,7 +1117,8 @@ class TestDataFrameConstructors:
 
         # can't cast
         mat = np.array(["foo", "bar"], dtype=object).reshape(2, 1)
-        with pytest.raises(ValueError, match="cast"):
+        msg = "could not convert string to float: 'foo'"
+        with pytest.raises(ValueError, match=msg):
             DataFrame(mat, index=[0, 1], columns=[0], dtype=float)
 
         dm = DataFrame(DataFrame(float_frame._series))

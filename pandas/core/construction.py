@@ -697,6 +697,8 @@ def _try_cast(
             return try_cast_integer_dtype(arr, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
+            if dtype is not None and dtype.kind == "M":
+                return subarr
 
         if not isinstance(subarr, ABCExtensionArray):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
