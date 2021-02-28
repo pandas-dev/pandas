@@ -336,8 +336,10 @@ class TestDataFrameConstructors:
         expected = DataFrame(vals)
         tm.assert_frame_equal(result, expected)
 
+        # TODO: these should either both come back as int64 or both as intp,
+        #  not mixed-and-matched on 32bit
         result = DataFrame({"A": vals}, dtype="int8")
-        expected = DataFrame({"A": vals})
+        expected = DataFrame({"A": vals}, dtype=np.intp)
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_ordereddict(self):
