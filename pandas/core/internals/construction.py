@@ -244,15 +244,26 @@ def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool
         values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
-        try:
-            values = construct_1d_ndarray_preserving_na(
-                values.ravel(), dtype=dtype, copy=False
-            ).reshape(values.shape)
-        except Exception as orig:
-            # e.g. ValueError when trying to cast object dtype to float64
-            raise ValueError(
-                f"failed to cast to '{dtype}' (Exception was: {orig})"
-            ) from orig
+        shape = values.shape
+        flat = values.ravel()
+
+        if not is_integer_dtype(dtype):
+            # TODO: skipping integer_dtype is needed to keep the tests passing,
+            #  not clear it is correct
+            # Note: we really only need _try_cast, but keeping to exposed funcs
+            values = sanitize_array(
+                flat, None, dtype=dtype, copy=copy, raise_cast_failure=True
+            )
+        else:
+            try:
+                values = construct_1d_ndarray_preserving_na(
+                    flat, dtype=dtype, copy=False
+                )
+            except Exception as err:
+                # e.g. ValueError when trying to cast object dtype to float64
+                msg = f"failed to cast to '{dtype}' (Exception was: {err})"
+                raise ValueError(msg) from err
+        values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
