@@ -20,6 +20,7 @@ from typing import (
     Union,
 )
 from uuid import uuid4
+import warnings
 
 import numpy as np
 
@@ -173,9 +174,7 @@ class Styler:
         self.data: DataFrame = data
         self.index: pd.Index = data.index
         self.columns: pd.Index = data.columns
-        if precision is None:
-            precision = get_option("display.precision")
-        self.precision = precision
+
         self.table_styles = table_styles
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
@@ -184,7 +183,6 @@ class Styler:
         self.caption = caption
         self.table_attributes = table_attributes
         self.cell_ids = cell_ids
-        self.na_rep = na_rep
 
         # assign additional default vars
         self.hidden_index: bool = False
@@ -195,7 +193,9 @@ class Styler:
         self.tooltips: Optional[_Tooltips] = None
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: self._default_display_func)
+        ] = defaultdict(lambda: partial(_default_formatter, precision=None))
+        if any((precision is not None, na_rep is not None)):
+            self.format(precision=precision, na_rep=na_rep)
 
     def _repr_html_(self) -> str:
         """
@@ -215,9 +215,6 @@ class Styler:
             )
         if self.tooltips is None:
             self.tooltips = _Tooltips()
-
-    def _default_display_func(self, x):
-        return self._maybe_wrap_formatter(formatter=None)(x)
 
     def set_tooltips(self, ttips: DataFrame) -> Styler:
         """
@@ -374,7 +371,6 @@ class Styler:
         table_styles = self.table_styles or []
         caption = self.caption
         ctx = self.ctx
-        precision = self.precision
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
         uuid = self.uuid
@@ -554,7 +550,6 @@ class Styler:
             "cellstyle": cellstyle,
             "body": body,
             "uuid": uuid,
-            "precision": precision,
             "table_styles": table_styles,
             "caption": caption,
             "table_attributes": table_attr,
@@ -571,6 +566,7 @@ class Styler:
         ] = None,
         subset=None,
         na_rep: Optional[str] = None,
+        precision: Optional[int] = None,
     ) -> Styler:
         """
         Format the text display value of cells.
@@ -651,7 +647,9 @@ class Styler:
                 format_func = formatter[col]
             except KeyError:
                 format_func = None
-            format_func = self._maybe_wrap_formatter(format_func, na_rep=na_rep)
+            format_func = _maybe_wrap_formatter(
+                format_func, na_rep=na_rep, precision=precision
+            )
 
             for row, value in data[[col]].itertuples():
                 i, j = self.index.get_loc(row), self.columns.get_loc(col)
@@ -757,7 +755,6 @@ class Styler:
         * cellstyle
         * body
         * uuid
-        * precision
         * table_styles
         * caption
         * table_attributes
@@ -792,11 +789,9 @@ class Styler:
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
             self.data,
-            precision=self.precision,
             caption=self.caption,
             uuid=self.uuid,
             table_styles=self.table_styles,
-            na_rep=self.na_rep,
         )
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
@@ -1053,9 +1048,15 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method is deprecated see `Styler.format`.
         """
-        self.precision = precision
-        return self
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.format`", DeprecationWarning
+        )
+        return self.format(precision=precision)
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
@@ -1273,9 +1274,15 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method is deprecated. See `Styler.format()`
         """
-        self.na_rep = na_rep
-        return self
+        warnings.warn(
+            "This method is deprecated in favour of `Styler.format`", DeprecationWarning
+        )
+        return self.format(na_rep=na_rep)
 
     def hide_index(self) -> Styler:
         """
@@ -1306,40 +1313,6 @@ class Styler:
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
-
-    def _default_formatter(self, x):
-        if isinstance(x, (float, complex)):
-            return f"{x:.{self.precision}f}"
-        return x
-
-    def _maybe_wrap_formatter(
-        self,
-        formatter: Optional[Union[Callable, str]] = None,
-        na_rep: Optional[str] = None,
-    ) -> Callable:
-        """
-        Allows formatters to be expressed as str, callable or None, where None returns
-        a default formatting function. wraps with na_rep where it is available.
-        """
-        if isinstance(formatter, str):
-            func = lambda x: formatter.format(x)
-        elif callable(formatter):
-            func = formatter
-        elif formatter is None:
-            func = self._default_formatter
-        else:
-            raise TypeError(
-                f"'formatter' expected str or callable, got {type(formatter)}"
-            )
-
-        if na_rep is not None:
-            return lambda x: na_rep if pd.isna(x) else func(x)
-        else:
-            return (
-                lambda x: self.na_rep
-                if all((self.na_rep is not None, pd.isna(x)))
-                else func(x)
-            )
 
     # -----------------------------------------------------------------------
     # A collection of "builtin" styles
@@ -2143,3 +2116,36 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
+
+
+def _default_formatter(x: Any, precision: Optional[int] = None):
+    if precision is None:
+        precision = get_option("display.precision")
+    if isinstance(x, (float, complex)):
+        return f"{x:.{precision}f}"
+    return x
+
+
+def _maybe_wrap_formatter(
+    formatter: Optional[Union[Callable, str]] = None,
+    na_rep: Optional[str] = None,
+    precision: Optional[int] = None,
+) -> Callable:
+    """
+    Allows formatters to be expressed as str, callable or None, where None returns
+    a default formatting function. wraps with na_rep, and precision where they are
+    available.
+    """
+    if isinstance(formatter, str):
+        func = lambda x: formatter.format(x)
+    elif callable(formatter):
+        func = formatter
+    elif formatter is None:
+        func = partial(_default_formatter, precision=precision)
+    else:
+        raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
+
+    if na_rep is not None:
+        return lambda x: na_rep if pd.isna(x) else func(x)
+    else:
+        return func

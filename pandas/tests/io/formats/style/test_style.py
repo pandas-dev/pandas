@@ -565,41 +565,6 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "-"
         assert ctx["body"][1][2]["display_value"] == "-"
 
-    def test_display_format_subset_interaction(self):
-        # GH40032
-        # test subset and formatter interaction in conjunction with other methods
-        df = DataFrame([[np.nan, 1], [2, np.nan]], columns=["a", "b"], index=["x", "y"])
-
-        ctx = df.style.format({"a": "{:.1f}"}).set_na_rep("X")._translate()
-        assert ctx["body"][0][1]["display_value"] == "X"
-        assert ctx["body"][1][2]["display_value"] == "X"
-        ctx = df.style.format({"a": "{:.1f}"}, na_rep="Y").set_na_rep("X")._translate()
-        assert ctx["body"][0][1]["display_value"] == "Y"
-        assert ctx["body"][1][2]["display_value"] == "X"
-        ctx = (
-            df.style.format("{:.1f}", na_rep="Y", subset=["a"])
-            .set_na_rep("X")
-            ._translate()
-        )
-        assert ctx["body"][0][1]["display_value"] == "Y"
-        assert ctx["body"][1][2]["display_value"] == "X"
-
-        ctx = df.style.format({"a": "{:.1f}"}).set_precision(2)._translate()
-        assert ctx["body"][0][2]["display_value"] == "1.00"
-        assert ctx["body"][1][1]["display_value"] == "2.0"
-        ctx = df.style.format("{:.1f}").set_precision(2)._translate()
-        assert ctx["body"][0][2]["display_value"] == "1.0"
-        assert ctx["body"][1][1]["display_value"] == "2.0"
-        ctx = df.style.format("{:.1f}", subset=["a"]).set_precision(2)._translate()
-        assert ctx["body"][0][2]["display_value"] == "1.00"
-        assert ctx["body"][1][1]["display_value"] == "2.0"
-        ctx = df.style.format(None, subset=["a"]).set_precision(2)._translate()
-        assert ctx["body"][0][2]["display_value"] == "1.00"
-        assert ctx["body"][1][1]["display_value"] == "2.00"
-
-        with pytest.raises(KeyError, match="are in the [columns]"):
-            df.style.format({"a": "{:.0f}"}, subset=["b"])
-
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
@@ -675,17 +640,6 @@ class TestStyler:
         result = self.df.style.set_table_attributes(attributes).render()
         assert 'class="foo" data-bar' in result
 
-    def test_precision(self):
-        with pd.option_context("display.precision", 10):
-            s = Styler(self.df)
-        assert s.precision == 10
-        s = Styler(self.df, precision=2)
-        assert s.precision == 2
-
-        s2 = s.set_precision(4)
-        assert s is s2
-        assert s.precision == 4
-
     def test_apply_none(self):
         def f(x):
             return DataFrame(
@@ -735,23 +689,19 @@ class TestStyler:
         df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
         s = Styler(df)
 
-        ctx = s.set_precision(1)._translate()
-
-        assert s.precision == 1
+        ctx = s.format(precision=1)._translate()
         assert ctx["body"][0][1]["display_value"] == "1.0"
         assert ctx["body"][0][2]["display_value"] == "2.0"
         assert ctx["body"][1][1]["display_value"] == "3.2"
         assert ctx["body"][1][2]["display_value"] == "4.6"
 
-        ctx = s.set_precision(2)._translate()
-        assert s.precision == 2
+        ctx = s.format(precision=2)._translate()
         assert ctx["body"][0][1]["display_value"] == "1.00"
         assert ctx["body"][0][2]["display_value"] == "2.01"
         assert ctx["body"][1][1]["display_value"] == "3.21"
         assert ctx["body"][1][2]["display_value"] == "4.57"
 
-        ctx = s.set_precision(3)._translate()
-        assert s.precision == 3
+        ctx = s.format(precision=3)._translate()
         assert ctx["body"][0][1]["display_value"] == "1.000"
         assert ctx["body"][0][2]["display_value"] == "2.009"
         assert ctx["body"][1][1]["display_value"] == "3.212"
