@@ -127,9 +127,8 @@ def masked_rec_array_to_mgr(
     fdata = ma.getdata(data)
     if index is None:
         index = _get_names_from_index(fdata)
-        if index is None:
-            index = ibase.default_index(len(data))
-    index = ensure_index(index)
+    else:
+        index = ensure_index(index)
 
     if columns is not None:
         columns = ensure_index(columns)
@@ -518,7 +517,7 @@ def reorder_arrays(arrays, arr_columns, columns):
     return arrays, arr_columns
 
 
-def _get_names_from_index(data):
+def _get_names_from_index(data) -> Index:
     has_some_name = any(getattr(s, "name", None) is not None for s in data)
     if not has_some_name:
         return ibase.default_index(len(data))
@@ -533,7 +532,7 @@ def _get_names_from_index(data):
             index[i] = f"Unnamed {count}"
             count += 1
 
-    return index
+    return Index(index)
 
 
 def _get_axes(
