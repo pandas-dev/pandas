@@ -1196,6 +1196,7 @@ def test_convert_objects_leave_decimal_alone():
     assert isinstance(result[0], Decimal)
 
 
+@td.skip_array_manager_not_yet_implemented
 def test_groupby_dtype_inference_empty():
     # GH 6733
     df = DataFrame({"x": [], "range": np.arange(0, dtype="int64")})
