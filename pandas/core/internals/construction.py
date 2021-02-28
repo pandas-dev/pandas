@@ -127,8 +127,9 @@ def masked_rec_array_to_mgr(
     fdata = ma.getdata(data)
     if index is None:
         index = _get_names_from_index(fdata)
-    else:
-        index = ensure_index(index)
+        if index is None:
+            index = ibase.default_index(len(data))
+    index = ensure_index(index)
 
     if columns is not None:
         columns = ensure_index(columns)
@@ -340,7 +341,7 @@ def nested_data_to_arrays(
     columns: Optional[Index],
     index: Optional[Index],
     dtype: Optional[DtypeObj],
-) -> Tuple[List[ArrayLike], Index, Index]:
+):
     """
     Convert a single sequence of arrays to multiple arrays.
     """
@@ -517,7 +518,7 @@ def reorder_arrays(arrays, arr_columns, columns):
     return arrays, arr_columns
 
 
-def _get_names_from_index(data) -> Index:
+def _get_names_from_index(data):
     has_some_name = any(getattr(s, "name", None) is not None for s in data)
     if not has_some_name:
         return ibase.default_index(len(data))
@@ -532,7 +533,7 @@ def _get_names_from_index(data) -> Index:
             index[i] = f"Unnamed {count}"
             count += 1
 
-    return Index(index)
+    return index
 
 
 def _get_axes(
@@ -585,9 +586,7 @@ def dataclasses_to_dicts(data):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(
-    data, columns: Optional[Index], dtype: Optional[DtypeObj] = None
-) -> Tuple[List[ArrayLike], Index]:
+def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
     """
     Return list of arrays, columns.
     """
@@ -608,10 +607,8 @@ def to_arrays(
         if isinstance(data, np.ndarray):
             columns = data.dtype.names
             if columns is not None:
-                arrays = [np.empty((0,), dtype=data.dtype) for _ in range(len(columns))]
-                return arrays, ensure_index(columns)
-
-        return [], Index([])
+                return [[]] * len(columns), columns
+        return [], []  # columns if columns is not None else []
 
     elif isinstance(data[0], Categorical):
         if columns is None:
