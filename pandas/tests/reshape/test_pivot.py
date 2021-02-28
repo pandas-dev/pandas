@@ -197,7 +197,7 @@ class TestPivotTable:
             ["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True
         )
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        result = pd.pivot_table(df, values="values", index=["A", "B"], dropna=True)
+        result = pivot_table(df, values="values", index=["A", "B"], dropna=True)
 
         exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
@@ -302,7 +302,7 @@ class TestPivotTable:
             }
         )
 
-        pivot_tab = pd.pivot_table(
+        pivot_tab = pivot_table(
             df, index="C", columns="B", values="A", aggfunc="sum", margins=True
         )
 
@@ -409,7 +409,7 @@ class TestPivotTable:
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "dt": pd.date_range("2011-01-01", freq="D", periods=5),
+                "dt": date_range("2011-01-01", freq="D", periods=5),
             },
             index=idx,
         )
@@ -492,7 +492,7 @@ class TestPivotTable:
         # GH9491
         df = DataFrame(
             {
-                "a": pd.date_range("2014-02-01", periods=6, freq="D"),
+                "a": date_range("2014-02-01", periods=6, freq="D"),
                 "c": 100 + np.arange(6),
             }
         )
@@ -605,7 +605,7 @@ class TestPivotTable:
         df = df.set_index("ts").reset_index()
         mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
 
-        result = pd.pivot_table(
+        result = pivot_table(
             df.set_index("ts").reset_index(),
             values="ts",
             index=["uid"],
@@ -1101,7 +1101,7 @@ class TestPivotTable:
         iproduct = np.random.randint(0, len(products), n)
         items["Index"] = products["Index"][iproduct]
         items["Symbol"] = products["Symbol"][iproduct]
-        dr = pd.date_range(date(2000, 1, 1), date(2010, 12, 31))
+        dr = date_range(date(2000, 1, 1), date(2010, 12, 31))
         dates = dr[np.random.randint(0, len(dr), n)]
         items["Year"] = dates.year
         items["Month"] = dates.month
@@ -1664,17 +1664,17 @@ class TestPivotTable:
         # GH 12017
         aggs = {"D": "sum", "E": "mean"}
 
-        pivot_values_list = pd.pivot_table(
+        pivot_values_list = pivot_table(
             self.data, index=["A"], values=list(aggs.keys()), aggfunc=aggs
         )
 
-        pivot_values_keys = pd.pivot_table(
+        pivot_values_keys = pivot_table(
             self.data, index=["A"], values=aggs.keys(), aggfunc=aggs
         )
         tm.assert_frame_equal(pivot_values_keys, pivot_values_list)
 
         agg_values_gen = (value for value in aggs.keys())
-        pivot_values_gen = pd.pivot_table(
+        pivot_values_gen = pivot_table(
             self.data, index=["A"], values=agg_values_gen, aggfunc=aggs
         )
         tm.assert_frame_equal(pivot_values_gen, pivot_values_list)
@@ -1749,7 +1749,7 @@ class TestPivotTable:
             }
         )
 
-        result = pd.pivot_table(df, index="D", margins=True)
+        result = pivot_table(df, index="D", margins=True)
         expected = DataFrame(
             {"A": [3, 7, 5], "B": [2.5, 6.5, 4.5], "C": [2, 5, 3.5]},
             index=Index(["X", "Y", "All"], name="D"),
@@ -1887,7 +1887,7 @@ class TestPivotTable:
         # issue #13292
         greek = "\u0394\u03bf\u03ba\u03b9\u03bc\u03ae"
         frame = DataFrame({"foo": [1, 2, 3]})
-        table = pd.pivot_table(
+        table = pivot_table(
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
@@ -2006,7 +2006,7 @@ class TestPivotTable:
         def ret_none(x):
             return np.nan
 
-        result = pd.pivot_table(
+        result = pivot_table(
             df, columns="fruit", aggfunc=[ret_sum, ret_none, ret_one], dropna=dropna
         )
 
@@ -2028,7 +2028,7 @@ class TestPivotTable:
             {"A": ["one", "two", "one"], "x": [3, np.nan, 2], "y": [1, np.nan, np.nan]}
         )
 
-        result = pd.pivot_table(df, columns="A", aggfunc=np.mean, dropna=dropna)
+        result = pivot_table(df, columns="A", aggfunc=np.mean, dropna=dropna)
 
         data = [[2.5, np.nan], [1, np.nan]]
         col = Index(["one", "two"], name="A")
