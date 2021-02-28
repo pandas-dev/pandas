@@ -582,18 +582,19 @@ class Styler:
             ``formatter`` is applied to.
         na_rep : str, optional
             Representation for missing values. If ``None``, will revert to using
-            ``Styler.na_rep``
+            If ``na_rep`` is None, no special formatting is applied.
 
             .. versionadded:: 1.0.0
+
+        precision : int, optional
+            Floating point precision to use for display purposes, if not specifying a
+            ``formatter``.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         self : Styler
-
-        See Also
-        --------
-        Styler.set_na_rep : Set the missing data representation on a Styler.
-        Styler.set_precision : Set the precision used to display values.
 
         Notes
         -----
@@ -606,31 +607,9 @@ class Styler:
         do not exist in the ``subset`` will raise a ``KeyError``.
 
         The default formatter currently expresses floats and complex numbers with the
-        precision defined by ``Styler.precision``, leaving all other types unformatted,
-        and replacing missing values with the string defined in ``Styler.na_rep``, if
-        set.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([[1.0, 2.0],[3.0, 4.0]], columns=['a', 'b'])
-        >>> df.style.format({'a': '{:.0f}'})
-            a          b
-        0   1   2.000000
-        1   3   4.000000
-
-        >>> df = pd.DataFrame(np.nan,
-        ...                   columns=['a', 'b', 'c', 'd'],
-        ...                   index=['x', 'y', 'z'])
-        >>> df.iloc[0, :] = 1.9
-        >>> df.style.set_precision(3)
-        ...         .format({'b': '{:.0f}', 'c': '{:.1f}'.format},
-        ...                 na_rep='HARD',
-        ...                 subset=pd.IndexSlice[['y','x'], ['a', 'b', 'c']])
-        ...         .set_na_rep('SOFT')
-               a     b     c       d
-        x  1.900     2   1.9   1.900
-        y   SOFT  HARD  HARD    SOFT
-        z   SOFT  SOFT  SOFT    SOFT
+        pandas display precision unless using the ``precision`` argument here. The
+        default formatter does not adjust the representation of missing values unless
+        the ``na_rep`` argument is used.
         """
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
