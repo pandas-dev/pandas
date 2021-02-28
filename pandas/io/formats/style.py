@@ -575,7 +575,7 @@ class Styler:
         ----------
         formatter : str, callable, dict or None
             Format specification to use for displaying values. If ``None``, the default
-            formatter is used. If ``dict``, keys should corresponcd to column names,
+            formatter is used. If ``dict``, keys should correspond to column names,
             and values should be string or callable.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
