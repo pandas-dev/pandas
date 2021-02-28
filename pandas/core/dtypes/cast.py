@@ -94,6 +94,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCSeries,
 )
@@ -238,6 +239,9 @@ def maybe_downcast_to_dtype(
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
+    if isinstance(result, ABCDataFrame):
+        # see test_pivot_table_doctest_case
+        return result
     do_round = False
 
     if isinstance(dtype, str):
@@ -307,7 +311,7 @@ def maybe_downcast_numeric(
     -------
     ndarray or ExtensionArray
     """
-    if not isinstance(dtype, np.dtype):
+    if not isinstance(dtype, np.dtype) or not isinstance(result.dtype, np.dtype):
         # e.g. SparseDtype has no itemsize attr
         return result
 
@@ -694,7 +698,7 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _ensure_dtype_type(value, dtype: DtypeObj):
+def _ensure_dtype_type(value, dtype: np.dtype):
     """
     Ensure that the given value is an instance of the given dtype.
 
@@ -704,21 +708,17 @@ def _ensure_dtype_type(value, dtype: DtypeObj):
     Parameters
     ----------
     value : object
-    dtype : np.dtype or ExtensionDtype
+    dtype : np.dtype
 
     Returns
     -------
     object
     """
     # Start with exceptions in which we do _not_ cast to numpy types
-    if is_extension_array_dtype(dtype):
-        return value
-    elif dtype == np.object_:
-        return value
-    elif isna(value):
-        # e.g. keep np.nan rather than try to cast to np.float32(np.nan)
+    if dtype == np.object_:
         return value
 
+    # Note: before we get here we have already excluded isna(value)
     return dtype.type(value)
 
 
@@ -1135,7 +1135,7 @@ def astype_nansafe(
     if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
 
-    elif not isinstance(dtype, np.dtype):
+    elif not isinstance(dtype, np.dtype):  # pragma: no cover
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if arr.dtype.kind in ["m", "M"] and (
@@ -1385,9 +1385,7 @@ def maybe_castable(dtype: np.dtype) -> bool:
     return dtype.name not in POSSIBLY_CAST_DTYPES
 
 
-def maybe_infer_to_datetimelike(
-    value: Union[np.ndarray, List], convert_dates: bool = False
-):
+def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -1399,13 +1397,10 @@ def maybe_infer_to_datetimelike(
     Parameters
     ----------
     value : np.ndarray or list
-    convert_dates : bool, default False
-       if True try really hard to convert dates (such as datetime.date), other
-       leave inferred dtype 'date' alone
 
     """
     if not isinstance(value, (np.ndarray, list)):
-        raise TypeError(type(value))
+        raise TypeError(type(value))  # pragma: no cover
 
     v = np.array(value, copy=False)
 
@@ -1462,9 +1457,7 @@ def maybe_infer_to_datetimelike(
 
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
-    if inferred_type == "date" and convert_dates:
-        value = try_datetime(v)
-    elif inferred_type == "datetime":
+    if inferred_type == "datetime":
         value = try_datetime(v)
     elif inferred_type == "timedelta":
         value = try_timedelta(v)
@@ -1579,10 +1572,24 @@ def maybe_cast_to_datetime(
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except ValueError:
+                    except ValueError as err:
                         # TODO(GH#40048): only catch dateutil's ParserError
                         #  once we can reliably import it in all supported versions
-                        pass
+                        if "mixed datetimes and integers in passed array" in str(err):
+                            # We need to catch this in array_to_datetime, otherwise
+                            #  we end up going through numpy which will lose nanoseconds
+                            #  from Timestamps
+                            try:
+                                i8vals, tz = tslib.array_to_datetime(
+                                    value, allow_mixed=True
+                                )
+                            except ValueError:
+                                pass
+                            else:
+                                from pandas.core.arrays import DatetimeArray
+
+                                dta = DatetimeArray(i8vals).tz_localize(tz)
+                                value = dta
 
         # coerce datetimelike to object
         elif is_datetime64_dtype(
