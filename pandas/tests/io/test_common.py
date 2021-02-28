@@ -9,7 +9,9 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import tempfile
 
+import ntpath
 import pytest
 
 from pandas.compat import is_platform_windows
@@ -119,10 +121,17 @@ bar2,12,13,14,15
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
-        filename = path_type("~/sometest")
-        with icom.get_handle(filename, "w") as handles:
-            assert os.path.isabs(handles.handle.name)
-            assert os.path.expanduser(filename) == handles.handle.name
+        try:
+            tmp = tempfile.NamedTemporaryFile(
+                dir=os.path.expanduser("~/"), delete=False
+            )
+            filename = "~/" + ntpath.basename(tmp.name)
+            tmp.close()
+            with icom.get_handle(filename, "w") as handles:
+                assert os.path.isabs(handles.handle.name)
+                assert os.path.expanduser(filename) == handles.handle.name
+        finally:
+            os.unlink(tmp.name)
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
