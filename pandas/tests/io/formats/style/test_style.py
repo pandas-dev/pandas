@@ -707,7 +707,7 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "3.212"
         assert ctx["body"][1][2]["display_value"] == "4.566"
 
-    def test_format_subset(self):
+    def test_display_subset(self):
         df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
         ctx = df.style.format(
             {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
