@@ -412,7 +412,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if null_mask.any():
                     # We remove null values here, then below will re-insert
                     #  them, grep "full_codes"
-                    arr = [values[idx] for idx in np.where(~null_mask)[0]]
+
+                    # error: Incompatible types in assignment (expression has type
+                    # "List[Any]", variable has type "ExtensionArray")
+                    arr = [  # type: ignore[assignment]
+                        values[idx] for idx in np.where(~null_mask)[0]
+                    ]
                     arr = sanitize_array(arr, None)
                 values = arr
 

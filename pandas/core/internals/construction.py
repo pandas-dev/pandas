@@ -619,7 +619,9 @@ def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
 
     if not len(data):
         if isinstance(data, np.ndarray):
-            columns = data.dtype.names
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[Tuple[str, ...]]", variable has type "Optional[Index]")
+            columns = data.dtype.names  # type: ignore[assignment]
             if columns is not None:
                 return [[]] * len(columns), columns
         return [], []  # columns if columns is not None else []
@@ -649,11 +651,8 @@ def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
     # error: Incompatible types in assignment (expression has type "List[ndarray]",
     # variable has type "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
     # Any]]]")
-    # error: Argument 1 to "_finalize_columns_and_data" has incompatible type
-    # "List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]]"; expected
-    # "ndarray"
     content, columns = _finalize_columns_and_data(  # type: ignore[assignment]
-        content, columns, dtype  # type: ignore[arg-type]
+        content, columns, dtype
     )
     return content, columns
 
@@ -702,10 +701,7 @@ def _list_of_series_to_arrays(
     # Sequence[Sequence[Any]], _SupportsArray]]"
     content = np.vstack(aligned_values)  # type: ignore[arg-type]
 
-    # error: Incompatible return value type (got "Tuple[ndarray, Union[Index,
-    # List[Any]]]", expected "Tuple[List[Union[Union[str, int, float, bool], Union[Any,
-    # Any, Any, Any]]], Union[Index, List[Union[str, int]]]]")
-    return content, columns  # type: ignore[return-value]
+    return content, columns
 
 
 def _list_of_dict_to_arrays(

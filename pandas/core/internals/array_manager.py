@@ -299,7 +299,9 @@ class ArrayManager(DataManager):
         else:
             columns = self.items
 
-        return type(self)(result_arrays, [index, columns])
+        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
+        # expected "List[Union[ndarray, ExtensionArray]]"
+        return type(self)(result_arrays, [index, columns])  # type: ignore[arg-type]
 
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """

@@ -2990,7 +2990,11 @@ class Index(IndexOpsMixin, PandasObject):
                 missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
             if len(missing) > 0:
-                other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+                # error: Value of type variable "ArrayLike" of "take_nd" cannot be
+                # "Union[ExtensionArray, ndarray]"
+                other_diff = algos.take_nd(  # type: ignore[type-var]
+                    rvals, missing, allow_fill=False
+                )
                 result = concat_compat((lvals, other_diff))
 
             else:

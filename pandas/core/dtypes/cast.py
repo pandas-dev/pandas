@@ -1541,7 +1541,9 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type == "datetime":
-        value = try_datetime(v)
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "Union[ndarray, List[Any]]")
+        value = try_datetime(v)  # type: ignore[assignment]
     elif inferred_type == "timedelta":
         value = try_timedelta(v)
     elif inferred_type == "nat":
