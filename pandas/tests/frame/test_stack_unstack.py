@@ -1057,15 +1057,18 @@ class TestDataFrameReshape:
     @pytest.mark.parametrize("labels2", [list("uv"), list("vu")])
     def test_multi_stack_preserve_categorical_dtype(self, ordered, labels, labels2):
         cidx = pd.CategoricalIndex(labels, categories=list("xyz"), ordered=ordered)
-        cidx2  = pd.CategoricalIndex(labels2, categories=list("uv"), ordered=ordered)
-        sorted_cidx = pd.CategoricalIndex(list("xyz"), categories=list("xyz"), ordered=ordered)
-        sorted_cidx2 = pd.CategoricalIndex(list("uv"), categories=list("uv"), ordered=ordered)
+        cidx2 = pd.CategoricalIndex(labels2, categories=list("uv"), ordered=ordered)
+        sorted_cidx = pd.CategoricalIndex(
+            list("xyz"), categories=list("xyz"), ordered=ordered)
+        sorted_cidx2 = pd.CategoricalIndex(
+            list("uv"), categories=list("uv"), ordered=ordered)
 
         midx = MultiIndex.from_product([cidx, cidx2, [1, 2, 3]], names=['a', 'b', 'c'])
         df = pd.DataFrame(np.random.randn(5, midx.size), columns=midx)
         result = df.stack(['a', 'b'])
 
-        expected = MultiIndex.from_product([df.index, sorted_cidx, sorted_cidx2], names=[None, 'a', 'b'])
+        expected = MultiIndex.from_product(
+            [df.index, sorted_cidx, sorted_cidx2], names=[None, 'a', 'b'])
 
         tm.assert_equal(result.index, expected)
 
