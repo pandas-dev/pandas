@@ -1065,7 +1065,7 @@ class TestDataFrameReshape:
             list("uv"), categories=list("uv"), ordered=ordered)
 
         midx = MultiIndex.from_product([cidx, cidx2, [1, 2, 3]], names=list("abc"))
-        df = pd.DataFrame(np.random.randn(5, midx.size), columns=midx)
+        df = DataFrame(np.random.randn(5, midx.size), columns=midx)
         result = df.stack(["a", "b"])
 
         expected = MultiIndex.from_product(
