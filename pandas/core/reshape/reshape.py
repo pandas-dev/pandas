@@ -643,10 +643,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             levs.append(np.take(lev, level_codes))
         tuples = list(zip(*levs))
         unique_groups = [key for key, _ in itertools.groupby(tuples)]
-        new_columns = MultiIndex.from_arrays([
-            Index(new_level, dtype=level.dtype) if None not in new_level else new_level
-            for new_level, level in zip(zip(*unique_groups), this.columns.levels)
-        ], names=this.columns.names[:-1])
+        new_columns = MultiIndex.from_arrays(
+            [
+                Index(new_level, dtype=level.dtype)
+                if None not in new_level
+                else new_level
+                for new_level, level in zip(zip(*unique_groups), this.columns.levels)
+            ],
+            names=this.columns.names[:-1],
+        )
     else:
         new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
         unique_groups = new_columns

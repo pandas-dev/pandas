@@ -1060,16 +1060,19 @@ class TestDataFrameReshape:
         cidx = pd.CategoricalIndex(labels, categories=list("xyz"), ordered=ordered)
         cidx2 = pd.CategoricalIndex(labels2, categories=list("uv"), ordered=ordered)
         sorted_cidx = pd.CategoricalIndex(
-            list("xyz"), categories=list("xyz"), ordered=ordered)
+            list("xyz"), categories=list("xyz"), ordered=ordered
+        )
         sorted_cidx2 = pd.CategoricalIndex(
-            list("uv"), categories=list("uv"), ordered=ordered)
+            list("uv"), categories=list("uv"), ordered=ordered
+        )
 
         midx = MultiIndex.from_product([cidx, cidx2, [1, 2, 3]], names=list("abc"))
         df = DataFrame(np.random.randn(5, midx.size), columns=midx)
         result = df.stack(["a", "b"])
 
         expected = MultiIndex.from_product(
-            [df.index, sorted_cidx, sorted_cidx2], names=[None, "a", "b"])
+            [df.index, sorted_cidx, sorted_cidx2], names=[None, "a", "b"]
+        )
 
         tm.assert_equal(result.index, expected)
 
