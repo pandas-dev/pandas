@@ -104,7 +104,7 @@ class IsinAlmostFullWithRandomInt:
 
 class IsinWithRandomFloat:
     params = [
-        [np.float64, np.object],
+        [np.float64, np.object_],
         [
             1_300,
             2_000,
@@ -134,7 +134,7 @@ class IsinWithRandomFloat:
 
 class IsinWithArangeSorted:
     params = [
-        [np.float64, np.int64, np.uint64, np.object],
+        [np.float64, np.int64, np.uint64, np.object_],
         [
             1_000,
             2_000,
@@ -155,7 +155,7 @@ class IsinWithArangeSorted:
 
 class IsinWithArange:
     params = [
-        [np.float64, np.int64, np.uint64, np.object],
+        [np.float64, np.int64, np.uint64, np.object_],
         [
             1_000,
             2_000,
@@ -273,6 +273,7 @@ class IsInLongSeriesLookUpDominates:
     def setup(self, dtype, MaxNumber, series_type):
         N = 10 ** 7
 
+        # https://github.com/pandas-dev/pandas/issues/39844
         if not np_version_under1p20 and dtype in ("Int64", "Float64"):
             raise NotImplementedError
 
@@ -303,6 +304,11 @@ class IsInLongSeriesValuesDominate:
 
     def setup(self, dtype, series_type):
         N = 10 ** 7
+
+        # https://github.com/pandas-dev/pandas/issues/39844
+        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
+            raise NotImplementedError
+
         if series_type == "random":
             np.random.seed(42)
             vals = np.random.randint(0, 10 * N, N)

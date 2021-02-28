@@ -403,6 +403,15 @@ class TestSeriesConstructors:
         result = x.person_name.loc[0]
         assert result == expected
 
+    def test_constructor_series_to_categorical(self):
+        # see GH#16524: test conversion of Series to Categorical
+        series = Series(["a", "b", "c"])
+
+        result = Series(series, dtype="category")
+        expected = Series(["a", "b", "c"], dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_categorical_dtype(self):
         result = Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
@@ -750,6 +759,14 @@ class TestSeriesConstructors:
         assert result.dtype == object
         result = df.loc["216"]
         assert result.dtype == object
+
+    def test_constructor_mixed_int_and_timestamp(self, frame_or_series):
+        # specifically Timestamp with nanos, not datetimes
+        objs = [Timestamp(9), 10, NaT.value]
+        result = frame_or_series(objs, dtype="M8[ns]")
+
+        expected = frame_or_series([Timestamp(9), Timestamp(10), NaT])
+        tm.assert_equal(result, expected)
 
     def test_constructor_datetimes_with_nulls(self):
         # gh-15869

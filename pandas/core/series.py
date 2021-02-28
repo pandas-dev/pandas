@@ -15,9 +15,11 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -94,7 +96,7 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import series_apply
+from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -124,7 +126,6 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
-from pandas.core.internals.construction import sanitize_index
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -386,7 +387,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = [data]
                 index = ibase.default_index(len(data))
             elif is_list_like(data):
-                sanitize_index(data, index)
+                com.require_length_match(data, index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -395,7 +396,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                data = sanitize_array(data, index, dtype, copy, raise_cast_failure=True)
+                data = sanitize_array(data, index, dtype, copy)
 
                 data = SingleBlockManager.from_array(data, index)
 
@@ -3099,7 +3100,7 @@ Keep all original rows and also all original values
     def sort_values(
         self,
         axis=0,
-        ascending=True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -3117,7 +3118,7 @@ Keep all original rows and also all original values
         axis : {0 or 'index'}, default 0
             Axis to direct sorting. The value 'index' is accepted for
             compatibility with DataFrame.sort_values.
-        ascending : bool, default True
+        ascending : bool or list of bools, default True
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
@@ -3277,6 +3278,7 @@ Keep all original rows and also all original values
             )
 
         if is_list_like(ascending):
+            ascending = cast(Sequence[Union[bool, int]], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3291,7 +3293,7 @@ Keep all original rows and also all original values
 
         # GH 35922. Make sorting stable by leveraging nargsort
         values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
-        sorted_index = nargsort(values_to_sort, kind, ascending, na_position)
+        sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
@@ -3309,7 +3311,7 @@ Keep all original rows and also all original values
         self,
         axis=0,
         level=None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -3329,7 +3331,7 @@ Keep all original rows and also all original values
             Axis to direct sorting. This can only be 0 for Series.
         level : int, optional
             If not None, sort on values in specified index level(s).
-        ascending : bool or list of bools, default True
+        ascending : bool or list-like of bools, default True
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False
@@ -4000,7 +4002,7 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, func, args=args, kwargs=kwargs)
+        op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
         result = op.agg()
         return result
 
@@ -4016,7 +4018,9 @@ Keep all original rows and also all original values
     ) -> FrameOrSeriesUnion:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = series_apply(self, func=func, args=args, kwargs=kwargs).transform()
+        result = SeriesApply(
+            self, func=func, convert_dtype=True, args=args, kwargs=kwargs
+        ).transform()
         return result
 
     def apply(
@@ -4128,7 +4132,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        return series_apply(self, func, convert_dtype, args, kwargs).apply()
+        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
         self,
