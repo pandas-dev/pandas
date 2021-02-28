@@ -601,10 +601,11 @@ class Styler:
         This method assigns a formatting function to each cell in the DataFrame. Where
         arguments are given as string this is wrapped to a callable as ``str.format(x)``
 
-        If the ``subset`` argument is given as well as the ``formatter`` argument in
-        dict form then the intersection of the ``subset`` and the columns as keys
-        of the dict are used to define the formatting region. Keys in the dict that
-        do not exist in the ``subset`` will raise a ``KeyError``.
+        The ``subset`` argument defines which region to apply the formatting function
+        to. If the ``formatter`` argument is given in dict form but does not include
+        all columns within the subset then these columns will have the default formatter
+        applied. Any columns in the ``formatter`` dict excluded from the ``subset`` will
+        raise a ``KeyError``.
 
         The default formatter currently expresses floats and complex numbers with the
         pandas display precision unless using the ``precision`` argument here. The
@@ -615,11 +616,9 @@ class Styler:
         subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
 
+        columns = data.columns
         if not isinstance(formatter, dict):
-            columns = data.columns
             formatter = {col: formatter for col in columns}
-        else:
-            columns = formatter.keys()
 
         for col in columns:
             try:
