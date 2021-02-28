@@ -84,6 +84,7 @@ from pandas.core.indexes.api import (
     MultiIndex,
     ensure_index,
 )
+from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -214,6 +215,10 @@ class BaseGrouper:
             #  TODO: can we have a workaround for EAs backed by ndarray?
             pass
 
+        elif isinstance(sdata._mgr, ArrayManager):
+            # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
+            # for now -> relies on BlockManager internals
+            pass
         elif (
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
