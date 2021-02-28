@@ -2055,6 +2055,39 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
+def _default_formatter(x: Any, precision: Optional[int] = None):
+    if precision is None:
+        precision = get_option("display.precision")
+    if isinstance(x, (float, complex)):
+        return f"{x:.{precision}f}"
+    return x
+
+
+def _maybe_wrap_formatter(
+    formatter: Optional[Union[Callable, str]] = None,
+    na_rep: Optional[str] = None,
+    precision: Optional[int] = None,
+) -> Callable:
+    """
+    Allows formatters to be expressed as str, callable or None, where None returns
+    a default formatting function. wraps with na_rep, and precision where they are
+    available.
+    """
+    if isinstance(formatter, str):
+        func = lambda x: formatter.format(x)
+    elif callable(formatter):
+        func = formatter
+    elif formatter is None:
+        func = partial(_default_formatter, precision=precision)
+    else:
+        raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
+
+    if na_rep is not None:
+        return lambda x: na_rep if pd.isna(x) else func(x)
+    else:
+        return func
+
+
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
     """
     Convert css-string to sequence of tuples format if needed.
@@ -2116,36 +2149,3 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
-
-
-def _default_formatter(x: Any, precision: Optional[int] = None):
-    if precision is None:
-        precision = get_option("display.precision")
-    if isinstance(x, (float, complex)):
-        return f"{x:.{precision}f}"
-    return x
-
-
-def _maybe_wrap_formatter(
-    formatter: Optional[Union[Callable, str]] = None,
-    na_rep: Optional[str] = None,
-    precision: Optional[int] = None,
-) -> Callable:
-    """
-    Allows formatters to be expressed as str, callable or None, where None returns
-    a default formatting function. wraps with na_rep, and precision where they are
-    available.
-    """
-    if isinstance(formatter, str):
-        func = lambda x: formatter.format(x)
-    elif callable(formatter):
-        func = formatter
-    elif formatter is None:
-        func = partial(_default_formatter, precision=precision)
-    else:
-        raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
-
-    if na_rep is not None:
-        return lambda x: na_rep if pd.isna(x) else func(x)
-    else:
-        return func
