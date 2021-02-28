@@ -586,7 +586,9 @@ def dataclasses_to_dicts(data):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
+def to_arrays(
+    data, columns: Optional[Index], dtype: Optional[DtypeObj] = None
+) -> Tuple[List[ArrayLike], Index]:
     """
     Return list of arrays, columns.
     """
@@ -607,8 +609,10 @@ def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
         if isinstance(data, np.ndarray):
             columns = data.dtype.names
             if columns is not None:
-                return [[]] * len(columns), columns
-        return [], []  # columns if columns is not None else []
+                # i.e. numpy structured array
+                arrays = [data[name] for name in columns]
+                return arrays, ensure_index(columns)
+        return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):
         if columns is None:

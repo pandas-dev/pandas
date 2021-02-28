@@ -607,6 +607,8 @@ class DataFrame(NDFrame, OpsMixin):
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
                 if treat_as_nested(data):
+                    if columns is not None:
+                        columns = ensure_index(columns)
                     arrays, columns, index = nested_data_to_arrays(
                         data, columns, index, dtype
                     )
