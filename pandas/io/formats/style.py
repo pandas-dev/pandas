@@ -581,7 +581,7 @@ class Styler:
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
         na_rep : str, optional
-            Representation for missing values. If ``None``, will revert to using
+            Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
 
             .. versionadded:: 1.0.0
