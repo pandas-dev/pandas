@@ -147,6 +147,9 @@ def masked_rec_array_to_mgr(
         new_arrays.append(arr)
 
     # create the manager
+    # TODO: once to_arrays is annotated s.t. arr_columns is always an Index,
+    #  this ensure_index will be unnecessary.
+    arr_columns = ensure_index(arr_columns)
     arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)
     if columns is None:
         columns = arr_columns
@@ -503,14 +506,11 @@ def extract_index(data) -> Index:
     return ensure_index(index)
 
 
-def reorder_arrays(arrays, arr_columns, columns):
+def reorder_arrays(
+    arrays: List[ArrayLike], arr_columns: Index, columns: Optional[Index]
+) -> Tuple[List[ArrayLike], Index]:
     # reorder according to the columns
-    if (
-        columns is not None
-        and len(columns)
-        and arr_columns is not None
-        and len(arr_columns)
-    ):
+    if columns is not None and len(columns) and len(arr_columns):
         indexer = ensure_index(arr_columns).get_indexer(columns)
         arr_columns = ensure_index([arr_columns[i] for i in indexer])
         arrays = [arrays[i] for i in indexer]

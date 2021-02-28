@@ -1918,7 +1918,8 @@ class DataFrame(NDFrame, OpsMixin):
                         arr_columns_list.append(k)
                         arrays.append(v)
 
-                arrays, arr_columns = reorder_arrays(arrays, arr_columns_list, columns)
+                arr_columns = Index(arr_columns_list)
+                arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns)
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
