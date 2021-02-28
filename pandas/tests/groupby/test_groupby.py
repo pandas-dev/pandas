@@ -75,11 +75,9 @@ def test_basic(dtype):
     agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
     assert agged[1] == 21
 
-    # corner cases
-    msg = "Must produce aggregated value"
-    # exception raised is type Exception
-    with pytest.raises(Exception, match=msg):
-        grouped.aggregate(lambda x: x * 2)
+    result = grouped.aggregate(lambda x: x * 2)
+    expected = Series({name: group * 2 for name, group in grouped})
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
@@ -1026,7 +1024,7 @@ def test_groupby_with_hier_columns():
     result = df.groupby(level=0).apply(lambda x: x.mean())
     tm.assert_index_equal(result.columns, columns)
 
-    result = df.groupby(level=0, axis=1).agg(lambda x: x.mean(1))
+    result = df.groupby(level=0, axis=1).agg(lambda x: x.mean())
     tm.assert_index_equal(result.columns, Index(["A", "B"]))
     tm.assert_index_equal(result.index, df.index)
 

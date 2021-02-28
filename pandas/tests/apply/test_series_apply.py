@@ -298,16 +298,26 @@ def test_demo():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_apply_evaluate_lambdas_the_same(string_series):
+def test_agg_apply_evaluate_lambdas(string_series):
     # test that we are evaluating row-by-row first
     # before vectorized evaluation
+    expected = string_series.astype(str)
+
     result = string_series.apply(lambda x: str(x))
-    expected = string_series.agg(lambda x: str(x))
     tm.assert_series_equal(result, expected)
 
     result = string_series.apply(str)
-    expected = string_series.agg(str)
     tm.assert_series_equal(result, expected)
+
+    # GH 35725
+    # Agg always aggs - applies the function to the entire Series
+    expected = str(string_series)
+
+    result = string_series.agg(lambda x: str(x))
+    assert result == expected
+
+    result = string_series.agg(str)
+    assert result == expected
 
 
 def test_with_nested_series(datetime_series):
@@ -318,7 +328,8 @@ def test_with_nested_series(datetime_series):
     tm.assert_frame_equal(result, expected)
 
     result = datetime_series.agg(lambda x: Series([x, x ** 2], index=["x", "x^2"]))
-    tm.assert_frame_equal(result, expected)
+    expected = Series([datetime_series, datetime_series ** 2], index=["x", "x^2"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_replicate_describe(string_series):

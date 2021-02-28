@@ -674,7 +674,9 @@ class FrameApply(Apply):
             result = result.T if result is not None else result
 
         if result is None:
-            result = self.obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
+            results, res_index = self.apply_series_generator()
+            result = self.obj._constructor_sliced(results)
+            result.index = res_index
 
         return result
 
@@ -1018,10 +1020,7 @@ class SeriesApply(Apply):
             # we cannot FIRST try the vectorized evaluation, because
             # then .agg and .apply would have different semantics if the
             # operation is actually defined on the Series, e.g. str
-            try:
-                result = self.obj.apply(f, *args, **kwargs)
-            except (ValueError, AttributeError, TypeError):
-                result = f(self.obj, *args, **kwargs)
+            result = f(self.obj, *args, **kwargs)
 
         return result
 

@@ -214,7 +214,7 @@ class TestMultiLevel:
 
         def aggf(x):
             pieces.append(x)
-            return getattr(x, op)(skipna=skipna, axis=axis)
+            return getattr(x, op)(skipna=skipna)
 
         leftside = grouped.agg(aggf)
         rightside = getattr(frame, op)(level=level, axis=axis, skipna=skipna)

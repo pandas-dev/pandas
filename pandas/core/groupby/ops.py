@@ -760,7 +760,6 @@ class BaseGrouper:
 
         counts = np.zeros(ngroups, dtype=int)
         result = np.empty(ngroups, dtype="O")
-        initialized = False
 
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
@@ -768,16 +767,8 @@ class BaseGrouper:
 
             # Each step of this loop corresponds to
             #  libreduction._BaseGrouper._apply_to_group
-            res = func(group)
-            res = libreduction.extract_result(res)
-
-            if not initialized:
-                # We only do this validation on the first iteration
-                libreduction.check_result_array(res, 0)
-                initialized = True
-
             counts[label] = group.shape[0]
-            result[label] = res
+            result[label] = func(group)
 
         result = lib.maybe_convert_objects(result, try_float=False)
         result = maybe_cast_result(result, obj, numeric_only=True)

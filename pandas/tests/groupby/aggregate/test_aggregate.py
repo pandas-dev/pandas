@@ -47,12 +47,10 @@ def test_agg_regression1(tsframe):
 
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
-
-    msg = "Must produce aggregated value"
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.describe())
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.index[:2])
+    result = grouped.agg(lambda x: x.describe())
+    expected = Series({name: group.describe() for name, group in grouped}, name="C")
+    expected.index.name = "A"
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_ser_multi_key(df):
@@ -127,9 +125,8 @@ def test_groupby_aggregation_multi_level_column():
         data=lst,
         columns=MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
     )
-
     result = df.groupby(level=1, axis=1).sum()
-    expected = DataFrame({0: [2.0, 1, 1, 1], 1: [1, 0, 1, 1]})
+    expected = DataFrame({0: [2, 1, 1, 1], 1: [1, 0, 1, 1]})
 
     tm.assert_frame_equal(result, expected)
 

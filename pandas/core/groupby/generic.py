@@ -1010,7 +1010,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if result is None:
 
             # grouper specific aggregations
-            if self.grouper.nkeys > 1:
+            if not self._obj_with_exclusions.empty or self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
             elif args or kwargs:
                 result = self._aggregate_frame(func, *args, **kwargs)
