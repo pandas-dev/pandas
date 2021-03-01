@@ -23,8 +23,7 @@ or:
 
 
 
-The first block is a standard python input, while in the second the ``In [1]:`` indicates the input is inside a `notebook <https://jupyter.org>`__. It does not make any difference **except the last line will be printed**.
-
+The first block is a standard python input, while in the second the ``In [1]:`` indicates the input is inside a `notebook <https://jupyter.org>`__. In Jupyter Notebook the last line is printed and plots are shown inline.
 
 For example:
 
