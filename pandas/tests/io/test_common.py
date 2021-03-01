@@ -120,9 +120,9 @@ bar2,12,13,14,15
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
-        with tempfile.NamedTemporaryFile(dir=Path.home(), mode="w+") as tmp:
-            filename = path_type("~/" + Path(tmp.name).name)
-            with icom.get_handle(filename, "r") as handles:
+        with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
+            filename = path_type("~/" + Path(tmp).name + "/sometest")
+            with icom.get_handle(filename, "w") as handles:
                 assert Path(handles.handle.name).is_absolute()
                 assert str(Path(filename).expanduser()) == handles.handle.name
 
