@@ -3190,7 +3190,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
-            new_values = self._values_compat.T
+            # error: "ArrayLike" has no attribute "T"
+            new_values = self._values_compat.T  # type:ignore[attr-defined]
             if copy:
                 new_values = new_values.copy()
 

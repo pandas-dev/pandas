@@ -1936,8 +1936,10 @@ def _merge_blocks(
         if isinstance(blocks[0].dtype, np.dtype):
             new_values = np.vstack([b.values for b in blocks])
         else:
+            # Unexpected keyword argument "axis" for "_concat_same_type"
+            #  of "ExtensionArray"
             new_values = blocks[0].values._concat_same_type(
-                [b.values for b in blocks], axis=0
+                [b.values for b in blocks], axis=0  # type:ignore[call-arg]
             )
 
         argsort = np.argsort(new_mgr_locs)

@@ -95,6 +95,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     PandasArray,
+    TimedeltaArray,
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -115,6 +116,8 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+
 
 _dtype_obj = np.dtype(object)  # comparison is faster than is_object_dtype
 
@@ -283,7 +286,6 @@ class Block(PandasObject):
             return self.values.astype(_dtype_obj)
         return self.values
 
-    @final
     def get_block_values_for_json(self) -> np.ndarray:
         """
         This is used in the JSON C code.
@@ -401,7 +403,6 @@ class Block(PandasObject):
         """
         self.values[locs] = values
 
-    @final
     def delete(self, loc) -> None:
         """
         Delete given loc(-s) from block in-place.
@@ -1999,8 +2000,10 @@ class FloatBlock(NumericBlock):
 
 class NDArrayBackedExtensionBlock(HybridMixin, Block):
     """
-    Block backed by an NDarrayBackedExtensionArray, supporting 2D values.
+    Block backed by an NDArrayBackedExtensionArray, supporting 2D values.
     """
+
+    values: NDArrayBackedExtensionArray
 
     def array_values(self):
         return self.values
@@ -2035,7 +2038,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
-        return self.values._data.base is not None
+        return self.values._ndarray.base is not None
 
     def setitem(self, indexer, value):
         if not self._can_hold_element(value):
@@ -2106,6 +2109,8 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
+    values: Union[DatetimeArray, TimedeltaArray]
+
     is_numeric = False
     _can_hold_na = True
 
@@ -2146,11 +2151,11 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     def external_values(self):
         # NB: for dt64tz this is different from np.asarray(self.values),
         #  since that return an object-dtype ndarray of Timestamps.
-        return self.values._data
+        return self.values._ndarray
 
     def get_block_values_for_json(self):
         # Not necessary to override, but helps perf
-        return self.values._data
+        return self.values._ndarray
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
@@ -2168,13 +2173,24 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
     _validate_ndim = True
     _can_consolidate = True
 
+    to_native_types = DatetimeBlock.to_native_types  # needed for mypy
+
     get_values = Block.get_values
     set_inplace = Block.set_inplace
     iget = Block.iget
     _slice = Block._slice
-    shape = Block.shape
+    # Incompatible types in assignment (expression has type
+    #  "Callable[[Block], Tuple[int, ...]]", base class "ExtensionBlock"
+    #  defined the type as "Tuple[int, ...]")
+    shape = Block.shape  # type:ignore[assignment]
     __init__ = Block.__init__
-    take_nd = Block.take_nd
+    # Incompatible types in assignment (expression has type
+    #  "Callable[[Arg(Any, 'indexer'), Arg(int, 'axis'),
+    #  DefaultArg(Any, 'new_mgr_locs'), DefaultArg(Any, 'fill_value')], Block]",
+    #  base class "ExtensionBlock" defined the type as
+    #  "Callable[[Arg(Any, 'indexer'), DefaultArg(int, 'axis'),
+    #  DefaultArg(Any, 'new_mgr_locs'), DefaultArg(Any, 'fill_value')], Block]")
+    take_nd = Block.take_nd  # type:ignore[assignment]
     _unstack = Block._unstack
     get_block_values_for_json = Block.get_block_values_for_json
 
@@ -2431,5 +2447,6 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
             values = extract_array(values, extract_numpy=True)
+            values = cast(Union[np.ndarray, "NDArrayBackedExtensionArray"], values)
             values = values.reshape(1, -1)
     return values

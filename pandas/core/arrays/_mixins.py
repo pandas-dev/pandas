@@ -186,14 +186,16 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _values_for_argsort(self):
         return self._ndarray
 
-    def argmin(self, axis: int = 0, skipna: bool = True):
+    # Signature of "argmin" incompatible with supertype "ExtensionArray"
+    def argmin(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmin", axis=axis)
 
-    def argmax(self, axis: int = 0, skipna: bool = True):
+    # Signature of "argmax" incompatible with supertype "ExtensionArray"
+    def argmax(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self.isna().any():

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    cast,
+)
 
 import numpy as np
 
@@ -19,6 +23,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+if TYPE_CHECKING:
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
 def take_nd(
@@ -69,6 +76,7 @@ def take_nd(
         # includes for EA to catch DatetimeArray, TimedeltaArray
         if not is_strict_ea(arr):
             # i.e. DatetimeArray, TimedeltaArray
+            arr = cast("NDArrayBackedExtensionArray", arr)
             return arr.take(
                 indexer, axis=axis, fill_value=fill_value, allow_fill=allow_fill
             )
