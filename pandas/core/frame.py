@@ -7802,6 +7802,7 @@ NaN 12.3   33.0
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
+        axis = self._get_axis_number(axis)
         if axis == 1 and periods != 0:
             return self - self.shift(periods, axis=axis)
 
