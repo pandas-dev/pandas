@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import (
     List,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -907,7 +908,9 @@ class TimedeltaArray(dtl.TimelikeOps):
 # Constructor Helpers
 
 
-def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
+def sequence_to_td64ns(
+    data, copy=False, unit=None, errors="raise"
+) -> Tuple[np.ndarray, Optional[Tick]]:
     """
     Parameters
     ----------
