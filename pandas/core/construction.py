@@ -303,6 +303,7 @@ def array(
         raise ValueError(msg)
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
+        # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)

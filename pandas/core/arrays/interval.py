@@ -76,7 +76,7 @@ from pandas.core.arrays.base import (
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -661,7 +661,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if is_list_like(other):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
-            other = array(other)
+            other = pd_array(other)
         elif not isinstance(other, Interval):
             # non-interval scalar -> no matches
             return invalid_comparison(self, other, op)

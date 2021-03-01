@@ -84,7 +84,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -474,7 +474,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
-        return array(comps).isin(values)
+        return pd_array(comps).isin(values)
     elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
         # e.g. comps are integers and values are datetime64s
         return np.zeros(comps.shape, dtype=bool)
@@ -1566,7 +1566,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         if is_scalar(value):
             value = dtype.type(value)
         else:
-            value = array(value, dtype=dtype)
+            value = pd_array(value, dtype=dtype)
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):

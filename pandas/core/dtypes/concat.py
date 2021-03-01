@@ -25,7 +25,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
 )
 
@@ -66,7 +66,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
 
     if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
         # numpy's astype cannot handle ExtensionDtypes
-        return array(arr, dtype=dtype, copy=False)
+        return pd_array(arr, dtype=dtype, copy=False)
     return arr.astype(dtype, copy=False)
 
 
