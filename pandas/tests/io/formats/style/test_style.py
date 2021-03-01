@@ -626,6 +626,19 @@ class TestStyler:
         result = " ".join(styler.render().split())
         assert "th { foo: bar; }" in result
 
+    def test_table_styles_multiple(self):
+        ctx = self.df.style.set_table_styles(
+            [
+                {"selector": "th,td", "props": "color:red;"},
+                {"selector": "tr", "props": "color:green;"},
+            ]
+        )._translate()["table_styles"]
+        assert ctx == [
+            {"selector": "th", "props": [("color", "red")]},
+            {"selector": "td", "props": [("color", "red")]},
+            {"selector": "tr", "props": [("color", "green")]},
+        ]
+
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
         assert _maybe_convert_css_to_tuples("a:b;c:d e;") == expected

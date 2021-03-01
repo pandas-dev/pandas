@@ -178,11 +178,15 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if is_integer_object(delta):
         return delta
     if PyDelta_Check(delta):
-        return (
-            delta.days * 24 * 60 * 60 * 1_000_000
-            + delta.seconds * 1_000_000
-            + delta.microseconds
-        ) * 1000
+        try:
+            return (
+                delta.days * 24 * 60 * 60 * 1_000_000
+                + delta.seconds * 1_000_000
+                + delta.microseconds
+            ) * 1000
+        except OverflowError as err:
+            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
+            raise OutOfBoundsTimedelta(*err.args) from err
 
     raise TypeError(type(delta))
 
@@ -246,7 +250,7 @@ cdef object ensure_td64ns(object ts):
             td64_value = td64_value * mult
         except OverflowError as err:
             from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
-            raise OutOfBoundsTimedelta(ts)
+            raise OutOfBoundsTimedelta(ts) from err
 
         return np.timedelta64(td64_value, "ns")
 

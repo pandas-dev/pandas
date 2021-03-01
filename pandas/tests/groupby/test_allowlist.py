@@ -8,6 +8,8 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Index,
@@ -355,7 +357,8 @@ def test_groupby_function_rename(mframe):
         "cummax",
         "cummin",
         "cumprod",
-        "describe",
+        # TODO(ArrayManager) quantile
+        pytest.param("describe", marks=td.skip_array_manager_not_yet_implemented),
         "rank",
         "quantile",
         "diff",
