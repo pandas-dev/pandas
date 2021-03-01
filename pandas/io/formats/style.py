@@ -197,6 +197,8 @@ class Styler:
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=None))
+        self.precision = precision  # can be removed on set_precision depr cycle
+        self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
         if any((precision is not None, na_rep is not None)):
             self.format(precision=precision, na_rep=na_rep)
 
@@ -616,7 +618,7 @@ class Styler:
         the ``na_rep`` argument is used.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
-        `ValueError` will be raised,
+        `ValueError` will be raised.
 
         Examples
         --------
@@ -642,18 +644,20 @@ class Styler:
         0    MISS   £ 1.0     A
         1    2.00    MISS   3.0
 
-        Multiple `na_rep` or `precision` specifications under the default ``formatter``.
+        Multiple ``na_rep`` or ``precision`` specifications under the default
+        ``formatter``.
 
         >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...         .format(na_rep='PASS', precision=2, subset=[1, 2])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
 
         Using a callable formatting function
+
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
-                 0       1        2
+                0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
         """
@@ -1079,7 +1083,8 @@ class Styler:
         warnings.warn(
             "this method is deprecated in favour of `Styler.format`", DeprecationWarning
         )
-        return self.format(precision=precision)
+        self.precision = precision
+        return self.format(precision=precision, na_rep=self.na_rep)
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
@@ -1305,7 +1310,8 @@ class Styler:
         warnings.warn(
             "This method is deprecated in favour of `Styler.format`", DeprecationWarning
         )
-        return self.format(na_rep=na_rep)
+        self.na_rep = na_rep
+        return self.format(na_rep=na_rep, precision=self.precision)
 
     def hide_index(self) -> Styler:
         """
