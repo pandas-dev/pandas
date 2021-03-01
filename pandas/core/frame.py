@@ -589,8 +589,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
+                # i.e. numpy structured array
                 mgr = rec_array_to_mgr(data, index, columns, dtype, copy)
             elif getattr(data, "name", None) is not None:
+                # i.e. Series/Index with non-None name
                 mgr = dict_to_mgr({data.name: data}, index, columns, dtype=dtype)
             else:
                 mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)

@@ -7,6 +7,12 @@ from pandas import CategoricalIndex
 
 
 class TestCategoricalIndexRepr:
+    def test_format_different_scalar_lengths(self):
+        # GH#35439
+        idx = CategoricalIndex(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected
+
     def test_string_categorical_index_repr(self):
         # short
         idx = CategoricalIndex(["a", "bb", "ccc"])
