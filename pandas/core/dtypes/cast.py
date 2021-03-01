@@ -1516,7 +1516,10 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
             )
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
-            return v.reshape(shape)
+
+            # error: Incompatible return value type (got "ndarray", expected
+            # "ExtensionArray")
+            return v.reshape(shape)  # type: ignore[return-value]
         else:
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
@@ -1531,8 +1534,13 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
             dta = DatetimeArray._simple_new(vals.view("M8[ns]"), dtype=tz_to_dtype(tz))
             if dta.tz is None:
                 # TODO(EA2D): conditional reshape kludge unnecessary with 2D EAs
-                return dta._ndarray.reshape(shape)
-            return dta
+
+                # error: Incompatible return value type (got "ndarray", expected
+                # "ExtensionArray")
+                return dta._ndarray.reshape(shape)  # type: ignore[return-value]
+            # error: Incompatible return value type (got "DatetimeArray", expected
+            # "ndarray")
+            return dta  # type: ignore[return-value]
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
         # safe coerce to timedelta64

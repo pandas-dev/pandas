@@ -143,7 +143,9 @@ def rec_array_to_mgr(
     if isinstance(data, np.ma.MaskedArray):
         new_arrays = fill_masked_arrays(data, arr_columns)
     else:
-        new_arrays = arrays
+        # error: Incompatible types in assignment (expression has type
+        # "List[ExtensionArray]", variable has type "List[ndarray]")
+        new_arrays = arrays  # type: ignore[assignment]
 
     # create the manager
     arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)
@@ -377,9 +379,7 @@ def nested_data_to_arrays(
         columns = ensure_index(data[0]._fields)
 
     arrays, columns = to_arrays(data, columns, dtype=dtype)
-    # error: Value of type variable "AnyArrayLike" of "ensure_index" cannot be
-    # "Optional[Index]"
-    columns = ensure_index(columns)  # type: ignore[type-var]
+    columns = ensure_index(columns)
 
     if index is None:
         if isinstance(data[0], ABCSeries):
@@ -674,7 +674,11 @@ def to_arrays(
     content, columns = _finalize_columns_and_data(  # type: ignore[assignment]
         content, columns, dtype
     )
-    return content, columns
+    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
+    # "Tuple[List[ExtensionArray], Index]")
+    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
+    # "Tuple[List[ndarray], Index]")
+    return content, columns  # type: ignore[return-value]
 
 
 def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:

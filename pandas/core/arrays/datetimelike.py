@@ -475,16 +475,28 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
             cls = dtype.construct_array_type()
-            return cls(self.asi8, dtype=dtype)
+            # error: Incompatible return value type (got "Union[PeriodArray,
+            # DatetimeArray]", expected "ndarray")
+            return cls(self.asi8, dtype=dtype)  # type: ignore[return-value]
         elif dtype == "M8[ns]":
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray(self.asi8, dtype=dtype)
+            # error: Incompatible return value type (got "DatetimeArray", expected
+            # "ndarray")
+            return DatetimeArray(self.asi8, dtype=dtype)  # type: ignore[return-value]
         elif dtype == "m8[ns]":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray(self.asi8, dtype=dtype)
-        return self._ndarray.view(dtype=dtype)
+            # error: Incompatible return value type (got "TimedeltaArray", expected
+            # "ndarray")
+            return TimedeltaArray(self.asi8, dtype=dtype)  # type: ignore[return-value]
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
+        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
+        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        return self._ndarray.view(dtype=dtype)  # type: ignore[return-value,arg-type]
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
