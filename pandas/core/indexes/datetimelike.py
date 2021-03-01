@@ -100,6 +100,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
                 join_index = orig_left._from_backing_data(join_index)
 
             return join_index, left_indexer, right_indexer
+
         return results
 
     return wrapper
