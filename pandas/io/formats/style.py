@@ -610,6 +610,48 @@ class Styler:
         pandas display precision unless using the ``precision`` argument here. The
         default formatter does not adjust the representation of missing values unless
         the ``na_rep`` argument is used.
+
+        When using a ``formatter`` string the dtypes must be compatible, otherwise a
+        `ValueError` will be raised,
+
+        Examples
+        --------
+        Using ``na_rep`` and ``precision`` with the default ``formatter``
+
+        >>> df = pd.DataFrame([[np.nan, 1.0, 'A'], [2.0, np.nan, 3.0]])
+        >>> df.style.format(na_rep='MISS', precision=3)
+                0       1       2
+        0    MISS   1.000       A
+        1   2.000    MISS   3.000
+
+        Using a format specification on consistent column dtypes
+
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])
+                0      1          2
+        0    MISS   1.00          A
+        1    2.00   MISS   3.000000
+
+        Using the default ``formatter`` for unspecified columns
+
+        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
+                 0      1     2
+        0    MISS   £ 1.0     A
+        1    2.00    MISS   3.0
+
+        Multiple `na_rep` or `precision` specifications under the default ``formatter``.
+
+        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
+        ...         .format(na_rep='PASS', precision=2, subset=[1, 2])
+                0      1      2
+        0    MISS   1.00      A
+        1     2.0   PASS   3.00
+
+        Using a callable formatting function
+        >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
+        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
+                 0       1        2
+        0    MISS   1.0000   STRING
+        1     2.0     MISS    FLOAT
         """
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
