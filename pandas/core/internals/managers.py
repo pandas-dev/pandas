@@ -234,10 +234,10 @@ class BlockManager(DataManager):
     def ndim(self) -> int:
         return len(self.axes)
 
-    @staticmethod
-    def _normalize_axis(axis):
+    def _normalize_axis(self, axis):
         # switch axis to follow BlockManager logic
-        axis = 1 if axis == 0 else 0
+        if self.ndim == 2:
+            axis = 1 if axis == 0 else 0
         return axis
 
     def set_axis(
@@ -573,6 +573,7 @@ class BlockManager(DataManager):
         return self.apply("apply", func=func)
 
     def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
+        axis = self._normalize_axis(axis)
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -614,6 +615,7 @@ class BlockManager(DataManager):
         return self.apply("interpolate", **kwargs)
 
     def shift(self, periods: int, axis: int, fill_value) -> BlockManager:
+        axis = self._normalize_axis(axis)
         if fill_value is lib.no_default:
             fill_value = None
 
