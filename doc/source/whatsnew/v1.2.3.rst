@@ -25,7 +25,7 @@ Fixed regressions
   and the new error message suggests a proper usage
   (``ascending`` must be a boolean or a list-like boolean).
 - Fixed regression in :meth:`DataFrame.transform` and :meth:`Series.transform` giving incorrect column labels when passed a dictionary with a mix of list and non-list values (:issue:`40018`)
--
+- Fixed regression in :meth:`DataFrame.sum` when ``min_count`` greater than the :class:`DataFrame` shape was passed resulted in a ``ValueError`` (:issue:`39738`)
 
 .. ---------------------------------------------------------------------------
 
