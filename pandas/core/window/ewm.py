@@ -247,9 +247,11 @@ class ExponentialMovingWindow(BaseWindow):
         )
         self.adjust = adjust
         self.ignore_na = ignore_na
-        if times is not None:
+        self.times = times
+        self.halflife = halflife
+        if self.times is not None:
             if isinstance(times, str):
-                times = self._selected_obj[times]
+                self.times = self._selected_obj[times]
             if not is_datetime64_ns_dtype(times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             if len(times) != len(obj):
@@ -258,10 +260,10 @@ class ExponentialMovingWindow(BaseWindow):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            if isna(times).any():
+            if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            self.times = np.asarray(times.view(np.int64))
-            self.halflife = Timedelta(halflife).value
+            self._times = np.asarray(times.view(np.int64), dtype=np.float64)
+            self._halflife = float(Timedelta(self.halflife).value)
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(com, span, alpha) > 0:
@@ -274,8 +276,9 @@ class ExponentialMovingWindow(BaseWindow):
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
-            self.times = None
-            self.halflife = None
+            # This will produce equivalent spacing between points
+            self._times = np.arange(len(self.obj), dtype=np.float64)
+            self._halflife = 1.0
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
     def _get_window_indexer(self) -> BaseIndexer:
@@ -336,20 +339,16 @@ class ExponentialMovingWindow(BaseWindow):
         nv.validate_window_func("mean", args, kwargs)
         if self.times is not None:
             com = 1.0
-            times = self.times.astype(np.float64)
-            halflife = float(self.halflife)
         else:
             com = self.com
-            times = np.arange(len(self.obj), dtype=np.float64)
-            halflife = 1.0
         window_func = window_aggregations.ewma
         window_func = partial(
             window_func,
             com=com,
             adjust=self.adjust,
             ignore_na=self.ignore_na,
-            times=times,
-            halflife=halflife,
+            times=self._times,
+            halflife=self._halflife,
         )
         return self._apply(window_func)
 
