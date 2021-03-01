@@ -33,6 +33,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
@@ -53,7 +54,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -113,6 +118,7 @@ class ArrayManager(DataManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            self.arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
             self._verify_integrity()
 
     def make_empty(self: T, axes=None) -> T:
@@ -721,6 +727,8 @@ class ArrayManager(DataManager):
             temp_dtype = dtype.numpy_dtype
         elif is_extension_array_dtype(dtype):
             temp_dtype = "object"
+        elif is_datetime64_ns_dtype(dtype) or is_timedelta64_ns_dtype(dtype):
+            temp_dtype = "object"
         elif is_dtype_equal(dtype, str):
             temp_dtype = "object"
         else:
@@ -729,6 +737,10 @@ class ArrayManager(DataManager):
         result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+        elif is_datetime64_ns_dtype(dtype):
+            result = DatetimeArray._from_sequence(result, dtype=dtype)._data
+        elif is_timedelta64_ns_dtype(dtype):
+            result = TimedeltaArray._from_sequence(result, dtype=dtype)._data
         return result
 
     def iget(self, i: int) -> SingleBlockManager:
