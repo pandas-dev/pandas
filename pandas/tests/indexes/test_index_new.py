@@ -80,6 +80,13 @@ class TestIndexConstructorInference:
         tm.assert_index_equal(rs, xp)
         assert isinstance(rs, PeriodIndex)
 
+    def test_from_list_of_periods(self):
+        rng = period_range("1/1/2000", periods=20, freq="D")
+        periods = list(rng)
+
+        result = Index(periods)
+        assert isinstance(result, PeriodIndex)
+
     @pytest.mark.parametrize("pos", [0, 1])
     @pytest.mark.parametrize(
         "klass,dtype,ctor",
