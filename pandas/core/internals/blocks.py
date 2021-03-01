@@ -35,6 +35,7 @@ from pandas._typing import (
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    astype_array_safe,
     can_hold_element,
     find_common_type,
     infer_dtype_from,
@@ -72,7 +73,6 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.cast import astype_array_safe
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
     putmask_inplace,
