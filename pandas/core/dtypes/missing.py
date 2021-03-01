@@ -470,7 +470,9 @@ def _array_equivalent_datetimelike(left, right):
     return np.array_equal(left.view("i8"), right.view("i8"))
 
 
-def _array_equivalent_object(left, right, strict_nan):
+def _array_equivalent_object(
+    left: np.ndarray, right: np.ndarray, strict_nan: bool
+) -> bool:
     if not strict_nan:
         # isna considers NaN and None to be equivalent.
         return lib.array_equivalent_object(
@@ -498,6 +500,15 @@ def _array_equivalent_object(left, right, strict_nan):
                 elif "boolean value of NA is ambiguous" in str(err):
                     return False
                 raise
+            except SystemError as err:
+                # 2021-03-01 npdev is raising with
+                #  > raise TypeError("boolean value of NA is ambiguous")
+                #  SystemError: <class 'TypeError'> returned a result with
+                #  an error set
+                if "boolean value of NA is ambiguous" in str(err):
+                    return False
+                raise
+
     return True
 
 
