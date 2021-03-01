@@ -1,6 +1,6 @@
 .. _whatsnew_123:
 
-What's new in 1.2.3 (March 01, 2021)
+What's new in 1.2.3 (March 02, 2021)
 ------------------------------------
 
 These are the changes in pandas 1.2.3. See :ref:`release` for a full changelog
