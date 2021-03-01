@@ -1562,7 +1562,7 @@ def infer_datetimelike_array(arr: ndarray[object]) -> str:
                 seen_tz_aware = True
 
             if seen_tz_naive and seen_tz_aware:
-                return 'mixed'
+                return "mixed"
         elif util.is_datetime64_object(v):
             # np.datetime64
             seen_datetime = True
@@ -2250,7 +2250,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                 break
         elif is_timedelta(val):
             if convert_timedelta:
-                itimedeltas[i] = convert_to_timedelta64(val, 'ns')
+                itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
                 seen.timedelta_ = True
             else:
                 seen.object_ = True

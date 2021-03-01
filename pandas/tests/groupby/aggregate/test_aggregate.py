@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -45,6 +46,7 @@ def test_agg_regression1(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile/describe
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
 
@@ -125,7 +127,7 @@ def test_groupby_aggregation_multi_level_column():
     ]
     df = DataFrame(
         data=lst,
-        columns=pd.MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
+        columns=MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
     )
 
     result = df.groupby(level=1, axis=1).sum()
@@ -134,6 +136,7 @@ def test_groupby_aggregation_multi_level_column():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
@@ -212,6 +215,7 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) non-cython agg
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
     if reduction_func in ("idxmax", "idxmin"):
@@ -306,7 +310,7 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
         {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
     expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
-    expected_columns = pd.MultiIndex.from_tuples(
+    expected_columns = MultiIndex.from_tuples(
         [
             ("A", "ohlc", "open"),
             ("A", "ohlc", "high"),
@@ -480,7 +484,7 @@ def test_func_duplicates_raises():
         pd.CategoricalIndex(list("abc")),
         pd.interval_range(0, 3),
         pd.period_range("2020", periods=3, freq="D"),
-        pd.MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
+        MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
     ],
 )
 def test_agg_index_has_complex_internals(index):
@@ -661,7 +665,7 @@ class TestNamedAggregationDataFrame:
     def test_agg_relabel_with_level(self):
         df = DataFrame(
             {"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]},
-            index=pd.MultiIndex.from_product([["A", "B"], ["a", "b"]]),
+            index=MultiIndex.from_product([["A", "B"], ["a", "b"]]),
         )
         result = df.groupby(level=0).agg(
             aa=("A", "max"), bb=("A", "min"), cc=("B", "mean")
@@ -741,7 +745,7 @@ def test_agg_relabel_multiindex_column(
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
-    df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+    df.columns = MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
     idx = Index(["a", "b"], name=("x", "group"))
 
     result = df.groupby(("x", "group")).agg(a_max=(("y", "A"), "max"))
@@ -762,7 +766,7 @@ def test_agg_relabel_multiindex_raises_not_exist():
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
-    df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+    df.columns = MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
 
     with pytest.raises(KeyError, match="do not exist"):
         df.groupby(("x", "group")).agg(a=(("Y", "a"), "max"))
@@ -775,7 +779,7 @@ def test_agg_relabel_multiindex_duplicates():
     df = DataFrame(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
-    df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
+    df.columns = MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
 
     result = df.groupby(("x", "group")).agg(
         a=(("y", "A"), "min"), b=(("y", "A"), "min")
@@ -793,7 +797,7 @@ def test_groupby_aggregate_empty_key(kwargs):
     expected = DataFrame(
         [1, 4],
         index=Index([1, 2], dtype="int64", name="a"),
-        columns=pd.MultiIndex.from_tuples([["c", "min"]]),
+        columns=MultiIndex.from_tuples([["c", "min"]]),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -802,7 +806,7 @@ def test_groupby_aggregate_empty_key_empty_return():
     # GH: 32580 Check if everything works, when return is empty
     df = DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
     result = df.groupby("a").agg({"b": []})
-    expected = DataFrame(columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]))
+    expected = DataFrame(columns=MultiIndex(levels=[["b"], []], codes=[[], []]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -847,7 +851,7 @@ def test_grouby_agg_loses_results_with_as_index_false_relabel_multiindex():
 def test_multiindex_custom_func(func):
     # GH 31777
     data = [[1, 4, 2], [5, 7, 1]]
-    df = DataFrame(data, columns=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
+    df = DataFrame(data, columns=MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
     result = df.groupby(np.array([0, 1])).agg(func)
     expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
     expected = DataFrame(expected_dict)
@@ -1146,7 +1150,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
                 multi_index_list.append([k, value])
         else:
             multi_index_list.append([k, v])
-    multi_index = pd.MultiIndex.from_tuples(tuple(multi_index_list))
+    multi_index = MultiIndex.from_tuples(tuple(multi_index_list))
 
     expected_df = DataFrame(data=exp_data, columns=multi_index, index=cat_index)
 
