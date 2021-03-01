@@ -178,10 +178,10 @@ from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
     dict_to_mgr,
-    masked_rec_array_to_mgr,
     mgr_to_mgr,
     ndarray_to_mgr,
     nested_data_to_arrays,
+    rec_array_to_mgr,
     reorder_arrays,
     to_arrays,
     treat_as_nested,
@@ -580,7 +580,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = masked_rec_array_to_mgr(data, index, columns, dtype, copy)
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy)
 
             # a masked array
             else:
@@ -590,11 +590,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 # i.e. numpy structured array
-                data_columns = list(data.dtype.names)
-                data = {k: data[k] for k in data_columns}
-                if columns is None:
-                    columns = data_columns
-                mgr = dict_to_mgr(data, index, columns, dtype=dtype)
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy)
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
                 mgr = dict_to_mgr({data.name: data}, index, columns, dtype=dtype)
