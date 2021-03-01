@@ -378,6 +378,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif is_extension_array_dtype(data):
                 pass
             elif isinstance(data, (set, frozenset)):
+                # TODO: catch this in sanitize_array
                 raise TypeError(f"'{type(data).__name__}' type is unordered")
             else:
                 data = com.maybe_iterable_to_list(data)
