@@ -252,9 +252,9 @@ class ExponentialMovingWindow(BaseWindow):
         if self.times is not None:
             if isinstance(times, str):
                 self.times = self._selected_obj[times]
-            if not is_datetime64_ns_dtype(times):
+            if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            if len(times) != len(obj):
+            if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(halflife, (str, datetime.timedelta)):
                 raise ValueError(
@@ -262,8 +262,9 @@ class ExponentialMovingWindow(BaseWindow):
                 )
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            self._times = np.asarray(times.view(np.int64), dtype=np.float64)
-            self._halflife = float(Timedelta(self.halflife).value)
+            _times = np.asarray(self.times.view(np.int64), dtype=np.float64)
+            _halflife = float(Timedelta(self.halflife).value)
+            self._deltas = np.diff(_times) / _halflife
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(com, span, alpha) > 0:
@@ -276,9 +277,8 @@ class ExponentialMovingWindow(BaseWindow):
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
-            # This will produce equivalent spacing between points
-            self._times = np.arange(len(self.obj), dtype=np.float64)
-            self._halflife = 1.0
+            # Without times, points are equally spaced
+            self._deltas = np.ones(len(self.obj) - 1, dtype=np.float64)
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
     def _get_window_indexer(self) -> BaseIndexer:
@@ -347,8 +347,7 @@ class ExponentialMovingWindow(BaseWindow):
             com=com,
             adjust=self.adjust,
             ignore_na=self.ignore_na,
-            times=self._times,
-            halflife=self._halflife,
+            deltas=self._deltas,
         )
         return self._apply(window_func)
 
