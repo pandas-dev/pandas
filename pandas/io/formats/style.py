@@ -2052,18 +2052,18 @@ def _maybe_wrap_formatter(
     available.
     """
     if isinstance(formatter, str):
-        func = lambda x: formatter.format(x)
+        formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):
-        func = formatter
+        formatter_func = formatter
     elif formatter is None:
-        func = partial(_default_formatter, precision=precision)
+        formatter_func = partial(_default_formatter, precision=precision)
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    if na_rep is not None:
-        return lambda x: na_rep if pd.isna(x) else func(x)
+    if na_rep is None:
+        return formatter_func
     else:
-        return func
+        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
 
 
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
