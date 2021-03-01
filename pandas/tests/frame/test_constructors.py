@@ -1170,7 +1170,8 @@ class TestDataFrameConstructors:
         # GH 32173
         arrays = [list("abcd"), list("cde")]
 
-        msg = "Length of columns passed for MultiIndex columns is different"
+        # exception raised inside MultiIndex constructor
+        msg = "all arrays must be same length"
         with pytest.raises(ValueError, match=msg):
             DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
