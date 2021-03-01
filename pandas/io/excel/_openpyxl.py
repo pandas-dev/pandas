@@ -37,13 +37,18 @@ class OpenpyxlWriter(ExcelWriter):
         engine=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
+        if_exists: Optional[str] = None,
         **engine_kwargs,
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
         super().__init__(
-            path, mode=mode, storage_options=storage_options, **engine_kwargs
+            path,
+            mode=mode,
+            storage_options=storage_options,
+            if_exists=if_exists,
+            **engine_kwargs,
         )
 
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
@@ -53,6 +58,8 @@ class OpenpyxlWriter(ExcelWriter):
 
             self.book = load_workbook(self.handles.handle)
             self.handles.handle.seek(0)
+            self.sheets = {name: self.book[name] for name in self.book.sheetnames}
+
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
@@ -412,7 +419,21 @@ class OpenpyxlWriter(ExcelWriter):
         _style_cache: Dict[str, Dict[str, Serialisable]] = {}
 
         if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
+            if "r+" in self.mode:
+                if self.if_exists == "new_sheet":
+                    wks = self.book.create_sheet()
+                    # openpyxl will create a name for the new sheet by appending digits
+                    wks.title = sheet_name
+                    self.sheets[wks.title] = wks
+                elif self.if_exists == "overwrite_sheet":
+                    wks = self.sheets[sheet_name]
+                    wks.delete_cols(1, wks.max_column)
+                elif self.if_exists == "overwrite_cells" or self.if_exists is None:
+                    wks = self.sheets[sheet_name]
+                else:
+                    raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
+            else:
+                wks = self.sheets[sheet_name]
         else:
             wks = self.book.create_sheet()
             wks.title = sheet_name

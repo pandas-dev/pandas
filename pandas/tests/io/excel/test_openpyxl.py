@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 import numpy as np
 import pytest
@@ -107,6 +108,52 @@ def test_write_append_mode(ext, mode, expected):
 
         for index, cell_value in enumerate(expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
+
+
+@pytest.mark.parametrize(
+    "if_exists,num_sheets,expected",
+    [
+        ("new_sheet", 2, ["apple", "banana"]),
+        ("overwrite_sheet", 1, ["pear"]),
+        ("overwrite_cells", 1, ["pear", "banana"]),
+    ],
+)
+def test_if_exists_append_modes(ext, if_exists, num_sheets, expected):
+    # GH 40230
+    df1 = DataFrame({"fruit": ["apple", "banana"]})
+    df2 = DataFrame({"fruit": ["pear"]})
+
+    with tm.ensure_clean(ext) as f:
+        with pd.ExcelWriter(f, engine="openpyxl", mode="w") as writer:
+            df1.to_excel(writer, sheet_name="foo", index=False)
+        with pd.ExcelWriter(
+            f, engine="openpyxl", mode="a", if_exists=if_exists
+        ) as writer:
+            df2.to_excel(writer, sheet_name="foo", index=False)
+
+        wb = openpyxl.load_workbook(f)
+        assert len(wb.sheetnames) == num_sheets
+        assert wb.sheetnames[0] == "foo"
+        result = pd.read_excel(wb, "foo", engine="openpyxl")
+        assert list(result["fruit"]) == expected
+        if len(wb.sheetnames) == 2:
+            # atm the name given for the second sheet will be "foo1"
+            # but we don't want the test to fail if openpyxl changes this
+            result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
+            assert result.equals(df2)
+        wb.close()
+
+
+def test_if_exists_raises(ext):
+    if_exists_msg = "if_exists is only valid in append mode (mode='a')"
+    invalid_msg = "'invalid' is not valid for if_exists"
+
+    with tm.ensure_clean(ext) as f:
+        with pytest.raises(ValueError, match=re.escape(if_exists_msg)):
+            ExcelWriter(f, engine="openpyxl", mode="w", if_exists="new_sheet")
+    with tm.ensure_clean(ext) as f:
+        with pytest.raises(ValueError, match=invalid_msg):
+            ExcelWriter(f, engine="openpyxl", mode="a", if_exists="invalid")
 
 
 def test_to_excel_with_openpyxl_engine(ext):
