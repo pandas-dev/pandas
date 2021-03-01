@@ -586,8 +586,8 @@ class Styler:
             .. versionadded:: 1.0.0
 
         precision : int, optional
-            Floating point precision to use for display purposes, if not specifying a
-            ``formatter``.
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
 
             .. versionadded:: 1.3.0
 
