@@ -30,7 +30,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False):
     Parameters
     ----------
     values : ndarray or ExtensionArray
-    dtype : str, dtype convertible
+    dtype : dtype object
     copy : bool, default False
         copy if indicated
 
