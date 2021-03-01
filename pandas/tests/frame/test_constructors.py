@@ -17,7 +17,10 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import np_version_under1p19
+from pandas.compat import (
+    is_platform_windows,
+    np_version_under1p19,
+)
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -328,6 +331,9 @@ class TestDataFrameConstructors:
         assert result[0].dtype == object
         assert result[0][0] == value
 
+    @pytest.mark.xfail(
+        is_platform_windows(), reason="dict case result is int32 but expected is int64"
+    )
     def test_constructor_int8_overflow(self):
         # we silently ignore casting errors as dtype may not apply to all cols
         vals = [1, 200, 923442]
@@ -340,7 +346,6 @@ class TestDataFrameConstructors:
         #  not mixed-and-matched on 32bit/windows
         result = DataFrame({"A": vals}, dtype="int8")
         expected = DataFrame({"A": vals}, dtype=np.intp)
-        assert (expected.dtypes == np.intp).all()  # troubleshoot windows builds
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_ordereddict(self):
