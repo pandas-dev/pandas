@@ -5098,9 +5098,7 @@ class DataFrame(NDFrame, OpsMixin):
             return frame
 
     @overload
-    # https://github.com/python/mypy/issues/6580
-    # Overloaded function signatures 1 and 2 overlap with incompatible return types
-    def reset_index(  # type: ignore[misc]
+    def reset_index(
         self,
         level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
         drop: bool = ...,
@@ -5113,11 +5111,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def reset_index(
         self,
-        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
-        drop: bool = ...,
-        inplace: Literal[True] = ...,
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
+        level: Optional[Union[Hashable, Sequence[Hashable]]],
+        drop: bool,
+        inplace: Literal[True],
+        col_level: Hashable,
+        col_fill: Hashable,
     ) -> None:
         ...
 
