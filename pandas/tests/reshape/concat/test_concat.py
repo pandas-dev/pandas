@@ -437,21 +437,21 @@ class TestConcatenate:
                 except KeyError as err:
                     raise IndexError from err
 
-        tm.assert_frame_equal(pd.concat(CustomIterator1(), ignore_index=True), expected)
+        tm.assert_frame_equal(concat(CustomIterator1(), ignore_index=True), expected)
 
         class CustomIterator2(abc.Iterable):
             def __iter__(self):
                 yield df1
                 yield df2
 
-        tm.assert_frame_equal(pd.concat(CustomIterator2(), ignore_index=True), expected)
+        tm.assert_frame_equal(concat(CustomIterator2(), ignore_index=True), expected)
 
     def test_concat_order(self):
         # GH 17344
         dfs = [DataFrame(index=range(3), columns=["a", 1, None])]
         dfs += [DataFrame(index=range(3), columns=[None, 1, "a"]) for i in range(100)]
 
-        result = pd.concat(dfs, sort=True).columns
+        result = concat(dfs, sort=True).columns
         expected = dfs[0].columns
         tm.assert_index_equal(result, expected)
 
@@ -459,20 +459,20 @@ class TestConcatenate:
         a = Series(pd.array([1, 2], dtype="Int64"))
         b = Series(to_decimal([1, 2]))
 
-        result = pd.concat([a, b], ignore_index=True)
+        result = concat([a, b], ignore_index=True)
         expected = Series([1, 2, Decimal(1), Decimal(2)], dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_concat_ordered_dict(self):
         # GH 21510
-        expected = pd.concat(
+        expected = concat(
             [Series(range(3)), Series(range(4))], keys=["First", "Another"]
         )
-        result = pd.concat({"First": Series(range(3)), "Another": Series(range(4))})
+        result = concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("pdt", [Series, pd.DataFrame])
+@pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
 def test_concat_no_unnecessary_upcast(dt, pdt):
     # GH 13247
@@ -483,11 +483,11 @@ def test_concat_no_unnecessary_upcast(dt, pdt):
         pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
         pdt(np.array([5], dtype=dt, ndmin=dims)),
     ]
-    x = pd.concat(dfs)
+    x = concat(dfs)
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize("pdt", [create_series_with_explicit_dtype, pd.DataFrame])
+@pytest.mark.parametrize("pdt", [create_series_with_explicit_dtype, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["int"])
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):
@@ -497,7 +497,7 @@ def test_concat_will_upcast(dt, pdt):
             pdt(np.array([np.nan], ndmin=dims)),
             pdt(np.array([5], dtype=dt, ndmin=dims)),
         ]
-        x = pd.concat(dfs)
+        x = concat(dfs)
         assert x.values.dtype == "float64"
 
 
@@ -506,7 +506,7 @@ def test_concat_empty_and_non_empty_frame_regression():
     df1 = DataFrame({"foo": [1]})
     df2 = DataFrame({"foo": []})
     expected = DataFrame({"foo": [1.0]})
-    result = pd.concat([df1, df2])
+    result = concat([df1, df2])
     tm.assert_frame_equal(result, expected)
 
 
@@ -516,7 +516,7 @@ def test_concat_sparse():
     expected = DataFrame(data=[[0, 0], [1, 1], [2, 2]]).astype(
         pd.SparseDtype(np.int64, 0)
     )
-    result = pd.concat([a, a], axis=1)
+    result = concat([a, a], axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -527,7 +527,7 @@ def test_concat_dense_sparse():
     expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(
         pd.SparseDtype(np.float64, None)
     )
-    result = pd.concat([a, b], axis=0)
+    result = concat([a, b], axis=0)
     tm.assert_series_equal(result, expected)
 
 
@@ -565,11 +565,11 @@ def test_concat_frame_axis0_extension_dtypes():
     df1 = DataFrame({"a": pd.array([1, 2, 3], dtype="Int64")})
     df2 = DataFrame({"a": np.array([4, 5, 6])})
 
-    result = pd.concat([df1, df2], ignore_index=True)
+    result = concat([df1, df2], ignore_index=True)
     expected = DataFrame({"a": [1, 2, 3, 4, 5, 6]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
 
-    result = pd.concat([df2, df1], ignore_index=True)
+    result = concat([df2, df1], ignore_index=True)
     expected = DataFrame({"a": [4, 5, 6, 1, 2, 3]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
 
@@ -578,7 +578,7 @@ def test_concat_preserves_extension_int64_dtype():
     # GH 24768
     df_a = DataFrame({"a": [-1]}, dtype="Int64")
     df_b = DataFrame({"b": [1]}, dtype="Int64")
-    result = pd.concat([df_a, df_b], ignore_index=True)
+    result = concat([df_a, df_b], ignore_index=True)
     expected = DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
 
