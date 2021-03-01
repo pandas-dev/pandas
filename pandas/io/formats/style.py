@@ -49,6 +49,7 @@ from pandas.core.indexes.api import Index
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
+Formatter = Union[str, Callable, Dict[Any, Optional[Union[str, Callable]]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
@@ -566,10 +567,8 @@ class Styler:
 
     def format(
         self,
-        formatter: Optional[
-            Union[Dict[Any, Optional[Union[str, Callable]]], str, Callable]
-        ] = None,
-        subset=None,
+        formatter: Optional[Formatter] = None,
+        subset: Optional[Union[slice, Sequence[Any]]] = None,
         na_rep: Optional[str] = None,
         precision: Optional[int] = None,
     ) -> Styler:
