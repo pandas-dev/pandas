@@ -121,10 +121,10 @@ bar2,12,13,14,15
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
         with tempfile.NamedTemporaryFile(dir=Path.home()) as tmp:
-            filename = Path.home() / Path(tmp.name).name
+            filename = "~/" + Path(tmp.name).name
             with icom.get_handle(filename, "r") as handles:
                 assert Path(handles.handle.name).is_absolute()
-                assert str(filename) == handles.handle.name
+                assert str(Path(filename).expanduser()) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
