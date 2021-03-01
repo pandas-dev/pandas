@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -646,6 +647,7 @@ class TestSeriesConstructors:
             assert x[0] == 2.0
             assert y[0] == 1.0
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite test
     @pytest.mark.parametrize(
         "index",
         [
@@ -1682,12 +1684,14 @@ class TestSeriesConstructorIndexCoercion:
 
 
 class TestSeriesConstructorInternals:
-    def test_constructor_no_pandas_array(self):
+    def test_constructor_no_pandas_array(self, using_array_manager):
         ser = Series([1, 2, 3])
         result = Series(ser.array)
         tm.assert_series_equal(ser, result)
-        assert isinstance(result._mgr.blocks[0], NumericBlock)
+        if not using_array_manager:
+            assert isinstance(result._mgr.blocks[0], NumericBlock)
 
+    @td.skip_array_manager_invalid_test
     def test_from_array(self):
         result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
@@ -1695,6 +1699,7 @@ class TestSeriesConstructorInternals:
         result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
 
+    @td.skip_array_manager_invalid_test
     def test_from_list_dtype(self):
         result = Series(["1H", "2H"], dtype="timedelta64[ns]")
         assert result._mgr.blocks[0].is_extension is False

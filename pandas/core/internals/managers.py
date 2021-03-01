@@ -61,7 +61,10 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
-from pandas.core.internals.base import DataManager
+from pandas.core.internals.base import (
+    DataManager,
+    SingleManager,
+)
 from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
@@ -1525,7 +1528,7 @@ class BlockManager(DataManager):
         return bm
 
 
-class SingleBlockManager(BlockManager):
+class SingleBlockManager(BlockManager, SingleManager):
     """ manage a single block with """
 
     ndim = 1

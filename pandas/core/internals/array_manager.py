@@ -3,8 +3,8 @@ Experimental manager based on storing a collection of 1D arrays
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     List,
@@ -28,16 +28,21 @@ from pandas._typing import (
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    astype_dt64_to_dt64tz,
+    astype_nansafe,
     find_common_type,
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
     is_object_dtype,
     is_timedelta64_ns_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
@@ -53,7 +58,13 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    IntervalArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -65,14 +76,80 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
-from pandas.core.internals.base import DataManager
+from pandas.core.internals.base import (
+    DataManager,
+    SingleManager,
+)
 from pandas.core.internals.blocks import make_block
 
-if TYPE_CHECKING:
-    from pandas.core.internals.managers import SingleBlockManager
-
-
 T = TypeVar("T", bound="ArrayManager")
+
+
+def astype_array(values, dtype, copy):
+    if (
+        values.dtype.kind in ["m", "M"]
+        and dtype.kind in ["i", "u"]
+        and isinstance(dtype, np.dtype)
+        and dtype.itemsize != 8
+    ):
+        # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
+        msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
+        raise TypeError(msg)
+
+    if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+        return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
+
+    if is_dtype_equal(values.dtype, dtype):
+        if copy:
+            return values.copy()
+        return values
+
+    if isinstance(values, ExtensionArray):
+        values = values.astype(dtype, copy=copy)
+
+    else:
+        values = astype_nansafe(values, dtype, copy=copy)
+
+    # now in ObjectBlock._maybe_coerce_values(cls, values):
+    if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
+        values = np.array(values, dtype=object)
+
+    return values
+
+
+def astype_array_safe(values, dtype, copy=False, errors="raise"):
+
+    errors_legal_values = ("raise", "ignore")
+
+    if errors not in errors_legal_values:
+        invalid_arg = (
+            "Expected value of kwarg 'errors' to be one of "
+            f"{list(errors_legal_values)}. Supplied value is '{errors}'"
+        )
+        raise ValueError(invalid_arg)
+
+    if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+        msg = (
+            f"Expected an instance of {dtype.__name__}, "
+            "but got the class instead. Try instantiating 'dtype'."
+        )
+        raise TypeError(msg)
+
+    dtype = pandas_dtype(dtype)
+
+    if isinstance(dtype, PandasDtype):
+        dtype = dtype.numpy_dtype
+
+    try:
+        new_values = astype_array(values, dtype, copy=copy)
+    except (ValueError, TypeError):
+        # e.g. astype_nansafe can fail on object-dtype of strings
+        #  trying to convert to float
+        if errors == "ignore":
+            new_values = values
+        else:
+            raise
+    return new_values
 
 
 class ArrayManager(DataManager):
@@ -113,6 +190,7 @@ class ArrayManager(DataManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            self.arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
             self._verify_integrity()
 
     def make_empty(self: T, axes=None) -> T:
@@ -125,7 +203,7 @@ class ArrayManager(DataManager):
 
     @property
     def items(self) -> Index:
-        return self._axes[1]
+        return self._axes[-1]
 
     @property
     def axes(self) -> List[Index]:  # type: ignore[override]
@@ -400,7 +478,10 @@ class ArrayManager(DataManager):
                         # The caller is responsible for ensuring that
                         #  obj.axes[-1].equals(self.items)
                         if obj.ndim == 1:
-                            kwargs[k] = obj.iloc[[i]]
+                            if self.ndim == 2:
+                                kwargs[k] = obj.iloc[[i]]._values
+                            else:
+                                kwargs[k] = obj.iloc[:]._values
                         else:
                             kwargs[k] = obj.iloc[:, [i]]._values
                     else:
@@ -413,15 +494,21 @@ class ArrayManager(DataManager):
             elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
                 # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
                 arr = arr._data  # type: ignore[union-attr]
-            if isinstance(arr, np.ndarray):
-                arr = np.atleast_2d(arr)
-            block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
+
+            if self.ndim == 2:
+                if isinstance(arr, np.ndarray):
+                    arr = np.atleast_2d(arr)
+                block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
+            else:
+                block = make_block(arr, placement=slice(0, len(self), 1), ndim=1)
+
             applied = getattr(block, f)(**kwargs)
             if isinstance(applied, list):
                 applied = applied[0]
             arr = applied.values
-            if isinstance(arr, np.ndarray):
-                arr = arr[0, :]
+            if self.ndim == 2:
+                if isinstance(arr, np.ndarray):
+                    arr = arr[0, :]
             result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)
@@ -499,7 +586,7 @@ class ArrayManager(DataManager):
         return self.apply_with_block("downcast")
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
-        return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(
         self,
@@ -731,16 +818,12 @@ class ArrayManager(DataManager):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
         return result
 
-    def iget(self, i: int) -> SingleBlockManager:
+    def iget(self, i: int) -> SingleArrayManager:
         """
-        Return the data as a SingleBlockManager.
+        Return the data as a SingleArrayManager.
         """
-        from pandas.core.internals.managers import SingleBlockManager
-
         values = self.arrays[i]
-        block = make_block(values, placement=slice(0, len(values)), ndim=1)
-
-        return SingleBlockManager(block, self._axes[0])
+        return SingleArrayManager([values], [self._axes[0]])
 
     def iget_values(self, i: int) -> ArrayLike:
         """
@@ -900,8 +983,8 @@ class ArrayManager(DataManager):
         if not allow_dups:
             self._axes[axis]._validate_can_reindex(indexer)
 
-        # if axis >= self.ndim:
-        #     raise IndexError("Requested axis not found in manager")
+        if axis >= self.ndim:
+            raise IndexError("Requested axis not found in manager")
 
         if axis == 1:
             new_arrays = []
@@ -1030,3 +1113,131 @@ def _interleaved_dtype(blocks) -> Optional[DtypeObj]:
         return None
 
     return find_common_type([b.dtype for b in blocks])
+
+
+class SingleArrayManager(ArrayManager, SingleManager):
+
+    __slots__ = [
+        "_axes",  # private attribute, because 'axes' has different order, see below
+        "arrays",
+    ]
+
+    arrays: List[Union[np.ndarray, ExtensionArray]]
+    _axes: List[Index]
+
+    ndim = 1
+
+    def __init__(
+        self,
+        arrays: Union[np.ndarray, ExtensionArray],
+        axes: List[Index],
+        verify_integrity: bool = True,
+    ):
+        self._axes = axes
+        self.arrays = arrays
+
+        if verify_integrity:
+            assert len(axes) == 1
+            assert len(arrays) == 1
+            self._axes = [ensure_index(ax) for ax in self._axes]
+            self.arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
+            self._verify_integrity()
+
+    def _verify_integrity(self) -> None:
+        (n_rows,) = self.shape
+        assert len(self.arrays) == 1
+        assert len(self.arrays[0]) == n_rows
+
+    @staticmethod
+    def _normalize_axis(axis):
+        return axis
+
+    def make_empty(self: T, axes=None) -> T:
+        """Return an empty ArrayManager with index/array of length 0"""
+        if axes is None:
+            axes = [Index([], dtype=object)]
+        array = np.array([], dtype=self.dtype)
+        return type(self)([array], axes)
+
+    @classmethod
+    def from_array(cls, array, index):
+        return cls([array], [index])
+
+    @property
+    def axes(self):
+        return self._axes
+
+    @property
+    def index(self) -> Index:
+        return self._axes[0]
+
+    @property
+    def array(self):
+        return self.arrays[0]
+
+    @property
+    def dtype(self):
+        return self.array.dtype
+
+    def external_values(self):
+        """The array that Series.values returns"""
+        if isinstance(self.array, (PeriodArray, IntervalArray)):
+            return self.array.astype(object)
+        elif isinstance(self.array, (DatetimeArray, TimedeltaArray)):
+            return self.array._data
+        else:
+            return self.array
+
+    def internal_values(self):
+        """The array that Series._values returns"""
+        return self.array
+
+    @property
+    def _can_hold_na(self) -> bool:
+        if isinstance(self.array, np.ndarray):
+            return self.array.dtype.kind not in ["b", "i", "u"]
+        else:
+            # ExtensionArray
+            return self.array._can_hold_na
+
+    @property
+    def is_single_block(self) -> bool:
+        return True
+
+    def _consolidate_check(self):
+        pass
+
+    def get_slice(self, slobj: slice, axis: int = 0) -> SingleArrayManager:
+        if axis >= self.ndim:
+            raise IndexError("Requested axis not found in manager")
+
+        new_array = self.array[slobj]
+        new_index = self.index[slobj]
+        return type(self)([new_array], [new_index])
+
+    def apply(self, func, **kwargs):
+        if callable(func):
+            new_array = func(self.array, **kwargs)
+        else:
+            new_array = getattr(self.array, func)(**kwargs)
+        return type(self)([new_array], self._axes)
+
+    def setitem(self, indexer, value):
+        return self.apply_with_block("setitem", indexer=indexer, value=value)
+
+    def idelete(self, indexer):
+        """
+        Delete selected locations in-place (new array, same ArrayManager)
+        """
+        to_keep = np.ones(self.shape[0], dtype=np.bool_)
+        to_keep[indexer] = False
+
+        self.arrays = [self.arrays[0][to_keep]]
+        self._axes = [self._axes[0][to_keep]]
+
+    def _get_data_subset(self, predicate: Callable) -> ArrayManager:
+        # used in get_numeric_data / get_bool_data
+        if predicate(self.array):
+            return type(self)(self.arrays, self._axes, verify_integrity=False)
+        else:
+            return self.make_empty()
