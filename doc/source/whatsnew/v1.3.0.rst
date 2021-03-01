@@ -137,6 +137,7 @@ Other enhancements
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
+- Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
 
 .. ---------------------------------------------------------------------------
 
@@ -400,7 +401,7 @@ Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
 - Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
--
+- Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
 -
 
 Strings
