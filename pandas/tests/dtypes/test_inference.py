@@ -583,6 +583,16 @@ class TestInference:
         )
         tm.assert_numpy_array_equal(out, exp)
 
+    def test_maybe_convert_objects_timedelta64_nat(self):
+        obj = np.timedelta64("NaT", "ns")
+        arr = np.array([obj], dtype=object)
+        assert arr[0] is obj
+
+        result = lib.maybe_convert_objects(arr, convert_timedelta=True)
+
+        expected = np.array([obj], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "exp",
         [

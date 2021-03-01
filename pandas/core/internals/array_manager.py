@@ -270,15 +270,30 @@ class ArrayManager(DataManager):
         -------
         ArrayManager
         """
-        # TODO ignore_failures
-        result_arrays = [func(arr) for arr in self.arrays]
+        result_arrays: List[np.ndarray] = []
+        result_indices: List[int] = []
+
+        for i, arr in enumerate(self.arrays):
+            try:
+                res = func(arr)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
+            result_arrays.append(res)
+            result_indices.append(i)
 
         if len(result_arrays) == 0:
             index = Index([None])  # placeholder
         else:
             index = Index(range(result_arrays[0].shape[0]))
 
-        return type(self)(result_arrays, [index, self.items])
+        if ignore_failures:
+            columns = self.items[np.array(result_indices, dtype="int64")]
+        else:
+            columns = self.items
+
+        return type(self)(result_arrays, [index, columns])
 
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
@@ -452,7 +467,13 @@ class ArrayManager(DataManager):
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
-        return self.apply_with_block("diff", n=n, axis=axis)
+        axis = self._normalize_axis(axis)
+        if axis == 1:
+            # DataFrame only calls this for n=0, in which case performing it
+            # with axis=0 is equivalent
+            assert n == 0
+            axis = 0
+        return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> ArrayManager:
         return self.apply_with_block("interpolate", **kwargs)
