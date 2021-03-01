@@ -1923,8 +1923,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
-            if columns is not None:
-                columns = ensure_index(columns)
             arr_columns = columns
         else:
             arrays, arr_columns = to_arrays(data, columns)
@@ -1934,9 +1932,7 @@ class DataFrame(NDFrame, OpsMixin):
                         arrays[i] = lib.maybe_convert_objects(arr, try_float=True)
 
             arr_columns = ensure_index(arr_columns)
-            if columns is not None:
-                columns = ensure_index(columns)
-            else:
+            if columns is None:
                 columns = arr_columns
 
         if exclude is None:

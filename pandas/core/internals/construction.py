@@ -77,6 +77,8 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from numpy.ma.mrecords import MaskedRecords
 
+    from pandas.core.internals.managers import BlockManager
+
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -88,7 +90,7 @@ def arrays_to_mgr(
     columns,
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
-):
+) -> BlockManager:
     """
     Segregate Series based on type and coerce into matrices.
 
@@ -106,10 +108,10 @@ def arrays_to_mgr(
         # don't force copy because getting jammed in an ndarray anyway
         arrays = _homogenize(arrays, index, dtype)
 
-        columns = ensure_index(columns)
     else:
-        columns = ensure_index(columns)
         index = ensure_index(index)
+
+    columns = ensure_index(columns)
 
     # from BlockManager perspective
     axes = [columns, index]
@@ -208,14 +210,16 @@ def mgr_to_mgr(mgr, typ: str):
 # DataFrame Constructor Interface
 
 
-def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
+def ndarray_to_mgr(
+    values, index, columns, dtype: Optional[DtypeObj], copy: bool
+) -> BlockManager:
     # used in DataFrame.__init__
-    # input must be a ndarray, list, Series, index
+    # input must be a ndarray, list, Series, Index, ExtensionArray
 
     if isinstance(values, ABCSeries):
         if columns is None:
             if values.name is not None:
-                columns = [values.name]
+                columns = Index([values.name])
         if index is None:
             index = values.index
         else:
@@ -302,7 +306,9 @@ def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def dict_to_mgr(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
+def dict_to_mgr(
+    data: Dict, index, columns, dtype: Optional[DtypeObj] = None
+) -> BlockManager:
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
