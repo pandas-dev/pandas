@@ -279,6 +279,7 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df2.columns, Index(rec.dtype.names))
         tm.assert_index_equal(df2.index, index)
 
+        # case with columns != the ones we would infer from the data
         rng = np.arange(len(rec))[::-1]
         df3 = DataFrame(rec, index=rng, columns=["C", "B"])
         expected = DataFrame(rec, index=rng).reindex(columns=["C", "B"])
