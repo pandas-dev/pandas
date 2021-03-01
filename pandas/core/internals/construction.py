@@ -59,7 +59,6 @@ from pandas.core import (
 )
 from pandas.core.arrays import Categorical
 from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -109,8 +108,7 @@ def arrays_to_mgr(
 
         # don't force copy because getting jammed in an ndarray anyway
         arrays = _homogenize(arrays, index, dtype)
-        if typ == "array":
-            arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
+
         columns = ensure_index(columns)
     else:
         columns = ensure_index(columns)

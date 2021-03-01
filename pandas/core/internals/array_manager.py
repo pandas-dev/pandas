@@ -113,6 +113,7 @@ class ArrayManager(DataManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            self.arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
             self._verify_integrity()
 
     def make_empty(self: T, axes=None) -> T:
