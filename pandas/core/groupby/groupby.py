@@ -3098,11 +3098,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if random_state is not None:
             random_state = com.random_state(random_state)
 
+        group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
         samples = [
             obj.sample(
                 n=n, frac=frac, replace=replace, weights=w, random_state=random_state
             )
-            for (_, obj), w in zip(self, ws)
+            for (_, obj), w in zip(group_iterator, ws)
         ]
 
         return concat(samples, axis=self.axis)

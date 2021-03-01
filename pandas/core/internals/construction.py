@@ -117,8 +117,12 @@ def arrays_to_mgr(
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(
-    data: MaskedRecords, index, columns, dtype: Optional[DtypeObj], copy: bool
+def rec_array_to_mgr(
+    data: Union[MaskedRecords, np.recarray, np.ndarray],
+    index,
+    columns,
+    dtype: Optional[DtypeObj],
+    copy: bool,
 ):
     """
     Extract from a masked rec array and create the manager.
@@ -136,16 +140,10 @@ def masked_rec_array_to_mgr(
     arrays, arr_columns = to_arrays(fdata, columns)
 
     # fill if needed
-    new_arrays = []
-    for col in arr_columns:
-        arr = data[col]
-        fv = arr.fill_value
-
-        mask = ma.getmaskarray(arr)
-        if mask.any():
-            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
-            arr[mask] = fv
-        new_arrays.append(arr)
+    if isinstance(data, np.ma.MaskedArray):
+        new_arrays = fill_masked_arrays(data, arr_columns)
+    else:
+        new_arrays = arrays
 
     # create the manager
     arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)
@@ -157,6 +155,24 @@ def masked_rec_array_to_mgr(
     if copy:
         mgr = mgr.copy()
     return mgr
+
+
+def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> List[np.ndarray]:
+    """
+    Convert numpy MaskedRecords to ensure mask is softened.
+    """
+    new_arrays = []
+
+    for col in arr_columns:
+        arr = data[col]
+        fv = arr.fill_value
+
+        mask = ma.getmaskarray(arr)
+        if mask.any():
+            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
+            arr[mask] = fv
+        new_arrays.append(arr)
+    return new_arrays
 
 
 def mgr_to_mgr(mgr, typ: str):
@@ -230,15 +246,26 @@ def ndarray_to_mgr(values, index, columns, dtype: Optional[DtypeObj], copy: bool
     values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
-        try:
-            values = construct_1d_ndarray_preserving_na(
-                values.ravel(), dtype=dtype, copy=False
-            ).reshape(values.shape)
-        except Exception as orig:
-            # e.g. ValueError when trying to cast object dtype to float64
-            raise ValueError(
-                f"failed to cast to '{dtype}' (Exception was: {orig})"
-            ) from orig
+        shape = values.shape
+        flat = values.ravel()
+
+        if not is_integer_dtype(dtype):
+            # TODO: skipping integer_dtype is needed to keep the tests passing,
+            #  not clear it is correct
+            # Note: we really only need _try_cast, but keeping to exposed funcs
+            values = sanitize_array(
+                flat, None, dtype=dtype, copy=copy, raise_cast_failure=True
+            )
+        else:
+            try:
+                values = construct_1d_ndarray_preserving_na(
+                    flat, dtype=dtype, copy=False
+                )
+            except Exception as err:
+                # e.g. ValueError when trying to cast object dtype to float64
+                msg = f"failed to cast to '{dtype}' (Exception was: {err})"
+                raise ValueError(msg) from err
+        values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
@@ -575,7 +602,9 @@ def dataclasses_to_dicts(data):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
+def to_arrays(
+    data, columns: Optional[Index], dtype: Optional[DtypeObj] = None
+) -> Tuple[List[ArrayLike], Index]:
     """
     Return list of arrays, columns.
     """
@@ -596,8 +625,10 @@ def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
         if isinstance(data, np.ndarray):
             columns = data.dtype.names
             if columns is not None:
-                return [[]] * len(columns), columns
-        return [], []  # columns if columns is not None else []
+                # i.e. numpy structured array
+                arrays = [data[name] for name in columns]
+                return arrays, ensure_index(columns)
+        return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):
         if columns is None:

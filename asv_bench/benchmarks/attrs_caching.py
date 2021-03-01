@@ -4,11 +4,6 @@ import pandas as pd
 from pandas import DataFrame
 
 try:
-    from pandas.util import cache_readonly
-except ImportError:
-    from pandas.util.decorators import cache_readonly
-
-try:
     from pandas.core.construction import extract_array
 except ImportError:
     extract_array = None
@@ -51,19 +46,6 @@ class SeriesArrayAttribute:
 
     def time_extract_array_numpy(self, dtype):
         extract_array(self.series, extract_numpy=True)
-
-
-class CacheReadonly:
-    def setup(self):
-        class Foo:
-            @cache_readonly
-            def prop(self):
-                return 5
-
-        self.obj = Foo()
-
-    def time_cache_readonly(self):
-        self.obj.prop
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
