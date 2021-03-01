@@ -53,6 +53,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.cast import astype_array_safe
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
@@ -499,7 +500,7 @@ class ArrayManager(DataManager):
         return self.apply_with_block("downcast")
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
-        return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(
         self,
