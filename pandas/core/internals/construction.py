@@ -145,9 +145,6 @@ def rec_array_to_mgr(
         new_arrays = arrays
 
     # create the manager
-    # TODO: once to_arrays is annotated s.t. arr_columns is always an Index,
-    #  this ensure_index will be unnecessary.
-    arr_columns = ensure_index(arr_columns)
     arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)
     if columns is None:
         columns = arr_columns
