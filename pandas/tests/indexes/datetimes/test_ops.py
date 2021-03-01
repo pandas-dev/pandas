@@ -1,12 +1,10 @@
 from datetime import datetime
 
 from dateutil.tz import tzlocal
-import numpy as np
 import pytest
 
 from pandas.compat import IS64
 
-import pandas as pd
 from pandas import (
     DateOffset,
     DatetimeIndex,
@@ -68,51 +66,6 @@ class TestDatetimeIndexOps:
 
         idx = date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
         assert idx.resolution == expected
-
-    def test_value_counts_unique(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        # GH 7735
-        idx = date_range("2011-01-01 09:00", freq="H", periods=10)
-        # create repeated values, 'n'th element is repeated by n+1 times
-        idx = DatetimeIndex(np.repeat(idx.values, range(1, len(idx) + 1)), tz=tz)
-
-        exp_idx = date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
-        expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
-        expected.index = expected.index._with_freq(None)
-
-        for obj in [idx, Series(idx)]:
-
-            tm.assert_series_equal(obj.value_counts(), expected)
-
-        expected = date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
-        expected = expected._with_freq(None)
-        tm.assert_index_equal(idx.unique(), expected)
-
-        idx = DatetimeIndex(
-            [
-                "2013-01-01 09:00",
-                "2013-01-01 09:00",
-                "2013-01-01 09:00",
-                "2013-01-01 08:00",
-                "2013-01-01 08:00",
-                pd.NaT,
-            ],
-            tz=tz,
-        )
-
-        exp_idx = DatetimeIndex(["2013-01-01 09:00", "2013-01-01 08:00"], tz=tz)
-        expected = Series([3, 2], index=exp_idx)
-
-        for obj in [idx, Series(idx)]:
-            tm.assert_series_equal(obj.value_counts(), expected)
-
-        exp_idx = DatetimeIndex(["2013-01-01 09:00", "2013-01-01 08:00", pd.NaT], tz=tz)
-        expected = Series([3, 2, 1], index=exp_idx)
-
-        for obj in [idx, Series(idx)]:
-            tm.assert_series_equal(obj.value_counts(dropna=False), expected)
-
-        tm.assert_index_equal(idx.unique(), exp_idx)
 
     def test_infer_freq(self, freq_sample):
         # GH 11018
