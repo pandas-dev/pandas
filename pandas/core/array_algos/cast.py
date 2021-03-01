@@ -4,7 +4,6 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    Dtype,
     DtypeObj,
 )
 
@@ -69,7 +68,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False):
     return values
 
 
-def astype_array_safe(values, dtype: Dtype, copy: bool = False, errors: str = "raise"):
+def astype_array_safe(values, dtype, copy: bool = False, errors: str = "raise"):
     """
     Cast array to the new dtype.
 
