@@ -124,7 +124,7 @@ bar2,12,13,14,15
             filename = path_type("~/" + Path(tmp).name + "/sometest")
             with icom.get_handle(filename, "w") as handles:
                 assert Path(handles.handle.name).is_absolute()
-                assert str(Path(filename).expanduser()) == handles.handle.name
+                assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
