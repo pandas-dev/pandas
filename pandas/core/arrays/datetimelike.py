@@ -106,7 +106,7 @@ from pandas.core.arrays._mixins import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     extract_array,
 )
 from pandas.core.indexers import (
@@ -741,7 +741,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-        value = array(value)
+        value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
         if is_dtype_equal(value.dtype, "string"):
@@ -1232,12 +1232,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         assert self.shape == other.shape, (self.shape, other.shape)
 
         res_values = op(self.astype("O"), np.asarray(other))
-        result = array(res_values.ravel())
-        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
-        # "reshape"
-        result = extract_array(result, extract_numpy=True).reshape(  # type: ignore[union-attr]  # noqa
-            self.shape
-        )
+        result = pd_array(res_values.ravel())
+        result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
     def _time_shift(self, periods, freq=None):
