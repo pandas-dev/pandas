@@ -146,33 +146,6 @@ def test_groupby_return_type():
     assert isinstance(result, DataFrame)
 
 
-def test_multi_index_sort():
-    # GH 24271
-    df = DataFrame(
-        {
-            "group": ["A"] * 6 + ["B"] * 6,
-            "dose": ["high", "med", "low"] * 4,
-            "outcomes": np.arange(12.0),
-        }
-    )
-
-    df.dose = pd.Categorical(df.dose, categories=["low", "med", "high"], ordered=True)
-
-    result = df.groupby("group")["dose"].value_counts()
-    result = result.sort_index(level=0, sort_remaining=True)
-    index = [
-        ("A", "low"),
-        ("A", "med"),
-        ("A", "high"),
-        ("B", "low"),
-        ("B", "med"),
-        ("B", "high"),
-    ]
-    index = MultiIndex.from_tuples(index, names=["group", "dose"])
-    expected = Series([2] * 6, index=index, name="dose")
-    tm.assert_series_equal(result, expected)
-
-
 def test_inconsistent_return_type():
     # GH5592
     # inconsistent return type
