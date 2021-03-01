@@ -100,6 +100,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
                 join_index = orig_left._from_backing_data(join_index)
 
             return join_index, left_indexer, right_indexer
+
         return results
 
     return wrapper
@@ -649,7 +650,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-
+        assert joined.dtype == "i8" or joined.dtype == self.dtype, joined.dtype
+        joined = joined.view(self._data._ndarray.dtype)
         result = super()._wrap_joined_index(joined, other)
         result._data._freq = self._get_join_freq(other)
         return result

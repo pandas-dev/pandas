@@ -475,32 +475,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
             cls = dtype.construct_array_type()
-            # error: Incompatible return value type (got "Union[PeriodArray,
-            # DatetimeArray]", expected "ndarray")
-            return cls._simple_new(self.asi8, dtype=dtype)  # type: ignore[return-value]
+            return cls(self.asi8, dtype=dtype)
         elif dtype == "M8[ns]":
             from pandas.core.arrays import DatetimeArray
 
-            # error: Incompatible return value type (got "DatetimeArray", expected
-            # "ndarray")
-            return DatetimeArray._simple_new(  # type: ignore[return-value]
-                self.asi8, dtype=dtype
-            )
+            return DatetimeArray(self.asi8, dtype=dtype)
         elif dtype == "m8[ns]":
             from pandas.core.arrays import TimedeltaArray
 
-            # error: Incompatible return value type (got "TimedeltaArray", expected
-            # "ndarray")
-            return TimedeltaArray._simple_new(  # type: ignore[return-value]
-                self.asi8.view("m8[ns]"), dtype=dtype
-            )
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
-        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
-        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return self._ndarray.view(dtype=dtype)  # type: ignore[return-value,arg-type]
+            return TimedeltaArray(self.asi8, dtype=dtype)
+        return self._ndarray.view(dtype=dtype)
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
@@ -1131,10 +1115,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return type(self)(new_values, dtype=self.dtype)
 
         inc = delta_to_nanoseconds(other)
-        new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan).view(
-            "i8"
-        )
+        new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
+        new_values = new_values.view("i8")
         new_values = self._maybe_mask_results(new_values)
+        new_values = new_values.view(self._ndarray.dtype)
 
         new_freq = None
         if isinstance(self.freq, Tick) or is_period_dtype(self.dtype):
@@ -1733,6 +1717,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         nanos = to_offset(freq).nanos
         result = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result, fill_value=iNaT)
+        result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))

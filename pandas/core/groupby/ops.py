@@ -545,7 +545,7 @@ class BaseGrouper:
                 return res_values  # type: ignore[return-value]
 
             res_values = res_values.astype("i8", copy=False)
-            result = type(orig_values)._simple_new(res_values, dtype=orig_values.dtype)
+            result = type(orig_values)(res_values, dtype=orig_values.dtype)
             return result
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):

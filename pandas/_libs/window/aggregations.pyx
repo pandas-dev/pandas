@@ -116,9 +116,10 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
 def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp):
     cdef:
+        Py_ssize_t i, j
         float64_t sum_x = 0, compensation_add = 0, compensation_remove = 0
         int64_t s, e
-        int64_t nobs = 0, i, j, N = len(values)
+        int64_t nobs = 0, N = len(values)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
 
@@ -493,12 +494,13 @@ cdef inline void remove_skew(float64_t val, int64_t *nobs,
 def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
+        Py_ssize_t i, j
         float64_t val, prev, min_val, mean_val, sum_val = 0
         float64_t compensation_xxx_add = 0, compensation_xxx_remove = 0
         float64_t compensation_xx_add = 0, compensation_xx_remove = 0
         float64_t compensation_x_add = 0, compensation_x_remove = 0
         float64_t x = 0, xx = 0, xxx = 0
-        int64_t nobs = 0, i, j, N = len(values), nobs_mean = 0
+        int64_t nobs = 0, N = len(values), nobs_mean = 0
         int64_t s, e
         ndarray[float64_t] output, mean_array, values_copy
         bint is_monotonic_increasing_bounds
@@ -674,13 +676,14 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
+        Py_ssize_t i, j
         float64_t val, prev, mean_val, min_val, sum_val = 0
         float64_t compensation_xxxx_add = 0, compensation_xxxx_remove = 0
         float64_t compensation_xxx_remove = 0, compensation_xxx_add = 0
         float64_t compensation_xx_remove = 0, compensation_xx_add = 0
         float64_t compensation_x_remove = 0, compensation_x_add = 0
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
-        int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0
+        int64_t nobs = 0, s, e, N = len(values), nobs_mean = 0
         ndarray[float64_t] output, values_copy
         bint is_monotonic_increasing_bounds
 
@@ -754,15 +757,13 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, res, prev
-        bint err = False
-        int ret = 0
-        skiplist_t *sl
         Py_ssize_t i, j
+        bint err = False, is_monotonic_increasing_bounds
+        int midpoint, ret = 0
         int64_t nobs = 0, N = len(values), s, e, win
-        int midpoint
+        float64_t val, res, prev
+        skiplist_t *sl
         ndarray[float64_t] output
-        bint is_monotonic_increasing_bounds
 
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
@@ -933,8 +934,8 @@ cdef _roll_min_max(ndarray[numeric] values,
                    bint is_max):
     cdef:
         numeric ai
-        int64_t i, k, curr_win_size, start
-        Py_ssize_t nobs = 0, N = len(values)
+        int64_t curr_win_size, start
+        Py_ssize_t i, k, nobs = 0, N = len(values)
         deque Q[int64_t]  # min/max always the front
         deque W[int64_t]  # track the whole window for nobs compute
         ndarray[float64_t, ndim=1] output
@@ -1017,14 +1018,14 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     O(N log(window)) implementation using skip list
     """
     cdef:
-        float64_t val, prev, midpoint, idx_with_fraction
-        skiplist_t *skiplist
-        int64_t nobs = 0, i, j, s, e, N = len(values), win
-        Py_ssize_t idx
-        ndarray[float64_t] output
-        float64_t vlow, vhigh
-        InterpolationType interpolation_type
+        Py_ssize_t i, j, s, e, N = len(values), idx
         int ret = 0
+        int64_t nobs = 0, win
+        float64_t val, prev, midpoint, idx_with_fraction
+        float64_t vlow, vhigh
+        skiplist_t *skiplist
+        InterpolationType interpolation_type
+        ndarray[float64_t] output
 
     if quantile <= 0.0 or quantile >= 1.0:
         raise ValueError(f"quantile value {quantile} not in [0, 1]")
@@ -1041,10 +1042,10 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
 
-    if (end - start).max() == 0:
+    win = (end - start).max()
+    if win == 0:
         output[:] = NaN
         return output
-    win = (end - start).max()
     skiplist = skiplist_init(<int>win)
     if skiplist == NULL:
         raise MemoryError("skiplist_init failed")
@@ -1473,9 +1474,9 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma(float64_t[:] vals, int64_t[:] start, int64_t[:] end, int minp,
-         float64_t com, bint adjust, bint ignore_na, float64_t[:] times,
-         float64_t halflife):
+def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
+         int minp, float64_t com, bint adjust, bint ignore_na,
+         const float64_t[:] times, float64_t halflife):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1486,8 +1487,10 @@ def ewma(float64_t[:] vals, int64_t[:] start, int64_t[:] end, int minp,
     end: ndarray (int64 type)
     minp : int
     com : float64
-    adjust : int
+    adjust : bool
     ignore_na : bool
+    times : ndarray (float64 type)
+    halflife : float64
 
     Returns
     -------
@@ -1496,7 +1499,7 @@ def ewma(float64_t[:] vals, int64_t[:] start, int64_t[:] end, int minp,
 
     cdef:
         Py_ssize_t i, j, s, e, nobs, win_size, N = len(vals), M = len(start)
-        float64_t[:] sub_vals
+        const float64_t[:] sub_vals
         ndarray[float64_t] sub_output, output = np.empty(N, dtype=float)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur, delta
         bint is_observation
@@ -1555,8 +1558,9 @@ def ewma(float64_t[:] vals, int64_t[:] start, int64_t[:] end, int minp,
 # Exponentially weighted moving covariance
 
 
-def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
-           float64_t[:] input_y, float64_t com, bint adjust, bint ignore_na, bint bias):
+def ewmcov(const float64_t[:] input_x, const int64_t[:] start, const int64_t[:] end,
+           int minp, const float64_t[:] input_y, float64_t com, bint adjust,
+           bint ignore_na, bint bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1568,9 +1572,9 @@ def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
     minp : int
     input_y : ndarray (float64 type)
     com : float64
-    adjust : int
+    adjust : bool
     ignore_na : bool
-    bias : int
+    bias : bool
 
     Returns
     -------
@@ -1583,7 +1587,7 @@ def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
         float64_t alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
         float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
         float64_t numerator, denominator
-        float64_t[:] sub_x_vals, sub_y_vals
+        const float64_t[:] sub_x_vals, sub_y_vals
         ndarray[float64_t] sub_out, output = np.empty(N, dtype=float)
         bint is_observation
 
@@ -1594,6 +1598,8 @@ def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
         return output
 
     alpha = 1. / (1. + com)
+    old_wt_factor = 1. - alpha
+    new_wt = 1. if adjust else alpha
 
     for j in range(L):
         s = start[j]
@@ -1602,9 +1608,6 @@ def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
         sub_y_vals = input_y[s:e]
         win_size = len(sub_x_vals)
         sub_out = np.empty(win_size, dtype=float)
-
-        old_wt_factor = 1. - alpha
-        new_wt = 1. if adjust else alpha
 
         mean_x = sub_x_vals[0]
         mean_y = sub_y_vals[0]
