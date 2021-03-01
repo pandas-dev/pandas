@@ -288,7 +288,8 @@ def maybe_downcast_to_dtype(
             i8values = result.astype("i8", copy=False)
             cls = dtype.construct_array_type()
             # equiv: DatetimeArray(i8values).tz_localize("UTC").tz_convert(dtype.tz)
-            result = cls._simple_new(i8values, dtype=dtype)
+            dt64values = i8values.view("M8[ns]")
+            result = cls._simple_new(dt64values, dtype=dtype)
         else:
             result = result.astype(dtype)
 

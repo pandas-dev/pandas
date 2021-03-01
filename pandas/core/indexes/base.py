@@ -820,7 +820,7 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
                 arr_cls = idx_cls._data_cls
-                arr = arr_cls._simple_new(self._data.view("i8"), dtype=dtype)
+                arr = arr_cls(self._data.view("i8"), dtype=dtype)
                 return idx_cls._simple_new(arr, name=self.name)
 
             result = self._data.view(cls)

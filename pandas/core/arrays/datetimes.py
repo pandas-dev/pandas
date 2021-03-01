@@ -315,9 +315,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
-        if values.dtype != DT64NS_DTYPE:
-            assert values.dtype == "i8"
-            values = values.view(DT64NS_DTYPE)
+        assert values.dtype == DT64NS_DTYPE
 
         result = object.__new__(cls)
         result._ndarray = values
@@ -439,6 +437,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 values = np.array([x.value for x in xdr], dtype=np.int64)
 
             _tz = start.tz if start is not None else end.tz
+            values = values.view("M8[ns]")
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
@@ -464,9 +463,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 + start.value
             )
             dtype = tz_to_dtype(tz)
-            index = cls._simple_new(
-                arr.astype("M8[ns]", copy=False), freq=None, dtype=dtype
-            )
+            arr = arr.astype("M8[ns]", copy=False)
+            index = cls._simple_new(arr, freq=None, dtype=dtype)
 
         if not left_closed and len(index) and index[0] == start:
             # TODO: overload DatetimeLikeArrayMixin.__getitem__
@@ -476,7 +474,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             index = cast(DatetimeArray, index[:-1])
 
         dtype = tz_to_dtype(tz)
-        return cls._simple_new(index.asi8, freq=freq, dtype=dtype)
+        return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -710,7 +708,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset._apply_array(values)
+            result = offset._apply_array(values).view("M8[ns]")
             result = DatetimeArray._simple_new(result)
             result = result.tz_localize(self.tz)
 
@@ -833,7 +831,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz)
-        return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
+        return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
 
     @dtl.ravel_compat
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
