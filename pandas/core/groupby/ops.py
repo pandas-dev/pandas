@@ -71,6 +71,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -214,11 +215,15 @@ class BaseGrouper:
             #  if we pass EA instead of ndarray
             #  TODO: can we have a workaround for EAs backed by ndarray?
             pass
-
-        elif isinstance(sdata._mgr, ArrayManager):
-            # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
-            # for now -> relies on BlockManager internals
+        elif (
+            sdata.ndim == 2
+            and isinstance(sdata._mgr, ArrayManager)
+            and any(isinstance(arr, ExtensionArray) for arr in sdata._mgr.arrays)
+        ):
+            # For ArrayManager, we also store datetime-like data as EAs, although
+            # their dtype is not an extension array dtype (so the above check passes)
             pass
+
         elif (
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)

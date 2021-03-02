@@ -348,7 +348,7 @@ cdef class Slider:
 def apply_frame_axis0(object frame, object f, object names,
                       const int64_t[:] starts, const int64_t[:] ends):
     cdef:
-        BlockSlider slider
+        FrameSlider slider
         Py_ssize_t i, n = len(starts)
         list results
         object piece
@@ -359,7 +359,10 @@ def apply_frame_axis0(object frame, object f, object names,
 
     results = []
 
-    slider = BlockSlider(frame)
+    if hasattr(frame._mgr, "blocks"):
+        slider = <FrameSlider>BlockSlider(frame)
+    else:
+        slider = <FrameSlider>ArraySlider(frame)
 
     mutated = False
     item_cache = slider.dummy._item_cache
@@ -402,12 +405,23 @@ def apply_frame_axis0(object frame, object f, object names,
     return results, mutated
 
 
-cdef class BlockSlider:
+cdef class FrameSlider:
+    cdef:
+        object dummy
+
+    cdef move(self, int start, int end):
+        pass
+
+    cdef reset(self):
+        pass
+
+
+cdef class BlockSlider(FrameSlider):
     """
     Only capable of sliding on axis=0
     """
     cdef:
-        object frame, dummy, index, block
+        object frame, index, block
         list blocks, blk_values
         ndarray orig_blklocs, orig_blknos
         ndarray values
@@ -491,3 +505,84 @@ cdef class BlockSlider:
         mgr.blocks = self.blocks
         mgr._blklocs = self.orig_blklocs
         mgr._blknos = self.orig_blknos
+
+
+cdef class ArraySlider(FrameSlider):
+    """
+    Only capable of sliding on axis=0
+    """
+    cdef:
+        object frame, index
+        list arrays, orig_arrays
+        # ndarray values
+        Slider idx_slider
+        char **base_ptrs
+        int narrays
+        Py_ssize_t i
+
+    def __init__(self, object frame):
+        self.frame = frame
+        self.dummy = frame[:0]
+        self.index = self.dummy.index
+
+        # GH#35417 attributes we need to restore at each step in case
+        #  the function modified them.
+        mgr = self.dummy._mgrs
+        self.orig_arrays = self.dummy._mgr.arrays
+        self.arrays = list(self.dummy._mgr.arrays)
+
+        # for values in self.arrays:
+        #     set_array_not_contiguous(values)
+
+        self.narrays = len(self.arrays)
+        # See the comment in indexes/base.py about _index_data.
+        # We need this for EA-backed indexes that have a reference to a 1-d
+        # ndarray like datetime / timedelta / period.
+        self.idx_slider = Slider(
+            self.frame.index._index_data, self.dummy.index._index_data)
+
+        self.base_ptrs = <char**>malloc(sizeof(char*) * self.narrays)
+        for i, arr in enumerate(self.arrays):
+            self.base_ptrs[i] = (<ndarray>arr).data
+
+    def __dealloc__(self):
+        free(self.base_ptrs)
+
+    cdef move(self, int start, int end):
+        cdef:
+            ndarray arr
+            Py_ssize_t i
+
+        self._restore_arrays()
+
+        # move arrays
+        for i in range(self.narrays):
+            arr = self.arrays[i]
+            arr.data = self.base_ptrs[i] + arr.strides[0] * start
+            arr.shape[0] = end - start
+
+        # move and set the index
+        self.idx_slider.move(start, end)
+
+        object.__setattr__(self.index, '_index_data', self.idx_slider.buf)
+        self.index._engine.clear_mapping()
+        self.index._cache.clear()  # e.g. inferred_freq must go
+
+    cdef reset(self):
+        cdef:
+            ndarray arr
+            Py_ssize_t i
+
+        self._restore_arrays()
+
+        for i in range(self.narrays):
+            arr = self.arrays[i]
+            arr.data = self.base_ptrs[i]
+            arr.shape[0] = 0
+
+    cdef _restore_arrays(self):
+        """
+        Ensure that we have the original arrays.
+        """
+        mgr = self.dummy._mgr
+        mgr.arrays = self.orig_arrays
