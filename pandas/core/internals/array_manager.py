@@ -28,6 +28,7 @@ from pandas._typing import (
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    astype_array_safe,
     find_common_type,
     infer_dtype_from_scalar,
 )
@@ -500,7 +501,7 @@ class ArrayManager(DataManager):
         return self.apply_with_block("downcast")
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
-        return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(
         self,
