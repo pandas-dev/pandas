@@ -4407,6 +4407,18 @@ class DataFrame(NDFrame, OpsMixin):
             broadcast_axis=broadcast_axis,
         )
 
+    @overload
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
+    def set_axis(  # type: ignore[misc]
+        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def set_axis(self, labels, axis: Axis = ..., inplace: Literal[True] = ...) -> None:
+        ...
+
     @Appender(
         """
         Examples
@@ -4446,8 +4458,15 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
-        return super().set_axis(labels, axis=axis, inplace=inplace)
+    # Signature of "set_axis" incompatible with supertype "NDFrame"
+    def set_axis(  # type: ignore[override]
+        self, labels, axis: Axis = 0, inplace: bool = False
+    ) -> Optional[DataFrame]:
+        # No overload variant of "set_axis" of "NDFrame" matches argument types "Any",
+        # "Union[str, int]", "bool"
+        return super().set_axis(  # type: ignore[call-overload]
+            labels, axis=axis, inplace=inplace
+        )
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)

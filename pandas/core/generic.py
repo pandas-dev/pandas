@@ -24,6 +24,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 import weakref
@@ -159,6 +160,8 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.frame import DataFrame
@@ -662,7 +665,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
+    @overload
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
+    def set_axis(  # type: ignore[misc]
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[True] = ...
+    ) -> None:
+        ...
+
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis = 0, inplace: bool_t = False
+    ) -> Optional[FrameOrSeries]:
         """
         Assign desired index to given axis.
 
