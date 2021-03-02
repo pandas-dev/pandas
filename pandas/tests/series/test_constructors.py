@@ -693,16 +693,16 @@ class TestSeriesConstructors:
         tm.assert_series_equal(Series([np.nan, np.nan]), exp)
         tm.assert_series_equal(Series(np.array([np.nan, np.nan])), exp)
 
-        exp = Series([pd.NaT, pd.NaT])
+        exp = Series([NaT, NaT])
         assert exp.dtype == "datetime64[ns]"
-        tm.assert_series_equal(Series([pd.NaT, pd.NaT]), exp)
-        tm.assert_series_equal(Series(np.array([pd.NaT, pd.NaT])), exp)
+        tm.assert_series_equal(Series([NaT, NaT]), exp)
+        tm.assert_series_equal(Series(np.array([NaT, NaT])), exp)
 
-        tm.assert_series_equal(Series([pd.NaT, np.nan]), exp)
-        tm.assert_series_equal(Series(np.array([pd.NaT, np.nan])), exp)
+        tm.assert_series_equal(Series([NaT, np.nan]), exp)
+        tm.assert_series_equal(Series(np.array([NaT, np.nan])), exp)
 
-        tm.assert_series_equal(Series([np.nan, pd.NaT]), exp)
-        tm.assert_series_equal(Series(np.array([np.nan, pd.NaT])), exp)
+        tm.assert_series_equal(Series([np.nan, NaT]), exp)
+        tm.assert_series_equal(Series(np.array([np.nan, NaT])), exp)
 
     def test_constructor_cast(self):
         msg = "could not convert string to float"
@@ -830,7 +830,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
         expected = Series(
-            [pd.NaT, datetime(2013, 1, 2), datetime(2013, 1, 3)], dtype="datetime64[ns]"
+            [NaT, datetime(2013, 1, 2), datetime(2013, 1, 3)], dtype="datetime64[ns]"
         )
         result = Series([np.nan] + dates[1:], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
@@ -898,13 +898,13 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_datetime64_6(self):
         # these will correctly infer a datetime
-        s = Series([None, pd.NaT, "2013-08-05 15:30:00.000001"])
+        s = Series([None, NaT, "2013-08-05 15:30:00.000001"])
         assert s.dtype == "datetime64[ns]"
-        s = Series([np.nan, pd.NaT, "2013-08-05 15:30:00.000001"])
+        s = Series([np.nan, NaT, "2013-08-05 15:30:00.000001"])
         assert s.dtype == "datetime64[ns]"
-        s = Series([pd.NaT, None, "2013-08-05 15:30:00.000001"])
+        s = Series([NaT, None, "2013-08-05 15:30:00.000001"])
         assert s.dtype == "datetime64[ns]"
-        s = Series([pd.NaT, np.nan, "2013-08-05 15:30:00.000001"])
+        s = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
         assert s.dtype == "datetime64[ns]"
 
     def test_constructor_dtype_datetime64_5(self):
@@ -919,16 +919,16 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_datetime64_4(self):
         # non-convertible
-        s = Series([1479596223000, -1479590, pd.NaT])
+        s = Series([1479596223000, -1479590, NaT])
         assert s.dtype == "object"
-        assert s[2] is pd.NaT
+        assert s[2] is NaT
         assert "NaT" in str(s)
 
     def test_constructor_dtype_datetime64_3(self):
         # if we passed a NaT it remains
-        s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), pd.NaT])
+        s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), NaT])
         assert s.dtype == "object"
-        assert s[2] is pd.NaT
+        assert s[2] is NaT
         assert "NaT" in str(s)
 
     def test_constructor_dtype_datetime64_2(self):
@@ -955,7 +955,7 @@ class TestSeriesConstructors:
         assert isinstance(result, np.ndarray)
         assert result.dtype == "datetime64[ns]"
 
-        exp = pd.DatetimeIndex(result)
+        exp = DatetimeIndex(result)
         exp = exp.tz_localize("UTC").tz_convert(tz=s.dt.tz)
         tm.assert_index_equal(dr, exp)
 
@@ -991,7 +991,7 @@ class TestSeriesConstructors:
         t = Series(date_range("20130101", periods=1000, tz="US/Eastern"))
         assert "datetime64[ns, US/Eastern]" in str(t)
 
-        result = pd.DatetimeIndex(s, freq="infer")
+        result = DatetimeIndex(s, freq="infer")
         tm.assert_index_equal(result, dr)
 
     def test_constructor_with_datetime_tz4(self):
@@ -1017,8 +1017,8 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz2(self):
         # with all NaT
-        s = Series(pd.NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
-        expected = Series(pd.DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
+        s = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
+        expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
         tm.assert_series_equal(s, expected)
 
     @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
@@ -1035,7 +1035,7 @@ class TestSeriesConstructors:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("arg", ["2013-01-01 00:00:00", pd.NaT, np.nan, None])
+    @pytest.mark.parametrize("arg", ["2013-01-01 00:00:00", NaT, np.nan, None])
     def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
         result = Series([arg], dtype="datetime64[ns, CET]")
@@ -1311,7 +1311,7 @@ class TestSeriesConstructors:
         td = Series([timedelta(days=1), np.nan], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
-        td = Series([np.timedelta64(300000000), pd.NaT], dtype="m8[ns]")
+        td = Series([np.timedelta64(300000000), NaT], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
         # improved inference
@@ -1326,7 +1326,7 @@ class TestSeriesConstructors:
         td = Series([np.timedelta64(300000000), np.nan])
         assert td.dtype == "timedelta64[ns]"
 
-        td = Series([pd.NaT, np.timedelta64(300000000)])
+        td = Series([NaT, np.timedelta64(300000000)])
         assert td.dtype == "timedelta64[ns]"
 
         td = Series([np.timedelta64(1, "s")])
@@ -1358,13 +1358,13 @@ class TestSeriesConstructors:
         assert td.dtype == "object"
 
         # these will correctly infer a timedelta
-        s = Series([None, pd.NaT, "1 Day"])
+        s = Series([None, NaT, "1 Day"])
         assert s.dtype == "timedelta64[ns]"
-        s = Series([np.nan, pd.NaT, "1 Day"])
+        s = Series([np.nan, NaT, "1 Day"])
         assert s.dtype == "timedelta64[ns]"
-        s = Series([pd.NaT, None, "1 Day"])
+        s = Series([NaT, None, "1 Day"])
         assert s.dtype == "timedelta64[ns]"
-        s = Series([pd.NaT, np.nan, "1 Day"])
+        s = Series([NaT, np.nan, "1 Day"])
         assert s.dtype == "timedelta64[ns]"
 
     # GH 16406
@@ -1615,7 +1615,7 @@ class TestSeriesConstructors:
         _d = sorted(d.items())
         result = Series(d)
         expected = Series(
-            [x[1] for x in _d], index=pd.MultiIndex.from_tuples([x[0] for x in _d])
+            [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
         )
         tm.assert_series_equal(result, expected)
 
