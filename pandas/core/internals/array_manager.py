@@ -408,7 +408,7 @@ class ArrayManager(DataManager):
                         #  obj.axes[-1].equals(self.items)
                         if obj.ndim == 1:
                             if self.ndim == 2:
-                                kwargs[k] = obj.iloc[[i]]._values
+                                kwargs[k] = obj.iloc[slice(i, i + 1)]._values
                             else:
                                 kwargs[k] = obj.iloc[:]._values
                         else:
