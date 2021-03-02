@@ -580,8 +580,8 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         # error: Argument 3 to "__call__" of "_lru_cache_wrapper" has incompatible type
         # "Type[Any]"; expected "Hashable"  [arg-type]
         return _maybe_promote_cached(
-            dtype, fill_value, type(fill_value)
-        )  # type: ignore[arg-type]
+            dtype, fill_value, type(fill_value)  # type: ignore[arg-type]
+        )
     except TypeError:
         # if fill_value is not hashable (required for caching)
         return maybe_promote(dtype, fill_value)
