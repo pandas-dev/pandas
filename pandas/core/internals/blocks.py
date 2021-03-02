@@ -169,6 +169,16 @@ class Block(PandasObject):
         self.values = self._maybe_coerce_values(values)
 
         if self._validate_ndim and self.ndim and len(self.mgr_locs) != len(self.values):
+            if (
+                is_datetime64tz_dtype(values.dtype)
+                and self.ndim == 2
+                and values.ndim == 1
+                and len(self.mgr_locs) == 1
+            ):
+                # Passed by fastparquet; TODO: warn?
+                self.values = self.values.reshape(1, -1)
+                return
+
             raise ValueError(
                 f"Wrong number of items passed {len(self.values)}, "
                 f"placement implies {len(self.mgr_locs)}"
@@ -215,10 +225,14 @@ class Block(PandasObject):
 
         if self._validate_ndim:
             if values.ndim != ndim:
-                raise ValueError(
-                    "Wrong number of dimensions. "
-                    f"values.ndim != ndim [{values.ndim} != {ndim}]"
-                )
+                if is_datetime64tz_dtype(values.dtype):
+                    # passed via fastparquet; TODO: warn?
+                    pass
+                else:
+                    raise ValueError(
+                        "Wrong number of dimensions. "
+                        f"values.ndim != ndim [{values.ndim} != {ndim}]"
+                    )
         elif values.ndim > ndim:
             # ExtensionBlock
             raise ValueError(
