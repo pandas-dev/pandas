@@ -5994,10 +5994,11 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         # FIXME: docstr inaccurate, args/kwargs not passed
+        nv.validate_any(args, kwargs)
         self._maybe_disable_logical_methods("any")
         return np.any(self.values)
 
-    def all(self):
+    def all(self, *args, **kwargs):
         """
         Return whether all elements are Truthy.
 
@@ -6052,6 +6053,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # FIXME: docstr inaccurate, args/kwargs not passed
 
+        nv.validate_all(args, kwargs)
         self._maybe_disable_logical_methods("all")
         return np.all(self.values)
 
