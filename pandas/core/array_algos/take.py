@@ -423,25 +423,6 @@ def _take_2d_multi_object(
             out[i, j] = arr[u_, v]
 
 
-@functools.lru_cache(maxsize=128)
-def _maybe_promote_cached(dtype, fill_value, fill_value_type):
-    # also use fill_value_type as (unused) argument to use this in the cache
-    # lookup -> differentiate 1 and True
-    return maybe_promote(dtype, fill_value)
-
-
-def _maybe_promote(dtype, fill_value):
-    try:
-        # error: Argument 3 to "__call__" of "_lru_cache_wrapper" has incompatible type
-        # "Type[Any]"; expected "Hashable"  [arg-type]
-        return _maybe_promote_cached(
-            dtype, fill_value, type(fill_value)
-        )  # type: ignore[arg-type]
-    except TypeError:
-        # if fill_value is not hashable (required for caching)
-        return maybe_promote(dtype, fill_value)
-
-
 def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
     indexer: Optional[np.ndarray],
@@ -463,7 +444,7 @@ def _take_preprocess_indexer_and_fill_value(
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
+            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 mask = indexer == -1
