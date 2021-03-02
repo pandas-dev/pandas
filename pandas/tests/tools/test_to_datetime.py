@@ -2,7 +2,11 @@
 
 import calendar
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
+from decimal import Decimal
 import locale
 
 from dateutil.parser import parse
@@ -12,8 +16,14 @@ import pytest
 import pytz
 
 from pandas._libs import tslib
-from pandas._libs.tslibs import iNaT, parsing
-from pandas.errors import OutOfBoundsDatetime
+from pandas._libs.tslibs import (
+    iNaT,
+    parsing,
+)
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
@@ -1668,12 +1678,14 @@ class TestToDatetimeMisc:
         # gh-17637
         # we are overflowing Timedelta range here
 
-        msg = (
-            "(Python int too large to convert to C long)|"
-            "(long too big to convert)|"
-            "(int too big to convert)"
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                "long too big to convert",
+                "int too big to convert",
+            ]
         )
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
     @pytest.mark.parametrize("cache", [True, False])
@@ -2440,9 +2452,15 @@ def test_nullable_integer_to_datetime():
 
 @pytest.mark.parametrize("klass", [np.array, list])
 def test_na_to_datetime(nulls_fixture, klass):
-    result = pd.to_datetime(klass([nulls_fixture]))
 
-    assert result[0] is pd.NaT
+    if isinstance(nulls_fixture, Decimal):
+        with pytest.raises(TypeError, match="not convertible to datetime"):
+            pd.to_datetime(klass([nulls_fixture]))
+
+    else:
+        result = pd.to_datetime(klass([nulls_fixture]))
+
+        assert result[0] is pd.NaT
 
 
 def test_empty_string_datetime_coerce__format():

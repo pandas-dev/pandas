@@ -19,12 +19,23 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
+from pandas._libs import (
+    internals as libinternals,
+    lib,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    Shape,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_dtype_equal,
@@ -32,14 +43,24 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import array_equals, isna
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    array_equals,
+    isna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Float64Index, Index, ensure_index
+from pandas.core.indexes.api import (
+    Float64Index,
+    Index,
+    ensure_index,
+)
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
@@ -47,12 +68,15 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
+    ensure_block_shape,
     extend_blocks,
     get_block_type,
     make_block,
-    safe_reshape,
 )
-from pandas.core.internals.ops import blockwise_all, operate_blockwise
+from pandas.core.internals.ops import (
+    blockwise_all,
+    operate_blockwise,
+)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -103,7 +127,7 @@ class BlockManager(DataManager):
     ----------
     blocks: Sequence of Block
     axes: Sequence of Index
-    do_integrity_check: bool, default True
+    verify_integrity: bool, default True
 
     Notes
     -----
@@ -126,7 +150,7 @@ class BlockManager(DataManager):
         self,
         blocks: Sequence[Block],
         axes: Sequence[Index],
-        do_integrity_check: bool = True,
+        verify_integrity: bool = True,
     ):
         self.axes = [ensure_index(ax) for ax in axes]
         self.blocks: Tuple[Block, ...] = tuple(blocks)
@@ -138,7 +162,7 @@ class BlockManager(DataManager):
                     f"number of axes ({self.ndim})"
                 )
 
-        if do_integrity_check:
+        if verify_integrity:
             self._verify_integrity()
 
         # Populate known_consolidate, blknos, and blklocs lazily
@@ -151,7 +175,7 @@ class BlockManager(DataManager):
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
-        return cls(blocks, axes, do_integrity_check=False)
+        return cls(blocks, axes, verify_integrity=False)
 
     @property
     def blknos(self):
@@ -190,7 +214,7 @@ class BlockManager(DataManager):
             assert isinstance(self, SingleBlockManager)  # for mypy
             blk = self.blocks[0]
             arr = blk.values[:0]
-            nb = blk.make_block_same_class(arr, placement=slice(0, 0), ndim=1)
+            nb = blk.make_block_same_class(arr, placement=slice(0, 0))
             blocks = [nb]
         else:
             blocks = []
@@ -210,16 +234,19 @@ class BlockManager(DataManager):
     def ndim(self) -> int:
         return len(self.axes)
 
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(
+        self, axis: int, new_labels: Index, verify_integrity: bool = True
+    ) -> None:
         # Caller is responsible for ensuring we have an Index object.
-        old_len = len(self.axes[axis])
-        new_len = len(new_labels)
+        if verify_integrity:
+            old_len = len(self.axes[axis])
+            new_len = len(new_labels)
 
-        if new_len != old_len:
-            raise ValueError(
-                f"Length mismatch: Expected axis has {old_len} elements, new "
-                f"values have {new_len} elements"
-            )
+            if new_len != old_len:
+                raise ValueError(
+                    f"Length mismatch: Expected axis has {old_len} elements, new "
+                    f"values have {new_len} elements"
+                )
 
         self.axes[axis] = new_labels
 
@@ -257,6 +284,17 @@ class BlockManager(DataManager):
         dtypes = np.array([blk.dtype for blk in self.blocks])
         return algos.take_nd(dtypes, self.blknos, allow_fill=False)
 
+    @property
+    def arrays(self) -> List[ArrayLike]:
+        """
+        Quick access to the backing arrays of the Blocks.
+
+        Only for compatibility with ArrayManager for testing convenience.
+        Not to be used in actual code, and return value is not the same as the
+        ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
+        """
+        return [blk.values for blk in self.blocks]
+
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
         block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
@@ -279,6 +317,8 @@ class BlockManager(DataManager):
     def __setstate__(self, state):
         def unpickle_block(values, mgr_locs, ndim: int):
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
+            values = extract_array(values, extract_numpy=True)
             return make_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
@@ -365,6 +405,41 @@ class BlockManager(DataManager):
             indexer = np.arange(self.shape[0])
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
+
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+        """
+        Apply grouped reduction function blockwise, returning a new BlockManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop blocks where func raises TypeError.
+
+        Returns
+        -------
+        BlockManager
+        """
+        result_blocks: List[Block] = []
+
+        for blk in self.blocks:
+            try:
+                applied = blk.apply(func)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
+            result_blocks = extend_blocks(applied, result_blocks)
+
+        if len(result_blocks) == 0:
+            index = Index([None])  # placeholder
+        else:
+            index = Index(range(result_blocks[0].values.shape[-1]))
+
+        if ignore_failures:
+            return self._combine(result_blocks, index=index)
+
+        return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
     def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """
@@ -723,7 +798,7 @@ class BlockManager(DataManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
+        bm = type(self)(new_blocks, new_axes, verify_integrity=False)
         return bm
 
     @property
@@ -942,12 +1017,8 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
-        return SingleBlockManager(
-            block.make_block_same_class(
-                values, placement=slice(0, len(values)), ndim=1
-            ),
-            self.axes[1],
-        )
+        nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
+        return SingleBlockManager(nb, self.axes[1])
 
     def iget_values(self, i: int) -> ArrayLike:
         """
@@ -1017,7 +1088,7 @@ class BlockManager(DataManager):
                 value = value.T
 
             if value.ndim == self.ndim - 1:
-                value = safe_reshape(value, (1,) + value.shape)
+                value = ensure_block_shape(value, ndim=2)
 
                 def value_getitem(placement):
                     return value
@@ -1140,11 +1211,11 @@ class BlockManager(DataManager):
 
         if value.ndim == 2:
             value = value.T
-
-        if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+        elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
-            value = safe_reshape(value, (1,) + value.shape)
+            value = ensure_block_shape(value, ndim=2)
 
+        # TODO: type value as ArrayLike
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
         for blkno, count in _fast_count_smallints(self.blknos[loc:]):
@@ -1221,7 +1292,7 @@ class BlockManager(DataManager):
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
-            self.axes[axis]._can_reindex(indexer)
+            self.axes[axis]._validate_can_reindex(indexer)
 
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
@@ -1467,7 +1538,7 @@ class SingleBlockManager(BlockManager):
         self,
         block: Block,
         axis: Index,
-        do_integrity_check: bool = False,
+        verify_integrity: bool = False,
         fastpath=lib.no_default,
     ):
         assert isinstance(block, Block), type(block)
@@ -1491,7 +1562,7 @@ class SingleBlockManager(BlockManager):
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], do_integrity_check=False)
+        return cls(blocks[0], axes[0], verify_integrity=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> SingleBlockManager:
@@ -1606,6 +1677,11 @@ def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
         raise construction_error(tot_items, blocks[0].shape[1:], axes, e)
 
 
+# We define this here so we can override it in tests.extension.test_numpy
+def _extract_array(obj):
+    return extract_array(obj, extract_numpy=True)
+
+
 def create_block_manager_from_arrays(
     arrays, names: Index, axes: List[Index]
 ) -> BlockManager:
@@ -1613,9 +1689,8 @@ def create_block_manager_from_arrays(
     assert isinstance(axes, list)
     assert all(isinstance(x, Index) for x in axes)
 
-    # ensure we dont have any PandasArrays when we call get_block_type
-    # Note: just calling extract_array breaks tests that patch PandasArray._typ.
-    arrays = [x if not isinstance(x, ABCPandasArray) else x.to_numpy() for x in arrays]
+    arrays = [_extract_array(x) for x in arrays]
+
     try:
         blocks = _form_blocks(arrays, names, axes)
         mgr = BlockManager(blocks, axes)
@@ -1625,7 +1700,12 @@ def create_block_manager_from_arrays(
         raise construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
-def construction_error(tot_items, block_shape, axes, e=None):
+def construction_error(
+    tot_items: int,
+    block_shape: Shape,
+    axes: List[Index],
+    e: Optional[ValueError] = None,
+):
     """ raise a helpful message about our construction """
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction
@@ -1649,7 +1729,9 @@ def construction_error(tot_items, block_shape, axes, e=None):
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(arrays, names: Index, axes: List[Index]) -> List[Block]:
+def _form_blocks(
+    arrays: List[ArrayLike], names: Index, axes: List[Index]
+) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
     items_dict: DefaultDict[str, List] = defaultdict(list)
@@ -1769,13 +1851,6 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
 
 def _stack_arrays(tuples, dtype: np.dtype):
 
-    # fml
-    def _asarray_compat(x):
-        if isinstance(x, ABCSeries):
-            return x._values
-        else:
-            return np.asarray(x)
-
     placement, arrays = zip(*tuples)
 
     first = arrays[0]
@@ -1783,7 +1858,7 @@ def _stack_arrays(tuples, dtype: np.dtype):
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
-        stacked[i] = _asarray_compat(arr)
+        stacked[i] = arr
 
     return stacked, placement
 
@@ -1807,7 +1882,7 @@ def _interleaved_dtype(blocks: Sequence[Block]) -> Optional[DtypeObj]:
     return find_common_type([b.dtype for b in blocks])
 
 
-def _consolidate(blocks):
+def _consolidate(blocks: Tuple[Block, ...]) -> List[Block]:
     """
     Merge blocks having same dtype, exclude non-consolidating blocks
     """

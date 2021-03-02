@@ -7,7 +7,15 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td
@@ -359,10 +367,11 @@ class TestGroupByNonCythonPaths:
         result = gni.mad()
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
     def test_describe(self, df, gb, gni):
         # describe
         expected_index = Index([1, 3], name="A")
-        expected_col = pd.MultiIndex(
+        expected_col = MultiIndex(
             levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
             codes=[[0] * 8, list(range(8))],
         )
@@ -558,7 +567,7 @@ def test_idxmin_idxmax_axis1():
 
     tm.assert_series_equal(alt[indexer], res.droplevel("A"))
 
-    df["E"] = pd.date_range("2016-01-01", periods=10)
+    df["E"] = date_range("2016-01-01", periods=10)
     gb2 = df.groupby("A")
 
     msg = "reduction operation 'argmax' not allowed for this dtype"
@@ -915,11 +924,13 @@ def test_is_monotonic_decreasing(in_vals, out_vals):
 # --------------------------------
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_apply_describe_bug(mframe):
     grouped = mframe.groupby(level="first")
     grouped.describe()  # it works!
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_series_describe_multikey():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
@@ -929,6 +940,7 @@ def test_series_describe_multikey():
     tm.assert_series_equal(result["min"], grouped.min(), check_names=False)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_series_describe_single():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby(lambda x: x.month)
@@ -943,6 +955,7 @@ def test_series_index_name(df):
     assert result.index.name == "A"
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_frame_describe_multikey(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
@@ -950,7 +963,7 @@ def test_frame_describe_multikey(tsframe):
     for col in tsframe:
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
-        group_col = pd.MultiIndex(
+        group_col = MultiIndex(
             levels=[[col], group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
@@ -965,6 +978,7 @@ def test_frame_describe_multikey(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_frame_describe_tupleindex():
 
     # GH 14848 - regression from 0.19.0 to 0.19.1
@@ -984,6 +998,7 @@ def test_frame_describe_tupleindex():
         df2.groupby("key").describe()
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_frame_describe_unstacked_format():
     # GH 4792
     prices = {
@@ -1010,6 +1025,7 @@ def test_frame_describe_unstacked_format():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 @pytest.mark.filterwarnings(
     "ignore:"
     "indexing past lexsort depth may impact performance:"

@@ -22,10 +22,20 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import NaT, iNaT, lib
+from pandas._libs import (
+    NaT,
+    iNaT,
+    lib,
+)
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Shape, final
+from pandas._typing import (
+    ArrayLike,
+    F,
+    FrameOrSeries,
+    Shape,
+    final,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -55,15 +65,26 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex
-from pandas.core.dtypes.missing import isna, maybe_fill
+from pandas.core.dtypes.missing import (
+    isna,
+    maybe_fill,
+)
 
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, grouper
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.groupby import (
+    base,
+    grouper,
+)
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    ensure_index,
+)
+from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -194,6 +215,10 @@ class BaseGrouper:
             #  TODO: can we have a workaround for EAs backed by ndarray?
             pass
 
+        elif isinstance(sdata._mgr, ArrayManager):
+            # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
+            # for now -> relies on BlockManager internals
+            pass
         elif (
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
@@ -517,7 +542,7 @@ class BaseGrouper:
                 return res_values
 
             res_values = res_values.astype("i8", copy=False)
-            result = type(orig_values)._simple_new(res_values, dtype=orig_values.dtype)
+            result = type(orig_values)(res_values, dtype=orig_values.dtype)
             return result
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
@@ -722,11 +747,10 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj.iloc[:0]
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
-        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
+        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups)
         result, counts = grouper.get_result()
         return result, counts
 
@@ -755,7 +779,7 @@ class BaseGrouper:
             counts[label] = group.shape[0]
             result[label] = res
 
-        result = lib.maybe_convert_objects(result, try_float=0)
+        result = lib.maybe_convert_objects(result, try_float=False)
         result = maybe_cast_result(result, obj, numeric_only=True)
 
         return result, counts
@@ -925,8 +949,7 @@ class BinGrouper(BaseGrouper):
             # preempt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
-        dummy = obj[:0]
-        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
+        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins)
         return grouper.get_result()
 
 

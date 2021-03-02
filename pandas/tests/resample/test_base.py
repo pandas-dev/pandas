@@ -3,7 +3,14 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, PeriodIndex, Series
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    NaT,
+    PeriodIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
@@ -213,7 +220,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         getattr(empty_series_dti.resample("d"), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
-        # (ex: doing mean with dtype of np.object)
+        # (ex: doing mean with dtype of np.object_)
         pass
 
 
@@ -240,6 +247,7 @@ def test_resampler_is_iterable(series):
         tm.assert_series_equal(rv, gv)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 @all_ts
 def test_resample_quantile(series):
     # GH 15023

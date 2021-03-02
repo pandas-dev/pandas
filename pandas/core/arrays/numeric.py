@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import datetime
 import numbers
-from typing import TYPE_CHECKING, Any, List, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import Timedelta, missing as libmissing
+from pandas._libs import (
+    Timedelta,
+    missing as libmissing,
+)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -18,7 +26,10 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import ops
-from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow
@@ -188,3 +199,12 @@ class NumericArray(BaseMaskedArray):
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
+
+    def __neg__(self):
+        return type(self)(-self._data, self._mask.copy())
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return type(self)(abs(self._data), self._mask.copy())

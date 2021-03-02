@@ -7,7 +7,10 @@ import dateutil.parser
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError, PerformanceWarning
+from pandas.errors import (
+    EmptyDataError,
+    PerformanceWarning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

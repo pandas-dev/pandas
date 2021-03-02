@@ -177,12 +177,12 @@ class TestFeather:
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame().reset_index()
-        result = tm.round_trip_pathlib(df.to_feather, pd.read_feather)
+        result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_path_localpath(self):
         df = tm.makeDataFrame().reset_index()
-        result = tm.round_trip_localpath(df.to_feather, pd.read_feather)
+        result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     @td.skip_if_no("pyarrow", min_version="0.16.1.dev")
@@ -198,6 +198,6 @@ class TestFeather:
             "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
             "pandas/tests/io/data/feather/feather-0_3_1.feather"
         )
-        expected = pd.read_feather(feather_file)
-        res = pd.read_feather(url)
+        expected = read_feather(feather_file)
+        res = read_feather(url)
         tm.assert_frame_equal(expected, res)

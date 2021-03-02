@@ -1,7 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
+
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -288,6 +293,7 @@ class TestIndexReductions:
         with pytest.raises(ValueError, match=errmsg):
             np.argmax(td, out=0)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
     def test_timedelta_ops(self):
         # GH#4984
         # make sure ops return Timedelta
@@ -1417,7 +1423,7 @@ class TestSeriesMode:
         expected = Series(["foo", np.nan])
         s = Series([1, "foo", "foo", np.nan, np.nan])
 
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 

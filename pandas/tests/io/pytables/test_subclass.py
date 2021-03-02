@@ -1,10 +1,16 @@
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_path
 
-from pandas.io.pytables import HDFStore, read_hdf
+from pandas.io.pytables import (
+    HDFStore,
+    read_hdf,
+)
 
 
 class TestHDFStoreSubclass:
