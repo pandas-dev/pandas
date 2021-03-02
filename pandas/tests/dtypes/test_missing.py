@@ -8,10 +8,20 @@ import pytest
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import iNaT, is_null_datetimelike
+from pandas._libs.tslibs import (
+    iNaT,
+    is_null_datetimelike,
+)
 
-from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.common import (
+    is_float,
+    is_scalar,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -22,7 +32,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
+from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    NaT,
+    Series,
+    TimedeltaIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 now = pd.Timestamp.now()
@@ -188,16 +205,16 @@ class TestIsNA:
 
     def test_isna_old_datetimelike(self):
         # isna_old should work for dt64tz, td64, and period, not just tznaive
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
         dta = dti._data
-        dta[-1] = pd.NaT
+        dta[-1] = NaT
         expected = np.array([False, False, True], dtype=bool)
 
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
             with cf.option_context("mode.use_inf_as_na", True):
-                result = pd.isna(obj)
+                result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -299,6 +316,43 @@ class TestIsNA:
         s = Series(idx, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
+
+    def test_decimal(self):
+        # scalars GH#23530
+        a = Decimal(1.0)
+        assert isna(a) is False
+        assert notna(a) is True
+
+        b = Decimal("NaN")
+        assert isna(b) is True
+        assert notna(b) is False
+
+        # array
+        arr = np.array([a, b])
+        expected = np.array([False, True])
+        result = isna(arr)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = notna(arr)
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        # series
+        ser = Series(arr)
+        expected = Series(expected)
+        result = isna(ser)
+        tm.assert_series_equal(result, expected)
+
+        result = notna(ser)
+        tm.assert_series_equal(result, ~expected)
+
+        # index
+        idx = pd.Index(arr)
+        expected = np.array([False, True])
+        result = isna(idx)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = notna(idx)
+        tm.assert_numpy_array_equal(result, ~expected)
 
 
 @pytest.mark.parametrize("dtype_equal", [True, False])
@@ -524,7 +578,7 @@ class TestNAObj:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):
-        arr = np.array([1, None, "foo", -5.1, pd.NaT, np.nan])
+        arr = np.array([1, None, "foo", -5.1, NaT, np.nan])
         expected = np.array([False, True, False, False, True, True])
 
         self._check_behavior(arr, expected)
@@ -602,33 +656,28 @@ never_na_vals = [
 
 
 class TestLibMissing:
-    def test_checknull(self):
-        for value in na_vals:
-            assert libmissing.checknull(value)
+    @pytest.mark.parametrize("func", [libmissing.checknull, isna])
+    def test_checknull(self, func):
+        for value in na_vals + sometimes_na_vals:
+            assert func(value)
 
         for value in inf_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
         for value in int_na_vals:
-            assert not libmissing.checknull(value)
-
-        for value in sometimes_na_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
         for value in never_na_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
     def test_checknull_old(self):
-        for value in na_vals:
+        for value in na_vals + sometimes_na_vals:
             assert libmissing.checknull_old(value)
 
         for value in inf_vals:
             assert libmissing.checknull_old(value)
 
         for value in int_na_vals:
-            assert not libmissing.checknull_old(value)
-
-        for value in sometimes_na_vals:
             assert not libmissing.checknull_old(value)
 
         for value in never_na_vals:
@@ -664,6 +713,9 @@ class TestLibMissing:
             assert libmissing.is_matching_na(left, right)
         elif is_float(left) and is_float(right):
             # np.nan vs float("NaN") we consider as matching
+            assert libmissing.is_matching_na(left, right)
+        elif type(left) is type(right):
+            # e.g. both Decimal("NaN")
             assert libmissing.is_matching_na(left, right)
         else:
             assert not libmissing.is_matching_na(left, right)

@@ -4,7 +4,10 @@ Tests for DataFrame.mask; tests DataFrame.where as a side-effect.
 
 import numpy as np
 
-from pandas import DataFrame, isna
+from pandas import (
+    DataFrame,
+    isna,
+)
 import pandas._testing as tm
 
 

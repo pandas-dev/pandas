@@ -3,11 +3,18 @@ Tests date parsing functionality for all of the
 parsers defined in parsers.py
 """
 
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 from io import StringIO
 
 from dateutil.parser import parse as du_parse
-from hypothesis import given, settings, strategies as st
+from hypothesis import (
+    given,
+    settings,
+    strategies as st,
+)
 import numpy as np
 import pytest
 import pytz
@@ -15,10 +22,19 @@ import pytz
 from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import is_platform_windows, np_array_datetime64_compat
+from pandas.compat import (
+    is_platform_windows,
+    np_array_datetime64_compat,
+)
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -1510,7 +1526,7 @@ def test_parse_timezone(all_parsers):
 
     dti = DatetimeIndex(
         list(
-            pd.date_range(
+            date_range(
                 start="2018-01-04 09:01:00",
                 end="2018-01-04 09:05:00",
                 freq="1min",

@@ -1,5 +1,12 @@
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -19,8 +26,15 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
     window_apply_parameters,
 )
-from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
-from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    ExpandingIndexer,
+    GroupbyIndexer,
+)
+from pandas.core.window.rolling import (
+    BaseWindowGroupby,
+    RollingAndExpandingMixin,
+)
 
 
 class Expanding(RollingAndExpandingMixin):
@@ -80,9 +94,7 @@ class Expanding(RollingAndExpandingMixin):
 
     _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(
-        self, obj, min_periods=1, center=None, axis=0, method="single", **kwargs
-    ):
+    def __init__(self, obj, min_periods=1, center=None, axis=0, method="single"):
         super().__init__(
             obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
         )
@@ -615,9 +627,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     Provide a expanding groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return Expanding
+    _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
@@ -628,7 +638,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._groupby.indices,
+            groupby_indicies=self._grouper.indices,
             window_indexer=ExpandingIndexer,
         )
         return window_indexer

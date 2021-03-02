@@ -4,12 +4,24 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex
-from pandas.core.dtypes.missing import isna, remove_na_arraylike
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    remove_na_arraylike,
+)
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
+from pandas.plotting._matplotlib.core import (
+    LinePlot,
+    MPLPlot,
+)
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
