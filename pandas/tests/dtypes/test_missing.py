@@ -205,16 +205,16 @@ class TestIsNA:
 
     def test_isna_old_datetimelike(self):
         # isna_old should work for dt64tz, td64, and period, not just tznaive
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
         dta = dti._data
-        dta[-1] = pd.NaT
+        dta[-1] = NaT
         expected = np.array([False, False, True], dtype=bool)
 
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
             with cf.option_context("mode.use_inf_as_na", True):
-                result = pd.isna(obj)
+                result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -320,38 +320,38 @@ class TestIsNA:
     def test_decimal(self):
         # scalars GH#23530
         a = Decimal(1.0)
-        assert pd.isna(a) is False
-        assert pd.notna(a) is True
+        assert isna(a) is False
+        assert notna(a) is True
 
         b = Decimal("NaN")
-        assert pd.isna(b) is True
-        assert pd.notna(b) is False
+        assert isna(b) is True
+        assert notna(b) is False
 
         # array
         arr = np.array([a, b])
         expected = np.array([False, True])
-        result = pd.isna(arr)
+        result = isna(arr)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.notna(arr)
+        result = notna(arr)
         tm.assert_numpy_array_equal(result, ~expected)
 
         # series
         ser = Series(arr)
         expected = Series(expected)
-        result = pd.isna(ser)
+        result = isna(ser)
         tm.assert_series_equal(result, expected)
 
-        result = pd.notna(ser)
+        result = notna(ser)
         tm.assert_series_equal(result, ~expected)
 
         # index
         idx = pd.Index(arr)
         expected = np.array([False, True])
-        result = pd.isna(idx)
+        result = isna(idx)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.notna(idx)
+        result = notna(idx)
         tm.assert_numpy_array_equal(result, ~expected)
 
 
@@ -578,7 +578,7 @@ class TestNAObj:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):
-        arr = np.array([1, None, "foo", -5.1, pd.NaT, np.nan])
+        arr = np.array([1, None, "foo", -5.1, NaT, np.nan])
         expected = np.array([False, True, False, False, True, True])
 
         self._check_behavior(arr, expected)
