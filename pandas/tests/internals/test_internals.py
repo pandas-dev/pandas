@@ -34,8 +34,8 @@ from pandas.core.arrays import (
 from pandas.core.internals import (
     BlockManager,
     SingleBlockManager,
-    make_block,
 )
+from pandas.core.internals.blocks import make_block  # private version
 
 
 @pytest.fixture
