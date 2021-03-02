@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 from uuid import uuid4
 
@@ -55,7 +56,10 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
-CSSStyles = List[Dict[str, CSSProperties]]
+CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
+# class CSSDict(TypedDict):  # available when TypedDict is valid in pandas
+#     selector: str
+#     props: CSSProperties
 
 try:
     from matplotlib import colors
@@ -466,7 +470,7 @@ class Styler:
                     }
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
-                        es["attributes"] = [f'colspan="{colspan}"']
+                        es["attributes"] = f'colspan="{colspan}"'
                     row_es.append(es)
                 head.append(row_es)
 
@@ -499,7 +503,7 @@ class Styler:
             head.append(index_header_row)
 
         body = []
-        for r, idx in enumerate(self.data.index):
+        for r, row_tup in enumerate(self.data.itertuples()):
             row_es = []
             for c, value in enumerate(rlabels[r]):
                 rid = [
@@ -517,18 +521,18 @@ class Styler:
                 }
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
-                    es["attributes"] = [f'rowspan="{rowspan}"']
+                    es["attributes"] = f'rowspan="{rowspan}"'
                 row_es.append(es)
 
-            for c, col in enumerate(self.data.columns):
+            for c, value in enumerate(row_tup[1:]):
                 cs = [DATA_CLASS, f"row{r}", f"col{c}"]
                 formatter = self._display_funcs[(r, c)]
-                value = self.data.iloc[r, c]
                 row_dict = {
                     "type": "td",
                     "value": value,
                     "display_value": formatter(value),
                     "is_visible": (c not in hidden_columns),
+                    "attributes": "",
                 }
 
                 # only add an id if the cell has a style
@@ -566,7 +570,7 @@ class Styler:
             "body": body,
             "uuid": uuid,
             "precision": precision,
-            "table_styles": table_styles,
+            "table_styles": _format_table_styles(table_styles),
             "caption": caption,
             "table_attributes": table_attr,
         }
@@ -1427,7 +1431,7 @@ class Styler:
                     The relative luminance as a value from 0 to 1
                 """
                 r, g, b = (
-                    x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055 ** 2.4)
+                    x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
                     for x in rgba[:3]
                 )
                 return 0.2126 * r + 0.7152 * g + 0.0722 * b
@@ -1904,25 +1908,14 @@ class _Tooltips:
         -------
         pseudo_css : List
         """
+        selector_id = "#T_" + uuid + "row" + str(row) + "_col" + str(col)
         return [
             {
-                "selector": "#T_"
-                + uuid
-                + "row"
-                + str(row)
-                + "_col"
-                + str(col)
-                + f":hover .{name}",
+                "selector": selector_id + f":hover .{name}",
                 "props": [("visibility", "visible")],
             },
             {
-                "selector": "#T_"
-                + uuid
-                + "row"
-                + str(row)
-                + "_col"
-                + str(col)
-                + f" .{name}::after",
+                "selector": selector_id + f" .{name}::after",
                 "props": [("content", f'"{text}"')],
             },
         ]
@@ -2075,6 +2068,26 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def _format_table_styles(styles: CSSStyles) -> CSSStyles:
+    """
+    looks for multiple CSS selectors and separates them:
+    [{'selector': 'td, th', 'props': 'a:v;'}]
+        ---> [{'selector': 'td', 'props': 'a:v;'},
+              {'selector': 'th', 'props': 'a:v;'}]
+    """
+    return [
+        item
+        for sublist in [
+            [  # this is a CSSDict when TypedDict is available to avoid cast.
+                {"selector": x, "props": style["props"]}
+                for x in cast(str, style["selector"]).split(",")
+            ]
+            for style in styles
+        ]
+        for item in sublist
+    ]
 
 
 def _non_reducing_slice(slice_):

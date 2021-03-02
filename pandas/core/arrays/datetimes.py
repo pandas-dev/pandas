@@ -261,7 +261,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
             if freq is None:
                 freq = values.freq
-            values = values._data
+            values = values._ndarray
 
         if not isinstance(values, np.ndarray):
             raise ValueError(
@@ -303,7 +303,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # be incorrect(ish?) for the array as a whole
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
 
-        self._data = values
+        self._ndarray = values
         self._dtype = dtype
         self._freq = freq
 
@@ -315,12 +315,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
-        if values.dtype != DT64NS_DTYPE:
-            assert values.dtype == "i8"
-            values = values.view(DT64NS_DTYPE)
+        assert values.dtype == DT64NS_DTYPE
 
         result = object.__new__(cls)
-        result._data = values
+        result._ndarray = values
         result._freq = freq
         result._dtype = dtype
         return result
@@ -439,6 +437,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 values = np.array([x.value for x in xdr], dtype=np.int64)
 
             _tz = start.tz if start is not None else end.tz
+            values = values.view("M8[ns]")
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
@@ -464,9 +463,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 + start.value
             )
             dtype = tz_to_dtype(tz)
-            index = cls._simple_new(
-                arr.astype("M8[ns]", copy=False), freq=None, dtype=dtype
-            )
+            arr = arr.astype("M8[ns]", copy=False)
+            index = cls._simple_new(arr, freq=None, dtype=dtype)
 
         if not left_closed and len(index) and index[0] == start:
             # TODO: overload DatetimeLikeArrayMixin.__getitem__
@@ -476,7 +474,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             index = cast(DatetimeArray, index[:-1])
 
         dtype = tz_to_dtype(tz)
-        return cls._simple_new(index.asi8, freq=freq, dtype=dtype)
+        return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -616,6 +614,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         elif is_datetime64_ns_dtype(dtype):
             return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
 
+        elif self.tz is None and is_datetime64_dtype(dtype) and dtype != self.dtype:
+            # unit conversion e.g. datetime64[s]
+            return self._ndarray.astype(dtype)
+
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
@@ -706,7 +708,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset._apply_array(values)
+            result = offset._apply_array(values).view("M8[ns]")
             result = DatetimeArray._simple_new(result)
             result = result.tz_localize(self.tz)
 
@@ -829,7 +831,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz)
-        return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
+        return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
 
     @dtl.ravel_compat
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
@@ -1134,7 +1136,7 @@ default 'raise'
 
             freq = res
 
-        return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)
+        return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
 
     def to_perioddelta(self, freq):
         """

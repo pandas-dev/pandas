@@ -47,7 +47,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -86,25 +85,22 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     @staticmethod  # type: ignore[misc]
     def wrapper(left, right):
         # Note: these only get called with left.dtype == right.dtype
-        if isinstance(
-            left, (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin)
-        ):
-            left = left.view("i8")
-        if isinstance(
-            right,
-            (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin),
-        ):
-            right = right.view("i8")
+        orig_left = left
+
+        left = left.view("i8")
+        right = right.view("i8")
 
         results = joinf(left, right)
         if with_indexers:
-            # dtype should be timedelta64[ns] for TimedeltaIndex
-            #  and datetime64[ns] for DatetimeIndex
-            dtype = cast(np.dtype, left.dtype).base
 
             join_index, left_indexer, right_indexer = results
-            join_index = join_index.view(dtype)
+            if not isinstance(orig_left, np.ndarray):
+                # When called from Index._intersection/_union, we have the EA
+                join_index = join_index.view(orig_left._ndarray.dtype)
+                join_index = orig_left._from_backing_data(join_index)
+
             return join_index, left_indexer, right_indexer
+
         return results
 
     return wrapper
@@ -150,7 +146,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._cache = {}
 
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
+        result._index_data = values._ndarray
 
         result._reset_identity()
         return result
@@ -165,7 +161,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     @property
     def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._data
+        return self._data._ndarray
 
     def __array_wrap__(self, result, context=None):
         """
@@ -627,12 +623,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_insert_freq(loc, item)
         return result
 
-    def _validate_fill_value(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
-        return self._data._validate_setitem_value(value)
-
     # --------------------------------------------------------------------
     # Join/Set Methods
 
@@ -656,7 +646,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-
+        assert joined.dtype == "i8" or joined.dtype == self.dtype, joined.dtype
+        joined = joined.view(self._data._ndarray.dtype)
         result = super()._wrap_joined_index(joined, other)
         result._data._freq = self._get_join_freq(other)
         return result
@@ -714,6 +705,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
+            # At this point we should have result.dtype == self.dtype
+            #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
 
@@ -732,13 +725,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left._values[lslice]
-            # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
-            # incompatible type "Union[ExtensionArray, Any]"; expected
-            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"
-            result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
+            result = left._values[lslice]
 
-        return self._wrap_setop_result(other, result)
+        return result
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         # Note: we only get here with len(self) > 0 and len(other) > 0
