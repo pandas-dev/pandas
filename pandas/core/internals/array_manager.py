@@ -433,7 +433,7 @@ class ArrayManager(DataManager):
             if isinstance(applied, list):
                 applied = applied[0]
             arr = applied.values
-            if isinstance(arr, np.ndarray):
+            if arr.ndim == 2:
                 arr = arr[0, :]
             result_arrays.append(arr)
 
