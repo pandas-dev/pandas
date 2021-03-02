@@ -43,6 +43,7 @@ from pandas._libs.tslibs import (
     iNaT,
     ints_to_pydatetime,
 )
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -1546,14 +1547,15 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
         # safe coerce to timedelta64
 
         # will try first with a string & object conversion
-        from pandas import to_timedelta
-
         try:
-            td_values = to_timedelta(v)
+            # bc we know v.dtype == object, this is equivalent to
+            #  `np.asarray(to_timedelta(v))`, but using a lower-level API that
+            #  does not require a circular import.
+            td_values = array_to_timedelta64(v).view("m8[ns]")
         except (ValueError, OverflowError):
             return v.reshape(shape)
         else:
-            return np.asarray(td_values).reshape(shape)
+            return td_values.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
@@ -1594,8 +1596,8 @@ def maybe_cast_to_datetime(
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
+    from pandas.core.arrays.timedeltas import sequence_to_td64ns
     from pandas.core.tools.datetimes import to_datetime
-    from pandas.core.tools.timedeltas import to_timedelta
 
     if not is_list_like(value):
         raise TypeError("value must be listlike")
@@ -1714,7 +1716,8 @@ def maybe_cast_to_datetime(
                                     dtype.tz  # type: ignore[union-attr]
                                 )
                         elif is_timedelta64:
-                            value = to_timedelta(value, errors="raise")._values
+                            # if successful, we get a ndarray[td64ns]
+                            value, _ = sequence_to_td64ns(value)
                     except OutOfBoundsDatetime:
                         raise
                     except ValueError as err:
