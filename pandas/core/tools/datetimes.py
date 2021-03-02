@@ -284,7 +284,7 @@ def _convert_listlike_datetimes(
     tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
     errors: Optional[str] = None,
-    infer_datetime_format: Optional[bool] = None,
+    infer_datetime_format: bool = False,
     dayfirst: Optional[bool] = None,
     yearfirst: Optional[bool] = None,
     exact: bool = True,
@@ -305,7 +305,7 @@ def _convert_listlike_datetimes(
         None or string of the frequency of the passed data
     errors : string
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
-    infer_datetime_format : boolean
+    infer_datetime_format : bool, default False
         inferring format behavior from to_datetime
     dayfirst : boolean
         dayfirst parsing behavior from to_datetime
@@ -413,17 +413,16 @@ def _convert_listlike_datetimes(
             require_iso8601 = not infer_datetime_format
             format = None
 
-    tz_parsed = None
     result = None
 
     if format is not None:
         try:
             # shortcut formatting here
             if format == "%Y%m%d":
+                # pass orig_arg as float-dtype may have been converted to
+                # datetime64[ns]
+                orig_arg = ensure_object(orig_arg)
                 try:
-                    # pass orig_arg as float-dtype may have been converted to
-                    # datetime64[ns]
-                    orig_arg = ensure_object(orig_arg)
                     result = _attempt_YYYYMMDD(orig_arg, errors=errors)
                 except (ValueError, TypeError, OutOfBoundsDatetime) as err:
                     raise ValueError(
@@ -432,36 +431,12 @@ def _convert_listlike_datetimes(
 
             # fallback
             if result is None:
-                try:
-                    result, timezones = array_strptime(
-                        arg, format, exact=exact, errors=errors
-                    )
-                    if "%Z" in format or "%z" in format:
-                        return _return_parsed_timezone_results(
-                            result, timezones, tz, name
-                        )
-                except OutOfBoundsDatetime:
-                    if errors == "raise":
-                        raise
-                    elif errors == "coerce":
-                        result = np.empty(arg.shape, dtype="M8[ns]")
-                        iresult = result.view("i8")
-                        iresult.fill(iNaT)
-                    else:
-                        result = arg
-                except ValueError:
-                    # if format was inferred, try falling back
-                    # to array_to_datetime - terminate here
-                    # for specified formats
-                    if not infer_datetime_format:
-                        if errors == "raise":
-                            raise
-                        elif errors == "coerce":
-                            result = np.empty(arg.shape, dtype="M8[ns]")
-                            iresult = result.view("i8")
-                            iresult.fill(iNaT)
-                        else:
-                            result = arg
+                result = _array_strptime_with_fallback(
+                    arg, name, tz, format, exact, errors, infer_datetime_format
+                )
+                if result is not None:
+                    return result
+
         except ValueError as e:
             # Fallback to try to convert datetime objects if timezone-aware
             #  datetime objects are found without passing `utc=True`
@@ -485,13 +460,60 @@ def _convert_listlike_datetimes(
             allow_object=True,
         )
 
-    if tz_parsed is not None:
-        # We can take a shortcut since the datetime64 numpy array
-        # is in UTC
-        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
-        return DatetimeIndex._simple_new(dta, name=name)
+        if tz_parsed is not None:
+            # We can take a shortcut since the datetime64 numpy array
+            # is in UTC
+            dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+            return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
+    return _box_as_indexlike(result, utc=utc, name=name)
+
+
+def _array_strptime_with_fallback(
+    arg,
+    name,
+    tz,
+    fmt: str,
+    exact: bool,
+    errors: Optional[str],
+    infer_datetime_format: bool,
+) -> Optional[Index]:
+    """
+    Call array_strptime, with fallback behavior depending on 'errors'.
+    """
+    utc = tz == "utc"
+
+    try:
+        result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors)
+        if "%Z" in fmt or "%z" in fmt:
+            return _return_parsed_timezone_results(result, timezones, tz, name)
+    except OutOfBoundsDatetime:
+        if errors == "raise":
+            raise
+        elif errors == "coerce":
+            result = np.empty(arg.shape, dtype="M8[ns]")
+            iresult = result.view("i8")
+            iresult.fill(iNaT)
+        else:
+            result = arg
+    except ValueError:
+        # if fmt was inferred, try falling back
+        # to array_to_datetime - terminate here
+        # for specified formats
+        if not infer_datetime_format:
+            if errors == "raise":
+                raise
+            elif errors == "coerce":
+                result = np.empty(arg.shape, dtype="M8[ns]")
+                iresult = result.view("i8")
+                iresult.fill(iNaT)
+            else:
+                result = arg
+        else:
+            # Indicates to the caller to fallback to objects_to_datetime64ns
+            return None
+
     return _box_as_indexlike(result, utc=utc, name=name)
 
 
