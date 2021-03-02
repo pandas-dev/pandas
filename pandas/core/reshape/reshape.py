@@ -641,8 +641,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             if -1 in level_codes:
                 lev = np.append(lev, None)
             levs.append(np.take(lev, level_codes))
-        tuples = list(zip(*levs))
-        unique_groups = [key for key, _ in itertools.groupby(tuples)]
+        unique_groups = [key for key, _ in itertools.groupby(zip(*levs))]
         new_columns = MultiIndex.from_arrays(
             [
                 Index(new_level, dtype=level.dtype)
