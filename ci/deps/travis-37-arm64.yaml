@@ -19,3 +19,6 @@ dependencies:
   - flask
   - pip:
     - moto
+
+  # tests compatibility
+  - backports.zoneinfo

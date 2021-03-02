@@ -62,6 +62,9 @@ dependencies:
   - pytest-asyncio
   - pytest-instafail
 
+  # tests compatibility
+  - backports.zoneinfo # GH 37654. To enable testing for Python<3.9
+
   # downstream tests
   - seaborn
   - statsmodels

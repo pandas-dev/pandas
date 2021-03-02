@@ -39,6 +39,7 @@ pytest-cov
 pytest-xdist>=1.21
 pytest-asyncio
 pytest-instafail
+backports.zoneinfo
 seaborn
 statsmodels
 ipywidgets

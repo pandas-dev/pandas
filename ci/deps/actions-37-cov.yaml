@@ -52,3 +52,6 @@ dependencies:
     - coverage
     - pandas-datareader
     - pyxlsb
+
+  # tests compatibility
+  - backports.zoneinfo

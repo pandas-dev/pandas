@@ -28,3 +28,6 @@ dependencies:
   - xlsxwriter=1.0.2
   - xlwt=1.3.0
   - html5lib=1.0.1
+
+  # tests compatibility
+  - backports.zoneinfo

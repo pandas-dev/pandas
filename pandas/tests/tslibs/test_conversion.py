@@ -11,7 +11,6 @@ from pandas._libs.tslibs import (
     timezones,
     tzconversion,
 )
-from pandas.compat import PY39
 
 from pandas import (
     Timestamp,
@@ -19,8 +18,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
-if PY39:
+# GH 37654. Enable testing for ZoneInfo compatibility for Python<3.9
+try:
     from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 
 def _compare_utc_to_local(tz_didx):
@@ -145,10 +147,6 @@ def test_localize_pydatetime_dt_types(dt, expected):
     assert result == expected
 
 
-@pytest.mark.xfail(
-    not PY39,
-    reason="ZoneInfo objects were introduced in Python 3.9",
-)
 def test_zoneinfo_support():
     # GH 37654
     # Ensure that TimeStamp supports ZoneInfo objects

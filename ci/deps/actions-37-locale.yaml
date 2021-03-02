@@ -44,3 +44,6 @@ dependencies:
   - psycopg2=2.7
   - pymysql=0.8.1
   - sqlalchemy=1.3.0
+
+  # tests compatibility
+  - backports.zoneinfo

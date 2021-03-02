@@ -26,3 +26,6 @@ dependencies:
   - tabulate
   - pyreadstat
   - pip
+
+  # tests compatibility
+  - backports.zoneinfo

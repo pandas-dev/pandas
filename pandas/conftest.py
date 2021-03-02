@@ -66,6 +66,12 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+# GH 37654. Enable testing for ZoneInfo compatibility for Python<3.9
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
+
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -1081,6 +1087,7 @@ TIMEZONES = [
     timezone.utc,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
+    ZoneInfo("US/Pacific"),
 ]
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 

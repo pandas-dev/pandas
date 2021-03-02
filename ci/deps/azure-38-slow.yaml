@@ -35,3 +35,6 @@ dependencies:
   - moto
   - flask
   - numba
+
+  # tests compatibility
+  - backports.zoneinfo

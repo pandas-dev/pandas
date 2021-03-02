@@ -39,3 +39,6 @@ dependencies:
   - pip
   - pip:
     - pyxlsb
+
+  # tests compatibility
+  - backports.zoneinfo
