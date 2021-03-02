@@ -68,7 +68,12 @@ class TestCategoricalIndex:
         df2.loc["d"] = 10
         tm.assert_frame_equal(df2, expected)
 
+    def test_loc_setitem_with_expansion_non_category(self):
         # Setting-with-expansion with a new key "d" that is not among caegories
+        df = self.df
+        df.loc["a"] = 20
+
+        # Setting a new row on an existing column
         df3 = df.copy()
         df3.loc["d", "A"] = 10
         bidx3 = Index(list("aabbcad"), name="B")
@@ -80,6 +85,7 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(df3, expected3)
 
+        # Settig a new row _and_ new column
         df4 = df.copy()
         df4.loc["d", "C"] = 10
         expected3 = DataFrame(
@@ -91,8 +97,9 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(df4, expected3)
 
+    def test_loc_getitem_scalar_non_category(self):
         with pytest.raises(KeyError, match="^1$"):
-            df.loc[1]
+            self.df.loc[1]
 
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))

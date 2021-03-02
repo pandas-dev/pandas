@@ -377,6 +377,9 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         try:
             code = arr._validate_scalar(item)
         except (ValueError, TypeError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
             dtype, _ = infer_dtype_from(item, pandas_dtype=True)
             dtype = find_common_type([self.dtype, dtype])
             return self.astype(dtype).insert(loc, item)

@@ -1680,7 +1680,6 @@ class TestLocSetitemWithExpansion:
 
         exp_index = index.insert(len(index), key)
         if isinstance(index, MultiIndex):
-            exp_index = index.insert(len(index), key)
             assert exp_index[-1][0] == key
         else:
             assert exp_index[-1] == key
