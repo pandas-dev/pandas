@@ -85,12 +85,10 @@ class SharedTests:
         arr = self.array_cls(data, freq="D")
         return arr
 
-    def test_compare_len1_raises(self):
+    def test_compare_len1_raises(self, arr1d):
         # make sure we raise when comparing with different lengths, specific
         #  to the case where one has length-1, which numpy would broadcast
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
-
-        arr = self.array_cls._simple_new(data, freq="D")
+        arr = arr1d
         idx = self.index_cls(arr)
 
         with pytest.raises(ValueError, match="Lengths must match"):
@@ -153,7 +151,9 @@ class SharedTests:
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10 ** 9
         np.random.shuffle(data)
 
-        arr = self.array_cls._simple_new(data, freq="D")
+        freq = None if self.array_cls is not PeriodArray else "D"
+
+        arr = self.array_cls(data, freq=freq)
         idx = self.index_cls._simple_new(arr)
 
         takers = [1, 4, 94]
@@ -172,7 +172,7 @@ class SharedTests:
     def test_take_fill_raises(self, fill_value):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
-        arr = self.array_cls._simple_new(data, freq="D")
+        arr = self.array_cls(data, freq="D")
 
         msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
@@ -181,7 +181,7 @@ class SharedTests:
     def test_take_fill(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
-        arr = self.array_cls._simple_new(data, freq="D")
+        arr = self.array_cls(data, freq="D")
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=None)
         assert result[0] is pd.NaT
@@ -202,10 +202,8 @@ class SharedTests:
         with pytest.raises(TypeError, match=msg):
             arr1d.take([-1, 1], allow_fill=True, fill_value="foo")
 
-    def test_concat_same_type(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
-
-        arr = self.array_cls._simple_new(data, freq="D")
+    def test_concat_same_type(self, arr1d):
+        arr = arr1d
         idx = self.index_cls(arr)
         idx = idx.insert(0, pd.NaT)
         arr = self.array_cls(idx)

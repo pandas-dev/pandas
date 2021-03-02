@@ -303,6 +303,7 @@ def array(
         raise ValueError(msg)
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
+        # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
@@ -669,6 +670,8 @@ def _try_cast(
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
+            if dtype is not None and dtype.kind == "M":
+                return subarr
 
         if not isinstance(subarr, ABCExtensionArray):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)

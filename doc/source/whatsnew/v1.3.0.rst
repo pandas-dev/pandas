@@ -43,6 +43,73 @@ For example:
         storage_options=headers
     )
 
+.. _whatsnew_130.read_to_xml:
+
+Read and write XML documents
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We added I/O support to read and render shallow versions of `XML`_ documents with
+:func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using `lxml`_ as parser,
+both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
+
+.. _XML: https://www.w3.org/standards/xml/core
+.. _lxml: https://lxml.de
+
+.. code-block:: ipython
+
+    In [1]: xml = """<?xml version='1.0' encoding='utf-8'?>
+       ...: <data>
+       ...:  <row>
+       ...:     <shape>square</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides>4.0</sides>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>circle</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides/>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>triangle</shape>
+       ...:     <degrees>180</degrees>
+       ...:     <sides>3.0</sides>
+       ...:  </row>
+       ...:  </data>"""
+
+    In [2]: df = pd.read_xml(xml)
+    In [3]: df
+    Out[3]:
+          shape  degrees  sides
+    0    square      360    4.0
+    1    circle      360    NaN
+    2  triangle      180    3.0
+
+    In [4]: df.to_xml()
+    Out[4]:
+    <?xml version='1.0' encoding='utf-8'?>
+    <data>
+      <row>
+        <index>0</index>
+        <shape>square</shape>
+        <degrees>360</degrees>
+        <sides>4.0</sides>
+      </row>
+      <row>
+        <index>1</index>
+        <shape>circle</shape>
+        <degrees>360</degrees>
+        <sides/>
+      </row>
+      <row>
+        <index>2</index>
+        <shape>triangle</shape>
+        <degrees>180</degrees>
+        <sides>3.0</sides>
+      </row>
+    </data>
+
+For more, see :ref:`io.xml` in the user guide on IO tools.
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
@@ -70,6 +137,7 @@ Other enhancements
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
+- Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
 
 .. ---------------------------------------------------------------------------
 
@@ -333,7 +401,7 @@ Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
 - Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
--
+- Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
 -
 
 Strings
@@ -447,6 +515,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` if a :class:`:meth:`core.window.rolling.RollingGroupby` object was created (:issue:`39732`)
 - Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
 - Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
+- Bug in :meth:`DataFrameGroupBy.sample` where column selection was not applied to sample result (:issue:`39928`)
 -
 
 Reshaping
@@ -493,6 +562,7 @@ Other
 - :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
+- Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 
