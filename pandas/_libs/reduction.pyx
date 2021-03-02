@@ -527,7 +527,6 @@ cdef class ArraySlider(FrameSlider):
 
         # GH#35417 attributes we need to restore at each step in case
         #  the function modified them.
-        mgr = self.dummy._mgrs
         self.orig_arrays = self.dummy._mgr.arrays
         self.arrays = list(self.dummy._mgr.arrays)
 
