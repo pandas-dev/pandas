@@ -1598,6 +1598,14 @@ def indexer_sl(request):
     return request.param
 
 
+@pytest.fixture(params=[tm.at, tm.loc])
+def indexer_sa(request):
+    """
+    Parametrize over at.__setitem__, loc.__setitem__
+    """
+    return request.param
+
+
 @pytest.fixture
 def using_array_manager(request):
     """
