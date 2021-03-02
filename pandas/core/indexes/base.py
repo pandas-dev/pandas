@@ -5866,7 +5866,7 @@ class Index(IndexOpsMixin, PandasObject):
         mask = indexer == -1
         if mask.any():
             if errors != "ignore":
-                raise KeyError(f"{labels[mask]} not found in axis")
+                raise KeyError(f"{labels[mask]} not found in columns")
             indexer = indexer[~mask]
         return self.delete(indexer)
 
