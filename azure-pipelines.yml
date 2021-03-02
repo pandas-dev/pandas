@@ -40,6 +40,7 @@ jobs:
         . ~/virtualenvs/pandas-dev/bin/activate && \
         python -m pip install --no-deps -U pip wheel setuptools && \
         pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
+        pip install backports.zoneinfo && \
         python setup.py build_ext -q -j2 && \
         python -m pip install --no-build-isolation -e . && \
         pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
