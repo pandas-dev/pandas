@@ -808,7 +808,7 @@ class TestTypeInference:
             (object, None, True, "empty"),
         ],
     )
-    @pytest.mark.parametrize("box", [pd.Series, np.array])
+    @pytest.mark.parametrize("box", [Series, np.array])
     def test_object_empty(self, box, missing, dtype, skipna, expected):
         # GH 23421
         arr = box([missing, missing], dtype=dtype)
@@ -915,7 +915,7 @@ class TestTypeInference:
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
-    @pytest.mark.parametrize("klass", [pd.array, pd.Series, pd.Index])
+    @pytest.mark.parametrize("klass", [pd.array, Series, Index])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_infer_dtype_period_array(self, klass, skipna):
         # https://github.com/pandas-dev/pandas/issues/23553
@@ -1264,7 +1264,7 @@ class TestTypeInference:
         inferred = lib.infer_dtype(Series(idx), skipna=False)
         assert inferred == "interval"
 
-    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
     def test_string_dtype(self, data, skipna, klass):
@@ -1273,7 +1273,7 @@ class TestTypeInference:
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "string"
 
-    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
     def test_boolean_dtype(self, data, skipna, klass):
