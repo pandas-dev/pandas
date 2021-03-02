@@ -36,6 +36,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
+    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -802,20 +803,16 @@ class ArrayManager(DataManager):
         """
         dtype = _interleaved_dtype(self.arrays)
 
-        if isinstance(dtype, SparseDtype):
-            temp_dtype = dtype.subtype
-        elif isinstance(dtype, PandasDtype):
-            temp_dtype = dtype.numpy_dtype
-        elif is_extension_array_dtype(dtype):
-            temp_dtype = "object"
-        elif is_dtype_equal(dtype, str):
-            temp_dtype = "object"
-        else:
-            temp_dtype = dtype
-
-        result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
+        values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+        # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
+        elif is_datetime64_ns_dtype(dtype):
+            result = DatetimeArray._from_sequence(values, dtype=dtype)._data
+        elif is_timedelta64_ns_dtype(dtype):
+            result = TimedeltaArray._from_sequence(values, dtype=dtype)._data
+        else:
+            result = np.array(values, dtype=dtype)
         return result
 
     def iget(self, i: int) -> SingleArrayManager:
