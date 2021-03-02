@@ -31,7 +31,13 @@ def find_stack_level() -> int:
         if stack[n].function == "astype":
             break
 
-    while stack[n].function in ["astype", "apply", "astype_array", "astype_array_safe"]:
+    while stack[n].function in [
+        "astype",
+        "apply",
+        "_astype",
+        "astype_array",
+        "astype_array_safe",
+    ]:
         # e.g.
         #  bump up Block.astype -> BlockManager.astype -> NDFrame.astype
         #  bump up Datetime.Array.astype -> DatetimeIndex.astype
