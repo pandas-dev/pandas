@@ -1645,7 +1645,8 @@ class _iLocIndexer(_LocationIndexer):
                     # We are expanding the Series/DataFrame values to match
                     #  the length of thenew index `labels`.  GH#40096 ensure
                     #  this is valid even if the index has duplicates.
-                    taker = list(range(len(index))) + [-1]
+                    taker = np.arange(len(index) + 1, dtype=np.intp)
+                    taker[-1] = -1
                     reindexers = {i: (labels, taker)}
                     new_obj = self.obj._reindex_with_indexers(
                         reindexers, allow_dups=True
