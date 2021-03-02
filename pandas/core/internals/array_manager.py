@@ -3,7 +3,6 @@ Experimental manager based on storing a collection of 1D arrays
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     Any,
     Callable,
@@ -28,22 +27,18 @@ from pandas._typing import (
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
-    astype_dt64_to_dt64tz,
-    astype_nansafe,
+    astype_array_safe,
     find_common_type,
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_dtype,
     is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
     is_object_dtype,
     is_timedelta64_ns_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
@@ -84,73 +79,6 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import make_block
 
 T = TypeVar("T", bound="ArrayManager")
-
-
-def astype_array(values, dtype, copy):
-    if (
-        values.dtype.kind in ["m", "M"]
-        and dtype.kind in ["i", "u"]
-        and isinstance(dtype, np.dtype)
-        and dtype.itemsize != 8
-    ):
-        # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
-        msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
-        raise TypeError(msg)
-
-    if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-        return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
-
-    if is_dtype_equal(values.dtype, dtype):
-        if copy:
-            return values.copy()
-        return values
-
-    if isinstance(values, ExtensionArray):
-        values = values.astype(dtype, copy=copy)
-
-    else:
-        values = astype_nansafe(values, dtype, copy=copy)
-
-    # now in ObjectBlock._maybe_coerce_values(cls, values):
-    if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
-        values = np.array(values, dtype=object)
-
-    return values
-
-
-def astype_array_safe(values, dtype, copy=False, errors="raise"):
-
-    errors_legal_values = ("raise", "ignore")
-
-    if errors not in errors_legal_values:
-        invalid_arg = (
-            "Expected value of kwarg 'errors' to be one of "
-            f"{list(errors_legal_values)}. Supplied value is '{errors}'"
-        )
-        raise ValueError(invalid_arg)
-
-    if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
-        msg = (
-            f"Expected an instance of {dtype.__name__}, "
-            "but got the class instead. Try instantiating 'dtype'."
-        )
-        raise TypeError(msg)
-
-    dtype = pandas_dtype(dtype)
-
-    if isinstance(dtype, PandasDtype):
-        dtype = dtype.numpy_dtype
-
-    try:
-        new_values = astype_array(values, dtype, copy=copy)
-    except (ValueError, TypeError):
-        # e.g. astype_nansafe can fail on object-dtype of strings
-        #  trying to convert to float
-        if errors == "ignore":
-            new_values = values
-        else:
-            raise
-    return new_values
 
 
 class ArrayManager(DataManager):
@@ -1239,7 +1167,7 @@ class SingleArrayManager(ArrayManager, SingleManager):
         else:
             return self.make_empty()
 
-    def set_values(self, values):
+    def set_values(self, values: ArrayLike):
         """
         Set (replace) the values of the SingleArrayManager in place.
 

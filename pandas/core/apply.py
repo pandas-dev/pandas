@@ -895,7 +895,7 @@ class FrameColumnApply(FrameApply):
             for (arr, name) in zip(values, self.index):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
-                ser._mgr.set_values(arr)
+                mgr.set_values(arr)
                 ser.name = name
                 yield ser
 

@@ -1649,7 +1649,7 @@ class SingleBlockManager(BlockManager, SingleManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def set_values(self, values):
+    def set_values(self, values: ArrayLike):
         """
         Set the values of the single block in place.
 

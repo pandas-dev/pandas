@@ -825,7 +825,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
-        return np.asarray(self.array, dtype)
+        return np.asarray(self._values, dtype)
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -1819,7 +1819,7 @@ Name: Max Speed, dtype: float64
         2
         """
         if level is None:
-            return notna(self.array).sum()
+            return notna(self._values).sum()
         elif not isinstance(self.index, MultiIndex):
             raise ValueError("Series.count level is only valid with a MultiIndex")
 
@@ -2519,7 +2519,7 @@ Name: Max Speed, dtype: float64
         --------
         {examples}
         """
-        result = algorithms.diff(self.array, periods)
+        result = algorithms.diff(self._values, periods)
         return self._constructor(result, index=self.index).__finalize__(
             self, method="diff"
         )
@@ -3829,7 +3829,7 @@ Keep all original rows and also all original values
         if not len(self) or not is_object_dtype(self):
             return self.copy()
 
-        values, counts = reshape.explode(np.asarray(self.array))
+        values, counts = reshape.explode(np.asarray(self._values))
 
         if ignore_index:
             index = ibase.default_index(len(values))
@@ -5034,7 +5034,7 @@ Keep all original rows and also all original values
         if isinstance(other, Series) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        lvalues = extract_array(self, extract_numpy=True)
+        lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = ops.comparison_op(lvalues, rvalues, op)
@@ -5045,7 +5045,7 @@ Keep all original rows and also all original values
         res_name = ops.get_op_result_name(self, other)
         self, other = ops.align_method_SERIES(self, other, align_asobject=True)
 
-        lvalues = extract_array(self, extract_numpy=True)
+        lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
@@ -5055,7 +5055,7 @@ Keep all original rows and also all original values
         res_name = ops.get_op_result_name(self, other)
         self, other = ops.align_method_SERIES(self, other)
 
-        lvalues = extract_array(self, extract_numpy=True)
+        lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
         result = ops.arithmetic_op(lvalues, rvalues, op)
 
