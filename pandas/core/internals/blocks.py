@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -35,8 +34,7 @@ from pandas._typing import (
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
-    astype_dt64_to_dt64tz,
-    astype_nansafe,
+    astype_array_safe,
     can_hold_element,
     find_common_type,
     infer_dtype_from,
@@ -47,7 +45,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_ea_dtype,
@@ -670,33 +667,11 @@ class Block(PandasObject):
         -------
         Block
         """
-        errors_legal_values = ("raise", "ignore")
+        values = self.values
+        if values.dtype.kind in ["m", "M"]:
+            values = self.array_values()
 
-        if errors not in errors_legal_values:
-            invalid_arg = (
-                "Expected value of kwarg 'errors' to be one of "
-                f"{list(errors_legal_values)}. Supplied value is '{errors}'"
-            )
-            raise ValueError(invalid_arg)
-
-        if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
-            msg = (
-                f"Expected an instance of {dtype.__name__}, "
-                "but got the class instead. Try instantiating 'dtype'."
-            )
-            raise TypeError(msg)
-
-        dtype = pandas_dtype(dtype)
-
-        try:
-            new_values = self._astype(dtype, copy=copy)
-        except (ValueError, TypeError):
-            # e.g. astype_nansafe can fail on object-dtype of strings
-            #  trying to convert to float
-            if errors == "ignore":
-                new_values = self.values
-            else:
-                raise
+        new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
         newb = self.make_block(new_values)
         if newb.shape != self.shape:
@@ -706,37 +681,6 @@ class Block(PandasObject):
                 f"({newb.dtype.name} [{newb.shape}])"
             )
         return newb
-
-    def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
-        values = self.values
-        if values.dtype.kind in ["m", "M"]:
-            values = self.array_values()
-
-        if (
-            values.dtype.kind in ["m", "M"]
-            and dtype.kind in ["i", "u"]
-            and isinstance(dtype, np.dtype)
-            and dtype.itemsize != 8
-        ):
-            # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
-            msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
-            raise TypeError(msg)
-
-        if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-            return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
-
-        if is_dtype_equal(values.dtype, dtype):
-            if copy:
-                return values.copy()
-            return values
-
-        if isinstance(values, ExtensionArray):
-            values = values.astype(dtype, copy=copy)
-
-        else:
-            values = astype_nansafe(values, dtype, copy=copy)
-
-        return values
 
     def convert(
         self,
