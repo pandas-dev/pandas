@@ -61,6 +61,7 @@ from pandas.core import (
 from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
+    TimedeltaArray,
 )
 from pandas.core.construction import (
     extract_array,
@@ -412,6 +413,11 @@ def treat_as_nested(data) -> bool:
 
 
 def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
+    if isinstance(values, TimedeltaArray):
+        # On older numpy, np.asarray below apparently does not call __array__,
+        #  so nanoseconds get dropped.
+        values = values._ndarray
+
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
