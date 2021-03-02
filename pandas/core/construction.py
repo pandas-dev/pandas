@@ -518,9 +518,9 @@ def sanitize_array(
 
     elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
         # TODO: deque, array.array
-        if isinstance(data, set):
+        if isinstance(data, (set, frozenset)):
             # Raise only for unordered sets, e.g., not for dict_keys
-            raise TypeError("Set type is unordered")
+            raise TypeError(f"'{type(data).__name__}' type is unordered")
         data = list(data)
 
         if dtype is not None:
