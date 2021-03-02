@@ -225,7 +225,7 @@ class Block(PandasObject):
 
         if self._validate_ndim:
             if values.ndim != ndim:
-                if is_datetime64tz_dtype(values.dtype):
+                if is_datetime64tz_dtype(values.dtype) and values.ndim < ndim:
                     # passed via fastparquet; TODO: warn?
                     pass
                 else:
