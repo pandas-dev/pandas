@@ -28,11 +28,13 @@ from pandas._typing import (
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    astype_array_safe,
     find_common_type,
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
@@ -53,7 +55,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -113,6 +119,7 @@ class ArrayManager(DataManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            self.arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
             self._verify_integrity()
 
     def make_empty(self: T, axes=None) -> T:
@@ -270,15 +277,30 @@ class ArrayManager(DataManager):
         -------
         ArrayManager
         """
-        # TODO ignore_failures
-        result_arrays = [func(arr) for arr in self.arrays]
+        result_arrays: List[np.ndarray] = []
+        result_indices: List[int] = []
+
+        for i, arr in enumerate(self.arrays):
+            try:
+                res = func(arr)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
+            result_arrays.append(res)
+            result_indices.append(i)
 
         if len(result_arrays) == 0:
             index = Index([None])  # placeholder
         else:
             index = Index(range(result_arrays[0].shape[0]))
 
-        return type(self)(result_arrays, [index, self.items])
+        if ignore_failures:
+            columns = self.items[np.array(result_indices, dtype="int64")]
+        else:
+            columns = self.items
+
+        return type(self)(result_arrays, [index, columns])
 
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
         """
@@ -452,7 +474,13 @@ class ArrayManager(DataManager):
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
-        return self.apply_with_block("diff", n=n, axis=axis)
+        axis = self._normalize_axis(axis)
+        if axis == 1:
+            # DataFrame only calls this for n=0, in which case performing it
+            # with axis=0 is equivalent
+            assert n == 0
+            axis = 0
+        return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> ArrayManager:
         return self.apply_with_block("interpolate", **kwargs)
@@ -478,7 +506,7 @@ class ArrayManager(DataManager):
         return self.apply_with_block("downcast")
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
-        return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(
         self,
@@ -694,20 +722,16 @@ class ArrayManager(DataManager):
         """
         dtype = _interleaved_dtype(self.arrays)
 
-        if isinstance(dtype, SparseDtype):
-            temp_dtype = dtype.subtype
-        elif isinstance(dtype, PandasDtype):
-            temp_dtype = dtype.numpy_dtype
-        elif is_extension_array_dtype(dtype):
-            temp_dtype = "object"
-        elif is_dtype_equal(dtype, str):
-            temp_dtype = "object"
-        else:
-            temp_dtype = dtype
-
-        result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
+        values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+        # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
+        elif is_datetime64_ns_dtype(dtype):
+            result = DatetimeArray._from_sequence(values, dtype=dtype)._data
+        elif is_timedelta64_ns_dtype(dtype):
+            result = TimedeltaArray._from_sequence(values, dtype=dtype)._data
+        else:
+            result = np.array(values, dtype=dtype)
         return result
 
     def iget(self, i: int) -> SingleBlockManager:
