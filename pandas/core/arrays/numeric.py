@@ -211,3 +211,12 @@ class NumericArray(BaseMaskedArray):
                 mask = self._mask.any(axis=axis)
             return type(self)(result, mask=mask)
         return result
+
+    def __neg__(self):
+        return type(self)(-self._data, self._mask.copy())
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return type(self)(abs(self._data), self._mask.copy())

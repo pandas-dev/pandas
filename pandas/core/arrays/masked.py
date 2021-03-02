@@ -186,6 +186,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def ndim(self) -> int:
         return self._data.ndim
 
+    def swapaxes(self: BaseMaskedArrayT, axis1, axis2) -> BaseMaskedArrayT:
+        data = self._data.swapaxes(axis1, axis2)
+        mask = self._mask.swapaxes(axis1, axis2)
+        return type(self)(data, mask)
+
+    def delete(self: BaseMaskedArrayT, loc, axis: int = 0) -> BaseMaskedArrayT:
+        data = np.delete(self._data, loc, axis=axis)
+        mask = np.delete(self._mask, loc, axis=axis)
+        return type(self)(data, mask)
+
     def reshape(self: BaseMaskedArrayT, *args, **kwargs) -> BaseMaskedArrayT:
         data = self._data.reshape(*args, **kwargs)
         mask = self._mask.reshape(*args, **kwargs)
