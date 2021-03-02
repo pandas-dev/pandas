@@ -1599,7 +1599,7 @@ def indexer_sl(request):
 
 
 @pytest.fixture(params=[tm.at, tm.loc])
-def indexer_sa(request):
+def indexer_al(request):
     """
     Parametrize over at.__setitem__, loc.__setitem__
     """

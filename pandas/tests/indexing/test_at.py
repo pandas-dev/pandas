@@ -90,49 +90,49 @@ class TestAtErrors:
     # TODO: De-duplicate/parametrize
     #  test_at_series_raises_key_error2, test_at_frame_raises_key_error2
 
-    def test_at_series_raises_key_error(self, indexer_sa):
+    def test_at_series_raises_key_error(self, indexer_al):
         # GH#31724 .at should match .loc
 
         ser = Series([1, 2, 3], index=[3, 2, 1])
-        result = indexer_sa(ser)[1]
+        result = indexer_al(ser)[1]
         assert result == 3
 
         with pytest.raises(KeyError, match="a"):
-            indexer_sa(ser)["a"]
+            indexer_al(ser)["a"]
 
-    def test_at_frame_raises_key_error(self, indexer_sa):
+    def test_at_frame_raises_key_error(self, indexer_al):
         # GH#31724 .at should match .loc
 
         df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
 
-        result = indexer_sa(df)[1, 0]
+        result = indexer_al(df)[1, 0]
         assert result == 3
 
         with pytest.raises(KeyError, match="a"):
-            indexer_sa(df)["a", 0]
+            indexer_al(df)["a", 0]
 
         with pytest.raises(KeyError, match="a"):
-            indexer_sa(df)[1, "a"]
+            indexer_al(df)[1, "a"]
 
-    def test_at_series_raises_key_error2(self, indexer_sa):
+    def test_at_series_raises_key_error2(self, indexer_al):
         # at should not fallback
         # GH#7814
         # GH#31724 .at should match .loc
         ser = Series([1, 2, 3], index=list("abc"))
-        result = indexer_sa(ser)["a"]
+        result = indexer_al(ser)["a"]
         assert result == 1
 
         with pytest.raises(KeyError, match="^0$"):
-            indexer_sa(ser)[0]
+            indexer_al(ser)[0]
 
-    def test_at_frame_raises_key_error2(self, indexer_sa):
+    def test_at_frame_raises_key_error2(self, indexer_al):
         # GH#31724 .at should match .loc
         df = DataFrame({"A": [1, 2, 3]}, index=list("abc"))
-        result = indexer_sa(df)["a", "A"]
+        result = indexer_al(df)["a", "A"]
         assert result == 1
 
         with pytest.raises(KeyError, match="^0$"):
-            indexer_sa(df)["a", 0]
+            indexer_al(df)["a", 0]
 
     def test_at_getitem_mixed_index_no_fallback(self):
         # GH#19860
