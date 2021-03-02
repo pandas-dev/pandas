@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -67,7 +65,6 @@ def test_large():
     tm.assert_series_equal(result, s)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) apply
 def test_invert_array():
     df = pd.DataFrame({"a": pd.date_range("20190101", periods=3, tz="UTC")})
 
