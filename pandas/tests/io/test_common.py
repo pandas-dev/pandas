@@ -9,6 +9,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -119,10 +120,11 @@ bar2,12,13,14,15
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
-        filename = path_type("~/sometest")
-        with icom.get_handle(filename, "w") as handles:
-            assert os.path.isabs(handles.handle.name)
-            assert os.path.expanduser(filename) == handles.handle.name
+        with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
+            filename = path_type("~/" + Path(tmp).name + "/sometest")
+            with icom.get_handle(filename, "w") as handles:
+                assert Path(handles.handle.name).is_absolute()
+                assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
