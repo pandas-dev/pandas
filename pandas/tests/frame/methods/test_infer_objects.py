@@ -1,10 +1,13 @@
 from datetime import datetime
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
 
 
 class TestInferObjects:
+    @td.skip_array_manager_not_yet_implemented
     def test_infer_objects(self):
         # GH#11221
         df = DataFrame(

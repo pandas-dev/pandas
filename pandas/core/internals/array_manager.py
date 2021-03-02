@@ -33,6 +33,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
@@ -109,6 +110,11 @@ class ArrayManager(DataManager):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
+
+        for i, arr in enumerate(arrays):
+            if is_datetime64tz_dtype(arr.dtype) and arr.ndim == 2:
+                assert arr.shape[0] == 1
+                arrays[i] = arr[0]
         self.arrays = arrays
 
         if verify_integrity:

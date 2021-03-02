@@ -200,6 +200,7 @@ class TestDataFrameAppend:
     @pytest.mark.parametrize(
         "timestamp", ["2019-07-19 07:04:57+0100", "2019-07-19 07:04:57"]
     )
+    @td.skip_array_manager_not_yet_implemented
     def test_append_timestamps_aware_or_naive(self, tz_naive_fixture, timestamp):
         # GH 30238
         tz = tz_naive_fixture
