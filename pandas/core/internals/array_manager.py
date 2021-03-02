@@ -28,11 +28,13 @@ from pandas._typing import (
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    astype_array_safe,
     find_common_type,
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
@@ -53,7 +55,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -500,7 +506,7 @@ class ArrayManager(DataManager):
         return self.apply_with_block("downcast")
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise") -> ArrayManager:
-        return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
     def convert(
         self,
@@ -716,20 +722,16 @@ class ArrayManager(DataManager):
         """
         dtype = _interleaved_dtype(self.arrays)
 
-        if isinstance(dtype, SparseDtype):
-            temp_dtype = dtype.subtype
-        elif isinstance(dtype, PandasDtype):
-            temp_dtype = dtype.numpy_dtype
-        elif is_extension_array_dtype(dtype):
-            temp_dtype = "object"
-        elif is_dtype_equal(dtype, str):
-            temp_dtype = "object"
-        else:
-            temp_dtype = dtype
-
-        result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
+        values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+        # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
+        elif is_datetime64_ns_dtype(dtype):
+            result = DatetimeArray._from_sequence(values, dtype=dtype)._data
+        elif is_timedelta64_ns_dtype(dtype):
+            result = TimedeltaArray._from_sequence(values, dtype=dtype)._data
+        else:
+            result = np.array(values, dtype=dtype)
         return result
 
     def iget(self, i: int) -> SingleBlockManager:

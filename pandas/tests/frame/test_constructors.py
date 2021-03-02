@@ -288,6 +288,7 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df2.columns, Index(rec.dtype.names))
         tm.assert_index_equal(df2.index, index)
 
+        # case with columns != the ones we would infer from the data
         rng = np.arange(len(rec))[::-1]
         df3 = DataFrame(rec, index=rng, columns=["C", "B"])
         expected = DataFrame(rec, index=rng).reindex(columns=["C", "B"])
@@ -1178,7 +1179,8 @@ class TestDataFrameConstructors:
         # GH 32173
         arrays = [list("abcd"), list("cde")]
 
-        msg = "Length of columns passed for MultiIndex columns is different"
+        # exception raised inside MultiIndex constructor
+        msg = "all arrays must be same length"
         with pytest.raises(ValueError, match=msg):
             DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
@@ -1731,12 +1733,15 @@ class TestDataFrameConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_with_datetimes1(self):
+
         # GH 2809
         ind = date_range(start="2000-01-01", freq="D", periods=10)
         datetimes = [ts.to_pydatetime() for ts in ind]
         datetime_s = Series(datetimes)
         assert datetime_s.dtype == "M8[ns]"
 
+    def test_constructor_with_datetimes2(self):
         # GH 2810
         ind = date_range(start="2000-01-01", freq="D", periods=10)
         datetimes = [ts.to_pydatetime() for ts in ind]
@@ -1750,6 +1755,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_with_datetimes3(self):
         # GH 7594
         # don't coerce tz-aware
         tz = pytz.timezone("US/Eastern")
@@ -1767,6 +1773,7 @@ class TestDataFrameConstructors:
             df.dtypes, Series({"End Date": "datetime64[ns, US/Eastern]"})
         )
 
+    def test_constructor_with_datetimes4(self):
         # tz-aware (UTC and other tz's)
         # GH 8411
         dr = date_range("20130101", periods=3)
@@ -1779,6 +1786,7 @@ class TestDataFrameConstructors:
         df = DataFrame({"value": dr})
         assert str(df.iat[0, 0].tz) == "US/Eastern"
 
+    def test_constructor_with_datetimes5(self):
         # GH 7822
         # preserver an index with a tz on dict construction
         i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
@@ -1791,7 +1799,9 @@ class TestDataFrameConstructors:
         df = DataFrame({"a": i})
         tm.assert_frame_equal(df, expected)
 
+    def test_constructor_with_datetimes6(self):
         # multiples
+        i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
         i_no_tz = date_range("1/1/2011", periods=5, freq="10s")
         df = DataFrame({"a": i, "b": i_no_tz})
         expected = DataFrame({"a": i.to_series().reset_index(drop=True), "b": i_no_tz})
