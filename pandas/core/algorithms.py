@@ -2286,9 +2286,9 @@ def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
 
     Parameters
     ----------
-    lvals:
+    lvals: np.ndarray
         left values which is ordered in front.
-    rvals:
+    rvals: np.ndarray
         right values ordered after lvals.
 
     Returns
@@ -2300,6 +2300,8 @@ def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     unique_array = unique(np.append(lvals, rvals))
+    if is_extension_array_dtype(lvals) or is_extension_array_dtype(rvals):
+        unique_array = array(unique_array)
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count[value], r_count[value]))
     return unique_array.take(indexer)
