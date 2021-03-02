@@ -208,14 +208,13 @@ class BaseGrouper:
         group_keys = self._get_group_keys()
         result_values = None
 
-        sdata: FrameOrSeries = splitter._get_sorted_data()
-        if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
+        if data.ndim == 2 and np.any(data.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
             #  TODO: can we have a workaround for EAs backed by ndarray?
             pass
 
-        elif isinstance(sdata._mgr, ArrayManager):
+        elif isinstance(data._mgr, ArrayManager):
             # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
             # for now -> relies on BlockManager internals
             pass
@@ -224,9 +223,10 @@ class BaseGrouper:
             and isinstance(splitter, FrameSplitter)
             and axis == 0
             # fast_apply/libreduction doesn't allow non-numpy backed indexes
-            and not sdata.index._has_complex_internals
+            and not data.index._has_complex_internals
         ):
             try:
+                sdata = splitter.sorted_data
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
             except IndexError:
@@ -988,7 +988,7 @@ class DataSplitter(Generic[FrameOrSeries]):
         return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self):
-        sdata = self._get_sorted_data()
+        sdata = self.sorted_data
 
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
@@ -1000,7 +1000,8 @@ class DataSplitter(Generic[FrameOrSeries]):
         for i, (start, end) in enumerate(zip(starts, ends)):
             yield i, self._chop(sdata, slice(start, end))
 
-    def _get_sorted_data(self) -> FrameOrSeries:
+    @cache_readonly
+    def sorted_data(self) -> FrameOrSeries:
         return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
