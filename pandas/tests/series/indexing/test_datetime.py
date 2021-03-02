@@ -352,7 +352,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
     monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 1000)
 
     n = 1100
-    idx = pd.period_range("1/1/2000", freq="T", periods=n)
+    idx = period_range("1/1/2000", freq="T", periods=n)
     assert idx._engine.over_size_threshold
 
     s = Series(np.random.randn(len(idx)), index=idx)
