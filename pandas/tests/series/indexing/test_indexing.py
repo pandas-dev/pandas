@@ -5,7 +5,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     IndexSlice,
@@ -58,7 +57,7 @@ def test_basic_getitem_dt64tz_values():
     # GH12089
     # with tz for values
     ser = Series(
-        pd.date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
+        date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
     )
     expected = Timestamp("2011-01-01", tz="US/Eastern")
     result = ser.loc["a"]
@@ -114,7 +113,7 @@ def test_getitem_setitem_integers():
 
 
 def test_series_box_timestamp():
-    rng = pd.date_range("20090415", "20090519", freq="B")
+    rng = date_range("20090415", "20090519", freq="B")
     ser = Series(rng)
     assert isinstance(ser[0], Timestamp)
     assert isinstance(ser.at[1], Timestamp)
@@ -131,7 +130,7 @@ def test_series_box_timestamp():
 
 
 def test_series_box_timedelta():
-    rng = pd.timedelta_range("1 day 1 s", periods=5, freq="h")
+    rng = timedelta_range("1 day 1 s", periods=5, freq="h")
     ser = Series(rng)
     assert isinstance(ser[0], Timedelta)
     assert isinstance(ser.at[1], Timedelta)

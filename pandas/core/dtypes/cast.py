@@ -43,6 +43,7 @@ from pandas._libs.tslibs import (
     iNaT,
     ints_to_pydatetime,
 )
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -288,7 +289,8 @@ def maybe_downcast_to_dtype(
             i8values = result.astype("i8", copy=False)
             cls = dtype.construct_array_type()
             # equiv: DatetimeArray(i8values).tz_localize("UTC").tz_convert(dtype.tz)
-            result = cls._simple_new(i8values, dtype=dtype)
+            dt64values = i8values.view("M8[ns]")
+            result = cls._simple_new(dt64values, dtype=dtype)
         else:
             result = result.astype(dtype)
 
@@ -1416,44 +1418,57 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
         return value
 
     def try_datetime(v: np.ndarray) -> ArrayLike:
-        # safe coerce to datetime64
-        try:
-            # GH19671
-            # tznaive only
-            v = tslib.array_to_datetime(v, require_iso8601=True, errors="raise")[0]
-        except ValueError:
+        # Coerce to datetime64, datetime64tz, or in corner cases
+        #  object[datetimes]
+        from pandas.core.arrays.datetimes import (
+            DatetimeArray,
+            objects_to_datetime64ns,
+            tz_to_dtype,
+        )
 
+        try:
+            # GH#19671 we pass require_iso8601 to be relatively strict
+            #  when parsing strings.
+            vals, tz = objects_to_datetime64ns(
+                v,
+                require_iso8601=True,
+                dayfirst=False,
+                yearfirst=False,
+                allow_object=True,
+            )
+        except (ValueError, TypeError):
+            # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
+            return v.reshape(shape)
+        else:
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
-            # then these stay as object dtype, xref GH19671
-            from pandas import DatetimeIndex
+            # then these stay as object dtype, xref GH#19671
 
-            try:
+            if vals.dtype == object:
+                # This is reachable bc allow_object=True, means we cast things
+                #  to mixed-tz datetime objects (mostly).  Only 1 test
+                #  relies on this behavior, see GH#40111
+                return vals.reshape(shape)
 
-                values, tz = conversion.datetime_to_datetime64(v)
-            except (ValueError, TypeError):
-                pass
-            else:
-                dti = DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
-                return dti._data
-        except TypeError:
-            # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
-            pass
-
-        return v.reshape(shape)
+            dta = DatetimeArray._simple_new(vals.view("M8[ns]"), dtype=tz_to_dtype(tz))
+            if dta.tz is None:
+                # TODO(EA2D): conditional reshape kludge unnecessary with 2D EAs
+                return dta._ndarray.reshape(shape)
+            return dta
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
         # safe coerce to timedelta64
 
         # will try first with a string & object conversion
-        from pandas import to_timedelta
-
         try:
-            td_values = to_timedelta(v)
+            # bc we know v.dtype == object, this is equivalent to
+            #  `np.asarray(to_timedelta(v))`, but using a lower-level API that
+            #  does not require a circular import.
+            td_values = array_to_timedelta64(v).view("m8[ns]")
         except (ValueError, OverflowError):
             return v.reshape(shape)
         else:
-            return np.asarray(td_values).reshape(shape)
+            return td_values.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
@@ -1487,8 +1502,8 @@ def maybe_cast_to_datetime(
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
+    from pandas.core.arrays.timedeltas import sequence_to_td64ns
     from pandas.core.tools.datetimes import to_datetime
-    from pandas.core.tools.timedeltas import to_timedelta
 
     if not is_list_like(value):
         raise TypeError("value must be listlike")
@@ -1569,7 +1584,8 @@ def maybe_cast_to_datetime(
                                 # so localize and convert
                                 value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                         elif is_timedelta64:
-                            value = to_timedelta(value, errors="raise")._values
+                            # if successful, we get a ndarray[td64ns]
+                            value, _ = sequence_to_td64ns(value)
                     except OutOfBoundsDatetime:
                         raise
                     except ValueError as err:
