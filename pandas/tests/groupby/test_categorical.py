@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -81,6 +83,7 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_basic():
 
     cats = Categorical(
@@ -276,7 +279,9 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-def test_observed(observed):
+# TODO(ArrayManager) incorrect dtype for mean()
+@td.skip_array_manager_not_yet_implemented
+def test_observed(observed, using_array_manager):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
@@ -535,6 +540,7 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         assert False, msg
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range("2014-01-01", periods=4)
@@ -600,6 +606,7 @@ def test_categorical_index():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_describe_categorical_columns():
     # GH 11558
     cats = CategoricalIndex(
@@ -614,6 +621,7 @@ def test_describe_categorical_columns():
     tm.assert_categorical_equal(result.stack().columns.values, cats.values)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_unstack_categorical():
     # GH11558 (example is taken from the original issue)
     df = DataFrame(
@@ -1568,7 +1576,7 @@ def test_aggregate_categorical_with_isnan():
     df = df.astype({"categorical_col": "category"})
 
     result = df.groupby(["A", "B"]).agg(lambda df: df.isna().sum())
-    index = pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
+    index = MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
     expected = DataFrame(
         data={
             "numerical_col": [1.0, 0.0],
@@ -1640,7 +1648,7 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     df = DataFrame({"a": cat, "b": cat, "c": val})
 
     cat2 = Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([cat2, cat2], names=["a", "b"])
+    idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
         "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
@@ -1665,7 +1673,7 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     df = DataFrame({"a": cat, "b": cat, "c": val})
 
     cat2 = Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([cat2, cat2], names=["a", "b"])
+    idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
         "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
