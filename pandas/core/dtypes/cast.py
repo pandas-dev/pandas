@@ -1227,7 +1227,7 @@ def astype_nansafe(
     return arr.astype(dtype, copy=copy)
 
 
-def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False):
+def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.
 
@@ -1275,7 +1275,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False):
 
 def astype_array_safe(
     values: ArrayLike, dtype, copy: bool = False, errors: str = "raise"
-):
+) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.
 
