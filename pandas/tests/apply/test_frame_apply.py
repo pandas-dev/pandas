@@ -69,7 +69,7 @@ def test_apply(float_frame):
 
 
 def test_apply_axis1_with_ea():
-    # GH 36785
+    # GH#36785
     expected = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
     result = expected.apply(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
@@ -788,7 +788,7 @@ def test_apply_nested_result_axis_1():
 
 
 def test_apply_noreduction_tzaware_object():
-    # GH 31505
+    # https://github.com/pandas-dev/pandas/issues/31505
     expected = DataFrame(
         {"foo": [Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
     )
@@ -799,7 +799,7 @@ def test_apply_noreduction_tzaware_object():
 
 
 def test_apply_function_runs_once():
-    # GH 30815
+    # https://github.com/pandas-dev/pandas/issues/30815
 
     df = DataFrame({"a": [1, 2, 3]})
     names = []  # Save row names function is applied to
@@ -819,7 +819,7 @@ def test_apply_function_runs_once():
 
 
 def test_apply_raw_function_runs_once():
-    # GH 34506
+    # https://github.com/pandas-dev/pandas/issues/34506
 
     df = DataFrame({"a": [1, 2, 3]})
     values = []  # Save row values function is applied to
@@ -1608,7 +1608,7 @@ def test_apply_dtype(col):
 
 
 def test_apply_mutating():
-    # GH 35462 case where applied func pins a new BlockManager to a row
+    # GH#35462 case where applied func pins a new BlockManager to a row
     df = DataFrame({"a": range(100), "b": range(100, 200)})
 
     def func(row):
@@ -1627,7 +1627,7 @@ def test_apply_mutating():
 
 
 def test_apply_empty_list_reduce():
-    # GH 35683 get columns correct
+    # GH#35683 get columns correct
     df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]], columns=["a", "b"])
 
     result = df.apply(lambda x: [], result_type="reduce")
@@ -1647,7 +1647,7 @@ def test_apply_no_suffix_index():
 
 
 def test_apply_raw_returns_string():
-    # GH 35940
+    # https://github.com/pandas-dev/pandas/issues/35940
     df = DataFrame({"A": ["aa", "bbb"]})
     result = df.apply(lambda x: x[0], axis=1, raw=True)
     expected = Series(["aa", "bbb"])
