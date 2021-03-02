@@ -653,7 +653,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         )
     else:
         new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
-        unique_groups = new_columns
+        unique_groups = list(new_columns)
 
     # time to ravel the values
     new_data = {}
