@@ -614,13 +614,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
-        try:
-            result = super().insert(loc, item)
-        except (ValueError, TypeError):
-            # i.e. self._data._validate_scalar raised
-            return self.astype(object).insert(loc, item)
-
-        result._data._freq = self._get_insert_freq(loc, item)
+        result = super().insert(loc, item)
+        if isinstance(result, type(self)):
+            # i.e. parent class method did not cast
+            result._data._freq = self._get_insert_freq(loc, item)
         return result
 
     # --------------------------------------------------------------------

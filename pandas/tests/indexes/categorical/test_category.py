@@ -50,10 +50,10 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex(["a"], categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        # invalid
-        msg = "'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(TypeError, match=msg):
-            ci.insert(0, "d")
+        # invalid -> cast to object
+        expected = ci.astype(object).insert(0, "d")
+        result = ci.insert(0, "d")
+        tm.assert_index_equal(result, expected, exact=True)
 
         # GH 18295 (test missing)
         expected = CategoricalIndex(["a", np.nan, "a", "b", "c", "b"])
@@ -63,9 +63,9 @@ class TestCategoricalIndex(Base):
 
     def test_insert_na_mismatched_dtype(self):
         ci = CategoricalIndex([0, 1, 1])
-        msg = "'fill_value=NaT' is not present in this Categorical's categories"
-        with pytest.raises(TypeError, match=msg):
-            ci.insert(0, pd.NaT)
+        result = ci.insert(0, pd.NaT)
+        expected = Index([pd.NaT, 0, 1, 1], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_delete(self):
 
