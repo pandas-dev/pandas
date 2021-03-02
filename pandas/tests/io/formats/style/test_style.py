@@ -5,8 +5,6 @@ import textwrap
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
@@ -16,6 +14,7 @@ from pandas.io.formats.style import (  # isort:skip
     Styler,
     _get_level_lengths,
     _maybe_convert_css_to_tuples,
+    _non_reducing_slice,
 )
 
 
@@ -61,24 +60,15 @@ class TestStyler:
 
     def test_update_ctx(self):
         self.styler._update_ctx(self.attrs)
-        expected = {(0, 0): ["color: red"], (1, 0): ["color: blue"]}
+        expected = {(0, 0): [("color", "red")], (1, 0): [("color", "blue")]}
         assert self.styler.ctx == expected
 
-    def test_update_ctx_flatten_multi(self):
-        attrs = DataFrame({"A": ["color: red; foo: bar", "color: blue; foo: baz"]})
+    def test_update_ctx_flatten_multi_and_trailing_semi(self):
+        attrs = DataFrame({"A": ["color: red; foo: bar", "color:blue ; foo: baz;"]})
         self.styler._update_ctx(attrs)
         expected = {
-            (0, 0): ["color: red", " foo: bar"],
-            (1, 0): ["color: blue", " foo: baz"],
-        }
-        assert self.styler.ctx == expected
-
-    def test_update_ctx_flatten_multi_traliing_semi(self):
-        attrs = DataFrame({"A": ["color: red; foo: bar;", "color: blue; foo: baz;"]})
-        self.styler._update_ctx(attrs)
-        expected = {
-            (0, 0): ["color: red", " foo: bar"],
-            (1, 0): ["color: blue", " foo: baz"],
+            (0, 0): [("color", "red"), ("foo", "bar")],
+            (1, 0): [("color", "blue"), ("foo", "baz")],
         }
         assert self.styler.ctx == expected
 
@@ -141,7 +131,7 @@ class TestStyler:
         s.render()  # do 2 renders to ensure css styles not duplicated
         assert (
             '<style type="text/css">\n#T__row0_col0, #T__row1_col0 {\n'
-            "  color:  red;\n}\n</style>" in s.render()
+            "  color: red;\n}\n</style>" in s.render()
         )
 
     def test_render_empty_dfs(self):
@@ -167,7 +157,7 @@ class TestStyler:
         df = DataFrame({"A": [0, 1]})
         result = df.style.set_properties(color="white", size="10px")._compute().ctx
         # order is deterministic
-        v = ["color: white", "size: 10px"]
+        v = [("color", "white"), ("size", "10px")]
         expected = {(0, 0): v, (1, 0): v}
         assert result.keys() == expected.keys()
         for v1, v2 in zip(result.values(), expected.values()):
@@ -180,7 +170,7 @@ class TestStyler:
             ._compute()
             .ctx
         )
-        expected = {(0, 0): ["color: white"]}
+        expected = {(0, 0): [("color", "white")]}
         assert result == expected
 
     def test_empty_index_name_doesnt_display(self):
@@ -313,19 +303,19 @@ class TestStyler:
         assert len(result.ctx) == 0
         result._compute()
         expected = {
-            (0, 0): ["val: 1"],
-            (0, 1): ["val: 1"],
-            (1, 0): ["val: 1"],
-            (1, 1): ["val: 1"],
+            (0, 0): [("val", "1")],
+            (0, 1): [("val", "1")],
+            (1, 0): [("val", "1")],
+            (1, 1): [("val", "1")],
         }
         assert result.ctx == expected
 
         result = df.style.apply(f, axis=0)
         expected = {
-            (0, 0): ["val: 0"],
-            (0, 1): ["val: 1"],
-            (1, 0): ["val: 0"],
-            (1, 1): ["val: 1"],
+            (0, 0): [("val", "0")],
+            (0, 1): [("val", "1")],
+            (1, 0): [("val", "0")],
+            (1, 1): [("val", "1")],
         }
         result._compute()
         assert result.ctx == expected
@@ -333,53 +323,52 @@ class TestStyler:
         result._compute()
         assert result.ctx == expected
 
-    def test_apply_subset(self):
-        axes = [0, 1]
-        slices = [
+    @pytest.mark.parametrize(
+        "slice_",
+        [
             pd.IndexSlice[:],
             pd.IndexSlice[:, ["A"]],
             pd.IndexSlice[[1], :],
             pd.IndexSlice[[1], ["A"]],
             pd.IndexSlice[:2, ["A", "B"]],
-        ]
-        for ax in axes:
-            for slice_ in slices:
-                result = (
-                    self.df.style.apply(self.h, axis=ax, subset=slice_, foo="baz")
-                    ._compute()
-                    .ctx
-                )
-                expected = {
-                    (r, c): ["color: baz"]
-                    for r, row in enumerate(self.df.index)
-                    for c, col in enumerate(self.df.columns)
-                    if row in self.df.loc[slice_].index
-                    and col in self.df.loc[slice_].columns
-                }
-                assert result == expected
+        ],
+    )
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_apply_subset(self, slice_, axis):
+        result = (
+            self.df.style.apply(self.h, axis=axis, subset=slice_, foo="baz")
+            ._compute()
+            .ctx
+        )
+        expected = {
+            (r, c): [("color", "baz")]
+            for r, row in enumerate(self.df.index)
+            for c, col in enumerate(self.df.columns)
+            if row in self.df.loc[slice_].index and col in self.df.loc[slice_].columns
+        }
+        assert result == expected
 
-    def test_applymap_subset(self):
-        def f(x):
-            return "foo: bar"
-
-        slices = [
+    @pytest.mark.parametrize(
+        "slice_",
+        [
             pd.IndexSlice[:],
             pd.IndexSlice[:, ["A"]],
             pd.IndexSlice[[1], :],
             pd.IndexSlice[[1], ["A"]],
             pd.IndexSlice[:2, ["A", "B"]],
-        ]
-
-        for slice_ in slices:
-            result = self.df.style.applymap(f, subset=slice_)._compute().ctx
-            expected = {
-                (r, c): ["foo: bar"]
-                for r, row in enumerate(self.df.index)
-                for c, col in enumerate(self.df.columns)
-                if row in self.df.loc[slice_].index
-                and col in self.df.loc[slice_].columns
-            }
-            assert result == expected
+        ],
+    )
+    def test_applymap_subset(self, slice_):
+        result = (
+            self.df.style.applymap(lambda x: "color:baz;", subset=slice_)._compute().ctx
+        )
+        expected = {
+            (r, c): [("color", "baz")]
+            for r, row in enumerate(self.df.index)
+            for c, col in enumerate(self.df.columns)
+            if row in self.df.loc[slice_].index and col in self.df.loc[slice_].columns
+        }
+        assert result == expected
 
     @pytest.mark.parametrize(
         "slice_",
@@ -430,14 +419,24 @@ class TestStyler:
 
         result = self.df.style.where(f, style1)._compute().ctx
         expected = {
-            (r, c): [style1]
+            (r, c): [("foo", "bar")]
             for r, row in enumerate(self.df.index)
             for c, col in enumerate(self.df.columns)
             if f(self.df.loc[row, col])
         }
         assert result == expected
 
-    def test_where_subset(self):
+    @pytest.mark.parametrize(
+        "slice_",
+        [
+            pd.IndexSlice[:],
+            pd.IndexSlice[:, ["A"]],
+            pd.IndexSlice[[1], :],
+            pd.IndexSlice[[1], ["A"]],
+            pd.IndexSlice[:2, ["A", "B"]],
+        ],
+    )
+    def test_where_subset(self, slice_):
         # GH 17474
         def f(x):
             return x > 0.5
@@ -445,26 +444,14 @@ class TestStyler:
         style1 = "foo: bar"
         style2 = "baz: foo"
 
-        slices = [
-            pd.IndexSlice[:],
-            pd.IndexSlice[:, ["A"]],
-            pd.IndexSlice[[1], :],
-            pd.IndexSlice[[1], ["A"]],
-            pd.IndexSlice[:2, ["A", "B"]],
-        ]
-
-        for slice_ in slices:
-            result = (
-                self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
-            )
-            expected = {
-                (r, c): [style1 if f(self.df.loc[row, col]) else style2]
-                for r, row in enumerate(self.df.index)
-                for c, col in enumerate(self.df.columns)
-                if row in self.df.loc[slice_].index
-                and col in self.df.loc[slice_].columns
-            }
-            assert result == expected
+        result = self.df.style.where(f, style1, style2, subset=slice_)._compute().ctx
+        expected = {
+            (r, c): [("foo", "bar") if f(self.df.loc[row, col]) else ("baz", "foo")]
+            for r, row in enumerate(self.df.index)
+            for c, col in enumerate(self.df.columns)
+            if row in self.df.loc[slice_].index and col in self.df.loc[slice_].columns
+        }
+        assert result == expected
 
     def test_where_subset_compare_with_applymap(self):
         # GH 17474
@@ -495,11 +482,11 @@ class TestStyler:
     def test_empty(self):
         df = DataFrame({"A": [1, 0]})
         s = df.style
-        s.ctx = {(0, 0): ["color: red"], (1, 0): [""]}
+        s.ctx = {(0, 0): [("color", "red")], (1, 0): [("", "")]}
 
         result = s._translate()["cellstyle"]
         expected = [
-            {"props": [("color", " red")], "selectors": ["row0_col0"]},
+            {"props": [("color", "red")], "selectors": ["row0_col0"]},
             {"props": [("", "")], "selectors": ["row1_col0"]},
         ]
         assert result == expected
@@ -507,540 +494,13 @@ class TestStyler:
     def test_duplicate(self):
         df = DataFrame({"A": [1, 0]})
         s = df.style
-        s.ctx = {(0, 0): ["color: red"], (1, 0): ["color: red"]}
+        s.ctx = {(0, 0): [("color", "red")], (1, 0): [("color", "red")]}
 
         result = s._translate()["cellstyle"]
         expected = [
-            {"props": [("color", " red")], "selectors": ["row0_col0", "row1_col0"]}
+            {"props": [("color", "red")], "selectors": ["row0_col0", "row1_col0"]}
         ]
         assert result == expected
-
-    def test_bar_align_left(self):
-        df = DataFrame({"A": [0, 1, 2]})
-        result = df.style.bar()._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient("
-                "90deg,#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (2, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient("
-                "90deg,#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-        result = df.style.bar(color="red", width=50)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,red 25.0%, transparent 25.0%)",
-            ],
-            (2, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,red 50.0%, transparent 50.0%)",
-            ],
-        }
-        assert result == expected
-
-        df["C"] = ["a"] * len(df)
-        result = df.style.bar(color="red", width=50)._compute().ctx
-        assert result == expected
-        df["C"] = df["C"].astype("category")
-        result = df.style.bar(color="red", width=50)._compute().ctx
-        assert result == expected
-
-    def test_bar_align_left_0points(self):
-        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        result = df.style.bar()._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (0, 1): ["width: 10em", " height: 80%"],
-            (0, 2): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (1, 2): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (2, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 100.0%"
-                ", transparent 100.0%)",
-            ],
-            (2, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 100.0%"
-                ", transparent 100.0%)",
-            ],
-            (2, 2): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 100.0%"
-                ", transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-        result = df.style.bar(axis=1)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (0, 2): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 100.0%"
-                ", transparent 100.0%)",
-            ],
-            (1, 0): ["width: 10em", " height: 80%"],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%"
-                ", transparent 50.0%)",
-            ],
-            (1, 2): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 100.0%"
-                ", transparent 100.0%)",
-            ],
-            (2, 0): ["width: 10em", " height: 80%"],
-            (2, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%"
-                ", transparent 50.0%)",
-            ],
-            (2, 2): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 100.0%"
-                ", transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_mid_pos_and_neg(self):
-        df = DataFrame({"A": [-10, 0, 20, 90]})
-
-        result = df.style.bar(align="mid", color=["#d65f5f", "#5fba7d"])._compute().ctx
-
-        expected = {
-            (0, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 10.0%, transparent 10.0%)",
-            ],
-            (1, 0): ["width: 10em", " height: 80%"],
-            (2, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 10.0%, #5fba7d 10.0%"
-                ", #5fba7d 30.0%, transparent 30.0%)",
-            ],
-            (3, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 10.0%, "
-                "#5fba7d 10.0%, #5fba7d 100.0%, "
-                "transparent 100.0%)",
-            ],
-        }
-
-        assert result == expected
-
-    def test_bar_align_mid_all_pos(self):
-        df = DataFrame({"A": [10, 20, 50, 100]})
-
-        result = df.style.bar(align="mid", color=["#d65f5f", "#5fba7d"])._compute().ctx
-
-        expected = {
-            (0, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#5fba7d 10.0%, transparent 10.0%)",
-            ],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#5fba7d 20.0%, transparent 20.0%)",
-            ],
-            (2, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#5fba7d 50.0%, transparent 50.0%)",
-            ],
-            (3, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#5fba7d 100.0%, transparent 100.0%)",
-            ],
-        }
-
-        assert result == expected
-
-    def test_bar_align_mid_all_neg(self):
-        df = DataFrame({"A": [-100, -60, -30, -20]})
-
-        result = df.style.bar(align="mid", color=["#d65f5f", "#5fba7d"])._compute().ctx
-
-        expected = {
-            (0, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 40.0%, "
-                "#d65f5f 40.0%, #d65f5f 100.0%, "
-                "transparent 100.0%)",
-            ],
-            (2, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 70.0%, "
-                "#d65f5f 70.0%, #d65f5f 100.0%, "
-                "transparent 100.0%)",
-            ],
-            (3, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 80.0%, "
-                "#d65f5f 80.0%, #d65f5f 100.0%, "
-                "transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_zero_pos_and_neg(self):
-        # See https://github.com/pandas-dev/pandas/pull/14757
-        df = DataFrame({"A": [-10, 0, 20, 90]})
-
-        result = (
-            df.style.bar(align="zero", color=["#d65f5f", "#5fba7d"], width=90)
-            ._compute()
-            .ctx
-        )
-        expected = {
-            (0, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 40.0%, #d65f5f 40.0%, "
-                "#d65f5f 45.0%, transparent 45.0%)",
-            ],
-            (1, 0): ["width: 10em", " height: 80%"],
-            (2, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 45.0%, #5fba7d 45.0%, "
-                "#5fba7d 55.0%, transparent 55.0%)",
-            ],
-            (3, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 45.0%, #5fba7d 45.0%, "
-                "#5fba7d 90.0%, transparent 90.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_left_axis_none(self):
-        df = DataFrame({"A": [0, 1], "B": [2, 4]})
-        result = df.style.bar(axis=None)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 25.0%, transparent 25.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_zero_axis_none(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="zero", axis=None)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 50.0%, #d65f5f 50.0%, "
-                "#d65f5f 62.5%, transparent 62.5%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 25.0%, #d65f5f 25.0%, "
-                "#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 50.0%, #d65f5f 50.0%, "
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_mid_axis_none(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 33.3%, #d65f5f 33.3%, "
-                "#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 33.3%, transparent 33.3%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 33.3%, #d65f5f 33.3%, "
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_mid_vmin(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmin=-6)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 60.0%, #d65f5f 60.0%, "
-                "#d65f5f 70.0%, transparent 70.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 40.0%, #d65f5f 40.0%, "
-                "#d65f5f 60.0%, transparent 60.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 60.0%, #d65f5f 60.0%, "
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_mid_vmax(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmax=8)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 20.0%, #d65f5f 20.0%, "
-                "#d65f5f 30.0%, transparent 30.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 20.0%, transparent 20.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 20.0%, #d65f5f 20.0%, "
-                "#d65f5f 60.0%, transparent 60.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_mid_vmin_vmax_wide(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmin=-3, vmax=7)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 30.0%, #d65f5f 30.0%, "
-                "#d65f5f 40.0%, transparent 40.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 10.0%, #d65f5f 10.0%, "
-                "#d65f5f 30.0%, transparent 30.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 30.0%, #d65f5f 30.0%, "
-                "#d65f5f 70.0%, transparent 70.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_mid_vmin_vmax_clipping(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmin=-1, vmax=3)._compute().ctx
-        expected = {
-            (0, 0): ["width: 10em", " height: 80%"],
-            (1, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 25.0%, #d65f5f 25.0%, "
-                "#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 25.0%, transparent 25.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 25.0%, #d65f5f 25.0%, "
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_mid_nans(self):
-        df = DataFrame({"A": [1, None], "B": [-1, 3]})
-        result = df.style.bar(align="mid", axis=None)._compute().ctx
-        expected = {
-            (0, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 25.0%, #d65f5f 25.0%, "
-                "#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg,"
-                "#d65f5f 25.0%, transparent 25.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 25.0%, #d65f5f 25.0%, "
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_align_zero_nans(self):
-        df = DataFrame({"A": [1, None], "B": [-1, 2]})
-        result = df.style.bar(align="zero", axis=None)._compute().ctx
-        expected = {
-            (0, 0): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 50.0%, #d65f5f 50.0%, "
-                "#d65f5f 75.0%, transparent 75.0%)",
-            ],
-            (0, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 25.0%, #d65f5f 25.0%, "
-                "#d65f5f 50.0%, transparent 50.0%)",
-            ],
-            (1, 1): [
-                "width: 10em",
-                " height: 80%",
-                "background: linear-gradient(90deg, "
-                "transparent 50.0%, #d65f5f 50.0%, "
-                "#d65f5f 100.0%, transparent 100.0%)",
-            ],
-        }
-        assert result == expected
-
-    def test_bar_bad_align_raises(self):
-        df = DataFrame({"A": [-100, -60, -30, -20]})
-        msg = "`align` must be one of {'left', 'zero',' mid'}"
-        with pytest.raises(ValueError, match=msg):
-            df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"])
 
     def test_format_with_na_rep(self):
         # GH 21527 28358
@@ -1112,27 +572,6 @@ class TestStyler:
         with pytest.raises(TypeError, match=msg):
             df.style.format(None, na_rep=-1)
 
-    def test_highlight_null(self, null_color="red"):
-        df = DataFrame({"A": [0, np.nan]})
-        result = df.style.highlight_null()._compute().ctx
-        expected = {(1, 0): ["background-color: red"]}
-        assert result == expected
-
-    def test_highlight_null_subset(self):
-        # GH 31345
-        df = DataFrame({"A": [0, np.nan], "B": [0, np.nan]})
-        result = (
-            df.style.highlight_null(null_color="red", subset=["A"])
-            .highlight_null(null_color="green", subset=["B"])
-            ._compute()
-            .ctx
-        )
-        expected = {
-            (1, 0): ["background-color: red"],
-            (1, 1): ["background-color: green"],
-        }
-        assert result == expected
-
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
@@ -1187,6 +626,19 @@ class TestStyler:
         result = " ".join(styler.render().split())
         assert "th { foo: bar; }" in result
 
+    def test_table_styles_multiple(self):
+        ctx = self.df.style.set_table_styles(
+            [
+                {"selector": "th,td", "props": "color:red;"},
+                {"selector": "tr", "props": "color:green;"},
+            ]
+        )._translate()["table_styles"]
+        assert ctx == [
+            {"selector": "th", "props": [("color", "red")]},
+            {"selector": "td", "props": [("color", "red")]},
+            {"selector": "tr", "props": [("color", "green")]},
+        ]
+
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
         assert _maybe_convert_css_to_tuples("a:b;c:d e;") == expected
@@ -1228,7 +680,7 @@ class TestStyler:
             )
 
         result = DataFrame([[1, 2], [3, 4]]).style.apply(f, axis=None)._compute().ctx
-        assert result[(1, 1)] == ["color: red"]
+        assert result[(1, 1)] == [("color", "red")]
 
     def test_trim(self):
         result = self.df.style.render()  # trim=True
@@ -1236,46 +688,6 @@ class TestStyler:
 
         result = self.df.style.highlight_max().render()
         assert result.count("#") == len(self.df.columns)
-
-    def test_highlight_max(self):
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-        # max(df) = min(-df)
-        for max_ in [True, False]:
-            if max_:
-                attr = "highlight_max"
-            else:
-                df = -df
-                attr = "highlight_min"
-            result = getattr(df.style, attr)()._compute().ctx
-            assert result[(1, 1)] == ["background-color: yellow"]
-
-            result = getattr(df.style, attr)(color="green")._compute().ctx
-            assert result[(1, 1)] == ["background-color: green"]
-
-            result = getattr(df.style, attr)(subset="A")._compute().ctx
-            assert result[(1, 0)] == ["background-color: yellow"]
-
-            result = getattr(df.style, attr)(axis=0)._compute().ctx
-            expected = {
-                (1, 0): ["background-color: yellow"],
-                (1, 1): ["background-color: yellow"],
-            }
-            assert result == expected
-
-            result = getattr(df.style, attr)(axis=1)._compute().ctx
-            expected = {
-                (0, 1): ["background-color: yellow"],
-                (1, 1): ["background-color: yellow"],
-            }
-            assert result == expected
-
-        # separate since we can't negate the strs
-        df["C"] = ["a", "b"]
-        result = df.style.highlight_max()._compute().ctx
-        expected = {(1, 1): ["background-color: yellow"]}
-
-        result = df.style.highlight_min()._compute().ctx
-        expected = {(0, 0): ["background-color: yellow"]}
 
     def test_export(self):
         f = lambda x: "color: red" if x > 0 else "color: blue"
@@ -1461,7 +873,7 @@ class TestStyler:
             "display_value": "a",
             "is_visible": True,
             "type": "th",
-            "attributes": ['rowspan="2"'],
+            "attributes": 'rowspan="2"',
             "class": "row_heading level0 row0",
             "id": "level0_row0",
         }
@@ -1842,96 +1254,6 @@ class TestStyler:
         with pytest.raises(TypeError, match=msg):
             Styler(df, uuid_len=len_, cell_ids=False).render()
 
-    @pytest.mark.parametrize(
-        "ttips",
-        [
-            DataFrame(
-                data=[["Min", "Max"], [np.nan, ""]],
-                columns=["A", "B"],
-                index=["a", "b"],
-            ),
-            DataFrame(data=[["Max", "Min"]], columns=["B", "A"], index=["a"]),
-            DataFrame(
-                data=[["Min", "Max", None]], columns=["A", "B", "C"], index=["a"]
-            ),
-        ],
-    )
-    def test_tooltip_render(self, ttips):
-        # GH 21266
-        df = DataFrame(data=[[0, 3], [1, 2]], columns=["A", "B"], index=["a", "b"])
-        s = Styler(df, uuid_len=0).set_tooltips(ttips).render()
-
-        # test tooltip table level class
-        assert "#T__ .pd-t {\n  visibility: hidden;\n" in s
-
-        # test 'Min' tooltip added
-        assert (
-            "#T__ #T__row0_col0:hover .pd-t {\n  visibility: visible;\n}\n"
-            + '#T__ #T__row0_col0 .pd-t::after {\n  content: "Min";\n}'
-            in s
-        )
-        assert (
-            '<td id="T__row0_col0" class="data row0 col0" >0<span class="pd-t">'
-            + "</span></td>"
-            in s
-        )
-
-        # test 'Max' tooltip added
-        assert (
-            "#T__ #T__row0_col1:hover .pd-t {\n  visibility: visible;\n}\n"
-            + '#T__ #T__row0_col1 .pd-t::after {\n  content: "Max";\n}'
-            in s
-        )
-        assert (
-            '<td id="T__row0_col1" class="data row0 col1" >3<span class="pd-t">'
-            + "</span></td>"
-            in s
-        )
-
-    def test_tooltip_reindex(self):
-        # GH 39317
-        df = DataFrame(
-            data=[[0, 1, 2], [3, 4, 5], [6, 7, 8]], columns=[0, 1, 2], index=[0, 1, 2]
-        )
-        ttips = DataFrame(
-            data=[["Mi", "Ma"], ["Mu", "Mo"]],
-            columns=[0, 2],
-            index=[0, 2],
-        )
-        s = Styler(df, uuid_len=0).set_tooltips(DataFrame(ttips)).render()
-        assert '#T__ #T__row0_col0 .pd-t::after {\n  content: "Mi";\n}' in s
-        assert '#T__ #T__row0_col2 .pd-t::after {\n  content: "Ma";\n}' in s
-        assert '#T__ #T__row2_col0 .pd-t::after {\n  content: "Mu";\n}' in s
-        assert '#T__ #T__row2_col2 .pd-t::after {\n  content: "Mo";\n}' in s
-
-    def test_tooltip_ignored(self):
-        # GH 21266
-        df = DataFrame(data=[[0, 1], [2, 3]])
-        s = Styler(df).set_tooltips_class("pd-t").render()  # no set_tooltips()
-        assert '<style type="text/css">\n</style>' in s
-        assert '<span class="pd-t"></span>' not in s
-
-    def test_tooltip_class(self):
-        # GH 21266
-        df = DataFrame(data=[[0, 1], [2, 3]])
-        s = (
-            Styler(df, uuid_len=0)
-            .set_tooltips(DataFrame([["tooltip"]]))
-            .set_tooltips_class(name="other-class", properties=[("color", "green")])
-            .render()
-        )
-        assert "#T__ .other-class {\n  color: green;\n" in s
-        assert '#T__ #T__row0_col0 .other-class::after {\n  content: "tooltip";\n' in s
-
-        # GH 39563
-        s = (
-            Styler(df, uuid_len=0)
-            .set_tooltips(DataFrame([["tooltip"]]))
-            .set_tooltips_class(name="other-class", properties="color:green;color:red;")
-            .render()
-        )
-        assert "#T__ .other-class {\n  color: green;\n  color: red;\n}" in s
-
     def test_w3_html_format(self):
         s = (
             Styler(
@@ -1975,98 +1297,92 @@ class TestStyler:
 """
         assert expected == s.render()
 
-
-@td.skip_if_no_mpl
-class TestStylerMatplotlibDep:
-    def test_background_gradient(self):
-        df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
-
-        for c_map in [None, "YlOrRd"]:
-            result = df.style.background_gradient(cmap=c_map)._compute().ctx
-            assert all("#" in x[0] for x in result.values())
-            assert result[(0, 0)] == result[(0, 1)]
-            assert result[(1, 0)] == result[(1, 1)]
-
-        result = (
-            df.style.background_gradient(subset=pd.IndexSlice[1, "A"])._compute().ctx
-        )
-
-        assert result[(1, 0)] == ["background-color: #fff7fb", "color: #000000"]
-
     @pytest.mark.parametrize(
-        "c_map,expected",
+        "slc",
         [
-            (
-                None,
-                {
-                    (0, 0): ["background-color: #440154", "color: #f1f1f1"],
-                    (1, 0): ["background-color: #fde725", "color: #000000"],
-                },
-            ),
-            (
-                "YlOrRd",
-                {
-                    (0, 0): ["background-color: #ffffcc", "color: #000000"],
-                    (1, 0): ["background-color: #800026", "color: #f1f1f1"],
-                },
-            ),
+            pd.IndexSlice[:, :],
+            pd.IndexSlice[:, 1],
+            pd.IndexSlice[1, :],
+            pd.IndexSlice[[1], [1]],
+            pd.IndexSlice[1, [1]],
+            pd.IndexSlice[[1], 1],
+            pd.IndexSlice[1],
+            pd.IndexSlice[1, 1],
+            slice(None, None, None),
+            [0, 1],
+            np.array([0, 1]),
+            pd.Series([0, 1]),
         ],
     )
-    def test_text_color_threshold(self, c_map, expected):
-        df = DataFrame([1, 2], columns=["A"])
-        result = df.style.background_gradient(cmap=c_map)._compute().ctx
-        assert result == expected
+    def test_non_reducing_slice(self, slc):
+        df = DataFrame([[0, 1], [2, 3]])
 
-    @pytest.mark.parametrize("text_color_threshold", [1.1, "1", -1, [2, 2]])
-    def test_text_color_threshold_raises(self, text_color_threshold):
-        df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
-        msg = "`text_color_threshold` must be a value from 0 to 1."
-        with pytest.raises(ValueError, match=msg):
-            df.style.background_gradient(
-                text_color_threshold=text_color_threshold
-            )._compute()
+        tslice_ = _non_reducing_slice(slc)
+        assert isinstance(df.loc[tslice_], DataFrame)
 
-    @td.skip_if_no_mpl
-    def test_background_gradient_axis(self):
-        df = DataFrame([[1, 2], [2, 4]], columns=["A", "B"])
+    @pytest.mark.parametrize("box", [list, pd.Series, np.array])
+    def test_list_slice(self, box):
+        # like dataframe getitem
+        subset = box(["A"])
 
-        low = ["background-color: #f7fbff", "color: #000000"]
-        high = ["background-color: #08306b", "color: #f1f1f1"]
-        mid = ["background-color: #abd0e6", "color: #000000"]
-        result = df.style.background_gradient(cmap="Blues", axis=0)._compute().ctx
-        assert result[(0, 0)] == low
-        assert result[(0, 1)] == low
-        assert result[(1, 0)] == high
-        assert result[(1, 1)] == high
+        df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
+        expected = pd.IndexSlice[:, ["A"]]
 
-        result = df.style.background_gradient(cmap="Blues", axis=1)._compute().ctx
-        assert result[(0, 0)] == low
-        assert result[(0, 1)] == high
-        assert result[(1, 0)] == low
-        assert result[(1, 1)] == high
+        result = _non_reducing_slice(subset)
+        tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
-        result = df.style.background_gradient(cmap="Blues", axis=None)._compute().ctx
-        assert result[(0, 0)] == low
-        assert result[(0, 1)] == mid
-        assert result[(1, 0)] == mid
-        assert result[(1, 1)] == high
+    def test_non_reducing_slice_on_multiindex(self):
+        # GH 19861
+        dic = {
+            ("a", "d"): [1, 4],
+            ("a", "c"): [2, 3],
+            ("b", "c"): [3, 2],
+            ("b", "d"): [4, 1],
+        }
+        df = DataFrame(dic, index=[0, 1])
+        idx = pd.IndexSlice
+        slice_ = idx[:, idx["b", "d"]]
+        tslice_ = _non_reducing_slice(slice_)
 
-    def test_background_gradient_vmin_vmax(self):
-        # GH 12145
-        df = DataFrame(range(5))
-        ctx = df.style.background_gradient(vmin=1, vmax=3)._compute().ctx
-        assert ctx[(0, 0)] == ctx[(1, 0)]
-        assert ctx[(4, 0)] == ctx[(3, 0)]
+        result = df.loc[tslice_]
+        expected = DataFrame({("b", "d"): [4, 1]})
+        tm.assert_frame_equal(result, expected)
 
-    def test_background_gradient_int64(self):
-        # GH 28869
-        df1 = pd.Series(range(3)).to_frame()
-        df2 = pd.Series(range(3), dtype="Int64").to_frame()
-        ctx1 = df1.style.background_gradient()._compute().ctx
-        ctx2 = df2.style.background_gradient()._compute().ctx
-        assert ctx2[(0, 0)] == ctx1[(0, 0)]
-        assert ctx2[(1, 0)] == ctx1[(1, 0)]
-        assert ctx2[(2, 0)] == ctx1[(2, 0)]
+    @pytest.mark.parametrize(
+        "slice_",
+        [
+            pd.IndexSlice[:, :],
+            # check cols
+            pd.IndexSlice[:, pd.IndexSlice[["a"]]],  # inferred deeper need list
+            pd.IndexSlice[:, pd.IndexSlice[["a"], ["c"]]],  # inferred deeper need list
+            pd.IndexSlice[:, pd.IndexSlice["a", "c", :]],
+            pd.IndexSlice[:, pd.IndexSlice["a", :, "e"]],
+            pd.IndexSlice[:, pd.IndexSlice[:, "c", "e"]],
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d"], :]],  # check list
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], :]],  # allow missing
+            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], "e"]],  # no slice
+            # check rows
+            pd.IndexSlice[pd.IndexSlice[["U"]], :],  # inferred deeper need list
+            pd.IndexSlice[pd.IndexSlice[["U"], ["W"]], :],  # inferred deeper need list
+            pd.IndexSlice[pd.IndexSlice["U", "W", :], :],
+            pd.IndexSlice[pd.IndexSlice["U", :, "Y"], :],
+            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], :],
+            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z"]], :],  # check list
+            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # allow missing
+            pd.IndexSlice[pd.IndexSlice["U", "W", ["Y", "Z", "-"]], :],  # no slice
+            # check simultaneous
+            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], pd.IndexSlice["a", "c", :]],
+        ],
+    )
+    def test_non_reducing_multi_slice_on_multiindex(self, slice_):
+        # GH 33562
+        cols = pd.MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
+        idxs = pd.MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
+        df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
+
+        expected = df.loc[slice_]
+        result = df.loc[_non_reducing_slice(slice_)]
+        tm.assert_frame_equal(result, expected)
 
 
 def test_block_names():

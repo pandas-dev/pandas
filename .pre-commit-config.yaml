@@ -29,13 +29,15 @@ repos:
     -   id: pyupgrade
         args: [--py37-plus, --keep-runtime-typing]
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.7.1
+    rev: v1.8.0
     hooks:
       - id: rst-backticks
       - id: rst-directive-colons
-        types: [text]
+        types: [text]  # overwrite types: [rst]
+        types_or: [python, rst]
       - id: rst-inline-touching-normal
-        types: [text]
+        types: [text]  # overwrite types: [rst]
+        types_or: [python, rst]
 -   repo: local
     hooks:
     -   id: pip_to_conda
@@ -138,7 +140,7 @@ repos:
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
         language: python
         types: [python]
-        files: ^pandas/tests/
+        files: ^pandas/tests/frame/
     -   id: FrameOrSeriesUnion
         name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
         entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
@@ -161,6 +163,11 @@ repos:
     -   id: np-bool
         name: Check for use of np.bool instead of np.bool_
         entry: np\.bool[^_8]
+        language: pygrep
+        types_or: [python, cython, rst]
+    -   id: np-object
+        name: Check for use of np.object instead of np.object_
+        entry: np\.object[^_8]
         language: pygrep
         types_or: [python, cython, rst]
     -   id: no-os-remove
@@ -207,8 +214,8 @@ repos:
     rev: v0.1.7
     hooks:
     -   id: no-string-hints
--   repo: https://github.com/MarcoGorelli/abs-imports
-    rev: v0.1.2
+-   repo: https://github.com/MarcoGorelli/absolufy-imports
+    rev: v0.2.1
     hooks:
-    -   id: abs-imports
+    -   id: absolufy-imports
         files: ^pandas/

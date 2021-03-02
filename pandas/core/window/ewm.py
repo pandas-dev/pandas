@@ -213,7 +213,15 @@ class ExponentialMovingWindow(BaseWindow):
     4  3.233686
     """
 
-    _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
+    _attributes = [
+        "com",
+        "min_periods",
+        "adjust",
+        "ignore_na",
+        "axis",
+        "halflife",
+        "times",
+    ]
 
     def __init__(
         self,
@@ -227,17 +235,18 @@ class ExponentialMovingWindow(BaseWindow):
         ignore_na: bool = False,
         axis: int = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
-        **kwargs,
     ):
-        self.obj = obj
-        self.min_periods = max(int(min_periods), 1)
+        super().__init__(
+            obj=obj,
+            min_periods=max(int(min_periods), 1),
+            on=None,
+            center=False,
+            closed=None,
+            method="single",
+            axis=axis,
+        )
         self.adjust = adjust
         self.ignore_na = ignore_na
-        self.axis = axis
-        self.on = None
-        self.center = False
-        self.closed = None
-        self.method = "single"
         if times is not None:
             if isinstance(times, str):
                 times = self._selected_obj[times]
@@ -326,20 +335,22 @@ class ExponentialMovingWindow(BaseWindow):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         if self.times is not None:
-            window_func = window_aggregations.ewma_time
-            window_func = partial(
-                window_func,
-                times=self.times,
-                halflife=self.halflife,
-            )
+            com = 1.0
+            times = self.times.astype(np.float64)
+            halflife = float(self.halflife)
         else:
-            window_func = window_aggregations.ewma
-            window_func = partial(
-                window_func,
-                com=self.com,
-                adjust=self.adjust,
-                ignore_na=self.ignore_na,
-            )
+            com = self.com
+            times = np.arange(len(self.obj), dtype=np.float64)
+            halflife = 1.0
+        window_func = window_aggregations.ewma
+        window_func = partial(
+            window_func,
+            com=com,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            times=times,
+            halflife=halflife,
+        )
         return self._apply(window_func)
 
     @doc(
@@ -556,9 +567,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     Provide an exponential moving window groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return ExponentialMovingWindow
+    _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
@@ -569,7 +578,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._groupby.indices,
+            groupby_indicies=self._grouper.indices,
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
