@@ -52,7 +52,7 @@ def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
     target = idx.copy()
     idx.names = target.names = [None, None]
 
-    other_dtype = pd.MultiIndex.from_product([[1, 2], [3, 4]])
+    other_dtype = MultiIndex.from_product([[1, 2], [3, 4]])
 
     # list & ndarray cases
     assert idx.reindex([])[0].names == [None, None]
@@ -73,14 +73,14 @@ def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
 
 def test_reindex_lvl_preserves_names_when_target_is_list_or_array():
     # GH7774
-    idx = pd.MultiIndex.from_product([[0, 1], ["a", "b"]], names=["foo", "bar"])
+    idx = MultiIndex.from_product([[0, 1], ["a", "b"]], names=["foo", "bar"])
     assert idx.reindex([], level=0)[0].names == ["foo", "bar"]
     assert idx.reindex([], level=1)[0].names == ["foo", "bar"]
 
 
 def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array():
     # GH7774
-    idx = pd.MultiIndex.from_product([[0, 1], ["a", "b"]])
+    idx = MultiIndex.from_product([[0, 1], ["a", "b"]])
     assert idx.reindex([], level=0)[0].levels[0].dtype.type == np.int64
     assert idx.reindex([], level=1)[0].levels[1].dtype.type == np.object_
 
@@ -97,9 +97,9 @@ def test_reindex_base(idx):
 
 
 def test_reindex_non_unique():
-    idx = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (1, 1), (2, 2)])
+    idx = MultiIndex.from_tuples([(0, 0), (1, 1), (1, 1), (2, 2)])
     a = pd.Series(np.arange(4), index=idx)
-    new_idx = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
+    new_idx = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
 
     msg = "cannot handle a non-unique multi-index!"
     with pytest.raises(ValueError, match=msg):
