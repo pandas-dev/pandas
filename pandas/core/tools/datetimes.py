@@ -385,37 +385,11 @@ def _convert_listlike_datetimes(
     result = None
 
     if format is not None:
-        try:
-            # shortcut formatting here
-            if format == "%Y%m%d":
-                # pass orig_arg as float-dtype may have been converted to
-                # datetime64[ns]
-                orig_arg = ensure_object(orig_arg)
-                try:
-                    # may return None without raising
-                    result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-                except (ValueError, TypeError, OutOfBoundsDatetime) as err:
-                    raise ValueError(
-                        "cannot convert the input to '%Y%m%d' date format"
-                    ) from err
-
-            # fallback
-            if result is None:
-                result = _array_strptime_with_fallback(
-                    arg, name, tz, format, exact, errors, infer_datetime_format
-                )
-                if result is not None:
-                    return result
-
-        except ValueError as e:
-            # Fallback to try to convert datetime objects if timezone-aware
-            #  datetime objects are found without passing `utc=True`
-            try:
-                values, tz = conversion.datetime_to_datetime64(arg)
-                dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
-                return DatetimeIndex._simple_new(dta, name=name)
-            except (ValueError, TypeError):
-                raise e
+        result = _to_datetime_with_format(
+            arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
+        )
+        if result is not None:
+            return result
 
     if result is None:
         assert format is None or infer_datetime_format
@@ -494,12 +468,13 @@ def _to_datetime_with_format(
     tz,
     fmt: str,
     exact: bool,
-    errors: str,
+    errors: Optional[str],
     infer_datetime_format: bool,
 ) -> Optional[Index]:
     """
     Try parsing with the given format, returning None on failure.
     """
+    result = None
     try:
         # shortcut formatting here
         if fmt == "%Y%m%d":
@@ -520,7 +495,7 @@ def _to_datetime_with_format(
         # fallback
         if result is None:
             result = _array_strptime_with_fallback(
-                arg, name, tz, format, exact, errors, infer_datetime_format
+                arg, name, tz, fmt, exact, errors, infer_datetime_format
             )
             if result is not None:
                 return result
@@ -538,7 +513,7 @@ def _to_datetime_with_format(
     return result
 
 
-def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
+def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
@@ -1044,7 +1019,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     return values
 
 
-def _attempt_YYYYMMDD(arg: np.ndarray, errors: str) -> Optional[np.ndarray]:
+def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.ndarray]:
     """
     try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
     arg is a passed in as an object dtype, but could really be ints/strings
