@@ -1645,7 +1645,17 @@ class _iLocIndexer(_LocationIndexer):
                     # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
-                    self.obj._mgr = self.obj.reindex(labels, axis=i)._mgr
+
+                    # We are expanding the Series/DataFrame values to match
+                    #  the length of thenew index `labels`.  GH#40096 ensure
+                    #  this is valid even if the index has duplicates.
+                    taker = np.arange(len(index) + 1, dtype=np.intp)
+                    taker[-1] = -1
+                    reindexers = {i: (labels, taker)}
+                    new_obj = self.obj._reindex_with_indexers(
+                        reindexers, allow_dups=True
+                    )
+                    self.obj._mgr = new_obj._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
 
