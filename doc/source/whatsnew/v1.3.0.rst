@@ -339,6 +339,7 @@ Performance improvements
 - Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
 - Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
 - Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
+- Performance improvement in :meth:`.GroupBy.apply` when requiring the python fallback implementation (:issue:`40176`)
 
 .. ---------------------------------------------------------------------------
 
@@ -442,7 +443,7 @@ Indexing
 - Bug in :meth:`RangeIndex.append` where a single object of length 1 was concatenated incorrectly (:issue:`39401`)
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 - Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
--
+- Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
 
 Missing
 ^^^^^^^
