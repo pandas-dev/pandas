@@ -20,6 +20,5 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
-
-  # tests compatibility
-  - backports.zoneinfo
+    # tests compatibility
+    - backports.zoneinfo

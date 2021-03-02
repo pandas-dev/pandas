@@ -34,6 +34,5 @@ dependencies:
     - cython>=0.29.21
     - pyreadstat
     - pyxlsb
-
-  # tests compatibility
-  - backports.zoneinfo
+    # tests compatibility
+    - backports.zoneinfo
