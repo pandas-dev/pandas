@@ -143,6 +143,7 @@ def test_ewm_with_nat_raises(halflife_with_times):
 
 
 def test_ewm_with_times_getitem(halflife_with_times):
+    # GH 40164
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
@@ -155,6 +156,7 @@ def test_ewm_with_times_getitem(halflife_with_times):
 
 @pytest.mark.parametrize("arg", ["com", "halflife", "span", "alpha"])
 def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
+    # GH 40164
     kwargs = {arg: 1, "adjust": adjust, "ignore_na": ignore_na}
     ewm = DataFrame({"A": range(1), "B": range(1)}).ewm(**kwargs)
     expected = {attr: getattr(ewm, attr) for attr in ewm._attributes}
