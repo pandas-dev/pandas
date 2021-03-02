@@ -550,6 +550,14 @@ class TestIndexReductions:
         assert ci.min() == "c"
         assert ci.max() == "b"
 
+    @pytest.mark.parametrize("op", ["any", "all"])
+    def test_numpy_any_all(self, op):
+        idx = Index([0, 1, 2])
+        assert not np.all(idx)
+        assert np.any(idx)
+        idx = Index([1, 2, 3])
+        assert np.all(idx)
+
 
 class TestSeriesReductions:
     # Note: the name TestSeriesReductions indicates these tests
