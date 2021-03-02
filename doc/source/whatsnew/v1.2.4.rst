@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
--
+- Fixed regression in :meth:`DataFrame.sum` when ``min_count`` greater than the :class:`DataFrame` shape was passed resulted in a ``ValueError`` (:issue:`39738`)
 -
 
 .. ---------------------------------------------------------------------------
