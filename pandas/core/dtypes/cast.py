@@ -584,7 +584,7 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         )
     except TypeError:
         # if fill_value is not hashable (required for caching)
-        return maybe_promote(dtype, fill_value)
+        return _maybe_promote(dtype, fill_value)
 
 
 @functools.lru_cache(maxsize=128)
