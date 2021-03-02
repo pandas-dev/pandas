@@ -1646,6 +1646,15 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
+    def set_values(self, values):
+        """
+        Set the values of the single block in place.
+
+        Use at your own risk! This does not check if the passed values are
+        valid for the current Block/SingleBlockManager (length, dtype, etc).
+        """
+        self.blocks[0].values = values
+
 
 # --------------------------------------------------------------------
 # Constructor Helpers
