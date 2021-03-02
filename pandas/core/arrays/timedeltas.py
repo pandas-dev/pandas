@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import (
     List,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -229,13 +230,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
-        if values.dtype != TD64NS_DTYPE:
-            assert values.dtype == "i8"
-            values = values.view(TD64NS_DTYPE)
+        assert values.dtype == TD64NS_DTYPE
 
         result = object.__new__(cls)
         result._ndarray = values
-        result._freq = to_offset(freq)
+        result._freq = freq
         result._dtype = TD64NS_DTYPE
         return result
 
@@ -317,7 +316,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not right_closed:
             index = index[:-1]
 
-        return cls._simple_new(index, freq=freq)
+        return cls._simple_new(index.view("m8[ns]"), freq=freq)
 
     # ----------------------------------------------------------------
     # DatetimeLike Interface
@@ -907,7 +906,9 @@ class TimedeltaArray(dtl.TimelikeOps):
 # Constructor Helpers
 
 
-def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
+def sequence_to_td64ns(
+    data, copy=False, unit=None, errors="raise"
+) -> Tuple[np.ndarray, Optional[Tick]]:
     """
     Parameters
     ----------
