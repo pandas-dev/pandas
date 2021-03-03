@@ -346,38 +346,7 @@ def _convert_listlike_datetimes(
     elif unit is not None:
         if format is not None:
             raise ValueError("cannot specify both format and unit")
-        arg = getattr(arg, "_values", arg)
-
-        # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
-        # because it expects an ndarray argument
-        if isinstance(arg, IntegerArray):
-            result = arg.astype(f"datetime64[{unit}]")
-            tz_parsed = None
-        else:
-
-            result, tz_parsed = tslib.array_with_unit_to_datetime(
-                arg, unit, errors=errors
-            )
-
-        if errors == "ignore":
-
-            result = Index(result, name=name)
-        else:
-            result = DatetimeIndex(result, name=name)
-        # GH 23758: We may still need to localize the result with tz
-        # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
-        # result will be naive but in UTC
-        try:
-            result = result.tz_localize("UTC").tz_convert(tz_parsed)
-        except AttributeError:
-            # Regular Index from 'ignore' path
-            return result
-        if tz is not None:
-            if result.tz is None:
-                result = result.tz_localize(tz)
-            else:
-                result = result.tz_convert(tz)
-        return result
+        return _to_datetime_with_unit(arg, unit, name, tz, errors)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, datetime, list, tuple, 1-d array, or Series"
@@ -416,36 +385,11 @@ def _convert_listlike_datetimes(
     result = None
 
     if format is not None:
-        try:
-            # shortcut formatting here
-            if format == "%Y%m%d":
-                # pass orig_arg as float-dtype may have been converted to
-                # datetime64[ns]
-                orig_arg = ensure_object(orig_arg)
-                try:
-                    result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-                except (ValueError, TypeError, OutOfBoundsDatetime) as err:
-                    raise ValueError(
-                        "cannot convert the input to '%Y%m%d' date format"
-                    ) from err
-
-            # fallback
-            if result is None:
-                result = _array_strptime_with_fallback(
-                    arg, name, tz, format, exact, errors, infer_datetime_format
-                )
-                if result is not None:
-                    return result
-
-        except ValueError as e:
-            # Fallback to try to convert datetime objects if timezone-aware
-            #  datetime objects are found without passing `utc=True`
-            try:
-                values, tz = conversion.datetime_to_datetime64(arg)
-                dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
-                return DatetimeIndex._simple_new(dta, name=name)
-            except (ValueError, TypeError):
-                raise e
+        result = _to_datetime_with_format(
+            arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
+        )
+        if result is not None:
+            return result
 
     if result is None:
         assert format is None or infer_datetime_format
@@ -515,6 +459,94 @@ def _array_strptime_with_fallback(
             return None
 
     return _box_as_indexlike(result, utc=utc, name=name)
+
+
+def _to_datetime_with_format(
+    arg,
+    orig_arg,
+    name,
+    tz,
+    fmt: str,
+    exact: bool,
+    errors: Optional[str],
+    infer_datetime_format: bool,
+) -> Optional[Index]:
+    """
+    Try parsing with the given format, returning None on failure.
+    """
+    result = None
+    try:
+        # shortcut formatting here
+        if fmt == "%Y%m%d":
+            # pass orig_arg as float-dtype may have been converted to
+            # datetime64[ns]
+            orig_arg = ensure_object(orig_arg)
+            try:
+                # may return None without raising
+                result = _attempt_YYYYMMDD(orig_arg, errors=errors)
+            except (ValueError, TypeError, OutOfBoundsDatetime) as err:
+                raise ValueError(
+                    "cannot convert the input to '%Y%m%d' date format"
+                ) from err
+            if result is not None:
+                utc = tz == "utc"
+                return _box_as_indexlike(result, utc=utc, name=name)
+
+        # fallback
+        if result is None:
+            result = _array_strptime_with_fallback(
+                arg, name, tz, fmt, exact, errors, infer_datetime_format
+            )
+            if result is not None:
+                return result
+
+    except ValueError as e:
+        # Fallback to try to convert datetime objects if timezone-aware
+        #  datetime objects are found without passing `utc=True`
+        try:
+            values, tz = conversion.datetime_to_datetime64(arg)
+            dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
+            return DatetimeIndex._simple_new(dta, name=name)
+        except (ValueError, TypeError):
+            raise e
+
+    return result
+
+
+def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
+    """
+    to_datetime specalized to the case where a 'unit' is passed.
+    """
+    arg = getattr(arg, "_values", arg)
+
+    # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
+    # because it expects an ndarray argument
+    if isinstance(arg, IntegerArray):
+        result = arg.astype(f"datetime64[{unit}]")
+        tz_parsed = None
+    else:
+        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+
+    if errors == "ignore":
+        # Index constructor _may_ infer to DatetimeIndex
+        result = Index(result, name=name)
+    else:
+        result = DatetimeIndex(result, name=name)
+
+    if not isinstance(result, DatetimeIndex):
+        return result
+
+    # GH#23758: We may still need to localize the result with tz
+    # GH#25546: Apply tz_parsed first (from arg), then tz (from caller)
+    # result will be naive but in UTC
+    result = result.tz_localize("UTC").tz_convert(tz_parsed)
+
+    if tz is not None:
+        if result.tz is None:
+            result = result.tz_localize(tz)
+        else:
+            result = result.tz_convert(tz)
+    return result
 
 
 def _adjust_to_origin(arg, origin, unit):
@@ -987,7 +1019,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     return values
 
 
-def _attempt_YYYYMMDD(arg, errors):
+def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.ndarray]:
     """
     try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
     arg is a passed in as an object dtype, but could really be ints/strings
@@ -995,8 +1027,8 @@ def _attempt_YYYYMMDD(arg, errors):
 
     Parameters
     ----------
-    arg : passed value
-    errors : 'raise','ignore','coerce'
+    arg : np.ndarray[object]
+    errors : {'raise','ignore','coerce'}
     """
 
     def calc(carg):
