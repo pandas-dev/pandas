@@ -867,8 +867,7 @@ def test_xml_declaration_pretty_print():
     assert output == expected
 
 
-@td.skip_if_no("lxml")
-def test_no_pretty_print_with_decl():
+def test_no_pretty_print_with_decl(parser):
     expected = (
         "<?xml version='1.0' encoding='utf-8'?>\n"
         "<data><row><index>0</index><shape>square</shape>"
@@ -879,7 +878,7 @@ def test_no_pretty_print_with_decl():
         "</row></data>"
     )
 
-    output = geom_df.to_xml(pretty_print=False, parser="lxml")
+    output = geom_df.to_xml(pretty_print=False, parser=parser)
     output = equalize_decl(output)
 
     # etree adds space for closed tags
@@ -889,8 +888,7 @@ def test_no_pretty_print_with_decl():
     assert output == expected
 
 
-@td.skip_if_no("lxml")
-def test_no_pretty_print_no_decl():
+def test_no_pretty_print_no_decl(parser):
     expected = (
         "<data><row><index>0</index><shape>square</shape>"
         "<degrees>360</degrees><sides>4.0</sides></row><row>"
@@ -900,7 +898,11 @@ def test_no_pretty_print_no_decl():
         "</row></data>"
     )
 
-    output = geom_df.to_xml(xml_declaration=False, pretty_print=False)
+    output = geom_df.to_xml(xml_declaration=False, pretty_print=False, parser=parser)
+
+    # etree adds space for closed tags
+    if output is not None:
+        output = output.replace(" />", "/>")
 
     assert output == expected
 
