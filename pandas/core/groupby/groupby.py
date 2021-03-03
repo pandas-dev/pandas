@@ -153,6 +153,18 @@ _apply_docs = {
     transform : Apply function column-by-column to the GroupBy object.
     Series.apply : Apply a function to a Series.
     DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+    Notes
+    -----
+    In the current implementation `apply` calls `func` twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if `func` has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
@@ -220,18 +232,6 @@ _apply_docs = {
     a    1
     b    0
     dtype: int64
-
-    Notes
-    -----
-    In the current implementation `apply` calls `func` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    Examples
-    --------
-    {examples}
     """,
 }
 
