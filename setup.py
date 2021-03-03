@@ -350,6 +350,10 @@ if is_platform_mac():
         python_target = get_config_vars().get(
             "MACOSX_DEPLOYMENT_TARGET", current_system
         )
+        print()
+        print(current_system)
+        print(python_target)
+        print()
         if (
             LooseVersion(str(python_target)) < "10.9"
             and LooseVersion(current_system) >= "10.9"
