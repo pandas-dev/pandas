@@ -4298,15 +4298,17 @@ Keep all original rows and also all original values
             return self._set_name(index, inplace=inplace)
 
     @overload
-    # https://github.com/python/mypy/issues/6580
-    # Overloaded function signatures 1 and 2 overlap with incompatible return types
-    def set_axis(  # type: ignore[misc]
+    def set_axis(
         self, labels, axis: Axis = ..., inplace: Literal[False] = ...
     ) -> Series:
         ...
 
     @overload
-    def set_axis(self, labels, axis: Axis = ..., inplace: Literal[True] = ...) -> None:
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
         ...
 
     @Appender(

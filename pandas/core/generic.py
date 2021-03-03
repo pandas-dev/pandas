@@ -666,17 +666,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self
 
     @overload
-    # https://github.com/python/mypy/issues/6580
-    # Overloaded function signatures 1 and 2 overlap with incompatible return types
-    def set_axis(  # type: ignore[misc]
+    def set_axis(
         self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[False] = ...
     ) -> FrameOrSeries:
         ...
 
     @overload
     def set_axis(
-        self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[True] = ...
+        self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]
     ) -> None:
+        ...
+
+    @overload
+    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None:
         ...
 
     def set_axis(

@@ -4408,15 +4408,17 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
     @overload
-    # https://github.com/python/mypy/issues/6580
-    # Overloaded function signatures 1 and 2 overlap with incompatible return types
-    def set_axis(  # type: ignore[misc]
+    def set_axis(
         self, labels, axis: Axis = ..., inplace: Literal[False] = ...
     ) -> DataFrame:
         ...
 
     @overload
-    def set_axis(self, labels, axis: Axis = ..., inplace: Literal[True] = ...) -> None:
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
         ...
 
     @Appender(
