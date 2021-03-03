@@ -563,83 +563,54 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        if isinstance(data, (BlockManager, ArrayManager)):
-            if index is None and columns is None and dtype is None and copy is False:
-                # GH#33357 fastpath
-                NDFrame.__init__(self, data)
-                return
+        # first check if a Manager is passed without any other arguments
+        # -> use fastpath (without checking Manager type)
+        if (
+            index is None
+            and columns is None
+            and dtype is None
+            and copy is False
+            and isinstance(data, (BlockManager, ArrayManager))
+        ):
+            # GH#33357 fastpath
+            NDFrame.__init__(self, data)
+            return
 
+        manager = get_option("mode.data_manager")
+
+        if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
         elif isinstance(data, dict):
-            # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-            # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-            # "Union[dtype[Any], ExtensionDtype, None]"
-            mgr = dict_to_mgr(
-                data, index, columns, dtype=dtype  # type: ignore[arg-type]
-            )
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                # error: Argument 4 to "rec_array_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                mgr = rec_array_to_mgr(
-                    data, index, columns, dtype, copy  # type: ignore[arg-type]
-                )
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
 
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                # error: Argument "dtype" to "ndarray_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = ndarray_to_mgr(
-                    data,
-                    index,
-                    columns,
-                    dtype=dtype,  # type: ignore[arg-type]
-                    copy=copy,
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
                 )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 # i.e. numpy structured array
-
-                # error: Argument 4 to "rec_array_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                mgr = rec_array_to_mgr(
-                    data, index, columns, dtype, copy  # type: ignore[arg-type]
-                )
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
-
-                # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
-                # attribute "name"
-                # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = dict_to_mgr(
-                    {data.name: data},  # type: ignore[union-attr]
-                    index,
-                    columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    {data.name: data}, index, columns, dtype=dtype, typ=manager
                 )
             else:
-                # error: Argument "dtype" to "ndarray_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = ndarray_to_mgr(
-                    data,
-                    index,
-                    columns,
-                    dtype=dtype,  # type: ignore[arg-type]
-                    copy=copy,
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
                 )
 
         # For data is list-like, or Iterable (will consume into list)
@@ -675,24 +646,15 @@ class DataFrame(NDFrame, OpsMixin):
                         columns,
                         dtype=dtype,  # type: ignore[arg-type]
                     )
+                    mgr = arrays_to_mgr(
+                        arrays, columns, index, columns, dtype=dtype, typ=manager
+                    )
                 else:
-                    # error: Argument "dtype" to "ndarray_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     mgr = ndarray_to_mgr(
-                        data,
-                        index,
-                        columns,
-                        dtype=dtype,  # type: ignore[arg-type]
-                        copy=copy,
+                        data, index, columns, dtype=dtype, copy=copy, typ=manager
                     )
             else:
-                # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                mgr = dict_to_mgr(
-                    {}, index, columns, dtype=dtype  # type: ignore[arg-type]
-                )
+                mgr = dict_to_mgr({}, index, columns, dtype=dtype, typ=manager)
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -714,7 +676,9 @@ class DataFrame(NDFrame, OpsMixin):
                     )
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+                mgr = arrays_to_mgr(
+                    values, columns, index, columns, dtype=None, typ=manager
+                )
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "ndarray", variable has type "List[ExtensionArray]")
@@ -730,16 +694,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 mgr = ndarray_to_mgr(
-                    # error: "List[ExtensionArray]" has no attribute "dtype"
-                    values,
-                    index,
-                    columns,
-                    dtype=values.dtype,  # type: ignore[attr-defined]
-                    copy=False,
+                    values, index, columns, dtype=values.dtype, copy=False, typ=manager
                 )
 
         # ensure correct Manager type according to settings
-        manager = get_option("mode.data_manager")
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
@@ -2069,7 +2027,8 @@ class DataFrame(NDFrame, OpsMixin):
             arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
-        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns)
+        manager = get_option("mode.data_manager")
+        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns, typ=manager)
 
         return cls(mgr)
 
@@ -2280,6 +2239,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
+        manager = get_option("mode.data_manager")
         mgr = arrays_to_mgr(
             arrays,
             columns,
@@ -2287,6 +2247,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns,
             dtype=dtype,
             verify_integrity=verify_integrity,
+            typ=manager,
         )
         return cls(mgr)
 

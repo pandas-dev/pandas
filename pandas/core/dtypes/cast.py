@@ -10,6 +10,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -28,10 +29,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    tslib,
-)
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -87,6 +85,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -1303,6 +1302,107 @@ def astype_nansafe(
     return arr.astype(dtype, copy=copy)  # type: ignore[return-value]
 
 
+def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> ArrayLike:
+    """
+    Cast array (ndarray or ExtensionArray) to the new dtype.
+
+    Parameters
+    ----------
+    values : ndarray or ExtensionArray
+    dtype : dtype object
+    copy : bool, default False
+        copy if indicated
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    if (
+        values.dtype.kind in ["m", "M"]
+        and dtype.kind in ["i", "u"]
+        and isinstance(dtype, np.dtype)
+        and dtype.itemsize != 8
+    ):
+        # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
+        msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
+        raise TypeError(msg)
+
+    if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+        return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
+
+    if is_dtype_equal(values.dtype, dtype):
+        if copy:
+            return values.copy()
+        return values
+
+    if isinstance(values, ABCExtensionArray):
+        values = values.astype(dtype, copy=copy)
+
+    else:
+        values = astype_nansafe(values, dtype, copy=copy)
+
+    # in pandas we don't store numpy str dtypes, so convert to object
+    if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
+        values = np.array(values, dtype=object)
+
+    return values
+
+
+def astype_array_safe(
+    values: ArrayLike, dtype, copy: bool = False, errors: str = "raise"
+) -> ArrayLike:
+    """
+    Cast array (ndarray or ExtensionArray) to the new dtype.
+
+    This basically is the implementation for DataFrame/Series.astype and
+    includes all custom logic for pandas (NaN-safety, converting str to object,
+    not allowing )
+
+    Parameters
+    ----------
+    values : ndarray or ExtensionArray
+    dtype : str, dtype convertible
+    copy : bool, default False
+        copy if indicated
+    errors : str, {'raise', 'ignore'}, default 'raise'
+        - ``raise`` : allow exceptions to be raised
+        - ``ignore`` : suppress exceptions. On error return original object
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    errors_legal_values = ("raise", "ignore")
+
+    if errors not in errors_legal_values:
+        invalid_arg = (
+            "Expected value of kwarg 'errors' to be one of "
+            f"{list(errors_legal_values)}. Supplied value is '{errors}'"
+        )
+        raise ValueError(invalid_arg)
+
+    if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+        msg = (
+            f"Expected an instance of {dtype.__name__}, "
+            "but got the class instead. Try instantiating 'dtype'."
+        )
+        raise TypeError(msg)
+
+    dtype = pandas_dtype(dtype)
+
+    try:
+        new_values = astype_array(values, dtype, copy=copy)
+    except (ValueError, TypeError):
+        # e.g. astype_nansafe can fail on object-dtype of strings
+        #  trying to convert to float
+        if errors == "ignore":
+            new_values = values
+        else:
+            raise
+
+    return new_values
+
+
 def soft_convert_objects(
     values: np.ndarray,
     datetime: bool = True,
@@ -1596,8 +1696,8 @@ def maybe_cast_to_datetime(
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
+    from pandas.core.arrays.datetimes import sequence_to_datetimes
     from pandas.core.arrays.timedeltas import sequence_to_td64ns
-    from pandas.core.tools.datetimes import to_datetime
 
     if not is_list_like(value):
         raise TypeError("value must be listlike")
@@ -1667,27 +1767,19 @@ def maybe_cast_to_datetime(
 
                     try:
                         if is_datetime64:
-                            # error: No overload variant of "to_datetime" matches
-                            # argument types "ndarray", "str"
-                            dti = to_datetime(  # type: ignore[call-overload]
-                                value, errors="raise"
-                            )
+                            dta = sequence_to_datetimes(value, allow_object=False)
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
-                            if dti.tz is not None:
-                                dti = dti.tz_localize(None)
-                            value = dti._values
+                            if dta.tz is not None:
+                                dta = dta.tz_localize(None)
+                            value = dta
                         elif is_datetime64tz:
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
-                            # error: No overload variant of "to_datetime" matches
-                            # argument types "ndarray", "str"
-                            dta = to_datetime(  # type: ignore[call-overload]
-                                value, errors="raise"
-                            ).array
+                            dta = sequence_to_datetimes(value, allow_object=False)
                             if dta.tz is not None:
                                 value = dta.astype(dtype, copy=False)
                             elif is_dt_string:
@@ -1720,24 +1812,10 @@ def maybe_cast_to_datetime(
                             value, _ = sequence_to_td64ns(value)
                     except OutOfBoundsDatetime:
                         raise
-                    except ValueError as err:
+                    except ValueError:
                         # TODO(GH#40048): only catch dateutil's ParserError
                         #  once we can reliably import it in all supported versions
-                        if "mixed datetimes and integers in passed array" in str(err):
-                            # We need to catch this in array_to_datetime, otherwise
-                            #  we end up going through numpy which will lose nanoseconds
-                            #  from Timestamps
-                            try:
-                                i8vals, tz = tslib.array_to_datetime(
-                                    value, allow_mixed=True
-                                )
-                            except ValueError:
-                                pass
-                            else:
-                                from pandas.core.arrays import DatetimeArray
-
-                                dta = DatetimeArray(i8vals).tz_localize(tz)
-                                value = dta
+                        pass
 
         # coerce datetimelike to object
         elif is_datetime64_dtype(
