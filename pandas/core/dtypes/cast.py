@@ -29,10 +29,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    tslib,
-)
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -1605,8 +1602,8 @@ def maybe_cast_to_datetime(
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
+    from pandas.core.arrays.datetimes import sequence_to_datetimes
     from pandas.core.arrays.timedeltas import sequence_to_td64ns
-    from pandas.core.tools.datetimes import to_datetime
 
     if not is_list_like(value):
         raise TypeError("value must be listlike")
@@ -1664,19 +1661,19 @@ def maybe_cast_to_datetime(
 
                     try:
                         if is_datetime64:
-                            dti = to_datetime(value, errors="raise")
+                            dta = sequence_to_datetimes(value, allow_object=False)
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
-                            if dti.tz is not None:
-                                dti = dti.tz_localize(None)
-                            value = dti._values
+                            if dta.tz is not None:
+                                dta = dta.tz_localize(None)
+                            value = dta
                         elif is_datetime64tz:
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
-                            dta = to_datetime(value, errors="raise").array
+                            dta = sequence_to_datetimes(value, allow_object=False)
                             if dta.tz is not None:
                                 value = dta.astype(dtype, copy=False)
                             elif is_dt_string:
@@ -1691,24 +1688,10 @@ def maybe_cast_to_datetime(
                             value, _ = sequence_to_td64ns(value)
                     except OutOfBoundsDatetime:
                         raise
-                    except ValueError as err:
+                    except ValueError:
                         # TODO(GH#40048): only catch dateutil's ParserError
                         #  once we can reliably import it in all supported versions
-                        if "mixed datetimes and integers in passed array" in str(err):
-                            # We need to catch this in array_to_datetime, otherwise
-                            #  we end up going through numpy which will lose nanoseconds
-                            #  from Timestamps
-                            try:
-                                i8vals, tz = tslib.array_to_datetime(
-                                    value, allow_mixed=True
-                                )
-                            except ValueError:
-                                pass
-                            else:
-                                from pandas.core.arrays import DatetimeArray
-
-                                dta = DatetimeArray(i8vals).tz_localize(tz)
-                                value = dta
+                        pass
 
         # coerce datetimelike to object
         elif is_datetime64_dtype(
