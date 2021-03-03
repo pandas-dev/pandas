@@ -13,6 +13,7 @@ jobs:
           ENV_FILE: ci/deps/azure-macos-37.yaml
           CONDA_PY: "37"
           PATTERN: "not slow and not network"
+          MACOSX_DEPLOYMENT_TARGET: 10.13
 
       ${{ if eq(parameters.name, 'Linux') }}:
         py37_minimum_versions:
