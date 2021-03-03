@@ -1701,6 +1701,8 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     dtype('<M8[ns]')
 
     >>> ensure_nanosecond_dtype(np.dtype("m8[ps]"))
+    Traceback (most recent call last):
+        ...
     TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
     """
     msg = (

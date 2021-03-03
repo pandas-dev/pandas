@@ -92,7 +92,7 @@ def arrays_to_mgr(
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
     typ: Optional[str] = None,
-) -> Union[BlockManager, ArrayManager]:
+) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
 
@@ -215,7 +215,7 @@ def mgr_to_mgr(mgr, typ: str):
 
 def ndarray_to_mgr(
     values, index, columns, dtype: Optional[DtypeObj], copy: bool, typ: str
-) -> Union[BlockManager, ArrayManager]:
+) -> Manager:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
 
@@ -311,7 +311,7 @@ def ndarray_to_mgr(
 
 def dict_to_mgr(
     data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str
-) -> Union[BlockManager, ArrayManager]:
+) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
