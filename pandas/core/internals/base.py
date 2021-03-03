@@ -100,5 +100,5 @@ class DataManager(PandasObject):
         return self._equal_values(other)
 
 
-class SingleManager(DataManager):
+class SingleDataManager(DataManager):
     ndim = 1

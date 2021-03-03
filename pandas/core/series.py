@@ -43,6 +43,7 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     IndexKeyFunc,
     NpDtype,
+    SingleManager,
     StorageOptions,
     ValueKeyFunc,
 )
@@ -131,7 +132,7 @@ from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
-    SingleManager,
+    SingleDataManager,
 )
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
@@ -292,7 +293,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     ):
 
         if (
-            isinstance(data, SingleManager)
+            isinstance(data, SingleDataManager)
             and index is None
             and dtype is None
             and copy is False
@@ -306,7 +307,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if fastpath:
 
             # data is an ndarray, index is defined
-            if not isinstance(data, SingleManager):
+            if not isinstance(data, SingleDataManager):
                 manager = get_option("mode.data_manager")
                 if manager == "block":
                     data = SingleBlockManager.from_array(data, index)
@@ -374,7 +375,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
                 copy = False
-            elif isinstance(data, SingleManager):
+            elif isinstance(data, SingleDataManager):
                 if index is None:
                     index = data.index
                 elif not data.index.equals(index) or copy:
@@ -399,7 +400,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 com.require_length_match(data, index)
 
             # create/copy the manager
-            if isinstance(data, SingleManager):
+            if isinstance(data, SingleDataManager):
                 if dtype is not None:
                     data = data.astype(dtype=dtype, errors="ignore", copy=copy)
                 elif copy:

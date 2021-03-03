@@ -4,7 +4,7 @@ from pandas.core.internals.array_manager import (
 )
 from pandas.core.internals.base import (
     DataManager,
-    SingleManager,
+    SingleDataManager,
 )
 from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
@@ -40,8 +40,8 @@ __all__ = [
     "DataManager",
     "ArrayManager",
     "BlockManager",
+    "SingleDataManager",
     "SingleBlockManager",
-    "SingleManager",
     "SingleArrayManager",
     "concatenate_managers",
     # those two are preserved here for downstream compatibility (GH-33892)
