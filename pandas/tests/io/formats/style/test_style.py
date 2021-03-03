@@ -705,11 +705,11 @@ class TestStyler:
         assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
 
     @pytest.mark.parametrize("formatter", [5, True, [2.0]])
-    def test_display_format_raises(self, formatter):
+    def test_format_raises(self, formatter):
         with pytest.raises(TypeError, match="expected str or callable"):
             self.df.style.format(formatter)
 
-    def test_display_set_precision(self):
+    def test_format_with_precision(self):
         # Issue #13257
         df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
         s = Styler(df)
@@ -732,7 +732,7 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "3.212"
         assert ctx["body"][1][2]["display_value"] == "4.566"
 
-    def test_display_subset(self):
+    def test_format_subset(self):
         df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
         ctx = df.style.format(
             {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
@@ -763,7 +763,7 @@ class TestStyler:
         assert ctx["body"][0][2]["display_value"] == "0.123400"
         assert ctx["body"][1][2]["display_value"] == raw_11
 
-    def test_display_dict(self):
+    def test_format_dict(self):
         df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
         ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
         assert ctx["body"][0][1]["display_value"] == "0.1"
