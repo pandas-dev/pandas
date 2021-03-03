@@ -16,6 +16,10 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from,
+)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_object_dtype,
@@ -370,11 +374,19 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         ValueError if the item is not valid for this dtype.
         """
         arr = self._data
-        code = arr._validate_scalar(item)
-
-        new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
-        new_arr = arr._from_backing_data(new_vals)
-        return type(self)._simple_new(new_arr, name=self.name)
+        try:
+            code = arr._validate_scalar(item)
+        except (ValueError, TypeError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
+            dtype, _ = infer_dtype_from(item, pandas_dtype=True)
+            dtype = find_common_type([self.dtype, dtype])
+            return self.astype(dtype).insert(loc, item)
+        else:
+            new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
+            new_arr = arr._from_backing_data(new_vals)
+            return type(self)._simple_new(new_arr, name=self.name)
 
     def putmask(self, mask, value):
         res_values = self._data.copy()

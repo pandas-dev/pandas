@@ -153,11 +153,14 @@ jobs:
       run: |
         source activate pandas-dev
         pytest pandas/tests/frame/methods --array-manager
+        pytest pandas/tests/frame/test_constructors.py --array-manager
+        pytest pandas/tests/frame/constructors/ --array-manager
         pytest pandas/tests/frame/test_reductions.py --array-manager
         pytest pandas/tests/reductions/ --array-manager
         pytest pandas/tests/generic/test_generic.py --array-manager
         pytest pandas/tests/arithmetic/ --array-manager
-        pytest pandas/tests/groupby/aggregate/ --array-manager
+        pytest pandas/tests/groupby/ --array-manager
+        pytest pandas/tests/resample/ --array-manager
         pytest pandas/tests/reshape/merge --array-manager
 
         # indexing subset (temporary since other tests don't pass yet)
