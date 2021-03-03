@@ -4421,6 +4421,10 @@ class DataFrame(NDFrame, OpsMixin):
     def set_axis(self, labels, *, inplace: Literal[True]) -> None:
         ...
 
+    @overload
+    def set_axis(self, labels, axis: Axis, inplace: bool) -> Optional[DataFrame]:
+        ...
+
     @Appender(
         """
         Examples
@@ -4460,12 +4464,8 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
-        # No overload variant of "set_axis" of "NDFrame" matches argument types "Any",
-        # "Union[str, int]", "bool"
-        return super().set_axis(  # type: ignore[call-overload]
-            labels, axis=axis, inplace=inplace
-        )
+    def set_axis(self, labels, axis=0, inplace=False):
+        return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
