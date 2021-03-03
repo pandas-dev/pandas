@@ -1063,7 +1063,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
     def __init__(
         self,
-        arrays: Union[np.ndarray, ExtensionArray],
+        arrays: List[Union[np.ndarray, ExtensionArray]],
         axes: List[Index],
         verify_integrity: bool = True,
     ):
@@ -1090,7 +1090,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def _normalize_axis(axis):
         return axis
 
-    def make_empty(self: T, axes=None) -> T:
+    def make_empty(self, axes=None) -> SingleArrayManager:
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]
