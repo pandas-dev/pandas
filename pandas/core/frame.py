@@ -4460,10 +4460,7 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    # Signature of "set_axis" incompatible with supertype "NDFrame"
-    def set_axis(  # type: ignore[override]
-        self, labels, axis: Axis = 0, inplace: bool = False
-    ) -> Optional[DataFrame]:
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         # No overload variant of "set_axis" of "NDFrame" matches argument types "Any",
         # "Union[str, int]", "bool"
         return super().set_axis(  # type: ignore[call-overload]

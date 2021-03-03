@@ -4336,10 +4336,7 @@ Keep all original rows and also all original values
         see_also_sub="",
     )
     @Appender(generic.NDFrame.set_axis.__doc__)
-    # Signature of "set_axis" incompatible with supertype "NDFrame"
-    def set_axis(  # type: ignore[override]
-        self, labels, axis: Axis = 0, inplace: bool = False
-    ) -> Optional[Series]:
+    def set_axis(self: Series, labels, axis: Axis = 0, inplace: bool = False):
         # No overload variant of "set_axis" of "NDFrame" matches argument types "Any",
         # "Union[str, int]", "bool"
         return super().set_axis(  # type: ignore[call-overload]

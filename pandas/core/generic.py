@@ -681,9 +681,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None:
         ...
 
-    def set_axis(
-        self: FrameOrSeries, labels, axis: Axis = 0, inplace: bool_t = False
-    ) -> Optional[FrameOrSeries]:
+    def set_axis(self: FrameOrSeries, labels, axis: Axis = 0, inplace: bool_t = False):
         """
         Assign desired index to given axis.
 
