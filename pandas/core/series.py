@@ -670,7 +670,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
-        self._mgr.array_values()
+        return self._mgr.array_values()
 
     # ops
     def ravel(self, order="C"):
