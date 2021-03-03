@@ -119,16 +119,21 @@ _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
 
 
-def maybe_convert_platform(values):
+def maybe_convert_platform(
+    values: Union[list, tuple, range, np.ndarray, ExtensionArray]
+) -> ArrayLike:
     """ try to do platform conversion, allow ndarray or list here """
     if isinstance(values, (list, tuple, range)):
-        values = construct_1d_object_array_from_listlike(values)
-    if getattr(values, "dtype", None) == np.object_:
-        if hasattr(values, "_values"):
-            values = values._values
-        values = lib.maybe_convert_objects(values)
+        arr = construct_1d_object_array_from_listlike(values)
+    else:
+        # The caller is responsible for ensuring that we have np.ndarray
+        #  or ExtensionArray here.
+        arr = values
 
-    return values
+    if arr.dtype == object:
+        arr = lib.maybe_convert_objects(arr)
+
+    return arr
 
 
 def is_nested_object(obj) -> bool:
