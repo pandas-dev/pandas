@@ -38,7 +38,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     conversion,
-    iNaT,
     ints_to_pydatetime,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
@@ -1520,40 +1519,25 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
     def try_datetime(v: np.ndarray) -> ArrayLike:
         # Coerce to datetime64, datetime64tz, or in corner cases
         #  object[datetimes]
-        from pandas.core.arrays.datetimes import (
-            DatetimeArray,
-            objects_to_datetime64ns,
-            tz_to_dtype,
-        )
+        from pandas.core.arrays.datetimes import sequence_to_datetimes
 
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            vals, tz = objects_to_datetime64ns(
-                v,
-                require_iso8601=True,
-                dayfirst=False,
-                yearfirst=False,
-                allow_object=True,
-            )
+            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=True)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
         else:
-            # we might have a sequence of the same-datetimes with tz's
-            # if so coerce to a DatetimeIndex; if they are not the same,
-            # then these stay as object dtype, xref GH#19671
-
-            if vals.dtype == object:
+            if dta.dtype == object or dta.tz is None:
+                # GH#19671 if we have mixed timezones we may have object-dtype
+                #  here.
                 # This is reachable bc allow_object=True, means we cast things
                 #  to mixed-tz datetime objects (mostly).  Only 1 test
                 #  relies on this behavior, see GH#40111
-                return vals.reshape(shape)
-
-            dta = DatetimeArray._simple_new(vals.view("M8[ns]"), dtype=tz_to_dtype(tz))
-            if dta.tz is None:
-                # TODO(EA2D): conditional reshape kludge unnecessary with 2D EAs
-                return dta._ndarray.reshape(shape)
+                # FIXME: conditional reshape is kludgy
+                return np.asarray(dta).reshape(shape)
+            # otherwise we have dt64tz
             return dta
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
@@ -1613,50 +1597,16 @@ def maybe_cast_to_datetime(
         is_datetime64tz = is_datetime64tz_dtype(dtype)
         is_timedelta64 = is_timedelta64_dtype(dtype)
 
+        vdtype = getattr(value, "dtype", None)
+
         if is_datetime64 or is_datetime64tz or is_timedelta64:
-
-            # Force the dtype if needed.
-            msg = (
-                f"The '{dtype.name}' dtype has no unit. "
-                f"Please pass in '{dtype.name}[ns]' instead."
-            )
-
-            if is_datetime64:
-                # unpack e.g. SparseDtype
-                dtype = getattr(dtype, "subtype", dtype)
-                if not is_dtype_equal(dtype, DT64NS_DTYPE):
-
-                    # pandas supports dtype whose granularity is less than [ns]
-                    # e.g., [ps], [fs], [as]
-                    if dtype <= np.dtype("M8[ns]"):
-                        if dtype.name == "datetime64":
-                            raise ValueError(msg)
-                        dtype = DT64NS_DTYPE
-                    else:
-                        raise TypeError(
-                            f"cannot convert datetimelike to dtype [{dtype}]"
-                        )
-
-            elif is_timedelta64 and not is_dtype_equal(dtype, TD64NS_DTYPE):
-
-                # pandas supports dtype whose granularity is less than [ns]
-                # e.g., [ps], [fs], [as]
-                if dtype <= np.dtype("m8[ns]"):
-                    if dtype.name == "timedelta64":
-                        raise ValueError(msg)
-                    dtype = TD64NS_DTYPE
-                else:
-                    raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
+            dtype = ensure_nanosecond_dtype(dtype)
 
             if not is_sparse(value):
                 value = np.array(value, copy=False)
 
-                # have a scalar array-like (e.g. NaT)
-                if value.ndim == 0:
-                    value = iNaT
-
                 # we have an array of datetime or timedeltas & nulls
-                elif value.size or not is_dtype_equal(value.dtype, dtype):
+                if value.size or not is_dtype_equal(value.dtype, dtype):
                     _disallow_mismatched_datetimelike(value, dtype)
 
                     try:
@@ -1665,9 +1615,12 @@ def maybe_cast_to_datetime(
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
                             if dta.tz is not None:
+                                # equiv: dta.view(dtype)
+                                # Note: NOT equivalent to dta.astype(dtype)
                                 dta = dta.tz_localize(None)
                             value = dta
                         elif is_datetime64tz:
+                            dtype = cast(DatetimeTZDtype, dtype)
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
@@ -1678,10 +1631,12 @@ def maybe_cast_to_datetime(
                                 value = dta.astype(dtype, copy=False)
                             elif is_dt_string:
                                 # Strings here are naive, so directly localize
+                                # equiv: dta.astype(dtype)  # though deprecated
                                 value = dta.tz_localize(dtype.tz)
                             else:
                                 # Numeric values are UTC at this point,
                                 # so localize and convert
+                                # equiv: Series(dta).astype(dtype) # though deprecated
                                 value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                         elif is_timedelta64:
                             # if successful, we get a ndarray[td64ns]
@@ -1694,9 +1649,7 @@ def maybe_cast_to_datetime(
                         pass
 
         # coerce datetimelike to object
-        elif is_datetime64_dtype(
-            getattr(value, "dtype", None)
-        ) and not is_datetime64_dtype(dtype):
+        elif is_datetime64_dtype(vdtype) and not is_datetime64_dtype(dtype):
             if is_object_dtype(dtype):
                 value = cast(np.ndarray, value)
 
@@ -1738,6 +1691,52 @@ def sanitize_to_nanoseconds(values: np.ndarray) -> np.ndarray:
         values = conversion.ensure_timedelta64ns(values)
 
     return values
+
+
+def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
+    """
+    Convert dtypes with granularity less than nanosecond to nanosecond
+
+    >>> ensure_nanosecond_dtype(np.dtype("M8[s]"))
+    dtype('<M8[ns]')
+
+    >>> ensure_nanosecond_dtype(np.dtype("m8[ps]"))
+    Traceback (most recent call last):
+        ...
+    TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
+    """
+    msg = (
+        f"The '{dtype.name}' dtype has no unit. "
+        f"Please pass in '{dtype.name}[ns]' instead."
+    )
+
+    # unpack e.g. SparseDtype
+    dtype = getattr(dtype, "subtype", dtype)
+
+    if not isinstance(dtype, np.dtype):
+        # i.e. datetime64tz
+        pass
+
+    elif dtype.kind == "M" and dtype != DT64NS_DTYPE:
+        # pandas supports dtype whose granularity is less than [ns]
+        # e.g., [ps], [fs], [as]
+        if dtype <= np.dtype("M8[ns]"):
+            if dtype.name == "datetime64":
+                raise ValueError(msg)
+            dtype = DT64NS_DTYPE
+        else:
+            raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
+
+    elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
+        # pandas supports dtype whose granularity is less than [ns]
+        # e.g., [ps], [fs], [as]
+        if dtype <= np.dtype("m8[ns]"):
+            if dtype.name == "timedelta64":
+                raise ValueError(msg)
+            dtype = TD64NS_DTYPE
+        else:
+            raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
+    return dtype
 
 
 def find_common_type(types: List[DtypeObj]) -> DtypeObj:
