@@ -69,7 +69,9 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
@@ -239,8 +241,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _freq = None
 
     def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy=False):
-        if isinstance(values, (ABCSeries, ABCIndex)):
-            values = values._values
+        values = extract_array(values, extract_numpy=True)
+        if isinstance(values, IntegerArray):
+            values = values.to_numpy("int64", na_value=iNaT)
 
         inferred_freq = getattr(values, "_freq", None)
 
@@ -266,7 +269,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if not isinstance(values, np.ndarray):
             raise ValueError(
                 f"Unexpected type '{type(values).__name__}'. 'values' must be "
-                "a DatetimeArray ndarray, or Series or Index containing one of those."
+                "a DatetimeArray, ndarray, or Series or Index containing one of those."
             )
         if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")

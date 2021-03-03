@@ -28,6 +28,8 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.datetimes import sequence_to_dt64ns
+from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
@@ -224,7 +226,7 @@ class SharedTests:
         result = arr._unbox_scalar(pd.NaT)
         assert isinstance(result, expected)
 
-        msg = f"'value' should be a {self.dtype.__name__}."
+        msg = f"'value' should be a {self.scalar_type.__name__}."
         with pytest.raises(ValueError, match=msg):
             arr._unbox_scalar("foo")
 
@@ -614,11 +616,21 @@ class SharedTests:
         result = arr2.median(axis=1, skipna=False)
         tm.assert_equal(result, arr)
 
+    def test_from_integer_array(self):
+        arr = np.array([1, 2, 3], dtype=np.int64)
+        data = pd.array(arr, dtype="Int64")
+
+        result = self.array_cls(data, dtype=self.example_dtype)
+        expected = self.array_cls(arr, dtype=self.example_dtype)
+
+        tm.assert_extension_array_equal(result, expected)
+
 
 class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex
     array_cls = DatetimeArray
-    dtype = Timestamp
+    scalar_type = Timestamp
+    example_dtype = "M8[ns]"
 
     @pytest.fixture
     def arr1d(self, tz_naive_fixture, freqstr):
@@ -918,7 +930,8 @@ class TestDatetimeArray(SharedTests):
 class TestTimedeltaArray(SharedTests):
     index_cls = TimedeltaIndex
     array_cls = TimedeltaArray
-    dtype = pd.Timedelta
+    scalar_type = pd.Timedelta
+    example_dtype = "m8[ns]"
 
     def test_from_tdi(self):
         tdi = TimedeltaIndex(["1 Day", "3 Hours"])
@@ -1037,7 +1050,8 @@ class TestTimedeltaArray(SharedTests):
 class TestPeriodArray(SharedTests):
     index_cls = PeriodIndex
     array_cls = PeriodArray
-    dtype = Period
+    scalar_type = Period
+    example_dtype = PeriodIndex([], freq="W").dtype
 
     @pytest.fixture
     def arr1d(self, period_index):
@@ -1304,4 +1318,37 @@ def test_period_index_construction_from_strings(klass):
     data = klass(strings)
     result = PeriodIndex(data, freq="Q")
     expected = PeriodIndex([Period(s) for s in strings])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_from_pandas_array(dtype):
+    # GH#24615
+    data = np.array([1, 2, 3], dtype=dtype)
+    arr = PandasArray(data)
+
+    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
+
+    result = cls(arr)
+    expected = cls(data)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = cls._from_sequence(arr)
+    expected = cls._from_sequence(data)
+    tm.assert_extension_array_equal(result, expected)
+
+    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    result = func(arr)[0]
+    expected = func(data)[0]
+    tm.assert_equal(result, expected)
+
+    func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+    result = func(arr).array
+    expected = func(data).array
+    tm.assert_equal(result, expected)
+
+    # Let's check the Indexes while we're here
+    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
+    result = idx_cls(arr)
+    expected = idx_cls(data)
     tm.assert_index_equal(result, expected)

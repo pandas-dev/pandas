@@ -63,6 +63,7 @@ from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import (
     IntegerArray,
+    PandasArray,
     datetimelike as dtl,
 )
 from pandas.core.arrays._ranges import generate_regular_range
@@ -170,7 +171,9 @@ class TimedeltaArray(dtl.TimelikeOps):
     _freq = None
 
     def __init__(self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy=False):
-        values = extract_array(values)
+        values = extract_array(values, extract_numpy=True)
+        if isinstance(values, IntegerArray):
+            values = values.to_numpy("int64", na_value=tslibs.iNaT)
 
         inferred_freq = getattr(values, "_freq", None)
         explicit_none = freq is None
@@ -190,7 +193,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not isinstance(values, np.ndarray):
             msg = (
                 f"Unexpected type '{type(values).__name__}'. 'values' must be a "
-                "TimedeltaArray ndarray, or Series or Index containing one of those."
+                "TimedeltaArray, ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
         if values.ndim not in [1, 2]:
@@ -958,6 +961,8 @@ def sequence_to_td64ns(
     elif isinstance(data, TimedeltaArray):
         inferred_freq = data.freq
         data = data._ndarray
+    elif isinstance(data, PandasArray):
+        data = data.to_numpy()
     elif isinstance(data, IntegerArray):
         data = data.to_numpy("int64", na_value=tslibs.iNaT)
     elif is_categorical_dtype(data.dtype):
