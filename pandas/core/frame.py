@@ -5175,14 +5175,20 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @overload
     def reset_index(
         self,
-        level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
-        drop: bool = False,
-        inplace: bool = False,
-        col_level: Hashable = 0,
-        col_fill: Hashable = "",
+        level: Optional[Union[Hashable, Sequence[Hashable]]],
+        drop: bool,
+        inplace: bool,
+        col_level: Hashable,
+        col_fill: Hashable,
     ) -> Optional[DataFrame]:
+        ...
+
+    def reset_index(
+        self, level=None, drop=False, inplace=False, col_level=0, col_fill=""
+    ):
         """
         Reset the index, or a level of it.
 
