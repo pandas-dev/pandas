@@ -182,18 +182,6 @@ def test_apply_datetimetz():
     tm.assert_series_equal(result, exp)
 
 
-def test_apply_dict_depr():
-
-    tsdf = DataFrame(
-        np.random.randn(10, 3),
-        columns=["A", "B", "C"],
-        index=pd.date_range("1/1/2000", periods=10),
-    )
-    msg = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        tsdf.A.agg({"foo": ["sum", "mean"]})
-
-
 def test_apply_categorical():
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     ser = Series(values, name="XX", index=list("abcdefg"))
@@ -267,19 +255,6 @@ def test_transform(string_series):
 
         result = string_series.apply({"foo": np.sqrt, "bar": np.abs})
         tm.assert_series_equal(result.reindex_like(expected), expected)
-
-
-def test_transform_and_agg_error(string_series):
-    # we are trying to transform with an aggregator
-    msg = "cannot combine transform and aggregation"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.agg(["sqrt", "max"])
-
-    msg = "cannot perform both aggregation and transformation"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.agg({"foo": np.sqrt, "bar": "sum"})
 
 
 def test_demo():

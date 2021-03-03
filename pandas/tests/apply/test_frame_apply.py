@@ -14,25 +14,9 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    notna,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 from pandas.tests.frame.common import zip_frames
-
-
-@pytest.fixture
-def int_frame_const_col():
-    """
-    Fixture for DataFrame of ints which are constant per column
-
-    Columns are ['A', 'B', 'C'], with values (per column): [1, 2, 3]
-    """
-    df = DataFrame(
-        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
-        columns=["A", "B", "C"],
-    )
-    return df
 
 
 def test_apply(float_frame):
@@ -195,17 +179,6 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "how, args", [("pct_change", ()), ("nsmallest", (1, ["a", "b"])), ("tail", 1)]
-)
-def test_apply_str_axis_1_raises(how, args):
-    # GH 39211 - some ops don't support axis=1
-    df = DataFrame({"a": [1, 2], "b": [3, 4]})
-    msg = f"Operation {how} does not support axis=1"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(how, axis=1, args=args)
-
-
 def test_apply_broadcast(float_frame, int_frame_const_col):
 
     # scalars
@@ -257,27 +230,6 @@ def test_apply_broadcast(float_frame, int_frame_const_col):
     )
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
-
-
-def test_apply_broadcast_error(int_frame_const_col):
-    df = int_frame_const_col
-
-    # > 1 ndim
-    msg = "too many dims to broadcast"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(
-            lambda x: np.array([1, 2]).reshape(-1, 2),
-            axis=1,
-            result_type="broadcast",
-        )
-
-    # cannot broadcast
-    msg = "cannot broadcast result"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: [1, 2], axis=1, result_type="broadcast")
-
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: Series([1, 2]), axis=1, result_type="broadcast")
 
 
 def test_apply_raw(float_frame, mixed_type_frame):
@@ -423,71 +375,6 @@ def test_apply_differently_indexed():
     result = df.apply(Series.describe, axis=1)
     expected = DataFrame({i: v.describe() for i, v in df.T.items()}, columns=df.index).T
     tm.assert_frame_equal(result, expected)
-
-
-def test_apply_modify_traceback():
-    data = DataFrame(
-        {
-            "A": [
-                "foo",
-                "foo",
-                "foo",
-                "foo",
-                "bar",
-                "bar",
-                "bar",
-                "bar",
-                "foo",
-                "foo",
-                "foo",
-            ],
-            "B": [
-                "one",
-                "one",
-                "one",
-                "two",
-                "one",
-                "one",
-                "one",
-                "two",
-                "two",
-                "two",
-                "one",
-            ],
-            "C": [
-                "dull",
-                "dull",
-                "shiny",
-                "dull",
-                "dull",
-                "shiny",
-                "shiny",
-                "dull",
-                "shiny",
-                "shiny",
-                "shiny",
-            ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
-        }
-    )
-
-    data.loc[4, "C"] = np.nan
-
-    def transform(row):
-        if row["C"].startswith("shin") and row["A"] == "foo":
-            row["D"] = 7
-        return row
-
-    def transform2(row):
-        if notna(row["C"]) and row["C"].startswith("shin") and row["A"] == "foo":
-            row["D"] = 7
-        return row
-
-    msg = "'float' object has no attribute 'startswith'"
-    with pytest.raises(AttributeError, match=msg):
-        data.apply(transform, axis=1)
 
 
 def test_apply_bug():
@@ -1105,19 +992,6 @@ def test_result_type(int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("result_type", ["foo", 1])
-def test_result_type_error(result_type, int_frame_const_col):
-    # allowed result_type
-    df = int_frame_const_col
-
-    msg = (
-        "invalid value for result_type, must be one of "
-        "{None, 'reduce', 'broadcast', 'expand'}"
-    )
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: [1, 2, 3], axis=1, result_type=result_type)
-
-
 @pytest.mark.parametrize(
     "box",
     [lambda x: list(x), lambda x: tuple(x), lambda x: np.array(x, dtype="int64")],
@@ -1172,20 +1046,6 @@ def test_agg_transform(axis, float_frame):
                 [float_frame.index, ["absolute", "sqrt"]]
             )
         tm.assert_frame_equal(result, expected)
-
-
-def test_transform_and_agg_err(axis, float_frame):
-    # cannot both transform and agg
-    msg = "cannot combine transform and aggregation operations"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            float_frame.agg(["max", "sqrt"], axis=axis)
-
-    df = DataFrame({"A": range(5), "B": 5})
-
-    def f():
-        with np.errstate(all="ignore"):
-            df.agg({"A": ["abs", "sum"], "B": ["mean", "max"]}, axis=axis)
 
 
 def test_demo():
@@ -1256,16 +1116,6 @@ def test_agg_multiple_mixed_no_warning():
     # not ['sum', 'min'].
     expected = expected[["D", "C", "B", "A"]]
     tm.assert_frame_equal(result, expected)
-
-
-def test_agg_dict_nested_renaming_depr():
-
-    df = DataFrame({"A": range(5), "B": 5})
-
-    # nested renaming
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        df.agg({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
 
 def test_agg_reduce(axis, float_frame):
@@ -1518,19 +1368,6 @@ def test_agg_cython_table_transform(df, func, expected, axis):
 
     result = df.agg(func, axis=axis)
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "df, func, expected",
-    tm.get_cython_table_params(
-        DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
-    ),
-)
-def test_agg_cython_table_raises(df, func, expected, axis):
-    # GH 21224
-    msg = "can't multiply sequence by non-int of type 'str'"
-    with pytest.raises(expected, match=msg):
-        df.agg(func, axis=axis)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
