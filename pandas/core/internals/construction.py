@@ -118,8 +118,12 @@ def arrays_to_mgr(
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(
-    data: MaskedRecords, index, columns, dtype: Optional[DtypeObj], copy: bool
+def rec_array_to_mgr(
+    data: Union[MaskedRecords, np.recarray, np.ndarray],
+    index,
+    columns,
+    dtype: Optional[DtypeObj],
+    copy: bool,
 ):
     """
     Extract from a masked rec array and create the manager.
@@ -137,16 +141,10 @@ def masked_rec_array_to_mgr(
     arrays, arr_columns = to_arrays(fdata, columns)
 
     # fill if needed
-    new_arrays = []
-    for col in arr_columns:
-        arr = data[col]
-        fv = arr.fill_value
-
-        mask = ma.getmaskarray(arr)
-        if mask.any():
-            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
-            arr[mask] = fv
-        new_arrays.append(arr)
+    if isinstance(data, np.ma.MaskedArray):
+        new_arrays = fill_masked_arrays(data, arr_columns)
+    else:
+        new_arrays = arrays
 
     # create the manager
     arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)
@@ -158,6 +156,24 @@ def masked_rec_array_to_mgr(
     if copy:
         mgr = mgr.copy()
     return mgr
+
+
+def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> List[np.ndarray]:
+    """
+    Convert numpy MaskedRecords to ensure mask is softened.
+    """
+    new_arrays = []
+
+    for col in arr_columns:
+        arr = data[col]
+        fv = arr.fill_value
+
+        mask = ma.getmaskarray(arr)
+        if mask.any():
+            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
+            arr[mask] = fv
+        new_arrays.append(arr)
+    return new_arrays
 
 
 def mgr_to_mgr(mgr, typ: str):
@@ -594,7 +610,9 @@ def dataclasses_to_dicts(data):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
+def to_arrays(
+    data, columns: Optional[Index], dtype: Optional[DtypeObj] = None
+) -> Tuple[List[ArrayLike], Index]:
     """
     Return list of arrays, columns.
     """
@@ -615,8 +633,10 @@ def to_arrays(data, columns: Optional[Index], dtype: Optional[DtypeObj] = None):
         if isinstance(data, np.ndarray):
             columns = data.dtype.names
             if columns is not None:
-                return [[]] * len(columns), columns
-        return [], []  # columns if columns is not None else []
+                # i.e. numpy structured array
+                arrays = [data[name] for name in columns]
+                return arrays, ensure_index(columns)
+        return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):
         if columns is None:
