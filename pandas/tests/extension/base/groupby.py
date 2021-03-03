@@ -75,7 +75,10 @@ class BaseGroupbyTests(BaseExtensionTests):
         df.groupby("A").apply(groupby_apply_op)
         df.groupby("A").B.apply(groupby_apply_op)
 
-    @pytest.mark.xfail(is_numpy_dev, reason="2021-03-02 #40144 expecting fix in numpy")
+    # Non-strict bc these xpass on dt64tz, Period, Interval, JSON, PandasArray
+    @pytest.mark.xfail(
+        is_numpy_dev, reason="2021-03-02 #40144 expecting fix in numpy", strict=False
+    )
     def test_groupby_apply_identity(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         result = df.groupby("A").B.apply(lambda x: x.array)
