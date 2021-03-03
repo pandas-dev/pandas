@@ -608,11 +608,14 @@ def _stack_multi_column_index(columns):
         if -1 in level_codes:
             lev = np.append(lev, None)
         levs.append(np.take(lev, level_codes))
-    dedupe_levs = zip(*(key for key, _ in itertools.groupby(zip(*levs))))
+    # Remove duplicate tuples in the MultiIndex.
+    tuples = zip(*levs)
+    unique_tuples = (key for key, _ in itertools.groupby(tuples))
+    new_levs = zip(*unique_tuples)
     return MultiIndex.from_arrays(
         [
             Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
-            for new_lev, lev in zip(dedupe_levs, columns.levels)
+            for new_lev, lev in zip(new_levs, columns.levels)
         ],
         names=columns.names[:-1],
     )
