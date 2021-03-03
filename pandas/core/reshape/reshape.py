@@ -600,6 +600,24 @@ def stack_multiple(frame, level, dropna=True):
     return result
 
 
+def _stack_multi_column_index(columns):
+    if len(columns.levels) <= 2:
+        return columns.levels[0]._rename(name=columns.names[0])
+    levs = []
+    for lev, level_codes in zip(columns.levels[:-1], columns.codes[:-1]):
+        if -1 in level_codes:
+            lev = np.append(lev, None)
+        levs.append(np.take(lev, level_codes))
+    dedupe_levs = zip(*(key for key, _ in itertools.groupby(zip(*levs))))
+    return MultiIndex.from_arrays(
+        [
+            Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
+            for new_lev, lev in zip(dedupe_levs, columns.levels)
+        ],
+        names=columns.names[:-1],
+    )
+
+
 def _stack_multi_columns(frame, level_num=-1, dropna=True):
     def _convert_level_number(level_num, columns):
         """
@@ -634,25 +652,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         level_to_sort = _convert_level_number(0, this.columns)
         this = this.sort_index(level=level_to_sort, axis=1)
 
-    # tuple list excluding level for grouping columns
-    if len(frame.columns.levels) > 2:
-        levs = []
-        for lev, level_codes in zip(this.columns.levels[:-1], this.columns.codes[:-1]):
-            if -1 in level_codes:
-                lev = np.append(lev, None)
-            levs.append(np.take(lev, level_codes))
-        new_levels = zip(*(key for key, _ in itertools.groupby(zip(*levs))))
-        new_columns = MultiIndex.from_arrays(
-            [
-                Index(new_level, dtype=level.dtype)
-                if None not in new_level
-                else new_level
-                for new_level, level in zip(new_levels, this.columns.levels)
-            ],
-            names=this.columns.names[:-1],
-        )
-    else:
-        new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
+    new_columns = _stack_multi_column_index(this.columns)
 
     # time to ravel the values
     new_data = {}
