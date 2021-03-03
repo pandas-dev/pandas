@@ -387,35 +387,29 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         # tz mismatches
-        msg = "Timestamp subtraction must have the same timezones or no timezones"
+        msg = "Cannot subtract tz-naive and tz-aware datetime-like objects."
         with pytest.raises(TypeError, match=msg):
             dt_tz - ts
         msg = "can't subtract offset-naive and offset-aware datetimes"
         with pytest.raises(TypeError, match=msg):
             dt_tz - dt
-        msg = "Timestamp subtraction must have the same timezones or no timezones"
-        with pytest.raises(TypeError, match=msg):
-            dt_tz - ts_tz2
         msg = "can't subtract offset-naive and offset-aware datetimes"
         with pytest.raises(TypeError, match=msg):
             dt - dt_tz
-        msg = "Timestamp subtraction must have the same timezones or no timezones"
+        msg = "Cannot subtract tz-naive and tz-aware datetime-like objects."
         with pytest.raises(TypeError, match=msg):
             ts - dt_tz
         with pytest.raises(TypeError, match=msg):
             ts_tz2 - ts
         with pytest.raises(TypeError, match=msg):
             ts_tz2 - dt
-        with pytest.raises(TypeError, match=msg):
-            ts_tz - ts_tz2
 
+        msg = "Cannot subtract tz-naive and tz-aware"
         # with dti
         with pytest.raises(TypeError, match=msg):
             dti - ts_tz
         with pytest.raises(TypeError, match=msg):
             dti_tz - ts
-        with pytest.raises(TypeError, match=msg):
-            dti_tz - ts_tz2
 
         result = dti_tz - dt_tz
         expected = TimedeltaIndex(["0 days", "1 days", "2 days"])
