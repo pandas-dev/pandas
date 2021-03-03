@@ -399,7 +399,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of one period is required for the calculation.\n",
+        "A minimum of one period is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -448,7 +448,7 @@ class Expanding(RollingAndExpandingMixin):
         "scipy.stats.kurtosis : Reference SciPy method.\n",
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of four periods is required for the calculation.\n",
+        "A minimum of four periods is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """

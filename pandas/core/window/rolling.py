@@ -1798,7 +1798,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1847,7 +1847,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1908,7 +1908,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of one period is required for the calculation.\n",
+        "A minimum of one period is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -1938,7 +1938,7 @@ class Rolling(RollingAndExpandingMixin):
         "scipy.stats.kurtosis : Reference SciPy method.\n",
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of four periods is required for the calculation.\n",
+        "A minimum of four periods is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -2106,7 +2106,7 @@ class Rolling(RollingAndExpandingMixin):
         columns on the second level.
 
         In the case of missing elements, only complete pairwise observations
-        will be used.
+        will be used.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
