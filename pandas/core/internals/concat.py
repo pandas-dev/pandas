@@ -39,10 +39,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-)
+from pandas.core.arrays import DatetimeArray
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
@@ -423,7 +420,7 @@ def _concatenate_join_units(
             else:
                 concat_values = concat_values.copy()
 
-    elif any(isinstance(t, ExtensionArray) for t in to_concat):
+    elif any(is_strict_ea(t) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
         # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
