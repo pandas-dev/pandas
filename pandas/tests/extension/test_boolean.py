@@ -16,6 +16,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_dev
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -320,6 +322,7 @@ class TestGroupby(base.BaseGroupbyTests):
         df.groupby("A").apply(groupby_apply_op)
         df.groupby("A").B.apply(groupby_apply_op)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="2021-03-02 #40144 expecting fix in numpy")
     def test_groupby_apply_identity(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
         result = df.groupby("A").B.apply(lambda x: x.array)
