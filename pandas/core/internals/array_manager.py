@@ -72,7 +72,7 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 from pandas.core.internals.base import DataManager
-from pandas.core.internals.blocks import make_block
+from pandas.core.internals.blocks import new_block
 
 if TYPE_CHECKING:
     from pandas.core.internals.managers import SingleBlockManager
@@ -422,7 +422,8 @@ class ArrayManager(DataManager):
                 arr = arr._data  # type: ignore[union-attr]
             if isinstance(arr, np.ndarray):
                 arr = np.atleast_2d(arr)
-            block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
+
+            block = new_block(arr, placement=slice(0, 1, 1), ndim=2)
             applied = getattr(block, f)(**kwargs)
             if isinstance(applied, list):
                 applied = applied[0]
@@ -741,7 +742,7 @@ class ArrayManager(DataManager):
         from pandas.core.internals.managers import SingleBlockManager
 
         values = self.arrays[i]
-        block = make_block(values, placement=slice(0, len(values)), ndim=1)
+        block = new_block(values, placement=slice(0, len(values)), ndim=1)
 
         return SingleBlockManager(block, self._axes[0])
 

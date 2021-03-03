@@ -292,11 +292,11 @@ def ndarray_to_mgr(
                 if isinstance(dvals_list[n], np.ndarray):
                     dvals_list[n] = dvals_list[n].reshape(1, -1)
 
-            from pandas.core.internals.blocks import make_block
+            from pandas.core.internals.blocks import new_block
 
             # TODO: What about re-joining object columns?
             block_values = [
-                make_block(dvals_list[n], placement=[n], ndim=2)
+                new_block(dvals_list[n], placement=[n], ndim=2)
                 for n in range(len(dvals_list))
             ]
 

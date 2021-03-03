@@ -28,7 +28,7 @@ def make_block(
     values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
 ) -> Block:
     """
-    This is a pseudo-public analogue to blocks.make_block.
+    This is a pseudo-public analogue to blocks.new_block.
 
     We ask that downstream libraries use this rather than any fully-internal
     APIs, including but not limited to:
