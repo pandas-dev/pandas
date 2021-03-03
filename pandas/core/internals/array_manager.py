@@ -55,6 +55,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -75,6 +76,7 @@ from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import make_block
 
 if TYPE_CHECKING:
+    from pandas import Float64Index
     from pandas.core.internals.managers import SingleBlockManager
 
 
@@ -433,7 +435,28 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    # TODO quantile
+    def quantile(
+        self,
+        *,
+        qs: Float64Index,
+        axis: int = 0,
+        transposed: bool = False,
+        interpolation="linear",
+    ) -> ArrayManager:
+
+        arrs = [
+            x if not isinstance(x, np.ndarray) else np.atleast_2d(x)
+            for x in self.arrays
+        ]
+        assert axis == 1
+        new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
+        for i, arr in enumerate(new_arrs):
+            if arr.ndim == 2:
+                assert arr.shape[0] == 1, arr.shape
+                new_arrs[i] = arr[0]
+
+        axes = [qs, self._axes[1]]
+        return type(self)(new_arrs, axes)
 
     def isna(self, func) -> ArrayManager:
         return self.apply("apply", func=func)

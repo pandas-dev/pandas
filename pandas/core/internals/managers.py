@@ -554,13 +554,6 @@ class BlockManager(DataManager):
             for blk in self.blocks
         ]
 
-        if transposed:
-            new_axes = new_axes[::-1]
-            blocks = [
-                b.make_block(b.values.T, placement=np.arange(b.shape[1]))
-                for b in blocks
-            ]
-
         return type(self)(blocks, new_axes)
 
     def isna(self, func) -> BlockManager:

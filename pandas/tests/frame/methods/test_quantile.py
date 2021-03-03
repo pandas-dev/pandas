@@ -524,6 +524,7 @@ class TestDataFrameQuantile:
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test
     def test_quantile_item_cache(self):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
@@ -608,11 +609,17 @@ class TestQuantileExtensionDtype:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
+    # TODO: filtering can be removed after GH#39763 is fixed
+    @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
     def test_quantile_ea_all_na(self, index, frame_or_series):
 
         obj = frame_or_series(index).copy()
 
         obj.iloc[:] = index._na_value
+
+        # TODO: this casting should be unnecessary after GH#39763 is fixed
+        obj[:] = obj.astype(index.dtype)
+        assert np.all(obj.dtypes == index.dtype)
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
