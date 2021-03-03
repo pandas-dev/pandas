@@ -1053,10 +1053,13 @@ class TestDataFrameReshape:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
-    @pytest.mark.parametrize("labels,data", [
-        (list("xyz"), [10, 11, 12, 13, 14, 15]),
-        (list("zyx"), [14, 15, 12, 13, 10, 11]),
-    ])
+    @pytest.mark.parametrize(
+        "labels,data",
+        [
+            (list("xyz"), [10, 11, 12, 13, 14, 15]),
+            (list("zyx"), [14, 15, 12, 13, 10, 11]),
+        ],
+    )
     def test_stack_multi_preserve_categorical_dtype(self, ordered, labels, data):
         # GH-36991
         cidx = pd.CategoricalIndex(labels, categories=sorted(labels), ordered=ordered)
