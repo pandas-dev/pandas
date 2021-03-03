@@ -653,6 +653,14 @@ class TestStyler:
         result = self.df.style.set_table_attributes(attributes).render()
         assert 'class="foo" data-bar' in result
 
+    def test_precision(self):
+        s = Styler(self.df, precision=2)
+        assert s.precision == 2
+
+        s2 = s.set_precision(4)
+        assert s is s2
+        assert s.precision == 4
+
     def test_apply_none(self):
         def f(x):
             return DataFrame(

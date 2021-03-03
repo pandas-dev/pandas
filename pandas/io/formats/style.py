@@ -1068,6 +1068,8 @@ class Styler:
         """
         Set the precision used to display values.
 
+        .. deprecated:: 1.3.0
+
         Parameters
         ----------
         precision : int
@@ -1294,6 +1296,8 @@ class Styler:
         Set the missing data representation on a Styler.
 
         .. versionadded:: 1.0.0
+
+        .. deprecated:: 1.3.0
 
         Parameters
         ----------
@@ -2073,7 +2077,22 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _default_formatter(x: Any, precision: Optional[int] = None):
+def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
+    """
+    Format the display of a value
+
+    Parameters
+    ----------
+    x : Any
+        Input variable to be formatted
+    precision : Int, optional
+        Floating point precision used if ``x`` is float or complex.
+
+    Returns
+    -------
+    value : Any
+        Matches input type, or string if input is float or complex.
+    """
     if precision is None:
         precision = get_option("display.precision")
     if isinstance(x, (float, complex)):
