@@ -7,6 +7,7 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -210,6 +211,7 @@ def test_inconsistent_return_type():
     tm.assert_series_equal(result, e)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_pass_args_kwargs(ts, tsframe):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
@@ -364,6 +366,7 @@ def test_indices_concatenation_order():
         df2.groupby("a").apply(f3)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_attr_wrapper(ts):
     grouped = ts.groupby(lambda x: x.weekday())
 
@@ -1234,7 +1237,7 @@ def test_groupby_list_infer_array_like(df):
 def test_groupby_keys_same_size_as_index():
     # GH 11185
     freq = "s"
-    index = pd.date_range(
+    index = date_range(
         start=Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
     )
     df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
@@ -1704,7 +1707,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = DataFrame(
         {
-            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
+            "eventDate": date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )
@@ -1793,7 +1796,7 @@ def test_groupby_agg_ohlc_non_first():
     df = DataFrame(
         [[1], [1]],
         columns=["foo"],
-        index=pd.date_range("2018-01-01", periods=2, freq="D"),
+        index=date_range("2018-01-01", periods=2, freq="D"),
     )
 
     expected = DataFrame(
@@ -1807,7 +1810,7 @@ def test_groupby_agg_ohlc_non_first():
                 ("foo", "ohlc", "close"),
             )
         ),
-        index=pd.date_range("2018-01-01", periods=2, freq="D"),
+        index=date_range("2018-01-01", periods=2, freq="D"),
     )
 
     result = df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])
