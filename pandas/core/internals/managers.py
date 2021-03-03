@@ -518,7 +518,6 @@ class BlockManager(DataManager):
         *,
         qs: Float64Index,
         axis: int = 0,
-        transposed: bool = False,
         interpolation="linear",
     ) -> BlockManager:
         """
@@ -531,8 +530,6 @@ class BlockManager(DataManager):
         axis: reduction axis, default 0
         consolidate: bool, default True. Join together blocks having same
             dtype
-        transposed: bool, default False
-            we are holding transposed data
         interpolation : type of interpolation, default 'linear'
         qs : list of the quantiles to be computed
 

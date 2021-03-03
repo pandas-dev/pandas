@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -293,7 +291,6 @@ class TestIndexReductions:
         with pytest.raises(ValueError, match=errmsg):
             np.argmax(td, out=0)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
     def test_timedelta_ops(self):
         # GH#4984
         # make sure ops return Timedelta

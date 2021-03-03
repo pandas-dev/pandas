@@ -46,7 +46,6 @@ def test_agg_regression1(tsframe):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile/describe
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
 
