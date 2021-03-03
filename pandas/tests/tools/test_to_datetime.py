@@ -20,7 +20,10 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
@@ -1675,12 +1678,14 @@ class TestToDatetimeMisc:
         # gh-17637
         # we are overflowing Timedelta range here
 
-        msg = (
-            "(Python int too large to convert to C long)|"
-            "(long too big to convert)|"
-            "(int too big to convert)"
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                "long too big to convert",
+                "int too big to convert",
+            ]
         )
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
     @pytest.mark.parametrize("cache", [True, False])
