@@ -2297,6 +2297,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [False, True])
+    @td.skip_array_manager_not_yet_implemented
     def test_dict_nocopy(self, copy, any_nullable_numeric_dtype, any_numpy_dtype):
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
@@ -2308,13 +2309,18 @@ class TestDataFrameConstructors:
         df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
 
         def check_views():
-            assert sum(x.values is c for x in df._mgr.blocks) == 1
+            # written to work for either BlockManager or ArrayManager
+            assert sum(x is c for x in df._mgr.arrays) == 1
             assert (
-                sum(x.values.base is a for x in df._mgr.blocks if not x.is_extension)
+                sum(
+                    x.base is a for x in df._mgr.arrays if isinstance(x.dtype, np.dtype)
+                )
                 == 1
             )
             assert (
-                sum(x.values.base is b for x in df._mgr.blocks if not x.is_extension)
+                sum(
+                    x.base is b for x in df._mgr.arrays if isinstance(x.dtype, np.dtype)
+                )
                 == 1
             )
 
@@ -2326,7 +2332,7 @@ class TestDataFrameConstructors:
         df.iloc[0, 1] = 0
         if not copy:
             # setitem on non-EA values preserves views
-            assert sum(x.values is c for x in df._mgr.blocks) == 1
+            assert sum(x is c for x in df._mgr.arrays) == 1
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
 
