@@ -7,8 +7,14 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.common import is_list_like, is_sparse
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_sparse,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
 from pandas.core.nanops import nanpercentile
 

@@ -81,7 +81,7 @@ from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
     validate_putmask,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask, quantile_compat
+from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
