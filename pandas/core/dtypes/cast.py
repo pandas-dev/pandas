@@ -1520,40 +1520,25 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
     def try_datetime(v: np.ndarray) -> ArrayLike:
         # Coerce to datetime64, datetime64tz, or in corner cases
         #  object[datetimes]
-        from pandas.core.arrays.datetimes import (
-            DatetimeArray,
-            objects_to_datetime64ns,
-            tz_to_dtype,
-        )
+        from pandas.core.arrays.datetimes import sequence_to_datetimes
 
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            vals, tz = objects_to_datetime64ns(
-                v,
-                require_iso8601=True,
-                dayfirst=False,
-                yearfirst=False,
-                allow_object=True,
-            )
+            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=True)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
         else:
-            # we might have a sequence of the same-datetimes with tz's
-            # if so coerce to a DatetimeIndex; if they are not the same,
-            # then these stay as object dtype, xref GH#19671
-
-            if vals.dtype == object:
+            if dta.dtype == object or dta.tz is None:
+                # GH#19671 if we have mixed timezones we may have object-dtype
+                #  here.
                 # This is reachable bc allow_object=True, means we cast things
                 #  to mixed-tz datetime objects (mostly).  Only 1 test
                 #  relies on this behavior, see GH#40111
-                return vals.reshape(shape)
-
-            dta = DatetimeArray._simple_new(vals.view("M8[ns]"), dtype=tz_to_dtype(tz))
-            if dta.tz is None:
-                # TODO(EA2D): conditional reshape kludge unnecessary with 2D EAs
-                return dta._ndarray.reshape(shape)
+                # FIXME: conditional reshape is kludgy
+                return np.asarray(dta).reshape(shape)
+            # otherwise we have dt64tz
             return dta
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
