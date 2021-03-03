@@ -98,10 +98,7 @@ from pandas.core import (
 )
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
-from pandas.core.arrays import (
-    ExtensionArray,
-    PandasArray,
-)
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -673,13 +670,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
-        if isinstance(self._mgr, SingleBlockManager):
-            return self._mgr._block.array_values()
-        else:
-            arr = self._mgr.array
-            if isinstance(arr, np.ndarray):
-                arr = PandasArray(arr)
-            return arr
+        self._mgr.array_values()
 
     # ops
     def ravel(self, order="C"):

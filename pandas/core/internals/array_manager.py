@@ -46,7 +46,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCPandasArray,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -59,6 +58,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     IntervalArray,
+    PandasArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -75,7 +75,7 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals.base import (
     DataManager,
-    SingleManager,
+    SingleDataManager,
 )
 from pandas.core.internals.blocks import make_block
 
@@ -1048,7 +1048,7 @@ def _interleaved_dtype(blocks) -> Optional[DtypeObj]:
     return find_common_type([b.dtype for b in blocks])
 
 
-class SingleArrayManager(ArrayManager, SingleManager):
+class SingleArrayManager(ArrayManager, SingleDataManager):
 
     __slots__ = [
         "_axes",  # private attribute, because 'axes' has different order, see below
@@ -1075,7 +1075,7 @@ class SingleArrayManager(ArrayManager, SingleManager):
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
             arr = ensure_wrapped_if_datetimelike(arr)
-            if isinstance(arr, ABCPandasArray):
+            if isinstance(arr, PandasArray):
                 arr = arr.to_numpy()
             self.arrays = [arr]
             self._verify_integrity()
@@ -1128,6 +1128,13 @@ class SingleArrayManager(ArrayManager, SingleManager):
     def internal_values(self):
         """The array that Series._values returns"""
         return self.array
+
+    def array_values(self):
+        """The array that Series.array returns"""
+        arr = self.array
+        if isinstance(arr, np.ndarray):
+            arr = PandasArray(arr)
+        return arr
 
     @property
     def _can_hold_na(self) -> bool:
