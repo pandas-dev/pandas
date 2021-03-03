@@ -168,8 +168,8 @@ _apply_docs = {
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
-                           'B': [1,2,3],
-                           'C': [4,6, 5]})
+    ...                    'B': [1,2,3],
+    ...                    'C': [4,6, 5]})
     >>> g = df.groupby('A')
 
     Notice that ``g`` has two groups, ``a`` and ``b``.
@@ -217,9 +217,9 @@ _apply_docs = {
     each group together into a new Series:
 
     >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
-    0    0.0
-    1    0.5
-    2    4.0
+    a    0.0
+    a    0.5
+    b    4.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
