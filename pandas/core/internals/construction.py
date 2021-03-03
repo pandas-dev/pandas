@@ -69,7 +69,9 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     union_indexes,
 )
+from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.managers import (
+    BlockManager,
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
@@ -77,7 +79,6 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from numpy.ma.mrecords import MaskedRecords
 
-    from pandas.core.internals.managers import BlockManager
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -90,7 +91,8 @@ def arrays_to_mgr(
     columns,
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
-) -> BlockManager:
+    typ: Optional[str] = None,
+) -> Union[BlockManager, ArrayManager]:
     """
     Segregate Series based on type and coerce into matrices.
 
@@ -116,7 +118,12 @@ def arrays_to_mgr(
     # from BlockManager perspective
     axes = [columns, index]
 
-    return create_block_manager_from_arrays(arrays, arr_names, axes)
+    if typ == "block":
+        return create_block_manager_from_arrays(arrays, arr_names, axes)
+    elif typ == "array":
+        return ArrayManager(arrays, [index, columns])
+    else:
+        raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
 
 
 def rec_array_to_mgr(
@@ -125,6 +132,7 @@ def rec_array_to_mgr(
     columns,
     dtype: Optional[DtypeObj],
     copy: bool,
+    typ: str,
 ):
     """
     Extract from a masked rec array and create the manager.
@@ -151,7 +159,7 @@ def rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype, typ=typ)
 
     if copy:
         mgr = mgr.copy()
@@ -181,11 +189,6 @@ def mgr_to_mgr(mgr, typ: str):
     Convert to specific type of Manager. Does not copy if the type is already
     correct. Does not guarantee a copy otherwise.
     """
-    from pandas.core.internals import (
-        ArrayManager,
-        BlockManager,
-    )
-
     new_mgr: Manager
 
     if typ == "block":
@@ -193,7 +196,7 @@ def mgr_to_mgr(mgr, typ: str):
             new_mgr = mgr
         else:
             new_mgr = arrays_to_mgr(
-                mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], dtype=None
+                mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], typ="block"
             )
     elif typ == "array":
         if isinstance(mgr, ArrayManager):
@@ -202,7 +205,7 @@ def mgr_to_mgr(mgr, typ: str):
             arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
             new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
     else:
-        raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{type}'")
+        raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
     return new_mgr
 
 
@@ -211,8 +214,8 @@ def mgr_to_mgr(mgr, typ: str):
 
 
 def ndarray_to_mgr(
-    values, index, columns, dtype: Optional[DtypeObj], copy: bool
-) -> BlockManager:
+    values, index, columns, dtype: Optional[DtypeObj], copy: bool, typ: str
+) -> Union[BlockManager, ArrayManager]:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
 
@@ -242,7 +245,7 @@ def ndarray_to_mgr(
         if columns is None:
             columns = Index(range(len(values)))
 
-        return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
+        return arrays_to_mgr(values, columns, index, columns, dtype=dtype, typ=typ)
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
@@ -307,8 +310,8 @@ def ndarray_to_mgr(
 
 
 def dict_to_mgr(
-    data: Dict, index, columns, dtype: Optional[DtypeObj] = None
-) -> BlockManager:
+    data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str
+) -> Union[BlockManager, ArrayManager]:
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
@@ -354,7 +357,7 @@ def dict_to_mgr(
         arrays = [
             arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
         ]
-    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
+    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype, typ=typ)
 
 
 def nested_data_to_arrays(
@@ -448,6 +451,11 @@ def _homogenize(data, index: Index, dtype: Optional[DtypeObj]):
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
+            # TODO extract_array should be preferred, but that gives failures for
+            # `extension/test_numpy.py` (extract_array will convert numpy arrays
+            # to PandasArray), see https://github.com/pandas-dev/pandas/issues/40021
+            # val = extract_array(val, extract_numpy=True)
+            val = val._values
         else:
             if isinstance(val, dict):
                 if oindex is None:
