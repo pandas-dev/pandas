@@ -18,6 +18,7 @@ import pytest
 import pytz
 
 from pandas.compat import np_version_under1p19
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -163,7 +164,12 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = "Wrong number of items passed 2, placement implies 1"
+        msg = "|".join(
+            [
+                "Wrong number of items passed 2, placement implies 1",
+                "Expected a 1D array, got an array with shape \\(4, 2\\)",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
@@ -178,12 +184,15 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view(self):
+    def test_constructor_dtype_nocast_view_dataframe(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         should_be_view[0][0] = 99
         assert df.values[0, 0] == 99
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) keep view on 2D array?
+    def test_constructor_dtype_nocast_view_2d_array(self):
+        df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df.values, dtype=df[0].dtype)
         should_be_view[0][0] = 97
         assert df.values[0, 0] == 97
@@ -1956,6 +1965,8 @@ class TestDataFrameConstructors:
         assert (cop["A"] == 5).all()
         assert not (float_frame["A"] == 5).all()
 
+    # TODO(ArrayManager) keep view on 2D array?
+    @td.skip_array_manager_not_yet_implemented
     def test_constructor_ndarray_copy(self, float_frame):
         df = DataFrame(float_frame.values)
 
@@ -1966,6 +1977,8 @@ class TestDataFrameConstructors:
         float_frame.values[6] = 6
         assert not (df.values[6] == 6).all()
 
+    # TODO(ArrayManager) keep view on Series?
+    @td.skip_array_manager_not_yet_implemented
     def test_constructor_series_copy(self, float_frame):
         series = float_frame._series
 
@@ -2079,7 +2092,12 @@ class TestDataFrameConstructors:
 
     def test_construct_from_listlikes_mismatched_lengths(self):
         # invalid (shape)
-        msg = r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)"
+        msg = "|".join(
+            [
+                r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)",
+                "Passed arrays should have the same length as the rows Index",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
 
@@ -2124,6 +2142,8 @@ class TestDataFrameConstructors:
 
         assert data.b.dtype == dtype
 
+    # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
     )
@@ -2227,7 +2247,8 @@ class TestDataFrameConstructors:
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
         dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
-        with pytest.raises(ValueError, match="Shape of passed values"):
+        msg = "Shape of passed values|Passed arrays should have the same length"
+        with pytest.raises(ValueError, match=msg):
             DataFrame(dti, index=range(4))
 
     def test_frame_ctor_datetime64_column(self):

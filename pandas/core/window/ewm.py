@@ -215,11 +215,13 @@ class ExponentialMovingWindow(BaseWindow):
 
     _attributes = [
         "com",
+        "span",
+        "halflife",
+        "alpha",
         "min_periods",
         "adjust",
         "ignore_na",
         "axis",
-        "halflife",
         "times",
     ]
 
@@ -245,38 +247,48 @@ class ExponentialMovingWindow(BaseWindow):
             method="single",
             axis=axis,
         )
+        self.com = com
+        self.span = span
+        self.halflife = halflife
+        self.alpha = alpha
         self.adjust = adjust
         self.ignore_na = ignore_na
-        if times is not None:
+        self.times = times
+        if self.times is not None:
             if isinstance(times, str):
-                times = self._selected_obj[times]
-            if not is_datetime64_ns_dtype(times):
+                self.times = self._selected_obj[times]
+            if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            if len(times) != len(obj):
+            if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            if isna(times).any():
+            if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            self.times = np.asarray(times.view(np.int64))
-            self.halflife = Timedelta(halflife).value
+            _times = np.asarray(self.times.view(np.int64), dtype=np.float64)
+            _halflife = float(Timedelta(self.halflife).value)
+            self._deltas = np.diff(_times) / _halflife
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
-            if common.count_not_none(com, span, alpha) > 0:
-                self.com = get_center_of_mass(com, span, None, alpha)
+            if common.count_not_none(self.com, self.span, self.alpha) > 0:
+                self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
             else:
-                self.com = 0.0
+                self._com = 1.0
         else:
-            if halflife is not None and isinstance(halflife, (str, datetime.timedelta)):
+            if self.halflife is not None and isinstance(
+                self.halflife, (str, datetime.timedelta)
+            ):
                 raise ValueError(
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
-            self.times = None
-            self.halflife = None
-            self.com = get_center_of_mass(com, span, halflife, alpha)
+            # Without times, points are equally spaced
+            self._deltas = np.ones(max(len(self.obj) - 1, 0), dtype=np.float64)
+            self._com = get_center_of_mass(
+                self.com, self.span, self.halflife, self.alpha
+            )
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -334,22 +346,13 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        if self.times is not None:
-            com = 1.0
-            times = self.times.astype(np.float64)
-            halflife = float(self.halflife)
-        else:
-            com = self.com
-            times = np.arange(len(self.obj), dtype=np.float64)
-            halflife = 1.0
         window_func = window_aggregations.ewma
         window_func = partial(
             window_func,
-            com=com,
+            com=self._com,
             adjust=self.adjust,
             ignore_na=self.ignore_na,
-            times=times,
-            halflife=halflife,
+            deltas=self._deltas,
         )
         return self._apply(window_func)
 
@@ -411,7 +414,7 @@ class ExponentialMovingWindow(BaseWindow):
         window_func = window_aggregations.ewmcov
         window_func = partial(
             window_func,
-            com=self.com,
+            com=self._com,
             adjust=self.adjust,
             ignore_na=self.ignore_na,
             bias=bias,
@@ -480,7 +483,7 @@ class ExponentialMovingWindow(BaseWindow):
                 end,
                 self.min_periods,
                 y_array,
-                self.com,
+                self._com,
                 self.adjust,
                 self.ignore_na,
                 bias,
@@ -546,7 +549,7 @@ class ExponentialMovingWindow(BaseWindow):
                     end,
                     self.min_periods,
                     Y,
-                    self.com,
+                    self._com,
                     self.adjust,
                     self.ignore_na,
                     1,
@@ -613,7 +616,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         if maybe_use_numba(engine):
             groupby_ewma_func = generate_numba_groupby_ewma_func(
                 engine_kwargs,
-                self.com,
+                self._com,
                 self.adjust,
                 self.ignore_na,
             )
