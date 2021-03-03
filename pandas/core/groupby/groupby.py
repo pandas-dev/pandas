@@ -204,8 +204,7 @@ _apply_docs = {
     A
     a    5
     b    2
-    dtype: int64
-    """,
+    dtype: int64""",
     "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = s.groupby(s.index)
@@ -231,8 +230,7 @@ _apply_docs = {
     >>> g.apply(lambda x: x.max() - x.min())
     a    1
     b    0
-    dtype: int64
-    """,
+    dtype: int64""",
 }
 
 _groupby_agg_method_template = """
