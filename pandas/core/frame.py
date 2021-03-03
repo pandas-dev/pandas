@@ -563,39 +563,55 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        if isinstance(data, (BlockManager, ArrayManager)):
-            if index is None and columns is None and dtype is None and copy is False:
-                # GH#33357 fastpath
-                NDFrame.__init__(self, data)
-                return
+        # first check if a Manager is passed without any other arguments
+        # -> use fastpath (without checking Manager type)
+        if (
+            index is None
+            and columns is None
+            and dtype is None
+            and copy is False
+            and isinstance(data, (BlockManager, ArrayManager))
+        ):
+            # GH#33357 fastpath
+            NDFrame.__init__(self, data)
+            return
 
+        manager = get_option("mode.data_manager")
+
+        if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
         elif isinstance(data, dict):
-            mgr = dict_to_mgr(data, index, columns, dtype=dtype)
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = rec_array_to_mgr(data, index, columns, dtype, copy)
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
 
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
+                mgr = ndarray_to_mgr(
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
+                )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 # i.e. numpy structured array
-                mgr = rec_array_to_mgr(data, index, columns, dtype, copy)
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
-                mgr = dict_to_mgr({data.name: data}, index, columns, dtype=dtype)
+                mgr = dict_to_mgr(
+                    {data.name: data}, index, columns, dtype=dtype, typ=manager
+                )
             else:
-                mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
+                mgr = ndarray_to_mgr(
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
+                )
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
@@ -610,11 +626,15 @@ class DataFrame(NDFrame, OpsMixin):
                     arrays, columns, index = nested_data_to_arrays(
                         data, columns, index, dtype
                     )
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                    mgr = arrays_to_mgr(
+                        arrays, columns, index, columns, dtype=dtype, typ=manager
+                    )
                 else:
-                    mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
+                    mgr = ndarray_to_mgr(
+                        data, index, columns, dtype=dtype, copy=copy, typ=manager
+                    )
             else:
-                mgr = dict_to_mgr({}, index, columns, dtype=dtype)
+                mgr = dict_to_mgr({}, index, columns, dtype=dtype, typ=manager)
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -631,18 +651,19 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+                mgr = arrays_to_mgr(
+                    values, columns, index, columns, dtype=None, typ=manager
+                )
             else:
                 values = construct_2d_arraylike_from_scalar(
                     data, len(index), len(columns), dtype, copy
                 )
 
                 mgr = ndarray_to_mgr(
-                    values, index, columns, dtype=values.dtype, copy=False
+                    values, index, columns, dtype=values.dtype, copy=False, typ=manager
                 )
 
         # ensure correct Manager type according to settings
-        manager = get_option("mode.data_manager")
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
@@ -1970,7 +1991,8 @@ class DataFrame(NDFrame, OpsMixin):
             arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
-        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns)
+        manager = get_option("mode.data_manager")
+        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns, typ=manager)
 
         return cls(mgr)
 
@@ -2177,6 +2199,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
+        manager = get_option("mode.data_manager")
         mgr = arrays_to_mgr(
             arrays,
             columns,
@@ -2184,6 +2207,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns,
             dtype=dtype,
             verify_integrity=verify_integrity,
+            typ=manager,
         )
         return cls(mgr)
 

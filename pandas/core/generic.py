@@ -139,6 +139,7 @@ from pandas.core.internals import (
     ArrayManager,
     BlockManager,
 )
+from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
@@ -5755,6 +5756,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Internal ONLY - only works for BlockManager
         """
         mgr = self._mgr
+        # convert to BlockManager if needed -> this way support ArrayManager as well
+        mgr = mgr_to_mgr(mgr, "block")
         mgr = cast(BlockManager, mgr)
         return {
             k: self._constructor(v).__finalize__(self)
