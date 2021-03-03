@@ -309,7 +309,7 @@ class TestSeriesGetitemSlices:
 
 
 class TestSeriesGetitemListLike:
-    @pytest.mark.parametrize("box", [list, np.array, Index, pd.Series])
+    @pytest.mark.parametrize("box", [list, np.array, Index, Series])
     def test_getitem_no_matches(self, box):
         # GH#33462 we expect the same behavior for list/ndarray/Index/Series
         ser = Series(["A", "B"])

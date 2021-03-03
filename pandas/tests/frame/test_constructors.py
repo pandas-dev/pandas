@@ -377,15 +377,18 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"A": {"a": "a", "b": "b"}, "B": ["a", "b", "c"]})
 
+    def test_constructor_dict_length1(self):
         # Length-one dict micro-optimization
         frame = DataFrame({"A": {"1": 1, "2": 2}})
         tm.assert_index_equal(frame.index, Index(["1", "2"]))
 
+    def test_constructor_dict_with_index(self):
         # empty dict plus index
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx)
         assert frame.index is idx
 
+    def test_constructor_dict_with_index_and_columns(self):
         # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
@@ -393,10 +396,12 @@ class TestDataFrameConstructors:
         assert frame.columns is idx
         assert len(frame._series) == 3
 
+    def test_constructor_dict_of_empty_lists(self):
         # with dict of empty list and Series
         frame = DataFrame({"A": [], "B": []}, columns=["A", "B"])
         tm.assert_index_equal(frame.index, RangeIndex(0), exact=True)
 
+    def test_constructor_dict_with_none(self):
         # GH 14381
         # Dict with None value
         frame_none = DataFrame({"a": None}, index=[0])
@@ -405,6 +410,7 @@ class TestDataFrameConstructors:
         assert frame_none_list._get_value(0, "a") is None
         tm.assert_frame_equal(frame_none, frame_none_list)
 
+    def test_constructor_dict_errors(self):
         # GH10856
         # dict with scalar values should raise error, even if columns passed
         msg = "If using all scalar values, you must pass an index"
@@ -560,7 +566,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
 
-    def test_constructor_subclass_dict(self, float_frame, dict_subclass):
+    def test_constructor_subclass_dict(self, dict_subclass):
         # Test for passing dict subclass to constructor
         data = {
             "col1": dict_subclass((x, 10.0 * x) for x in range(10)),
@@ -574,6 +580,7 @@ class TestDataFrameConstructors:
         df = DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
+    def test_constructor_defaultdict(self, float_frame):
         # try with defaultdict
         from collections import defaultdict
 
@@ -608,6 +615,7 @@ class TestDataFrameConstructors:
         assert frame["B"].dtype == np.object_
         assert frame["A"].dtype == np.float64
 
+    def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
             "A": dict(zip(range(20), tm.makeStringIndex(20))),
@@ -623,6 +631,7 @@ class TestDataFrameConstructors:
         df = DataFrame(d)
         assert isinstance(df["Col1"]["Row2"], float)
 
+    def test_constructor_dict_dont_upcast2(self):
         dm = DataFrame([[1, 2], ["a", "b"]], index=[1, 2], columns=[1, 2])
         assert isinstance(dm[1][1], int)
 
@@ -1195,6 +1204,7 @@ class TestDataFrameConstructors:
         expected = DataFrame([[1, "a"], [2, "b"]], columns=columns)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
         import array
@@ -2427,11 +2437,16 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
 
-    def test_construction_from_set_raises(self):
+    @pytest.mark.parametrize("typ", [set, frozenset])
+    def test_construction_from_set_raises(self, typ):
         # https://github.com/pandas-dev/pandas/issues/32582
-        msg = "Set type is unordered"
+        values = typ({1, 2, 3})
+        msg = f"'{typ.__name__}' type is unordered"
         with pytest.raises(TypeError, match=msg):
-            DataFrame({"a": {1, 2, 3}})
+            DataFrame({"a": values})
+
+        with pytest.raises(TypeError, match=msg):
+            Series(values)
 
 
 def get1(obj):
