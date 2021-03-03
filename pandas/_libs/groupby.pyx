@@ -556,7 +556,7 @@ def _group_prod(floating[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    prodx = np.ones_like(out)
+    prodx = np.ones((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -609,7 +609,7 @@ def _group_var(floating[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    mean = np.zeros_like(out)
+    mean = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
