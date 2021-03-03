@@ -324,7 +324,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         if self.pretty_print:
             self.out_xml = self.prettify_tree()
 
-        if not self.xml_declaration:
+        if self.xml_declaration:
+            self.out_xml = self.add_declaration()
+        else:
             self.out_xml = self.remove_declaration()
 
         if self.stylesheet is not None:
@@ -415,6 +417,23 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         dom = parseString(self.out_xml)
 
         return dom.toprettyxml(indent="  ", encoding=self.encoding)
+
+    def add_declaration(self) -> bytes:
+        """
+        Add xml declaration.
+
+        This method will add xml declaration of working tree. Currently,
+        xml_declaration is supported in etree starting in Python 3.8.
+        """
+        decl = f'<?xml version="1.0" encoding="{self.encoding}"?>\n'
+
+        doc = (
+            self.out_xml
+            if self.out_xml.startswith(b"<?xml")
+            else decl.encode(self.encoding) + self.out_xml
+        )
+
+        return doc
 
     def remove_declaration(self) -> bytes:
         """
