@@ -13,6 +13,7 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas.compat import np_version_under1p18
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -618,10 +619,10 @@ class SharedTests:
 
     def test_from_integer_array(self):
         arr = np.array([1, 2, 3], dtype=np.int64)
-        data = pd.array(arr, dtype="Int64")
-
-        result = self.array_cls(data, dtype=self.example_dtype)
         expected = self.array_cls(arr, dtype=self.example_dtype)
+
+        data = pd.array(arr, dtype="Int64")
+        result = self.array_cls(data, dtype=self.example_dtype)
 
         tm.assert_extension_array_equal(result, expected)
 
@@ -1346,6 +1347,70 @@ def test_from_pandas_array(dtype):
     result = func(arr).array
     expected = func(data).array
     tm.assert_equal(result, expected)
+
+    # Let's check the Indexes while we're here
+    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
+    result = idx_cls(arr)
+    expected = idx_cls(data)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.fixture(
+    params=[
+        "memoryview",
+        "array",
+        pytest.param("dask", marks=td.skip_if_no("dask.array")),
+        pytest.param("xarray", marks=td.skip_if_no("xarray")),
+    ]
+)
+def array_likes(request):
+    # GH#24539 recognize e.g xarray, dask, ...
+    arr = np.array([1, 2, 3], dtype=np.int64)
+
+    name = request.param
+    if name == "memoryview":
+        data = memoryview(arr)
+    elif name == "array":
+        # stdlib array
+        from array import array
+
+        data = array("i", arr)
+    elif name == "dask":
+        import dask.array
+
+        data = dask.array.array(arr)
+    elif name == "xarray":
+        import xarray as xr
+
+        data = xr.DataArray(arr)
+
+    return arr, data
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_from_obscure_array(dtype, array_likes):
+    # GH#24539 recognize e.g xarray, dask, ...
+    # Note: we dont do this for PeriodArray bc _from_sequence won't accept
+    #  an array of integers
+    # TODO: could check with arraylike of Period objects
+    arr, data = array_likes
+
+    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
+
+    expected = cls(arr)
+    result = cls._from_sequence(data)
+    tm.assert_extension_array_equal(result, expected)
+
+    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    result = func(arr)[0]
+    expected = func(data)[0]
+    tm.assert_equal(result, expected)
+
+    # FIXME: dask and memoryview both break on these
+    # func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+    # result = func(arr).array
+    # expected = func(data).array
+    # tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
