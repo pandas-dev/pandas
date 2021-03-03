@@ -636,16 +636,6 @@ class DataFrame(NDFrame, OpsMixin):
                         index,  # type: ignore[arg-type]
                         dtype,  # type: ignore[arg-type]
                     )
-                    # error: Argument "dtype" to "arrays_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
-                    mgr = arrays_to_mgr(
-                        arrays,
-                        columns,
-                        index,
-                        columns,
-                        dtype=dtype,  # type: ignore[arg-type]
-                    )
                     mgr = arrays_to_mgr(
                         arrays, columns, index, columns, dtype=dtype, typ=manager
                     )
