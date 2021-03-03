@@ -1328,7 +1328,11 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         raise TypeError(msg)
 
     if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-        return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
+        # error: Incompatible return value type (got "DatetimeArray", expected
+        # "ndarray")
+        return astype_dt64_to_dt64tz(  # type: ignore[return-value]
+            values, dtype, copy, via_utc=True
+        )
 
     if is_dtype_equal(values.dtype, dtype):
         if copy:
@@ -1339,11 +1343,19 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         values = values.astype(dtype, copy=copy)
 
     else:
-        values = astype_nansafe(values, dtype, copy=copy)
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "ndarray")
+        # error: Argument 1 to "astype_nansafe" has incompatible type "ExtensionArray";
+        # expected "ndarray"
+        values = astype_nansafe(  # type: ignore[assignment]
+            values, dtype, copy=copy  # type: ignore[arg-type]
+        )
 
     # in pandas we don't store numpy str dtypes, so convert to object
     if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
-        values = np.array(values, dtype=object)
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        values = np.array(values, dtype=object)  # type: ignore[assignment]
 
     return values
 
@@ -1770,8 +1782,13 @@ def maybe_cast_to_datetime(
                             dta = sequence_to_datetimes(value, allow_object=False)
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
-                            if dta.tz is not None:
-                                dta = dta.tz_localize(None)
+
+                            # error: Item "ndarray" of "Union[ndarray, DatetimeArray]"
+                            # has no attribute "tz"
+                            if dta.tz is not None:  # type: ignore[union-attr]
+                                # error: Item "ndarray" of "Union[ndarray,
+                                # DatetimeArray]" has no attribute "tz_localize"
+                                dta = dta.tz_localize(None)  # type: ignore[union-attr]
                             value = dta
                         elif is_datetime64tz:
                             # The string check can be removed once issue #13712
@@ -1780,31 +1797,48 @@ def maybe_cast_to_datetime(
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
                             dta = sequence_to_datetimes(value, allow_object=False)
-                            if dta.tz is not None:
-                                value = dta.astype(dtype, copy=False)
+                            # error: Item "ndarray" of "Union[ndarray, DatetimeArray]"
+                            # has no attribute "tz"
+                            if dta.tz is not None:  # type: ignore[union-attr]
+                                # error: Argument 1 to "astype" of
+                                # "_ArrayOrScalarCommon" has incompatible type
+                                # "Union[dtype[Any], ExtensionDtype, None]"; expected
+                                # "Union[dtype[Any], None, type, _SupportsDType, str,
+                                # Union[Tuple[Any, int], Tuple[Any, Union[int,
+                                # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+                                # Any]]]"
+                                value = dta.astype(
+                                    dtype, copy=False  # type: ignore[arg-type]
+                                )
                             elif is_dt_string:
                                 # Strings here are naive, so directly localize
 
-                                # error: Item "dtype[Any]" of "Union[dtype[Any],
-                                # ExtensionDtype, None]" has no attribute "tz"
-                                # error: Item "ExtensionDtype" of "Union[dtype[Any],
-                                # ExtensionDtype, None]" has no attribute "tz"
-                                # error: Item "None" of "Union[dtype[Any],
-                                # ExtensionDtype, None]" has no attribute "tz"
-                                value = dta.tz_localize(
+                                # error: Item "ndarray" of "Union[ndarray,
+                                # DatetimeArray]" has no attribute "tz_localize"
+                                value = dta.tz_localize(  # type: ignore[union-attr]
+                                    # error: Item "dtype[Any]" of "Union[dtype[Any],
+                                    # ExtensionDtype, None]" has no attribute "tz"
+                                    # error: Item "ExtensionDtype" of "Union[dtype[Any],
+                                    # ExtensionDtype, None]" has no attribute "tz"
+                                    # error: Item "None" of "Union[dtype[Any],
+                                    # ExtensionDtype, None]" has no attribute "tz"
                                     dtype.tz  # type: ignore[union-attr]
                                 )
                             else:
                                 # Numeric values are UTC at this point,
                                 # so localize and convert
 
-                                # error: Item "dtype[Any]" of "Union[dtype[Any],
-                                # ExtensionDtype, None]" has no attribute "tz"
-                                # error: Item "ExtensionDtype" of "Union[dtype[Any],
-                                # ExtensionDtype, None]" has no attribute "tz"
-                                # error: Item "None" of "Union[dtype[Any],
-                                # ExtensionDtype, None]" has no attribute "tz"
-                                value = dta.tz_localize("UTC").tz_convert(
+                                # error: Item "ndarray" of "Union[ndarray,
+                                # DatetimeArray]" has no attribute "tz_localize"
+                                value = dta.tz_localize(  # type: ignore[union-attr]
+                                    "UTC"
+                                ).tz_convert(
+                                    # error: Item "dtype[Any]" of "Union[dtype[Any],
+                                    # ExtensionDtype, None]" has no attribute "tz"
+                                    # error: Item "ExtensionDtype" of "Union[dtype[Any],
+                                    # ExtensionDtype, None]" has no attribute "tz"
+                                    # error: Item "None" of "Union[dtype[Any],
+                                    # ExtensionDtype, None]" has no attribute "tz"
                                     dtype.tz  # type: ignore[union-attr]
                                 )
                         elif is_timedelta64:

@@ -661,7 +661,11 @@ class Block(PandasObject):
         if values.dtype.kind in ["m", "M"]:
             values = self.array_values()
 
-        new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
+        # error: Value of type variable "ArrayLike" of "astype_array_safe" cannot be
+        # "Union[ndarray, ExtensionArray]"
+        new_values = astype_array_safe(
+            values, dtype, copy=copy, errors=errors  # type: ignore[type-var]
+        )
 
         newb = self.make_block(new_values)
         if newb.shape != self.shape:

@@ -431,7 +431,9 @@ def _convert_listlike_datetimes(
             require_iso8601 = not infer_datetime_format
             format = None
 
-    result = None
+    # error: Incompatible types in assignment (expression has type "None", variable has
+    # type "ExtensionArray")
+    result = None  # type: ignore[assignment]
 
     if format is not None:
         try:
