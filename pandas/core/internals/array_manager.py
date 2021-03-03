@@ -46,6 +46,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCPandasArray,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -1075,7 +1076,7 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
             arr = ensure_wrapped_if_datetimelike(arr)
-            if isinstance(arr, PandasArray):
+            if isinstance(arr, ABCPandasArray):
                 arr = arr.to_numpy()
             self.arrays = [arr]
             self._verify_integrity()
