@@ -285,7 +285,7 @@ class ExponentialMovingWindow(BaseWindow):
                     "times is not None."
                 )
             # Without times, points are equally spaced
-            self._deltas = np.ones(len(self.obj) - 1, dtype=np.float64)
+            self._deltas = np.ones(max(len(self.obj) - 1, 0), dtype=np.float64)
             self._com = get_center_of_mass(
                 self.com, self.span, self.halflife, self.alpha
             )
