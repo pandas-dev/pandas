@@ -192,7 +192,8 @@ class ArrayManager(DataManager):
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
-        output += f"\nColumns: {self._axes[1]}"
+        if self.ndim == 1:
+            output += f"\nColumns: {self._axes[1]}"
         output += f"\n{len(self.arrays)} arrays:"
         for arr in self.arrays:
             output += f"\n{arr.dtype}"
@@ -416,7 +417,8 @@ class ArrayManager(DataManager):
                             kwargs[k] = obj.iloc[:, [i]]._values
                     else:
                         # otherwise we have an ndarray
-                        kwargs[k] = obj[[i]]
+                        if obj.ndim == 2:
+                            kwargs[k] = obj[[i]]
 
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
@@ -469,7 +471,6 @@ class ArrayManager(DataManager):
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-
         if align:
             align_keys = ["new", "mask"]
         else:
