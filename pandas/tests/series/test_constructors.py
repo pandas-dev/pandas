@@ -69,6 +69,7 @@ class TestSeriesConstructors:
         ],
     )
     def test_empty_constructor(self, constructor, check_index_type):
+        # TODO: share with frame test of the same name
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             expected = Series()
             result = constructor()
@@ -310,6 +311,7 @@ class TestSeriesConstructors:
         exp = Series(range(10))
         tm.assert_series_equal(result, exp)
 
+        # same but with non-default index
         gen = (i for i in range(10))
         result = Series(gen, index=range(10, 20))
         exp.index = range(10, 20)
@@ -323,6 +325,7 @@ class TestSeriesConstructors:
         exp = Series(range(10))
         tm.assert_series_equal(result, exp)
 
+        # same but with non-default index
         m = map(lambda x: x, range(10))
         result = Series(m, index=range(10, 20))
         exp.index = range(10, 20)
@@ -386,6 +389,7 @@ class TestSeriesConstructors:
         str(df.values)
         str(df)
 
+    def test_constructor_categorical_with_coercion2(self):
         # GH8623
         x = DataFrame(
             [[1, "John P. Doe"], [2, "Jane Dove"], [1, "John P. Doe"]],
@@ -747,6 +751,7 @@ class TestSeriesConstructors:
         assert s.iloc[1] == "NOV"
         assert s.dtype == object
 
+    def test_constructor_datelike_coercion2(self):
         # the dtype was being reset on the slicing and re-inferred to datetime
         # even thought the blocks are mixed
         belly = "216 3T19".split()
@@ -798,6 +803,7 @@ class TestSeriesConstructors:
         assert isna(s[1])
         assert s.dtype == "M8[ns]"
 
+    def test_constructor_dtype_datetime64_10(self):
         # GH3416
         dates = [
             np.datetime64(datetime(2013, 1, 1)),
@@ -850,6 +856,7 @@ class TestSeriesConstructors:
             expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dtype_datetime64_9(self):
         # invalid dates can be help as object
         result = Series([datetime(2, 1, 1)])
         assert result[0] == datetime(2, 1, 1, 0, 0)
@@ -857,11 +864,13 @@ class TestSeriesConstructors:
         result = Series([datetime(3000, 1, 1)])
         assert result[0] == datetime(3000, 1, 1, 0, 0)
 
+    def test_constructor_dtype_datetime64_8(self):
         # don't mix types
         result = Series([Timestamp("20130101"), 1], index=["a", "b"])
         assert result["a"] == Timestamp("20130101")
         assert result["b"] == 1
 
+    def test_constructor_dtype_datetime64_7(self):
         # GH6529
         # coerce datetime64 non-ns properly
         dates = date_range("01-Jan-2015", "01-Dec-2015", freq="M")
@@ -887,6 +896,7 @@ class TestSeriesConstructors:
         tm.assert_numpy_array_equal(series1.values, dates2)
         assert series1.dtype == object
 
+    def test_constructor_dtype_datetime64_6(self):
         # these will correctly infer a datetime
         s = Series([None, NaT, "2013-08-05 15:30:00.000001"])
         assert s.dtype == "datetime64[ns]"
@@ -897,6 +907,7 @@ class TestSeriesConstructors:
         s = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
         assert s.dtype == "datetime64[ns]"
 
+    def test_constructor_dtype_datetime64_5(self):
         # tz-aware (UTC and other tz's)
         # GH 8411
         dr = date_range("20130101", periods=3)
@@ -906,18 +917,21 @@ class TestSeriesConstructors:
         dr = date_range("20130101", periods=3, tz="US/Eastern")
         assert str(Series(dr).iloc[0].tz) == "US/Eastern"
 
+    def test_constructor_dtype_datetime64_4(self):
         # non-convertible
         s = Series([1479596223000, -1479590, NaT])
         assert s.dtype == "object"
         assert s[2] is NaT
         assert "NaT" in str(s)
 
+    def test_constructor_dtype_datetime64_3(self):
         # if we passed a NaT it remains
         s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), NaT])
         assert s.dtype == "object"
         assert s[2] is NaT
         assert "NaT" in str(s)
 
+    def test_constructor_dtype_datetime64_2(self):
         # if we passed a nan it remains
         s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), np.nan])
         assert s.dtype == "object"
@@ -980,6 +994,7 @@ class TestSeriesConstructors:
         result = DatetimeIndex(s, freq="infer")
         tm.assert_index_equal(result, dr)
 
+    def test_constructor_with_datetime_tz4(self):
         # inference
         s = Series(
             [
@@ -990,6 +1005,7 @@ class TestSeriesConstructors:
         assert s.dtype == "datetime64[ns, US/Pacific]"
         assert lib.infer_dtype(s, skipna=True) == "datetime64"
 
+    def test_constructor_with_datetime_tz3(self):
         s = Series(
             [
                 Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
@@ -999,6 +1015,7 @@ class TestSeriesConstructors:
         assert s.dtype == "object"
         assert lib.infer_dtype(s, skipna=True) == "datetime"
 
+    def test_constructor_with_datetime_tz2(self):
         # with all NaT
         s = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
         expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
@@ -1230,14 +1247,6 @@ class TestSeriesConstructors:
         result = Series(data).sort_values()
         expected = Series([3, 6], index=MultiIndex.from_tuples([(1, 2), (None, 5)]))
         tm.assert_series_equal(result, expected)
-
-    def test_constructor_set(self):
-        values = {1, 2, 3, 4, 5}
-        with pytest.raises(TypeError, match="'set' type is unordered"):
-            Series(values)
-        values = frozenset(values)
-        with pytest.raises(TypeError, match="'frozenset' type is unordered"):
-            Series(values)
 
     # https://github.com/pandas-dev/pandas/issues/22698
     @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")

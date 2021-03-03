@@ -128,6 +128,7 @@ Other enhancements
 - :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support ``Numba`` execution with the ``engine`` keyword (:issue:`38895`)
 - :meth:`DataFrame.apply` can now accept NumPy unary operators as strings, e.g. ``df.apply("sqrt")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
+- Disallow :class:`DataFrame` indexer for ``iloc`` for :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__`, (:issue:`39004`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
 - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`)
@@ -318,6 +319,7 @@ Deprecations
 - Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 - Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
+- Deprecated :class:`DataFrame` indexer for :meth:`Series.__setitem__` and :meth:`DataFrame.__setitem__` (:issue:`39004`)
 - Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
@@ -403,6 +405,7 @@ Conversion
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
 - Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
 - Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
+- Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
 -
 
 Strings
@@ -517,7 +520,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
 - Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
 - Bug in :meth:`DataFrameGroupBy.sample` where column selection was not applied to sample result (:issue:`39928`)
--
+- Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would incorrectly raise a ``ValueError`` when providing ``times`` (:issue:`40164`)
+- Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 
 Reshaping
 ^^^^^^^^^
