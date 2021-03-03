@@ -38,17 +38,20 @@ def int_frame_const_col():
 def test_apply(float_frame):
     with np.errstate(all="ignore"):
         # ufunc
-        applied = float_frame.apply(np.sqrt)
-        tm.assert_series_equal(np.sqrt(float_frame["A"]), applied["A"])
+        result = np.sqrt(float_frame["A"])
+        expected = float_frame.apply(np.sqrt)["A"]
+        tm.assert_series_equal(result, expected)
 
         # aggregator
-        applied = float_frame.apply(np.mean)
-        assert applied["A"] == np.mean(float_frame["A"])
+        result = float_frame.apply(np.mean)["A"]
+        expected = np.mean(float_frame["A"])
+        assert result == expected
 
         d = float_frame.index[0]
-        applied = float_frame.apply(np.mean, axis=1)
-        assert applied[d] == np.mean(float_frame.xs(d))
-        assert applied.index is float_frame.index  # want this
+        result = float_frame.apply(np.mean, axis=1)
+        expected = np.mean(float_frame.xs(d))
+        assert result[d] == expected
+        assert result.index is float_frame.index
 
     # invalid axis
     df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
@@ -58,42 +61,42 @@ def test_apply(float_frame):
 
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
-    df = df.apply(lambda ts: ts.astype("category"))
+    result = df.apply(lambda ts: ts.astype("category"))
 
-    assert df.shape == (4, 2)
-    assert isinstance(df["c0"].dtype, CategoricalDtype)
-    assert isinstance(df["c1"].dtype, CategoricalDtype)
+    assert result.shape == (4, 2)
+    assert isinstance(result["c0"].dtype, CategoricalDtype)
+    assert isinstance(result["c1"].dtype, CategoricalDtype)
 
 
 def test_apply_axis1_with_ea():
     # GH#36785
-    df = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
-    result = df.apply(lambda x: x, axis=1)
-    tm.assert_frame_equal(result, df)
+    expected = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
+    result = expected.apply(lambda x: x, axis=1)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_mixed_datetimelike():
     # mixed datetimelike
     # GH 7778
-    df = DataFrame(
+    expected = DataFrame(
         {
             "A": date_range("20130101", periods=3),
             "B": pd.to_timedelta(np.arange(3), unit="s"),
         }
     )
-    result = df.apply(lambda x: x, axis=1)
-    tm.assert_frame_equal(result, df)
+    result = expected.apply(lambda x: x, axis=1)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_empty(float_frame):
     # empty
     empty_frame = DataFrame()
 
-    applied = empty_frame.apply(np.sqrt)
-    assert applied.empty
+    result = empty_frame.apply(np.sqrt)
+    assert result.empty
 
-    applied = empty_frame.apply(np.mean)
-    assert applied.empty
+    result = empty_frame.apply(np.mean)
+    assert result.empty
 
     no_rows = float_frame[:0]
     result = no_rows.apply(lambda x: x.mean())
@@ -108,7 +111,7 @@ def test_apply_empty(float_frame):
     # GH 2476
     expected = DataFrame(index=["a"])
     result = expected.apply(lambda x: x["a"], axis=1)
-    tm.assert_frame_equal(expected, result)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_with_reduce_empty():
@@ -285,14 +288,13 @@ def test_apply_raw(float_frame, mixed_type_frame):
     float_frame.apply(_assert_raw, raw=True)
     float_frame.apply(_assert_raw, axis=1, raw=True)
 
-    result0 = float_frame.apply(np.mean, raw=True)
-    result1 = float_frame.apply(np.mean, axis=1, raw=True)
+    result = float_frame.apply(np.mean, raw=True)
+    expected = float_frame.apply(lambda x: x.values.mean())
+    tm.assert_series_equal(result, expected)
 
-    expected0 = float_frame.apply(lambda x: x.values.mean())
-    expected1 = float_frame.apply(lambda x: x.values.mean(), axis=1)
-
-    tm.assert_series_equal(result0, expected0)
-    tm.assert_series_equal(result1, expected1)
+    result = float_frame.apply(np.mean, axis=1, raw=True)
+    expected = float_frame.apply(lambda x: x.values.mean(), axis=1)
+    tm.assert_series_equal(result, expected)
 
     # no reduction
     result = float_frame.apply(lambda x: x * 2, raw=True)
@@ -306,8 +308,9 @@ def test_apply_raw(float_frame, mixed_type_frame):
 
 def test_apply_axis1(float_frame):
     d = float_frame.index[0]
-    tapplied = float_frame.apply(np.mean, axis=1)
-    assert tapplied[d] == np.mean(float_frame.xs(d))
+    result = float_frame.apply(np.mean, axis=1)[d]
+    expected = np.mean(float_frame.xs(d))
+    assert result == expected
 
 
 def test_apply_mixed_dtype_corner():
@@ -401,27 +404,25 @@ def test_apply_reduce_to_dict():
     # GH 25196 37544
     data = DataFrame([[1, 2], [3, 4]], columns=["c0", "c1"], index=["i0", "i1"])
 
-    result0 = data.apply(dict, axis=0)
-    expected0 = Series([{"i0": 1, "i1": 3}, {"i0": 2, "i1": 4}], index=data.columns)
-    tm.assert_series_equal(result0, expected0)
+    result = data.apply(dict, axis=0)
+    expected = Series([{"i0": 1, "i1": 3}, {"i0": 2, "i1": 4}], index=data.columns)
+    tm.assert_series_equal(result, expected)
 
-    result1 = data.apply(dict, axis=1)
-    expected1 = Series([{"c0": 1, "c1": 2}, {"c0": 3, "c1": 4}], index=data.index)
-    tm.assert_series_equal(result1, expected1)
+    result = data.apply(dict, axis=1)
+    expected = Series([{"c0": 1, "c1": 2}, {"c0": 3, "c1": 4}], index=data.index)
+    tm.assert_series_equal(result, expected)
 
 
 def test_apply_differently_indexed():
     df = DataFrame(np.random.randn(20, 10))
 
-    result0 = df.apply(Series.describe, axis=0)
-    expected0 = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
-    tm.assert_frame_equal(result0, expected0)
+    result = df.apply(Series.describe, axis=0)
+    expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
 
-    result1 = df.apply(Series.describe, axis=1)
-    expected1 = DataFrame(
-        {i: v.describe() for i, v in df.T.items()}, columns=df.index
-    ).T
-    tm.assert_frame_equal(result1, expected1)
+    result = df.apply(Series.describe, axis=1)
+    expected = DataFrame({i: v.describe() for i, v in df.T.items()}, columns=df.index).T
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_modify_traceback():
@@ -525,7 +526,7 @@ def test_apply_bug():
 
 
 def test_apply_convert_objects():
-    data = DataFrame(
+    expected = DataFrame(
         {
             "A": [
                 "foo",
@@ -572,8 +573,8 @@ def test_apply_convert_objects():
         }
     )
 
-    result = data.apply(lambda x: x, axis=1)
-    tm.assert_frame_equal(result._convert(datetime=True), data)
+    result = expected.apply(lambda x: x, axis=1)._convert(datetime=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_attach_name(float_frame):
@@ -635,17 +636,17 @@ def test_applymap(float_frame):
     float_frame.applymap(type)
 
     # GH 465: function returning tuples
-    result = float_frame.applymap(lambda x: (x, x))
-    assert isinstance(result["A"][0], tuple)
+    result = float_frame.applymap(lambda x: (x, x))["A"][0]
+    assert isinstance(result, tuple)
 
     # GH 2909: object conversion to float in constructor?
     df = DataFrame(data=[1, "a"])
-    result = df.applymap(lambda x: x)
-    assert result.dtypes[0] == object
+    result = df.applymap(lambda x: x).dtypes[0]
+    assert result == object
 
     df = DataFrame(data=[1.0, "a"])
-    result = df.applymap(lambda x: x)
-    assert result.dtypes[0] == object
+    result = df.applymap(lambda x: x).dtypes[0]
+    assert result == object
 
     # GH 2786
     df = DataFrame(np.random.random((3, 4)))
@@ -672,10 +673,10 @@ def test_applymap(float_frame):
         DataFrame(index=list("ABC")),
         DataFrame({"A": [], "B": [], "C": []}),
     ]
-    for frame in empty_frames:
+    for expected in empty_frames:
         for func in [round, lambda x: x]:
-            result = frame.applymap(func)
-            tm.assert_frame_equal(result, frame)
+            result = expected.applymap(func)
+            tm.assert_frame_equal(result, expected)
 
 
 def test_applymap_na_ignore(float_frame):
@@ -743,7 +744,8 @@ def test_frame_apply_dont_convert_datetime64():
     df = df.applymap(lambda x: x + BDay())
     df = df.applymap(lambda x: x + BDay())
 
-    assert df.x1.dtype == "M8[ns]"
+    result = df.x1.dtype
+    assert result == "M8[ns]"
 
 
 def test_apply_non_numpy_dtype():
@@ -787,11 +789,13 @@ def test_apply_nested_result_axis_1():
 
 def test_apply_noreduction_tzaware_object():
     # https://github.com/pandas-dev/pandas/issues/31505
-    df = DataFrame({"foo": [Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]")
-    result = df.apply(lambda x: x)
-    tm.assert_frame_equal(result, df)
-    result = df.apply(lambda x: x.copy())
-    tm.assert_frame_equal(result, df)
+    expected = DataFrame(
+        {"foo": [Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
+    )
+    result = expected.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+    result = expected.apply(lambda x: x.copy())
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_function_runs_once():
@@ -885,11 +889,11 @@ def test_infer_row_shape():
     # GH 17437
     # if row shape is changing, infer it
     df = DataFrame(np.random.rand(10, 2))
-    result = df.apply(np.fft.fft, axis=0)
-    assert result.shape == (10, 2)
+    result = df.apply(np.fft.fft, axis=0).shape
+    assert result == (10, 2)
 
-    result = df.apply(np.fft.rfft, axis=0)
-    assert result.shape == (6, 2)
+    result = df.apply(np.fft.rfft, axis=0).shape
+    assert result == (6, 2)
 
 
 def test_with_dictlike_columns():
