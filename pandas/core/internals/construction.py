@@ -86,6 +86,7 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from numpy.ma.mrecords import MaskedRecords
 
+
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -98,7 +99,7 @@ def arrays_to_mgr(
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
     typ: Optional[str] = None,
-):
+) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
 
@@ -116,10 +117,10 @@ def arrays_to_mgr(
         # don't force copy because getting jammed in an ndarray anyway
         arrays = _homogenize(arrays, index, dtype)
 
-        columns = ensure_index(columns)
     else:
-        columns = ensure_index(columns)
         index = ensure_index(index)
+
+    columns = ensure_index(columns)
 
     # from BlockManager perspective
     axes = [columns, index]
@@ -147,9 +148,8 @@ def rec_array_to_mgr(
     fdata = ma.getdata(data)
     if index is None:
         index = _get_names_from_index(fdata)
-        if index is None:
-            index = ibase.default_index(len(data))
-    index = ensure_index(index)
+    else:
+        index = ensure_index(index)
 
     if columns is not None:
         columns = ensure_index(columns)
@@ -222,14 +222,14 @@ def mgr_to_mgr(mgr, typ: str):
 
 def ndarray_to_mgr(
     values, index, columns, dtype: Optional[DtypeObj], copy: bool, typ: str
-):
+) -> Manager:
     # used in DataFrame.__init__
-    # input must be a ndarray, list, Series, index
+    # input must be a ndarray, list, Series, Index, ExtensionArray
 
     if isinstance(values, ABCSeries):
         if columns is None:
             if values.name is not None:
-                columns = [values.name]
+                columns = Index([values.name])
         if index is None:
             index = values.index
         else:
@@ -325,7 +325,9 @@ def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
     return dta
 
 
-def dict_to_mgr(data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str):
+def dict_to_mgr(
+    data: Dict, index, columns, dtype: Optional[DtypeObj], typ: str
+) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
@@ -547,21 +549,18 @@ def extract_index(data) -> Index:
     return ensure_index(index)
 
 
-def reorder_arrays(arrays, arr_columns, columns):
+def reorder_arrays(
+    arrays: List[ArrayLike], arr_columns: Index, columns: Optional[Index]
+) -> Tuple[List[ArrayLike], Index]:
     # reorder according to the columns
-    if (
-        columns is not None
-        and len(columns)
-        and arr_columns is not None
-        and len(arr_columns)
-    ):
+    if columns is not None and len(columns) and len(arr_columns):
         indexer = ensure_index(arr_columns).get_indexer(columns)
         arr_columns = ensure_index([arr_columns[i] for i in indexer])
         arrays = [arrays[i] for i in indexer]
     return arrays, arr_columns
 
 
-def _get_names_from_index(data):
+def _get_names_from_index(data) -> Index:
     has_some_name = any(getattr(s, "name", None) is not None for s in data)
     if not has_some_name:
         return ibase.default_index(len(data))
@@ -576,7 +575,7 @@ def _get_names_from_index(data):
             index[i] = f"Unnamed {count}"
             count += 1
 
-    return index
+    return Index(index)
 
 
 def _get_axes(

@@ -1614,6 +1614,7 @@ def maybe_cast_to_datetime(
                                 dta = dta.tz_localize(None)
                             value = dta
                         elif is_datetime64tz:
+                            dtype = cast(DatetimeTZDtype, dtype)
                             # The string check can be removed once issue #13712
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
@@ -1694,6 +1695,8 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     dtype('<M8[ns]')
 
     >>> ensure_nanosecond_dtype(np.dtype("m8[ps]"))
+    Traceback (most recent call last):
+        ...
     TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
     """
     msg = (
