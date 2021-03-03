@@ -1466,7 +1466,6 @@ Thur,Lunch,Yes,51.51,17"""
         assert result.name is None
         assert stacked["bar"].dtype == np.float_
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_unstack_bug(self):
         df = DataFrame(
             {
