@@ -641,19 +641,18 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             if -1 in level_codes:
                 lev = np.append(lev, None)
             levs.append(np.take(lev, level_codes))
-        unique_groups = [key for key, _ in itertools.groupby(zip(*levs))]
+        new_levels = zip(*(key for key, _ in itertools.groupby(zip(*levs))))
         new_columns = MultiIndex.from_arrays(
             [
                 Index(new_level, dtype=level.dtype)
                 if None not in new_level
                 else new_level
-                for new_level, level in zip(zip(*unique_groups), this.columns.levels)
+                for new_level, level in zip(new_levels, this.columns.levels)
             ],
             names=this.columns.names[:-1],
         )
     else:
         new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
-        unique_groups = list(new_columns)
 
     # time to ravel the values
     new_data = {}
@@ -664,7 +663,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     level_vals_used = np.take(level_vals_nan, level_codes)
     levsize = len(level_codes)
     drop_cols = []
-    for key in unique_groups:
+    for key in new_columns:
         try:
             loc = this.columns.get_loc(key)
         except KeyError:
