@@ -81,7 +81,7 @@ class TestDatetimeIndex:
         result = df[0].at[0]
         assert result == expected
 
-    def test_indexing_with_datetimeindex_tz(self):
+    def test_indexing_with_datetimeindex_tz(self, indexer_sl):
 
         # GH 12050
         # indexing on a series with a datetimeindex with tz
@@ -93,7 +93,7 @@ class TestDatetimeIndex:
 
         for sel in (index, list(index)):
             # getitem
-            result = ser[sel]
+            result = indexer_sl(ser)[sel]
             expected = ser.copy()
             if sel is not index:
                 expected.index = expected.index._with_freq(None)
@@ -101,40 +101,18 @@ class TestDatetimeIndex:
 
             # setitem
             result = ser.copy()
-            result[sel] = 1
-            expected = Series(1, index=index)
-            tm.assert_series_equal(result, expected)
-
-            # .loc getitem
-            result = ser.loc[sel]
-            expected = ser.copy()
-            if sel is not index:
-                expected.index = expected.index._with_freq(None)
-            tm.assert_series_equal(result, expected)
-
-            # .loc setitem
-            result = ser.copy()
-            result.loc[sel] = 1
+            indexer_sl(result)[sel] = 1
             expected = Series(1, index=index)
             tm.assert_series_equal(result, expected)
 
         # single element indexing
 
         # getitem
-        assert ser[index[1]] == 1
+        assert indexer_sl(ser)[index[1]] == 1
 
         # setitem
         result = ser.copy()
-        result[index[1]] = 5
-        expected = Series([0, 5], index=index)
-        tm.assert_series_equal(result, expected)
-
-        # .loc getitem
-        assert ser.loc[index[1]] == 1
-
-        # .loc setitem
-        result = ser.copy()
-        result.loc[index[1]] = 5
+        indexer_sl(result)[index[1]] = 5
         expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
 

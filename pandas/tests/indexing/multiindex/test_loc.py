@@ -256,14 +256,11 @@ class TestMultiIndexLoc:
 
         result = s.loc[0:4, "a":"c"]
         tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result, expected)
 
         result = s.loc[:4, "a":"c"]
         tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result, expected)
 
         result = s.loc[0:, "a":"c"]
-        tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result, expected)
 
         # GH 7400
@@ -410,13 +407,6 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, pos):
     else:
         result = s.loc[indexer]
         tm.assert_series_equal(result, expected)
-
-
-def test_series_loc_getitem_fancy(multiindex_year_month_day_dataframe_random_data):
-    s = multiindex_year_month_day_dataframe_random_data["A"]
-    expected = s.reindex(s.index[49:51])
-    result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
-    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("columns_indexer", [([], slice(None)), (["foo"], [])])
