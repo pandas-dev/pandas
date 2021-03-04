@@ -75,7 +75,10 @@ from pandas.core.indexes.api import (
     union_indexes,
 )
 from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    make_block,
+)
 from pandas.core.internals.managers import (
     BlockManager,
     create_block_manager_from_arrays,
@@ -303,10 +306,7 @@ def ndarray_to_mgr(
             # transpose and separate blocks
 
             dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
-            for n in range(len(dvals_list)):
-                dvals_list[n] = dvals_list[n].reshape(1, -1)
-
-            from pandas.core.internals.blocks import make_block
+            dvals_list = [ensure_block_shape(dval, 2) for dval in dvals_list]
 
             # TODO: What about re-joining object columns?
             block_values = [
@@ -317,8 +317,7 @@ def ndarray_to_mgr(
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
             block_values = [datelike_vals]
-            if values.ndim == 2:
-                block_values = [ensure_block_shape(x, 2) for x in block_values]
+            block_values = [ensure_block_shape(x, 2) for x in block_values]
 
     else:
         block_values = [values]

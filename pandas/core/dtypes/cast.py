@@ -1529,16 +1529,10 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
         else:
-            if dta.dtype == object or dta.tz is None:
-                # GH#19671 if we have mixed timezones we may have object-dtype
-                #  here.
-                # This is reachable bc allow_object=True, means we cast things
-                #  to mixed-tz datetime objects (mostly).  Only 1 test
-                #  relies on this behavior, see GH#40111
-                # FIXME: conditional reshape is kludgy
-                return np.asarray(dta).reshape(shape)
-            # otherwise we have dt64tz
-            return dta
+            # GH#19761 we may have mixed timezones, in which cast 'dta' is
+            #  an ndarray[object].  Only 1 test
+            #  relies on this behavior, see GH#40111
+            return dta.reshape(shape)
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
         # safe coerce to timedelta64
