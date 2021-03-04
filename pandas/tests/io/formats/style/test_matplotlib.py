@@ -131,6 +131,16 @@ class TestStylerMatplotlibDep:
                     (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
                 },
             ),
+            (
+                None,
+                DataFrame([[2, 1], [1, 2]]),
+                {
+                    (0, 0): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                    (1, 0): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (0, 1): [("background-color", "#fff7fb"), ("color", "#000000")],
+                    (1, 1): [("background-color", "#023858"), ("color", "#f1f1f1")],
+                },
+            ),
         ],
     )
     def test_background_gradient_gmap(self, axis, gmap, expected):
