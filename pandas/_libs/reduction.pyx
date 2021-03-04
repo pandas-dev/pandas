@@ -59,7 +59,6 @@ cdef class _BaseGrouper:
             cached_typ = self.typ(
                 vslider.buf, dtype=vslider.buf.dtype, index=cached_ityp, name=self.name
             )
-            self.has_block = hasattr(cached_typ._mgr, "_block")
         else:
             # See the comment in indexes/base.py about _index_data.
             # We need this for EA-backed indexes that have a reference
@@ -67,12 +66,7 @@ cdef class _BaseGrouper:
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
             cached_ityp._cache.clear()  # e.g. inferred_freq must go
-            if self.has_block:
-                object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
-                object.__setattr__(cached_typ._mgr._block, 'mgr_locs',
-                                   slice(len(vslider.buf)))
-            else:
-                cached_typ._mgr.arrays[0] = vslider.buf
+            cached_typ._mgr.set_values(vslider.buf)
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
 
@@ -112,7 +106,6 @@ cdef class SeriesBinGrouper(_BaseGrouper):
     cdef public:
         ndarray arr, index, dummy_arr, dummy_index
         object values, f, bins, typ, ityp, name
-        bint has_block
 
     def __init__(self, object series, object f, object bins):
 
@@ -206,7 +199,6 @@ cdef class SeriesGrouper(_BaseGrouper):
     cdef public:
         ndarray arr, index, dummy_arr, dummy_index
         object f, labels, values, typ, ityp, name
-        bint has_block
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups):

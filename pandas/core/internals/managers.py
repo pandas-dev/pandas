@@ -1661,6 +1661,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         valid for the current Block/SingleBlockManager (length, dtype, etc).
         """
         self.blocks[0].values = values
+        self.blocks[0]._mgr_locs = libinternals.BlockPlacement(slice(len(values)))
 
 
 # --------------------------------------------------------------------
