@@ -1649,11 +1649,10 @@ class Styler:
 
         See Also
         --------
-        Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_range: Highlight a defined range with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
 
         Notes
         -----
@@ -1700,10 +1699,9 @@ class Styler:
         See Also
         --------
         Styler.highlight_null: Highlight missing values with a style.
-        Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_range: Highlight a defined range with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1747,9 +1745,8 @@ class Styler:
         --------
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
-        Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_range: Highlight a defined range with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
@@ -1759,13 +1756,14 @@ class Styler:
             props = f"background-color: {color};"
         return self.apply(f, axis=axis, subset=subset, props=props)
 
-    def highlight_range(
+    def highlight_between(
         self,
         subset: Optional[IndexLabel] = None,
         color: str = "yellow",
         axis: Optional[Axis] = 0,
-        start: Optional[Union[Scalar, Sequence]] = None,
-        stop: Optional[Union[Scalar, Sequence]] = None,
+        left: Optional[Union[Scalar, Sequence]] = None,
+        right: Optional[Union[Scalar, Sequence]] = None,
+        inclusive: Union[bool, str] = True,
         props: Optional[str] = None,
     ) -> Styler:
         """
@@ -1783,10 +1781,13 @@ class Styler:
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        start : scalar or datetime-like, or sequence or array-like, default None
-            Left bound for defining the range (inclusive).
-        stop : scalar or datetime-like, or sequence or array-like, default None
-            Right bound for defining the range (inclusive)
+        left : scalar or datetime-like, or sequence or array-like, default None
+            Left bound for defining the range.
+        right : scalar or datetime-like, or sequence or array-like, default None
+            Right bound for defining the range.
+        inclusive : str or bool, default True
+            Indicate which bounds to include, values allowed: True, False, 'right',
+            'left'
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
             is not used.
@@ -1801,20 +1802,19 @@ class Styler:
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_range: Highlight a defined range with a style.
 
         Notes
         -----
-        If ``start`` is ``None`` only the right bound is applied.
-        If ``stop`` is ``None`` only the left bound is applied. If both are ``None``
+        If ``left`` is ``None`` only the right bound is applied.
+        If ``right`` is ``None`` only the left bound is applied. If both are ``None``
         all values are highlighted.
 
-        ``axis`` is only needed if ``start`` or ``stop`` are provide as a sequence or
-        an array-like object for aligning the shapes. If ``start`` and ``stop`` are
+        ``axis`` is only needed if ``left`` or ``right`` are provided as a sequence or
+        an array-like object for aligning the shapes. If ``left`` and ``right`` are
         both scalars then all ``axis`` inputs will give the same result.
 
         This function only works with compatible ``dtypes``. For example a datetime-like
-        region can only use equivalent datetime-like ``start`` and ``stop`` arguments.
+        region can only use equivalent datetime-like ``left`` and ``right`` arguments.
         Use ``subset`` to control regions which have multiple ``dtypes``.
 
         Examples
@@ -1826,29 +1826,29 @@ class Styler:
         ...     'Two': [2.9, 2.1, 2.5],
         ...     'Three': [3.1, 3.2, 3.8],
         ... })
-        >>> df.style.highlight_range(start=2.1, stop=2.9)
+        >>> df.style.highlight_between(left=2.1, right=2.9)
 
         .. figure:: ../../_static/style/hr_basic.png
 
-        Using a range input sequnce along an ``axis``, in this case setting a ``start``
-        and ``stop`` for each column individually
+        Using a range input sequnce along an ``axis``, in this case setting a ``left``
+        and ``right`` for each column individually
 
-        >>> df.style.highlight_range(start=[1.4, 2.4, 3.4], stop=[1.6, 2.6, 3.6],
+        >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
         ...     axis=1, color="#fffd75")
 
         .. figure:: ../../_static/style/hr_seq.png
 
-        Using ``axis=None`` and providing the ``start`` argument as an array that
-        matches the input DataFrame, with a constant ``stop``
+        Using ``axis=None`` and providing the ``left`` argument as an array that
+        matches the input DataFrame, with a constant ``right``
 
-        >>> df.style.highlight_range(start=[[2,2,3],[2,2,3],[3,3,3]], stop=3.5,
+        >>> df.style.highlight_between(left=[[2,2,3],[2,2,3],[3,3,3]], right=3.5,
         ...     axis=None, color="#fffd75")
 
         .. figure:: ../../_static/style/hr_axNone.png
 
         Using ``props`` instead of default background coloring
 
-        >>> df.style.highlight_range(start=1.5, stop=3.5,
+        >>> df.style.highlight_between(left=1.5, right=3.5,
         ...     props='font-weight:bold;color:#e83e8c')
 
         .. figure:: ../../_static/style/hr_props.png
@@ -1857,8 +1857,9 @@ class Styler:
         def f(
             data: DataFrame,
             props: str,
-            d: Optional[Union[Scalar, Sequence]] = None,
-            u: Optional[Union[Scalar, Sequence]] = None,
+            left: Optional[Union[Scalar, Sequence]] = None,
+            right: Optional[Union[Scalar, Sequence]] = None,
+            inclusive: Union[bool, str] = True,
         ) -> np.ndarray:
             def realign(x, arg):
                 if np.iterable(x) and not isinstance(x, str):
@@ -1866,21 +1867,58 @@ class Styler:
                         return np.asarray(x).reshape(data.shape)
                     except ValueError:
                         raise ValueError(
-                            f"supplied '{arg}' is not right shape for "
+                            f"supplied '{arg}' is not correct shape for "
                             "data over selected 'axis': got "
                             f"{np.asarray(x).shape}, expected "
                             f"{data.shape}"
                         )
                 return x
 
-            d, u = realign(d, "start"), realign(u, "stop")
-            ge_d = data >= d if d is not None else np.full_like(data, True, dtype=bool)
-            le_u = data <= u if u is not None else np.full_like(data, True, dtype=bool)
-            return np.where(ge_d & le_u, props, "")
+            left, right = realign(left, "left"), realign(right, "right")
+
+            # get ops with correct boundary attribution
+            if isinstance(inclusive, str):
+                if inclusive == "left":
+                    ops = ("__ge__", "__lt__")
+                elif inclusive == "right":
+                    ops = ("__gt__", "__le__")
+                else:
+                    raise ValueError(
+                        f"'inclusive' as string must be 'left' or 'right', got "
+                        f"{inclusive}"
+                    )
+            elif inclusive is True:
+                ops = ("__ge__", "__le__")
+            elif inclusive is False:
+                ops = ("__gt__", "__lt__")
+            else:
+                raise ValueError(
+                    f"'inclusive' must be boolean or string, got {type(inclusive)}"
+                )
+
+            g_left = (
+                getattr(data, ops[0])(left)
+                if left is not None
+                else np.full_like(data, True, dtype=bool)
+            )
+            l_right = (
+                getattr(data, ops[1])(right)
+                if right is not None
+                else np.full_like(data, True, dtype=bool)
+            )
+            return np.where(g_left & l_right, props, "")
 
         if props is None:
             props = f"background-color: {color};"
-        return self.apply(f, axis=axis, subset=subset, props=props, d=start, u=stop)
+        return self.apply(
+            f,
+            axis=axis,
+            subset=subset,
+            props=props,
+            left=left,
+            right=right,
+            inclusive=inclusive,
+        )
 
     def highlight_quantile(
         self,
@@ -1924,8 +1962,7 @@ class Styler:
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_range: Highlight a defined range with a style.
+        Styler.highlight_between: Highlight a defined range with a style.
 
         Notes
         -----

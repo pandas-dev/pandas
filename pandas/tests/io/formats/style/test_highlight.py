@@ -70,40 +70,61 @@ class TestStylerHighlight:
     @pytest.mark.parametrize(
         "kwargs",
         [
-            {"start": 0, "stop": 1},  # test basic range
-            {"start": 0, "stop": 1, "props": "background-color: yellow"},  # test props
-            {"start": -9, "stop": 9, "subset": ["A"]},  # test subset effective
-            {"start": 0},  # test no stop
-            {"stop": 1, "subset": ["A"]},  # test no start
-            {"start": [0, 1], "axis": 0},  # test start as sequence
-            {"start": DataFrame([[0, 1], [1, 1]]), "axis": None},  # test axis with seq
-            {"start": 0, "stop": [0, 1], "axis": 0},  # test sequence stop
+            {"left": 0, "right": 1},  # test basic range
+            {"left": 0, "right": 1, "props": "background-color: yellow"},  # test props
+            {"left": -9, "right": 9, "subset": ["A"]},  # test subset effective
+            {"left": 0},  # test no right
+            {"right": 1, "subset": ["A"]},  # test no left
+            {"left": [0, 1], "axis": 0},  # test left as sequence
+            {"left": DataFrame([[0, 1], [1, 1]]), "axis": None},  # test axis with seq
+            {"left": 0, "right": [0, 1], "axis": 0},  # test sequence right
         ],
     )
-    def test_highlight_range(self, kwargs):
+    def test_highlight_between(self, kwargs):
         expected = {
             (0, 0): [("background-color", "yellow")],
             (1, 0): [("background-color", "yellow")],
         }
-        result = self.df.style.highlight_range(**kwargs)._compute().ctx
+        result = self.df.style.highlight_between(**kwargs)._compute().ctx
         assert result == expected
 
     @pytest.mark.parametrize(
         "arg, map, axis",
         [
-            ("start", [1, 2, 3], 0),
-            ("start", [1, 2], 1),
-            ("start", np.array([[1, 2], [1, 2]]), None),
-            ("stop", [1, 2, 3], 0),
-            ("stop", [1, 2], 1),
-            ("stop", np.array([[1, 2], [1, 2]]), None),
+            ("left", [1, 2, 3], 0),
+            ("left", [1, 2], 1),
+            ("left", np.array([[1, 2], [1, 2]]), None),
+            ("right", [1, 2, 3], 0),
+            ("right", [1, 2], 1),
+            ("right", np.array([[1, 2], [1, 2]]), None),
         ],
     )
-    def test_highlight_range_raises(self, arg, map, axis):
+    def test_highlight_between_raises(self, arg, map, axis):
         df = DataFrame([[1, 2, 3], [1, 2, 3]])
-        msg = f"supplied '{arg}' is not right shape"
+        msg = f"supplied '{arg}' is not correct shape"
         with pytest.raises(ValueError, match=msg):
-            df.style.highlight_range(**{arg: map, "axis": axis})._compute()
+            df.style.highlight_between(**{arg: map, "axis": axis})._compute()
+
+    def test_highlight_between_raises2(self):
+        with pytest.raises(ValueError, match="as string must be 'left' or 'right'"):
+            self.df.style.highlight_between(inclusive="badstring")._compute()
+
+        with pytest.raises(ValueError, match="'inclusive' must be boolean or string"):
+            self.df.style.highlight_between(inclusive=1)._compute()
+
+    def test_highlight_between_inclusive(self):
+        kwargs = {"left": 0, "right": 1, "subset": ["A"]}
+        result = self.df.style.highlight_between(**kwargs, inclusive=True)._compute()
+        assert result.ctx == {
+            (0, 0): [("background-color", "yellow")],
+            (1, 0): [("background-color", "yellow")],
+        }
+        result = self.df.style.highlight_between(**kwargs, inclusive=False)._compute()
+        assert result.ctx == {}
+        result = self.df.style.highlight_between(**kwargs, inclusive="left")._compute()
+        assert result.ctx == {(0, 0): [("background-color", "yellow")]}
+        result = self.df.style.highlight_between(**kwargs, inclusive="right")._compute()
+        assert result.ctx == {(1, 0): [("background-color", "yellow")]}
 
     @pytest.mark.parametrize(
         "kwargs",
@@ -133,7 +154,7 @@ class TestStylerHighlight:
             ("highlight_min", {"axis": 1, "subset": IndexSlice[1, :]}),
             ("highlight_max", {"axis": 0, "subset": [0]}),
             ("highlight_quantile", {"axis": None, "q_low": 0.6, "q_high": 0.8}),
-            ("highlight_range", {"subset": [0]}),
+            ("highlight_between", {"subset": [0]}),
         ],
     )
     @pytest.mark.parametrize(
@@ -149,8 +170,8 @@ class TestStylerHighlight:
     def test_all_highlight_dtypes(self, f, kwargs, df):
         if f == "highlight_quantile" and isinstance(df.iloc[0, 0], str):
             return None  # quantile incompatible with str
-        elif f == "highlight_range":
-            kwargs["start"] = df.iloc[1, 0]  # set the range low for testing
+        elif f == "highlight_between":
+            kwargs["left"] = df.iloc[1, 0]  # set the range low for testing
 
         expected = {(1, 0): [("background-color", "yellow")]}
         result = getattr(df.style, f)(**kwargs)._compute().ctx
