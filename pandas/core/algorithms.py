@@ -1866,3 +1866,31 @@ def _sort_tuples(values: np.ndarray):
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
+
+
+def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
+    """
+    Extracts the union from lvals and rvals with respect to duplicates and nans in
+    both arrays.
+
+    Parameters
+    ----------
+    lvals: np.ndarray
+        left values which is ordered in front.
+    rvals: np.ndarray
+        right values ordered after lvals.
+
+    Returns
+    -------
+    np.ndarray containing the unsorted union of both arrays
+    """
+    indexer = []
+    l_count = value_counts(lvals, dropna=False)
+    r_count = value_counts(rvals, dropna=False)
+    l_count, r_count = l_count.align(r_count, fill_value=0)
+    unique_array = unique(np.append(lvals, rvals))
+    if is_extension_array_dtype(lvals) or is_extension_array_dtype(rvals):
+        unique_array = pd_array(unique_array)
+    for i, value in enumerate(unique_array):
+        indexer += [i] * int(max(l_count[value], r_count[value]))
+    return unique_array.take(indexer)
