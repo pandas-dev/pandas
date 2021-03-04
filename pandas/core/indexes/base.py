@@ -820,7 +820,7 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
                 arr_cls = idx_cls._data_cls
-                arr = arr_cls._simple_new(self._data.view("i8"), dtype=dtype)
+                arr = arr_cls(self._data.view("i8"), dtype=dtype)
                 return idx_cls._simple_new(arr, name=self.name)
 
             result = self._data.view(cls)
@@ -2939,32 +2939,44 @@ class Index(IndexOpsMixin, PandasObject):
         lvals = self._values
         rvals = other._values
 
-        if sort is None and self.is_monotonic and other.is_monotonic:
+        if (
+            sort is None
+            and self.is_monotonic
+            and other.is_monotonic
+            and not (self.has_duplicates and other.has_duplicates)
+        ):
+            # Both are unique and monotonic, so can use outer join
             try:
-                result = self._outer_indexer(lvals, rvals)[0]
+                return self._outer_indexer(lvals, rvals)[0]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
-                result = list(lvals)
+                value_list = list(lvals)
 
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
-                result.extend([x for x in rvals if x not in value_set])
-                result = Index(result)._values  # do type inference here
+                value_list.extend([x for x in rvals if x not in value_set])
+                return Index(value_list)._values  # do type inference here
+
+        elif not other.is_unique and not self.is_unique:
+            # self and other both have duplicates
+            result = algos.union_with_duplicates(lvals, rvals)
+            return _maybe_try_sort(result, sort)
+
+        # Either other or self is not unique
+        # find indexes of things in "other" that are not in "self"
+        if self.is_unique:
+            indexer = self.get_indexer(other)
+            missing = (indexer == -1).nonzero()[0]
         else:
-            # find indexes of things in "other" that are not in "self"
-            if self.is_unique:
-                indexer = self.get_indexer(other)
-                missing = (indexer == -1).nonzero()[0]
-            else:
-                missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
+            missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
-            if len(missing) > 0:
-                other_diff = algos.take_nd(rvals, missing, allow_fill=False)
-                result = concat_compat((lvals, other_diff))
+        if len(missing) > 0:
+            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+            result = concat_compat((lvals, other_diff))
+        else:
+            result = lvals
 
-            else:
-                result = lvals
-
+        if not self.is_monotonic or not other.is_monotonic:
             result = _maybe_try_sort(result, sort)
 
         return result

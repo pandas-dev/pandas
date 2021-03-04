@@ -253,14 +253,6 @@ class TestPeriodIndex(DatetimeLike):
         assert not index.is_(index - 2)
         assert not index.is_(index - 0)
 
-    def test_periods_number_check(self):
-        msg = (
-            "Of the three parameters: start, end, and periods, exactly two "
-            "must be specified"
-        )
-        with pytest.raises(ValueError, match=msg):
-            period_range("2011-1-1", "2012-1-1", "B")
-
     def test_index_duplicate_periods(self):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
@@ -347,13 +339,6 @@ class TestPeriodIndex(DatetimeLike):
         assert isinstance(s.index.levels[0], PeriodIndex)
 
         assert isinstance(s.index.values[0][0], Period)
-
-    def test_convert_array_of_periods(self):
-        rng = period_range("1/1/2000", periods=20, freq="D")
-        periods = list(rng)
-
-        result = Index(periods)
-        assert isinstance(result, PeriodIndex)
 
     def test_pickle_freq(self):
         # GH2891
