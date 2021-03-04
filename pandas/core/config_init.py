@@ -484,18 +484,30 @@ with cf.config_prefix("mode"):
     cf.register_option(
         "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
     )
+
+
+cf.deprecate_option(
+    "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
+)
+
+
+data_manager_doc = """
+: string
+    Internal data manager type; can be "block" or "array". Defaults to "block",
+    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
+    to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
     cf.register_option(
         "data_manager",
         # Get the default from an environment variable, if set, otherwise defaults
         # to "block". This environment variable can be set for testing.
         os.environ.get("PANDAS_DATA_MANAGER", "block"),
-        "Internal data manager type",
+        data_manager_doc,
         validator=is_one_of_factory(["block", "array"]),
     )
-
-cf.deprecate_option(
-    "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
-)
 
 
 # user warnings
