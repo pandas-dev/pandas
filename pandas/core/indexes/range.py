@@ -118,6 +118,8 @@ class RangeIndex(Int64Index):
         if isinstance(start, RangeIndex):
             start = start._range
             return cls._simple_new(start, name=name)
+        elif isinstance(start, range):
+            return cls._simple_new(start, name=name)
 
         # validate the arguments
         if com.all_none(start, stop, step):
