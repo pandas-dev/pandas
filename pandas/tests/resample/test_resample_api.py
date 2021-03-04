@@ -599,9 +599,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     result = df.resample("1d").aggregate(["mean"])
     expected = DataFrame(
         [47.5, 143.5, 195.5],
-        index=date_range(
-            start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
-        ),
+        index=date_range(start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"),
         columns=pd.MultiIndex(levels=[[col_name], ["mean"]], codes=[[0], [0]]),
     )
     tm.assert_frame_equal(result, expected)
