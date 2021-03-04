@@ -2152,18 +2152,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
-        cat = self.copy()
-
-        # keep nan in codes
-        cat._ndarray = unique_codes
-
-        # exclude nan from indexer for categories
-        take_codes = unique_codes[unique_codes != -1]
-        if self.ordered:
-            take_codes = np.sort(take_codes)
-        return cat.set_categories(cat.categories.take(take_codes))
+        return self._from_backing_data(unique_codes)
 
     def _values_for_factorize(self):
         return self._ndarray, -1
