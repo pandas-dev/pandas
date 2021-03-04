@@ -4422,7 +4422,9 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: bool) -> Optional[DataFrame]:
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[DataFrame]:
         ...
 
     @Appender(

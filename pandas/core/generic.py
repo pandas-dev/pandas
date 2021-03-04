@@ -683,7 +683,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @overload
     def set_axis(
-        self: FrameOrSeries, labels, axis: Axis, inplace: bool
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool = ...
     ) -> Optional[FrameOrSeries]:
         ...
 

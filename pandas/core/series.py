@@ -4312,7 +4312,9 @@ Keep all original rows and also all original values
         ...
 
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: bool) -> Optional[Series]:
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[Series]:
         ...
 
     @Appender(
