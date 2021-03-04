@@ -4554,7 +4554,9 @@ class Index(IndexOpsMixin, PandasObject):
             if np.ndim(result) > 1:
                 deprecate_ndim_indexing(result)
                 return result
-            return self._shallow_copy(result)
+            # NB: Using _constructor._simple_new would break if MultiIndex
+            #  didn't override __getitem__
+            return self._constructor._simple_new(result, name=self.name)
         else:
             return result
 
