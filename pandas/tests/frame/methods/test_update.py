@@ -149,7 +149,7 @@ class TestDataFrameUpdate:
         expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
         tm.assert_frame_equal(df, expected)
 
-    @given(dtype=np_st.integer_dtypes(endianness="="))
+    @given(dtype=np_st.integer_dtypes())
     def test_update_with_subset_and_same_integer_dtype(self, dtype):
         # GH4094
         df = DataFrame({"a": Series([1, 2, 3], dtype=dtype)})
