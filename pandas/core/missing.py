@@ -660,9 +660,9 @@ def interpolate_2d(
     method = clean_fill_method(method)
     tvalues = transf(values)
     if method == "pad":
-        result = _pad_2d(tvalues, limit=limit)
+        result, _ = _pad_2d(tvalues, limit=limit)
     else:
-        result = _backfill_2d(tvalues, limit=limit)
+        result, _ = _backfill_2d(tvalues, limit=limit)
 
     result = transf(result)
     # reshape back
@@ -698,8 +698,8 @@ def _datetimelike_compat(func: F) -> F:
                 # This needs to occur before casting to int64
                 mask = isna(values)
 
-            result = func(values.view("i8"), limit=limit, mask=mask)
-            return result.view(values.dtype)
+            result, mask = func(values.view("i8"), limit=limit, mask=mask)
+            return result.view(values.dtype), mask
 
         return func(values, limit=limit, mask=mask)
 
@@ -737,7 +737,7 @@ def _pad_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
@@ -749,7 +749,7 @@ def _backfill_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
