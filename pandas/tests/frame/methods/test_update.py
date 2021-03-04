@@ -1,5 +1,3 @@
-from hypothesis import given
-from hypothesis.extra import numpy as np_st
 import numpy as np
 import pytest
 
@@ -149,25 +147,24 @@ class TestDataFrameUpdate:
         expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
         tm.assert_frame_equal(df, expected)
 
-    @given(dtype=np_st.integer_dtypes())
-    def test_update_with_subset_and_same_integer_dtype(self, dtype):
+    def test_update_with_subset_and_same_not_nullable_dtype(self, any_real_dtype):
         # GH4094
-        df = DataFrame({"a": Series([1, 2, 3], dtype=dtype)})
+        df = DataFrame({"a": Series([1, 2, 3], dtype=any_real_dtype)})
         update = df.copy()[:-1]
         df.update(update)
-        assert df.a.dtype == dtype
+        assert df.a.dtype == any_real_dtype
 
-    def test_update_str_dtype(self):
+    def test_update_str_dtype(self, string_dtype):
         # GH4094
-        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype=string_dtype)
         update = df.copy()
         expected = df.copy()
         df.update(update)
         assert df.a.dtype == expected.a.dtype
 
-    def test_update_with_subset_str_dtype(self):
+    def test_update_with_subset_str_dtype(self, string_dtype):
         # GH4094
-        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype=string_dtype)
         update = df.copy()[:-1]
         expected = df.copy()
         df.update(update)
