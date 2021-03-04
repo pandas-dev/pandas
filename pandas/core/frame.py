@@ -6939,7 +6939,7 @@ Keep all original rows and columns and also all original values
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other_dtypes = other.dtypes  # dtype might change during reindexing
+        other_dtypes = other.dtypes
         other = other.reindex_like(self)
 
         for col in self.columns:
