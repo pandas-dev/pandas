@@ -423,6 +423,8 @@ Interval
 
 Indexing
 ^^^^^^^^
+
+- Bug in :meth:`Index.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`)
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when setting multiple values to duplicate columns (:issue:`15695`)
@@ -520,7 +522,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
 - Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
 - Bug in :meth:`DataFrameGroupBy.sample` where column selection was not applied to sample result (:issue:`39928`)
--
+- Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would incorrectly raise a ``ValueError`` when providing ``times`` (:issue:`40164`)
+- Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 
 Reshaping
 ^^^^^^^^^
