@@ -1656,7 +1656,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="rolling",
         aggregation_description="maximum",
         agg_method="max",
