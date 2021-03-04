@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     CategoricalDtype,
@@ -373,7 +371,6 @@ class TestDataFrameSortIndex:
         result = df.sort_index(level=level, sort_remaining=False)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_sort_index_intervalindex(self):
         # this is a de-facto sort via unstack
         # confirming that we sort in the order of the bins

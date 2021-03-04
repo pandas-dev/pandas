@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -109,7 +107,6 @@ class TestDataFrameCount:
         )
         tm.assert_frame_equal(res, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_count_level(
         self,
         multiindex_year_month_day_dataframe_random_data,
