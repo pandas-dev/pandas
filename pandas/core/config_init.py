@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+import os
 import warnings
 
 import pandas._config.config as cf
@@ -478,6 +479,11 @@ def use_inf_as_na_cb(key):
     _use_inf_as_na(key)
 
 
+# Get the default from an environment variable, if set, otherwise defaults to "block"
+# This environment variable can be set for testing
+_data_manager_default = os.environ.get("PANDAS_DATA_MANAGER", "block")
+
+
 with cf.config_prefix("mode"):
     cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
     cf.register_option(
@@ -485,7 +491,7 @@ with cf.config_prefix("mode"):
     )
     cf.register_option(
         "data_manager",
-        "block",
+        _data_manager_default,
         "Internal data manager type",
         validator=is_one_of_factory(["block", "array"]),
     )
