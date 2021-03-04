@@ -4,7 +4,10 @@ import pytest
 from pandas._libs import index as libindex
 
 import pandas as pd
-from pandas import Categorical, CategoricalDtype
+from pandas import (
+    Categorical,
+    CategoricalDtype,
+)
 import pandas._testing as tm
 from pandas.core.indexes.api import (
     CategoricalIndex,
