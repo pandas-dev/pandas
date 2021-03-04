@@ -2088,10 +2088,10 @@ def sequence_to_dt64ns(
 
 def objects_to_datetime64ns(
     data: np.ndarray,
-    dayfirst: bool,
-    yearfirst: bool,
+    dayfirst,
+    yearfirst,
     utc=False,
-    errors: str = "raise",
+    errors="raise",
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,
