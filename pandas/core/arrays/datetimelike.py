@@ -106,7 +106,7 @@ from pandas.core.arrays._mixins import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     extract_array,
 )
 from pandas.core.indexers import (
@@ -465,15 +465,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
             cls = dtype.construct_array_type()
-            return cls._simple_new(self.asi8, dtype=dtype)
+            return cls(self.asi8, dtype=dtype)
         elif dtype == "M8[ns]":
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray._simple_new(self.asi8, dtype=dtype)
+            return DatetimeArray(self.asi8, dtype=dtype)
         elif dtype == "m8[ns]":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._simple_new(self.asi8.view("m8[ns]"), dtype=dtype)
+            return TimedeltaArray(self.asi8, dtype=dtype)
         return self._ndarray.view(dtype=dtype)
 
     # ------------------------------------------------------------------
@@ -719,7 +719,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-        value = array(value)
+        value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
         if is_dtype_equal(value.dtype, "string"):
@@ -1102,10 +1102,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return type(self)(new_values, dtype=self.dtype)
 
         inc = delta_to_nanoseconds(other)
-        new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan).view(
-            "i8"
-        )
+        new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
+        new_values = new_values.view("i8")
         new_values = self._maybe_mask_results(new_values)
+        new_values = new_values.view(self._ndarray.dtype)
 
         new_freq = None
         if isinstance(self.freq, Tick) or is_period_dtype(self.dtype):
@@ -1207,7 +1207,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         assert self.shape == other.shape, (self.shape, other.shape)
 
         res_values = op(self.astype("O"), np.asarray(other))
-        result = array(res_values.ravel())
+        result = pd_array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
@@ -1700,6 +1700,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         nanos = to_offset(freq).nanos
         result = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result, fill_value=iNaT)
+        result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))

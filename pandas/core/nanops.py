@@ -1743,8 +1743,9 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             result = result.view(orig_dtype)
         else:
             # DatetimeArray
+            # TODO: have this case go through a DTA method?
             result = type(values)._simple_new(  # type: ignore[attr-defined]
-                result, dtype=orig_dtype
+                result.view("M8[ns]"), dtype=orig_dtype
             )
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
