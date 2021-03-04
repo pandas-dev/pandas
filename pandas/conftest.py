@@ -100,19 +100,6 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
-    parser.addoption(
-        "--array-manager",
-        "--am",
-        action="store_true",
-        help="Use the experimental ArrayManager as default data manager.",
-    )
-
-
-def pytest_sessionstart(session):
-    # Note: we need to set the option here and not in pytest_runtest_setup below
-    # to ensure this is run before creating fixture data
-    if session.config.getoption("--array-manager"):
-        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
