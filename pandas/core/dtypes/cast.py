@@ -569,6 +569,10 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     ValueError
         If fill_value is a non-scalar and dtype is not object.
     """
+    # TODO(2.0): need to directly use the non-cached version as long as we
+    # possibly raise a deprecation warning for datetime dtype
+    if dtype.kind == "M":
+        return _maybe_promote(dtype, fill_value)
     # for performance, we are using a cached version of the actual implementation
     # of the function in _maybe_promote. However, this doesn't always work (in case
     # of non-hashable arguments), so we fallback to the actual implementation if needed
@@ -644,7 +648,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                     "dtype is deprecated. In a future version, this will be cast "
                     "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
                     FutureWarning,
-                    stacklevel=9,
+                    stacklevel=8,
                 )
                 return dtype, fv
         elif isinstance(fill_value, str):
