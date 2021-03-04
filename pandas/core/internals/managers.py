@@ -146,6 +146,9 @@ class BlockManager(DataManager):
     _blknos: np.ndarray
     _blklocs: np.ndarray
 
+    # Non-trivially faster than a property
+    ndim = 2  # overridden by SingleBlockManager
+
     def __init__(
         self,
         blocks: Sequence[Block],
@@ -229,10 +232,6 @@ class BlockManager(DataManager):
     @property
     def shape(self) -> Shape:
         return tuple(len(ax) for ax in self.axes)
-
-    @property
-    def ndim(self) -> int:
-        return len(self.axes)
 
     def set_axis(
         self, axis: int, new_labels: Index, verify_integrity: bool = True
