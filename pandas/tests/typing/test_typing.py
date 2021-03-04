@@ -145,25 +145,19 @@ def test_fail(path):
             pytest.fail(f"Error {repr(errors[lineno])} not found")
 
 
-_FAIL_MSG1 = """Extra error at line {}
-
-Extra error: {!r}
-"""
-
-_FAIL_MSG2 = """Error mismatch at line {}
-
-Expected error: {!r}
-Observed error: {!r}
-"""
-
-
 def _test_fail(
     path: str, error: str, expected_error: Optional[str], lineno: int
 ) -> None:
     if expected_error is None:
-        raise AssertionError(_FAIL_MSG1.format(lineno, error))
+        raise AssertionError(
+            f"Extra error at line {lineno}\n\nExtra error: {repr(error)}"
+        )
     elif error not in expected_error:
-        raise AssertionError(_FAIL_MSG2.format(lineno, expected_error, error))
+        raise AssertionError(
+            f"Error mismatch at line {lineno}\n\n"
+            f"Expected error: {repr(expected_error)}\n"
+            f"Observed error: {repr(error)}"
+        )
 
 
 def _construct_format_dict():
@@ -194,7 +188,7 @@ def _parse_reveals(file: IO[str]) -> List[str]:
     # otherwise there is the risk of accidently grabbing dictionaries and sets
     key_set = set(re.findall(r"\{(.*?)\}", comments))
     kwargs = {
-        k: FORMAT_DICT.get(k, f"<UNRECOGNIZED FORMAT KEY {k!r}>") for k in key_set
+        k: FORMAT_DICT.get(k, f"<UNRECOGNIZED FORMAT KEY {repr(k)}>") for k in key_set
     }
     fmt_str = comments.format(**kwargs)
 
@@ -226,16 +220,13 @@ def test_reveal(path):
         _test_reveal(path, marker, error_line, 1 + lineno)
 
 
-_REVEAL_MSG = """Reveal mismatch at line {}
-
-Expected reveal: {!r}
-Observed reveal: {!r}
-"""
-
-
 def _test_reveal(path: str, reveal: str, expected_reveal: str, lineno: int) -> None:
     if reveal not in expected_reveal:
-        raise AssertionError(_REVEAL_MSG.format(lineno, expected_reveal, reveal))
+        raise AssertionError(
+            f"Reveal mismatch at line {lineno}\n\n"
+            f"Expected reveal: {repr(expected_reveal)}\n"
+            f"Observed reveal: {repr(reveal)}"
+        )
 
 
 @pytest.mark.slow

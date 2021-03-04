@@ -114,7 +114,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-    echo $MSG "DONE"
+
 fi
 
 ### CODE ###
