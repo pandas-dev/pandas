@@ -568,6 +568,13 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "-"
         assert ctx["body"][1][2]["display_value"] == "-"
 
+    def test_format_clear(self):
+        assert (0, 0) not in self.styler._display_funcs  # using default
+        self.styler.format("{:.2f")
+        assert (0, 0) in self.styler._display_funcs  # formatter is specified
+        self.styler.format()
+        assert (0, 0) not in self.styler._display_funcs  # formatter cleared to default
+
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
