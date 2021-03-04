@@ -300,7 +300,7 @@ def ndarray_to_mgr(
             # TODO: What about re-joining object columns?
             dvals_list = [maybe_squeeze_dt64tz(x) for x in dvals_list]
             block_values = [
-                make_block(dvals_list[n], placement=[n], ndim=2)
+                make_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
             ]
 
