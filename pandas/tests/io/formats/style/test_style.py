@@ -532,12 +532,12 @@ class TestStyler:
         # GH 21527 28358
         df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
 
-        with pytest.deprecated_call():
+        with tm.assert_produces_warning(FutureWarning):
             ctx = df.style.set_na_rep("NA")._translate()
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "NA"
 
-        with pytest.deprecated_call():
+        with tm.assert_produces_warning(FutureWarning):
             ctx = (
                 df.style.set_na_rep("NA")
                 .format(None, na_rep="-", subset=["B"])
@@ -555,7 +555,7 @@ class TestStyler:
             }
         )
 
-        with pytest.deprecated_call():
+        with tm.assert_produces_warning(FutureWarning):
             ctx = df.style.set_na_rep("NA")._translate()
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "NA"
@@ -660,7 +660,7 @@ class TestStyler:
         s = Styler(self.df, precision=2)
         assert s.precision == 2
 
-        with pytest.deprecated_call():
+        with tm.assert_produces_warning(FutureWarning):
             s2 = s.set_precision(4)
         assert s is s2
         assert s.precision == 4

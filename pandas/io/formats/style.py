@@ -201,8 +201,7 @@ class Styler:
         ] = defaultdict(lambda: partial(_default_formatter, precision=None))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        if any((precision is not None, na_rep is not None)):
-            self.format(precision=precision, na_rep=na_rep)
+        self.format(formatter=None, precision=precision, na_rep=na_rep)
 
     def _repr_html_(self) -> str:
         """
@@ -661,6 +660,10 @@ class Styler:
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
         """
+        if all((formatter is None, subset is None, precision is None, na_rep is None)):
+            self._display_funcs.clear()
+            return self  # clear the formatter / revert to default and avoid looping
+
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
@@ -1083,7 +1086,9 @@ class Styler:
         This method is deprecated see `Styler.format`.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.format`", DeprecationWarning
+            "this method is deprecated in favour of `Styler.format`",
+            FutureWarning,
+            stacklevel=2,
         )
         self.precision = precision
         return self.format(precision=precision, na_rep=self.na_rep)
@@ -1312,7 +1317,9 @@ class Styler:
         This method is deprecated. See `Styler.format()`
         """
         warnings.warn(
-            "This method is deprecated in favour of `Styler.format`", DeprecationWarning
+            "this method is deprecated in favour of `Styler.format`",
+            FutureWarning,
+            stacklevel=2,
         )
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
