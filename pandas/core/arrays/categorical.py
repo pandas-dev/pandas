@@ -48,8 +48,6 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
     maybe_cast_to_extension_array,
-    maybe_infer_to_datetimelike,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -99,7 +97,7 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     extract_array,
     sanitize_array,
 )
@@ -396,24 +394,27 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
-            # sanitize_array coerces np.nan to a string under certain versions
-            # of numpy
-            if not isinstance(values, (np.ndarray, list)):
-                # convert e.g. range, tuple to allow for stronger typing
-                #  of maybe_infer_to_datetimelike
-                values = list(values)
-            values = maybe_infer_to_datetimelike(values)
-            if isinstance(values, np.ndarray):
-                values = sanitize_to_nanoseconds(values)
-            elif not isinstance(values, ExtensionArray):
-                values = com.convert_to_list_like(values)
-
+            values = com.convert_to_list_like(values)
+            if isinstance(values, list) and len(values) == 0:
                 # By convention, empty lists result in object dtype:
-                sanitize_dtype = np.dtype("O") if len(values) == 0 else None
-                null_mask = isna(values)
+                values = np.array([], dtype=object)
+            elif isinstance(values, np.ndarray):
+                if values.ndim > 1:
+                    # preempt sanitize_array from raising ValueError
+                    raise NotImplementedError(
+                        "> 1 ndim Categorical are not supported at this time"
+                    )
+                values = sanitize_array(values, None)
+            else:
+                # i.e. must be a list
+                arr = sanitize_array(values, None)
+                null_mask = isna(arr)
                 if null_mask.any():
-                    values = [values[idx] for idx in np.where(~null_mask)[0]]
-                values = sanitize_array(values, None, dtype=sanitize_dtype)
+                    # We remove null values here, then below will re-insert
+                    #  them, grep "full_codes"
+                    arr = [values[idx] for idx in np.where(~null_mask)[0]]
+                    arr = sanitize_array(arr, None)
+                values = arr
 
         if dtype.categories is None:
             try:
@@ -497,7 +498,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # TODO: consolidate with ndarray case?
         elif is_extension_array_dtype(dtype):
-            result = array(self, dtype=dtype, copy=copy)
+            result = pd_array(self, dtype=dtype, copy=copy)
 
         elif is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")

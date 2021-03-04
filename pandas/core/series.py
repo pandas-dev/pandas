@@ -96,7 +96,7 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import series_apply
+from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -126,7 +126,6 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
-from pandas.core.internals.construction import sanitize_index
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -376,10 +375,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "`index` argument. `copy` must be False."
                     )
 
-            elif is_extension_array_dtype(data):
+            elif isinstance(data, ExtensionArray):
                 pass
-            elif isinstance(data, (set, frozenset)):
-                raise TypeError(f"'{type(data).__name__}' type is unordered")
             else:
                 data = com.maybe_iterable_to_list(data)
 
@@ -388,7 +385,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = [data]
                 index = ibase.default_index(len(data))
             elif is_list_like(data):
-                sanitize_index(data, index)
+                com.require_length_match(data, index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -805,7 +802,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
-        return np.asarray(self.array, dtype)
+        return np.asarray(self._values, dtype)
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -1799,7 +1796,7 @@ Name: Max Speed, dtype: float64
         2
         """
         if level is None:
-            return notna(self.array).sum()
+            return notna(self._values).sum()
         elif not isinstance(self.index, MultiIndex):
             raise ValueError("Series.count level is only valid with a MultiIndex")
 
@@ -2499,7 +2496,7 @@ Name: Max Speed, dtype: float64
         --------
         {examples}
         """
-        result = algorithms.diff(self.array, periods)
+        result = algorithms.diff(self._values, periods)
         return self._constructor(result, index=self.index).__finalize__(
             self, method="diff"
         )
@@ -3809,7 +3806,7 @@ Keep all original rows and also all original values
         if not len(self) or not is_object_dtype(self):
             return self.copy()
 
-        values, counts = reshape.explode(np.asarray(self.array))
+        values, counts = reshape.explode(np.asarray(self._values))
 
         if ignore_index:
             index = ibase.default_index(len(values))
@@ -4003,7 +4000,7 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, func, args=args, kwargs=kwargs)
+        op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
         result = op.agg()
         return result
 
@@ -4019,7 +4016,9 @@ Keep all original rows and also all original values
     ) -> FrameOrSeriesUnion:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = series_apply(self, func=func, args=args, kwargs=kwargs).transform()
+        result = SeriesApply(
+            self, func=func, convert_dtype=True, args=args, kwargs=kwargs
+        ).transform()
         return result
 
     def apply(
@@ -4131,7 +4130,7 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        return series_apply(self, func, convert_dtype, args, kwargs).apply()
+        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
         self,
@@ -5012,7 +5011,7 @@ Keep all original rows and also all original values
         if isinstance(other, Series) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
 
-        lvalues = extract_array(self, extract_numpy=True)
+        lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = ops.comparison_op(lvalues, rvalues, op)
@@ -5023,7 +5022,7 @@ Keep all original rows and also all original values
         res_name = ops.get_op_result_name(self, other)
         self, other = ops.align_method_SERIES(self, other, align_asobject=True)
 
-        lvalues = extract_array(self, extract_numpy=True)
+        lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
 
         res_values = ops.logical_op(lvalues, rvalues, op)
@@ -5033,7 +5032,7 @@ Keep all original rows and also all original values
         res_name = ops.get_op_result_name(self, other)
         self, other = ops.align_method_SERIES(self, other)
 
-        lvalues = extract_array(self, extract_numpy=True)
+        lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True)
         result = ops.arithmetic_op(lvalues, rvalues, op)
 

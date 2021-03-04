@@ -202,6 +202,38 @@ class TestSeriesGetitemSlices:
         expected = ts[1:4]
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_partial_str_slice_with_timedeltaindex(self):
+        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        result = ser["5 day":"6 day"]
+        expected = ser.iloc[86:134]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["5 day":]
+        expected = ser.iloc[86:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser[:"6 day"]
+        expected = ser.iloc[:134]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_partial_str_slice_high_reso_with_timedeltaindex(self):
+        # higher reso
+        rng = timedelta_range("1 day 10:11:12", freq="us", periods=2000)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        result = ser["1 day 10:11:12":]
+        expected = ser.iloc[0:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["1 day 10:11:12.001":]
+        expected = ser.iloc[1000:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["1 days, 10:11:12.001001"]
+        assert result == ser.iloc[1001]
+
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
 
@@ -277,7 +309,7 @@ class TestSeriesGetitemSlices:
 
 
 class TestSeriesGetitemListLike:
-    @pytest.mark.parametrize("box", [list, np.array, Index, pd.Series])
+    @pytest.mark.parametrize("box", [list, np.array, Index, Series])
     def test_getitem_no_matches(self, box):
         # GH#33462 we expect the same behavior for list/ndarray/Index/Series
         ser = Series(["A", "B"])
