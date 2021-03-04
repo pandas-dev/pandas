@@ -159,6 +159,7 @@ class TestPDApi(Base):
         "read_gbq",
         "read_hdf",
         "read_html",
+        "read_xml",
         "read_json",
         "read_pickle",
         "read_sas",

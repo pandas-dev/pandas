@@ -71,6 +71,7 @@ from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_bool_kwarg,
     validate_fillna_kwargs,
 )
@@ -138,6 +139,7 @@ from pandas.core.internals import (
     ArrayManager,
     BlockManager,
 )
+from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
@@ -737,9 +739,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ).__finalize__(self, method="swapaxes")
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
-        Return DataFrame with requested index / column level(s) removed.
+        Return {klass} with requested index / column level(s) removed.
 
         .. versionadded:: 0.24.0
 
@@ -750,7 +753,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If list-like, elements must be names or positional indexes
             of levels.
 
-        axis : {0 or 'index', 1 or 'columns'}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
             Axis along which the level(s) is removed:
 
             * 0 or 'index': remove level(s) in column.
@@ -758,8 +761,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        DataFrame
-            DataFrame with requested index / column level(s) removed.
+        {klass}
+            {klass} with requested index / column level(s) removed.
 
         Examples
         --------
@@ -4547,7 +4550,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         axis=0,
         level=None,
-        ascending: bool_t = True,
+        ascending: Union[Union[bool_t, int], Sequence[Union[bool_t, int]]] = True,
         inplace: bool_t = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -4558,6 +4561,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
+        ascending = validate_ascending(ascending)
+
         target = self._get_axis(axis)
 
         indexer = get_indexer_indexer(
@@ -5751,6 +5756,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Internal ONLY - only works for BlockManager
         """
         mgr = self._mgr
+        # convert to BlockManager if needed -> this way support ArrayManager as well
+        mgr = mgr_to_mgr(mgr, "block")
         mgr = cast(BlockManager, mgr)
         return {
             k: self._constructor(v).__finalize__(self)
@@ -6489,6 +6496,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return result.__finalize__(self, method="fillna")
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
         self: FrameOrSeries,
         axis=None,
@@ -6511,6 +6519,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     pad = ffill
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: FrameOrSeries,
         axis=None,

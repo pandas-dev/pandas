@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -426,7 +424,7 @@ class TestResetIndex:
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
-        idx1 = pd.date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
+        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
         idx2 = Index(range(5), name="idx2", dtype="int64")
         idx = MultiIndex.from_arrays([idx1, idx2])
         df = DataFrame(
@@ -453,7 +451,7 @@ class TestResetIndex:
 
         tm.assert_frame_equal(df.reset_index(), expected)
 
-        idx3 = pd.date_range(
+        idx3 = date_range(
             "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
         )
         idx = MultiIndex.from_arrays([idx1, idx2, idx3])
@@ -492,7 +490,7 @@ class TestResetIndex:
 
         # GH#7793
         idx = MultiIndex.from_product(
-            [["a", "b"], pd.date_range("20130101", periods=3, tz=tz)]
+            [["a", "b"], date_range("20130101", periods=3, tz=tz)]
         )
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
@@ -550,7 +548,6 @@ class TestResetIndex:
         assert is_integer_dtype(deleveled["prm1"])
         assert is_float_dtype(deleveled["prm2"])
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_reset_index_with_drop(
         self, multiindex_year_month_day_dataframe_random_data
     ):
@@ -649,7 +646,6 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
 def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     # https://github.com/pandas-dev/pandas/issues/35657
     df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
