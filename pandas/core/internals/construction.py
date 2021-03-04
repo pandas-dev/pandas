@@ -164,7 +164,12 @@ def rec_array_to_mgr(
         new_arrays = arrays  # type: ignore[assignment]
 
     # create the manager
-    arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)
+
+    # error: Argument 1 to "reorder_arrays" has incompatible type "List[ndarray]";
+    # expected "List[ExtensionArray]"
+    arrays, arr_columns = reorder_arrays(
+        new_arrays, arr_columns, columns  # type: ignore[arg-type]
+    )
     if columns is None:
         columns = arr_columns
 

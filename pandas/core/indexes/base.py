@@ -2966,7 +2966,11 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # Both are unique and monotonic, so can use outer join
             try:
-                return self._outer_indexer(lvals, rvals)[0]
+                # error: Argument 1 to "_outer_indexer" of "Index" has incompatible type
+                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                # error: Argument 2 to "_outer_indexer" of "Index" has incompatible type
+                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                return self._outer_indexer(lvals, rvals)[0]  # type: ignore[arg-type]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
                 value_list = list(lvals)
@@ -2978,7 +2982,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique and not self.is_unique:
             # self and other both have duplicates
-            result = algos.union_with_duplicates(lvals, rvals)
+
+            # error: Argument 1 to "union_with_duplicates" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            # error: Argument 2 to "union_with_duplicates" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            result = algos.union_with_duplicates(lvals, rvals)  # type: ignore[arg-type]
             return _maybe_try_sort(result, sort)
 
         # Either other or self is not unique
@@ -2990,10 +2999,16 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+            # error: Value of type variable "ArrayLike" of "take_nd" cannot be
+            # "Union[ExtensionArray, ndarray]"
+            other_diff = algos.take_nd(
+                rvals, missing, allow_fill=False  # type: ignore[type-var]
+            )
             result = concat_compat((lvals, other_diff))
         else:
-            result = lvals
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+            result = lvals  # type: ignore[assignment]
 
         if not self.is_monotonic or not other.is_monotonic:
             result = _maybe_try_sort(result, sort)

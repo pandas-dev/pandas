@@ -1626,7 +1626,12 @@ def maybe_infer_to_datetimelike(value: Union[np.ndarray, List]):
             # GH#19761 we may have mixed timezones, in which cast 'dta' is
             #  an ndarray[object].  Only 1 test
             #  relies on this behavior, see GH#40111
-            return dta.reshape(shape)
+
+            # error: Incompatible return value type (got "Union[ndarray,
+            # DatetimeArray]", expected "ExtensionArray")
+            # error: Incompatible return value type (got "Union[ndarray,
+            # DatetimeArray]", expected "ndarray")
+            return dta.reshape(shape)  # type: ignore[return-value]
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
         # safe coerce to timedelta64
@@ -1709,10 +1714,16 @@ def maybe_cast_to_datetime(
                             dta = sequence_to_datetimes(value, allow_object=False)
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
-                            if dta.tz is not None:
+
+                            # error: Item "ndarray" of "Union[ndarray, DatetimeArray]"
+                            # has no attribute "tz"
+                            if dta.tz is not None:  # type: ignore[union-attr]
                                 # equiv: dta.view(dtype)
                                 # Note: NOT equivalent to dta.astype(dtype)
-                                dta = dta.tz_localize(None)
+
+                                # error: Item "ndarray" of "Union[ndarray,
+                                # DatetimeArray]" has no attribute "tz_localize"
+                                dta = dta.tz_localize(None)  # type: ignore[union-attr]
                             value = dta
                         elif is_datetime64tz:
                             dtype = cast(DatetimeTZDtype, dtype)
@@ -1738,12 +1749,22 @@ def maybe_cast_to_datetime(
                             elif is_dt_string:
                                 # Strings here are naive, so directly localize
                                 # equiv: dta.astype(dtype)  # though deprecated
-                                value = dta.tz_localize(dtype.tz)
+
+                                # error: Item "ndarray" of "Union[ndarray,
+                                # DatetimeArray]" has no attribute "tz_localize"
+                                value = dta.tz_localize(  # type: ignore[union-attr]
+                                    dtype.tz
+                                )
                             else:
                                 # Numeric values are UTC at this point,
                                 # so localize and convert
                                 # equiv: Series(dta).astype(dtype) # though deprecated
-                                value = dta.tz_localize("UTC").tz_convert(dtype.tz)
+
+                                # error: Item "ndarray" of "Union[ndarray,
+                                # DatetimeArray]" has no attribute "tz_localize"
+                                value = dta.tz_localize(  # type: ignore[union-attr]
+                                    "UTC"
+                                ).tz_convert(dtype.tz)
                         elif is_timedelta64:
                             # if successful, we get a ndarray[td64ns]
                             value, _ = sequence_to_td64ns(value)
