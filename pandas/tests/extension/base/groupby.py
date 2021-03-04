@@ -1,7 +1,5 @@
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
