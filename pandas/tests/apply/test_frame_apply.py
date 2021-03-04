@@ -37,12 +37,6 @@ def test_apply(float_frame):
         assert result[d] == expected
         assert result.index is float_frame.index
 
-    # invalid axis
-    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
-    msg = "No axis named 2 for object type DataFrame"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: x, 2)
-
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
     result = df.apply(lambda ts: ts.astype("category"))
@@ -578,9 +572,6 @@ def test_applymap_na_ignore(float_frame):
     strlen_frame_with_na = strlen_frame.copy()
     strlen_frame_with_na[mask] = pd.NA
     tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
-
-    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
-        float_frame_with_na.applymap(lambda x: len(str(x)), na_action="abc")
 
 
 def test_applymap_box_timestamps():
