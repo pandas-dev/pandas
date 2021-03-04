@@ -406,7 +406,7 @@ Conversion
 - Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
 - Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
 - Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
--
+- Bug in :meth:`~DataFrame.update` unnecessarily changing the dtype of a column (:issue:`4094`)
 
 Strings
 ^^^^^^^
