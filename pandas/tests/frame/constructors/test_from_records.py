@@ -6,11 +6,13 @@ import pytest
 import pytz
 
 from pandas.compat import is_platform_little_endian
+import pandas.util._test_decorators as td
 
 from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
+    Int64Index,
     Interval,
     RangeIndex,
     Series,
@@ -118,6 +120,8 @@ class TestFromRecords:
         tm.assert_series_equal(result["C"], df["C"])
         tm.assert_series_equal(result["E1"], df["E1"].astype("float64"))
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) empty from_records
+    def test_from_records_sequencelike_empty(self):
         # empty case
         result = DataFrame.from_records([], columns=["foo", "bar", "baz"])
         assert len(result) == 0
@@ -184,7 +188,12 @@ class TestFromRecords:
         tm.assert_index_equal(df1.index, Index(df.C))
 
         # should fail
-        msg = r"Shape of passed values is \(10, 3\), indices imply \(1, 3\)"
+        msg = "|".join(
+            [
+                r"Shape of passed values is \(10, 3\), indices imply \(1, 3\)",
+                "Passed arrays should have the same length as the rows Index: 10 vs 1",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(df, index=[2])
         with pytest.raises(KeyError, match=r"^2$"):
@@ -208,6 +217,7 @@ class TestFromRecords:
         expected = DataFrame.from_records(tups)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) empty from_records
     def test_from_records_len0_with_columns(self):
         # GH#2633
         result = DataFrame.from_records([], index="foo", columns=["foo", "bar"])
@@ -259,7 +269,12 @@ class TestFromRecords:
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
+        msg = "|".join(
+            [
+                r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)",
+                "Passed arrays should have the same length as the rows Index: 2 vs 1",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(arr, index=index[:-1])
 
@@ -386,6 +401,7 @@ class TestFromRecords:
         result = DataFrame.from_records(documents, index=["order_id", "quantity"])
         assert result.index.names == ("order_id", "quantity")
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) empty from_records
     def test_from_records_misc_brokenness(self):
         # GH#2179
 
@@ -424,6 +440,7 @@ class TestFromRecords:
         )
         tm.assert_series_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) empty from_records
     def test_from_records_empty(self):
         # GH#3562
         result = DataFrame.from_records([], columns=["a", "b", "c"])
@@ -437,11 +454,11 @@ class TestFromRecords:
     def test_from_records_empty_with_nonempty_fields_gh3682(self):
         a = np.array([(1, 2)], dtype=[("id", np.int64), ("value", np.int64)])
         df = DataFrame.from_records(a, index="id")
-        tm.assert_index_equal(df.index, Index([1], name="id"))
-        assert df.index.name == "id"
-        tm.assert_index_equal(df.columns, Index(["value"]))
 
-        b = np.array([], dtype=[("id", np.int64), ("value", np.int64)])
-        df = DataFrame.from_records(b, index="id")
-        tm.assert_index_equal(df.index, Index([], name="id"))
-        assert df.index.name == "id"
+        ex_index = Int64Index([1], name="id")
+        expected = DataFrame({"value": [2]}, index=ex_index, columns=["value"])
+        tm.assert_frame_equal(df, expected)
+
+        b = a[:0]
+        df2 = DataFrame.from_records(b, index="id")
+        tm.assert_frame_equal(df2, df.iloc[:0])

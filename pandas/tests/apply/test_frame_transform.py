@@ -1,5 +1,4 @@
 import operator
-import re
 
 import numpy as np
 import pytest
@@ -10,7 +9,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
 from pandas.tests.frame.common import zip_frames
 
@@ -103,6 +101,17 @@ def test_transform_dictlike(axis, float_frame, box):
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_dictlike_mixed():
+    # GH 40018 - mix of lists and non-lists in values of a dictionary
+    df = DataFrame({"a": [1, 2], "b": [1, 4], "c": [1, 4]})
+    result = df.transform({"b": ["sqrt", "abs"], "c": "sqrt"})
+    expected = DataFrame(
+        [[1.0, 1, 1.0], [2.0, 4, 2.0]],
+        columns=MultiIndex([("b", "c"), ("sqrt", "abs")], [(0, 0, 1), (0, 1, 0)]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "ops",
     [
@@ -146,47 +155,6 @@ def test_transform_method_name(method):
     result = df.transform(method)
     expected = operator.methodcaller(method)(df)
     tm.assert_frame_equal(result, expected)
-
-
-def test_transform_and_agg_err(axis, float_frame):
-    # GH 35964
-    # cannot both transform and agg
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        float_frame.transform(["max", "min"], axis=axis)
-
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        float_frame.transform(["max", "sqrt"], axis=axis)
-
-
-def test_agg_dict_nested_renaming_depr():
-    df = DataFrame({"A": range(5), "B": 5})
-
-    # nested renaming
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        # mypy identifies the argument as an invalid type
-        df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})
-
-
-def test_transform_reducer_raises(all_reductions, frame_or_series):
-    # GH 35964
-    op = all_reductions
-
-    obj = DataFrame({"A": [1, 2, 3]})
-    if frame_or_series is not DataFrame:
-        obj = obj["A"]
-
-    msg = "Function did not transform"
-    with pytest.raises(ValueError, match=msg):
-        obj.transform(op)
-    with pytest.raises(ValueError, match=msg):
-        obj.transform([op])
-    with pytest.raises(ValueError, match=msg):
-        obj.transform({"A": op})
-    with pytest.raises(ValueError, match=msg):
-        obj.transform({"A": [op]})
 
 
 wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
@@ -254,30 +222,6 @@ def test_transform_passes_args(use_apply, frame_or_series):
         return x
 
     frame_or_series([1]).transform(f, 0, *expected_args, **expected_kwargs)
-
-
-def test_transform_missing_columns(axis):
-    # GH#35964
-    df = DataFrame({"A": [1, 2], "B": [3, 4]})
-    match = re.escape("Column(s) ['C'] do not exist")
-    with pytest.raises(SpecificationError, match=match):
-        df.transform({"C": "cumsum"})
-
-
-def test_transform_none_to_type():
-    # GH#34377
-    df = DataFrame({"a": [None]})
-    msg = "Transform function failed"
-    with pytest.raises(ValueError, match=msg):
-        df.transform({"a": int})
-
-
-def test_transform_mixed_column_name_dtypes():
-    # GH39025
-    df = DataFrame({"a": ["1"]})
-    msg = r"Column\(s\) \[1, 'b'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
-        df.transform({"a": int, 1: str, "b": int})
 
 
 def test_transform_empty_dataframe():

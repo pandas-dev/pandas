@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -161,7 +160,6 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_drop_multiindex_not_lexsorted(self):
         # GH#11640
 
@@ -466,4 +464,20 @@ class TestDataFrameDrop:
         expected = DataFrame([[1], [1], [1]], columns=["bar"])
         tm.assert_frame_equal(result, expected)
         result = df.drop("a", axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_with_duplicate_columns2(self):
+        # drop buggy GH#6240
+        df = DataFrame(
+            {
+                "A": np.random.randn(5),
+                "B": np.random.randn(5),
+                "C": np.random.randn(5),
+                "D": ["a", "b", "c", "d", "e"],
+            }
+        )
+
+        expected = df.take([0, 1, 1], axis=1)
+        df2 = df.take([2, 0, 1, 2, 1], axis=1)
+        result = df2.drop("C", axis=1)
         tm.assert_frame_equal(result, expected)

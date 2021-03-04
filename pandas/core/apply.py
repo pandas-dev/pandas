@@ -98,22 +98,6 @@ def frame_apply(
     )
 
 
-def series_apply(
-    obj: Series,
-    func: AggFuncType,
-    convert_dtype: bool = True,
-    args=None,
-    kwargs=None,
-) -> SeriesApply:
-    return SeriesApply(
-        obj,
-        func,
-        convert_dtype,
-        args,
-        kwargs,
-    )
-
-
 class Apply(metaclass=abc.ABCMeta):
     axis: int
 
@@ -158,6 +142,10 @@ class Apply(metaclass=abc.ABCMeta):
     @property
     def index(self) -> Index:
         return self.obj.index
+
+    @property
+    def agg_axis(self) -> Index:
+        return self.obj._get_agg_axis(self.axis)
 
     @abc.abstractmethod
     def apply(self) -> FrameOrSeriesUnion:
@@ -270,20 +258,13 @@ class Apply(metaclass=abc.ABCMeta):
         args = self.args
         kwargs = self.kwargs
 
+        # transform is currently only for Series/DataFrame
+        assert isinstance(obj, ABCNDFrame)
+
         if len(func) == 0:
             raise ValueError("No transform functions were provided")
 
-        if obj.ndim != 1:
-            # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
-            if len(cols) > 0:
-                cols_sorted = list(safe_sort(list(cols)))
-                raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
-
-        # Can't use func.values(); wouldn't work for a Series
-        if any(is_dict_like(v) for _, v in func.items()):
-            # GH 15931 - deprecation of renaming keys
-            raise SpecificationError("nested renamer is not supported")
+        func = self.normalize_dictlike_arg("transform", obj, func)
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
         for name, how in func.items():
@@ -424,65 +405,17 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        from pandas.core.reshape.concat import concat
+
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
-
-        is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
 
         if _axis != 0:  # pragma: no cover
             raise ValueError("Can only pass dict with axis=0")
 
         selected_obj = obj._selected_obj
 
-        # if we have a dict of any non-scalars
-        # eg. {'A' : ['mean']}, normalize all to
-        # be list-likes
-        # Cannot use arg.values() because arg may be a Series
-        if any(is_aggregator(x) for _, x in arg.items()):
-            new_arg: AggFuncTypeDict = {}
-            for k, v in arg.items():
-                if not isinstance(v, (tuple, list, dict)):
-                    new_arg[k] = [v]
-                else:
-                    new_arg[k] = v
-
-                # the keys must be in the columns
-                # for ndim=2, or renamers for ndim=1
-
-                # ok for now, but deprecated
-                # {'A': { 'ra': 'mean' }}
-                # {'A': { 'ra': ['mean'] }}
-                # {'ra': ['mean']}
-
-                # not ok
-                # {'ra' : { 'A' : 'mean' }}
-                if isinstance(v, dict):
-                    raise SpecificationError("nested renamer is not supported")
-                elif isinstance(selected_obj, ABCSeries):
-                    raise SpecificationError("nested renamer is not supported")
-                elif (
-                    isinstance(selected_obj, ABCDataFrame)
-                    and k not in selected_obj.columns
-                ):
-                    raise KeyError(f"Column '{k}' does not exist!")
-
-            arg = new_arg
-
-        else:
-            # deprecation of renaming keys
-            # GH 15931
-            keys = list(arg.keys())
-            if isinstance(selected_obj, ABCDataFrame) and len(
-                selected_obj.columns.intersection(keys)
-            ) != len(keys):
-                cols = list(
-                    safe_sort(
-                        list(set(keys) - set(selected_obj.columns.intersection(keys))),
-                    )
-                )
-                raise SpecificationError(f"Column(s) {cols} do not exist")
-
-        from pandas.core.reshape.concat import concat
+        arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
         if selected_obj.ndim == 1:
             # key only used for output
@@ -541,17 +474,26 @@ class Apply(metaclass=abc.ABCMeta):
         f = self.f
         if not isinstance(f, str):
             return None
+
+        obj = self.obj
+
+        # TODO: GH 39993 - Avoid special-casing by replacing with lambda
+        if f == "size" and isinstance(obj, ABCDataFrame):
+            # Special-cased because DataFrame.size returns a single scalar
+            value = obj.shape[self.axis]
+            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
-        func = getattr(self.obj, f, None)
+        func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
             if "axis" in sig.args:
                 self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")
-        return self.obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
+        return obj._try_aggregate_string_function(f, *self.args, **self.kwargs)
 
     def maybe_apply_multiple(self) -> Optional[FrameOrSeriesUnion]:
         """
@@ -566,6 +508,51 @@ class Apply(metaclass=abc.ABCMeta):
         if not is_list_like(self.f):
             return None
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
+
+    def normalize_dictlike_arg(
+        self, how: str, obj: FrameOrSeriesUnion, func: AggFuncTypeDict
+    ) -> AggFuncTypeDict:
+        """
+        Handler for dict-like argument.
+
+        Ensures that necessary columns exist if obj is a DataFrame, and
+        that a nested renamer is not passed. Also normalizes to all lists
+        when values consists of a mix of list and non-lists.
+        """
+        assert how in ("apply", "agg", "transform")
+
+        # Can't use func.values(); wouldn't work for a Series
+        if (
+            how == "agg"
+            and isinstance(obj, ABCSeries)
+            and any(is_list_like(v) for _, v in func.items())
+        ) or (any(is_dict_like(v) for _, v in func.items())):
+            # GH 15931 - deprecation of renaming keys
+            raise SpecificationError("nested renamer is not supported")
+
+        if obj.ndim != 1:
+            # Check for missing columns on a frame
+            cols = set(func.keys()) - set(obj.columns)
+            if len(cols) > 0:
+                cols_sorted = list(safe_sort(list(cols)))
+                raise KeyError(f"Column(s) {cols_sorted} do not exist")
+
+        is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+
+        # if we have a dict of any non-scalars
+        # eg. {'A' : ['mean']}, normalize all to
+        # be list-likes
+        # Cannot use func.values() because arg may be a Series
+        if any(is_aggregator(x) for _, x in func.items()):
+            new_func: AggFuncTypeDict = {}
+            for k, v in func.items():
+                if not is_aggregator(v):
+                    # mypy can't realize v is not a list here
+                    new_func[k] = [v]  # type:ignore[list-item]
+                else:
+                    new_func[k] = v
+            func = new_func
+        return func
 
 
 class FrameApply(Apply):
@@ -612,10 +599,6 @@ class FrameApply(Apply):
     @cache_readonly
     def dtypes(self) -> Series:
         return self.obj.dtypes
-
-    @property
-    def agg_axis(self) -> Index:
-        return self.obj._get_agg_axis(self.axis)
 
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
@@ -900,9 +883,8 @@ class FrameColumnApply(FrameApply):
         #  of it.  Kids: don't do this at home.
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
-        blk = mgr.blocks[0]
 
-        if is_extension_array_dtype(blk.dtype):
+        if is_extension_array_dtype(ser.dtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
             obj = self.obj
@@ -913,7 +895,7 @@ class FrameColumnApply(FrameApply):
             for (arr, name) in zip(values, self.index):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
-                blk.values = arr
+                mgr.set_values(arr)
                 ser.name = name
                 yield ser
 

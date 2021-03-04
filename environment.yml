@@ -23,7 +23,7 @@ dependencies:
   - flake8
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.800
+  - mypy=0.812
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
