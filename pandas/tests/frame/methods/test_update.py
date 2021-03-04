@@ -1,3 +1,5 @@
+from hypothesis import given
+from hypothesis.extra import numpy as np_st
 import numpy as np
 import pytest
 
@@ -146,3 +148,43 @@ class TestDataFrameUpdate:
 
         expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
         tm.assert_frame_equal(df, expected)
+
+    @given(dtype=np_st.integer_dtypes(endianness="="))
+    def test_update_with_subset_and_same_integer_dtype(self, dtype):
+        # GH4094
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3], dtype=dtype)})
+        update = df.copy()[:-1]
+        df.update(update)
+        assert df.a.dtype == dtype
+
+    def test_update_str_dtype(self):
+        # GH4094
+        df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        update = df.copy()
+        expected = df.copy()
+        df.update(update)
+        assert df.a.dtype == expected.a.dtype
+
+    def test_update_with_subset_str_dtype(self):
+        # GH4094
+        df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        update = df.copy()[:-1]
+        expected = df.copy()
+        df.update(update)
+        assert df.a.dtype == expected.a.dtype
+
+    def test_update_bool_dtype(self):
+        # GH4094
+        df = pd.DataFrame({"a": [True, False, True]}, dtype=bool)
+        update = df.copy()
+        expected = df.copy()
+        df.update(update)
+        assert df.a.dtype == expected.a.dtype
+
+    def test_update_with_subset_bool_dtype(self):
+        # GH4094
+        df = pd.DataFrame({"a": [True, False]}, dtype=bool)
+        update = pd.DataFrame({"a": [False]}, dtype=bool)
+        expected = df.copy()
+        df.update(update)
+        assert df.a.dtype == expected.a.dtype

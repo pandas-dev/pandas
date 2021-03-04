@@ -6939,6 +6939,7 @@ Keep all original rows and columns and also all original values
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
+        other_dtypes = other.dtypes  # dtype might change during reindexing
         other = other.reindex_like(self)
 
         for col in self.columns:
@@ -6963,7 +6964,11 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that)
+            col_array = expressions.where(mask, this, that)
+            if self[col].dtype == other_dtypes[col] != col_array.dtype:
+                self[col] = Series(col_array, index=self.index, dtype=self[col].dtype)
+            else:
+                self[col] = col_array
 
     # ----------------------------------------------------------------------
     # Data reshaping
