@@ -1476,7 +1476,7 @@ class SQLDatabase(PandasSQL):
                 parse_dates=parse_dates,
                 dtype=dtype,
             )
-        else:
+        elif result.returns_rows:
             data = result.fetchall()
             frame = _wrap_result(
                 data,
@@ -1487,6 +1487,8 @@ class SQLDatabase(PandasSQL):
                 dtype=dtype,
             )
             return frame
+        else:
+            return None
 
     read_sql = read_query
 
