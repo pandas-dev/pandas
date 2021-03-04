@@ -60,7 +60,7 @@ def test_numpy_reduction():
 def test_apply_iteration():
     # #2300
     N = 1000
-    ind = pd.date_range(start="2000-01-01", freq="D", periods=N)
+    ind = date_range(start="2000-01-01", freq="D", periods=N)
     df = DataFrame({"open": 1, "close": 2}, index=ind)
     tg = Grouper(freq="M")
 
@@ -173,7 +173,7 @@ def test_aggregate_normal(request, resample_method):
     ],
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
-    s = Series([0] * 2 + [np.nan] * 2, index=pd.date_range("2017", periods=4))
+    s = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
     result = methodcaller(method, **method_args)(s.resample("2d"))
     expected = Series(
         [0.0, unit], index=pd.DatetimeIndex(["2017-01-01", "2017-01-03"], freq="2D")
@@ -284,7 +284,7 @@ def test_repr():
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):
-    s = Series(1, index=pd.date_range("2017", periods=2, freq="H"))
+    s = Series(1, index=date_range("2017", periods=2, freq="H"))
     resampled = s.resample("30T")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
@@ -301,7 +301,7 @@ def test_groupby_resample_interpolate():
 
     df = DataFrame(d)
 
-    df["week_starting"] = pd.date_range("01/01/2018", periods=3, freq="W")
+    df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
 
     result = (
         df.set_index("week_starting")
