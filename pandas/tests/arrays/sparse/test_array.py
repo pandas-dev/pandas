@@ -185,8 +185,8 @@ class TestSparseArray:
     def test_constructor_inferred_fill_value(self, data, fill_value):
         result = SparseArray(data).fill_value
 
-        if pd.isna(fill_value):
-            assert pd.isna(result)
+        if isna(fill_value):
+            assert isna(result)
         else:
             assert result == fill_value
 

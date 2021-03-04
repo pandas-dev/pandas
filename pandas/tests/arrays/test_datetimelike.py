@@ -184,13 +184,13 @@ class SharedTests:
         arr = self.array_cls(data, freq="D")
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=None)
-        assert result[0] is pd.NaT
+        assert result[0] is NaT
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=np.nan)
-        assert result[0] is pd.NaT
+        assert result[0] is NaT
 
-        result = arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT)
-        assert result[0] is pd.NaT
+        result = arr.take([-1, 1], allow_fill=True, fill_value=NaT)
+        assert result[0] is NaT
 
     def test_take_fill_str(self, arr1d):
         # Cast str fill_value matching other fill_value-taking methods
@@ -205,7 +205,7 @@ class SharedTests:
     def test_concat_same_type(self, arr1d):
         arr = arr1d
         idx = self.index_cls(arr)
-        idx = idx.insert(0, pd.NaT)
+        idx = idx.insert(0, NaT)
         arr = self.array_cls(idx)
 
         result = arr._concat_same_type([arr[:-1], arr[1:], arr])
@@ -221,7 +221,7 @@ class SharedTests:
         expected = arr._data.dtype.type
         assert isinstance(result, expected)
 
-        result = arr._unbox_scalar(pd.NaT)
+        result = arr._unbox_scalar(NaT)
         assert isinstance(result, expected)
 
         msg = f"'value' should be a {self.dtype.__name__}."
@@ -234,7 +234,7 @@ class SharedTests:
 
         arr._check_compatible_with(arr[0])
         arr._check_compatible_with(arr[:1])
-        arr._check_compatible_with(pd.NaT)
+        arr._check_compatible_with(NaT)
 
     def test_scalar_from_string(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
@@ -254,7 +254,7 @@ class SharedTests:
     def test_fillna_method_doesnt_change_orig(self, method):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
-        arr[4] = pd.NaT
+        arr[4] = NaT
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
@@ -262,7 +262,7 @@ class SharedTests:
         assert result[4] == fill_value
 
         # check that the original was not changed
-        assert arr[4] is pd.NaT
+        assert arr[4] is NaT
 
     def test_searchsorted(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
@@ -286,7 +286,7 @@ class SharedTests:
 
         # GH#29884 match numpy convention on whether NaT goes
         #  at the end or the beginning
-        result = arr.searchsorted(pd.NaT)
+        result = arr.searchsorted(NaT)
         if np_version_under1p18:
             # Following numpy convention, NaT goes at the beginning
             #  (unlike NaN which goes at the end)
@@ -616,7 +616,7 @@ class SharedTests:
 
 
 class TestDatetimeArray(SharedTests):
-    index_cls = pd.DatetimeIndex
+    index_cls = DatetimeIndex
     array_cls = DatetimeArray
     dtype = Timestamp
 
@@ -749,7 +749,7 @@ class TestDatetimeArray(SharedTests):
 
         # Check that Index.__new__ knows what to do with DatetimeArray
         dti2 = pd.Index(arr)
-        assert isinstance(dti2, pd.DatetimeIndex)
+        assert isinstance(dti2, DatetimeIndex)
         assert list(dti2) == list(arr)
 
     def test_astype_object(self, arr1d):
@@ -800,7 +800,7 @@ class TestDatetimeArray(SharedTests):
             expected = arr1d.to_period("D").reshape(1, -1)
         tm.assert_period_array_equal(result, expected)
 
-    @pytest.mark.parametrize("propname", pd.DatetimeIndex._bool_ops)
+    @pytest.mark.parametrize("propname", DatetimeIndex._bool_ops)
     def test_bool_properties(self, arr1d, propname):
         # in this case _bool_ops is just `is_leap_year`
         dti = self.index_cls(arr1d)
@@ -812,7 +812,7 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("propname", pd.DatetimeIndex._field_ops)
+    @pytest.mark.parametrize("propname", DatetimeIndex._field_ops)
     def test_int_properties(self, arr1d, propname):
         if propname in ["week", "weekofyear"]:
             # GH#33595 Deprecate week and weekofyear
@@ -849,7 +849,7 @@ class TestDatetimeArray(SharedTests):
             # Timestamp with mismatched tz-awareness
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
-        value = pd.NaT.value
+        value = NaT.value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
@@ -908,7 +908,7 @@ class TestDatetimeArray(SharedTests):
 
     def test_strftime_nat(self):
         # GH 29578
-        arr = DatetimeArray(DatetimeIndex(["2019-01-01", pd.NaT]))
+        arr = DatetimeArray(DatetimeIndex(["2019-01-01", NaT]))
 
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
@@ -1064,7 +1064,7 @@ class TestPeriodArray(SharedTests):
     def test_take_fill_valid(self, arr1d):
         arr = arr1d
 
-        value = pd.NaT.value
+        value = NaT.value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
@@ -1152,7 +1152,7 @@ class TestPeriodArray(SharedTests):
 
     def test_strftime_nat(self):
         # GH 29578
-        arr = PeriodArray(PeriodIndex(["2019-01-01", pd.NaT], dtype="period[D]"))
+        arr = PeriodArray(PeriodIndex(["2019-01-01", NaT], dtype="period[D]"))
 
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
@@ -1164,18 +1164,18 @@ class TestPeriodArray(SharedTests):
     [
         (
             TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-            (pd.NaT, np.timedelta64("NaT", "ns")),
+            (NaT, np.timedelta64("NaT", "ns")),
         ),
         (
             pd.date_range("2000-01-01", periods=3, freq="D")._data,
-            (pd.NaT, np.datetime64("NaT", "ns")),
+            (NaT, np.datetime64("NaT", "ns")),
         ),
-        (pd.period_range("2000-01-01", periods=3, freq="D")._data, (pd.NaT,)),
+        (pd.period_range("2000-01-01", periods=3, freq="D")._data, (NaT,)),
     ],
     ids=lambda x: type(x).__name__,
 )
 def test_casting_nat_setitem_array(array, casting_nats):
-    expected = type(array)._from_sequence([pd.NaT, array[1], array[2]])
+    expected = type(array)._from_sequence([NaT, array[1], array[2]])
 
     for nat in casting_nats:
         arr = array.copy()
@@ -1188,15 +1188,15 @@ def test_casting_nat_setitem_array(array, casting_nats):
     [
         (
             TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-            (np.datetime64("NaT", "ns"), pd.NaT.value),
+            (np.datetime64("NaT", "ns"), NaT.value),
         ),
         (
             pd.date_range("2000-01-01", periods=3, freq="D")._data,
-            (np.timedelta64("NaT", "ns"), pd.NaT.value),
+            (np.timedelta64("NaT", "ns"), NaT.value),
         ),
         (
             pd.period_range("2000-01-01", periods=3, freq="D")._data,
-            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), pd.NaT.value),
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), NaT.value),
         ),
     ],
     ids=lambda x: type(x).__name__,
@@ -1226,7 +1226,7 @@ def test_to_numpy_extra(array):
     else:
         isnan = np.isnan
 
-    array[0] = pd.NaT
+    array[0] = NaT
     original = array.copy()
 
     result = array.to_numpy()
