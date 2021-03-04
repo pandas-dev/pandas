@@ -100,7 +100,7 @@ def test_comparison_ops():
 def test_pow_special(value, asarray):
     if asarray:
         value = np.array([value])
-    result = pd.NA ** value
+    result = NA ** value
 
     if asarray:
         result = result[0]
@@ -117,7 +117,7 @@ def test_pow_special(value, asarray):
 def test_rpow_special(value, asarray):
     if asarray:
         value = np.array([value])
-    result = value ** pd.NA
+    result = value ** NA
 
     if asarray:
         result = result[0]
@@ -133,7 +133,7 @@ def test_rpow_special(value, asarray):
 def test_rpow_minus_one(value, asarray):
     if asarray:
         value = np.array([value])
-    result = value ** pd.NA
+    result = value ** NA
 
     if asarray:
         result = result[0]
@@ -197,8 +197,8 @@ def test_arithmetic_ndarray(shape, all_arithmetic_functions):
     a = np.zeros(shape)
     if op.__name__ == "pow":
         a += 5
-    result = op(pd.NA, a)
-    expected = np.full(a.shape, pd.NA, dtype=object)
+    result = op(NA, a)
+    expected = np.full(a.shape, NA, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -218,50 +218,50 @@ def test_series_isna():
 
 
 def test_ufunc():
-    assert np.log(pd.NA) is pd.NA
-    assert np.add(pd.NA, 1) is pd.NA
-    result = np.divmod(pd.NA, 1)
-    assert result[0] is pd.NA and result[1] is pd.NA
+    assert np.log(NA) is NA
+    assert np.add(NA, 1) is NA
+    result = np.divmod(NA, 1)
+    assert result[0] is NA and result[1] is NA
 
-    result = np.frexp(pd.NA)
-    assert result[0] is pd.NA and result[1] is pd.NA
+    result = np.frexp(NA)
+    assert result[0] is NA and result[1] is NA
 
 
 def test_ufunc_raises():
     msg = "ufunc method 'at'"
     with pytest.raises(ValueError, match=msg):
-        np.log.at(pd.NA, 0)
+        np.log.at(NA, 0)
 
 
 def test_binary_input_not_dunder():
     a = np.array([1, 2, 3])
-    expected = np.array([pd.NA, pd.NA, pd.NA], dtype=object)
-    result = np.logaddexp(a, pd.NA)
+    expected = np.array([NA, NA, NA], dtype=object)
+    result = np.logaddexp(a, NA)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = np.logaddexp(pd.NA, a)
+    result = np.logaddexp(NA, a)
     tm.assert_numpy_array_equal(result, expected)
 
     # all NA, multiple inputs
-    assert np.logaddexp(pd.NA, pd.NA) is pd.NA
+    assert np.logaddexp(NA, NA) is NA
 
-    result = np.modf(pd.NA, pd.NA)
+    result = np.modf(NA, NA)
     assert len(result) == 2
-    assert all(x is pd.NA for x in result)
+    assert all(x is NA for x in result)
 
 
 def test_divmod_ufunc():
     # binary in, binary out.
     a = np.array([1, 2, 3])
-    expected = np.array([pd.NA, pd.NA, pd.NA], dtype=object)
+    expected = np.array([NA, NA, NA], dtype=object)
 
-    result = np.divmod(a, pd.NA)
+    result = np.divmod(a, NA)
     assert isinstance(result, tuple)
     for arr in result:
         tm.assert_numpy_array_equal(arr, expected)
         tm.assert_numpy_array_equal(arr, expected)
 
-    result = np.divmod(pd.NA, a)
+    result = np.divmod(NA, a)
     for arr in result:
         tm.assert_numpy_array_equal(arr, expected)
         tm.assert_numpy_array_equal(arr, expected)
@@ -286,17 +286,17 @@ def test_integer_hash_collision_set():
 
 def test_pickle_roundtrip():
     # https://github.com/pandas-dev/pandas/issues/31847
-    result = pickle.loads(pickle.dumps(pd.NA))
-    assert result is pd.NA
+    result = pickle.loads(pickle.dumps(NA))
+    assert result is NA
 
 
 def test_pickle_roundtrip_pandas():
-    result = tm.round_trip_pickle(pd.NA)
-    assert result is pd.NA
+    result = tm.round_trip_pickle(NA)
+    assert result is NA
 
 
 @pytest.mark.parametrize(
-    "values, dtype", [([1, 2, pd.NA], "Int64"), (["A", "B", pd.NA], "string")]
+    "values, dtype", [([1, 2, NA], "Int64"), (["A", "B", NA], "string")]
 )
 @pytest.mark.parametrize("as_frame", [True, False])
 def test_pickle_roundtrip_containers(as_frame, values, dtype):
