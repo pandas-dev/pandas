@@ -5178,11 +5178,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def reset_index(
         self,
-        level: Optional[Union[Hashable, Sequence[Hashable]]],
-        drop: bool,
-        inplace: bool,
-        col_level: Hashable,
-        col_fill: Hashable,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: bool = ...,
+        col_level: Hashable = ...,
+        col_fill: Hashable = ...,
     ) -> Optional[DataFrame]:
         ...
 
