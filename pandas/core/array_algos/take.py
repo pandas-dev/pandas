@@ -179,7 +179,7 @@ def take_2d_multi(
 
 
 @functools.lru_cache(maxsize=128)
-def __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
+def _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
     """
     Part of _get_take_nd_function below that doesn't need `mask_info` and thus
     can be cached (mask_info potentially contains a numpy ndarray which is not
@@ -221,7 +221,7 @@ def _get_take_nd_function(
     func = None
     if ndim <= 2:
         # for this part we don't need `mask_info` -> use the cached algo lookup
-        func = __get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis)
+        func = _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis)
 
     if func is None:
 
