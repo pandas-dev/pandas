@@ -25,7 +25,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
--
+- Bug in :meth:`~DataFrame.update` unnecessarily changing the dtype of a column (:issue:`4094`)
 -
 
 .. ---------------------------------------------------------------------------
