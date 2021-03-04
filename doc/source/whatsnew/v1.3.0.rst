@@ -43,6 +43,73 @@ For example:
         storage_options=headers
     )
 
+.. _whatsnew_130.read_to_xml:
+
+Read and write XML documents
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We added I/O support to read and render shallow versions of `XML`_ documents with
+:func:`pandas.read_xml` and :meth:`DataFrame.to_xml`. Using `lxml`_ as parser,
+both XPath 1.0 and XSLT 1.0 is available. (:issue:`27554`)
+
+.. _XML: https://www.w3.org/standards/xml/core
+.. _lxml: https://lxml.de
+
+.. code-block:: ipython
+
+    In [1]: xml = """<?xml version='1.0' encoding='utf-8'?>
+       ...: <data>
+       ...:  <row>
+       ...:     <shape>square</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides>4.0</sides>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>circle</shape>
+       ...:     <degrees>360</degrees>
+       ...:     <sides/>
+       ...:  </row>
+       ...:  <row>
+       ...:     <shape>triangle</shape>
+       ...:     <degrees>180</degrees>
+       ...:     <sides>3.0</sides>
+       ...:  </row>
+       ...:  </data>"""
+
+    In [2]: df = pd.read_xml(xml)
+    In [3]: df
+    Out[3]:
+          shape  degrees  sides
+    0    square      360    4.0
+    1    circle      360    NaN
+    2  triangle      180    3.0
+
+    In [4]: df.to_xml()
+    Out[4]:
+    <?xml version='1.0' encoding='utf-8'?>
+    <data>
+      <row>
+        <index>0</index>
+        <shape>square</shape>
+        <degrees>360</degrees>
+        <sides>4.0</sides>
+      </row>
+      <row>
+        <index>1</index>
+        <shape>circle</shape>
+        <degrees>360</degrees>
+        <sides/>
+      </row>
+      <row>
+        <index>2</index>
+        <shape>triangle</shape>
+        <degrees>180</degrees>
+        <sides>3.0</sides>
+      </row>
+    </data>
+
+For more, see :ref:`io.xml` in the user guide on IO tools.
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
@@ -61,6 +128,7 @@ Other enhancements
 - :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support ``Numba`` execution with the ``engine`` keyword (:issue:`38895`)
 - :meth:`DataFrame.apply` can now accept NumPy unary operators as strings, e.g. ``df.apply("sqrt")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
+- Disallow :class:`DataFrame` indexer for ``iloc`` for :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__`, (:issue:`39004`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
 - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`)
@@ -70,6 +138,7 @@ Other enhancements
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
+- Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
 
 .. ---------------------------------------------------------------------------
 
@@ -290,6 +359,7 @@ Deprecations
 - Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 - Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
+- Deprecated :class:`DataFrame` indexer for :meth:`Series.__setitem__` and :meth:`DataFrame.__setitem__` (:issue:`39004`)
 - Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
@@ -310,6 +380,8 @@ Performance improvements
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
 - Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
 - Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
+- Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
+- Performance improvement in :meth:`.GroupBy.apply` when requiring the python fallback implementation (:issue:`40176`)
 
 .. ---------------------------------------------------------------------------
 
@@ -372,7 +444,8 @@ Conversion
 ^^^^^^^^^^
 - Bug in :meth:`Series.to_dict` with ``orient='records'`` now returns python native types (:issue:`25969`)
 - Bug in :meth:`Series.view` and :meth:`Index.view` when converting between datetime-like (``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64``, ``period``) dtypes (:issue:`39788`)
--
+- Bug in creating a :class:`DataFrame` from an empty ``np.recarray`` not retaining the original dtypes (:issue:`40121`)
+- Bug in :class:`DataFrame` failing to raise ``TypeError`` when constructing from a ``frozenset`` (:issue:`40163`)
 -
 
 Strings
@@ -390,6 +463,8 @@ Interval
 
 Indexing
 ^^^^^^^^
+
+- Bug in :meth:`Index.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`)
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when setting multiple values to duplicate columns (:issue:`15695`)
@@ -413,7 +488,7 @@ Indexing
 - Bug in :meth:`RangeIndex.append` where a single object of length 1 was concatenated incorrectly (:issue:`39401`)
 - Bug in setting ``numpy.timedelta64`` values into an object-dtype :class:`Series` using a boolean indexer (:issue:`39488`)
 - Bug in setting numeric values into a into a boolean-dtypes :class:`Series` using ``at`` or ``iat`` failing to cast to object-dtype (:issue:`39582`)
--
+- Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contains duplicates (:issue:`40096`)
 
 Missing
 ^^^^^^^
@@ -486,7 +561,9 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` if a :class:`:meth:`core.window.rolling.RollingGroupby` object was created (:issue:`39732`)
 - Bug in :meth:`DataFrameGroupBy.sample` where error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
 - Bug in :meth:`DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
--
+- Bug in :meth:`DataFrameGroupBy.sample` where column selection was not applied to sample result (:issue:`39928`)
+- Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would incorrectly raise a ``ValueError`` when providing ``times`` (:issue:`40164`)
+- Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
 
 Reshaping
 ^^^^^^^^^
@@ -532,6 +609,7 @@ Other
 - :class:`Styler` rendered HTML output minor alterations to support w3 good code standard (:issue:`39626`)
 - Bug in :class:`Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
 - Bug in :meth:`Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
+- Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 

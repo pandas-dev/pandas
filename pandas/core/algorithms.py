@@ -84,7 +84,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -108,9 +108,7 @@ _shared_docs: Dict[str, str] = {}
 # --------------- #
 # dtype access    #
 # --------------- #
-def _ensure_data(
-    values: ArrayLike, dtype: Optional[DtypeObj] = None
-) -> Tuple[np.ndarray, DtypeObj]:
+def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -126,8 +124,6 @@ def _ensure_data(
     Parameters
     ----------
     values : array-like
-    dtype : pandas_dtype, optional
-        coerce to this dtype
 
     Returns
     -------
@@ -135,34 +131,26 @@ def _ensure_data(
     pandas_dtype : np.dtype or ExtensionDtype
     """
 
-    if dtype is not None:
-        # We only have non-None dtype when called from `isin`, and
-        #  both Datetimelike and Categorical dispatch before getting here.
-        assert not needs_i8_conversion(dtype)
-        assert not is_categorical_dtype(dtype)
-
     if not isinstance(values, ABCMultiIndex):
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
-    if is_object_dtype(dtype):
-        return ensure_object(np.asarray(values)), np.dtype("object")
-    elif is_object_dtype(values) and dtype is None:
+    if is_object_dtype(values):
         return ensure_object(np.asarray(values)), np.dtype("object")
 
     try:
-        if is_bool_dtype(values) or is_bool_dtype(dtype):
+        if is_bool_dtype(values):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype("uint64"), np.dtype("bool")
-        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
+        elif is_signed_integer_dtype(values):
             return ensure_int64(values), np.dtype("int64")
-        elif is_unsigned_integer_dtype(values) or is_unsigned_integer_dtype(dtype):
+        elif is_unsigned_integer_dtype(values):
             return ensure_uint64(values), np.dtype("uint64")
-        elif is_float_dtype(values) or is_float_dtype(dtype):
+        elif is_float_dtype(values):
             return ensure_float64(values), np.dtype("float64")
-        elif is_complex_dtype(values) or is_complex_dtype(dtype):
+        elif is_complex_dtype(values):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
@@ -177,12 +165,12 @@ def _ensure_data(
         return ensure_object(values), np.dtype("object")
 
     # datetimelike
-    if needs_i8_conversion(values.dtype) or needs_i8_conversion(dtype):
-        if is_period_dtype(values.dtype) or is_period_dtype(dtype):
+    if needs_i8_conversion(values.dtype):
+        if is_period_dtype(values.dtype):
             from pandas import PeriodIndex
 
             values = PeriodIndex(values)._data
-        elif is_timedelta64_dtype(values.dtype) or is_timedelta64_dtype(dtype):
+        elif is_timedelta64_dtype(values.dtype):
             from pandas import TimedeltaIndex
 
             values = TimedeltaIndex(values)._data
@@ -202,9 +190,7 @@ def _ensure_data(
         dtype = values.dtype
         return values.asi8, dtype
 
-    elif is_categorical_dtype(values.dtype) and (
-        is_categorical_dtype(dtype) or dtype is None
-    ):
+    elif is_categorical_dtype(values.dtype):
         values = cast("Categorical", values)
         values = values.codes
         dtype = pandas_dtype("category")
@@ -488,7 +474,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
-        return array(comps).isin(values)
+        return pd_array(comps).isin(values)
     elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
         # e.g. comps are integers and values are datetime64s
         return np.zeros(comps.shape, dtype=bool)
@@ -1580,7 +1566,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         if is_scalar(value):
             value = dtype.type(value)
         else:
-            value = array(value, dtype=dtype)
+            value = pd_array(value, dtype=dtype)
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):
@@ -1880,3 +1866,31 @@ def _sort_tuples(values: np.ndarray):
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
+
+
+def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
+    """
+    Extracts the union from lvals and rvals with respect to duplicates and nans in
+    both arrays.
+
+    Parameters
+    ----------
+    lvals: np.ndarray
+        left values which is ordered in front.
+    rvals: np.ndarray
+        right values ordered after lvals.
+
+    Returns
+    -------
+    np.ndarray containing the unsorted union of both arrays
+    """
+    indexer = []
+    l_count = value_counts(lvals, dropna=False)
+    r_count = value_counts(rvals, dropna=False)
+    l_count, r_count = l_count.align(r_count, fill_value=0)
+    unique_array = unique(np.append(lvals, rvals))
+    if is_extension_array_dtype(lvals) or is_extension_array_dtype(rvals):
+        unique_array = pd_array(unique_array)
+    for i, value in enumerate(unique_array):
+        indexer += [i] * int(max(l_count[value], r_count[value]))
+    return unique_array.take(indexer)

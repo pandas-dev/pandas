@@ -1421,6 +1421,15 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer, dict):
             raise IndexError("iloc cannot enlarge its target object")
 
+        if isinstance(indexer, ABCDataFrame):
+            warnings.warn(
+                "DataFrame indexer for .iloc is deprecated and will be removed in"
+                "a future version.\n"
+                "consider using .loc with a DataFrame indexer for automatic alignment.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
 
@@ -1508,6 +1517,12 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
+        if isinstance(key, ABCDataFrame):
+            raise IndexError(
+                "DataFrame indexer is not allowed for .iloc\n"
+                "Consider using .loc for automatic alignment."
+            )
+
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
@@ -1641,7 +1656,17 @@ class _iLocIndexer(_LocationIndexer):
                     # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
-                    self.obj._mgr = self.obj.reindex(labels, axis=i)._mgr
+
+                    # We are expanding the Series/DataFrame values to match
+                    #  the length of thenew index `labels`.  GH#40096 ensure
+                    #  this is valid even if the index has duplicates.
+                    taker = np.arange(len(index) + 1, dtype=np.intp)
+                    taker[-1] = -1
+                    reindexers = {i: (labels, taker)}
+                    new_obj = self.obj._reindex_with_indexers(
+                        reindexers, allow_dups=True
+                    )
+                    self.obj._mgr = new_obj._mgr
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
 

@@ -1088,6 +1088,20 @@ class TestILocErrors:
             # GH#32257 we let numpy do validation, get their exception
             float_frame.iloc[:, :, :] = 1
 
+    def test_iloc_frame_indexer(self):
+        # GH#39004
+        df = DataFrame({"a": [1, 2, 3]})
+        indexer = DataFrame({"a": [True, False, True]})
+        with tm.assert_produces_warning(FutureWarning):
+            df.iloc[indexer] = 1
+
+        msg = (
+            "DataFrame indexer is not allowed for .iloc\n"
+            "Consider using .loc for automatic alignment."
+        )
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[indexer]
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
