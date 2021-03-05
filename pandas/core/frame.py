@@ -215,6 +215,10 @@ if TYPE_CHECKING:
         TimestampConvertibleTypes,
     )
 
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.resample import Resampler
 
@@ -784,7 +788,7 @@ class DataFrame(NDFrame, OpsMixin):
         return not is_ea_dtype(dtype)
 
     @property
-    def _values_compat(self) -> ArrayLike:
+    def _values_compat(self) -> Union[np.ndarray, DatetimeArray, TimedeltaArray]:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
@@ -3211,8 +3215,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
-            # error: "ArrayLike" has no attribute "T"
-            new_values = self._values_compat.T  # type:ignore[attr-defined]
+            new_values = self._values_compat.T
             if copy:
                 new_values = new_values.copy()
 
@@ -3225,7 +3228,6 @@ class DataFrame(NDFrame, OpsMixin):
         ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
-
             arr_type = dtype.construct_array_type()
             values = self.values
 
@@ -3233,7 +3235,6 @@ class DataFrame(NDFrame, OpsMixin):
             result = self._constructor(
                 dict(zip(self.index, new_values)), index=self.columns
             )
-            # TODO: what if index is non-unique? (not specific to EA2D)
 
         else:
             new_values = self.values.T

@@ -64,7 +64,6 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_numeric_dtype,
     is_scalar,
-    is_strict_ea,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
@@ -1123,8 +1122,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             obj: FrameOrSeriesUnion
 
             # call our grouper again with only this block
-            if is_strict_ea(values) or values.ndim == 1:
-                # TODO(EA2D): special case not needed with 2D EAs
+            if values.ndim == 1:
                 obj = Series(values)
             else:
                 # TODO special case not needed with ArrayManager

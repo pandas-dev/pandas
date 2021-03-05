@@ -128,7 +128,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
-            return np.concatenate(to_concat, axis=axis)
+            return np.concatenate(to_concat)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
