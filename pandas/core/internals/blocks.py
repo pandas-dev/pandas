@@ -316,7 +316,7 @@ class Block(PandasObject):
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
-        return make_block(values, placement=placement, ndim=self.ndim)
+        return new_block(values, placement=placement, ndim=self.ndim)
 
     @final
     def make_block_same_class(self, values, placement=None) -> Block:
@@ -1431,7 +1431,7 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement, ndim=2)]
+        blocks = [new_block(new_values, placement=new_placement, ndim=2)]
         return blocks, mask
 
     def quantile(
@@ -1460,7 +1460,7 @@ class Block(PandasObject):
 
         result = quantile_compat(self.values, qs, interpolation, axis)
 
-        return make_block(result, placement=self.mgr_locs, ndim=2)
+        return new_block(result, placement=self.mgr_locs, ndim=2)
 
 
 class ExtensionBlock(Block):
@@ -2301,7 +2301,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     return cls
 
 
-def make_block(
+def new_block(
     values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
 ) -> Block:
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
