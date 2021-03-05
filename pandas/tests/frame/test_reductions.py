@@ -835,6 +835,13 @@ class TestDataFrameAnalytics:
         expected = Series([0, 0, np.nan], dtype="m8[ns]", index=idx)
         tm.assert_series_equal(result, expected)
 
+    def test_sum_nanops_min_count(self):
+        # https://github.com/pandas-dev/pandas/issues/39738
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        result = df.sum(min_count=10)
+        expected = Series([np.nan, np.nan], index=["x", "y"])
+        tm.assert_series_equal(result, expected)
+
     def test_sum_object(self, float_frame):
         values = float_frame.values.astype(int)
         frame = DataFrame(values, index=float_frame.index, columns=float_frame.columns)

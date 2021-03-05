@@ -8786,6 +8786,7 @@ NaN 12.3   33.0
         **kwds,
     ):
 
+        min_count = kwds.get("min_count", 0)
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
@@ -8830,7 +8831,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None or axis == 0:
+        if (numeric_only is not None or axis == 0) and min_count == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -8847,7 +8848,7 @@ NaN 12.3   33.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, indexer = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
@@ -8875,14 +8876,15 @@ NaN 12.3   33.0
             with np.errstate(all="ignore"):
                 result = func(values)
 
-        if filter_type == "bool" and notna(result).all():
-            result = result.astype(np.bool_)
-        elif filter_type is None and is_object_dtype(result.dtype):
-            try:
-                result = result.astype(np.float64)
-            except (ValueError, TypeError):
-                # try to coerce to the original dtypes item by item if we can
-                pass
+        if hasattr(result, "dtype"):
+            if filter_type == "bool" and notna(result).all():
+                result = result.astype(np.bool_)
+            elif filter_type is None and is_object_dtype(result.dtype):
+                try:
+                    result = result.astype(np.float64)
+                except (ValueError, TypeError):
+                    # try to coerce to the original dtypes item by item if we can
+                    pass
 
         result = self._constructor_sliced(result, index=labels)
         return result
