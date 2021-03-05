@@ -1476,7 +1476,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
 def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
          int minp, float64_t com, bint adjust, bint ignore_na,
-         const float64_t[:] times, float64_t halflife):
+         const float64_t[:] deltas):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1501,7 +1501,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         Py_ssize_t i, j, s, e, nobs, win_size, N = len(vals), M = len(start)
         const float64_t[:] sub_vals
         ndarray[float64_t] sub_output, output = np.empty(N, dtype=float)
-        float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur, delta
+        float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
         bint is_observation
 
     if N == 0:
@@ -1532,8 +1532,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                 if weighted_avg == weighted_avg:
 
                     if is_observation or not ignore_na:
-                        delta = times[i] - times[i - 1]
-                        old_wt *= old_wt_factor ** (delta / halflife)
+                        old_wt *= old_wt_factor ** deltas[i - 1]
                         if is_observation:
 
                             # avoid numerical errors on constant series
