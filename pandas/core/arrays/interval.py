@@ -1618,7 +1618,10 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
-        return np.array([], dtype=np.int64)
+
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return np.array([], dtype=np.int64)  # type: ignore[return-value]
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
         # This will raise later, but we avoid passing to maybe_convert_platform
         return values
@@ -1630,4 +1633,5 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    return maybe_convert_platform(values)
+    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
+    return maybe_convert_platform(values)  # type: ignore[return-value]

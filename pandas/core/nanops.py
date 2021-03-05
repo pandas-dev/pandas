@@ -1343,7 +1343,9 @@ def nanprod(
     result = values.prod(axis)
     # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
     # ndarray]"; expected "ndarray"
-    return _maybe_null_out(
+    # error: Incompatible return value type (got "Union[ndarray, float]", expected
+    # "float")
+    return _maybe_null_out(  # type: ignore[return-value]
         result, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
     )
 
@@ -1466,8 +1468,7 @@ def _maybe_null_out(
             # "float", variable has type "ndarray")
             result = np.nan  # type: ignore[assignment]
 
-    # error: Incompatible return value type (got "ndarray", expected "float")
-    return result  # type: ignore[return-value]
+    return result
 
 
 def check_below_min_count(

@@ -1187,7 +1187,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             else:
                 # We are a single block from a BlockManager
                 # or one array from SingleArrayManager
-                return arrays[0]
+
+                # error: Incompatible return value type (got "Union[ndarray,
+                # ExtensionArray, ArrayLike]", expected "ExtensionArray")
+                # error: Incompatible return value type (got "Union[ndarray,
+                # ExtensionArray, ArrayLike]", expected
+                # "ndarray")
+                return arrays[0]  # type: ignore[return-value]
 
         def array_func(values: ArrayLike) -> ArrayLike:
 

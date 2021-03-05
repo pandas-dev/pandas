@@ -470,8 +470,8 @@ class ArrayManager(DataManager):
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
                 arr = arr._data  # type: ignore[union-attr]
             elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
-                # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
-                arr = arr._data  # type: ignore[union-attr]
+                # error: "ExtensionArray" has no attribute "_data"
+                arr = arr._data  # type: ignore[attr-defined]
 
             if self.ndim == 2:
                 if isinstance(arr, np.ndarray):
@@ -505,14 +505,24 @@ class ArrayManager(DataManager):
             for x in self.arrays
         ]
         assert axis == 1
-        new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
+        # error: Value of type variable "ArrayLike" of "quantile_compat" cannot be
+        # "object"
+        new_arrs = [
+            quantile_compat(x, qs, interpolation, axis=axis)  # type: ignore[type-var]
+            for x in arrs
+        ]
         for i, arr in enumerate(new_arrs):
-            if arr.ndim == 2:
-                assert arr.shape[0] == 1, arr.shape
-                new_arrs[i] = arr[0]
+            # error: "object" has no attribute "ndim"
+            if arr.ndim == 2:  # type: ignore[attr-defined]
+                # error: "object" has no attribute "shape"
+                assert arr.shape[0] == 1, arr.shape  # type: ignore[attr-defined]
+                # error: Value of type "object" is not indexable
+                new_arrs[i] = arr[0]  # type: ignore[index]
 
         axes = [qs, self._axes[1]]
-        return type(self)(new_arrs, axes)
+        # error: Argument 1 to "ArrayManager" has incompatible type "List[object]";
+        # expected "List[Union[ndarray, ExtensionArray]]"
+        return type(self)(new_arrs, axes)  # type: ignore[arg-type]
 
     def isna(self, func) -> ArrayManager:
         return self.apply("apply", func=func)
@@ -1014,7 +1024,9 @@ class ArrayManager(DataManager):
         else:
             validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                take_nd(
+                # error: Value of type variable "ArrayLike" of "take_nd" cannot be
+                # "Union[ndarray, ExtensionArray]"
+                take_nd(  # type: ignore[type-var]
                     arr,
                     indexer,
                     allow_fill=True,
@@ -1102,7 +1114,9 @@ class ArrayManager(DataManager):
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                new_arr = take_nd(
+                # error: Value of type variable "ArrayLike" of "take_nd" cannot be
+                # "Union[ndarray, ExtensionArray]"
+                new_arr = take_nd(  # type: ignore[type-var]
                     arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
                 )
                 new_arrays.append(new_arr)

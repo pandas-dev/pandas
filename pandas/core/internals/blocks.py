@@ -1027,7 +1027,9 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        exact_match = is_exact_shape_match(values, arr_value)
+        # error: Value of type variable "ArrayLike" of "is_exact_shape_match" cannot be
+        # "Union[Any, ndarray, ExtensionArray]"
+        exact_match = is_exact_shape_match(values, arr_value)  # type: ignore[type-var]
 
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
@@ -1513,7 +1515,11 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        result = quantile_compat(self.values, qs, interpolation, axis)
+        # error: Value of type variable "ArrayLike" of "quantile_compat" cannot be
+        # "Union[ndarray, ExtensionArray]"
+        result = quantile_compat(  # type: ignore[type-var]
+            self.values, qs, interpolation, axis
+        )
 
         return new_block(result, placement=self.mgr_locs, ndim=2)
 
@@ -1933,7 +1939,9 @@ class NumericBlock(Block):
         if isinstance(element, (IntegerArray, FloatingArray)):
             if element._mask.any():
                 return False
-        return can_hold_element(self.dtype, element)
+        # error: Argument 1 to "can_hold_element" has incompatible type
+        # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+        return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
 
     @property
     def _can_hold_na(self):

@@ -426,7 +426,11 @@ class BaseWindow(SelectionMixin):
             return getattr(res_values, "T", res_values)
 
         def hfunc2d(values: ArrayLike) -> ArrayLike:
-            values = self._prep_values(values)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ExtensionArray")
+            # error: Argument 1 to "_prep_values" of "BaseWindow" has incompatible type
+            # "ExtensionArray"; expected "Optional[ndarray]"
+            values = self._prep_values(values)  # type: ignore[assignment,arg-type]
             return homogeneous_func(values)
 
         if isinstance(mgr, ArrayManager) and self.axis == 1:

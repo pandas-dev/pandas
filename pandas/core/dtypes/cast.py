@@ -128,12 +128,16 @@ def maybe_convert_platform(
     else:
         # The caller is responsible for ensuring that we have np.ndarray
         #  or ExtensionArray here.
-        arr = values
+
+        # error: Incompatible types in assignment (expression has type "Union[ndarray,
+        # ExtensionArray]", variable has type "ndarray")
+        arr = values  # type: ignore[assignment]
 
     if arr.dtype == object:
         arr = lib.maybe_convert_objects(arr)
 
-    return arr
+    # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
+    return arr  # type: ignore[return-value]
 
 
 def is_nested_object(obj) -> bool:
