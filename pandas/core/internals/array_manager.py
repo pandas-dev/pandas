@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_numeric_dtype,
     is_object_dtype,
+    is_strict_ea,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -494,10 +495,7 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        arrs = [
-            x if not isinstance(x, np.ndarray) else np.atleast_2d(x)
-            for x in self.arrays
-        ]
+        arrs = [x if is_strict_ea(x) else x.reshape(1, -1) for x in self.arrays]
         assert axis == 1
         new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
         for i, arr in enumerate(new_arrs):
