@@ -126,7 +126,7 @@ def take_1d(
     indexer: np.ndarray,
     fill_value=None,
     allow_fill: bool = True,
-):
+) -> ArrayLike:
     """
     Specialized version for 1D arrays. Differences compared to take_nd:
 
