@@ -1420,7 +1420,7 @@ class SQLDatabase(PandasSQL):
                     coerce_float=coerce_float,
                     parse_dates=parse_dates,
                     dtype=dtype,
-                    nullable_integer=nullable_integer
+                    nullable_integer=nullable_integer,
                 )
 
     def read_query(
