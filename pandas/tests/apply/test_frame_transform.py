@@ -9,14 +9,8 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import transformation_kernels
+from pandas.tests.apply.common import frame_transform_kernels
 from pandas.tests.frame.common import zip_frames
-
-# tshift only works on time index and is deprecated
-# There is no DataFrame.cumcount
-frame_kernels = [
-    x for x in sorted(transformation_kernels) if x not in ["tshift", "cumcount"]
-]
 
 
 def unpack_obj(obj, klass, axis):
@@ -44,7 +38,7 @@ def test_transform_ufunc(axis, float_frame, frame_or_series):
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("op", frame_kernels)
+@pytest.mark.parametrize("op", frame_transform_kernels)
 def test_transform_groupby_kernel(axis, float_frame, op):
     # GH 35964
 
@@ -158,7 +152,7 @@ def test_transform_method_name(method):
 
 
 wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
-frame_kernels_raise = [x for x in frame_kernels if x not in wont_fail]
+frame_kernels_raise = [x for x in frame_transform_kernels if x not in wont_fail]
 
 
 # mypy doesn't allow adding lists of different types
@@ -187,21 +181,25 @@ def test_transform_bad_dtype(op, frame_or_series):
 
 @pytest.mark.parametrize("op", frame_kernels_raise)
 def test_transform_partial_failure(op):
-    # GH 35964
+    # GH 35964 & GH 40211
+    match = "Allowing for partial failure is deprecated"
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
 
     expected = df[["B"]].transform([op])
-    result = df.transform([op])
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform([op])
     tm.assert_equal(result, expected)
 
     expected = df[["B"]].transform({"B": op})
-    result = df.transform({"B": op})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform({"A": op, "B": op})
     tm.assert_equal(result, expected)
 
     expected = df[["B"]].transform({"B": [op]})
-    result = df.transform({"B": [op]})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform({"A": [op], "B": [op]})
     tm.assert_equal(result, expected)
 
 
