@@ -73,7 +73,10 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import (
+    maybe_convert_indices,
+    validate_indices,
+)
 from pandas.core.indexes.api import (
     Index,
     ensure_index,
@@ -965,8 +968,9 @@ class ArrayManager(DataManager):
                 new_arrays.append(arr)
 
         else:
+            validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                algos.take(
+                take_nd(
                     arr,
                     indexer,
                     allow_fill=True,
