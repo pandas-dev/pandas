@@ -30,6 +30,7 @@ from pandas.core.dtypes.cast import (
     astype_array_safe,
     find_common_type,
     infer_dtype_from_scalar,
+    soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -55,6 +56,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.take import take_nd
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -527,13 +529,19 @@ class ArrayManager(DataManager):
         numeric: bool = True,
         timedelta: bool = True,
     ) -> ArrayManager:
-        return self.apply_with_block(
-            "convert",
-            copy=copy,
-            datetime=datetime,
-            numeric=numeric,
-            timedelta=timedelta,
-        )
+        def _convert(arr):
+            if is_object_dtype(arr.dtype):
+                return soft_convert_objects(
+                    arr,
+                    datetime=datetime,
+                    numeric=numeric,
+                    timedelta=timedelta,
+                    copy=copy,
+                )
+            else:
+                return arr.copy() if copy else arr
+
+        return self.apply(_convert)
 
     def replace(self, value, **kwargs) -> ArrayManager:
         assert np.ndim(value) == 0, value
@@ -1013,7 +1021,7 @@ class ArrayManager(DataManager):
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                new_arr = algos.take(
+                new_arr = take_nd(
                     arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
                 )
                 new_arrays.append(new_arr)
