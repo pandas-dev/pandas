@@ -8968,8 +8968,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self._info_axis, axis=self._info_axis_number, copy=False
             )
 
-        block_axis = self._get_block_manager_axis(axis)
-
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
@@ -8985,7 +8983,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 cond=cond,
                 align=align,
                 errors=errors,
-                axis=block_axis,
+                axis=axis,
             )
             result = self._constructor(new_data)
             return result.__finalize__(self)
@@ -9296,9 +9294,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if freq is None:
             # when freq is None, data is shifted, index is not
-            block_axis = self._get_block_manager_axis(axis)
+            axis = self._get_axis_number(axis)
             new_data = self._mgr.shift(
-                periods=periods, axis=block_axis, fill_value=fill_value
+                periods=periods, axis=axis, fill_value=fill_value
             )
             return self._constructor(new_data).__finalize__(self, method="shift")
 
