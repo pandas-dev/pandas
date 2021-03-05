@@ -111,23 +111,23 @@ def test_write_append_mode(ext, mode, expected):
 
 
 @pytest.mark.parametrize(
-    "if_exists,num_sheets,expected",
+    "if_sheet_exists,num_sheets,expected",
     [
-        ("new_sheet", 2, ["apple", "banana"]),
-        ("overwrite_sheet", 1, ["pear"]),
-        ("overwrite_cells", 1, ["pear", "banana"]),
+        ("avoid", 2, ["apple", "banana"]),
+        (None, 2, ["apple", "banana"]),
+        ("replace", 1, ["pear"]),
+        ("overwrite", 1, ["pear", "banana"]),
     ],
 )
-def test_if_exists_append_modes(ext, if_exists, num_sheets, expected):
+def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected):
     # GH 40230
     df1 = DataFrame({"fruit": ["apple", "banana"]})
     df2 = DataFrame({"fruit": ["pear"]})
 
     with tm.ensure_clean(ext) as f:
-        with pd.ExcelWriter(f, engine="openpyxl", mode="w") as writer:
-            df1.to_excel(writer, sheet_name="foo", index=False)
+        df1.to_excel(f, engine="openpyxl", sheet_name="foo", index=False)
         with pd.ExcelWriter(
-            f, engine="openpyxl", mode="a", if_exists=if_exists
+            f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
         ) as writer:
             df2.to_excel(writer, sheet_name="foo", index=False)
 
@@ -144,16 +144,27 @@ def test_if_exists_append_modes(ext, if_exists, num_sheets, expected):
         wb.close()
 
 
-def test_if_exists_raises(ext):
-    if_exists_msg = "if_exists is only valid in append mode (mode='a')"
-    invalid_msg = "'invalid' is not valid for if_exists"
+def test_if_sheet_exists_raises(ext):
+    mode_msg = "if_sheet_exists is only valid in append mode (mode='a')"
+    invalid_msg = "'invalid' is not valid for if_sheet_exists"
+    fail_msg = "Sheet 'foo' already exists."
+    df = DataFrame({"fruit": ["pear"]})
 
     with tm.ensure_clean(ext) as f:
-        with pytest.raises(ValueError, match=re.escape(if_exists_msg)):
-            ExcelWriter(f, engine="openpyxl", mode="w", if_exists="new_sheet")
+        with pytest.raises(ValueError, match=re.escape(mode_msg)):
+            ExcelWriter(f, engine="openpyxl", mode="w", if_sheet_exists="new_sheet")
+
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=invalid_msg):
-            ExcelWriter(f, engine="openpyxl", mode="a", if_exists="invalid")
+            ExcelWriter(f, engine="openpyxl", mode="a", if_sheet_exists="invalid")
+
+    with tm.ensure_clean(ext) as f:
+        with pytest.raises(ValueError, match=fail_msg):
+            df.to_excel(f, "foo", engine="openpyxl")
+            with pd.ExcelWriter(
+                f, engine="openpyxl", mode="a", if_sheet_exists="fail"
+            ) as writer:
+                df.to_excel(writer, sheet_name="foo")
 
 
 def test_to_excel_with_openpyxl_engine(ext):

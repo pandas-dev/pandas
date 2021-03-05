@@ -666,14 +666,15 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
-    if_exists : {'new_sheet', 'overwrite_sheet', 'overwrite_cells'}, default 'new_sheet'
-            How to behave when trying to write to a sheet that already
-            exists (append mode only).
+    if_sheet_exists : {'avoid', 'replace', 'overwrite', 'fail'}, default 'avoid'
+        How to behave when trying to write to a sheet that already
+        exists (append mode only).
 
-            * new_sheet: Create a new sheet with a different name.
-            * overwrite_sheet: Delete the contents of the sheet, then write to it.
-            * overwrite_cells: Write directly to the named sheet
-              without deleting the previous contents.
+        * avoid: Create a new sheet with a different name.
+        * replace: Delete the contents of the sheet before writing to it.
+        * overwrite: Write directly to the named sheet
+          without deleting the previous contents.
+        * fail: raise a ValueError.
 
         .. versionadded:: 1.3.0
 
@@ -844,7 +845,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        if_exists: Optional[str] = None,
+        if_sheet_exists: Optional[str] = None,
         **engine_kwargs,
     ):
         # validate that this engine can handle the extension
@@ -879,17 +880,18 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
-        if if_exists and "r+" not in mode:
-            raise ValueError("if_exists is only valid in append mode (mode='a')")
-        if if_exists is not None and if_exists not in {
-            "new_sheet",
-            "overwrite_sheet",
-            "overwrite_cells",
+        if if_sheet_exists and "r+" not in mode:
+            raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
+        if if_sheet_exists is not None and if_sheet_exists not in {
+            "avoid",
+            "replace",
+            "overwrite",
+            "fail",
         }:
-            raise ValueError(f"'{if_exists}' is not valid for if_exists")
-        if if_exists is None and "r+" in mode:
-            if_exists = "new_sheet"
-        self.if_exists = if_exists
+            raise ValueError(f"'{if_sheet_exists}' is not valid for if_sheet_exists")
+        if if_sheet_exists is None and "r+" in mode:
+            if_sheet_exists = "avoid"
+        self.if_sheet_exists = if_sheet_exists
 
     def __fspath__(self):
         return getattr(self.handles.handle, "name", "")

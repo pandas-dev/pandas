@@ -37,7 +37,7 @@ class OpenpyxlWriter(ExcelWriter):
         engine=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        if_exists: Optional[str] = None,
+        if_sheet_exists: Optional[str] = None,
         **engine_kwargs,
     ):
         # Use the openpyxl module as the Excel writer.
@@ -47,7 +47,7 @@ class OpenpyxlWriter(ExcelWriter):
             path,
             mode=mode,
             storage_options=storage_options,
-            if_exists=if_exists,
+            if_sheet_exists=if_sheet_exists,
             **engine_kwargs,
         )
 
@@ -420,18 +420,22 @@ class OpenpyxlWriter(ExcelWriter):
 
         if sheet_name in self.sheets:
             if "r+" in self.mode:
-                if self.if_exists == "new_sheet":
+                if self.if_sheet_exists == "avoid":
                     wks = self.book.create_sheet()
                     # openpyxl will create a name for the new sheet by appending digits
                     wks.title = sheet_name
                     self.sheets[wks.title] = wks
-                elif self.if_exists == "overwrite_sheet":
+                elif self.if_sheet_exists == "replace":
                     wks = self.sheets[sheet_name]
                     wks.delete_cols(1, wks.max_column)
-                elif self.if_exists == "overwrite_cells" or self.if_exists is None:
+                elif self.if_sheet_exists == "overwrite":
                     wks = self.sheets[sheet_name]
+                elif self.if_sheet_exists == "fail":
+                    raise ValueError(f"Sheet '{sheet_name}' already exists.")
                 else:
-                    raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
+                    raise ValueError(
+                        f"'{self.if_sheet_exists}' is not valid for if_sheet_exists"
+                    )
             else:
                 wks = self.sheets[sheet_name]
         else:
