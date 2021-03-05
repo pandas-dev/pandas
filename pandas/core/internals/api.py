@@ -10,9 +10,13 @@ from typing import Optional
 
 import numpy as np
 
+from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_extension_array_dtype,
+)
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import ABCPandasArray
 
@@ -20,6 +24,7 @@ from pandas.core.arrays import DatetimeArray
 from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
+    ensure_block_shape,
     get_block_type,
 )
 
@@ -57,5 +62,17 @@ def make_block(
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)
+
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
+
+    if is_extension_array_dtype(values.dtype):
+        if ndim is None:
+            if len(placement) != 1:
+                ndim = 1
+            else:
+                ndim = 2
+
+        values = ensure_block_shape(values, ndim)
 
     return klass(values, ndim=ndim, placement=placement)

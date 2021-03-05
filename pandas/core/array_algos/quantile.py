@@ -37,7 +37,8 @@ def quantile_compat(values: ArrayLike, qs, interpolation: str, axis: int) -> Arr
     -------
     np.ndarray or ExtensionArray
     """
-    if isinstance(values, np.ndarray):
+    if isinstance(values.dtype, np.dtype):
+        # i.e. np.ndarray, DatetimeArray, TimedeltaArray
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
@@ -154,6 +155,10 @@ def quantile_ea_compat(
         if result.ndim == 1:
             # i.e. qs was originally a scalar
             assert result.shape == (1,), result.shape
+            result = type(orig)._from_factorized(result, orig)
+
+        elif orig.ndim == 2:
+            # i.e. DatetimeArray
             result = type(orig)._from_factorized(result, orig)
 
         else:
