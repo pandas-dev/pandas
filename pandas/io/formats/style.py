@@ -1820,61 +1820,10 @@ class Styler:
 
         .. figure:: ../../_static/style/hr_props.png
         """
-
-        def f(
-            data: DataFrame,
-            props: str,
-            left: Optional[Union[Scalar, Sequence]] = None,
-            right: Optional[Union[Scalar, Sequence]] = None,
-            inclusive: Union[bool, str] = True,
-        ) -> np.ndarray:
-            def reshape(x, arg):
-                """if x is sequence check it fits axis, otherwise raise"""
-                if np.iterable(x) and not isinstance(x, str):
-                    try:
-                        return np.asarray(x).reshape(data.shape)
-                    except ValueError:
-                        raise ValueError(
-                            f"supplied '{arg}' is not correct shape for "
-                            "data over selected 'axis': got "
-                            f"{np.asarray(x).shape}, expected "
-                            f"{data.shape}"
-                        )
-                return x
-
-            left, right = reshape(left, "left"), reshape(right, "right")
-
-            # get ops with correct boundary attribution
-            if inclusive == "both" or inclusive is True:
-                ops = ("__ge__", "__le__")
-            elif inclusive == "neither" or inclusive is False:
-                ops = ("__gt__", "__lt__")
-            elif inclusive == "left":
-                ops = ("__ge__", "__lt__")
-            elif inclusive == "right":
-                ops = ("__gt__", "__le__")
-            else:
-                raise ValueError(
-                    f"'inclusive' values can be 'both', 'left', 'right', 'neither' "
-                    f"or bool, got {inclusive}"
-                )
-
-            g_left = (
-                getattr(data, ops[0])(left)
-                if left is not None
-                else np.full_like(data, True, dtype=bool)
-            )
-            l_right = (
-                getattr(data, ops[1])(right)
-                if right is not None
-                else np.full_like(data, True, dtype=bool)
-            )
-            return np.where(g_left & l_right, props, "")
-
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            f,
+            _highlight_between,
             axis=axis,
             subset=subset,
             props=props,
@@ -1887,9 +1836,11 @@ class Styler:
         self,
         subset: Optional[IndexLabel] = None,
         color: str = "yellow",
-        q_low: float = 0.0,
-        q_high: float = 1.0,
         axis: Optional[Axis] = 0,
+        q_left: float = 0.0,
+        q_right: float = 1.0,
+        interpolation: str = "linear",
+        inclusive: Union[str, bool] = True,
         props: Optional[str] = None,
     ) -> Styler:
         """
@@ -1950,32 +1901,27 @@ class Styler:
 
         .. figure:: ../../_static/style/hq_props.png
         """
+        subset_ = slice(None) if subset is None else subset
+        subset_ = _non_reducing_slice(subset_)
+        data = self.data.loc[subset_]
 
-        def f(
-            data: FrameOrSeries,
-            props: str,
-            q_low: float = 0,
-            q_high: float = 1,
-            axis_: Optional[Axis] = 0,
-        ):
-            if axis_ is None:
-                labels = pd.qcut(
-                    data.to_numpy().ravel(), q=[q_low, q_high], labels=False
-                ).reshape(data.to_numpy().shape)
-            else:
-                labels = pd.qcut(data, q=[q_low, q_high], labels=False)
-            return np.where(labels == 0, props, "")
+        q = np.quantile(
+            data.to_numpy(), [q_left, q_right], axis=axis, interpolation=interpolation
+        )
+        # after quantile is found along axis, reverse axis for highlight application
+        if axis in [0, 1]:
+            axis = 1 - axis
 
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            f,
+            _highlight_between,
             axis=axis,
             subset=subset,
             props=props,
-            q_low=q_low,
-            q_high=q_high,
-            axis_=axis,
+            left=q[0],
+            right=q[1],
+            inclusive=inclusive,
         )
 
     @classmethod
@@ -2398,3 +2344,69 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
+
+
+def _highlight_between(
+    data: FrameOrSeries,
+    props: str,
+    left: Optional[Union[Scalar, Sequence]] = None,
+    right: Optional[Union[Scalar, Sequence]] = None,
+    inclusive: Union[bool, str] = True,
+) -> np.ndarray:
+    """
+    Return an array of CSS strings based on inside a range conditional
+
+    Parameters
+    ----------
+    data : DataFrame or Series
+        input data
+    props : str
+        css formatting string when conditional is True
+    left / right : scalar or sequence
+        boundary values
+    inclusive : string {'both', 'neither', 'left', 'right'} or bool
+        boundary activity
+    """
+
+    def reshape(x, arg):
+        """if x is sequence check it fits axis, otherwise raise"""
+        if np.iterable(x) and not isinstance(x, str):
+            try:
+                return np.asarray(x).reshape(data.shape)
+            except ValueError:
+                raise ValueError(
+                    f"supplied '{arg}' is not correct shape for "
+                    "data over selected 'axis': got "
+                    f"{np.asarray(x).shape}, expected "
+                    f"{data.shape}"
+                )
+        return x
+
+    left, right = reshape(left, "left"), reshape(right, "right")
+
+    # get ops with correct boundary attribution
+    if inclusive == "both" or inclusive is True:
+        ops = ("__ge__", "__le__")
+    elif inclusive == "neither" or inclusive is False:
+        ops = ("__gt__", "__lt__")
+    elif inclusive == "left":
+        ops = ("__ge__", "__lt__")
+    elif inclusive == "right":
+        ops = ("__gt__", "__le__")
+    else:
+        raise ValueError(
+            f"'inclusive' values can be 'both', 'left', 'right', 'neither' "
+            f"or bool, got {inclusive}"
+        )
+
+    g_left = (
+        getattr(data, ops[0])(left)
+        if left is not None
+        else np.full_like(data, True, dtype=bool)
+    )
+    l_right = (
+        getattr(data, ops[1])(right)
+        if right is not None
+        else np.full_like(data, True, dtype=bool)
+    )
+    return np.where(g_left & l_right, props, "")

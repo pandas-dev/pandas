@@ -4,6 +4,8 @@ import pytest
 from pandas import (
     DataFrame,
     IndexSlice,
+    Timedelta,
+    Timestamp,
 )
 
 pytest.importorskip("jinja2")
@@ -149,12 +151,12 @@ class TestStylerHighlight:
     @pytest.mark.parametrize(
         "kwargs",
         [
-            {"q_low": 0.5, "q_high": 1, "axis": 1},  # test basic range
-            {"q_low": 0.5, "q_high": 1, "axis": None},  # test axis
-            {"q_low": 0, "q_high": 1, "subset": ["A"]},  # test subset
-            {"q_low": 0.5, "axis": 1},  # test no high
-            {"q_high": 1, "subset": ["A"], "axis": 0},  # test no low
-            {"q_low": 0.5, "axis": 1, "props": "background-color: yellow"},  # tst props
+            {"q_left": 0.5, "q_right": 1, "axis": 1},  # base case
+            {"q_left": 0.5, "q_right": 1, "axis": None},  # test axis
+            {"q_left": 0, "q_right": 1, "subset": ["A"]},  # test subset
+            {"q_left": 0.5, "axis": 1},  # test no high
+            {"q_right": 1, "subset": ["A"], "axis": 0},  # test no low
+            {"q_left": 0.5, "axis": 1, "props": "background-color: yellow"},  # tst prop
         ],
     )
     def test_highlight_quantile(self, kwargs):
@@ -173,7 +175,7 @@ class TestStylerHighlight:
         [
             ("highlight_min", {"axis": 1, "subset": IndexSlice[1, :]}),
             ("highlight_max", {"axis": 0, "subset": [0]}),
-            ("highlight_quantile", {"axis": None, "q_low": 0.6, "q_high": 0.8}),
+            ("highlight_quantile", {"axis": None, "q_left": 0.6, "q_right": 0.8}),
             ("highlight_between", {"subset": [0]}),
         ],
     )
@@ -188,8 +190,10 @@ class TestStylerHighlight:
         ],
     )
     def test_all_highlight_dtypes(self, f, kwargs, df):
-        if f == "highlight_quantile" and isinstance(df.iloc[0, 0], str):
-            return None  # quantile incompatible with str
+        if f == "highlight_quantile" and isinstance(
+            df.iloc[0, 0], (str, Timestamp, Timedelta)
+        ):
+            return None  # quantile incompatible with str, datetime64, timedelta64
         elif f == "highlight_between":
             kwargs["left"] = df.iloc[1, 0]  # set the range low for testing
 
