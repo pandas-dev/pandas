@@ -212,6 +212,7 @@ ALLANY_DEFAULTS: Dict[str, Optional[bool]] = {}
 ALLANY_DEFAULTS["dtype"] = None
 ALLANY_DEFAULTS["out"] = None
 ALLANY_DEFAULTS["keepdims"] = False
+ALLANY_DEFAULTS["axis"] = None
 validate_all = CompatValidator(
     ALLANY_DEFAULTS, fname="all", method="both", max_fname_arg_count=1
 )
