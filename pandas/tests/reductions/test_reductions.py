@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -293,7 +291,6 @@ class TestIndexReductions:
         with pytest.raises(ValueError, match=errmsg):
             np.argmax(td, out=0)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
     def test_timedelta_ops(self):
         # GH#4984
         # make sure ops return Timedelta
@@ -897,6 +894,15 @@ class TestSeriesReductions:
         # Alternative types, with implicit 'object' dtype.
         s = Series(["abc", True])
         assert "abc" == s.any()  # 'abc' || True => 'abc'
+
+    @pytest.mark.parametrize("klass", [Index, Series])
+    def test_numpy_all_any(self, klass):
+        # GH#40180
+        idx = klass([0, 1, 2])
+        assert not np.all(idx)
+        assert np.any(idx)
+        idx = Index([1, 2, 3])
+        assert np.all(idx)
 
     def test_all_any_params(self):
         # Check skipna, with implicit 'object' dtype.
