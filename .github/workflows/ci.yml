@@ -165,6 +165,9 @@ jobs:
         pytest pandas/tests/resample/
         pytest pandas/tests/reshape/merge
 
+        pytest pandas/tests/series/methods
+        pytest pandas/tests/series/test_*
+
         # indexing subset (temporary since other tests don't pass yet)
         pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean
         pytest pandas/tests/frame/indexing/test_where.py
