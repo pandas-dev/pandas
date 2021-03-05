@@ -412,12 +412,7 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, new_axes)
 
-    def apply_2d(
-        self: T,
-        f,
-        ignore_failures: bool = False,
-        **kwargs,
-    ) -> T:
+    def apply_2d(self: T, f, ignore_failures: bool = False, **kwargs) -> T:
         """
         Variant of `apply`, but where the function should not be applied to
         each column independently, but to the full data as a 2D array.
@@ -436,7 +431,10 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, new_axes)
 
-    def apply_with_block(self: T, f, align_keys=None, **kwargs) -> T:
+    def apply_with_block(self: T, f, align_keys=None, swap_axis=True, **kwargs) -> T:
+        # switch axis to follow BlockManager logic
+        if swap_axis and "axis" in kwargs and self.ndim == 2:
+            kwargs["axis"] = 1 if kwargs["axis"] == 0 else 0
 
         align_keys = align_keys or []
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -548,7 +546,6 @@ class ArrayManager(DataManager):
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
-        axis = self._normalize_axis(axis)
         if axis == 1:
             # DataFrame only calls this for n=0, in which case performing it
             # with axis=0 is equivalent
@@ -557,13 +554,13 @@ class ArrayManager(DataManager):
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> ArrayManager:
-        return self.apply_with_block("interpolate", **kwargs)
+        return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
 
     def shift(self, periods: int, axis: int, fill_value) -> ArrayManager:
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 0 and self.ndim == 2:
+        if axis == 1 and self.ndim == 2:
             # TODO column-wise shift
             raise NotImplementedError
 
