@@ -489,17 +489,19 @@ class Block(PandasObject):
             # we can't process the value, but nothing to do
             return [self] if inplace else [self.copy()]
 
-        # operate column-by-column
-        def f(mask, val, idx):
-            block = self.coerce_to_target_dtype(value)
+        elif self.ndim == 1 or self.shape[0] == 1:
+            blk = self.coerce_to_target_dtype(value)
+            # bc we have already cast, inplace=True may avoid an extra copy
+            return blk.fillna(value, limit=limit, inplace=True, downcast=None)
 
-            # slice out our block
-            if idx is not None:
-                # i.e. self.ndim == 2
-                block = block.getitem_block(slice(idx, idx + 1))
-            return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
-
-        return self.split_and_operate(None, f, inplace)
+        else:
+            # operate column-by-column
+            res_blocks = []
+            nbs = self._split()
+            for nb in nbs:
+                rbs = nb.fillna(value, limit=limit, inplace=inplace, downcast=None)
+                res_blocks.extend(rbs)
+            return res_blocks
 
     @final
     def _split(self) -> List[Block]:
