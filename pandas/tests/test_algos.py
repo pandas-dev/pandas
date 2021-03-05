@@ -9,6 +9,7 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
+from pandas._libs_numba import algos as libalgos_numba
 from pandas.compat import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -2112,14 +2113,14 @@ def test_is_lexsorted():
         ),
     ]
 
-    assert not libalgos.is_lexsorted(failure)
+    assert not libalgos_numba.is_lexsorted(failure)
 
 
 def test_groupsort_indexer():
     a = np.random.randint(0, 1000, 100).astype(np.int64)
     b = np.random.randint(0, 1000, 100).astype(np.int64)
 
-    result = libalgos.groupsort_indexer(a, 1000)[0]
+    result = libalgos_numba.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
     # np.argsort returns int, groupsort_indexer
@@ -2133,7 +2134,7 @@ def test_groupsort_indexer():
     # np.lexsort returns int, groupsort_indexer
     # always returns int64
     key = a * 1000 + b
-    result = libalgos.groupsort_indexer(key, 1000000)[0]
+    result = libalgos_numba.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
     expected = expected.astype(np.int64)
 

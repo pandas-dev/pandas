@@ -169,57 +169,50 @@ def _is_lexsorted(vecs: np.ndarray) -> bool:
     return result
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
-#     """
-#     Compute a 1-d indexer.
+@numba.njit
+def groupsort_indexer(index: np.ndarray, ngroups: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute a 1-d indexer.
 
-#     The indexer is an ordering of the passed index,
-#     ordered by the groups.
+    The indexer is an ordering of the passed index,
+    ordered by the groups.
 
-#     Parameters
-#     ----------
-#     index: int64 ndarray
-#         Mappings from group -> position.
-#     ngroups: int64
-#         Number of groups.
+    Parameters
+    ----------
+    index: ndarray
+        Mappings from group -> position.
+    ngroups: int
+        Number of groups.
 
-#     Returns
-#     -------
-#     tuple
-#         1-d indexer ordered by groups, group counts.
+    Returns
+    -------
+    tuple
+        1-d indexer ordered by groups, group counts.
 
-#     Notes
-#     -----
-#     This is a reverse of the label factorization process.
-#     """
-#     cdef:
-#         Py_ssize_t i, loc, label, n
-#         ndarray[int64_t] counts, where, result
+    Notes
+    -----
+    This is a reverse of the label factorization process.
+    """
+    counts = np.zeros(ngroups + 1, dtype=np.int64)
+    n = len(index)
+    result = np.zeros(n, dtype=np.int64)
+    where = np.zeros(ngroups + 1, dtype=np.int64)
 
-#     counts = np.zeros(ngroups + 1, dtype=np.int64)
-#     n = len(index)
-#     result = np.zeros(n, dtype=np.int64)
-#     where = np.zeros(ngroups + 1, dtype=np.int64)
+    # count group sizes, location 0 for NA
+    for i in range(n):
+        counts[index[i] + 1] += 1
 
-#     with nogil:
+    # mark the start of each contiguous group of like-indexed data
+    for i in range(1, ngroups + 1):
+        where[i] = where[i - 1] + counts[i - 1]
 
-#         # count group sizes, location 0 for NA
-#         for i in range(n):
-#             counts[index[i] + 1] += 1
+    # this is our indexer
+    for i in range(n):
+        label = index[i] + 1
+        result[where[label]] = i
+        where[label] += 1
 
-#         # mark the start of each contiguous group of like-indexed data
-#         for i in range(1, ngroups + 1):
-#             where[i] = where[i - 1] + counts[i - 1]
-
-#         # this is our indexer
-#         for i in range(n):
-#             label = index[i] + 1
-#             result[where[label]] = i
-#             where[label] += 1
-
-#     return result, counts
+    return result, counts
 
 
 @numba.njit

@@ -28,6 +28,7 @@ from pandas._libs import (
     hashtable as htable,
 )
 from pandas._libs.lib import no_default
+from pandas._libs_numba import algos as libalgos_numba
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -2014,7 +2015,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         """
         categories = self.categories
-        r, counts = libalgos.groupsort_indexer(
+        r, counts = libalgos_numba.groupsort_indexer(
             self.codes.astype("int64"), categories.size
         )
         counts = counts.cumsum()
