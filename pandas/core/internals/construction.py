@@ -75,7 +75,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (
     ensure_block_shape,
-    make_block,
+    new_block,
 )
 from pandas.core.internals.managers import (
     BlockManager,
@@ -300,7 +300,7 @@ def ndarray_to_mgr(
             # TODO: What about re-joining object columns?
             dvals_list = [maybe_squeeze_dt64tz(x) for x in dvals_list]
             block_values = [
-                make_block(dvals_list[n], placement=[n], ndim=2)
+                new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
             ]
 
@@ -424,7 +424,15 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
             return arr[..., np.newaxis]
 
         def convert(v):
-            return maybe_convert_platform(v)
+            if not is_list_like(v) or isinstance(v, ABCDataFrame):
+                return v
+            elif not hasattr(v, "dtype") and not isinstance(v, (list, tuple, range)):
+                # TODO: should we cast these to list?
+                return v
+
+            v = extract_array(v, extract_numpy=True)
+            res = maybe_convert_platform(v)
+            return res
 
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion

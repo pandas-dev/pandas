@@ -190,7 +190,7 @@ def add_imports(doctest_namespace):
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis {repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -1581,6 +1581,14 @@ def indexer_si(request):
 def indexer_sl(request):
     """
     Parametrize over __setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.at, tm.loc])
+def indexer_al(request):
+    """
+    Parametrize over at.__setitem__, loc.__setitem__
     """
     return request.param
 

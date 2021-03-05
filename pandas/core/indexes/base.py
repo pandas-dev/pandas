@@ -5964,9 +5964,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         *args
-            These parameters will be passed to numpy.any.
+            Required for compatibility with numpy.
         **kwargs
-            These parameters will be passed to numpy.any.
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -5993,20 +5993,20 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index.any()
         False
         """
-        # FIXME: docstr inaccurate, args/kwargs not passed
+        nv.validate_any(args, kwargs)
         self._maybe_disable_logical_methods("any")
         return np.any(self.values)
 
-    def all(self):
+    def all(self, *args, **kwargs):
         """
         Return whether all elements are Truthy.
 
         Parameters
         ----------
         *args
-            These parameters will be passed to numpy.all.
+            Required for compatibility with numpy.
         **kwargs
-            These parameters will be passed to numpy.all.
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -6050,8 +6050,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([0, 0, 0]).any()
         False
         """
-        # FIXME: docstr inaccurate, args/kwargs not passed
-
+        nv.validate_all(args, kwargs)
         self._maybe_disable_logical_methods("all")
         return np.all(self.values)
 
