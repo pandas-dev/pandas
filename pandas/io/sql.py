@@ -158,7 +158,12 @@ def _wrap_result(
     nullable_integer=False,
 ):
     """Wrap result set of query in a DataFrame."""
-    frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float, nullable_integer=nullable_integer)
+    frame = DataFrame.from_records(
+        data, 
+        columns=columns, 
+        coerce_float=coerce_float, 
+        nullable_integer=nullable_integer,
+    )
 
     if dtype:
         frame = frame.astype(dtype)
@@ -967,7 +972,10 @@ class SQLTable(PandasObject):
             else:
                 has_read_data = True
                 self.frame = DataFrame.from_records(
-                    data, columns=columns, coerce_float=coerce_float, nullable_integer=nullable_integer
+                    data, 
+                    columns=columns, 
+                    coerce_float=coerce_float, 
+                    nullable_integer=nullable_integer,
                 )
 
                 self._harmonize_columns(parse_dates=parse_dates)

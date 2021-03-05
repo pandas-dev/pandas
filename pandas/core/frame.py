@@ -1950,7 +1950,9 @@ class DataFrame(NDFrame, OpsMixin):
             arrays, columns = to_arrays(data, columns)
             arr_columns = columns
         else:
-            arrays, arr_columns = to_arrays(data, columns, nullable_integer=nullable_integer)
+            arrays, arr_columns = to_arrays(
+                data, columns, nullable_integer=nullable_integer
+            )
             if coerce_float:
                 for i, arr in enumerate(arrays):
                     if arr.dtype == object:

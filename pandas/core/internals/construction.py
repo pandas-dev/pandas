@@ -629,7 +629,10 @@ def dataclasses_to_dicts(data):
 
 
 def to_arrays(
-    data, columns: Optional[Index], dtype: Optional[DtypeObj] = None, nullable_integer=False
+    data, 
+    columns: Optional[Index], 
+    dtype: Optional[DtypeObj] = None, 
+    nullable_integer=False,
 ) -> Tuple[List[ArrayLike], Index]:
     """
     Return list of arrays, columns.
@@ -678,7 +681,9 @@ def to_arrays(
         data = [tuple(x) for x in data]
         content = _list_to_arrays(data)
 
-    content, columns = _finalize_columns_and_data(content, columns, dtype, nullable_integer=nullable_integer)
+    content, columns = _finalize_columns_and_data(
+        content, columns, dtype, nullable_integer=nullable_integer
+    )
     return content, columns
 
 
@@ -780,7 +785,9 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if len(content) and content[0].dtype == np.object_:
-        content = _convert_object_array(content, dtype=dtype, nullable_integer=nullable_integer)
+        content = _convert_object_array(
+            content, dtype=dtype, nullable_integer=nullable_integer
+        )
     return content, columns
 
 
@@ -860,7 +867,9 @@ def _convert_object_array(
     # provide soft conversion of object dtypes
     def convert(arr):
         if dtype != np.dtype("O"):
-            arr = lib.maybe_convert_objects(arr, convert_to_nullable_integer=nullable_integer)
+            arr = lib.maybe_convert_objects(
+                arr, convert_to_nullable_integer=nullable_integer
+            )
             arr = maybe_cast_to_datetime(arr, dtype)
         return arr
 
