@@ -138,6 +138,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import (
     ArrayManager,
     BlockManager,
+    SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
@@ -5563,7 +5564,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
-        if isinstance(self._mgr, ArrayManager):
+        if isinstance(self._mgr, (ArrayManager, SingleArrayManager)):
             return f()
         blocks_before = len(self._mgr.blocks)
         result = f()

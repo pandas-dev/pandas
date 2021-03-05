@@ -5,6 +5,7 @@ from pandas._libs import (
     lib,
     reduction as libreduction,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Series
@@ -61,7 +62,13 @@ def cumsum_max(x):
     return 0
 
 
-@pytest.mark.parametrize("func", [cumsum_max, assert_block_lengths])
+@pytest.mark.parametrize(
+    "func",
+    [
+        cumsum_max,
+        pytest.param(assert_block_lengths, marks=td.skip_array_manager_invalid_test),
+    ],
+)
 def test_mgr_locs_updated(func):
     # https://github.com/pandas-dev/pandas/issues/31802
     # Some operations may require creating new blocks, which requires
