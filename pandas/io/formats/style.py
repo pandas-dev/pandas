@@ -1768,7 +1768,6 @@ class Styler:
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
 
         Notes
         -----
