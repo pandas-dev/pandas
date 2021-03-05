@@ -660,9 +660,9 @@ def interpolate_2d(
     method = clean_fill_method(method)
     tvalues = transf(values)
     if method == "pad":
-        result = _pad_2d(tvalues, limit=limit)
+        result, _ = _pad_2d(tvalues, limit=limit)
     else:
-        result = _backfill_2d(tvalues, limit=limit)
+        result, _ = _backfill_2d(tvalues, limit=limit)
 
     result = transf(result)
     # reshape back
@@ -698,8 +698,8 @@ def _datetimelike_compat(func: F) -> F:
                 # This needs to occur before casting to int64
                 mask = isna(values)
 
-            result = func(values.view("i8"), limit=limit, mask=mask)
-            return result.view(values.dtype)
+            result, mask = func(values.view("i8"), limit=limit, mask=mask)
+            return result.view(values.dtype), mask
 
         return func(values, limit=limit, mask=mask)
 
@@ -707,17 +707,25 @@ def _datetimelike_compat(func: F) -> F:
 
 
 @_datetimelike_compat
-def _pad_1d(values, limit=None, mask=None):
+def _pad_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
-def _backfill_1d(values, limit=None, mask=None):
+def _backfill_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
@@ -729,7 +737,7 @@ def _pad_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
@@ -741,7 +749,7 @@ def _backfill_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}

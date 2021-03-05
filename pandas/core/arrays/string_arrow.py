@@ -400,7 +400,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values = func(self.to_numpy(object), limit=limit, mask=mask)
+                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value
