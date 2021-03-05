@@ -578,9 +578,7 @@ class Styler:
         Parameters
         ----------
         formatter : str, callable, dict or None
-            Format specification to use for displaying values. If ``None``, the default
-            formatter is used. If ``dict``, keys should correspond to column names,
-            and values should be string or callable.
+            Object to define how values are displayed. See notes.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
@@ -602,19 +600,25 @@ class Styler:
 
         Notes
         -----
-        This method assigns a formatting function to each cell in the DataFrame. Where
-        arguments are given as string this is wrapped to a callable as ``str.format(x)``
-
-        The ``subset`` argument defines which region to apply the formatting function
-        to. If the ``formatter`` argument is given in dict form but does not include
-        all columns within the subset then these columns will have the default formatter
-        applied. Any columns in the ``formatter`` dict excluded from the ``subset`` will
-        raise a ``KeyError``.
+        This method assigns a formatting function, ``formatter``, to each cell in the
+        DataFrame. If ``formatter`` is ``None``, then the default formatter is used.
+        If a callable then that function should take a data value as input and return
+        a displayable representation, such as a string. If ``formatter`` is
+        given as a string this is assumed to be a valid Python format specification
+        and is wrapped to a callable as ``string.format(x)``. If a ``dict`` is given,
+        keys should correspond to column names, and values should be string or
+        callable, as above.
 
         The default formatter currently expresses floats and complex numbers with the
         pandas display precision unless using the ``precision`` argument here. The
         default formatter does not adjust the representation of missing values unless
         the ``na_rep`` argument is used.
+
+        The ``subset`` argument defines which region to apply the formatting function
+        to. If the ``formatter`` argument is given in dict form but does not include
+        all columns within the subset then these columns will have the default formatter
+        applied. Any columns in the formatter dict excluded from the subset will
+        raise a ``KeyError``.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
