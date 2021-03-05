@@ -61,7 +61,10 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
-from pandas.core.internals.base import DataManager
+from pandas.core.internals.base import (
+    DataManager,
+    SingleDataManager,
+)
 from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
@@ -1525,7 +1528,7 @@ class BlockManager(DataManager):
         return bm
 
 
-class SingleBlockManager(BlockManager):
+class SingleBlockManager(BlockManager, SingleDataManager):
     """ manage a single block with """
 
     ndim = 1
@@ -1617,6 +1620,10 @@ class SingleBlockManager(BlockManager):
         """The array that Series._values returns"""
         return self._block.internal_values()
 
+    def array_values(self):
+        """The array that Series.array returns"""
+        return self._block.array_values()
+
     @property
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
@@ -1654,6 +1661,7 @@ class SingleBlockManager(BlockManager):
         valid for the current Block/SingleBlockManager (length, dtype, etc).
         """
         self.blocks[0].values = values
+        self.blocks[0]._mgr_locs = libinternals.BlockPlacement(slice(len(values)))
 
 
 # --------------------------------------------------------------------

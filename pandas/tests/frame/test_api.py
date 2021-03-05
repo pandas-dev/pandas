@@ -296,6 +296,7 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem (no copy)
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(self, allows_duplicate_labels, frame_or_series):
         obj = DataFrame({"A": [1, 2]})

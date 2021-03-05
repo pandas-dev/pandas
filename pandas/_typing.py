@@ -58,6 +58,8 @@ if TYPE_CHECKING:
     from pandas.core.internals import (
         ArrayManager,
         BlockManager,
+        SingleArrayManager,
+        SingleBlockManager,
     )
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
@@ -184,3 +186,4 @@ ColspaceArgType = Union[
 
 # internals
 Manager = Union["ArrayManager", "BlockManager"]
+SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
