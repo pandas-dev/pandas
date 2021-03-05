@@ -2820,12 +2820,31 @@ class DataFrame(NDFrame, OpsMixin):
         </doc:data>
         """
 
-        formatter = fmt.DataFrameFormatter(
-            self,
-            index=index,
+        from pandas.io.formats.xml import (
+            EtreeXMLFormatter,
+            LxmlXMLFormatter,
         )
 
-        return fmt.DataFrameRenderer(formatter).to_xml(
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
+        TreeBuilder: Union[Type[EtreeXMLFormatter], Type[LxmlXMLFormatter]]
+
+        if parser == "lxml":
+            if lxml is not None:
+                TreeBuilder = LxmlXMLFormatter
+            else:
+                raise ImportError(
+                    "lxml not found, please install or use the etree parser."
+                )
+
+        elif parser == "etree":
+            TreeBuilder = EtreeXMLFormatter
+
+        else:
+            raise ValueError("Values for parser can only be lxml or etree.")
+
+        xml_formatter = TreeBuilder(
+            self,
             path_or_buffer=path_or_buffer,
             index=index,
             root_name=root_name,
@@ -2838,11 +2857,12 @@ class DataFrame(NDFrame, OpsMixin):
             encoding=encoding,
             xml_declaration=xml_declaration,
             pretty_print=pretty_print,
-            parser=parser,
             stylesheet=stylesheet,
             compression=compression,
             storage_options=storage_options,
         )
+
+        return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
     @Substitution(
@@ -7823,12 +7843,11 @@ NaN 12.3   33.0
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
-        bm_axis = self._get_block_manager_axis(axis)
-
-        if bm_axis == 0 and periods != 0:
+        axis = self._get_axis_number(axis)
+        if axis == 1 and periods != 0:
             return self - self.shift(periods, axis=axis)
 
-        new_data = self._mgr.diff(n=periods, axis=bm_axis)
+        new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
