@@ -154,9 +154,10 @@ jobs:
         PANDAS_DATA_MANAGER: array
       run: |
         source activate pandas-dev
+
         pytest pandas/tests/frame/methods
         pytest pandas/tests/frame/test_constructors.py
-        pytest pandas/tests/frame/constructors/
+        pytest pandas/tests/frame/test_*
         pytest pandas/tests/frame/test_reductions.py
         pytest pandas/tests/reductions/
         pytest pandas/tests/generic/test_generic.py
@@ -164,6 +165,9 @@ jobs:
         pytest pandas/tests/groupby/
         pytest pandas/tests/resample/
         pytest pandas/tests/reshape/merge
+
+        pytest pandas/tests/series/methods
+        pytest pandas/tests/series/test_*
 
         # indexing subset (temporary since other tests don't pass yet)
         pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean
