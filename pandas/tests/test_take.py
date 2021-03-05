@@ -417,6 +417,18 @@ class TestTake:
         with pytest.raises(IndexError, match="indices are out-of-bounds"):
             algos.take(arr, [0, 3], axis=1, allow_fill=True, fill_value=0)
 
+    def test_take_non_hashable_fill_value(self):
+        arr = np.array([1, 2, 3])
+        indexer = np.array([1, -1])
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            algos.take(arr, indexer, allow_fill=True, fill_value=[1])
+
+        # with object dtype it is allowed
+        arr = np.array([1, 2, 3], dtype=object)
+        result = algos.take(arr, indexer, allow_fill=True, fill_value=[1])
+        expected = np.array([2, [1]], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestExtensionTake:
     # The take method found in pd.api.extensions
