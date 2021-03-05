@@ -33,6 +33,7 @@ from pandas._typing import (
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
+    Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
@@ -1720,6 +1721,166 @@ class Styler:
 
         return self.apply(
             f, axis=axis, subset=subset, props=f"background-color: {color};"
+        )
+
+    def highlight_between(
+        self,
+        subset: Optional[IndexLabel] = None,
+        color: str = "yellow",
+        axis: Optional[Axis] = 0,
+        left: Optional[Union[Scalar, Sequence]] = None,
+        right: Optional[Union[Scalar, Sequence]] = None,
+        inclusive: Union[bool, str] = True,
+        props: Optional[str] = None,
+    ) -> Styler:
+        """
+        Highlight a defined range with a style.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        subset : IndexSlice, default None
+            A valid slice for ``data`` to limit the style application to.
+        color : str, default 'yellow'
+            Background color to use for highlighting.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
+            with ``axis=None``.
+        left : scalar or datetime-like, or sequence or array-like, default None
+            Left bound for defining the range.
+        right : scalar or datetime-like, or sequence or array-like, default None
+            Right bound for defining the range.
+        inclusive : str or bool, default True
+            Indicate which bounds to include, values allowed: True or 'both', False or
+            'neither', 'right' or 'left'.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
+        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+
+        Notes
+        -----
+        If ``left`` is ``None`` only the right bound is applied.
+        If ``right`` is ``None`` only the left bound is applied. If both are ``None``
+        all values are highlighted.
+
+        ``axis`` is only needed if ``left`` or ``right`` are provided as a sequence or
+        an array-like object for aligning the shapes. If ``left`` and ``right`` are
+        both scalars then all ``axis`` inputs will give the same result.
+
+        This function only works with compatible ``dtypes``. For example a datetime-like
+        region can only use equivalent datetime-like ``left`` and ``right`` arguments.
+        Use ``subset`` to control regions which have multiple ``dtypes``.
+
+        Examples
+        --------
+        Basic usage
+
+        >>> df = pd.DataFrame({
+        ...     'One': [1.2, 1.6, 1.5],
+        ...     'Two': [2.9, 2.1, 2.5],
+        ...     'Three': [3.1, 3.2, 3.8],
+        ... })
+        >>> df.style.highlight_between(left=2.1, right=2.9)
+
+        .. figure:: ../../_static/style/hr_basic.png
+
+        Using a range input sequnce along an ``axis``, in this case setting a ``left``
+        and ``right`` for each column individually
+
+        >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
+        ...     axis=1, color="#fffd75")
+
+        .. figure:: ../../_static/style/hr_seq.png
+
+        Using ``axis=None`` and providing the ``left`` argument as an array that
+        matches the input DataFrame, with a constant ``right``
+
+        >>> df.style.highlight_between(left=[[2,2,3],[2,2,3],[3,3,3]], right=3.5,
+        ...     axis=None, color="#fffd75")
+
+        .. figure:: ../../_static/style/hr_axNone.png
+
+        Using ``props`` instead of default background coloring
+
+        >>> df.style.highlight_between(left=1.5, right=3.5,
+        ...     props='font-weight:bold;color:#e83e8c')
+
+        .. figure:: ../../_static/style/hr_props.png
+        """
+
+        def f(
+            data: DataFrame,
+            props: str,
+            left: Optional[Union[Scalar, Sequence]] = None,
+            right: Optional[Union[Scalar, Sequence]] = None,
+            inclusive: Union[bool, str] = True,
+        ) -> np.ndarray:
+            def reshape(x, arg):
+                """if x is sequence check it fits axis, otherwise raise"""
+                if np.iterable(x) and not isinstance(x, str):
+                    try:
+                        return np.asarray(x).reshape(data.shape)
+                    except ValueError:
+                        raise ValueError(
+                            f"supplied '{arg}' is not correct shape for "
+                            "data over selected 'axis': got "
+                            f"{np.asarray(x).shape}, expected "
+                            f"{data.shape}"
+                        )
+                return x
+
+            left, right = reshape(left, "left"), reshape(right, "right")
+
+            # get ops with correct boundary attribution
+            if inclusive == "both" or inclusive is True:
+                ops = ("__ge__", "__le__")
+            elif inclusive == "neither" or inclusive is False:
+                ops = ("__gt__", "__lt__")
+            elif inclusive == "left":
+                ops = ("__ge__", "__lt__")
+            elif inclusive == "right":
+                ops = ("__gt__", "__le__")
+            else:
+                raise ValueError(
+                    f"'inclusive' values can be 'both', 'left', 'right', 'neither' "
+                    f"or bool, got {inclusive}"
+                )
+
+            g_left = (
+                getattr(data, ops[0])(left)
+                if left is not None
+                else np.full_like(data, True, dtype=bool)
+            )
+            l_right = (
+                getattr(data, ops[1])(right)
+                if right is not None
+                else np.full_like(data, True, dtype=bool)
+            )
+            return np.where(g_left & l_right, props, "")
+
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(
+            f,
+            axis=axis,
+            subset=subset,
+            props=props,
+            left=left,
+            right=right,
+            inclusive=inclusive,
         )
 
     def highlight_quantile(
