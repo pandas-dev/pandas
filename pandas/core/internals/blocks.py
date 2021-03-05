@@ -81,7 +81,7 @@ from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
     validate_putmask,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
@@ -92,6 +92,8 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    FloatingArray,
+    IntegerArray,
     PandasArray,
 )
 from pandas.core.base import PandasObject
@@ -318,7 +320,7 @@ class Block(PandasObject):
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
-        return make_block(values, placement=placement, ndim=self.ndim)
+        return new_block(values, placement=placement, ndim=self.ndim)
 
     @final
     def make_block_same_class(self, values, placement=None) -> Block:
@@ -1025,9 +1027,8 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        # error: Value of type variable "ArrayLike" of "is_exact_shape_match" cannot be
-        # "Union[Any, ndarray, ExtensionArray]"
-        exact_match = is_exact_shape_match(values, arr_value)  # type: ignore[type-var]
+        exact_match = is_exact_shape_match(values, arr_value)
+
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -1041,28 +1042,20 @@ class Block(PandasObject):
             # GH25495 - If the current dtype is not categorical,
             # we need to create a new categorical block
             values[indexer] = value
-            if values.ndim == 2:
-                # TODO(EA2D): special case not needed with 2D EAs
-                if values.shape[-1] != 1:
-                    # shouldn't get here (at least until 2D EAs)
-                    raise NotImplementedError
-                # error: Invalid index type "Tuple[slice, int]" for "Union[ndarray,
-                # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-                values = values[:, 0]  # type: ignore[index]
-            return self.make_block(Categorical(values, dtype=arr_value.dtype))
 
         elif exact_match and is_ea_value:
             # GH#32395 if we're going to replace the values entirely, just
             #  substitute in the new array
-            return self.make_block(arr_value)
+            if not self.is_object and isinstance(value, (IntegerArray, FloatingArray)):
+                values[indexer] = value.to_numpy(value.dtype.numpy_dtype)
+            else:
+                values[indexer] = np.asarray(value)
 
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
         elif exact_match:
             # We are setting _all_ of the array's values, so can cast to new dtype
             values[indexer] = value
-
-            values = values.astype(arr_value.dtype, copy=False)
 
         elif is_ea_value:
             # GH#38952
@@ -1493,7 +1486,7 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement, ndim=2)]
+        blocks = [new_block(new_values, placement=new_placement, ndim=2)]
         return blocks, mask
 
     def quantile(
@@ -1520,17 +1513,9 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        fill_value = self.fill_value
-        values = self.values
-        mask = np.asarray(isna(values))
+        result = quantile_compat(self.values, qs, interpolation, axis)
 
-        # error: Argument 1 to "quantile_with_mask" has incompatible type
-        # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-        result = quantile_with_mask(
-            values, mask, fill_value, qs, interpolation, axis  # type: ignore[arg-type]
-        )
-
-        return make_block(result, placement=self.mgr_locs, ndim=2)
+        return new_block(result, placement=self.mgr_locs, ndim=2)
 
 
 class ExtensionBlock(Block):
@@ -1909,24 +1894,6 @@ class ExtensionBlock(Block):
         ]
         return blocks, mask
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
-        # asarray needed for Sparse, see GH#24600
-        mask = np.asarray(isna(self.values))
-        mask = np.atleast_2d(mask)
-
-        values, fill_value = self.values._values_for_factorize()
-
-        values = np.atleast_2d(values)
-
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-
-        if not is_sparse(self.dtype):
-            # shape[0] should be 1 as long as EAs are 1D
-            assert result.shape == (1, len(qs)), result.shape
-            result = type(self.values)._from_factorized(result[0], self.values)
-
-        return make_block(result, placement=self.mgr_locs, ndim=2)
-
 
 class HybridMixin:
     """
@@ -1962,9 +1929,11 @@ class NumericBlock(Block):
     is_numeric = True
 
     def _can_hold_element(self, element: Any) -> bool:
-        # error: Argument 1 to "can_hold_element" has incompatible type
-        # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
-        return can_hold_element(self.dtype, element)  # type: ignore[arg-type]
+        element = extract_array(element, extract_numpy=True)
+        if isinstance(element, (IntegerArray, FloatingArray)):
+            if element._mask.any():
+                return False
+        return can_hold_element(self.dtype, element)
 
     @property
     def _can_hold_na(self):
@@ -2394,7 +2363,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     return cls
 
 
-def make_block(
+def new_block(
     values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
 ) -> Block:
     # Ensure that we don't allow PandasArray / PandasDtype in internals.

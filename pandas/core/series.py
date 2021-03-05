@@ -43,6 +43,7 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     IndexKeyFunc,
     NpDtype,
+    SingleManager,
     StorageOptions,
     ValueKeyFunc,
 )
@@ -125,7 +126,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
-from pandas.core.internals import SingleBlockManager
+from pandas.core.internals import (
+    SingleArrayManager,
+    SingleBlockManager,
+)
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -267,7 +271,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
     __hash__ = generic.NDFrame.__hash__
-    _mgr: SingleBlockManager
+    _mgr: SingleManager
     div: Callable[[Series, Any], Series]
     rdiv: Callable[[Series, Any], Series]
 
@@ -285,7 +289,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     ):
 
         if (
-            isinstance(data, SingleBlockManager)
+            isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
             and dtype is None
             and copy is False
@@ -299,8 +303,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if fastpath:
 
             # data is an ndarray, index is defined
-            if not isinstance(data, SingleBlockManager):
-                data = SingleBlockManager.from_array(data, index)
+            if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
+                manager = get_option("mode.data_manager")
+                if manager == "block":
+                    data = SingleBlockManager.from_array(data, index)
+                elif manager == "array":
+                    data = SingleArrayManager.from_array(data, index)
             if copy:
                 data = data.copy()
             if index is None:
@@ -365,7 +373,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
                 copy = False
-            elif isinstance(data, SingleBlockManager):
+            elif isinstance(data, (SingleBlockManager, SingleArrayManager)):
                 if index is None:
                     index = data.index
                 elif not data.index.equals(index) or copy:
@@ -390,7 +398,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 com.require_length_match(data, index)
 
             # create/copy the manager
-            if isinstance(data, SingleBlockManager):
+            if isinstance(data, (SingleBlockManager, SingleArrayManager)):
                 if dtype is not None:
                     data = data.astype(dtype=dtype, errors="ignore", copy=copy)
                 elif copy:
@@ -403,7 +411,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data, index, dtype, copy  # type: ignore[arg-type]
                 )
 
-                data = SingleBlockManager.from_array(data, index)
+                manager = get_option("mode.data_manager")
+                if manager == "block":
+                    data = SingleBlockManager.from_array(data, index)
+                elif manager == "array":
+                    data = SingleArrayManager.from_array(data, index)
 
         generic.NDFrame.__init__(self, data)
         self.name = name
@@ -667,7 +679,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr._block.array_values()
+        return self._mgr.array_values()
 
     # ops
     def ravel(self, order="C"):

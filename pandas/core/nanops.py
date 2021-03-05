@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import operator
@@ -1439,7 +1441,7 @@ def _maybe_null_out(
     mask: Optional[np.ndarray],
     shape: Tuple[int, ...],
     min_count: int = 1,
-) -> float:
+) -> np.ndarray | float:
     """
     Returns
     -------
@@ -1804,10 +1806,12 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         if isinstance(values, np.ndarray):
             result = result.view(orig_dtype)
         else:
-            # DatetimeArray
+            # DatetimeArray/TimedeltaArray
             # TODO: have this case go through a DTA method?
+            # For DatetimeTZDtype, view result as M8[ns]
+            npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
             result = type(values)._simple_new(  # type: ignore[attr-defined]
-                result.view("M8[ns]"), dtype=orig_dtype
+                result.view(npdtype), dtype=orig_dtype
             )
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):

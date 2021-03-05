@@ -138,6 +138,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import (
     ArrayManager,
     BlockManager,
+    SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
@@ -275,6 +276,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             else:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
+
+    @classmethod
+    def _from_mgr(cls, mgr: Manager):
+        """
+        Fastpath to create a new DataFrame/Series from just a BlockManager/ArrayManager.
+
+        Notes
+        -----
+        Skips setting `_flags` attribute; caller is responsible for doing so.
+        """
+        obj = cls.__new__(cls)
+        object.__setattr__(obj, "_is_copy", None)
+        object.__setattr__(obj, "_mgr", mgr)
+        object.__setattr__(obj, "_item_cache", {})
+        object.__setattr__(obj, "_attrs", {})
+        return obj
 
     # ----------------------------------------------------------------------
     # attrs and flags
@@ -5570,7 +5587,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
-        if isinstance(self._mgr, ArrayManager):
+        if isinstance(self._mgr, (ArrayManager, SingleArrayManager)):
             return f()
         blocks_before = len(self._mgr.blocks)
         result = f()

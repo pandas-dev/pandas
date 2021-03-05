@@ -491,7 +491,6 @@ def sanitize_array(
     DataFrame constructor, as the dtype keyword there may be interpreted as only
     applying to a subset of columns, see GH#24435.
     """
-
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
@@ -578,6 +577,7 @@ def sanitize_array(
             inferred = lib.infer_dtype(subarr, skipna=False)
             if inferred in {"interval", "period"}:
                 subarr = array(subarr)
+                subarr = extract_array(subarr, extract_numpy=True)
 
     # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
     return subarr  # type: ignore[return-value]

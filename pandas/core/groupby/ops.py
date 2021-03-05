@@ -1024,7 +1024,13 @@ class SeriesSplitter(DataSplitter):
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
         # __finalize__ not called here, must be applied by caller if applicable
-        return sdata._constructor(mgr, name=sdata.name, fastpath=True)
+
+        # fastpath equivalent to:
+        # `return sdata._constructor(mgr, name=sdata.name, fastpath=True)`
+        obj = type(sdata)._from_mgr(mgr)
+        object.__setattr__(obj, "_flags", sdata._flags)
+        object.__setattr__(obj, "_name", sdata._name)
+        return obj
 
 
 class FrameSplitter(DataSplitter):
@@ -1041,7 +1047,11 @@ class FrameSplitter(DataSplitter):
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
         # __finalize__ not called here, must be applied by caller if applicable
-        return sdata._constructor(mgr)
+
+        # fastpath equivalent to `return sdata._constructor(mgr)`
+        obj = type(sdata)._from_mgr(mgr)
+        object.__setattr__(obj, "_flags", sdata._flags)
+        return obj
 
 
 def get_splitter(

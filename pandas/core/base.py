@@ -80,6 +80,7 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    # results from calls to methods decorated with cache_readonly get added to _cache
     _cache: Dict[str, Any]
 
     @property
@@ -100,14 +101,14 @@ class PandasObject(DirNamesMixin):
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
-        if getattr(self, "_cache", None) is None:
+        if not hasattr(self, "_cache"):
             return
         if key is None:
             self._cache.clear()
         else:
             self._cache.pop(key, None)
 
-    def __sizeof__(self):
+    def __sizeof__(self) -> int:
         """
         Generates the total memory usage for an object that returns
         either a value or Series of values

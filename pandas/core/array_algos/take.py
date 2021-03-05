@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from typing import Optional
 
 import numpy as np
@@ -179,41 +180,60 @@ def take_2d_multi(
     return out
 
 
+@functools.lru_cache(maxsize=128)
+def _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis):
+    """
+    Part of _get_take_nd_function below that doesn't need `mask_info` and thus
+    can be cached (mask_info potentially contains a numpy ndarray which is not
+    hashable and thus cannot be used as argument for cached function).
+    """
+    tup = (arr_dtype.name, out_dtype.name)
+    if ndim == 1:
+        func = _take_1d_dict.get(tup, None)
+    elif ndim == 2:
+        if axis == 0:
+            func = _take_2d_axis0_dict.get(tup, None)
+        else:
+            func = _take_2d_axis1_dict.get(tup, None)
+    if func is not None:
+        return func
+
+    tup = (out_dtype.name, out_dtype.name)
+    if ndim == 1:
+        func = _take_1d_dict.get(tup, None)
+    elif ndim == 2:
+        if axis == 0:
+            func = _take_2d_axis0_dict.get(tup, None)
+        else:
+            func = _take_2d_axis1_dict.get(tup, None)
+    if func is not None:
+        func = _convert_wrapper(func, out_dtype)
+        return func
+
+    return None
+
+
 def _get_take_nd_function(
-    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int = 0, mask_info=None
+    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
 ):
-
+    """
+    Get the appropriate "take" implementation for the given dimension, axis
+    and dtypes.
+    """
+    func = None
     if ndim <= 2:
-        tup = (arr_dtype.name, out_dtype.name)
-        if ndim == 1:
-            func = _take_1d_dict.get(tup, None)
-        elif ndim == 2:
-            if axis == 0:
-                func = _take_2d_axis0_dict.get(tup, None)
-            else:
-                func = _take_2d_axis1_dict.get(tup, None)
-        if func is not None:
-            return func
+        # for this part we don't need `mask_info` -> use the cached algo lookup
+        func = _get_take_nd_function_cached(ndim, arr_dtype, out_dtype, axis)
 
-        tup = (out_dtype.name, out_dtype.name)
-        if ndim == 1:
-            func = _take_1d_dict.get(tup, None)
-        elif ndim == 2:
-            if axis == 0:
-                func = _take_2d_axis0_dict.get(tup, None)
-            else:
-                func = _take_2d_axis1_dict.get(tup, None)
-        if func is not None:
-            func = _convert_wrapper(func, out_dtype)
-            return func
+    if func is None:
 
-    def func2(arr, indexer, out, fill_value=np.nan):
-        indexer = ensure_int64(indexer)
-        _take_nd_object(
-            arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
-        )
+        def func(arr, indexer, out, fill_value=np.nan):
+            indexer = ensure_int64(indexer)
+            _take_nd_object(
+                arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
+            )
 
-    return func2
+    return func
 
 
 def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):

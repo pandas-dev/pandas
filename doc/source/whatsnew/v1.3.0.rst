@@ -131,7 +131,7 @@ Other enhancements
 - Disallow :class:`DataFrame` indexer for ``iloc`` for :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__`, (:issue:`39004`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column as the argument to ``c`` (:issue:`12380`, :issue:`31357`)
-- :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`)
+- :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`, :issue:`39708`)
 - :meth:`.Styler.set_tooltips_class` and :meth:`.Styler.set_table_styles` amended to optionally allow certain css-string input arguments (:issue:`39564`)
 - :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None`` (:issue:`39359`)
 - :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if wrong format CSS is passed on render (:issue:`39660`)
@@ -179,6 +179,46 @@ Preserve dtypes in  :meth:`~pandas.DataFrame.combine_first`
 .. ipython:: python
 
    combined.dtypes
+
+
+Try operating inplace when setting values with ``loc`` and ``iloc``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When setting an entire column using ``loc`` or ``iloc``, pandas will try to
+insert the values into the existing data rather than create an entirely new array.
+
+.. ipython:: python
+
+   df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
+   values = df.values
+   new = np.array([5, 6, 7], dtype="int64")
+   df.loc[[0, 1, 2], "A"] = new
+
+In both the new and old behavior, the data in ``values`` is overwritten, but in
+the old behavior the dtype of ``df["A"]`` changed to ``int64``.
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+   In [1]: df.dtypes
+   Out[1]:
+   A    int64
+   dtype: object
+   In [2]: np.shares_memory(df["A"].values, new)
+   Out[2]: False
+   In [3]: np.shares_memory(df["A"].values, values)
+   Out[3]: False
+
+In pandas 1.3.0, ``df`` continues to share data with ``values``
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+   df.dtypes
+   np.shares_memory(df["A"], new)
+   np.shares_memory(df["A"], values)
 
 
 .. _whatsnew_130.notable_bug_fixes.setitem_with_bool_casting:
@@ -323,6 +363,7 @@ Deprecations
 - Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
+- Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like; will raise if any function fails on a column in a future version (:issue:`40211`)
 
 .. ---------------------------------------------------------------------------
 
@@ -338,6 +379,7 @@ Performance improvements
 - Performance improvement in :meth:`core.window.rolling.Rolling.corr` and :meth:`core.window.rolling.Rolling.cov` (:issue:`39388`)
 - Performance improvement in :meth:`core.window.rolling.RollingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr`, :meth:`core.window.expanding.ExpandingGroupby.corr` and :meth:`core.window.expanding.ExpandingGroupby.cov` (:issue:`39591`)
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
+- Performance improvement in :func:`pd.json_normalize` for basic cases (including seperators) (:issue:`40035` :issue:`15621`)
 - Performance improvement in :class:`core.window.rolling.ExpandingGroupby` aggregation methods (:issue:`39664`)
 - Performance improvement in :class:`Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
 - Performance improvement in :meth:`core.window.ewm.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
@@ -539,6 +581,8 @@ Reshaping
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
 - Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
+- Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
+-
 
 Sparse
 ^^^^^^
