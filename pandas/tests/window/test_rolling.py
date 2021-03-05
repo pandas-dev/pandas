@@ -397,7 +397,7 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-def test_rolling_window_as_string():
+def test_rolling_window_as_string(using_array_manager):
     # see gh-22590
     date_today = datetime.now()
     days = date_range(date_today, date_today + timedelta(365), freq="D")
@@ -450,9 +450,11 @@ def test_rolling_window_as_string():
         + [95.0] * 20
     )
 
-    expected = Series(
-        expData, index=days.rename("DateCol")._with_freq(None), name="metric"
-    )
+    index = days.rename("DateCol")
+    if not using_array_manager:
+        # INFO(ArrayManager) preserves the frequence of the index
+        index = index._with_freq(None)
+    expected = Series(expData, index=index, name="metric")
     tm.assert_series_equal(result, expected)
 
 
