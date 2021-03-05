@@ -3,7 +3,10 @@ import types
 
 import pytest
 
-from pandas.compat._optional import VERSIONS, import_optional_dependency
+from pandas.compat._optional import (
+    VERSIONS,
+    import_optional_dependency,
+)
 
 import pandas._testing as tm
 
@@ -13,7 +16,7 @@ def test_import_optional():
     with pytest.raises(ImportError, match=match):
         import_optional_dependency("notapackage")
 
-    result = import_optional_dependency("notapackage", raise_on_missing=False)
+    result = import_optional_dependency("notapackage", errors="ignore")
     assert result is None
 
 
@@ -38,7 +41,7 @@ def test_bad_version(monkeypatch):
     assert result is module
 
     with tm.assert_produces_warning(UserWarning):
-        result = import_optional_dependency("fakemodule", on_version="warn")
+        result = import_optional_dependency("fakemodule", errors="warn")
     assert result is None
 
     module.__version__ = "1.0.0"  # exact match is OK
@@ -63,7 +66,7 @@ def test_submodule(monkeypatch):
         import_optional_dependency("fakemodule.submodule")
 
     with tm.assert_produces_warning(UserWarning):
-        result = import_optional_dependency("fakemodule.submodule", on_version="warn")
+        result = import_optional_dependency("fakemodule.submodule", errors="warn")
     assert result is None
 
     module.__version__ = "1.0.0"  # exact match is OK

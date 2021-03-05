@@ -1,12 +1,28 @@
-from typing import TYPE_CHECKING, Optional, Type, Union
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Type,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import Dtype, Scalar
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    Dtype,
+    Scalar,
+)
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -19,7 +35,11 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import FloatingArray, IntegerArray, PandasArray
+from pandas.core.arrays import (
+    FloatingArray,
+    IntegerArray,
+    PandasArray,
+)
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -69,7 +89,7 @@ class StringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type["StringArray"]:
+    def construct_array_type(cls) -> Type[StringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -83,8 +103,8 @@ class StringDtype(ExtensionDtype):
         return "StringDtype"
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "StringArray":
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+    ) -> StringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
@@ -188,9 +208,8 @@ class StringArray(PandasArray):
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
-        # pandas\core\arrays\string_.py:188: error: Incompatible types in
-        # assignment (expression has type "StringDtype", variable has type
-        # "PandasDtype")  [assignment]
+        # error: Incompatible types in assignment (expression has type "StringDtype",
+        # variable has type "PandasDtype")
         self._dtype = StringDtype()  # type: ignore[assignment]
         if not isinstance(values, type(self)):
             self._validate()
@@ -336,7 +355,7 @@ class StringArray(PandasArray):
         )
         return self._wrap_reduction_result(axis, result)
 
-    def value_counts(self, dropna=False):
+    def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
@@ -384,7 +403,11 @@ class StringArray(PandasArray):
     _str_na_value = StringDtype.na_value
 
     def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
-        from pandas.arrays import BooleanArray, IntegerArray, StringArray
+        from pandas.arrays import (
+            BooleanArray,
+            IntegerArray,
+            StringArray,
+        )
         from pandas.core.arrays.string_ import StringDtype
 
         if dtype is None:

@@ -1,15 +1,33 @@
-import numbers
-from typing import Dict, List, Optional, Tuple, Type
+from __future__ import annotations
+
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import iNaT, lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype, DtypeObj
+from pandas._libs import (
+    iNaT,
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -22,12 +40,16 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
+from pandas.core.arrays.numeric import (
+    NumericArray,
+    NumericDtype,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
-from .numeric import NumericArray, NumericDtype
 
 
 class _IntegerDtype(NumericDtype):
@@ -57,7 +79,7 @@ class _IntegerDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type["IntegerArray"]:
+    def construct_array_type(cls) -> Type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 
@@ -293,75 +315,19 @@ class IntegerArray(NumericArray):
             )
         super().__init__(values, mask, copy=copy)
 
-    def __neg__(self):
-        return type(self)(-self._data, self._mask)
-
-    def __pos__(self):
-        return self
-
-    def __abs__(self):
-        return type(self)(np.abs(self._data), self._mask)
-
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "IntegerArray":
+    ) -> IntegerArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "IntegerArray":
+    ) -> IntegerArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
-
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
-        # For IntegerArray inputs, we apply the ufunc to ._data
-        # and mask the result.
-        if method == "reduce":
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
-        out = kwargs.get("out", ())
-
-        for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):
-                return NotImplemented
-
-        # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
-
-        mask = np.zeros(len(self), dtype=bool)
-        inputs2 = []
-        for x in inputs:
-            if isinstance(x, IntegerArray):
-                mask |= x._mask
-                inputs2.append(x._data)
-            else:
-                inputs2.append(x)
-
-        def reconstruct(x):
-            # we don't worry about scalar `x` here, since we
-            # raise for reduce up above.
-
-            if is_integer_dtype(x.dtype):
-                m = mask.copy()
-                return IntegerArray(x, m)
-            else:
-                x[mask] = np.nan
-            return x
-
-        result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
-            return tuple(reconstruct(x) for x in result)
-        else:
-            return reconstruct(result)
 
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)

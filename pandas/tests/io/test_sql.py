@@ -18,7 +18,11 @@ The SQL tests are broken down in different classes:
 """
 
 import csv
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 from io import StringIO
 import sqlite3
 import warnings
@@ -26,7 +30,10 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -44,7 +51,10 @@ from pandas import (
 import pandas._testing as tm
 
 import pandas.io.sql as sql
-from pandas.io.sql import read_sql_query, read_sql_table
+from pandas.io.sql import (
+    read_sql_query,
+    read_sql_table,
+)
 
 try:
     import sqlalchemy
@@ -660,6 +670,12 @@ class _TestSQLApi(PandasSQLTest):
     def test_read_sql_view(self):
         iris_frame = sql.read_sql_query("SELECT * FROM iris_view", self.conn)
         self._check_iris_loaded_frame(iris_frame)
+
+    def test_read_sql_with_chunksize_no_result(self):
+        query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
+        with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
+        without_batch = sql.read_sql_query(query, self.conn)
+        tm.assert_frame_equal(concat(with_batch), without_batch)
 
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, "test_frame1", self.conn)
@@ -1576,7 +1592,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = pd.read_sql_query("select * from types_test_data", self.conn)
+        df = read_sql_query("select * from types_test_data", self.conn)
         if not hasattr(df, "DateColWithTz"):
             pytest.skip("no column with datetime with time zone")
 
@@ -1586,7 +1602,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
 
-        df = pd.read_sql_query(
+        df = read_sql_query(
             "select * from types_test_data", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
@@ -1596,11 +1612,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
-        df = pd.concat(
+        df = concat(
             list(
-                pd.read_sql_query(
-                    "select * from types_test_data", self.conn, chunksize=1
-                )
+                read_sql_query("select * from types_test_data", self.conn, chunksize=1)
             ),
             ignore_index=True,
         )
@@ -2835,7 +2849,7 @@ class TestXMySQL(MySQLMixIn):
         sql.to_sql(frame, name="test", con=self.conn)
         query = "select * from test"
         chunksize = 5
-        chunk_gen = pd.read_sql_query(
+        chunk_gen = read_sql_query(
             sql=query, con=self.conn, chunksize=chunksize, index_col="index"
         )
         chunk_df = next(chunk_gen)

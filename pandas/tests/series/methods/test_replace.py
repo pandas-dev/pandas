@@ -95,6 +95,8 @@ class TestSeriesReplace:
         expected = ser.ffill()
         result = ser.replace(np.nan)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_datetime64(self):
         # GH 5797
         ser = pd.Series(pd.date_range("20130101", periods=5))
         expected = ser.copy()
@@ -104,6 +106,7 @@ class TestSeriesReplace:
         result = ser.replace(pd.Timestamp("20130103"), pd.Timestamp("20120101"))
         tm.assert_series_equal(result, expected)
 
+    def test_replace_nat_with_tz(self):
         # GH 11792: Test with replacing NaT in a list with tz data
         ts = pd.Timestamp("2015/01/01", tz="UTC")
         s = pd.Series([pd.NaT, pd.Timestamp("2015/01/01", tz="UTC")])
@@ -263,7 +266,7 @@ class TestSeriesReplace:
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace({}))
 
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             empty_series = pd.Series([])
         tm.assert_series_equal(s, s.replace(empty_series))
 
@@ -454,6 +457,6 @@ class TestSeriesReplace:
         msg = r"The default value of regex will change from True to False"
         if len(pattern) == 1:
             msg += r".*single character regular expressions.*not.*literal strings"
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
+        with tm.assert_produces_warning(FutureWarning) as w:
             s.str.replace(pattern, "")
             assert re.match(msg, str(w[0].message))

@@ -6,10 +6,14 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
+from __future__ import annotations
 
 from contextlib import contextmanager
 import datetime
-from functools import partial, wraps
+from functools import (
+    partial,
+    wraps,
+)
 import inspect
 from textwrap import dedent
 import types
@@ -36,20 +40,28 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import (
+    Timestamp,
+    lib,
+)
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     F,
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
-    Label,
     Scalar,
+    T,
     final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -63,17 +75,35 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, DatetimeArray
-from pandas.core.base import DataError, PandasObject, SelectionMixin
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+)
+from pandas.core.base import (
+    DataError,
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, numba_, ops
-from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
+from pandas.core.groupby import (
+    base,
+    numba_,
+    ops,
+)
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
@@ -123,11 +153,23 @@ _apply_docs = {
     transform : Apply function column-by-column to the GroupBy object.
     Series.apply : Apply a function to a Series.
     DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+    Notes
+    -----
+    In the current implementation `apply` calls `func` twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if `func` has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
-                           'B': [1,2,3],
-                           'C': [4,6, 5]})
+    ...                    'B': [1,2,3],
+    ...                    'C': [4,6, 5]})
     >>> g = df.groupby('A')
 
     Notice that ``g`` has two groups, ``a`` and ``b``.
@@ -162,8 +204,7 @@ _apply_docs = {
     A
     a    5
     b    2
-    dtype: int64
-    """,
+    dtype: int64""",
     "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = s.groupby(s.index)
@@ -176,9 +217,9 @@ _apply_docs = {
     each group together into a new Series:
 
     >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
-    0    0.0
-    1    0.5
-    2    4.0
+    a    0.0
+    a    0.5
+    b    4.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
@@ -189,20 +230,7 @@ _apply_docs = {
     >>> g.apply(lambda x: x.max() - x.min())
     a    1
     b    0
-    dtype: int64
-
-    Notes
-    -----
-    In the current implementation `apply` calls `func` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    Examples
-    --------
-    {examples}
-    """,
+    dtype: int64""",
 }
 
 _groupby_agg_method_template = """
@@ -343,7 +371,7 @@ The current implementation imposes three requirements on f:
   in the subframe. If f also supports application to the entire subframe,
   then a fast path is used starting from the second chunk.
 * f must not mutate groups. Mutation is not supported and may
-  produce unexpected results.
+  produce unexpected results. See :ref:`udf-mutation` for more details.
 
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
@@ -446,6 +474,10 @@ When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
 {examples}
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
 """
 
 
@@ -476,7 +508,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "BaseGroupBy") -> Iterator["BaseGroupBy"]:
+def group_selection_context(groupby: BaseGroupBy) -> Iterator[BaseGroupBy]:
     """
     Set / reset the group_selection_context.
     """
@@ -521,8 +553,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level: Optional[IndexLabel] = None,
-        grouper: Optional["ops.BaseGrouper"] = None,
-        exclusions: Optional[Set[Label]] = None,
+        grouper: Optional[ops.BaseGrouper] = None,
+        exclusions: Optional[Set[Hashable]] = None,
         selection: Optional[IndexLabel] = None,
         as_index: bool = True,
         sort: bool = True,
@@ -724,8 +756,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     def _set_result_index_ordered(
-        self, result: "OutputFrameOrSeries"
-    ) -> "OutputFrameOrSeries":
+        self, result: OutputFrameOrSeries
+    ) -> OutputFrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -790,7 +822,12 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         ),
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return com.pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
@@ -860,7 +897,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         return obj._take_with_is_copy(inds, axis=self.axis)
 
-    def __iter__(self) -> Iterator[Tuple[Label, FrameOrSeries]]:
+    def __iter__(self) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator.
 
@@ -942,7 +979,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
         return self._wrap_applied_output(
-            keys, values, not_indexed_same=mutated or self.mutated
+            data, keys, values, not_indexed_same=mutated or self.mutated
         )
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -1019,7 +1056,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
     @final
@@ -1365,7 +1402,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Type["Series"]:
+    def _obj_1d_constructor(self) -> Type[Series]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -1507,11 +1544,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2    4.0
         Name: B, dtype: float64
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "mean",
             alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
@@ -1533,11 +1571,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Median of values within each group.
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "median",
             alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
@@ -1877,7 +1916,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import RollingGroupby
 
-        return RollingGroupby(self, *args, **kwargs)
+        return RollingGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1889,7 +1933,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExpandingGroupby
 
-        return ExpandingGroupby(self, *args, **kwargs)
+        return ExpandingGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1900,7 +1949,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
-        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
+        return ExponentialMovingWindowGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     def _fill(self, direction, limit=None):
@@ -3035,18 +3089,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if weights is not None:
             weights = Series(weights, index=self._selected_obj.index)
-            ws = [weights[idx] for idx in self.indices.values()]
+            ws = [weights.iloc[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
 
         if random_state is not None:
             random_state = com.random_state(random_state)
 
+        group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
         samples = [
             obj.sample(
                 n=n, frac=frac, replace=replace, weights=w, random_state=random_state
             )
-            for (_, obj), w in zip(self, ws)
+            for (_, obj), w in zip(group_iterator, ws)
         ]
 
         return concat(samples, axis=self.axis)
@@ -3058,7 +3113,7 @@ def get_groupby(
     by: Optional[_KeysArgType] = None,
     axis: int = 0,
     level=None,
-    grouper: "Optional[ops.BaseGrouper]" = None,
+    grouper: Optional[ops.BaseGrouper] = None,
     exclusions=None,
     selection=None,
     as_index: bool = True,

@@ -3,7 +3,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p20
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm
@@ -208,7 +208,7 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
     # rfloordiv results in nan instead of inf
-    if all_arithmetic_operators == "__rfloordiv__" and _np_version_under1p20:
+    if all_arithmetic_operators == "__rfloordiv__" and np_version_under1p20:
         # for numpy 1.20 https://github.com/numpy/numpy/pull/16161
         #  updated floordiv, now matches our behavior defined in core.ops
         mask = (
@@ -284,36 +284,22 @@ def test_reduce_to_float(op):
 
 
 @pytest.mark.parametrize(
-    "source, target",
+    "source, neg_target, abs_target",
     [
-        ([1, 2, 3], [-1, -2, -3]),
-        ([1, 2, None], [-1, -2, None]),
-        ([-1, 0, 1], [1, 0, -1]),
+        ([1, 2, 3], [-1, -2, -3], [1, 2, 3]),
+        ([1, 2, None], [-1, -2, None], [1, 2, None]),
+        ([-1, 0, 1], [1, 0, -1], [1, 0, 1]),
     ],
 )
-def test_unary_minus_nullable_int(any_signed_nullable_int_dtype, source, target):
+def test_unary_int_operators(
+    any_signed_nullable_int_dtype, source, neg_target, abs_target
+):
     dtype = any_signed_nullable_int_dtype
     arr = pd.array(source, dtype=dtype)
-    result = -arr
-    expected = pd.array(target, dtype=dtype)
-    tm.assert_extension_array_equal(result, expected)
+    neg_result, pos_result, abs_result = -arr, +arr, abs(arr)
+    neg_target = pd.array(neg_target, dtype=dtype)
+    abs_target = pd.array(abs_target, dtype=dtype)
 
-
-@pytest.mark.parametrize("source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]])
-def test_unary_plus_nullable_int(any_signed_nullable_int_dtype, source):
-    dtype = any_signed_nullable_int_dtype
-    expected = pd.array(source, dtype=dtype)
-    result = +expected
-    tm.assert_extension_array_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "source, target",
-    [([1, 2, 3], [1, 2, 3]), ([1, -2, None], [1, 2, None]), ([-1, 0, 1], [1, 0, 1])],
-)
-def test_abs_nullable_int(any_signed_nullable_int_dtype, source, target):
-    dtype = any_signed_nullable_int_dtype
-    s = pd.array(source, dtype=dtype)
-    result = abs(s)
-    expected = pd.array(target, dtype=dtype)
-    tm.assert_extension_array_equal(result, expected)
+    tm.assert_extension_array_equal(neg_result, neg_target)
+    tm.assert_extension_array_equal(pos_result, arr)
+    tm.assert_extension_array_equal(abs_result, abs_target)

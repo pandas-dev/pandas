@@ -4,7 +4,12 @@ import pytest
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, isna
+from pandas import (
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -470,7 +475,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture
 
-    dr = pd.date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
+    dr = date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
     lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])
     rvals = pd.Categorical([dr[0], pd.NaT, dr[2]])
 

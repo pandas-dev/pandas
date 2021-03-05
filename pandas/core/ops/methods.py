@@ -3,7 +3,10 @@ Functions to generate methods and pin them to the appropriate classes.
 """
 import operator
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.ops.roperator import (
     radd,

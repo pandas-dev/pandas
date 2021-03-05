@@ -138,9 +138,6 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         with pytest.raises(TypeError, match=msg):
             s + data
 
-    def test_error(self):
-        pass
-
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
         # Override to use __sub__ instead of __add__
@@ -187,3 +184,7 @@ class TestParsing(BasePeriodTests, base.BaseParsingTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
         super().test_EA_types(engine, data)
+
+
+class Test2DCompat(BasePeriodTests, base.Dim2CompatTests):
+    pass

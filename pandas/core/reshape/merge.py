@@ -8,12 +8,22 @@ import datetime
 from functools import partial
 import hashlib
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Tuple,
+    cast,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
+from pandas._libs import (
+    Timedelta,
+    hashtable as libhashtable,
+    join as libjoin,
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
@@ -22,7 +32,10 @@ from pandas._typing import (
     Suffixes,
 )
 from pandas.errors import MergeError
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -44,16 +57,26 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
-from pandas import Categorical, Index, MultiIndex
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+)
 from pandas.core import groupby
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
-from pandas.core.internals import concatenate_block_managers
+from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -77,7 +100,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate: Optional[str] = None,
-) -> "DataFrame":
+) -> DataFrame:
     op = _MergeOperation(
         left,
         right,
@@ -168,7 +191,7 @@ def merge_ordered(
     fill_method: Optional[str] = None,
     suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform merge with optional filling/interpolation.
 
@@ -315,7 +338,7 @@ def merge_asof(
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
-) -> "DataFrame":
+) -> DataFrame:
     """
     Perform an asof merge.
 
@@ -697,7 +720,7 @@ class _MergeOperation:
         lindexers = {1: left_indexer} if left_indexer is not None else {}
         rindexers = {1: right_indexer} if right_indexer is not None else {}
 
-        result_data = concatenate_block_managers(
+        result_data = concatenate_managers(
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
@@ -724,7 +747,7 @@ class _MergeOperation:
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame"]:
+    ) -> Tuple[DataFrame, DataFrame]:
 
         columns = left.columns.union(right.columns)
 
@@ -851,14 +874,18 @@ class _MergeOperation:
                 if take_left is None:
                     lvals = result[name]._values
                 else:
+                    # TODO: can we pin down take_left's type earlier?
+                    take_left = extract_array(take_left, extract_numpy=True)
                     lfill = na_value_for_dtype(take_left.dtype)
-                    lvals = algos.take_1d(take_left, left_indexer, fill_value=lfill)
+                    lvals = algos.take_nd(take_left, left_indexer, fill_value=lfill)
 
                 if take_right is None:
                     rvals = result[name]._values
                 else:
+                    # TODO: can we pin down take_right's type earlier?
+                    take_right = extract_array(take_right, extract_numpy=True)
                     rfill = na_value_for_dtype(take_right.dtype)
-                    rvals = algos.take_1d(take_right, right_indexer, fill_value=rfill)
+                    rvals = algos.take_nd(take_right, right_indexer, fill_value=rfill)
 
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
@@ -996,9 +1023,8 @@ class _MergeOperation:
         """
         left_keys = []
         right_keys = []
-        # pandas\core\reshape\merge.py:966: error: Need type annotation for
-        # 'join_names' (hint: "join_names: List[<type>] = ...")
-        # [var-annotated]
+        # error: Need type annotation for 'join_names' (hint: "join_names: List[<type>]
+        # = ...")
         join_names = []  # type: ignore[var-annotated]
         right_drop = []
         left_drop = []
@@ -1232,7 +1258,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+    ) -> Tuple[DataFrame, DataFrame, str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added
@@ -1594,7 +1620,7 @@ class _OrderedMerge(_MergeOperation):
         lindexers = {1: left_join_indexer} if left_join_indexer is not None else {}
         rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
 
-        result_data = concatenate_block_managers(
+        result_data = concatenate_managers(
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
@@ -2160,7 +2186,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
+def _validate_operand(obj: FrameOrSeries) -> DataFrame:
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):

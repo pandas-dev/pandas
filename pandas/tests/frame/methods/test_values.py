@@ -1,11 +1,21 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, Series, Timestamp, date_range, period_range
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
 class TestDataFrameValues:
+    @td.skip_array_manager_invalid_test
     def test_values(self, float_frame):
         float_frame.values[:, 0] = 5.0
         assert (float_frame.values[:, 0] == 5).all()
@@ -44,6 +54,12 @@ class TestDataFrameValues:
         expected = np.array([[1, 2, "a", "b"], [1, 2, "a", "b"]], dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_values_with_duplicate_columns(self):
+        df = DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=["x", "x"])
+        result = df.values
+        expected = np.array([[1, 2.5], [3, 4.5]])
+        assert (result == expected).all().all()
 
     @pytest.mark.parametrize("constructor", [date_range, period_range])
     def test_values_casts_datetimelike_to_object(self, constructor):

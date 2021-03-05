@@ -26,16 +26,27 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 import locale
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas._config import get_option
+
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
+from pandas.core.computation.expressions import (
+    NUMEXPR_INSTALLED,
+    USE_NUMEXPR,
+)
 
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
@@ -274,3 +285,13 @@ def async_mark():
         async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
 
     return async_mark
+
+
+skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+    get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
+)
+
+skip_array_manager_invalid_test = pytest.mark.skipif(
+    get_option("mode.data_manager") == "array",
+    reason="Test that relies on BlockManager internals or specific behaviour",
+)

@@ -2,14 +2,20 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 import platform
 from urllib.error import URLError
 
 import pytest
 
-from pandas.errors import EmptyDataError, ParserError
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -331,9 +337,7 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     expected = DataFrame({"a": [1], "b": [2]})
 
     content = "a,b\n1,2"
-    if io_class == BytesIO:
-        content = content.encode("utf-8")
-    handle = io_class(content)
+    handle = io_class(content.encode("utf-8") if io_class == BytesIO else content)
 
     tm.assert_frame_equal(parser.read_csv(handle, encoding=encoding), expected)
     assert not handle.closed
