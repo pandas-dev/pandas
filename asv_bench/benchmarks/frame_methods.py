@@ -360,16 +360,30 @@ class Fillna:
             "object",
             "Int64",
             "Float64",
+            "datetime64[ns]",
+            "datetime64[ns, tz]",
         ],
     )
     param_names = ["inplace", "method", "dtype"]
 
     def setup(self, inplace, method, dtype):
-        values = np.random.randn(10000, 100)
-        values[::2] = np.nan
-        if dtype == "Int64":
-            values = values.round()
-        self.df = DataFrame(values, dtype=dtype)
+        if dtype in ("datetime64[ns]", "datetime64[ns, tz]"):
+            N = 10000
+            M = 100
+            data = {
+                "datetime64[ns]": date_range("2011-01-01", freq="H", periods=N),
+                "datetime64[ns, tz]": date_range(
+                    "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
+                ),
+            }
+            self.df = DataFrame({f"col_{i}": data[dtype] for i in range(M)})
+            self.df[::2] = None
+        else:
+            values = np.random.randn(10000, 100)
+            values[::2] = np.nan
+            if dtype == "Int64":
+                values = values.round()
+            self.df = DataFrame(values, dtype=dtype)
 
     def time_frame_fillna(self, inplace, method, dtype):
         self.df.fillna(inplace=inplace, method=method)
