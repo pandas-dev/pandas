@@ -1395,6 +1395,7 @@ class SQLDatabase(PandasSQL):
         coerce_float=True,
         parse_dates=None,
         dtype: Optional[DtypeArg] = None,
+        nullable_integer=False,
     ):
         """Return generator through chunked result set"""
         has_read_data = False
@@ -1419,6 +1420,7 @@ class SQLDatabase(PandasSQL):
                     coerce_float=coerce_float,
                     parse_dates=parse_dates,
                     dtype=dtype,
+                    nullable_integer=nullable_integer
                 )
 
     def read_query(
