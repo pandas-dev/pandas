@@ -181,14 +181,14 @@ These are both enabled to be used by default, you can control this by setting th
 Flexible binary operations
 --------------------------
 
-With binary operations between pandas data structures, there are two key points
+With binary operations between pandas data structures, there are two keys points
 of interest:
 
-* Broadcasting behavior between higher- (e.g. DataFrame) and
-  lower-dimensional (e.g. Series) objects.
+* Broadcasting behavior between higher- (e.g DataFrame) and
+  lower-dimensional (e.g Series) objects.
 * Missing data in computations.
 
-We will demonstrate how to manage these issues independently, though they can
+We will show how to manage these issues independently, though they can
 be handled simultaneously.
 
 Matching / broadcasting behavior
@@ -266,7 +266,7 @@ Missing data / operations with fill values
 
 In Series and DataFrame, the arithmetic functions have the option of inputting
 a *fill_value*, namely a value to substitute when at most one of the values at
-a location are missing. For example, when adding two DataFrame objects, you may
+a location isi missing. For example, when adding two DataFrame objects, you may
 wish to treat NaN as 0 unless both DataFrames are missing that value, in which
 case the result will be NaN (you can later replace NaN with some other value
 using ``fillna`` if you wish).
@@ -502,7 +502,7 @@ other related operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
 are aggregations (hence producing a lower-dimensional result) like
 :meth:`~DataFrame.sum`, :meth:`~DataFrame.mean`, and :meth:`~DataFrame.quantile`,
 but some of them, like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`,
-produce an object of the same size. Generally speaking, these methods take an
+produces an object of the same size. Generally speaking, these methods take an
 **axis** argument, just like *ndarray.{sum, std, ...}*, but the axis can be
 specified by name or integer:
 
@@ -525,7 +525,7 @@ data (``True`` by default):
    df.sum(0, skipna=False)
    df.sum(axis=1, skipna=True)
 
-Combined with the broadcasting / arithmetic behavior, one can describe various
+Combined with the broadcasting/arithmetic behavior, one can describe various
 statistical procedures, like standardization (rendering data zero mean and
 standard deviation of 1), very concisely:
 
@@ -876,13 +876,13 @@ The :meth:`~DataFrame.apply` method will also dispatch on a string method name.
    df.apply("mean", axis=1)
 
 The return type of the function passed to :meth:`~DataFrame.apply` affects the
-type of the final output from ``DataFrame.apply`` for the default behaviour:
+type of the final output from ``DataFrame.apply`` for the default behavior:
 
 * If the applied function returns a ``Series``, the final output is a ``DataFrame``.
   The columns match the index of the ``Series`` returned by the applied function.
 * If the applied function returns any other type, the final output is a ``Series``.
 
-This default behaviour can be overridden using the ``result_type``, which
+This default behavior can be overridden using the ``result_type``, which
 accepts three options: ``reduce``, ``broadcast``, and ``expand``.
 These will determine how list-likes return values expand (or not) to a ``DataFrame``.
 
@@ -987,7 +987,7 @@ Aggregating with multiple functions
 
 You can pass multiple aggregation arguments as a list.
 The results of each of the passed functions will be a row in the resulting ``DataFrame``.
-These are naturally named from the aggregation function.
+These are named naturally from the aggregation function.
 
 .. ipython:: python
 
@@ -1026,7 +1026,7 @@ Aggregating with a dict
 
 Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFrame.agg``
 allows you to customize which functions are applied to which columns. Note that the results
-are not in any particular order, you can use an ``OrderedDict`` instead to guarantee ordering.
+are not in any particular order, you can use an ``OrderedDict`` instead to guarantee the order.
 
 .. ipython:: python
 
