@@ -177,7 +177,7 @@ class BlockManager(DataManager):
         self._blklocs = None
 
     @classmethod
-    def _simple_new(cls, blocks: Tuple[Block], axes: List[Index]):
+    def _simple_new(cls, blocks: Tuple[Block, ...], axes: List[Index]):
         """
         Fastpath constructor; does NO validation.
         """
@@ -1335,7 +1335,7 @@ class BlockManager(DataManager):
 
     def _slice_take_blocks_ax0(
         self, slice_or_indexer, fill_value=lib.no_default, only_slice: bool = False
-    ):
+    ) -> List[Block]:
         """
         Slice/take blocks along axis=0.
 
