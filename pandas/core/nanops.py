@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import operator
@@ -1380,7 +1382,7 @@ def _maybe_null_out(
     mask: Optional[np.ndarray],
     shape: Tuple[int, ...],
     min_count: int = 1,
-) -> float:
+) -> np.ndarray | float:
     """
     Returns
     -------
