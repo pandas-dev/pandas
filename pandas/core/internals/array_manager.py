@@ -991,7 +991,7 @@ class ArrayManager(DataManager):
         else:
             validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                take_nd(
+                take_1d(
                     arr,
                     indexer,
                     allow_fill=True,
