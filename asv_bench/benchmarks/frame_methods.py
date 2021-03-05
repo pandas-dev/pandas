@@ -53,6 +53,7 @@ class Reindex:
         N = 10 ** 3
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.idx = np.arange(4 * N, 7 * N)
+        self.idx_cols = np.random.randint(0, N, N)
         self.df2 = DataFrame(
             {
                 c: {
@@ -69,6 +70,9 @@ class Reindex:
         self.df.reindex(self.idx)
 
     def time_reindex_axis1(self):
+        self.df.reindex(columns=self.idx_cols)
+
+    def time_reindex_axis1_missing(self):
         self.df.reindex(columns=self.idx)
 
     def time_reindex_both_axes(self):
