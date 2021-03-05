@@ -121,6 +121,43 @@ def _take_nd_ndarray(
     return out
 
 
+def take_1d(
+    arr: ArrayLike,
+    indexer: np.ndarray,
+    fill_value=None,
+    allow_fill: bool = True,
+):
+    """
+    Specialized version for 1D arrays. Differences compared to take_nd:
+
+    - Assumes input (arr, indexer) has already been converted to numpy array / EA
+    - Only works for 1D arrays
+
+    To ensure the lowest possible overhead.
+
+    TODO(ArrayManager): mainly useful for ArrayManager, otherwise can potentially
+    be removed again if we don't end up with ArrayManager.
+    """
+    if not isinstance(arr, np.ndarray):
+        # ExtensionArray -> dispatch to their method
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+
+    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, 0, None, fill_value, allow_fill
+    )
+
+    # at this point, it's guaranteed that dtype can hold both the arr values
+    # and the fill_value
+    out = np.empty(indexer.shape, dtype=dtype)
+
+    func = _get_take_nd_function(
+        arr.ndim, arr.dtype, out.dtype, axis=0, mask_info=mask_info
+    )
+    func(arr, indexer, out, fill_value)
+
+    return out
+
+
 def take_2d_multi(
     arr: np.ndarray, indexer: np.ndarray, fill_value=np.nan
 ) -> np.ndarray:
