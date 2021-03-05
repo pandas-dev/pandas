@@ -21,8 +21,9 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
 
+from pandas.core.frame import DataFrame
+
 from pandas.io.common import get_handle
-from pandas.io.formats.format import DataFrameFormatter
 from pandas.io.xml import (
     get_data_from_filepath,
     preprocess_data,
@@ -93,7 +94,7 @@ class BaseXMLFormatter:
 
     def __init__(
         self,
-        formatter: DataFrameFormatter,
+        frame: DataFrame,
         path_or_buffer: Optional[FilePathOrBuffer] = None,
         index: Optional[bool] = True,
         root_name: Optional[str] = "data",
@@ -110,7 +111,7 @@ class BaseXMLFormatter:
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
-        self.fmt = formatter
+        self.frame = frame
         self.path_or_buffer = path_or_buffer
         self.index = index
         self.root_name = root_name
@@ -127,8 +128,7 @@ class BaseXMLFormatter:
         self.compression = compression
         self.storage_options = storage_options
 
-        self.frame = self.fmt.frame
-        self.orig_cols = self.fmt.frame.columns.tolist()
+        self.orig_cols = self.frame.columns.tolist()
         self.frame_dicts = self.process_dataframe()
 
     def build_tree(self) -> bytes:
@@ -183,7 +183,7 @@ class BaseXMLFormatter:
         including optionally replacing missing values and including indexes.
         """
 
-        df = self.fmt.frame
+        df = self.frame
 
         if self.index:
             df = df.reset_index()
