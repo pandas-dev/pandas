@@ -81,7 +81,7 @@ from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
     validate_putmask,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
@@ -1458,11 +1458,7 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        fill_value = self.fill_value
-        values = self.values
-        mask = np.asarray(isna(values))
-
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+        result = quantile_compat(self.values, qs, interpolation, axis)
 
         return make_block(result, placement=self.mgr_locs, ndim=2)
 
@@ -1835,24 +1831,6 @@ class ExtensionBlock(Block):
             for indices, place in zip(new_values.T, new_placement)
         ]
         return blocks, mask
-
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
-        # asarray needed for Sparse, see GH#24600
-        mask = np.asarray(isna(self.values))
-        mask = np.atleast_2d(mask)
-
-        values, fill_value = self.values._values_for_factorize()
-
-        values = np.atleast_2d(values)
-
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-
-        if not is_sparse(self.dtype):
-            # shape[0] should be 1 as long as EAs are 1D
-            assert result.shape == (1, len(qs)), result.shape
-            result = type(self.values)._from_factorized(result[0], self.values)
-
-        return make_block(result, placement=self.mgr_locs, ndim=2)
 
 
 class HybridMixin:

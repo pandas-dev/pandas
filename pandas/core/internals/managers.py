@@ -521,7 +521,6 @@ class BlockManager(DataManager):
         *,
         qs: Float64Index,
         axis: int = 0,
-        transposed: bool = False,
         interpolation="linear",
     ) -> BlockManager:
         """
@@ -534,8 +533,6 @@ class BlockManager(DataManager):
         axis: reduction axis, default 0
         consolidate: bool, default True. Join together blocks having same
             dtype
-        transposed: bool, default False
-            we are holding transposed data
         interpolation : type of interpolation, default 'linear'
         qs : list of the quantiles to be computed
 
@@ -556,13 +553,6 @@ class BlockManager(DataManager):
             blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
             for blk in self.blocks
         ]
-
-        if transposed:
-            new_axes = new_axes[::-1]
-            blocks = [
-                b.make_block(b.values.T, placement=np.arange(b.shape[1]))
-                for b in blocks
-            ]
 
         return type(self)(blocks, new_axes)
 
