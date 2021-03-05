@@ -69,6 +69,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
@@ -410,7 +411,14 @@ class BaseWindow(SelectionMixin):
             res_values = homogeneous_func(values)
             return getattr(res_values, "T", res_values)
 
-        new_mgr = mgr.apply(hfunc, ignore_failures=True)
+        def hfunc2d(values: ArrayLike) -> ArrayLike:
+            values = self._prep_values(values)
+            return homogeneous_func(values)
+
+        if isinstance(mgr, ArrayManager) and self.axis == 1:
+            new_mgr = mgr.apply_2d(hfunc2d, ignore_failures=True)
+        else:
+            new_mgr = mgr.apply(hfunc, ignore_failures=True)
         out = obj._constructor(new_mgr)
 
         if out.shape[1] == 0 and obj.shape[1] > 0:
@@ -1656,7 +1664,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="rolling",
         aggregation_description="maximum",
         agg_method="max",
@@ -1798,7 +1806,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1847,7 +1855,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1908,7 +1916,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of one period is required for the calculation.\n",
+        "A minimum of one period is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -1938,7 +1946,7 @@ class Rolling(RollingAndExpandingMixin):
         "scipy.stats.kurtosis : Reference SciPy method.\n",
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of four periods is required for the calculation.\n",
+        "A minimum of four periods is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -2106,7 +2114,7 @@ class Rolling(RollingAndExpandingMixin):
         columns on the second level.
 
         In the case of missing elements, only complete pairwise observations
-        will be used.
+        will be used.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),

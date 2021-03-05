@@ -563,39 +563,55 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        if isinstance(data, (BlockManager, ArrayManager)):
-            if index is None and columns is None and dtype is None and copy is False:
-                # GH#33357 fastpath
-                NDFrame.__init__(self, data)
-                return
+        # first check if a Manager is passed without any other arguments
+        # -> use fastpath (without checking Manager type)
+        if (
+            index is None
+            and columns is None
+            and dtype is None
+            and copy is False
+            and isinstance(data, (BlockManager, ArrayManager))
+        ):
+            # GH#33357 fastpath
+            NDFrame.__init__(self, data)
+            return
 
+        manager = get_option("mode.data_manager")
+
+        if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
         elif isinstance(data, dict):
-            mgr = dict_to_mgr(data, index, columns, dtype=dtype)
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = rec_array_to_mgr(data, index, columns, dtype, copy)
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
 
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
+                mgr = ndarray_to_mgr(
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
+                )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 # i.e. numpy structured array
-                mgr = rec_array_to_mgr(data, index, columns, dtype, copy)
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
             elif getattr(data, "name", None) is not None:
                 # i.e. Series/Index with non-None name
-                mgr = dict_to_mgr({data.name: data}, index, columns, dtype=dtype)
+                mgr = dict_to_mgr(
+                    {data.name: data}, index, columns, dtype=dtype, typ=manager
+                )
             else:
-                mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
+                mgr = ndarray_to_mgr(
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
+                )
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
@@ -610,11 +626,15 @@ class DataFrame(NDFrame, OpsMixin):
                     arrays, columns, index = nested_data_to_arrays(
                         data, columns, index, dtype
                     )
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                    mgr = arrays_to_mgr(
+                        arrays, columns, index, columns, dtype=dtype, typ=manager
+                    )
                 else:
-                    mgr = ndarray_to_mgr(data, index, columns, dtype=dtype, copy=copy)
+                    mgr = ndarray_to_mgr(
+                        data, index, columns, dtype=dtype, copy=copy, typ=manager
+                    )
             else:
-                mgr = dict_to_mgr({}, index, columns, dtype=dtype)
+                mgr = dict_to_mgr({}, index, columns, dtype=dtype, typ=manager)
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -631,18 +651,19 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+                mgr = arrays_to_mgr(
+                    values, columns, index, columns, dtype=None, typ=manager
+                )
             else:
                 values = construct_2d_arraylike_from_scalar(
                     data, len(index), len(columns), dtype, copy
                 )
 
                 mgr = ndarray_to_mgr(
-                    values, index, columns, dtype=values.dtype, copy=False
+                    values, index, columns, dtype=values.dtype, copy=False, typ=manager
                 )
 
         # ensure correct Manager type according to settings
-        manager = get_option("mode.data_manager")
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
@@ -1918,12 +1939,11 @@ class DataFrame(NDFrame, OpsMixin):
                         arr_columns_list.append(k)
                         arrays.append(v)
 
-                arrays, arr_columns = reorder_arrays(arrays, arr_columns_list, columns)
+                arr_columns = Index(arr_columns_list)
+                arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns)
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
-            if columns is not None:
-                columns = ensure_index(columns)
             arr_columns = columns
         else:
             arrays, arr_columns = to_arrays(data, columns)
@@ -1933,9 +1953,7 @@ class DataFrame(NDFrame, OpsMixin):
                         arrays[i] = lib.maybe_convert_objects(arr, try_float=True)
 
             arr_columns = ensure_index(arr_columns)
-            if columns is not None:
-                columns = ensure_index(columns)
-            else:
+            if columns is None:
                 columns = arr_columns
 
         if exclude is None:
@@ -1970,7 +1988,8 @@ class DataFrame(NDFrame, OpsMixin):
             arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
-        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns)
+        manager = get_option("mode.data_manager")
+        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns, typ=manager)
 
         return cls(mgr)
 
@@ -2177,6 +2196,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
+        manager = get_option("mode.data_manager")
         mgr = arrays_to_mgr(
             arrays,
             columns,
@@ -2184,6 +2204,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns,
             dtype=dtype,
             verify_integrity=verify_integrity,
+            typ=manager,
         )
         return cls(mgr)
 
@@ -2799,12 +2820,31 @@ class DataFrame(NDFrame, OpsMixin):
         </doc:data>
         """
 
-        formatter = fmt.DataFrameFormatter(
-            self,
-            index=index,
+        from pandas.io.formats.xml import (
+            EtreeXMLFormatter,
+            LxmlXMLFormatter,
         )
 
-        return fmt.DataFrameRenderer(formatter).to_xml(
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
+        TreeBuilder: Union[Type[EtreeXMLFormatter], Type[LxmlXMLFormatter]]
+
+        if parser == "lxml":
+            if lxml is not None:
+                TreeBuilder = LxmlXMLFormatter
+            else:
+                raise ImportError(
+                    "lxml not found, please install or use the etree parser."
+                )
+
+        elif parser == "etree":
+            TreeBuilder = EtreeXMLFormatter
+
+        else:
+            raise ValueError("Values for parser can only be lxml or etree.")
+
+        xml_formatter = TreeBuilder(
+            self,
             path_or_buffer=path_or_buffer,
             index=index,
             root_name=root_name,
@@ -2817,11 +2857,12 @@ class DataFrame(NDFrame, OpsMixin):
             encoding=encoding,
             xml_declaration=xml_declaration,
             pretty_print=pretty_print,
-            parser=parser,
             stylesheet=stylesheet,
             compression=compression,
             storage_options=storage_options,
         )
+
+        return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
     @Substitution(
@@ -7802,12 +7843,11 @@ NaN 12.3   33.0
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
-        bm_axis = self._get_block_manager_axis(axis)
-
-        if bm_axis == 0 and periods != 0:
+        axis = self._get_axis_number(axis)
+        if axis == 1 and periods != 0:
             return self - self.shift(periods, axis=axis)
 
-        new_data = self._mgr.diff(n=periods, axis=bm_axis)
+        new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
@@ -9154,6 +9194,7 @@ NaN 12.3   33.0
         **kwds,
     ):
 
+        min_count = kwds.get("min_count", 0)
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
@@ -9198,7 +9239,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None or axis == 0:
+        if (numeric_only is not None or axis == 0) and min_count == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -9215,7 +9256,7 @@ NaN 12.3   33.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, indexer = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
@@ -9243,14 +9284,15 @@ NaN 12.3   33.0
             with np.errstate(all="ignore"):
                 result = func(values)
 
-        if filter_type == "bool" and notna(result).all():
-            result = result.astype(np.bool_)
-        elif filter_type is None and is_object_dtype(result.dtype):
-            try:
-                result = result.astype(np.float64)
-            except (ValueError, TypeError):
-                # try to coerce to the original dtypes item by item if we can
-                pass
+        if hasattr(result, "dtype"):
+            if filter_type == "bool" and notna(result).all():
+                result = result.astype(np.bool_)
+            elif filter_type is None and is_object_dtype(result.dtype):
+                try:
+                    result = result.astype(np.float64)
+                except (ValueError, TypeError):
+                    # try to coerce to the original dtypes item by item if we can
+                    pass
 
         result = self._constructor_sliced(result, index=labels)
         return result
@@ -9638,9 +9680,8 @@ NaN 12.3   33.0
         q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)
-        is_transposed = axis == 1
 
-        if is_transposed:
+        if axis == 1:
             data = data.T
 
         if len(data.columns) == 0:
@@ -9650,15 +9691,9 @@ NaN 12.3   33.0
                 return self._constructor([], index=q, columns=cols)
             return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
 
-        result = data._mgr.quantile(
-            qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
-        )
+        res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
-        result = self._constructor(result)
-
-        if is_transposed:
-            result = result.T
-
+        result = self._constructor(res)
         return result
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)

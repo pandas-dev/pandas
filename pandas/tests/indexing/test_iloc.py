@@ -67,10 +67,6 @@ class TestiLocBaseIndependent:
         frame = DataFrame({0: range(3)}, dtype=object)
 
         cat = Categorical(["alpha", "beta", "gamma"])
-        expected = DataFrame({0: cat})
-        # NB: pending GH#38896, the expected likely should become
-        #  expected= DataFrame({"A": cat.astype(object)})
-        # and should remain a view on the original values
 
         assert frame._mgr.blocks[0]._can_hold_element(cat)
 
@@ -78,22 +74,24 @@ class TestiLocBaseIndependent:
         orig_vals = df.values
         indexer(df)[key, 0] = cat
 
-        overwrite = not isinstance(key, slice)
+        overwrite = isinstance(key, slice) and key == slice(None)
+
+        if overwrite:
+            # TODO: GH#39986 this probably shouldn't behave differently
+            expected = DataFrame({0: cat})
+            assert not np.shares_memory(df.values, orig_vals)
+        else:
+            expected = DataFrame({0: cat}).astype(object)
+            assert np.shares_memory(df.values, orig_vals)
 
         tm.assert_frame_equal(df, expected)
 
-        # TODO: this inconsistency is likely undesired GH#39986
-        if overwrite:
-            # check that we overwrote underlying
-            tm.assert_numpy_array_equal(orig_vals, df.values)
-
-        # but we don't have a view on orig_vals
-        orig_vals[0, 0] = 19
-        assert df.iloc[0, 0] != 19
-
         # check we dont have a view on cat (may be undesired GH#39986)
         df.iloc[0, 0] = "gamma"
-        assert cat[0] != "gamma"
+        if overwrite:
+            assert cat[0] != "gamma"
+        else:
+            assert cat[0] != "gamma"
 
     @pytest.mark.parametrize("box", [pd_array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
@@ -1089,6 +1087,20 @@ class TestILocErrors:
         with pytest.raises(IndexError, match="too many indices for array"):
             # GH#32257 we let numpy do validation, get their exception
             float_frame.iloc[:, :, :] = 1
+
+    def test_iloc_frame_indexer(self):
+        # GH#39004
+        df = DataFrame({"a": [1, 2, 3]})
+        indexer = DataFrame({"a": [True, False, True]})
+        with tm.assert_produces_warning(FutureWarning):
+            df.iloc[indexer] = 1
+
+        msg = (
+            "DataFrame indexer is not allowed for .iloc\n"
+            "Consider using .loc for automatic alignment."
+        )
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[indexer]
 
 
 class TestILocSetItemDuplicateColumns:

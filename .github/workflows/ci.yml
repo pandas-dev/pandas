@@ -150,21 +150,46 @@ jobs:
       uses: ./.github/actions/setup
 
     - name: Run tests
+      env:
+        PANDAS_DATA_MANAGER: array
       run: |
         source activate pandas-dev
-        pytest pandas/tests/frame/methods --array-manager
-        pytest pandas/tests/frame/test_reductions.py --array-manager
-        pytest pandas/tests/reductions/ --array-manager
-        pytest pandas/tests/generic/test_generic.py --array-manager
-        pytest pandas/tests/arithmetic/ --array-manager
-        pytest pandas/tests/groupby/ --array-manager
-        pytest pandas/tests/resample/ --array-manager
-        pytest pandas/tests/reshape/merge --array-manager
+
+        pytest pandas/tests/frame/methods
+        pytest pandas/tests/frame/test_constructors.py
+        pytest pandas/tests/frame/test_*
+        pytest pandas/tests/frame/test_reductions.py
+        pytest pandas/tests/reductions/
+        pytest pandas/tests/generic/test_generic.py
+        pytest pandas/tests/arithmetic/
+        pytest pandas/tests/groupby/
+        pytest pandas/tests/resample/
+        pytest pandas/tests/reshape/merge
+
+        pytest pandas/tests/series/methods
+        pytest pandas/tests/series/test_*
 
         # indexing subset (temporary since other tests don't pass yet)
-        pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean --array-manager
-        pytest pandas/tests/frame/indexing/test_where.py --array-manager
-        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_multi_index --array-manager
-        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_listlike_indexer_duplicate_columns --array-manager
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups --array-manager
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column --array-manager
+        pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean
+        pytest pandas/tests/frame/indexing/test_where.py
+        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_multi_index
+        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_listlike_indexer_duplicate_columns
+        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups
+        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column
+
+        pytest pandas/tests/api/
+        pytest pandas/tests/base/
+        pytest pandas/tests/computation/
+        pytest pandas/tests/config/
+        pytest pandas/tests/dtypes/
+        pytest pandas/tests/generic/
+        pytest pandas/tests/indexes/
+        pytest pandas/tests/libs/
+        pytest pandas/tests/plotting/
+        pytest pandas/tests/scalar/
+        pytest pandas/tests/strings/
+        pytest pandas/tests/tools/
+        pytest pandas/tests/tseries/
+        pytest pandas/tests/tslibs/
+        pytest pandas/tests/util/
+        pytest pandas/tests/window/

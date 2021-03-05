@@ -1904,6 +1904,26 @@ default 'raise'
 # Constructor Helpers
 
 
+def sequence_to_datetimes(
+    data, allow_object: bool = False, require_iso8601: bool = False
+) -> Union[np.ndarray, DatetimeArray]:
+    """
+    Parse/convert the passed data to either DatetimeArray or np.ndarray[object].
+    """
+    result, tz, freq = sequence_to_dt64ns(
+        data,
+        allow_object=allow_object,
+        allow_mixed=True,
+        require_iso8601=require_iso8601,
+    )
+    if result.dtype == object:
+        return result
+
+    dtype = tz_to_dtype(tz)
+    dta = DatetimeArray._simple_new(result, freq=freq, dtype=dtype)
+    return dta
+
+
 def sequence_to_dt64ns(
     data,
     dtype=None,
@@ -1912,6 +1932,10 @@ def sequence_to_dt64ns(
     dayfirst=False,
     yearfirst=False,
     ambiguous="raise",
+    *,
+    allow_object: bool = False,
+    allow_mixed: bool = False,
+    require_iso8601: bool = False,
 ):
     """
     Parameters
@@ -1924,6 +1948,13 @@ def sequence_to_dt64ns(
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
+    allow_object : bool, default False
+        Whether to return an object-dtype ndarray instead of raising if the
+        data contains more than one timezone.
+    allow_mixed : bool, default False
+        Interpret integers as timestamps when datetime objects are also present.
+    require_iso8601 : bool, default False
+        Only consider ISO-8601 formats when parsing strings.
 
     Returns
     -------
@@ -1987,7 +2018,12 @@ def sequence_to_dt64ns(
             # data comes back here as either i8 to denote UTC timestamps
             #  or M8[ns] to denote wall times
             data, inferred_tz = objects_to_datetime64ns(
-                data, dayfirst=dayfirst, yearfirst=yearfirst
+                data,
+                dayfirst=dayfirst,
+                yearfirst=yearfirst,
+                allow_object=allow_object,
+                allow_mixed=allow_mixed,
+                require_iso8601=require_iso8601,
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
@@ -1995,6 +2031,9 @@ def sequence_to_dt64ns(
                 data = data.view(DT64NS_DTYPE)
             elif inferred_tz:
                 tz = inferred_tz
+            elif allow_object and data.dtype == object:
+                # We encountered mixed-timezones.
+                return data, None, None
 
         data_dtype = data.dtype
 
@@ -2051,8 +2090,9 @@ def objects_to_datetime64ns(
     yearfirst,
     utc=False,
     errors="raise",
-    require_iso8601=False,
-    allow_object=False,
+    require_iso8601: bool = False,
+    allow_object: bool = False,
+    allow_mixed: bool = False,
 ):
     """
     Convert data to array of timestamps.
@@ -2069,6 +2109,8 @@ def objects_to_datetime64ns(
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
+    allow_mixed : bool, default False
+        Interpret integers as timestamps when datetime objects are also present.
 
     Returns
     -------
@@ -2097,6 +2139,7 @@ def objects_to_datetime64ns(
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
+            allow_mixed=allow_mixed,
         )
         result = result.reshape(data.shape, order=order)
     except ValueError as err:
@@ -2133,7 +2176,7 @@ def objects_to_datetime64ns(
         raise TypeError(result)
 
 
-def maybe_convert_dtype(data, copy):
+def maybe_convert_dtype(data, copy: bool):
     """
     Convert data based on dtype conventions, issuing deprecation warnings
     or errors where appropriate.

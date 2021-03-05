@@ -21,8 +21,9 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
 
+from pandas.core.frame import DataFrame
+
 from pandas.io.common import get_handle
-from pandas.io.formats.format import DataFrameFormatter
 from pandas.io.xml import (
     get_data_from_filepath,
     preprocess_data,
@@ -93,7 +94,7 @@ class BaseXMLFormatter:
 
     def __init__(
         self,
-        formatter: DataFrameFormatter,
+        frame: DataFrame,
         path_or_buffer: Optional[FilePathOrBuffer] = None,
         index: Optional[bool] = True,
         root_name: Optional[str] = "data",
@@ -110,7 +111,7 @@ class BaseXMLFormatter:
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
-        self.fmt = formatter
+        self.frame = frame
         self.path_or_buffer = path_or_buffer
         self.index = index
         self.root_name = root_name
@@ -127,8 +128,7 @@ class BaseXMLFormatter:
         self.compression = compression
         self.storage_options = storage_options
 
-        self.frame = self.fmt.frame
-        self.orig_cols = self.fmt.frame.columns.tolist()
+        self.orig_cols = self.frame.columns.tolist()
         self.frame_dicts = self.process_dataframe()
 
     def build_tree(self) -> bytes:
@@ -183,7 +183,7 @@ class BaseXMLFormatter:
         including optionally replacing missing values and including indexes.
         """
 
-        df = self.fmt.frame
+        df = self.frame
 
         if self.index:
             df = df.reset_index()
@@ -324,7 +324,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         if self.pretty_print:
             self.out_xml = self.prettify_tree()
 
-        if not self.xml_declaration:
+        if self.xml_declaration:
+            self.out_xml = self.add_declaration()
+        else:
             self.out_xml = self.remove_declaration()
 
         if self.stylesheet is not None:
@@ -415,6 +417,23 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         dom = parseString(self.out_xml)
 
         return dom.toprettyxml(indent="  ", encoding=self.encoding)
+
+    def add_declaration(self) -> bytes:
+        """
+        Add xml declaration.
+
+        This method will add xml declaration of working tree. Currently,
+        xml_declaration is supported in etree starting in Python 3.8.
+        """
+        decl = f'<?xml version="1.0" encoding="{self.encoding}"?>\n'
+
+        doc = (
+            self.out_xml
+            if self.out_xml.startswith(b"<?xml")
+            else decl.encode(self.encoding) + self.out_xml
+        )
+
+        return doc
 
     def remove_declaration(self) -> bytes:
         """

@@ -108,10 +108,7 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-)
+from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -1151,18 +1148,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  in the operation.  We un-split here.
             result = result._consolidate()
             assert isinstance(result, (Series, DataFrame))  # for mypy
+            # unwrap DataFrame/Series to get array
             mgr = result._mgr
-            assert isinstance(mgr, BlockManager)
-
-            # unwrap DataFrame to get array
-            if len(mgr.blocks) != 1:
+            arrays = mgr.arrays
+            if len(arrays) != 1:
                 # We've split an object block! Everything we've assumed
                 # about a single block input returning a single block output
                 # is a lie. See eg GH-39329
                 return mgr.as_array()
             else:
-                result = mgr.blocks[0].values
-                return result
+                # We are a single block from a BlockManager
+                # or one array from SingleArrayManager
+                return arrays[0]
 
         def array_func(values: ArrayLike) -> ArrayLike:
 
