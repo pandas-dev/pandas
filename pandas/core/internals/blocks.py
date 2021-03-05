@@ -2186,29 +2186,28 @@ class ObjectBlock(Block):
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
 
-        # operate column-by-column
-        def f(mask, val, idx):
-            shape = val.shape
-            values = soft_convert_objects(
-                val.ravel(),
+        if self.ndim == 1 or self.shape[0] == 1:
+            # no need to operate column-wise
+            res_values = soft_convert_objects(
+                self.values.ravel(),
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
                 copy=copy,
             )
-            if isinstance(values, np.ndarray):
-                # TODO(EA2D): allow EA once reshape is supported
-                values = values.reshape(shape)
+            res_values = ensure_block_shape(res_values, self.ndim)
+            return [self.make_block(res_values)]
 
-            return values
-
-        if self.ndim == 2:
-            blocks = self.split_and_operate(None, f, False)
         else:
-            values = f(None, self.values.ravel(), None)
-            blocks = [self.make_block(values)]
-
-        return blocks
+            # operate column-wise
+            res_blocks = []
+            nbs = self._split()
+            for nb in nbs:
+                rbs = nb.convert(
+                    copy=copy, datetime=datetime, numeric=numeric, timedelta=timedelta
+                )
+                res_blocks.extend(rbs)
+            return res_blocks
 
     def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
 
