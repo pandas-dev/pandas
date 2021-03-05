@@ -1101,7 +1101,7 @@ class Styler:
         This method is deprecated see `Styler.format`.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.format`",
+            "this method is deprecated in favour of `Styler.format(precision=..)`",
             FutureWarning,
             stacklevel=2,
         )
