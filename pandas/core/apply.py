@@ -15,6 +15,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -267,6 +268,7 @@ class Apply(metaclass=abc.ABCMeta):
         func = self.normalize_dictlike_arg("transform", obj, func)
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
+        failed_names = []
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             try:
@@ -277,10 +279,20 @@ class Apply(metaclass=abc.ABCMeta):
                     "No transform functions were provided",
                 }:
                     raise err
-
+                else:
+                    failed_names.append(name)
         # combine results
         if not results:
             raise ValueError("Transform function failed")
+        if len(failed_names) > 0:
+            warnings.warn(
+                f"{failed_names} did not transform successfully. "
+                f"Allowing for partial failure is deprecated, this will raise "
+                f"a ValueError in a future version of pandas."
+                f"Drop these columns/ops to avoid this warning.",
+                FutureWarning,
+                stacklevel=4,
+            )
         return concat(results, axis=1)
 
     def transform_str_or_callable(self, func) -> FrameOrSeriesUnion:
