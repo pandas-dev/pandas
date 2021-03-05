@@ -34,14 +34,13 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_obj,
     is_bool_dtype,
     is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_numeric_dtype,
     is_object_dtype,
-    is_strict_ea,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -131,10 +130,6 @@ class ArrayManager(DataManager):
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
 
-        for i, arr in enumerate(arrays):
-            if is_datetime64tz_dtype(arr.dtype) and arr.ndim == 2:
-                assert arr.shape[0] == 1
-                arrays[i] = arr[0]
         self.arrays = arrays
 
         if verify_integrity:
@@ -479,9 +474,9 @@ class ArrayManager(DataManager):
             if isinstance(applied, list):
                 applied = applied[0]
             arr = applied.values
-            if self.ndim == 2:
-                if isinstance(arr, np.ndarray):
-                    arr = arr[0, :]
+            if self.ndim == 2 and arr.ndim == 2:
+                # 2D for np.ndarray or DatetimeArray/TimedeltaArray
+                arr = arr[0, :]
             result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)
@@ -495,7 +490,12 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        arrs = [x if is_strict_ea(x) else x.reshape(1, -1) for x in self.arrays]
+        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]"
+        #  has no attribute "reshape"
+        arrs = [
+            x if is_1d_only_ea_obj(x) else x.reshape(1, -1)  # type:ignore[union-attr]
+            for x in self.arrays
+        ]
         assert axis == 1
         new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
         for i, arr in enumerate(new_arrs):

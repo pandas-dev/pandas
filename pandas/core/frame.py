@@ -105,12 +105,13 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     infer_dtype_from_object,
+    is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_bool_dtype,
     is_dataclass,
     is_datetime64_any_dtype,
     is_dict_like,
     is_dtype_equal,
-    is_ea_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -122,7 +123,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    is_strict_ea,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
@@ -785,7 +785,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         dtype = blocks[0].dtype
         # TODO(EA2D) special case would be unnecessary with 2D EAs
-        return not is_ea_dtype(dtype)
+        return not is_1d_only_ea_dtype(dtype)
 
     @property
     def _values_compat(self) -> Union[np.ndarray, DatetimeArray, TimedeltaArray]:
@@ -9266,7 +9266,9 @@ NaN 12.3   33.0
 
         def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
-                if not is_strict_ea(values) and not isinstance(self._mgr, ArrayManager):
+                if not is_1d_only_ea_obj(values) and not isinstance(
+                    self._mgr, ArrayManager
+                ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:

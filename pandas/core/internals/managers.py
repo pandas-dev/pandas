@@ -38,9 +38,9 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
+    is_1d_only_ea_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_ea_dtype,
     is_extension_array_dtype,
     is_list_like,
 )
@@ -1089,7 +1089,7 @@ class BlockManager(DataManager):
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
-        value_is_extension_type = is_ea_dtype(value)
+        value_is_extension_type = is_1d_only_ea_dtype(value)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:

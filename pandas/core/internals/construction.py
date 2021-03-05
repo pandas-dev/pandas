@@ -37,9 +37,9 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_ea_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
@@ -241,7 +241,7 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    if is_ea_dtype(values) or is_extension_array_dtype(dtype):
+    if is_1d_only_ea_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -256,7 +256,7 @@ def ndarray_to_mgr(
 
         return arrays_to_mgr(values, columns, index, columns, dtype=dtype, typ=typ)
 
-    if is_extension_array_dtype(values) and not is_ea_dtype(values):
+    if is_extension_array_dtype(values) and not is_1d_only_ea_dtype(values):
         # i.e. Datetime64TZ
         values = extract_array(values, extract_numpy=True)
         if copy:

@@ -25,12 +25,12 @@ from pandas.core.dtypes.cast import (
     find_common_type,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_ea_dtype,
     is_extension_array_dtype,
     is_sparse,
-    is_strict_ea,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import (
@@ -141,7 +141,7 @@ def concatenate_managers(
                 else:
                     values = concat_compat(vals)
 
-                if not is_strict_ea(values) and blk.ndim == 2 and values.ndim == 1:
+                if not is_1d_only_ea_obj(values) and blk.ndim == 2 and values.ndim == 1:
                     values = values.reshape(1, -1)
 
             if blk.values.dtype == values.dtype:
@@ -343,7 +343,7 @@ class JoinUnit:
                     return DatetimeArray(i8values, dtype=empty_dtype)
                 elif is_extension_array_dtype(blk_dtype):
                     pass
-                elif is_ea_dtype(empty_dtype):
+                elif is_1d_only_ea_dtype(empty_dtype):
                     cls = empty_dtype.construct_array_type()
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
@@ -420,16 +420,16 @@ def _concatenate_join_units(
             else:
                 concat_values = concat_values.copy()
 
-    elif any(is_strict_ea(t) for t in to_concat):
+    elif any(is_1d_only_ea_obj(t) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
         # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-        to_concat = [t if is_strict_ea(t) else t[0, :] for t in to_concat]
+        to_concat = [t if is_1d_only_ea_obj(t) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
         # TODO: what if we have dt64tz blocks with more than 1 column?
 
-        if concat_values.ndim < ndim and not is_strict_ea(concat_values):
+        if concat_values.ndim < ndim and not is_1d_only_ea_obj(concat_values):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
             # special case DatetimeArray, which *is* an EA, but is put in a

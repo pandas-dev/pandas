@@ -1495,7 +1495,7 @@ def is_extension_type(arr) -> bool:
     return False
 
 
-def is_strict_ea(obj):
+def is_1d_only_ea_obj(obj) -> bool:
     """
     ExtensionArray that does not support 2D, or more specifically that does
     not use HybridBlock.
@@ -1511,7 +1511,7 @@ def is_strict_ea(obj):
     )
 
 
-def is_ea_dtype(dtype) -> bool:
+def is_1d_only_ea_dtype(dtype) -> bool:
     """
     Analogue to is_extension_array_dtype but excluding DatetimeTZDtype.
     """

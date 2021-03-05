@@ -44,14 +44,14 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
+    is_1d_only_ea_obj,
     is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_ea_dtype,
     is_extension_array_dtype,
     is_list_like,
     is_sparse,
-    is_strict_ea,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -463,7 +463,7 @@ class Block(PandasObject):
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
-                if not is_strict_ea(result):
+                if not is_1d_only_ea_obj(result):
                     vals = result[i : i + 1]
                 else:
                     vals = result[i]
@@ -2372,7 +2372,7 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     """
 
     if values.ndim < ndim:
-        if not is_ea_dtype(values.dtype):
+        if not is_1d_only_ea_dtype(values.dtype):
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.

@@ -10,8 +10,6 @@ from typing import (
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -663,7 +661,6 @@ class TestDataFrameReplace:
         expected = DataFrame({"a": ["paren", "else"]})
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_replace(self, datetime_frame):
         datetime_frame["A"][:5] = np.nan
         datetime_frame["A"][-5:] = np.nan
@@ -1027,7 +1024,6 @@ class TestDataFrameReplace:
             ),
         ],
     )
-    @td.skip_array_manager_not_yet_implemented
     def test_replace_dtypes(self, frame, to_replace, value, expected):
         result = getattr(frame, "replace")(to_replace, value)
         tm.assert_frame_equal(result, expected)
@@ -1496,7 +1492,6 @@ class TestDataFrameReplace:
             np.float64(1),
         ],
     )
-    @td.skip_array_manager_not_yet_implemented
     def test_replace_replacer_dtype(self, replacer):
         # GH26632
         df = DataFrame(["a"])
