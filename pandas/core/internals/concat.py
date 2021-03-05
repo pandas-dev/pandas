@@ -42,7 +42,7 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import make_block
+from pandas.core.internals.blocks import new_block
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
@@ -144,10 +144,10 @@ def concatenate_managers(
                 # Fast-path
                 b = blk.make_block_same_class(values, placement=placement)
             else:
-                b = make_block(values, placement=placement, ndim=blk.ndim)
+                b = new_block(values, placement=placement, ndim=blk.ndim)
         else:
             new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
-            b = make_block(new_values, placement=placement, ndim=len(axes))
+            b = new_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
     return BlockManager(blocks, axes)

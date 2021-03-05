@@ -1,3 +1,4 @@
+from pandas.core.internals.api import make_block  # pseudo-public version
 from pandas.core.internals.array_manager import (
     ArrayManager,
     SingleArrayManager,
@@ -16,7 +17,6 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     NumericBlock,
     ObjectBlock,
     TimeDeltaBlock,
-    make_block,
 )
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
