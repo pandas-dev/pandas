@@ -2820,12 +2820,31 @@ class DataFrame(NDFrame, OpsMixin):
         </doc:data>
         """
 
-        formatter = fmt.DataFrameFormatter(
-            self,
-            index=index,
+        from pandas.io.formats.xml import (
+            EtreeXMLFormatter,
+            LxmlXMLFormatter,
         )
 
-        return fmt.DataFrameRenderer(formatter).to_xml(
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
+        TreeBuilder: Union[Type[EtreeXMLFormatter], Type[LxmlXMLFormatter]]
+
+        if parser == "lxml":
+            if lxml is not None:
+                TreeBuilder = LxmlXMLFormatter
+            else:
+                raise ImportError(
+                    "lxml not found, please install or use the etree parser."
+                )
+
+        elif parser == "etree":
+            TreeBuilder = EtreeXMLFormatter
+
+        else:
+            raise ValueError("Values for parser can only be lxml or etree.")
+
+        xml_formatter = TreeBuilder(
+            self,
             path_or_buffer=path_or_buffer,
             index=index,
             root_name=root_name,
@@ -2838,11 +2857,12 @@ class DataFrame(NDFrame, OpsMixin):
             encoding=encoding,
             xml_declaration=xml_declaration,
             pretty_print=pretty_print,
-            parser=parser,
             stylesheet=stylesheet,
             compression=compression,
             storage_options=storage_options,
         )
+
+        return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
     @Substitution(
