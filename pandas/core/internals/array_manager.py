@@ -85,7 +85,7 @@ from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
 )
-from pandas.core.internals.blocks import make_block
+from pandas.core.internals.blocks import new_block
 
 if TYPE_CHECKING:
     from pandas import Float64Index
@@ -466,9 +466,9 @@ class ArrayManager(DataManager):
             if self.ndim == 2:
                 if isinstance(arr, np.ndarray):
                     arr = np.atleast_2d(arr)
-                block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
+                block = new_block(arr, placement=slice(0, 1, 1), ndim=2)
             else:
-                block = make_block(arr, placement=slice(0, len(self), 1), ndim=1)
+                block = new_block(arr, placement=slice(0, len(self), 1), ndim=1)
 
             applied = getattr(block, f)(**kwargs)
             if isinstance(applied, list):
