@@ -177,6 +177,21 @@ class BlockManager(DataManager):
         self._blklocs = None
 
     @classmethod
+    def _simple_new(cls, blocks: Tuple[Block], axes: List[Index]):
+        """
+        Fastpath constructor; does NO validation.
+        """
+        obj = cls.__new__(cls)
+        obj.axes = axes
+        obj.blocks = blocks
+
+        # Populate known_consolidate, blknos, and blklocs lazily
+        obj._known_consolidated = False
+        obj._blknos = None
+        obj._blklocs = None
+        return obj
+
+    @classmethod
     def from_blocks(cls, blocks: List[Block], axes: List[Index]):
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
@@ -799,8 +814,7 @@ class BlockManager(DataManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        bm = type(self)(new_blocks, new_axes, verify_integrity=False)
-        return bm
+        return type(self)._simple_new(tuple(new_blocks), new_axes)
 
     @property
     def nblocks(self) -> int:
