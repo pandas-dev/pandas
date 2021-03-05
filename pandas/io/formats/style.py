@@ -1332,7 +1332,7 @@ class Styler:
         This method is deprecated. See `Styler.format()`
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.format`",
+            "this method is deprecated in favour of `Styler.format(na_rep=..)`",
             FutureWarning,
             stacklevel=2,
         )
