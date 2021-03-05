@@ -3717,12 +3717,7 @@ class MultiIndex(Index):
                 # must insert at end otherwise you have to recompute all the
                 # other codes
                 lev_loc = len(level)
-                try:
-                    level = level.insert(lev_loc, k)
-                except TypeError:
-                    # TODO: Should this be done inside insert?
-                    # TODO: smarter casting rules?
-                    level = level.astype(object).insert(lev_loc, k)
+                level = level.insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 

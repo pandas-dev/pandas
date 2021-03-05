@@ -14,86 +14,67 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    notna,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 from pandas.tests.frame.common import zip_frames
-
-
-@pytest.fixture
-def int_frame_const_col():
-    """
-    Fixture for DataFrame of ints which are constant per column
-
-    Columns are ['A', 'B', 'C'], with values (per column): [1, 2, 3]
-    """
-    df = DataFrame(
-        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
-        columns=["A", "B", "C"],
-    )
-    return df
 
 
 def test_apply(float_frame):
     with np.errstate(all="ignore"):
         # ufunc
-        applied = float_frame.apply(np.sqrt)
-        tm.assert_series_equal(np.sqrt(float_frame["A"]), applied["A"])
+        result = np.sqrt(float_frame["A"])
+        expected = float_frame.apply(np.sqrt)["A"]
+        tm.assert_series_equal(result, expected)
 
         # aggregator
-        applied = float_frame.apply(np.mean)
-        assert applied["A"] == np.mean(float_frame["A"])
+        result = float_frame.apply(np.mean)["A"]
+        expected = np.mean(float_frame["A"])
+        assert result == expected
 
         d = float_frame.index[0]
-        applied = float_frame.apply(np.mean, axis=1)
-        assert applied[d] == np.mean(float_frame.xs(d))
-        assert applied.index is float_frame.index  # want this
-
-    # invalid axis
-    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
-    msg = "No axis named 2 for object type DataFrame"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: x, 2)
+        result = float_frame.apply(np.mean, axis=1)
+        expected = np.mean(float_frame.xs(d))
+        assert result[d] == expected
+        assert result.index is float_frame.index
 
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
-    df = df.apply(lambda ts: ts.astype("category"))
+    result = df.apply(lambda ts: ts.astype("category"))
 
-    assert df.shape == (4, 2)
-    assert isinstance(df["c0"].dtype, CategoricalDtype)
-    assert isinstance(df["c1"].dtype, CategoricalDtype)
+    assert result.shape == (4, 2)
+    assert isinstance(result["c0"].dtype, CategoricalDtype)
+    assert isinstance(result["c1"].dtype, CategoricalDtype)
 
 
 def test_apply_axis1_with_ea():
     # GH#36785
-    df = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
-    result = df.apply(lambda x: x, axis=1)
-    tm.assert_frame_equal(result, df)
+    expected = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
+    result = expected.apply(lambda x: x, axis=1)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_mixed_datetimelike():
     # mixed datetimelike
     # GH 7778
-    df = DataFrame(
+    expected = DataFrame(
         {
             "A": date_range("20130101", periods=3),
             "B": pd.to_timedelta(np.arange(3), unit="s"),
         }
     )
-    result = df.apply(lambda x: x, axis=1)
-    tm.assert_frame_equal(result, df)
+    result = expected.apply(lambda x: x, axis=1)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_empty(float_frame):
     # empty
     empty_frame = DataFrame()
 
-    applied = empty_frame.apply(np.sqrt)
-    assert applied.empty
+    result = empty_frame.apply(np.sqrt)
+    assert result.empty
 
-    applied = empty_frame.apply(np.mean)
-    assert applied.empty
+    result = empty_frame.apply(np.mean)
+    assert result.empty
 
     no_rows = float_frame[:0]
     result = no_rows.apply(lambda x: x.mean())
@@ -108,7 +89,7 @@ def test_apply_empty(float_frame):
     # GH 2476
     expected = DataFrame(index=["a"])
     result = expected.apply(lambda x: x["a"], axis=1)
-    tm.assert_frame_equal(expected, result)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_with_reduce_empty():
@@ -192,17 +173,6 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "how, args", [("pct_change", ()), ("nsmallest", (1, ["a", "b"])), ("tail", 1)]
-)
-def test_apply_str_axis_1_raises(how, args):
-    # GH 39211 - some ops don't support axis=1
-    df = DataFrame({"a": [1, 2], "b": [3, 4]})
-    msg = f"Operation {how} does not support axis=1"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(how, axis=1, args=args)
-
-
 def test_apply_broadcast(float_frame, int_frame_const_col):
 
     # scalars
@@ -256,27 +226,6 @@ def test_apply_broadcast(float_frame, int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_broadcast_error(int_frame_const_col):
-    df = int_frame_const_col
-
-    # > 1 ndim
-    msg = "too many dims to broadcast"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(
-            lambda x: np.array([1, 2]).reshape(-1, 2),
-            axis=1,
-            result_type="broadcast",
-        )
-
-    # cannot broadcast
-    msg = "cannot broadcast result"
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: [1, 2], axis=1, result_type="broadcast")
-
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: Series([1, 2]), axis=1, result_type="broadcast")
-
-
 def test_apply_raw(float_frame, mixed_type_frame):
     def _assert_raw(x):
         assert isinstance(x, np.ndarray)
@@ -285,14 +234,13 @@ def test_apply_raw(float_frame, mixed_type_frame):
     float_frame.apply(_assert_raw, raw=True)
     float_frame.apply(_assert_raw, axis=1, raw=True)
 
-    result0 = float_frame.apply(np.mean, raw=True)
-    result1 = float_frame.apply(np.mean, axis=1, raw=True)
+    result = float_frame.apply(np.mean, raw=True)
+    expected = float_frame.apply(lambda x: x.values.mean())
+    tm.assert_series_equal(result, expected)
 
-    expected0 = float_frame.apply(lambda x: x.values.mean())
-    expected1 = float_frame.apply(lambda x: x.values.mean(), axis=1)
-
-    tm.assert_series_equal(result0, expected0)
-    tm.assert_series_equal(result1, expected1)
+    result = float_frame.apply(np.mean, axis=1, raw=True)
+    expected = float_frame.apply(lambda x: x.values.mean(), axis=1)
+    tm.assert_series_equal(result, expected)
 
     # no reduction
     result = float_frame.apply(lambda x: x * 2, raw=True)
@@ -306,8 +254,9 @@ def test_apply_raw(float_frame, mixed_type_frame):
 
 def test_apply_axis1(float_frame):
     d = float_frame.index[0]
-    tapplied = float_frame.apply(np.mean, axis=1)
-    assert tapplied[d] == np.mean(float_frame.xs(d))
+    result = float_frame.apply(np.mean, axis=1)[d]
+    expected = np.mean(float_frame.xs(d))
+    assert result == expected
 
 
 def test_apply_mixed_dtype_corner():
@@ -401,92 +350,25 @@ def test_apply_reduce_to_dict():
     # GH 25196 37544
     data = DataFrame([[1, 2], [3, 4]], columns=["c0", "c1"], index=["i0", "i1"])
 
-    result0 = data.apply(dict, axis=0)
-    expected0 = Series([{"i0": 1, "i1": 3}, {"i0": 2, "i1": 4}], index=data.columns)
-    tm.assert_series_equal(result0, expected0)
+    result = data.apply(dict, axis=0)
+    expected = Series([{"i0": 1, "i1": 3}, {"i0": 2, "i1": 4}], index=data.columns)
+    tm.assert_series_equal(result, expected)
 
-    result1 = data.apply(dict, axis=1)
-    expected1 = Series([{"c0": 1, "c1": 2}, {"c0": 3, "c1": 4}], index=data.index)
-    tm.assert_series_equal(result1, expected1)
+    result = data.apply(dict, axis=1)
+    expected = Series([{"c0": 1, "c1": 2}, {"c0": 3, "c1": 4}], index=data.index)
+    tm.assert_series_equal(result, expected)
 
 
 def test_apply_differently_indexed():
     df = DataFrame(np.random.randn(20, 10))
 
-    result0 = df.apply(Series.describe, axis=0)
-    expected0 = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
-    tm.assert_frame_equal(result0, expected0)
+    result = df.apply(Series.describe, axis=0)
+    expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
+    tm.assert_frame_equal(result, expected)
 
-    result1 = df.apply(Series.describe, axis=1)
-    expected1 = DataFrame(
-        {i: v.describe() for i, v in df.T.items()}, columns=df.index
-    ).T
-    tm.assert_frame_equal(result1, expected1)
-
-
-def test_apply_modify_traceback():
-    data = DataFrame(
-        {
-            "A": [
-                "foo",
-                "foo",
-                "foo",
-                "foo",
-                "bar",
-                "bar",
-                "bar",
-                "bar",
-                "foo",
-                "foo",
-                "foo",
-            ],
-            "B": [
-                "one",
-                "one",
-                "one",
-                "two",
-                "one",
-                "one",
-                "one",
-                "two",
-                "two",
-                "two",
-                "one",
-            ],
-            "C": [
-                "dull",
-                "dull",
-                "shiny",
-                "dull",
-                "dull",
-                "shiny",
-                "shiny",
-                "dull",
-                "shiny",
-                "shiny",
-                "shiny",
-            ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
-        }
-    )
-
-    data.loc[4, "C"] = np.nan
-
-    def transform(row):
-        if row["C"].startswith("shin") and row["A"] == "foo":
-            row["D"] = 7
-        return row
-
-    def transform2(row):
-        if notna(row["C"]) and row["C"].startswith("shin") and row["A"] == "foo":
-            row["D"] = 7
-        return row
-
-    msg = "'float' object has no attribute 'startswith'"
-    with pytest.raises(AttributeError, match=msg):
-        data.apply(transform, axis=1)
+    result = df.apply(Series.describe, axis=1)
+    expected = DataFrame({i: v.describe() for i, v in df.T.items()}, columns=df.index).T
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_bug():
@@ -525,7 +407,7 @@ def test_apply_bug():
 
 
 def test_apply_convert_objects():
-    data = DataFrame(
+    expected = DataFrame(
         {
             "A": [
                 "foo",
@@ -572,8 +454,8 @@ def test_apply_convert_objects():
         }
     )
 
-    result = data.apply(lambda x: x, axis=1)
-    tm.assert_frame_equal(result._convert(datetime=True), data)
+    result = expected.apply(lambda x: x, axis=1)._convert(datetime=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_attach_name(float_frame):
@@ -635,17 +517,17 @@ def test_applymap(float_frame):
     float_frame.applymap(type)
 
     # GH 465: function returning tuples
-    result = float_frame.applymap(lambda x: (x, x))
-    assert isinstance(result["A"][0], tuple)
+    result = float_frame.applymap(lambda x: (x, x))["A"][0]
+    assert isinstance(result, tuple)
 
     # GH 2909: object conversion to float in constructor?
     df = DataFrame(data=[1, "a"])
-    result = df.applymap(lambda x: x)
-    assert result.dtypes[0] == object
+    result = df.applymap(lambda x: x).dtypes[0]
+    assert result == object
 
     df = DataFrame(data=[1.0, "a"])
-    result = df.applymap(lambda x: x)
-    assert result.dtypes[0] == object
+    result = df.applymap(lambda x: x).dtypes[0]
+    assert result == object
 
     # GH 2786
     df = DataFrame(np.random.random((3, 4)))
@@ -672,10 +554,10 @@ def test_applymap(float_frame):
         DataFrame(index=list("ABC")),
         DataFrame({"A": [], "B": [], "C": []}),
     ]
-    for frame in empty_frames:
+    for expected in empty_frames:
         for func in [round, lambda x: x]:
-            result = frame.applymap(func)
-            tm.assert_frame_equal(result, frame)
+            result = expected.applymap(func)
+            tm.assert_frame_equal(result, expected)
 
 
 def test_applymap_na_ignore(float_frame):
@@ -690,9 +572,6 @@ def test_applymap_na_ignore(float_frame):
     strlen_frame_with_na = strlen_frame.copy()
     strlen_frame_with_na[mask] = pd.NA
     tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
-
-    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
-        float_frame_with_na.applymap(lambda x: len(str(x)), na_action="abc")
 
 
 def test_applymap_box_timestamps():
@@ -743,7 +622,8 @@ def test_frame_apply_dont_convert_datetime64():
     df = df.applymap(lambda x: x + BDay())
     df = df.applymap(lambda x: x + BDay())
 
-    assert df.x1.dtype == "M8[ns]"
+    result = df.x1.dtype
+    assert result == "M8[ns]"
 
 
 def test_apply_non_numpy_dtype():
@@ -787,11 +667,13 @@ def test_apply_nested_result_axis_1():
 
 def test_apply_noreduction_tzaware_object():
     # https://github.com/pandas-dev/pandas/issues/31505
-    df = DataFrame({"foo": [Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]")
-    result = df.apply(lambda x: x)
-    tm.assert_frame_equal(result, df)
-    result = df.apply(lambda x: x.copy())
-    tm.assert_frame_equal(result, df)
+    expected = DataFrame(
+        {"foo": [Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
+    )
+    result = expected.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+    result = expected.apply(lambda x: x.copy())
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_function_runs_once():
@@ -885,11 +767,11 @@ def test_infer_row_shape():
     # GH 17437
     # if row shape is changing, infer it
     df = DataFrame(np.random.rand(10, 2))
-    result = df.apply(np.fft.fft, axis=0)
-    assert result.shape == (10, 2)
+    result = df.apply(np.fft.fft, axis=0).shape
+    assert result == (10, 2)
 
-    result = df.apply(np.fft.rfft, axis=0)
-    assert result.shape == (6, 2)
+    result = df.apply(np.fft.rfft, axis=0).shape
+    assert result == (6, 2)
 
 
 def test_with_dictlike_columns():
@@ -1101,19 +983,6 @@ def test_result_type(int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("result_type", ["foo", 1])
-def test_result_type_error(result_type, int_frame_const_col):
-    # allowed result_type
-    df = int_frame_const_col
-
-    msg = (
-        "invalid value for result_type, must be one of "
-        "{None, 'reduce', 'broadcast', 'expand'}"
-    )
-    with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: [1, 2, 3], axis=1, result_type=result_type)
-
-
 @pytest.mark.parametrize(
     "box",
     [lambda x: list(x), lambda x: tuple(x), lambda x: np.array(x, dtype="int64")],
@@ -1168,20 +1037,6 @@ def test_agg_transform(axis, float_frame):
                 [float_frame.index, ["absolute", "sqrt"]]
             )
         tm.assert_frame_equal(result, expected)
-
-
-def test_transform_and_agg_err(axis, float_frame):
-    # cannot both transform and agg
-    msg = "cannot combine transform and aggregation operations"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            float_frame.agg(["max", "sqrt"], axis=axis)
-
-    df = DataFrame({"A": range(5), "B": 5})
-
-    def f():
-        with np.errstate(all="ignore"):
-            df.agg({"A": ["abs", "sum"], "B": ["mean", "max"]}, axis=axis)
 
 
 def test_demo():
@@ -1252,16 +1107,6 @@ def test_agg_multiple_mixed_no_warning():
     # not ['sum', 'min'].
     expected = expected[["D", "C", "B", "A"]]
     tm.assert_frame_equal(result, expected)
-
-
-def test_agg_dict_nested_renaming_depr():
-
-    df = DataFrame({"A": range(5), "B": 5})
-
-    # nested renaming
-    msg = r"nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        df.agg({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
 
 def test_agg_reduce(axis, float_frame):
@@ -1514,19 +1359,6 @@ def test_agg_cython_table_transform(df, func, expected, axis):
 
     result = df.agg(func, axis=axis)
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "df, func, expected",
-    tm.get_cython_table_params(
-        DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
-    ),
-)
-def test_agg_cython_table_raises(df, func, expected, axis):
-    # GH 21224
-    msg = "can't multiply sequence by non-int of type 'str'"
-    with pytest.raises(expected, match=msg):
-        df.agg(func, axis=axis)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
