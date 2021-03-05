@@ -203,7 +203,7 @@ class TestRangeIndex(Numeric):
         idx._data
         assert isinstance(idx._data, np.ndarray)
         assert idx._data is idx._data  # check cached value is reused
-        assert len(idx._cache) == 4
+        assert len(idx._cache) == 1
         expected = np.arange(0, 100, 10, dtype="int64")
         tm.assert_numpy_array_equal(idx._cache["_data"], expected)
 
