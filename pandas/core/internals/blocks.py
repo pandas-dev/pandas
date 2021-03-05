@@ -2150,20 +2150,16 @@ class ObjectBlock(Block):
         """
         assert self.ndim == 2
 
-        values = self.values
-        if len(values) > 1:
-            # split_and_operate expects func with signature (mask, values, inplace)
-            def mask_func(mask, values, inplace):
-                if values.ndim == 1:
-                    values = values.reshape(1, -1)
-                return func(values)
-
-            return self.split_and_operate(
-                None, mask_func, False, ignore_failures=ignore_failures
-            )
+        if self.shape[0] > 1:
+            res_blocks = []
+            nbs = self._split()
+            for nb in nbs:
+                rbs = nb.reduce(func, ignore_failures)
+                res_blocks.extend(rbs)
+            return res_blocks
 
         try:
-            res = func(values)
+            res = func(self.values)
         except TypeError:
             if not ignore_failures:
                 raise
