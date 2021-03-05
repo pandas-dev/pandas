@@ -929,7 +929,7 @@ class Styler:
         Examples
         --------
         >>> def highlight_max(x, color):
-        ...     return np.where(x == np.nanmax(x.to_numpy()), f"color: {color};", None)
+        ...     return np.where(x == np.nanmax(x.values), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2))
         >>> df.style.apply(highlight_max, color='red')
         >>> df.style.apply(highlight_max, color='blue', axis=1)
@@ -1624,10 +1624,9 @@ class Styler:
         self,
         null_color: str = "red",
         subset: Optional[IndexLabel] = None,
-        props: Optional[str] = None,
     ) -> Styler:
         """
-        Highlight missing values with a style.
+        Shade the background ``null_color`` for missing values.
 
         Parameters
         ----------
@@ -1637,124 +1636,79 @@ class Styler:
 
             .. versionadded:: 1.1.0
 
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         self : Styler
-
-        See Also
-        --------
-        Styler.highlight_max: Highlight the maximum with a style.
-        Styler.highlight_min: Highlight the minimum with a style.
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_between: Highlight a defined range with a style.
-
-        Notes
-        -----
-        Uses ``pandas.isna()`` to detect the missing values.
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
-            return np.where(pd.isna(data).to_numpy(), props, "")
+            return np.where(pd.isna(data).values, props, "")
 
-        if props is None:
-            props = f"background-color: {null_color};"
-        return self.apply(f, axis=None, subset=subset, props=props)
+        return self.apply(
+            f, axis=None, subset=subset, props=f"background-color: {null_color};"
+        )
 
     def highlight_max(
         self,
         subset: Optional[IndexLabel] = None,
         color: str = "yellow",
         axis: Optional[Axis] = 0,
-        props: Optional[str] = None,
     ) -> Styler:
         """
-        Highlight the maximum with a style.
+        Highlight the maximum by shading the background.
 
         Parameters
         ----------
         subset : IndexSlice, default None
             A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
-            Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
         self : Styler
-
-        See Also
-        --------
-        Styler.highlight_null: Highlight missing values with a style.
-        Styler.highlight_min: Highlight the minimum with a style.
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_between: Highlight a defined range with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmax(data.to_numpy()), props, "")
+            return np.where(data == np.nanmax(data.values), props, "")
 
-        if props is None:
-            props = f"background-color: {color};"
-        return self.apply(f, axis=axis, subset=subset, props=props)
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
+        )
 
     def highlight_min(
         self,
         subset: Optional[IndexLabel] = None,
         color: str = "yellow",
         axis: Optional[Axis] = 0,
-        props: Optional[str] = None,
     ) -> Styler:
         """
-        Highlight the minimum with a style.
+        Highlight the minimum by shading the background.
 
         Parameters
         ----------
         subset : IndexSlice, default None
             A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
-            Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
         self : Styler
-
-        See Also
-        --------
-        Styler.highlight_null: Highlight missing values with a style.
-        Styler.highlight_max: Highlight the maximum with a style.
-        Styler.highlight_quantile: Highlight values defined by a quantile with a style.
-        Styler.highlight_between: Highlight a defined range with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmin(data.to_numpy()), props, "")
+            return np.where(data == np.nanmin(data.values), props, "")
 
-        if props is None:
-            props = f"background-color: {color};"
-        return self.apply(f, axis=axis, subset=subset, props=props)
+        return self.apply(
+            f, axis=axis, subset=subset, props=f"background-color: {color};"
+        )
 
     def highlight_between(
         self,
