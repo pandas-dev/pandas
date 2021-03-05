@@ -651,18 +651,17 @@ class Block(PandasObject):
         elif dtypes != "infer":
             raise AssertionError("dtypes as dict is not supported yet")
 
-        if self.ndim == 1 or self.shape[0] == 1:
-            new_values = maybe_downcast_to_dtype(self.values, dtype="infer")
-            return [self.make_block(new_values)]
-        else:
-            # operate column-by-column
-            # this is expensive as it splits the blocks items-by-item
-            res_blocks = []
-            nbs = self._split()
-            for nb in nbs:
-                rbs = nb.downcast(dtypes="infer")
-                res_blocks.extend(rbs)
-            return res_blocks
+        return self._downcast_2d()
+
+    @maybe_split
+    def _downcast_2d(self) -> List[Block]:
+        """
+        downcast specialized to 2D case post-validation.
+
+        Refactored to allow use of maybe_split.
+        """
+        new_values = maybe_downcast_to_dtype(self.values, dtype="infer")
+        return [self.make_block(new_values)]
 
     @final
     def astype(self, dtype, copy: bool = False, errors: str = "raise"):
