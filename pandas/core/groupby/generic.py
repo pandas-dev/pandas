@@ -15,7 +15,6 @@ import copy
 from functools import partial
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -25,7 +24,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Sequence,
     Type,
     TypeVar,
     Union,
@@ -43,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
     FrameOrSeriesUnion,
+    Manager,
 )
 from pandas.util._decorators import (
     Appender,
@@ -109,15 +108,11 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import BlockManager
+from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
-
-if TYPE_CHECKING:
-    from pandas.core.internals import Block
-
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -450,13 +445,19 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_applied_output(
-        self, keys: Index, values: Optional[List[Any]], not_indexed_same: bool = False
+        self,
+        data: Series,
+        keys: Index,
+        values: Optional[List[Any]],
+        not_indexed_same: bool = False,
     ) -> FrameOrSeriesUnion:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
 
         Parameters
         ----------
+        data : Series
+            Input data for groupby operation.
         keys : Index
             Keys of groups that Series was grouped by.
         values : Optional[List[Any]]
@@ -471,7 +472,10 @@ class SeriesGroupBy(GroupBy[Series]):
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
-                [], name=self._selection_name, index=keys, dtype=np.float64
+                [],
+                name=self._selection_name,
+                index=self.grouper.result_index,
+                dtype=data.dtype,
             )
         assert values is not None
 
@@ -1071,19 +1075,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ) -> DataFrame:
-        agg_mgr = self._cython_agg_blocks(
+        agg_mgr = self._cython_agg_manager(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
-        return self._wrap_agged_blocks(agg_mgr.blocks, items=agg_mgr.items)
+        return self._wrap_agged_manager(agg_mgr)
 
-    def _cython_agg_blocks(
+    def _cython_agg_manager(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ) -> BlockManager:
+    ) -> Manager:
 
-        data: BlockManager = self._get_data_to_aggregate()
+        data: Manager = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
+
+        using_array_manager = isinstance(data, ArrayManager)
 
         def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
             # see if we can cast the values to the desired dtype
@@ -1098,7 +1104,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
                 # Note this will have result.dtype == dtype from above
 
-            elif isinstance(result, np.ndarray) and result.ndim == 1:
+            elif (
+                not using_array_manager
+                and isinstance(result, np.ndarray)
+                and result.ndim == 1
+            ):
                 # We went through a SeriesGroupByPath and need to reshape
                 # GH#32223 includes case with IntegerArray values
                 result = result.reshape(1, -1)
@@ -1107,7 +1117,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             return result
 
-        def py_fallback(bvalues: ArrayLike) -> ArrayLike:
+        def py_fallback(values: ArrayLike) -> ArrayLike:
             # if self.grouper.aggregate fails, we fall back to a pure-python
             #  solution
 
@@ -1115,11 +1125,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             obj: FrameOrSeriesUnion
 
             # call our grouper again with only this block
-            if isinstance(bvalues, ExtensionArray):
+            if isinstance(values, ExtensionArray) or values.ndim == 1:
                 # TODO(EA2D): special case not needed with 2D EAs
-                obj = Series(bvalues)
+                obj = Series(values)
             else:
-                obj = DataFrame(bvalues.T)
+                # TODO special case not needed with ArrayManager
+                obj = DataFrame(values.T)
                 if obj.shape[1] == 1:
                     # Avoid call to self.values that can occur in DataFrame
                     #  reductions; see GH#28949
@@ -1137,24 +1148,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  in the operation.  We un-split here.
             result = result._consolidate()
             assert isinstance(result, (Series, DataFrame))  # for mypy
+            # unwrap DataFrame/Series to get array
             mgr = result._mgr
-            assert isinstance(mgr, BlockManager)
-
-            # unwrap DataFrame to get array
-            if len(mgr.blocks) != 1:
+            arrays = mgr.arrays
+            if len(arrays) != 1:
                 # We've split an object block! Everything we've assumed
                 # about a single block input returning a single block output
                 # is a lie. See eg GH-39329
                 return mgr.as_array()
             else:
-                result = mgr.blocks[0].values
-                return result
+                # We are a single block from a BlockManager
+                # or one array from SingleArrayManager
+                return arrays[0]
 
-        def blk_func(bvalues: ArrayLike) -> ArrayLike:
+        def array_func(values: ArrayLike) -> ArrayLike:
 
             try:
                 result = self.grouper._cython_operation(
-                    "aggregate", bvalues, how, axis=1, min_count=min_count
+                    "aggregate", values, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -1167,14 +1178,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                result = py_fallback(bvalues)
+                result = py_fallback(values)
 
-            return cast_agg_result(result, bvalues, how)
+            return cast_agg_result(result, values, how)
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
         # NotImplementedError -> "ohlc" with wrong dtype
-        new_mgr = data.apply(blk_func, ignore_failures=True)
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
         if not len(new_mgr):
             raise DataError("No numeric types to aggregate")
@@ -1229,9 +1240,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self.obj._constructor(result, columns=result_columns)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
         if len(keys) == 0:
-            return self.obj._constructor(index=keys)
+            result = self.obj._constructor(
+                index=self.grouper.result_index, columns=data.columns
+            )
+            result = result.astype(data.dtypes.to_dict(), copy=False)
+            return result
 
         # GH12824
         first_not_none = next(com.not_none(*values), None)
@@ -1663,7 +1678,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             return self.obj._constructor(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self) -> BlockManager:
+    def _get_data_to_aggregate(self) -> Manager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
             return obj.T._mgr
@@ -1748,17 +1763,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: Sequence[Block], items: Index) -> DataFrame:
+    def _wrap_agged_manager(self, mgr: Manager) -> DataFrame:
         if not self.as_index:
-            index = np.arange(blocks[0].values.shape[-1])
-            mgr = BlockManager(blocks, axes=[items, index])
+            index = np.arange(mgr.shape[1])
+            mgr.set_axis(1, ibase.Index(index), verify_integrity=False)
             result = self.obj._constructor(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr = BlockManager(blocks, axes=[items, index])
+            mgr.set_axis(1, index, verify_integrity=False)
             result = self.obj._constructor(mgr)
 
         if self.axis == 1:
@@ -1797,6 +1812,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
+        using_array_manager = isinstance(data, ArrayManager)
+
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
             # TODO(2DEA): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
@@ -1806,15 +1823,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            if using_array_manager:
+                # count_level_2d return (1, N) array for single column
+                # -> extract 1D array
+                counted = counted[0, :]
             return counted
 
-        new_mgr = data.apply(hfunc)
+        new_mgr = data.grouped_reduce(hfunc)
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
-        # _wrap_agged_blocks() returns. GH 35028
+        # _wrap_agged_manager() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_blocks(new_mgr.blocks, items=data.items)
+            result = self._wrap_agged_manager(new_mgr)
 
         return self._reindex_output(result, fill_value=0)
 

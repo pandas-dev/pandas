@@ -42,6 +42,12 @@ class TestCategoricalConstructors:
         with tm.assert_produces_warning(FutureWarning):
             Categorical("A", categories=["A", "B"])
 
+    def test_categorical_1d_only(self):
+        # ndim > 1
+        msg = "> 1 ndim Categorical are not supported at this time"
+        with pytest.raises(NotImplementedError, match=msg):
+            Categorical(np.array([list("abcd")]))
+
     def test_validate_ordered(self):
         # see gh-14058
         exp_msg = "'ordered' must either be 'True' or 'False'"

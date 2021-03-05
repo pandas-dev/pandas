@@ -3,6 +3,7 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+from __future__ import annotations
 
 from collections import (
     abc,
@@ -12,6 +13,7 @@ import contextlib
 from functools import partial
 import inspect
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
@@ -49,11 +51,10 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import (  # noqa
-    isna,
-    isnull,
-    notnull,
-)
+from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class SettingWithCopyError(ValueError):
@@ -153,7 +154,7 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float=False):
+def cast_scalar_indexer(val, warn_float: bool = False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
@@ -300,7 +301,7 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line):
+def is_true_slices(line) -> List[bool]:
     """
     Find non-trivial slices in "line": return a list of booleans with same length.
     """
@@ -308,7 +309,7 @@ def is_true_slices(line):
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, line) -> bool:
+def is_full_slice(obj, line: int) -> bool:
     """
     We have a full length slice.
     """
@@ -516,3 +517,16 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
     setattr(obj, attr, value)
     yield obj
     setattr(obj, attr, old_value)
+
+
+def require_length_match(data, index: Index):
+    """
+    Check the length of data matches the length of the index.
+    """
+    if len(data) != len(index):
+        raise ValueError(
+            "Length of values "
+            f"({len(data)}) "
+            "does not match length of index "
+            f"({len(index)})"
+        )
