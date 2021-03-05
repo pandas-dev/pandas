@@ -100,9 +100,8 @@ def test_same_ordering(datapath):
 @pytest.mark.parametrize(
     "flavor",
     [
-        pytest.param("bs4", marks=td.skip_if_no("bs4")),
+        pytest.param("bs4", marks=[td.skip_if_no("bs4"), td.skip_if_no("html5lib")]),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
-        pytest.param("html5lib", marks=td.skip_if_no("html5lib")),
     ],
     scope="class",
 )
