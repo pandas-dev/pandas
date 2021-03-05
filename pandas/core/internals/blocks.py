@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
@@ -29,6 +30,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    F,
     Shape,
     final,
 )
@@ -116,6 +118,28 @@ if TYPE_CHECKING:
         Index,
     )
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+
+
+def maybe_split(meth: F) -> F:
+    """
+    If we have a multi-column block, split and operate block-wise.  Otherwise
+    use the original method.
+    """
+
+    @wraps(meth)
+    def newfunc(self, *args, **kwargs) -> List[Block]:
+
+        if self.ndim == 1 or self.shape[0] == 1:
+            return meth(self, *args, **kwargs)
+        else:
+            # Split and operate column-by-column
+            res_blocks = []
+            for nb in self._split():
+                rbs = meth(nb, *args, **kwargs)
+                res_blocks.extend(rbs)
+            return res_blocks
+
+    return cast(F, newfunc)
 
 
 class Block(PandasObject):
@@ -2144,19 +2168,12 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel("K"))
 
+    @maybe_split
     def reduce(self, func, ignore_failures: bool = False) -> List[Block]:
         """
         For object-dtype, we operate column-wise.
         """
         assert self.ndim == 2
-
-        if self.shape[0] > 1:
-            res_blocks = []
-            nbs = self._split()
-            for nb in nbs:
-                rbs = nb.reduce(func, ignore_failures)
-                res_blocks.extend(rbs)
-            return res_blocks
 
         try:
             res = func(self.values)
@@ -2170,6 +2187,7 @@ class ObjectBlock(Block):
         res = res.reshape(1, -1)
         return [self.make_block_same_class(res)]
 
+    @maybe_split
     def convert(
         self,
         copy: bool = True,
@@ -2181,29 +2199,15 @@ class ObjectBlock(Block):
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
-
-        if self.ndim == 1 or self.shape[0] == 1:
-            # no need to operate column-wise
-            res_values = soft_convert_objects(
-                self.values.ravel(),
-                datetime=datetime,
-                numeric=numeric,
-                timedelta=timedelta,
-                copy=copy,
-            )
-            res_values = ensure_block_shape(res_values, self.ndim)
-            return [self.make_block(res_values)]
-
-        else:
-            # operate column-wise
-            res_blocks = []
-            nbs = self._split()
-            for nb in nbs:
-                rbs = nb.convert(
-                    copy=copy, datetime=datetime, numeric=numeric, timedelta=timedelta
-                )
-                res_blocks.extend(rbs)
-            return res_blocks
+        res_values = soft_convert_objects(
+            self.values.ravel(),
+            datetime=datetime,
+            numeric=numeric,
+            timedelta=timedelta,
+            copy=copy,
+        )
+        res_values = ensure_block_shape(res_values, self.ndim)
+        return [self.make_block(res_values)]
 
     def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
 
