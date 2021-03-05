@@ -80,7 +80,7 @@ from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
     validate_putmask,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
@@ -332,7 +332,7 @@ class Block(PandasObject):
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
-        return make_block(values, placement=placement, ndim=self.ndim)
+        return new_block(values, placement=placement, ndim=self.ndim)
 
     @final
     def make_block_same_class(self, values, placement=None) -> Block:
@@ -1444,7 +1444,7 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement, ndim=2)]
+        blocks = [new_block(new_values, placement=new_placement, ndim=2)]
         return blocks, mask
 
     def quantile(
@@ -1471,13 +1471,9 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        fill_value = self.fill_value
-        values = self.values
-        mask = np.asarray(isna(values))
+        result = quantile_compat(self.values, qs, interpolation, axis)
 
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-
-        return make_block(result, placement=self.mgr_locs, ndim=2)
+        return new_block(result, placement=self.mgr_locs, ndim=2)
 
 
 class ExtensionBlock(Block):
@@ -1847,28 +1843,6 @@ class ExtensionBlock(Block):
             for indices, place in zip(new_values.T, new_placement)
         ]
         return blocks, mask
-
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
-        # asarray needed for Sparse, see GH#24600
-        mask = np.asarray(isna(self.values))
-        mask = np.atleast_2d(mask)
-
-        values, fill_value = self.values._values_for_factorize()
-
-        values = np.atleast_2d(values)
-
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-
-        if not is_sparse(self.dtype):
-            if self.values.ndim == 1:
-                # shape[0] should be 1 as long as EAs are 1D
-                assert result.shape == (1, len(qs)), result.shape
-                result = type(self.values)._from_factorized(result[0], self.values)
-            else:
-                # NDArrayBackedExtensionBlock, e.g. DatetimeTZBlock
-                result = type(self.values)._from_factorized(result, self.values)
-
-        return make_block(result, placement=self.mgr_locs, ndim=2)
 
 
 class HybridMixin:
@@ -2346,7 +2320,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     return cls
 
 
-def make_block(
+def new_block(
     values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
 ) -> Block:
     # Ensure that we don't allow PandasArray / PandasDtype in internals.

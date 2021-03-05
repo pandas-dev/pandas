@@ -76,7 +76,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
-    make_block,
+    new_block,
 )
 from pandas.core.internals.ops import (
     blockwise_all,
@@ -324,7 +324,7 @@ class BlockManager(DataManager):
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
             values = extract_array(values, extract_numpy=True)
-            return make_block(values, placement=mgr_locs, ndim=ndim)
+            return new_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
             state = state[3]["0.14.1"]
@@ -533,7 +533,6 @@ class BlockManager(DataManager):
         *,
         qs: Float64Index,
         axis: int = 0,
-        transposed: bool = False,
         interpolation="linear",
     ) -> BlockManager:
         """
@@ -546,8 +545,6 @@ class BlockManager(DataManager):
         axis: reduction axis, default 0
         consolidate: bool, default True. Join together blocks having same
             dtype
-        transposed: bool, default False
-            we are holding transposed data
         interpolation : type of interpolation, default 'linear'
         qs : list of the quantiles to be computed
 
@@ -568,13 +565,6 @@ class BlockManager(DataManager):
             blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
             for blk in self.blocks
         ]
-
-        if transposed:
-            new_axes = new_axes[::-1]
-            blocks = [
-                b.make_block(b.values.T, placement=np.arange(b.shape[1]))
-                for b in blocks
-            ]
 
         return type(self)(blocks, new_axes)
 
@@ -1170,7 +1160,7 @@ class BlockManager(DataManager):
                 # one item.
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 new_blocks.extend(
-                    make_block(
+                    new_block(
                         values=value,
                         ndim=self.ndim,
                         placement=slice(mgr_loc, mgr_loc + 1),
@@ -1186,7 +1176,7 @@ class BlockManager(DataManager):
                 unfit_val_items = unfit_val_locs[0].append(unfit_val_locs[1:])
 
                 new_blocks.append(
-                    make_block(
+                    new_block(
                         values=value_getitem(unfit_val_items),
                         ndim=self.ndim,
                         placement=unfit_mgr_locs,
@@ -1231,7 +1221,7 @@ class BlockManager(DataManager):
             value = ensure_block_shape(value, ndim=2)
 
         # TODO: type value as ArrayLike
-        block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
+        block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
         for blkno, count in _fast_count_smallints(self.blknos[loc:]):
             blk = self.blocks[blkno]
@@ -1458,7 +1448,7 @@ class BlockManager(DataManager):
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
         block_values = np.empty(block_shape, dtype=dtype)
         block_values.fill(fill_value)
-        return make_block(block_values, placement=placement, ndim=block_values.ndim)
+        return new_block(block_values, placement=placement, ndim=block_values.ndim)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
@@ -1584,7 +1574,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         """
         Constructor for if we have an array that is not yet a Block.
         """
-        block = make_block(array, placement=slice(0, len(index)), ndim=1)
+        block = new_block(array, placement=slice(0, len(index)), ndim=1)
         return cls(block, index)
 
     def _post_setstate(self):
@@ -1691,7 +1681,7 @@ def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
                 # is basically "all items", but if there're many, don't bother
                 # converting, it's an error anyway.
                 blocks = [
-                    make_block(
+                    new_block(
                         values=blocks[0], placement=slice(0, len(axes[0])), ndim=2
                     )
                 ]
@@ -1802,7 +1792,7 @@ def _form_blocks(
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            make_block(
+            new_block(
                 ensure_block_shape(extract_array(array), 2),
                 klass=DatetimeTZBlock,
                 placement=i,
@@ -1818,14 +1808,14 @@ def _form_blocks(
 
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
-            make_block(array, klass=CategoricalBlock, placement=i, ndim=2)
+            new_block(array, klass=CategoricalBlock, placement=i, ndim=2)
             for i, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [
-            make_block(array, klass=ExtensionBlock, placement=i, ndim=2)
+            new_block(array, klass=ExtensionBlock, placement=i, ndim=2)
             for i, array in items_dict["ExtensionBlock"]
         ]
 
@@ -1833,7 +1823,7 @@ def _form_blocks(
 
     if len(items_dict["ObjectValuesExtensionBlock"]):
         external_blocks = [
-            make_block(array, klass=ObjectValuesExtensionBlock, placement=i, ndim=2)
+            new_block(array, klass=ObjectValuesExtensionBlock, placement=i, ndim=2)
             for i, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
@@ -1846,7 +1836,7 @@ def _form_blocks(
         block_values = np.empty(shape, dtype=object)
         block_values.fill(np.nan)
 
-        na_block = make_block(block_values, placement=extra_locs, ndim=2)
+        na_block = new_block(block_values, placement=extra_locs, ndim=2)
         blocks.append(na_block)
 
     return blocks
@@ -1863,7 +1853,7 @@ def _simple_blockify(tuples, dtype) -> List[Block]:
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
-    block = make_block(values, placement=placement, ndim=2)
+    block = new_block(values, placement=placement, ndim=2)
     return [block]
 
 
@@ -1877,7 +1867,7 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
 
         values, placement = _stack_arrays(list(tup_block), dtype)
 
-        block = make_block(values, placement=placement, ndim=2)
+        block = new_block(values, placement=placement, ndim=2)
         new_blocks.append(block)
 
     return new_blocks
@@ -1963,7 +1953,7 @@ def _merge_blocks(
         new_values = new_values[argsort]
         new_mgr_locs = new_mgr_locs[argsort]
 
-        return [make_block(new_values, placement=new_mgr_locs, ndim=2)]
+        return [new_block(new_values, placement=new_mgr_locs, ndim=2)]
 
     # can't consolidate --> no merge
     return blocks

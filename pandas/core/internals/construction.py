@@ -77,7 +77,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (
     ensure_block_shape,
-    make_block,
+    new_block,
 )
 from pandas.core.internals.managers import (
     BlockManager,
@@ -310,7 +310,7 @@ def ndarray_to_mgr(
 
             # TODO: What about re-joining object columns?
             block_values = [
-                make_block(dvals_list[n], placement=[n], ndim=2)
+                new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
             ]
 
