@@ -11,6 +11,7 @@ from pandas import (
     date_range,
     isnull,
     period_range,
+    timedelta_range,
 )
 
 from .pandas_vb_common import tm
@@ -362,24 +363,25 @@ class Fillna:
             "Float64",
             "datetime64[ns]",
             "datetime64[ns, tz]",
+            "timedelta64[ns]",
         ],
     )
     param_names = ["inplace", "method", "dtype"]
 
     def setup(self, inplace, method, dtype):
-        if dtype in ("datetime64[ns]", "datetime64[ns, tz]"):
-            N = 10000
-            M = 100
+        N, M = 10000, 100
+        if dtype in ("datetime64[ns]", "datetime64[ns, tz]", "timedelta64[ns]"):
             data = {
                 "datetime64[ns]": date_range("2011-01-01", freq="H", periods=N),
                 "datetime64[ns, tz]": date_range(
                     "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
                 ),
+                "timedelta64[ns]": timedelta_range(start="1 day", periods=N, freq="1D"),
             }
             self.df = DataFrame({f"col_{i}": data[dtype] for i in range(M)})
             self.df[::2] = None
         else:
-            values = np.random.randn(10000, 100)
+            values = np.random.randn(N, M)
             values[::2] = np.nan
             if dtype == "Int64":
                 values = values.round()
