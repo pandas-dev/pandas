@@ -1370,7 +1370,7 @@ def _maybe_null_out(
     mask: Optional[np.ndarray],
     shape: Tuple[int, ...],
     min_count: int = 1,
-) -> np.ndarray | float:
+) -> Union[np.ndarray, float]:
     """
     Returns
     -------
