@@ -98,12 +98,12 @@ class TestStylerHighlight:
     @pytest.mark.parametrize(
         "arg, map, axis",
         [
-            ("left", [1, 2, 3], 0),
-            ("left", [1, 2], 1),
-            ("left", np.array([[1, 2], [1, 2]]), None),
-            ("right", [1, 2, 3], 0),
-            ("right", [1, 2], 1),
-            ("right", np.array([[1, 2], [1, 2]]), None),
+            ("left", [1, 2, 3], 0),  # 0 axis has 2 elements not 3
+            ("left", [1, 2], 1),  # 1 axis has 3 elements not 2
+            ("left", np.array([[1, 2], [1, 2]]), None),  # df is (2,3) not (2,2)
+            ("right", [1, 2, 3], 0),  # same tests as above for 'right' not 'left'
+            ("right", [1, 2], 1),  # ..
+            ("right", np.array([[1, 2], [1, 2]]), None),  # ..
         ],
     )
     def test_highlight_between_raises(self, arg, map, axis):
