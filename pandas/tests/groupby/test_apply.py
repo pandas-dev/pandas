@@ -318,7 +318,6 @@ def test_groupby_as_index_apply(df):
     tm.assert_index_equal(res, ind)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 def test_apply_concat_preserve_names(three_group):
     grouped = three_group.groupby(["A", "B"])
 

@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     NaT,
@@ -247,7 +245,6 @@ def test_resampler_is_iterable(series):
         tm.assert_series_equal(rv, gv)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 @all_ts
 def test_resample_quantile(series):
     # GH 15023

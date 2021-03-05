@@ -9661,9 +9661,8 @@ NaN 12.3   33.0
         q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)
-        is_transposed = axis == 1
 
-        if is_transposed:
+        if axis == 1:
             data = data.T
 
         if len(data.columns) == 0:
@@ -9673,15 +9672,9 @@ NaN 12.3   33.0
                 return self._constructor([], index=q, columns=cols)
             return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
 
-        result = data._mgr.quantile(
-            qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
-        )
+        res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
-        result = self._constructor(result)
-
-        if is_transposed:
-            result = result.T
-
+        result = self._constructor(res)
         return result
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
