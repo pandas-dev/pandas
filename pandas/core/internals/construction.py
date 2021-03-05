@@ -629,9 +629,9 @@ def dataclasses_to_dicts(data):
 
 
 def to_arrays(
-    data, 
-    columns: Optional[Index], 
-    dtype: Optional[DtypeObj] = None, 
+    data,
+    columns: Optional[Index],
+    dtype: Optional[DtypeObj] = None,
     nullable_integer=False,
 ) -> Tuple[List[ArrayLike], Index]:
     """

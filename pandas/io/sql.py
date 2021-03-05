@@ -159,9 +159,9 @@ def _wrap_result(
 ):
     """Wrap result set of query in a DataFrame."""
     frame = DataFrame.from_records(
-        data, 
-        columns=columns, 
-        coerce_float=coerce_float, 
+        data,
+        columns=columns,
+        coerce_float=coerce_float,
         nullable_integer=nullable_integer,
     )
 
@@ -972,9 +972,9 @@ class SQLTable(PandasObject):
             else:
                 has_read_data = True
                 self.frame = DataFrame.from_records(
-                    data, 
-                    columns=columns, 
-                    coerce_float=coerce_float, 
+                    data,
+                    columns=columns,
+                    coerce_float=coerce_float,
                     nullable_integer=nullable_integer,
                 )
 
