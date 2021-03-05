@@ -1740,8 +1740,8 @@ class Styler:
         right : scalar or datetime-like, or sequence or array-like, default None
             Right bound for defining the range.
         inclusive : str or bool, default True
-            Indicate which bounds to include, values allowed: True, False, 'right',
-            'left'
+            Indicate which bounds to include, values allowed: True or 'both', False or
+            'neither', 'right' or 'left'.
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
             is not used.
@@ -1815,7 +1815,8 @@ class Styler:
             right: Optional[Union[Scalar, Sequence]] = None,
             inclusive: Union[bool, str] = True,
         ) -> np.ndarray:
-            def realign(x, arg):
+            def reshape(x, arg):
+                """if x is sequence check it fits axis, otherwise raise"""
                 if np.iterable(x) and not isinstance(x, str):
                     try:
                         return np.asarray(x).reshape(data.shape)
@@ -1828,26 +1829,21 @@ class Styler:
                         )
                 return x
 
-            left, right = realign(left, "left"), realign(right, "right")
+            left, right = reshape(left, "left"), reshape(right, "right")
 
             # get ops with correct boundary attribution
-            if isinstance(inclusive, str):
-                if inclusive == "left":
-                    ops = ("__ge__", "__lt__")
-                elif inclusive == "right":
-                    ops = ("__gt__", "__le__")
-                else:
-                    raise ValueError(
-                        f"'inclusive' as string must be 'left' or 'right', got "
-                        f"{inclusive}"
-                    )
-            elif inclusive is True:
+            if inclusive == "both" or inclusive is True:
                 ops = ("__ge__", "__le__")
-            elif inclusive is False:
+            elif inclusive == "neither" or inclusive is False:
                 ops = ("__gt__", "__lt__")
+            elif inclusive == "left":
+                ops = ("__ge__", "__lt__")
+            elif inclusive == "right":
+                ops = ("__gt__", "__le__")
             else:
                 raise ValueError(
-                    f"'inclusive' must be boolean or string, got {type(inclusive)}"
+                    f"'inclusive' values can be 'both', 'left', 'right', 'neither' "
+                    f"or bool, got {inclusive}"
                 )
 
             g_left = (

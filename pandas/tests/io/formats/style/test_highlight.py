@@ -113,10 +113,11 @@ class TestStylerHighlight:
             df.style.highlight_between(**{arg: map, "axis": axis})._compute()
 
     def test_highlight_between_raises2(self):
-        with pytest.raises(ValueError, match="as string must be 'left' or 'right'"):
+        msg = "values can be 'both', 'left', 'right', 'neither' or bool"
+        with pytest.raises(ValueError, match=msg):
             self.df.style.highlight_between(inclusive="badstring")._compute()
 
-        with pytest.raises(ValueError, match="'inclusive' must be boolean or string"):
+        with pytest.raises(ValueError, match=msg):
             self.df.style.highlight_between(inclusive=1)._compute()
 
     def test_highlight_between_inclusive(self):
@@ -127,6 +128,15 @@ class TestStylerHighlight:
             (1, 0): [("background-color", "yellow")],
         }
         result = self.df.style.highlight_between(**kwargs, inclusive=False)._compute()
+        assert result.ctx == {}
+        result = self.df.style.highlight_between(**kwargs, inclusive="both")._compute()
+        assert result.ctx == {
+            (0, 0): [("background-color", "yellow")],
+            (1, 0): [("background-color", "yellow")],
+        }
+        result = self.df.style.highlight_between(
+            **kwargs, inclusive="neither"
+        )._compute()
         assert result.ctx == {}
         result = self.df.style.highlight_between(**kwargs, inclusive="left")._compute()
         assert result.ctx == {(0, 0): [("background-color", "yellow")]}
