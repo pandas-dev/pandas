@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    IndexSlice,
-)
+from pandas import DataFrame
 
 pytest.importorskip("jinja2")
 
@@ -125,54 +122,3 @@ class TestStylerHighlight:
         assert result.ctx == {(0, 0): [("background-color", "yellow")]}
         result = self.df.style.highlight_between(**kwargs, inclusive="right")._compute()
         assert result.ctx == {(1, 0): [("background-color", "yellow")]}
-
-    @pytest.mark.parametrize(
-        "kwargs",
-        [
-            {"q_low": 0.5, "q_high": 1, "axis": 1},  # test basic range
-            {"q_low": 0.5, "q_high": 1, "axis": None},  # test axis
-            {"q_low": 0, "q_high": 1, "subset": ["A"]},  # test subset
-            {"q_low": 0.5, "axis": 1},  # test no high
-            {"q_high": 1, "subset": ["A"], "axis": 0},  # test no low
-            {"q_low": 0.5, "axis": 1, "props": "background-color: yellow"},  # tst props
-        ],
-    )
-    def test_highlight_quantile(self, kwargs):
-        expected = {
-            (0, 0): [("background-color", "yellow")],
-            (1, 0): [("background-color", "yellow")],
-        }
-        result = self.df.style.highlight_quantile(**kwargs)._compute().ctx
-        assert result == expected
-
-    @pytest.mark.skipif(
-        np.__version__[:4] in ["1.16", "1.17"], reason="Numpy Issue #14831"
-    )
-    @pytest.mark.parametrize(
-        "f,kwargs",
-        [
-            ("highlight_min", {"axis": 1, "subset": IndexSlice[1, :]}),
-            ("highlight_max", {"axis": 0, "subset": [0]}),
-            ("highlight_quantile", {"axis": None, "q_low": 0.6, "q_high": 0.8}),
-            ("highlight_between", {"subset": [0]}),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "df",
-        [
-            DataFrame([[0, 1], [2, 3]], dtype=int),
-            DataFrame([[0, 1], [2, 3]], dtype=float),
-            DataFrame([[0, 1], [2, 3]], dtype="datetime64[ns]"),
-            DataFrame([[0, 1], [2, 3]], dtype=str),
-            DataFrame([[0, 1], [2, 3]], dtype="timedelta64[ns]"),
-        ],
-    )
-    def test_all_highlight_dtypes(self, f, kwargs, df):
-        if f == "highlight_quantile" and isinstance(df.iloc[0, 0], str):
-            return None  # quantile incompatible with str
-        elif f == "highlight_between":
-            kwargs["left"] = df.iloc[1, 0]  # set the range low for testing
-
-        expected = {(1, 0): [("background-color", "yellow")]}
-        result = getattr(df.style, f)(**kwargs)._compute().ctx
-        assert result == expected
