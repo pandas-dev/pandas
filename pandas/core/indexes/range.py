@@ -245,7 +245,7 @@ class RangeIndex(Int64Index):
         "instead"
     )
 
-    @cache_readonly
+    @property
     def start(self):
         """
         The value of the `start` parameter (``0`` if this was not supplied).
@@ -268,7 +268,7 @@ class RangeIndex(Int64Index):
         )
         return self.start
 
-    @cache_readonly
+    @property
     def stop(self):
         """
         The value of the `stop` parameter.
@@ -291,7 +291,7 @@ class RangeIndex(Int64Index):
         )
         return self.stop
 
-    @cache_readonly
+    @property
     def step(self):
         """
         The value of the `step` parameter (``1`` if this was not supplied).
