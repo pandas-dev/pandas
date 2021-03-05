@@ -58,7 +58,7 @@ def chunked(request):
     ]
 )
 def dtype(request):
-    return request.param
+    return request.param()
 
 
 @pytest.fixture
@@ -199,6 +199,6 @@ class TestGroupBy(base.BaseGroupbyTests):
             ),
         ]
     )
-    def dtype(request):
+    def dtype(self, request):
         # GH#37869 we need pyarrow 2.0+ for some of these tests
         return request.param
