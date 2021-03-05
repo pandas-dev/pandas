@@ -155,9 +155,10 @@ def _wrap_result(
     coerce_float: bool = True,
     parse_dates=None,
     dtype: Optional[DtypeArg] = None,
+    nullable_integer=False,
 ):
     """Wrap result set of query in a DataFrame."""
-    frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
+    frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float, nullable_integer=nullable_integer)
 
     if dtype:
         frame = frame.astype(dtype)
@@ -442,6 +443,7 @@ def read_sql(
     parse_dates=None,
     columns=None,
     chunksize: None = None,
+    nullable_integer=False,
 ) -> DataFrame:
     ...
 
@@ -456,6 +458,7 @@ def read_sql(
     parse_dates=None,
     columns=None,
     chunksize: int = 1,
+    nullable_integer=False,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -469,6 +472,7 @@ def read_sql(
     parse_dates=None,
     columns=None,
     chunksize: Optional[int] = None,
+    nullable_integer=False,
 ) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query or database table into a DataFrame.
@@ -516,6 +520,9 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
+    nullable_integer : bool, default: False
+        Attempts to convert missing integer data to integer NA to maintain dtype,
+        work for read_sql_query only.
 
     Returns
     -------
@@ -945,6 +952,7 @@ class SQLTable(PandasObject):
         columns,
         coerce_float: bool = True,
         parse_dates=None,
+        nullable_integer=False,
     ):
         """Return generator through chunked result set."""
         has_read_data = False
@@ -959,7 +967,7 @@ class SQLTable(PandasObject):
             else:
                 has_read_data = True
                 self.frame = DataFrame.from_records(
-                    data, columns=columns, coerce_float=coerce_float
+                    data, columns=columns, coerce_float=coerce_float, nullable_integer=nullable_integer
                 )
 
                 self._harmonize_columns(parse_dates=parse_dates)
@@ -1414,6 +1422,7 @@ class SQLDatabase(PandasSQL):
         params=None,
         chunksize: Optional[int] = None,
         dtype: Optional[DtypeArg] = None,
+        nullable_integer=False,
     ):
         """
         Read SQL query into a DataFrame.
@@ -1450,6 +1459,9 @@ class SQLDatabase(PandasSQL):
             {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
 
             .. versionadded:: 1.3.0
+        nullable_integer : bool, default False
+            Attempts to convert missing integer data to integer NA to maintain dtype,
+            work for read_sql_query only.
 
         Returns
         -------
@@ -1475,6 +1487,7 @@ class SQLDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                nullable_integer=nullable_integer,
             )
         else:
             data = result.fetchall()
@@ -1485,6 +1498,7 @@ class SQLDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                nullable_integer=nullable_integer,
             )
             return frame
 

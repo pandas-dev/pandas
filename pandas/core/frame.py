@@ -1825,6 +1825,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns=None,
         coerce_float: bool = False,
         nrows=None,
+        nullable_integer=False,
     ) -> DataFrame:
         """
         Convert structured or record ndarray to DataFrame.
@@ -1852,6 +1853,9 @@ class DataFrame(NDFrame, OpsMixin):
             decimal.Decimal) to floating point, useful for SQL result sets.
         nrows : int, default None
             Number of rows to read if data is an iterator.
+        nullable_integer : bool, default False
+            Attempts to convert missing integer data to integer NA to maintain dtype,
+            work for read_sql_query only.
 
         Returns
         -------
@@ -1946,7 +1950,7 @@ class DataFrame(NDFrame, OpsMixin):
             arrays, columns = to_arrays(data, columns)
             arr_columns = columns
         else:
-            arrays, arr_columns = to_arrays(data, columns)
+            arrays, arr_columns = to_arrays(data, columns, nullable_integer=nullable_integer)
             if coerce_float:
                 for i, arr in enumerate(arrays):
                     if arr.dtype == object:

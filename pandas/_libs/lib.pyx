@@ -2259,7 +2259,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
             seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
-            if not seen.null_:
+            if not seen.null_ or convert_to_nullable_integer:
                 val = int(val)
                 seen.saw_int(val)
 
