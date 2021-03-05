@@ -7987,12 +7987,11 @@ NaN 12.3   33.0
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
-        bm_axis = self._get_block_manager_axis(axis)
-
-        if bm_axis == 0 and periods != 0:
+        axis = self._get_axis_number(axis)
+        if axis == 1 and periods != 0:
             return self - self.shift(periods, axis=axis)
 
-        new_data = self._mgr.diff(n=periods, axis=bm_axis)
+        new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
