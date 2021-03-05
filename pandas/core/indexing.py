@@ -1866,7 +1866,6 @@ class _iLocIndexer(_LocationIndexer):
             ser = value
         elif is_array_like(value) and is_exact_shape_match(ser, value):
             ser = value
-
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()

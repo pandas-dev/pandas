@@ -181,6 +181,46 @@ Preserve dtypes in  :meth:`~pandas.DataFrame.combine_first`
    combined.dtypes
 
 
+Try operating inplace when setting values with ``loc`` and ``iloc``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When setting an entire column using ``loc`` or ``iloc``, pandas will try to
+insert the values into the existing data rather than create an entirely new array.
+
+.. ipython:: python
+
+   df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
+   values = df.values
+   new = np.array([5, 6, 7], dtype="int64")
+   df.loc[[0, 1, 2], "A"] = new
+
+In both the new and old behavior, the data in ``values`` is overwritten, but in
+the old behavior the dtype of ``df["A"]`` changed to ``int64``.
+
+*pandas 1.2.x*
+
+.. code-block:: ipython
+
+   In [1]: df.dtypes
+   Out[1]:
+   A    int64
+   dtype: object
+   In [2]: np.shares_memory(df["A"].values, new)
+   Out[2]: False
+   In [3]: np.shares_memory(df["A"].values, values)
+   Out[3]: False
+
+In pandas 1.3.0, ``df`` continues to share data with ``values``
+
+*pandas 1.3.0*
+
+.. ipython:: python
+
+   df.dtypes
+   np.shares_memory(df["A"], new)
+   np.shares_memory(df["A"], values)
+
+
 .. _whatsnew_130.notable_bug_fixes.setitem_with_bool_casting:
 
 Consistent Casting With Setting Into Boolean Series
