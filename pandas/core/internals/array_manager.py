@@ -403,6 +403,30 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, new_axes)
 
+    def apply_2d(
+        self: T,
+        f,
+        ignore_failures: bool = False,
+        **kwargs,
+    ) -> T:
+        """
+        Variant of `apply`, but where the function should not be applied to
+        each column independently, but to the full data as a 2D array.
+        """
+        values = self.as_array()
+        try:
+            result = f(values, **kwargs)
+        except (TypeError, NotImplementedError):
+            if not ignore_failures:
+                raise
+            result_arrays = []
+            new_axes = [self._axes[0], self.axes[1].take([])]
+        else:
+            result_arrays = [result[:, i] for i in range(len(self._axes[1]))]
+            new_axes = self._axes
+
+        return type(self)(result_arrays, new_axes)
+
     def apply_with_block(self: T, f, align_keys=None, **kwargs) -> T:
 
         align_keys = align_keys or []

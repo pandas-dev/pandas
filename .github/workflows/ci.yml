@@ -192,3 +192,4 @@ jobs:
         pytest pandas/tests/tseries/
         pytest pandas/tests/tslibs/
         pytest pandas/tests/util/
+        pytest pandas/tests/window/
