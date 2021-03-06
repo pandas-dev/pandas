@@ -714,7 +714,7 @@ to run its checks with::
 
 without needing to have done ``pre-commit install`` beforehand.
 
-If you want to run checks on all recently commited files on upstream/master you can use::
+If you want to run checks on all recently committed files on upstream/master you can use::
 
     pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
 

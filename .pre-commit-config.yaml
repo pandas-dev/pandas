@@ -208,7 +208,7 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^pandas/
+        files: ^(pandas|doc)/
         exclude: ^pandas/tests/
 -   repo: https://github.com/MarcoGorelli/no-string-hints
     rev: v0.1.7
