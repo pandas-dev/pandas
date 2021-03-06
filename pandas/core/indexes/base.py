@@ -4546,7 +4546,6 @@ class Index(IndexOpsMixin, PandasObject):
         # There's no custom logic to be implemented in __getslice__, so it's
         # not overloaded intentionally.
         getitem = self._data.__getitem__
-        promote = self._shallow_copy
 
         if is_scalar(key):
             key = com.cast_scalar_indexer(key, warn_float=True)
@@ -4555,7 +4554,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
             # pessimization of basic indexing.
-            return promote(getitem(key))
+            result = getitem(key)
+            # Going through simple_new for performance.
+            return type(self)._simple_new(result, name=self.name)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -4565,7 +4566,9 @@ class Index(IndexOpsMixin, PandasObject):
             if np.ndim(result) > 1:
                 deprecate_ndim_indexing(result)
                 return result
-            return promote(result)
+            # NB: Using _constructor._simple_new would break if MultiIndex
+            #  didn't override __getitem__
+            return self._constructor._simple_new(result, name=self.name)
         else:
             return result
 
