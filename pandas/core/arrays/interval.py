@@ -53,10 +53,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCDatetimeIndex,
     ABCIntervalIndex,
     ABCPeriodIndex,
-    ABCSeries,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -206,10 +206,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         verify_integrity: bool = True,
     ):
 
-        if isinstance(data, (ABCSeries, ABCIntervalIndex)) and is_interval_dtype(
-            data.dtype
-        ):
-            data = data._values  # TODO: extract_array?
+        data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
             left = data._left
@@ -1616,7 +1613,15 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
+    elif not is_list_like(values) or isinstance(values, ABCDataFrame):
+        # This will raise later, but we avoid passing to maybe_convert_platform
+        return values
     elif is_categorical_dtype(values):
         values = np.asarray(values)
+    elif not hasattr(values, "dtype") and not isinstance(values, (list, tuple, range)):
+        # TODO: should we just cast these to list?
+        return values
+    else:
+        values = extract_array(values, extract_numpy=True)
 
     return maybe_convert_platform(values)
