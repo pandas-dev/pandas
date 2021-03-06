@@ -100,19 +100,6 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
-    parser.addoption(
-        "--array-manager",
-        "--am",
-        action="store_true",
-        help="Use the experimental ArrayManager as default data manager.",
-    )
-
-
-def pytest_sessionstart(session):
-    # Note: we need to set the option here and not in pytest_runtest_setup below
-    # to ensure this is run before creating fixture data
-    if session.config.getoption("--array-manager"):
-        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
@@ -203,7 +190,7 @@ def add_imports(doctest_namespace):
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis {repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -1594,6 +1581,14 @@ def indexer_si(request):
 def indexer_sl(request):
     """
     Parametrize over __setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.at, tm.loc])
+def indexer_al(request):
+    """
+    Parametrize over at.__setitem__, loc.__setitem__
     """
     return request.param
 

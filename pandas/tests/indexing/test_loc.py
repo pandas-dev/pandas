@@ -588,32 +588,19 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame(self):
-        df = DataFrame(np.random.randn(4, 4), index=list("abcd"), columns=list("ABCD"))
-
-        df.loc["a", "A"] = 1
-        result = df.loc["a", "A"]
-        assert result == 1
-
-        result = df.iloc[0, 0]
-        assert result == 1
-
-        df.loc[:, "B":"D"] = 0
-        expected = df.loc[:, "B":"D"]
-        result = df.iloc[:, 1:]
-        tm.assert_frame_equal(result, expected)
-
-        # GH 6254
-        # setting issue
-        df = DataFrame(index=[3, 5, 4], columns=["A"])
+    def test_loc_setitem_frame_with_reindex(self):
+        # GH#6254 setting issue
+        df = DataFrame(index=[3, 5, 4], columns=["A"], dtype=float)
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame({"A": Series([1, 2, 3], index=[4, 3, 5])}).reindex(
-            index=[3, 5, 4]
-        )
+
+        # setting integer values into a float dataframe with loc is inplace,
+        #  so we retain float dtype
+        ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
+        expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-        # GH 6252
-        # setting with an empty frame
+    def test_loc_setitem_empty_frame(self):
+        # GH#6252 setting with an empty frame
         keys1 = ["@" + str(i) for i in range(5)]
         val1 = np.arange(5, dtype="int64")
 
@@ -628,11 +615,31 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df["B"] = np.nan
         df.loc[keys2, "B"] = val2
 
-        expected = DataFrame(
-            {"A": Series(val1, index=keys1), "B": Series(val2, index=keys2)}
-        ).reindex(index=index)
+        # Because df["A"] was initialized as float64, setting values into it
+        #  is inplace, so that dtype is retained
+        sera = Series(val1, index=keys1, dtype=np.float64)
+        serb = Series(val2, index=keys2)
+        expected = DataFrame({"A": sera, "B": serb}).reindex(index=index)
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_frame(self):
+        df = DataFrame(np.random.randn(4, 4), index=list("abcd"), columns=list("ABCD"))
+
+        result = df.iloc[0, 0]
+
+        df.loc["a", "A"] = 1
+        result = df.loc["a", "A"]
+        assert result == 1
+
+        result = df.iloc[0, 0]
+        assert result == 1
+
+        df.loc[:, "B":"D"] = 0
+        expected = df.loc[:, "B":"D"]
+        result = df.iloc[:, 1:]
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_setitem_frame_nan_int_coercion_invalid(self):
         # GH 8669
         # invalid coercion of nan -> int
         df = DataFrame({"A": [1, 2, 3], "B": np.nan})
@@ -640,6 +647,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({"A": [1, 2, 3], "B": np.nan})
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_frame_mixed_labels(self):
         # GH 6546
         # setting with mixed labels
         df = DataFrame({1: [1, 2], 2: [3, 4], "a": ["a", "b"]})
@@ -1064,8 +1072,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame(col_data, columns=["A"], dtype=object)
         tm.assert_frame_equal(result, expected)
 
-        # change the dtype of the elements from object to float one by one
+        # assigning with loc/iloc attempts to set the values inplace, which
+        #  in this case is succesful
         result.loc[result.index, "A"] = [float(x) for x in col_data]
+        expected = DataFrame(col_data, columns=["A"], dtype=float).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        # assigning the entire column using __setitem__ swaps in the new array
+        # GH#???
+        result["A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
 
@@ -1220,7 +1235,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tz = tz_naive_fixture
         idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
         expected = DataFrame(1.2, index=idx, columns=["var"])
-        result = DataFrame(index=idx, columns=["var"])
+        # if result started off with object dtype, tehn the .loc.__setitem__
+        #  below would retain object dtype
+        result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
         result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
