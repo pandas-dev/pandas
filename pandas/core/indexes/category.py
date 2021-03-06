@@ -231,7 +231,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         result = object.__new__(cls)
 
         result._data = values
-        result.name = name
+        result._name = name
         result._cache = {}
 
         result._reset_identity()

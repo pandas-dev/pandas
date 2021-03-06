@@ -149,6 +149,9 @@ class BlockManager(DataManager):
     _blknos: np.ndarray
     _blklocs: np.ndarray
 
+    # Non-trivially faster than a property
+    ndim = 2  # overridden by SingleBlockManager
+
     def __init__(
         self,
         blocks: Sequence[Block],
@@ -172,6 +175,21 @@ class BlockManager(DataManager):
         self._known_consolidated = False
         self._blknos = None
         self._blklocs = None
+
+    @classmethod
+    def _simple_new(cls, blocks: Tuple[Block, ...], axes: List[Index]):
+        """
+        Fastpath constructor; does NO validation.
+        """
+        obj = cls.__new__(cls)
+        obj.axes = axes
+        obj.blocks = blocks
+
+        # Populate known_consolidate, blknos, and blklocs lazily
+        obj._known_consolidated = False
+        obj._blknos = None
+        obj._blklocs = None
+        return obj
 
     @classmethod
     def from_blocks(cls, blocks: List[Block], axes: List[Index]):
@@ -232,10 +250,6 @@ class BlockManager(DataManager):
     @property
     def shape(self) -> Shape:
         return tuple(len(ax) for ax in self.axes)
-
-    @property
-    def ndim(self) -> int:
-        return len(self.axes)
 
     def _normalize_axis(self, axis):
         # switch axis to follow BlockManager logic
@@ -800,8 +814,7 @@ class BlockManager(DataManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        bm = type(self)(new_blocks, new_axes, verify_integrity=False)
-        return bm
+        return type(self)._simple_new(tuple(new_blocks), new_axes)
 
     @property
     def nblocks(self) -> int:
@@ -1322,7 +1335,7 @@ class BlockManager(DataManager):
 
     def _slice_take_blocks_ax0(
         self, slice_or_indexer, fill_value=lib.no_default, only_slice: bool = False
-    ):
+    ) -> List[Block]:
         """
         Slice/take blocks along axis=0.
 

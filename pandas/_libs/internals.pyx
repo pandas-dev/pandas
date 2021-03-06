@@ -15,11 +15,13 @@ cimport numpy as cnp
 from numpy cimport (
     NPY_INT64,
     int64_t,
+    ndarray,
 )
 
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
+from pandas._libs.util cimport is_integer_object
 
 
 @cython.final
@@ -27,10 +29,10 @@ cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
         slice _as_slice
-        object _as_array
+        ndarray _as_array  # Note: this still allows `None`
         bint _has_slice, _has_array, _is_known_slice_like
 
-    def __init__(self, val):
+    def __cinit__(self, val):
         cdef:
             slice slc
 
@@ -39,7 +41,7 @@ cdef class BlockPlacement:
         self._has_slice = False
         self._has_array = False
 
-        if isinstance(val, int):
+        if is_integer_object(val):
             slc = slice(val, val + 1, 1)
             self._as_slice = slc
             self._has_slice = True
@@ -160,12 +162,12 @@ cdef class BlockPlacement:
             np.concatenate([self.as_array] + [o.as_array for o in others])
         )
 
-    cdef iadd(self, other):
+    cdef BlockPlacement iadd(self, other):
         cdef:
             slice s = self._ensure_has_slice()
             Py_ssize_t other_int, start, stop, step, l
 
-        if isinstance(other, int) and s is not None:
+        if is_integer_object(other) and s is not None:
             other_int = <Py_ssize_t>other
 
             if other_int == 0:
@@ -438,13 +440,13 @@ def get_blkno_placements(blknos, group: bool = True):
     """
     Parameters
     ----------
-    blknos : array of int64
+    blknos : np.ndarray[int64]
     group : bool, default True
 
     Returns
     -------
     iterator
-        yield (BlockPlacement, blkno)
+        yield (blkno, BlockPlacement)
     """
     blknos = ensure_int64(blknos)
 
