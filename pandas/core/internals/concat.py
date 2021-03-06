@@ -41,7 +41,10 @@ from pandas.core.dtypes.missing import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
@@ -141,8 +144,7 @@ def concatenate_managers(
                 else:
                     values = concat_compat(vals)
 
-                if not is_1d_only_ea_obj(values) and blk.ndim == 2 and values.ndim == 1:
-                    values = values.reshape(1, -1)
+                values = ensure_block_shape(values, blk.ndim)
 
             if blk.values.dtype == values.dtype:
                 # Fast-path
@@ -406,7 +408,6 @@ def _concatenate_join_units(
         ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
         for ju in join_units
     ]
-    ndim = max(x.ndim for x in to_concat)
 
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
@@ -429,13 +430,7 @@ def _concatenate_join_units(
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
         # TODO: what if we have dt64tz blocks with more than 1 column?
 
-        if concat_values.ndim < ndim and not is_1d_only_ea_obj(concat_values):
-            # if the result of concat is not an EA but an ndarray, reshape to
-            # 2D to put it a non-EA Block
-            # special case DatetimeArray, which *is* an EA, but is put in a
-            # consolidated 2D block
-            # TODO(EA2D): we could just get this right within concat_compat
-            concat_values = concat_values.reshape(1, -1)
+        concat_values = ensure_block_shape(concat_values, 2)
 
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)

@@ -34,7 +34,6 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
-    is_1d_only_ea_obj,
     is_bool_dtype,
     is_datetime64_ns_dtype,
     is_dtype_equal,
@@ -86,7 +85,10 @@ from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
 )
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 
 if TYPE_CHECKING:
     from pandas import Float64Index
@@ -490,12 +492,7 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]"
-        #  has no attribute "reshape"
-        arrs = [
-            x if is_1d_only_ea_obj(x) else x.reshape(1, -1)  # type:ignore[union-attr]
-            for x in self.arrays
-        ]
+        arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
         new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
         for i, arr in enumerate(new_arrs):
