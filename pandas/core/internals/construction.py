@@ -57,7 +57,10 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+)
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -71,6 +74,10 @@ from pandas.core.indexes.api import (
     union_indexes,
 )
 from pandas.core.internals.array_manager import ArrayManager
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 from pandas.core.internals.managers import (
     BlockManager,
     create_block_manager_from_arrays,
@@ -296,25 +303,34 @@ def ndarray_to_mgr(
             # transpose and separate blocks
 
             dvals_list = [maybe_infer_to_datetimelike(row) for row in values]
-            for n in range(len(dvals_list)):
-                if isinstance(dvals_list[n], np.ndarray):
-                    dvals_list[n] = dvals_list[n].reshape(1, -1)
-
-            from pandas.core.internals.blocks import make_block
+            dvals_list = [ensure_block_shape(dval, 2) for dval in dvals_list]
 
             # TODO: What about re-joining object columns?
+            dvals_list = [maybe_squeeze_dt64tz(x) for x in dvals_list]
             block_values = [
-                make_block(dvals_list[n], placement=[n], ndim=2)
+                new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
             ]
 
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
+            datelike_vals = maybe_squeeze_dt64tz(datelike_vals)
             block_values = [datelike_vals]
     else:
-        block_values = [values]
+        block_values = [maybe_squeeze_dt64tz(values)]
 
     return create_block_manager_from_blocks(block_values, [columns, index])
+
+
+def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
+    """
+    If we have a tzaware DatetimeArray with shape (1, N), squeeze to (N,)
+    """
+    # TODO(EA2D): kludge not needed with 2D EAs
+    if isinstance(dta, DatetimeArray) and dta.ndim == 2 and dta.tz is not None:
+        assert dta.shape[0] == 1
+        dta = dta[0]
+    return dta
 
 
 def dict_to_mgr(
@@ -416,7 +432,15 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
             return arr[..., np.newaxis]
 
         def convert(v):
-            return maybe_convert_platform(v)
+            if not is_list_like(v) or isinstance(v, ABCDataFrame):
+                return v
+            elif not hasattr(v, "dtype") and not isinstance(v, (list, tuple, range)):
+                # TODO: should we cast these to list?
+                return v
+
+            v = extract_array(v, extract_numpy=True)
+            res = maybe_convert_platform(v)
+            return res
 
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion
