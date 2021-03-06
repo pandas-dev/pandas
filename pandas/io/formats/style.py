@@ -1955,13 +1955,13 @@ class Styler:
             Axis along which to determine and highlight quantiles. If ``None`` quantiles
             are measured over the entire DataFrame. See examples.
         q_left : float, default 0
-            Left bound, in [0, q_high), for the target quantile range.
+            Left bound, in [0, q_right), for the target quantile range.
         q_right : float, default 1
-            Right bound, in (q_low, 1], for the target quantile range.
+            Right bound, in (q_left, 1], for the target quantile range.
         interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
             Argument passed to ``numpy.quantile`` for quantile estimation.
         inclusive : {'both', 'neither', 'left', 'right'} or bool, default True
-            Indicate which calculated quantile bounds to include.
+            Identify whether quantile bounds are closed or open.
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
             is not used.
@@ -1986,18 +1986,18 @@ class Styler:
         Using ``axis=None`` and apply a quantile to all collective data
 
         >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
-        >>> df.style.highlight_quantile(axis=None, q_low=0.8, color="#fffd75")
+        >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
 
         .. figure:: ../../_static/style/hq_axNone.png
 
         Or highlight quantiles row-wise or column-wise, in this case by row-wise
 
-        >>> df.style.highlight_quantile(axis=1, q_low=0.8, color="#fffd75")
+        >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
 
         .. figure:: ../../_static/style/hq_ax1.png
         Use ``props`` instead of default background coloring
 
-        >>> df.style.highlight_quantile(axis=None, q_low=0.2, q_high=0.8,
+        >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
         ...     props='font-weight:bold;color:#e83e8c')
 
         .. figure:: ../../_static/style/hq_props.png
