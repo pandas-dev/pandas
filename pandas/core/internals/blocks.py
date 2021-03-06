@@ -467,7 +467,8 @@ class Block(PandasObject):
                     vals = result[i : i + 1]
                 else:
                     vals = result[i]
-                block = self.make_block(values=vals, placement=[loc])
+
+                block = self.make_block(values=vals, placement=loc)
                 nbs.append(block)
             return nbs
 
