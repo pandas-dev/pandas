@@ -1,3 +1,4 @@
+import re
 import warnings
 
 import pytest
@@ -57,7 +58,10 @@ def test_column_format(ext):
 
 def test_write_append_mode_raises(ext):
     msg = "Append mode is not supported with xlsxwriter!"
+    ise_msg = "if_sheet_exists is only valid in append mode (mode='a')"
 
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlsxwriter", mode="a")
+        with pytest.raises(ValueError, match=re.escape(ise_msg)):
+            ExcelWriter(f, engine="xlsxwriter", if_sheet_exists="replace")

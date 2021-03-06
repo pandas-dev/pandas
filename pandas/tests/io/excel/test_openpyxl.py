@@ -113,7 +113,7 @@ def test_write_append_mode(ext, mode, expected):
 @pytest.mark.parametrize(
     "if_sheet_exists,num_sheets,expected",
     [
-        ("avoid", 2, ["apple", "banana"]),
+        ("new", 2, ["apple", "banana"]),
         (None, 2, ["apple", "banana"]),
         ("replace", 1, ["pear"]),
         ("overwrite", 1, ["pear", "banana"]),
@@ -152,7 +152,7 @@ def test_if_sheet_exists_raises(ext):
 
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=re.escape(mode_msg)):
-            ExcelWriter(f, engine="openpyxl", mode="w", if_sheet_exists="new_sheet")
+            ExcelWriter(f, engine="openpyxl", mode="w", if_sheet_exists="new")
 
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=invalid_msg):

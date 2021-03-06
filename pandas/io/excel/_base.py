@@ -666,11 +666,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
-    if_sheet_exists : {'avoid', 'replace', 'overwrite', 'fail'}, default 'avoid'
+    if_sheet_exists : {'new', 'replace', 'overwrite', 'fail'}, default 'new'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
-        * avoid: Create a new sheet with a different name.
+        * new: Create a new sheet with a different name.
         * replace: Delete the contents of the sheet before writing to it.
         * overwrite: Write directly to the named sheet
           without deleting the previous contents.
@@ -880,17 +880,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
+        ise_valid = [None, "new", "replace", "overwrite", "fail"]
+        if if_sheet_exists not in ise_valid:
+            raise ValueError(f"'{if_sheet_exists}' is not valid for if_sheet_exists")
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
-        if if_sheet_exists is not None and if_sheet_exists not in {
-            "avoid",
-            "replace",
-            "overwrite",
-            "fail",
-        }:
-            raise ValueError(f"'{if_sheet_exists}' is not valid for if_sheet_exists")
         if if_sheet_exists is None and "r+" in mode:
-            if_sheet_exists = "avoid"
+            if_sheet_exists = "new"
         self.if_sheet_exists = if_sheet_exists
 
     def __fspath__(self):
