@@ -131,6 +131,9 @@ a copy will no longer be made (:issue:`32960`)
     arr[0] = 0
     assert df.iloc[0, 0] == 0
 
+The default behavior when not passing ``copy`` will remain unchanged, i.e.
+a copy will be made.
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements

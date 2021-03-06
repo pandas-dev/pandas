@@ -485,12 +485,12 @@ def getPeriodData(nper=None):
 # make frame
 def makeTimeDataFrame(nper=None, freq="B"):
     data = getTimeSeriesData(nper, freq)
-    return DataFrame(data)._consolidate()
+    return DataFrame(data)
 
 
 def makeDataFrame() -> DataFrame:
     data = getSeriesData()
-    return DataFrame(data)._consolidate()
+    return DataFrame(data)
 
 
 def getMixedTypeDict():

@@ -771,7 +771,7 @@ class TestDataFrameAnalytics:
     def test_std_timedelta64_skipna_false(self):
         # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
-        df = DataFrame({"A": tdi, "B": tdi}, copy=True)
+        df = DataFrame({"A": tdi, "B": tdi})
         df.iloc[-2, -1] = pd.NaT
 
         result = df.std(skipna=False)

@@ -1911,12 +1911,12 @@ def _tuples_to_blocks_no_consolidate(tuples, dtype: Optional[DtypeObj]) -> List[
     # tuples produced within _form_blocks are of the form (placement, whatever, array)
     if dtype is not None:
         return [
-            make_block(
+            new_block(
                 np.atleast_2d(x[1].astype(dtype, copy=False)), placement=x[0], ndim=2
             )
             for x in tuples
         ]
-    return [make_block(np.atleast_2d(x[1]), placement=x[0], ndim=2) for x in tuples]
+    return [new_block(np.atleast_2d(x[1]), placement=x[0], ndim=2) for x in tuples]
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
