@@ -58,7 +58,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.quantile import quantile_compat
-from pandas.core.array_algos.take import take_nd
+from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -1021,9 +1021,7 @@ class ArrayManager(DataManager):
         else:
             validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                # error: Value of type variable "ArrayLike" of "take_nd" cannot be
-                # "Union[ndarray, ExtensionArray]"
-                take_nd(  # type: ignore[type-var]
+                take_1d(
                     arr,
                     indexer,
                     allow_fill=True,
@@ -1111,9 +1109,7 @@ class ArrayManager(DataManager):
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                # error: Value of type variable "ArrayLike" of "take_nd" cannot be
-                # "Union[ndarray, ExtensionArray]"
-                new_arr = take_nd(  # type: ignore[type-var]
+                new_arr = take_1d(
                     arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
                 )
                 new_arrays.append(new_arr)

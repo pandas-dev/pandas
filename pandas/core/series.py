@@ -4548,7 +4548,7 @@ Keep all original rows and also all original values
         fill_f = missing.get_fill_func(method)
 
         mask = missing.mask_missing(result.values, to_replace)
-        values = fill_f(result.values, limit=limit, mask=mask)
+        values, _ = fill_f(result.values, limit=limit, mask=mask)
 
         if values.dtype == orig_dtype and inplace:
             return
