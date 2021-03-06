@@ -813,7 +813,7 @@ class BlockManager(DataManager):
             raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
-        new_axes[axis] = new_axes[axis][slobj]
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
         return type(self)._simple_new(tuple(new_blocks), new_axes)
 
@@ -1624,7 +1624,8 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         blk = self._block
         array = blk._slice(slobj)
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
-        return type(self)(block, self.index[slobj])
+        new_index = self.index._getitem_slice(slobj)
+        return type(self)(block, new_index)
 
     @property
     def index(self) -> Index:
