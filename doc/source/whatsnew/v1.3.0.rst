@@ -136,6 +136,7 @@ Other enhancements
 - :meth:`.Styler.set_tooltips_class` and :meth:`.Styler.set_table_styles` amended to optionally allow certain css-string input arguments (:issue:`39564`)
 - :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None`` (:issue:`39359`)
 - :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if wrong format CSS is passed on render (:issue:`39660`)
+- Builtin highlighting methods in :class:`Styler` have a more consistent signature and css customisability (:issue:`40242`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
@@ -364,6 +365,7 @@ Deprecations
 - Deprecated :meth:`core.window.ewm.ExponentialMovingWindow.vol` (:issue:`39220`)
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
+- Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`)
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like; will raise if any function fails on a column in a future version (:issue:`40211`)
 
 .. ---------------------------------------------------------------------------
