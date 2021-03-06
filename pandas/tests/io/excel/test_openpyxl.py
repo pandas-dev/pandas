@@ -140,7 +140,7 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
             # atm the name given for the second sheet will be "foo1"
             # but we don't want the test to fail if openpyxl changes this
             result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
-            assert result.equals(df2)
+            tm.assert_frame_equal(result, df2)
         wb.close()
 
 
