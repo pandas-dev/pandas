@@ -420,7 +420,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         if sheet_name in self.sheets:
             if "r+" in self.mode:
-                if self.if_sheet_exists in "new":
+                if self.if_sheet_exists == "new":
                     wks = self.book.create_sheet()
                     # openpyxl will create a name for the new sheet by appending digits
                     wks.title = sheet_name
