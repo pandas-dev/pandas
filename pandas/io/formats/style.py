@@ -1846,15 +1846,14 @@ class Styler:
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            If ``left`` or ``right`` given as sequence axis along which to apply those
+            If ``left`` or ``right`` given as sequence, axis along which to apply those
             boundaries. See examples.
         left : scalar or datetime-like, or sequence or array-like, default None
             Left bound for defining the range.
         right : scalar or datetime-like, or sequence or array-like, default None
             Right bound for defining the range.
-        inclusive : str or bool, default True
-            Indicate which bounds to include, values allowed: True or 'both', False or
-            'neither', 'right' or 'left'.
+        inclusive : {'both', 'neither', 'left', 'right'} or bool, default True
+            Identify whether bounds are closed or open.
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
             is not used.
