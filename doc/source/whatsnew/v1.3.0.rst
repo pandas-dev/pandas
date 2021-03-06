@@ -112,7 +112,7 @@ For more, see :ref:`io.xml` in the user guide on IO tools.
 
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
 
-DataFrame constructor honors ``copy=False`` With Dict
+DataFrame constructor honors ``copy=False`` with dict
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When passing a dictionary to :class:`DataFrame` with ``copy=False``,
