@@ -1951,34 +1951,36 @@ class Styler:
             A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
             Background color to use for highlighting
-        q_low : float, default 0
-            Left bound, in [0, q_high), for the target quantile range (exclusive if not
-            0).
-        q_high : float, default 1
-            Right bound, in (q_low, 1], for the target quantile range (inclusive)
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            Apply to each column (``axis=0`` or ``'index'``), to each row
-            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
-            with ``axis=None``.
+            Axis along which to determine and highlight quantiles. If ``None`` quantiles
+            are measured over the entire DataFrame. See examples.
+        q_left : float, default 0
+            Left bound, in [0, q_high), for the target quantile range.
+        q_right : float, default 1
+            Right bound, in (q_low, 1], for the target quantile range.
+        interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
+            Argument passed to ``numpy.quantile`` for quantile estimation.
+        inclusive : {'both', 'neither', 'left', 'right'} or bool, default True
+            Indicate which calculated quantile bounds to include.
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
             is not used.
+
         Returns
         -------
         self : Styler
+
         See Also
         --------
         Styler.highlight_null: Highlight missing values with a style.
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
+
         Notes
         -----
-        This function only works with consistent ``dtypes`` within the ``subset`` or
-        ``axis``. For example a mixture of datetime-like and float items will raise
-        errors.
-        This method uses ``pandas.qcut`` to implement the quantile labelling of data
-        values.
+        This function does not work with ``str``, ``Timedelta`` or ``Timestamp`` dtypes.
+
         Examples
         --------
         Using ``axis=None`` and apply a quantile to all collective data
