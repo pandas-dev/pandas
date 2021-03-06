@@ -4,6 +4,7 @@ Experimental manager based on storing a collection of 1D arrays
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     List,
@@ -56,7 +57,8 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.take import take_nd
+from pandas.core.array_algos.quantile import quantile_compat
+from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -71,7 +73,10 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import (
+    maybe_convert_indices,
+    validate_indices,
+)
 from pandas.core.indexes.api import (
     Index,
     ensure_index,
@@ -80,7 +85,11 @@ from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
 )
-from pandas.core.internals.blocks import make_block
+from pandas.core.internals.blocks import new_block
+
+if TYPE_CHECKING:
+    from pandas import Float64Index
+
 
 T = TypeVar("T", bound="ArrayManager")
 
@@ -397,7 +406,29 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, new_axes)
 
-    def apply_with_block(self: T, f, align_keys=None, **kwargs) -> T:
+    def apply_2d(self: T, f, ignore_failures: bool = False, **kwargs) -> T:
+        """
+        Variant of `apply`, but where the function should not be applied to
+        each column independently, but to the full data as a 2D array.
+        """
+        values = self.as_array()
+        try:
+            result = f(values, **kwargs)
+        except (TypeError, NotImplementedError):
+            if not ignore_failures:
+                raise
+            result_arrays = []
+            new_axes = [self._axes[0], self.axes[1].take([])]
+        else:
+            result_arrays = [result[:, i] for i in range(len(self._axes[1]))]
+            new_axes = self._axes
+
+        return type(self)(result_arrays, new_axes)
+
+    def apply_with_block(self: T, f, align_keys=None, swap_axis=True, **kwargs) -> T:
+        # switch axis to follow BlockManager logic
+        if swap_axis and "axis" in kwargs and self.ndim == 2:
+            kwargs["axis"] = 1 if kwargs["axis"] == 0 else 0
 
         align_keys = align_keys or []
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -433,9 +464,9 @@ class ArrayManager(DataManager):
             if self.ndim == 2:
                 if isinstance(arr, np.ndarray):
                     arr = np.atleast_2d(arr)
-                block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
+                block = new_block(arr, placement=slice(0, 1, 1), ndim=2)
             else:
-                block = make_block(arr, placement=slice(0, len(self), 1), ndim=1)
+                block = new_block(arr, placement=slice(0, len(self), 1), ndim=1)
 
             applied = getattr(block, f)(**kwargs)
             if isinstance(applied, list):
@@ -448,7 +479,28 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    # TODO quantile
+    def quantile(
+        self,
+        *,
+        qs: Float64Index,
+        axis: int = 0,
+        transposed: bool = False,
+        interpolation="linear",
+    ) -> ArrayManager:
+
+        arrs = [
+            x if not isinstance(x, np.ndarray) else np.atleast_2d(x)
+            for x in self.arrays
+        ]
+        assert axis == 1
+        new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
+        for i, arr in enumerate(new_arrs):
+            if arr.ndim == 2:
+                assert arr.shape[0] == 1, arr.shape
+                new_arrs[i] = arr[0]
+
+        axes = [qs, self._axes[1]]
+        return type(self)(new_arrs, axes)
 
     def isna(self, func) -> ArrayManager:
         return self.apply("apply", func=func)
@@ -488,7 +540,6 @@ class ArrayManager(DataManager):
         )
 
     def diff(self, n: int, axis: int) -> ArrayManager:
-        axis = self._normalize_axis(axis)
         if axis == 1:
             # DataFrame only calls this for n=0, in which case performing it
             # with axis=0 is equivalent
@@ -497,13 +548,13 @@ class ArrayManager(DataManager):
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> ArrayManager:
-        return self.apply_with_block("interpolate", **kwargs)
+        return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
 
     def shift(self, periods: int, axis: int, fill_value) -> ArrayManager:
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 0 and self.ndim == 2:
+        if axis == 1 and self.ndim == 2:
             # TODO column-wise shift
             raise NotImplementedError
 
@@ -938,8 +989,9 @@ class ArrayManager(DataManager):
                 new_arrays.append(arr)
 
         else:
+            validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                algos.take(
+                take_1d(
                     arr,
                     indexer,
                     allow_fill=True,
@@ -1021,7 +1073,7 @@ class ArrayManager(DataManager):
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                new_arr = take_nd(
+                new_arr = take_1d(
                     arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
                 )
                 new_arrays.append(new_arr)
