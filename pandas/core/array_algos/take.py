@@ -140,7 +140,14 @@ def take_1d(
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+
+        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
+        # "ndarray"; expected "Sequence[int]"
+        return arr.take(
+            indexer,  # type: ignore[arg-type]
+            fill_value=fill_value,
+            allow_fill=allow_fill,
+        )
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, 0, None, fill_value, allow_fill

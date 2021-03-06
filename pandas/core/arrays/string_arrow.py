@@ -405,7 +405,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
+                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
+                new_values, _ = func(
+                    self.to_numpy(object),  # type: ignore[arg-type]
+                    limit=limit,
+                    mask=mask,
+                )
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value

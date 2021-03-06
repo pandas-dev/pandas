@@ -723,7 +723,9 @@ def _pad_1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
-    return values, mask
+    # error: Incompatible return value type (got "Tuple[ndarray, Optional[ndarray]]",
+    # expected "Tuple[ndarray, ndarray]")
+    return values, mask  # type: ignore[return-value]
 
 
 @_datetimelike_compat
@@ -734,7 +736,9 @@ def _backfill_1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
-    return values, mask
+    # error: Incompatible return value type (got "Tuple[ndarray, Optional[ndarray]]",
+    # expected "Tuple[ndarray, ndarray]")
+    return values, mask  # type: ignore[return-value]
 
 
 @_datetimelike_compat

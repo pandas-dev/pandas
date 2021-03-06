@@ -1021,7 +1021,9 @@ class ArrayManager(DataManager):
         else:
             validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                take_1d(
+                # error: Value of type variable "ArrayLike" of "take_1d" cannot be
+                # "Union[ndarray, ExtensionArray]"  [type-var]
+                take_1d(  # type: ignore[type-var]
                     arr,
                     indexer,
                     allow_fill=True,
@@ -1109,7 +1111,9 @@ class ArrayManager(DataManager):
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                new_arr = take_1d(
+                # error: Value of type variable "ArrayLike" of "take_1d" cannot be
+                # "Union[ndarray, ExtensionArray]"  [type-var]
+                new_arr = take_1d(  # type: ignore[type-var]
                     arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
                 )
                 new_arrays.append(new_arr)
