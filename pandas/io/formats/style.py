@@ -1846,9 +1846,8 @@ class Styler:
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
-            Apply to each column (``axis=0`` or ``'index'``), to each row
-            (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
-            with ``axis=None``.
+            If ``left`` or ``right`` given as sequence axis along which to apply those
+            boundaries. See examples.
         left : scalar or datetime-like, or sequence or array-like, default None
             Left bound for defining the range.
         right : scalar or datetime-like, or sequence or array-like, default None
