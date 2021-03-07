@@ -144,10 +144,6 @@ class TestMultiIndexSlicers:
             #  This used to treat [1] as positional GH#16396
             df.loc[slice(None), [1]]
 
-        result = df.loc[(slice(None), [1]), :]
-        expected = df.iloc[[0, 3]]
-        tm.assert_frame_equal(result, expected)
-
         # not lexsorted
         assert df.index._lexsort_depth == 2
         df = df.sort_index(level=1, axis=0)

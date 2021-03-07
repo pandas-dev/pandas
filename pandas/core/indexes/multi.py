@@ -2076,15 +2076,16 @@ class MultiIndex(Index):
 
             return tuple(retval)
         else:
+            # in general cannot be sure whether the result will be sorted
+            sortorder = None
             if com.is_bool_indexer(key):
                 key = np.asarray(key, dtype=bool)
                 sortorder = self.sortorder
-            else:
-                # cannot be sure whether the result will be sorted
-                sortorder = None
-
-                if isinstance(key, Index):
-                    key = np.asarray(key)
+            elif isinstance(key, slice):
+                if key.step is None or key.step > 0:
+                    sortorder = self.sortorder
+            elif isinstance(key, Index):
+                key = np.asarray(key)
 
             new_codes = [level_codes[key] for level_codes in self.codes]
 
@@ -3719,12 +3720,7 @@ class MultiIndex(Index):
                 # must insert at end otherwise you have to recompute all the
                 # other codes
                 lev_loc = len(level)
-                try:
-                    level = level.insert(lev_loc, k)
-                except TypeError:
-                    # TODO: Should this be done inside insert?
-                    # TODO: smarter casting rules?
-                    level = level.astype(object).insert(lev_loc, k)
+                level = level.insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 

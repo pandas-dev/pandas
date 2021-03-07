@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -96,12 +95,3 @@ def test_agg_namedtuple():
         index=pd.Index(["foo", "bar", "cat"]),
     )
     tm.assert_frame_equal(result, expected)
-
-
-def test_agg_raises():
-    # GH 26513
-    df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
-    msg = "Must provide"
-
-    with pytest.raises(TypeError, match=msg):
-        df.agg()

@@ -29,7 +29,6 @@ from typing import (
 
 ERROR_MESSAGE = "Found both `pd.{name}` and `{name}` in {path}"
 EXCLUDE = {
-    "array",  # `import array` and `pd.array` should both be allowed
     "eval",  # built-in, different from `pd.eval`
     "np",  # pd.np is deprecated but still tested
 }
