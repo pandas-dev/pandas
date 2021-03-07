@@ -656,9 +656,9 @@ def interpolate_2d(
     method = clean_fill_method(method)
     tvalues = transf(values)
     if method == "pad":
-        result = _pad_2d(tvalues, limit=limit)
+        result, _ = _pad_2d(tvalues, limit=limit)
     else:
-        result = _backfill_2d(tvalues, limit=limit)
+        result, _ = _backfill_2d(tvalues, limit=limit)
 
     result = transf(result)
     # reshape back
@@ -694,7 +694,7 @@ def _pad_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 def _backfill_2d(values, limit=None, mask=None):

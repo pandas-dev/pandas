@@ -1094,6 +1094,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_values(self, key, value):
         if isinstance(key, Series):
             key = key._values
+        # error: Incompatible types in assignment (expression has type "Union[Any,
+        # BlockManager]", variable has type "Union[SingleArrayManager,
+        # SingleBlockManager]")
         self._mgr = self._mgr.setitem(  # type: ignore[assignment]
             indexer=key, value=value
         )
@@ -4529,7 +4532,7 @@ Keep all original rows and also all original values
         fill_f = missing.get_fill_func(method)
 
         mask = missing.mask_missing(result.values, to_replace)
-        values = fill_f(result.values, limit=limit, mask=mask)
+        values, _ = fill_f(result.values, limit=limit, mask=mask)
 
         if values.dtype == orig_dtype and inplace:
             return

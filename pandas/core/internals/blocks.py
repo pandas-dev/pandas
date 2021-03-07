@@ -449,7 +449,7 @@ class Block(PandasObject):
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
                 vals = result[i]
-                block = self.make_block(values=vals, placement=[loc])
+                block = self.make_block(values=vals, placement=loc)
                 nbs.append(block)
             return nbs
 
@@ -1727,16 +1727,13 @@ class ExtensionBlock(Block):
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
     ) -> List[Block]:
-        values = self.values if inplace else self.values.copy()
-        values = values.fillna(value=value, limit=limit)
+        values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=values)]
 
     def interpolate(
         self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
     ):
-
-        values = self.values if inplace else self.values.copy()
-        new_values = values.fillna(value=fill_value, method=method, limit=limit)
+        new_values = self.values.fillna(value=fill_value, method=method, limit=limit)
         return self.make_block_same_class(new_values)
 
     def diff(self, n: int, axis: int = 1) -> List[Block]:
