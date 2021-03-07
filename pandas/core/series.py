@@ -2992,26 +2992,22 @@ Keep all original rows and also all original values
         Update null elements with value in the same location in 'other'.
 
         Combine two Series objects by filling null values in one Series with
-        non-null values from the other Series.
+        non-null values from the other Series. Result index will be the union of the two indexes.
 
         Parameters
         ----------
         other : Series
-            The value(s) to be used for filling null values in `Series`.
+            The value(s) to be used for filling null values.
 
         Returns
         -------
         Series
-            The result of combining the Series with the other object.
+            The result of combining the provided Series with the other object.
 
         See Also
         --------
         Series.combine : Perform element-wise operation on two Series
             using a given function.
-
-        Notes
-        -----
-        Result index will be the union of the two indexes.
 
         Examples
         --------
