@@ -1722,7 +1722,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self.sort_values(return_indexer=True, ascending=ascending)
 
-    def _get_level_values(self, level):
+    def _get_level_values(self, level) -> Index:
         """
         Return an Index of values for requested level.
 
@@ -2982,7 +2982,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _wrap_setop_result(self, other, result):
+    def _wrap_setop_result(self, other: Index, result) -> Index:
         if needs_i8_conversion(self.dtype) and isinstance(result, np.ndarray):
             self = cast("DatetimeIndexOpsMixin", self)
             result = type(self._data)._simple_new(result, dtype=self.dtype)

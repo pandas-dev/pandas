@@ -98,6 +98,7 @@ from pandas.io.formats.printing import (
 if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
+        DataFrame,
         Series,
     )
 
@@ -626,7 +627,7 @@ class MultiIndex(Index):
         return cls(levels, codes, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_frame(cls, df, sortorder=None, names=None) -> MultiIndex:
+    def from_frame(cls, df: DataFrame, sortorder=None, names=None) -> MultiIndex:
         """
         Make a MultiIndex from a DataFrame.
 
@@ -1293,7 +1294,7 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_data(self, name=None):
+    def _format_data(self, name=None) -> str:
         """
         Return the formatted data as a unicode string
         """
@@ -1419,10 +1420,10 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Names Methods
 
-    def _get_names(self):
+    def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, level=None, validate=True):
+    def _set_names(self, names, level=None, validate: bool = True):
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1433,7 +1434,7 @@ class MultiIndex(Index):
         level : int, level name, or sequence of int/level names (default None)
             If the index is a MultiIndex (hierarchical), level(s) to set (None
             for all levels).  Otherwise level must be None
-        validate : boolean, default True
+        validate : bool, default True
             validate that the names match level lengths
 
         Raises
@@ -2642,7 +2643,9 @@ class MultiIndex(Index):
 
         return key
 
-    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+    def _get_indexer(
+        self, target: Index, method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
 
         # empty indexer
         if not len(target):
@@ -3519,7 +3522,7 @@ class MultiIndex(Index):
 
         return True
 
-    def equal_levels(self, other) -> bool:
+    def equal_levels(self, other: MultiIndex) -> bool:
         """
         Return True if the levels of both MultiIndex objects are the same
 
@@ -3535,7 +3538,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Set Methods
 
-    def _union(self, other, sort):
+    def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
 
         # We could get here with CategoricalIndex other
@@ -3577,7 +3580,7 @@ class MultiIndex(Index):
                 names.append(None)
         return names
 
-    def _intersection(self, other, sort=False):
+    def _intersection(self, other, sort=False) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
 
         lvals = self._values
