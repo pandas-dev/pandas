@@ -391,6 +391,10 @@ class Fillna:
                 values = values.round()
             self.df = DataFrame(values, dtype=dtype)
 
+        # warm up
+        df2 = self.df.copy()
+        df2.fillna(inplace=inplace, method=method)
+
     def time_frame_fillna(self, inplace, method, dtype):
         self.df.fillna(inplace=inplace, method=method)
 
