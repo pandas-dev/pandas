@@ -86,6 +86,7 @@ repos:
         language: python
         types: [python]
         files: ^pandas/tests/
+        exclude: ^pandas/tests/test_algos.py$
     -   id: incorrect-code-directives
         name: Check for incorrect code block or IPython directives
         language: pygrep
