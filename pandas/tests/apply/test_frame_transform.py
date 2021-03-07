@@ -180,12 +180,35 @@ def test_transform_bad_dtype(op, frame_or_series):
 
 
 @pytest.mark.parametrize("op", frame_kernels_raise)
-def test_transform_partial_failure(op):
-    # GH 35964 & GH 40211
-    match = "Allowing for partial failure is deprecated"
+def test_transform_partial_failure_typeerror(op):
+    # GH 35964
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
+
+    expected = df[["B"]].transform([op])
+    result = df.transform([op])
+    tm.assert_equal(result, expected)
+
+    expected = df[["B"]].transform({"B": op})
+    result = df.transform({"A": op, "B": op})
+    tm.assert_equal(result, expected)
+
+    expected = df[["B"]].transform({"B": [op]})
+    result = df.transform({"A": [op], "B": [op]})
+    tm.assert_equal(result, expected)
+
+
+def test_transform_partial_failure_valueerror():
+    # GH 40211
+    match = ".*did not transform successfully and did not raise a TypeError"
+
+    def op(x):
+        if np.sum(np.sum(x)) < 10:
+            raise ValueError
+        return x
+
+    df = DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
 
     expected = df[["B"]].transform([op])
     with tm.assert_produces_warning(FutureWarning, match=match):
