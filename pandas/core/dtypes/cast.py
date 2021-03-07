@@ -1769,16 +1769,13 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-def find_common_type(
-    types: List[DtypeObj], promote_categorical: bool = False
-) -> DtypeObj:
+def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
     Parameters
     ----------
     types : list of dtypes
-    promote_categorical : find if possible, a categorical dtype that fits all the dtypes
 
     Returns
     -------
@@ -1798,22 +1795,28 @@ def find_common_type(
     # if promote_categorical is set to True. This is used
     # to preserve the categorical dtype (since categorical
     # values can consist of multiple dtypes).
-    if promote_categorical:
-        if any(is_categorical_dtype(t) for t in types):
-            cat_dtypes = []
-            for t in types:
-                if isinstance(t, CategoricalDtype):
-                    if any(~isna(t.categories.values)):
-                        cat_values_dtype = t.categories.values.dtype
-                        if all(
-                            is_categorical_dtype(x) or np.can_cast(cat_values_dtype, x)
-                            for x in types
-                        ):
-                            cat_dtypes.append(t)
-            if len(cat_dtypes) > 0:
-                dtype_ref = cat_dtypes[0]
-                if all(is_dtype_equal(dtype, dtype_ref) for dtype in cat_dtypes[1:]):
-                    return dtype_ref
+    if any(is_categorical_dtype(t) for t in types):
+        cat_dtypes = []
+        for t in types:
+            if isinstance(t, CategoricalDtype):
+                if any(~isna(t.categories.values)):
+                    cat_values_dtype = t.categories.values.dtype
+                    if all(
+                        (
+                            is_categorical_dtype(x)
+                            or (
+                                is_numeric_dtype(cat_values_dtype)
+                                and is_numeric_dtype(x)
+                            )
+                            or np.can_cast(x, cat_values_dtype)
+                        )
+                        for x in types
+                    ):
+                        cat_dtypes.append(t)
+        if len(cat_dtypes) > 0:
+            dtype_ref = cat_dtypes[0]
+            if all(is_dtype_equal(dtype, dtype_ref) for dtype in cat_dtypes[1:]):
+                return dtype_ref
 
     # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
     # => object

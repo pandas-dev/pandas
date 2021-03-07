@@ -52,9 +52,3 @@ class TestCategoricalSeries:
         ser.loc[3] = 3
         expected = pd.Series(Categorical([1, 2, 3, 3]))
         tm.assert_series_equal(ser, expected)
-
-        # Case 4
-        ser = pd.Series(Categorical([1, 2, 3]))
-        ser.loc[3] = pd.NA
-        expected = pd.Series(Categorical([1, 2, 3, pd.NA]))
-        tm.assert_series_equal(ser, expected)
