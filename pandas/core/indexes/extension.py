@@ -2,7 +2,9 @@
 Shared methods for Index subclasses backed by ExtensionArray.
 """
 from typing import (
+    Hashable,
     List,
+    Type,
     TypeVar,
     Union,
 )
@@ -30,7 +32,13 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    IntervalArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
@@ -222,6 +230,37 @@ class ExtensionIndex(Index):
     #  size, __len__, dtype
 
     _data: Union[IntervalArray, NDArrayBackedExtensionArray]
+
+    _data_cls: Union[
+        Type[Categorical],
+        Type[DatetimeArray],
+        Type[TimedeltaArray],
+        Type[PeriodArray],
+        Type[IntervalArray],
+    ]
+
+    @classmethod
+    def _simple_new(
+        cls,
+        values: Union[
+            Categorical, DatetimeArray, TimedeltaArray, PeriodArray, IntervalArray
+        ],
+        name: Hashable = None,
+    ):
+        dc = cls._data_cls
+        assert isinstance(values, dc), type(values)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._name = name
+        result._cache = {}
+
+        if dc is not IntervalArray:
+            # For groupby perf. See note in indexes/base about _index_data
+            result._index_data = values._ndarray
+
+        result._reset_identity()
+        return result
 
     __eq__ = _make_wrapped_comparison_op("__eq__")
     __ne__ = _make_wrapped_comparison_op("__ne__")

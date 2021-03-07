@@ -10,7 +10,6 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     List,
     Optional,
     Tuple,
@@ -218,12 +217,26 @@ def setop_check(method):
     }
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
-@inherit_names(["__array__", "overlaps", "contains"], IntervalArray)
+@inherit_names(
+    [
+        "__array__",
+        "overlaps",
+        "contains",
+        "closed_left",
+        "closed_right",
+        "open_left",
+        "open_right",
+        "_check_closed_matches",
+        "is_empty",
+    ],
+    IntervalArray,
+)
 @inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
-class IntervalIndex(IntervalMixin, ExtensionIndex):
+class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
     _attributes = ["name", "closed"]
+    _data_cls = IntervalArray
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -257,26 +270,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             )
 
         return cls._simple_new(array, name)
-
-    @classmethod
-    def _simple_new(cls, array: IntervalArray, name: Hashable = None):
-        """
-        Construct from an IntervalArray
-
-        Parameters
-        ----------
-        array : IntervalArray
-        name : Label, default None
-            Attached as result.name
-        """
-        assert isinstance(array, IntervalArray), type(array)
-
-        result = IntervalMixin.__new__(cls)
-        result._data = array
-        result.name = name
-        result._cache = {}
-        result._reset_identity()
-        return result
 
     @classmethod
     @Appender(
@@ -598,14 +591,15 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return key_i8
 
-    def _searchsorted_monotonic(self, label, side, exclude_label=False):
+    def _searchsorted_monotonic(self, label, side: str, exclude_label: bool = False):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
                 "can only get slices from an IntervalIndex if bounds are "
                 "non-overlapping and all monotonic increasing or decreasing"
             )
 
-        if isinstance(label, IntervalMixin):
+        if isinstance(label, (IntervalMixin, IntervalIndex)):
+            # TODO: no tests with IntervalIndex?
             raise NotImplementedError("Interval objects are not currently supported")
 
         # GH 20921: "not is_monotonic_increasing" for the second condition
