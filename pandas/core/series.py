@@ -2992,7 +2992,8 @@ Keep all original rows and also all original values
         Update null elements with value in the same location in 'other'.
 
         Combine two Series objects by filling null values in one Series with
-        non-null values from the other Series. Result index will be the union of the two indexes.
+        non-null values from the other Series. Result index will be the union
+        of the two indexes.
 
         Parameters
         ----------
