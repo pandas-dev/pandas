@@ -650,22 +650,21 @@ def interpolate_2d(
         return values
 
     orig_values = values
+    mask = isna(values)
 
     if axis == 1:
-        values = values.T
+        values, mask = values.T, mask.T
 
     # reshape a 1 dim if needed
     if values.ndim == 1:
         if axis != 0:
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
-        values = values[np.newaxis, :]
+        values, mask = values[np.newaxis, :], mask[np.newaxis, :]
 
     # reverse stride for backfill
     method = clean_fill_method(method)
     if method == "backfill":
-        values = values[:, ::-1]
-
-    mask = isna(values)
+        values, mask = values[:, ::-1], mask[:, ::-1]
 
     if needs_i8_conversion(values.dtype):
         values = values.view("i8")
