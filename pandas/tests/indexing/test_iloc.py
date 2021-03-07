@@ -17,7 +17,7 @@ from pandas import (
     Index,
     NaT,
     Series,
-    array as pd_array,
+    array,
     concat,
     date_range,
     isna,
@@ -93,11 +93,11 @@ class TestiLocBaseIndependent:
         else:
             assert cat[0] != "gamma"
 
-    @pytest.mark.parametrize("box", [pd_array, Series])
+    @pytest.mark.parametrize("box", [array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
-        arr = pd_array([1, 2, 3, 4])
+        arr = array([1, 2, 3, 4])
         obj = frame_or_series(arr.to_numpy("i8"))
         values = obj.values
 

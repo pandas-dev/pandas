@@ -1216,14 +1216,14 @@ class TestDataFrameConstructors:
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
-        import array
+        from array import array as stdlib_array
 
-        result = DataFrame({"A": array.array("i", range(10))})
+        result = DataFrame({"A": stdlib_array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
         expected = DataFrame([list(range(10)), list(range(10))])
-        result = DataFrame([array.array("i", range(10)), array.array("i", range(10))])
+        result = DataFrame([stdlib_array("i", range(10)), stdlib_array("i", range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_range(self):
