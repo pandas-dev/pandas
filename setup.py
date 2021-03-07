@@ -124,8 +124,15 @@ class CleanCommand(Command):
         ujson_lib = pjoin(base, "ujson", "lib")
         self._clean_exclude = [
             pjoin(dt, "np_datetime.c"),
+            pjoin(dt, "np_datetime_conv.c"),
+            pjoin(dt, "np_datetime_period.c"),
             pjoin(dt, "np_datetime_strings.c"),
+            pjoin(dt, "np_datetime_strings_ujson.c"),
+            pjoin(dt, "np_datetime_ujson.c"),
             pjoin(parser, "tokenizer.c"),
+            pjoin(parser, "tokenizer_lib.c"),
+            pjoin(parser, "tokenizer_tslibs.c"),
+            pjoin(parser, "tokenizer_ujson.c"),
             pjoin(parser, "io.c"),
             pjoin(ujson_python, "ujson.c"),
             pjoin(ujson_python, "objToJSON.c"),
@@ -467,7 +474,7 @@ ext_data = {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
         "include": klib_include,  # due to tokenizer import
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
+        "sources": ["pandas/_libs/src/parser/tokenizer_lib.c"],
     },
     "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
     "_libs.parsers": {
@@ -495,7 +502,7 @@ ext_data = {
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime_conv.c"],
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
@@ -518,12 +525,12 @@ ext_data = {
         "pyxfile": "_libs/tslibs/parsing",
         "include": klib_include,
         "depends": ["pandas/_libs/src/parser/tokenizer.h"],
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
+        "sources": ["pandas/_libs/src/parser/tokenizer_tslibs.c"],
     },
     "_libs.tslibs.period": {
         "pyxfile": "_libs/tslibs/period",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime_period.c"],
     },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
@@ -606,8 +613,8 @@ ujson_ext = Extension(
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",
         ]
         + [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
+            "pandas/_libs/tslibs/src/datetime/np_datetime_ujson.c",
+            "pandas/_libs/tslibs/src/datetime/np_datetime_strings_ujson.c",
         ]
     ),
     include_dirs=[
