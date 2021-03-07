@@ -84,13 +84,13 @@ class TestStyler:
             self.styler.set_table_attributes('class="foo" data-bar')
             self.styler.hidden_index = not self.styler.hidden_index
             self.styler.hide_columns("A")
-            classes = pd.DataFrame(
+            classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
                 index=self.df.index,
                 columns=self.df.columns,
             )
             self.styler.set_td_classes(classes)
-            ttips = pd.DataFrame(
+            ttips = DataFrame(
                 data=[["Favorite", ""], [np.nan, "my"]],
                 columns=self.df.columns,
                 index=self.df.index,
