@@ -6,7 +6,10 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -126,7 +129,7 @@ def test_drop_not_lexsorted():
     # define the lexsorted version of the multi-index
     tuples = [("a", ""), ("b1", "c1"), ("b2", "c2")]
     lexsorted_mi = MultiIndex.from_tuples(tuples, names=["b", "c"])
-    assert lexsorted_mi.is_lexsorted()
+    assert lexsorted_mi._is_lexsorted()
 
     # and the not-lexsorted version
     df = pd.DataFrame(
@@ -135,7 +138,7 @@ def test_drop_not_lexsorted():
     df = df.pivot_table(index="a", columns=["b", "c"], values="d")
     df = df.reset_index()
     not_lexsorted_mi = df.columns
-    assert not not_lexsorted_mi.is_lexsorted()
+    assert not not_lexsorted_mi._is_lexsorted()
 
     # compare the results
     tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
@@ -180,3 +183,11 @@ def test_single_level_drop_partially_missing_elements():
     msg = r"labels \['a'\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop([np.nan, 1, "a"], level=0)
+
+
+def test_droplevel_multiindex_one_level():
+    # GH#37208
+    index = MultiIndex.from_tuples([(2,)], names=("b",))
+    result = index.droplevel([])
+    expected = pd.Int64Index([2], name="b")
+    tm.assert_index_equal(result, expected)

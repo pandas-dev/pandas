@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -89,6 +92,20 @@ class TestRepr:
         # NumPy bug
         # repr(index.get_level_values(1))
 
+    def test_repr_max_seq_items_equal_to_n(self, idx):
+        # display.max_seq_items == n
+        with pd.option_context("display.max_seq_items", 6):
+            result = idx.__repr__()
+            expected = """\
+MultiIndex([('foo', 'one'),
+            ('foo', 'two'),
+            ('bar', 'one'),
+            ('baz', 'two'),
+            ('qux', 'one'),
+            ('qux', 'two')],
+           names=['first', 'second'])"""
+            assert result == expected
+
     def test_repr(self, idx):
         result = idx[:1].__repr__()
         expected = """\
@@ -116,6 +133,15 @@ MultiIndex([('foo', 'one'),
             ('qux', 'one'),
             ('qux', 'two')],
            names=['first', 'second'], length=6)"""
+            assert result == expected
+
+        # display.max_seq_items == 1
+        with pd.option_context("display.max_seq_items", 1):
+            result = idx.__repr__()
+            expected = """\
+MultiIndex([...
+            ('qux', 'two')],
+           names=['first', ...], length=6)"""
             assert result == expected
 
     def test_rjust(self, narrow_multi_index):

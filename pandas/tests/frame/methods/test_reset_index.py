@@ -4,7 +4,10 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -312,18 +315,45 @@ class TestResetIndex:
         rs = df.set_index(["A", "B"]).reset_index()
         tm.assert_frame_equal(rs, df)
 
-    def test_reset_index_with_datetimeindex_cols(self):
+    @pytest.mark.parametrize(
+        "name",
+        [
+            None,
+            "foo",
+            2,
+            3.0,
+            pd.Timedelta(6),
+            Timestamp("2012-12-30", tz="UTC"),
+            "2012-12-31",
+        ],
+    )
+    def test_reset_index_with_datetimeindex_cols(self, name):
         # GH#5818
+        warn = None
+        if isinstance(name, Timestamp) and name.tz is not None:
+            # _deprecate_mismatched_indexing
+            warn = FutureWarning
+
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=date_range("1/1/2013", "1/2/2013"),
             index=["A", "B"],
         )
+        df.index.name = name
 
-        result = df.reset_index()
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            result = df.reset_index()
+
+        item = name if name is not None else "index"
+        columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
+        if isinstance(item, str) and item == "2012-12-31":
+            columns = columns.astype("datetime64[ns]")
+        else:
+            assert columns.dtype == object
+
         expected = DataFrame(
             [["A", 1, 2], ["B", 3, 4]],
-            columns=["index", datetime(2013, 1, 1), datetime(2013, 1, 2)],
+            columns=columns,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -394,7 +424,7 @@ class TestResetIndex:
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
-        idx1 = pd.date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
+        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
         idx2 = Index(range(5), name="idx2", dtype="int64")
         idx = MultiIndex.from_arrays([idx1, idx2])
         df = DataFrame(
@@ -421,7 +451,7 @@ class TestResetIndex:
 
         tm.assert_frame_equal(df.reset_index(), expected)
 
-        idx3 = pd.date_range(
+        idx3 = date_range(
             "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
         )
         idx = MultiIndex.from_arrays([idx1, idx2, idx3])
@@ -460,7 +490,7 @@ class TestResetIndex:
 
         # GH#7793
         idx = MultiIndex.from_product(
-            [["a", "b"], pd.date_range("20130101", periods=3, tz=tz)]
+            [["a", "b"], date_range("20130101", periods=3, tz=tz)]
         )
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx

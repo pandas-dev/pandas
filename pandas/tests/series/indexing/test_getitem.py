@@ -1,12 +1,21 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import conversion, timezones
+from pandas._libs.tslibs import (
+    conversion,
+    timezones,
+)
+
+from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import (
@@ -18,6 +27,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
@@ -26,6 +36,39 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_float_keys_tuple_values(self):
+        # see GH#13509
+
+        # unique Index
+        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name="foo")
+        result = ser[0.0]
+        assert result == (1, 1)
+
+        # non-unique Index
+        expected = Series([(1, 1), (2, 2)], index=[0.0, 0.0], name="foo")
+        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name="foo")
+
+        result = ser[0.0]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_unrecognized_scalar(self):
+        # GH#32684 a scalar key that is not recognized by lib.is_scalar
+
+        # a series that might be produced via `frame.dtypes`
+        ser = Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
+
+        key = ser.index[1]
+
+        result = ser[key]
+        assert result == 2
+
+    def test_getitem_negative_out_of_bounds(self):
+        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+
+        msg = "index -11 is out of bounds for axis 0 with size 10"
+        with pytest.raises(IndexError, match=msg):
+            ser[-11]
+
     def test_getitem_out_of_bounds_indexerror(self, datetime_series):
         # don't segfault, GH#495
         msg = r"index \d+ is out of bounds for axis 0 with size \d+"
@@ -114,6 +157,23 @@ class TestSeriesGetitemScalars:
         result = ser[cats[0]]
         assert result == expected
 
+    def test_getitem_str_with_timedeltaindex(self):
+        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        key = "6 days, 23:11:12"
+        indexer = rng.get_loc(key)
+        assert indexer == 133
+
+        result = ser[key]
+        assert result == ser.iloc[133]
+
+        msg = r"^Timedelta\('50 days 00:00:00'\)$"
+        with pytest.raises(KeyError, match=msg):
+            rng.get_loc("50 days")
+        with pytest.raises(KeyError, match=msg):
+            ser["50 days"]
+
 
 class TestSeriesGetitemSlices:
     def test_getitem_partial_str_slice_with_datetimeindex(self):
@@ -141,6 +201,38 @@ class TestSeriesGetitemSlices:
         result = ts["1/2/2000":"1/3/2000"]
         expected = ts[1:4]
         tm.assert_series_equal(result, expected)
+
+    def test_getitem_partial_str_slice_with_timedeltaindex(self):
+        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        result = ser["5 day":"6 day"]
+        expected = ser.iloc[86:134]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["5 day":]
+        expected = ser.iloc[86:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser[:"6 day"]
+        expected = ser.iloc[:134]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_partial_str_slice_high_reso_with_timedeltaindex(self):
+        # higher reso
+        rng = timedelta_range("1 day 10:11:12", freq="us", periods=2000)
+        ser = Series(np.arange(len(rng)), index=rng)
+
+        result = ser["1 day 10:11:12":]
+        expected = ser.iloc[0:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["1 day 10:11:12.001":]
+        expected = ser.iloc[1000:]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["1 days, 10:11:12.001001"]
+        assert result == ser.iloc[1001]
 
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
@@ -186,9 +278,38 @@ class TestSeriesGetitemSlices:
         expected = ser.take(positions)
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_slice_float_raises(self, datetime_series):
+        msg = (
+            "cannot do slice indexing on DatetimeIndex with these indexers "
+            r"\[{key}\] of type float"
+        )
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
+            datetime_series[4.0:10.0]
+
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
+            datetime_series[4.5:10.0]
+
+    def test_getitem_slice_bug(self):
+        ser = Series(range(10), index=list(range(10)))
+        result = ser[-12:]
+        tm.assert_series_equal(result, ser)
+
+        result = ser[-7:]
+        tm.assert_series_equal(result, ser[3:])
+
+        result = ser[:-12]
+        tm.assert_series_equal(result, ser[:0])
+
+    def test_getitem_slice_integers(self):
+        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+
+        result = ser[:4]
+        expected = Series(ser.values[:4], index=[2, 4, 6, 8])
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesGetitemListLike:
-    @pytest.mark.parametrize("box", [list, np.array, Index, pd.Series])
+    @pytest.mark.parametrize("box", [list, np.array, Index, Series])
     def test_getitem_no_matches(self, box):
         # GH#33462 we expect the same behavior for list/ndarray/Index/Series
         ser = Series(["A", "B"])
@@ -461,3 +582,79 @@ def test_getitem_1tuple_slice_without_multiindex():
     result = ser[key]
     expected = ser[key[0]]
     tm.assert_series_equal(result, expected)
+
+
+def test_getitem_preserve_name(datetime_series):
+    result = datetime_series[datetime_series > 0]
+    assert result.name == datetime_series.name
+
+    result = datetime_series[[0, 2, 4]]
+    assert result.name == datetime_series.name
+
+    result = datetime_series[5:10]
+    assert result.name == datetime_series.name
+
+
+def test_getitem_with_integer_labels():
+    # integer indexes, be careful
+    ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+    inds = [0, 2, 5, 7, 8]
+    arr_inds = np.array([0, 2, 5, 7, 8])
+    with pytest.raises(KeyError, match="with any missing labels"):
+        ser[inds]
+
+    with pytest.raises(KeyError, match="with any missing labels"):
+        ser[arr_inds]
+
+
+def test_getitem_missing(datetime_series):
+    # missing
+    d = datetime_series.index[0] - BDay()
+    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
+    with pytest.raises(KeyError, match=msg):
+        datetime_series[d]
+
+
+def test_getitem_fancy(string_series, object_series):
+    slice1 = string_series[[1, 2, 3]]
+    slice2 = object_series[[1, 2, 3]]
+    assert string_series.index[2] == slice1.index[1]
+    assert object_series.index[2] == slice2.index[1]
+    assert string_series[2] == slice1[1]
+    assert object_series[2] == slice2[1]
+
+
+def test_getitem_box_float64(datetime_series):
+    value = datetime_series[5]
+    assert isinstance(value, np.float64)
+
+
+def test_getitem_unordered_dup():
+    obj = Series(range(5), index=["c", "a", "a", "b", "b"])
+    assert is_scalar(obj["c"])
+    assert obj["c"] == 0
+
+
+def test_getitem_dups():
+    ser = Series(range(5), index=["A", "A", "B", "C", "C"], dtype=np.int64)
+    expected = Series([3, 4], index=["C", "C"], dtype=np.int64)
+    result = ser["C"]
+    tm.assert_series_equal(result, expected)
+
+
+def test_getitem_categorical_str():
+    # GH#31765
+    ser = Series(range(5), index=Categorical(["a", "b", "c", "a", "b"]))
+    result = ser["a"]
+    expected = ser.iloc[[0, 3]]
+    tm.assert_series_equal(result, expected)
+
+    # Check the intermediate steps work as expected
+    with tm.assert_produces_warning(FutureWarning):
+        result = ser.index.get_value(ser, "a")
+    tm.assert_series_equal(result, expected)
+
+
+def test_slice_can_reorder_not_uniquely_indexed():
+    ser = Series(1, index=["a", "a", "b", "b", "c"])
+    ser[::-1]  # it works!

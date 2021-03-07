@@ -1,9 +1,18 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Index, Int64Index, RangeIndex, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -109,6 +118,24 @@ class TestSetOps:
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
+
+    def test_symmetric_difference(self, sort):
+        # smoke
+        index1 = Index([5, 2, 3, 4], name="index1")
+        index2 = Index([2, 3, 4, 1])
+        result = index1.symmetric_difference(index2, sort=sort)
+        expected = Index([5, 1])
+        assert tm.equalContents(result, expected)
+        assert result.name is None
+        if sort is None:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
+
+        # __xor__ syntax
+        with tm.assert_produces_warning(FutureWarning):
+            expected = index1 ^ index2
+        assert tm.equalContents(result, expected)
+        assert result.name is None
 
 
 class TestSetOpsSort:

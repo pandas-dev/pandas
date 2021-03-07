@@ -8,6 +8,8 @@ from functools import partial
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -210,7 +212,7 @@ def test_aggregate_api_consistency():
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
     msg = r"Column\(s\) \['r', 'r2'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
 
 
@@ -225,7 +227,7 @@ def test_agg_dict_renaming_deprecation():
         )
 
     msg = r"Column\(s\) \['ma'\] do not exist"
-    with pytest.raises(SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
     msg = r"nested renamer is not supported"
@@ -412,6 +414,7 @@ def test_agg_callables():
         tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) columns with ndarrays
 def test_agg_over_numpy_arrays():
     # GH 3788
     df = DataFrame(
@@ -432,10 +435,14 @@ def test_agg_over_numpy_arrays():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_tzaware_non_datetime_result():
+@pytest.mark.parametrize("as_period", [True, False])
+def test_agg_tzaware_non_datetime_result(as_period):
     # discussed in GH#29589, fixed in GH#29641, operating on tzaware values
     #  with function that is not dtype-preserving
-    dti = pd.date_range("2012-01-01", periods=4, tz="UTC")
+    dti = date_range("2012-01-01", periods=4, tz="UTC")
+    if as_period:
+        dti = dti.tz_localize(None).to_period("D")
+
     df = DataFrame({"a": [0, 0, 1, 1], "b": dti})
     gb = df.groupby("a")
 
@@ -454,6 +461,9 @@ def test_agg_tzaware_non_datetime_result():
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
     expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
     expected.index.name = "a"
+    if as_period:
+        expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
+        expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
 
@@ -620,7 +630,11 @@ def test_groupby_agg_err_catching(err_cls):
     #  in _python_agg_general
 
     # Use a non-standard EA to make sure we don't go down ndarray paths
-    from pandas.tests.extension.decimal.array import DecimalArray, make_data, to_decimal
+    from pandas.tests.extension.decimal.array import (
+        DecimalArray,
+        make_data,
+        to_decimal,
+    )
 
     data = make_data()[:5]
     df = DataFrame(

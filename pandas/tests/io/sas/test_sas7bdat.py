@@ -7,7 +7,10 @@ import dateutil.parser
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError, PerformanceWarning
+from pandas.errors import (
+    EmptyDataError,
+    PerformanceWarning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -213,7 +216,7 @@ def test_inconsistent_number_of_rows(datapath):
 def test_zero_variables(datapath):
     # Check if the SAS file has zero variables (PR #18184)
     fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")
-    with pytest.raises(EmptyDataError):
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
         pd.read_sas(fname)
 
 
@@ -221,7 +224,8 @@ def test_corrupt_read(datapath):
     # We don't really care about the exact failure, the important thing is
     # that the resource should be cleaned up afterwards (BUG #35566)
     fname = datapath("io", "sas", "data", "corrupt.sas7bdat")
-    with pytest.raises(AttributeError):
+    msg = "'SAS7BDATReader' object has no attribute 'row_count'"
+    with pytest.raises(AttributeError, match=msg):
         pd.read_sas(fname)
 
 
@@ -314,3 +318,22 @@ def test_max_sas_date_iterator(datapath):
     ]
     for result, expected in zip(results, expected):
         tm.assert_frame_equal(result, expected)
+
+
+def test_null_date(datapath):
+    fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
+    df = pd.read_sas(fname, encoding="utf-8")
+
+    expected = pd.DataFrame(
+        {
+            "datecol": [
+                datetime(9999, 12, 29),
+                pd.NaT,
+            ],
+            "datetimecol": [
+                datetime(9999, 12, 29, 23, 59, 59, 998993),
+                pd.NaT,
+            ],
+        },
+    )
+    tm.assert_frame_equal(df, expected)

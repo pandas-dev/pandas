@@ -3,42 +3,11 @@ Timedelta benchmarks with non-tslibs dependencies.  See
 benchmarks.tslibs.timedelta for benchmarks that rely only on tslibs.
 """
 
-import numpy as np
-
-from pandas import DataFrame, Series, timedelta_range, to_timedelta
-
-
-class ToTimedelta:
-    def setup(self):
-        self.ints = np.random.randint(0, 60, size=10000)
-        self.str_days = []
-        self.str_seconds = []
-        for i in self.ints:
-            self.str_days.append(f"{i} days")
-            self.str_seconds.append(f"00:00:{i:02d}")
-
-    def time_convert_int(self):
-        to_timedelta(self.ints, unit="s")
-
-    def time_convert_string_days(self):
-        to_timedelta(self.str_days)
-
-    def time_convert_string_seconds(self):
-        to_timedelta(self.str_seconds)
-
-
-class ToTimedeltaErrors:
-
-    params = ["coerce", "ignore"]
-    param_names = ["errors"]
-
-    def setup(self, errors):
-        ints = np.random.randint(0, 60, size=10000)
-        self.arr = [f"{i} days" for i in ints]
-        self.arr[-1] = "apple"
-
-    def time_convert(self, errors):
-        to_timedelta(self.arr, errors=errors)
+from pandas import (
+    DataFrame,
+    Series,
+    timedelta_range,
+)
 
 
 class DatetimeAccessor:
@@ -74,7 +43,7 @@ class TimedeltaIndexing:
         self.index.get_loc(self.timedelta)
 
     def time_shallow_copy(self):
-        self.index._shallow_copy()
+        self.index._view()
 
     def time_series_loc(self):
         self.series.loc[self.timedelta]

@@ -382,7 +382,11 @@ def format_object_summary(
         summary = f"[{first}, {last}]{close}"
     else:
 
-        if n > max_seq_items:
+        if max_seq_items == 1:
+            # If max_seq_items=1 show only last element
+            head = []
+            tail = [formatter(x) for x in obj[-1:]]
+        elif n > max_seq_items:
             n = min(max_seq_items // 2, 10)
             head = [formatter(x) for x in obj[:n]]
             tail = [formatter(x) for x in obj[-n:]]

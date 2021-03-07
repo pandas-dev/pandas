@@ -1,11 +1,27 @@
 from __future__ import annotations
 
 from distutils.version import LooseVersion
-from typing import TYPE_CHECKING, Any, Sequence, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    Dtype,
+    NpDtype,
+)
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -19,23 +35,25 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.indexers import check_array_indexer, validate_indices
-from pandas.core.missing import get_fill_func
+from pandas.core.indexers import (
+    check_array_indexer,
+    validate_indices,
+)
 
 try:
     import pyarrow as pa
 except ImportError:
     pa = None
 else:
-    # our min supported version of pyarrow, 0.15.1, does not have a compute
-    # module
-    try:
+    # PyArrow backed StringArrays are available starting at 1.0.0, but this
+    # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
+    # and its compute functions existed. GH38801
+    if LooseVersion(pa.__version__) >= "1.0.0":
         import pyarrow.compute as pc
-    except ImportError:
-        pass
-    else:
+
         ARROW_CMP_FUNCS = {
             "eq": pc.equal,
             "ne": pc.not_equal,
@@ -87,7 +105,7 @@ class ArrowStringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+    def construct_array_type(cls) -> Type[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -104,8 +122,8 @@ class ArrowStringDtype(ExtensionDtype):
         return "ArrowStringDtype"
 
     def __from_arrow__(
-        self, array: Union["pa.Array", "pa.ChunkedArray"]
-    ) -> "ArrowStringArray":
+        self, array: Union[pa.Array, pa.ChunkedArray]
+    ) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
@@ -203,14 +221,16 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise ImportError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy=False):
         cls._chk_pyarrow_available()
         # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
         scalars = lib.ensure_string_array(scalars, copy=False)
         return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, dtype: Optional[Dtype] = None, copy=False
+    ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
@@ -220,7 +240,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._dtype
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
@@ -229,7 +249,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         return self._data
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
@@ -252,9 +275,22 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return len(self._data)
 
-    @classmethod
-    def _from_factorized(cls, values, original):
-        return cls._from_sequence(values)
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+        encoded = self._data.dictionary_encode()
+        indices = pa.chunked_array(
+            [c.indices for c in encoded.chunks], type=encoded.type.index_type
+        ).to_pandas()
+        if indices.dtype.kind == "f":
+            indices[np.isnan(indices)] = na_sentinel
+        indices = indices.astype(np.int64, copy=False)
+
+        if encoded.num_chunks:
+            uniques = type(self)(encoded.chunk(0).dictionary)
+        else:
+            uniques = type(self)(pa.array([], type=encoded.type.value_type))
+
+        return indices.values, uniques
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> ArrowStringArray:
@@ -359,19 +395,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f"expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = get_fill_func(method)
-                new_values = func(self.to_numpy(object), limit=limit, mask=mask)
+                func = missing.get_fill_func(method)
+                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value
@@ -467,7 +496,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
 
-            # Slice data and insert inbetween
+            # Slice data and insert in-between
             new_data = [
                 *self._data[0:key].chunks,
                 pa.array([value], type=pa.string()),
@@ -502,7 +531,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     def take(
         self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ) -> "ExtensionArray":
+    ):
         """
         Take elements from an array.
 
@@ -610,13 +639,16 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
 
         vc = self._data.value_counts()
 
         # Index cannot hold ExtensionArrays yet
         index = Index(type(self)(vc.field(0)).astype(object))
-        # No missings, so we can adhere to the interface and return a numpy array.
+        # No missing values so we can adhere to the interface and return a numpy array.
         counts = np.array(vc.field(1))
 
         if dropna and self._data.null_count > 0:

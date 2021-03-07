@@ -25,29 +25,51 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike, Shape
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    Shape,
+)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_dtype_equal,
     is_list_like,
     is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
-from pandas.core.algorithms import factorize_array, unique
-from pandas.core.missing import get_fill_func
-from pandas.core.sorting import nargminmax, nargsort
+from pandas.core import (
+    missing,
+    ops,
+)
+from pandas.core.algorithms import (
+    factorize_array,
+    isin,
+    unique,
+)
+from pandas.core.sorting import (
+    nargminmax,
+    nargsort,
+)
 
 _extension_array_shared_docs: Dict[str, str] = {}
 
@@ -78,6 +100,7 @@ class ExtensionArray:
     factorize
     fillna
     equals
+    isin
     isna
     ravel
     repeat
@@ -189,7 +212,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -211,7 +234,9 @@ class ExtensionArray:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, *, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
         """
         Construct a new ExtensionArray from a sequence of strings.
 
@@ -391,7 +416,10 @@ class ExtensionArray:
         return ~(self == other)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
@@ -561,7 +589,7 @@ class ExtensionArray:
         ascending : bool, default True
             Whether the indices should result in an ascending
             or descending sort.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
@@ -591,12 +619,16 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
-    def argmin(self):
+    def argmin(self, skipna: bool = True) -> int:
         """
         Return the index of minimum value.
 
         In case of multiple occurrences of the minimum value, the index
         corresponding to the first occurrence is returned.
+
+        Parameters
+        ----------
+        skipna : bool, default True
 
         Returns
         -------
@@ -606,14 +638,21 @@ class ExtensionArray:
         --------
         ExtensionArray.argmax
         """
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
         return nargminmax(self, "argmin")
 
-    def argmax(self):
+    def argmax(self, skipna: bool = True) -> int:
         """
         Return the index of maximum value.
 
         In case of multiple occurrences of the maximum value, the index
         corresponding to the first occurrence is returned.
+
+        Parameters
+        ----------
+        skipna : bool, default True
 
         Returns
         -------
@@ -623,6 +662,9 @@ class ExtensionArray:
         --------
         ExtensionArray.argmin
         """
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self.isna().any():
+            raise NotImplementedError
         return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):
@@ -655,19 +697,12 @@ class ExtensionArray:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f"expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = get_fill_func(method)
-                new_values = func(self.astype(object), limit=limit, mask=mask)
+                func = missing.get_fill_func(method)
+                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
                 # fill with value
@@ -833,6 +868,22 @@ class ExtensionArray:
             equal_na = self.isna() & other.isna()
             return bool((equal_values | equal_na).all())
 
+    def isin(self, values) -> np.ndarray:
+        """
+        Pointwise comparison for set containment in the given values.
+
+        Roughly equivalent to `np.array([x in values for x in self])`
+
+        Parameters
+        ----------
+        values : Sequence
+
+        Returns
+        -------
+        np.ndarray[bool]
+        """
+        return isin(np.asarray(self), values)
+
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
@@ -961,12 +1012,12 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def take(
-        self,
+        self: ExtensionArrayT,
         indices: Sequence[int],
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ) -> ExtensionArray:
+    ) -> ExtensionArrayT:
         """
         Take elements from an array.
 
@@ -1065,7 +1116,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> ArrayLike:
+    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1224,6 +1275,13 @@ class ExtensionArray:
 
     def __hash__(self):
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
+
+    # ------------------------------------------------------------------------
+    # Non-Optimized Default Methods
+
+    def delete(self: ExtensionArrayT, loc) -> ExtensionArrayT:
+        indexer = np.delete(np.arange(len(self)), loc)
+        return self.take(indexer)
 
 
 class ExtensionOpsMixin:

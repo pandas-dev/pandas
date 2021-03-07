@@ -1,9 +1,20 @@
-from datetime import datetime
+from datetime import (
+    date,
+    datetime,
+)
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
+
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -26,6 +37,17 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
+    def test_categorical_scalar_deprecated(self):
+        # GH#38433
+        with tm.assert_produces_warning(FutureWarning):
+            Categorical("A", categories=["A", "B"])
+
+    def test_categorical_1d_only(self):
+        # ndim > 1
+        msg = "> 1 ndim Categorical are not supported at this time"
+        with pytest.raises(NotImplementedError, match=msg):
+            Categorical(np.array([list("abcd")]))
+
     def test_validate_ordered(self):
         # see gh-14058
         exp_msg = "'ordered' must either be 'True' or 'False'"
@@ -202,13 +224,13 @@ class TestCategoricalConstructors:
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        # Scalars should be converted to lists
-        cat = Categorical(1)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#38433
+            cat = Categorical(1)
         assert len(cat.categories) == 1
         assert cat.categories[0] == 1
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
-
         # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
@@ -345,6 +367,14 @@ class TestCategoricalConstructors:
 
         result = Categorical(Series(idx))
         tm.assert_index_equal(result.categories, idx)
+
+    def test_constructor_date_objects(self):
+        # we dont cast date objects to timestamps, matching Index constructor
+        v = date.today()
+
+        cat = Categorical([v, v])
+        assert cat.categories.dtype == object
+        assert type(cat.categories[0]) is date
 
     def test_constructor_from_index_series_timedelta(self):
         idx = timedelta_range("1 days", freq="D", periods=3)
@@ -699,3 +729,25 @@ class TestCategoricalConstructors:
         result = Categorical(arr)
         expected = Categorical(Series([pd.NA, pd.NA], dtype="object"))
         tm.assert_categorical_equal(result, expected)
+
+    def test_from_sequence_copy(self):
+        cat = Categorical(np.arange(5).repeat(2))
+        result = Categorical._from_sequence(cat, dtype=None, copy=False)
+
+        # more generally, we'd be OK with a view
+        assert result._codes is cat._codes
+
+        result = Categorical._from_sequence(cat, dtype=None, copy=True)
+
+        assert not np.shares_memory(result._codes, cat._codes)
+
+    @pytest.mark.xfail(
+        not IS64 or is_platform_windows(),
+        reason="Incorrectly raising in ensure_datetime64ns",
+    )
+    def test_constructor_datetime64_non_nano(self):
+        categories = np.arange(10).view("M8[D]")
+        values = categories[::2].copy()
+
+        cat = Categorical(values, categories=categories)
+        assert (cat == values).all()

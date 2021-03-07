@@ -5,9 +5,11 @@ import struct
 import numpy as np
 import pytest
 
-from pandas._libs import algos as libalgos, hashtable as ht
-from pandas.compat import IS64
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas._libs import (
+    algos as libalgos,
+    hashtable as ht,
+)
+from pandas.compat import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -908,8 +910,8 @@ class TestIsin:
         # GH 16639
         vals = np.array([0, 1, 2, 0])
         cats = ["a", "b", "c"]
-        Sd = Series(Categorical(1).from_codes(vals, cats))
-        St = Series(Categorical(1).from_codes(np.array([0, 1]), cats))
+        Sd = Series(Categorical([1]).from_codes(vals, cats))
+        St = Series(Categorical([1]).from_codes(np.array([0, 1]), cats))
         expected = np.array([True, True, False, True])
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
@@ -917,8 +919,8 @@ class TestIsin:
     def test_categorical_isin(self):
         vals = np.array([0, 1, 2, 0])
         cats = ["a", "b", "c"]
-        cat = Categorical(1).from_codes(vals, cats)
-        other = Categorical(1).from_codes(np.array([0, 1]), cats)
+        cat = Categorical([1]).from_codes(vals, cats)
+        other = Categorical([1]).from_codes(np.array([0, 1]), cats)
 
         expected = np.array([True, True, False, True])
         result = algos.isin(cat, other)
@@ -1273,12 +1275,10 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[2 ** 63, -1])
+        expected = Series([1, 1], index=[-1, 2 ** 63])
         result = algos.value_counts(arr)
 
-        # 32-bit linux has a different ordering
-        if IS64:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 class TestDuplicated:
@@ -1733,7 +1733,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d(arr)
+            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.int64))
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
@@ -2253,7 +2253,7 @@ def test_int64_add_overflow():
 
 class TestMode:
     def test_no_mode(self):
-        exp = Series([], dtype=np.float64)
+        exp = Series([], dtype=np.float64, index=Index([], dtype=int))
         tm.assert_series_equal(algos.mode([]), exp)
 
     def test_mode_single(self):
@@ -2410,14 +2410,18 @@ class TestDiff:
         with pytest.raises(ValueError, match=msg):
             algos.diff(dta, 1, axis=1)
 
+    @pytest.mark.parametrize("dtype", ["int8", "int16"])
+    def test_diff_low_precision_int(self, dtype):
+        arr = np.array([0, 1, 1, 0, 0], dtype=dtype)
+        result = algos.diff(arr, 1)
+        expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
+        tm.assert_numpy_array_equal(result, expected)
 
-@pytest.mark.parametrize(
-    "left_values", [[0, 1, 1, 4], [0, 1, 1, 4, 4], [0, 1, 1, 1, 4]]
-)
-def test_make_duplicates_of_left_unique_in_right(left_values):
-    # GH#36263
-    left = np.array(left_values)
-    right = np.array([0, 0, 1, 1, 4])
-    result = algos.make_duplicates_of_left_unique_in_right(left, right)
-    expected = np.array([0, 0, 1, 4])
+
+def test_union_with_duplicates():
+    # GH#36289
+    lvals = np.array([3, 1, 3, 4])
+    rvals = np.array([2, 3, 1, 1])
+    result = algos.union_with_duplicates(lvals, rvals)
+    expected = np.array([3, 3, 1, 1, 4, 2])
     tm.assert_numpy_array_equal(result, expected)

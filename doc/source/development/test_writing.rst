@@ -149,13 +149,6 @@ be located.
             ``frame_or_series`` fixture, by convention it goes in the
             ``tests.frame`` file.
 
-      - tests.generic.methods.test_mymethod
-
-        .. note::
-
-           The generic/methods/ directory is only for methods with tests
-           that are fully parametrized over Series/DataFrame
-
 7. Is your test for an Index method, not depending on Series/DataFrame?
    This test likely belongs in one of:
 

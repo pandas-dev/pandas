@@ -3,7 +3,11 @@ import pickle
 from typing import Any
 import warnings
 
-from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
@@ -94,7 +98,26 @@ def to_pickle(
         is_text=False,
         storage_options=storage_options,
     ) as handles:
-        pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
+        if handles.compression["method"] in ("bz2", "xz") and protocol >= 5:
+            # some weird TypeError GH#39002 with pickle 5: fallback to letting
+            # pickle create the entire object and then write it to the buffer.
+            # "zip" would also be here if pandas.io.common._BytesZipFile
+            # wouldn't buffer write calls
+            handles.handle.write(
+                # error: Argument 1 to "write" of "TextIOBase" has incompatible type
+                # "bytes"; expected "str"
+                pickle.dumps(obj, protocol=protocol)  # type: ignore[arg-type]
+            )
+        else:
+            # letting pickle write directly to the buffer is more memory-efficient
+            pickle.dump(
+                # error: Argument 2 to "dump" has incompatible type "Union[IO[Any],
+                # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]"; expected
+                # "IO[bytes]"
+                obj,
+                handles.handle,  # type: ignore[arg-type]
+                protocol=protocol,
+            )
 
 
 @doc(storage_options=generic._shared_docs["storage_options"])
@@ -188,6 +211,9 @@ def read_pickle(
                 with warnings.catch_warnings(record=True):
                     # We want to silence any warnings about, e.g. moved modules.
                     warnings.simplefilter("ignore", Warning)
+                    # error: Argument 1 to "load" has incompatible type "Union[IO[Any],
+                    # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]";
+                    # expected "IO[bytes]"
                     return pickle.load(handles.handle)  # type: ignore[arg-type]
             except excs_to_catch:
                 # e.g.

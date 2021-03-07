@@ -8,6 +8,8 @@ import threading
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -180,13 +182,25 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
     "responder, read_method, port, parquet_engine",
     [
         (CSVUserAgentResponder, pd.read_csv, 34259, None),
-        (JSONUserAgentResponder, pd.read_json, 34260, None),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34268, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34273, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34271, None),
-        (StataUserAgentResponder, pd.read_stata, 34272, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34261, None),
-        (GzippedJSONUserAgentResponder, pd.read_json, 34262, None),
+        pytest.param(
+            JSONUserAgentResponder,
+            pd.read_json,
+            34260,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34261, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34262, "fastparquet"),
+        (PickleUserAgentResponder, pd.read_pickle, 34263, None),
+        (StataUserAgentResponder, pd.read_stata, 34264, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
+        pytest.param(
+            GzippedJSONUserAgentResponder,
+            pd.read_json,
+            34266,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
     ],
 )
 def test_server_and_default_headers(responder, read_method, port, parquet_engine):
@@ -195,30 +209,42 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
-    if parquet_engine is None:
-        df_http = read_method(f"http://localhost:{port}")
-    else:
-        df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-    server.shutdown()
-    server.server_close()
-    server_thread.join()
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
+        if parquet_engine is None:
+            df_http = read_method(f"http://localhost:{port}")
+        else:
+            df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
     assert not df_http.empty
 
 
 @pytest.mark.parametrize(
     "responder, read_method, port, parquet_engine",
     [
-        (CSVUserAgentResponder, pd.read_csv, 34263, None),
-        (JSONUserAgentResponder, pd.read_json, 34264, None),
-        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34270, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34275, "fastparquet"),
-        (PickleUserAgentResponder, pd.read_pickle, 34273, None),
-        (StataUserAgentResponder, pd.read_stata, 34274, None),
-        (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
-        (GzippedJSONUserAgentResponder, pd.read_json, 34266, None),
+        (CSVUserAgentResponder, pd.read_csv, 34267, None),
+        pytest.param(
+            JSONUserAgentResponder,
+            pd.read_json,
+            34268,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34269, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34270, "fastparquet"),
+        (PickleUserAgentResponder, pd.read_pickle, 34271, None),
+        (StataUserAgentResponder, pd.read_stata, 34272, None),
+        (GzippedCSVUserAgentResponder, pd.read_csv, 34273, None),
+        pytest.param(
+            GzippedJSONUserAgentResponder,
+            pd.read_json,
+            34274,
+            None,
+            marks=td.skip_array_manager_not_yet_implemented,
+        ),
     ],
 )
 def test_server_and_custom_headers(responder, read_method, port, parquet_engine):
@@ -229,25 +255,25 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
 
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
 
-    if parquet_engine is None:
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options={"User-Agent": custom_user_agent},
-        )
-    else:
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options={"User-Agent": custom_user_agent},
-            engine=parquet_engine,
-        )
-    server.shutdown()
+        if parquet_engine is None:
+            df_http = read_method(
+                f"http://localhost:{port}",
+                storage_options={"User-Agent": custom_user_agent},
+            )
+        else:
+            df_http = read_method(
+                f"http://localhost:{port}",
+                storage_options={"User-Agent": custom_user_agent},
+                engine=parquet_engine,
+            )
+        server.shutdown()
 
-    server.server_close()
-    server_thread.join()
+        server.server_close()
+        server_thread.join()
 
     tm.assert_frame_equal(df_true, df_http)
 
@@ -255,7 +281,7 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
 @pytest.mark.parametrize(
     "responder, read_method, port",
     [
-        (AllHeaderCSVResponder, pd.read_csv, 34267),
+        (AllHeaderCSVResponder, pd.read_csv, 34275),
     ],
 )
 def test_server_and_all_custom_headers(responder, read_method, port):
@@ -265,17 +291,17 @@ def test_server_and_all_custom_headers(responder, read_method, port):
         "User-Agent": custom_user_agent,
         "Auth": custom_auth_token,
     }
-    server = http.server.HTTPServer(("localhost", port), responder)
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.start()
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.start()
 
-    df_http = read_method(
-        f"http://localhost:{port}",
-        storage_options=storage_options,
-    )
-    server.shutdown()
-    server.server_close()
-    server_thread.join()
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options=storage_options,
+        )
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()
@@ -305,5 +331,9 @@ def test_to_parquet_to_disk_with_storage_options(engine):
     pytest.importorskip(engine)
 
     true_df = pd.DataFrame({"column_name": ["column_value"]})
-    with pytest.raises(ValueError):
+    msg = (
+        "storage_options passed with file object or non-fsspec file path|"
+        "storage_options passed with buffer, or non-supported URL"
+    )
+    with pytest.raises(ValueError, match=msg):
         true_df.to_parquet("/tmp/junk.parquet", storage_options=headers, engine=engine)

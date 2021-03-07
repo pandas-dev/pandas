@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, concat
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 from pandas.core.base import DataError
 
@@ -444,6 +448,7 @@ def test_rank_avg_even_vals():
     tm.assert_frame_equal(result, exp_df)
 
 
+@pytest.mark.xfail(reason="Works now, needs tests")
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])

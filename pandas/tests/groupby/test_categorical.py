@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -276,7 +278,9 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-def test_observed(observed):
+# TODO(ArrayManager) incorrect dtype for mean()
+@td.skip_array_manager_not_yet_implemented
+def test_observed(observed, using_array_manager):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
@@ -1568,7 +1572,7 @@ def test_aggregate_categorical_with_isnan():
     df = df.astype({"categorical_col": "category"})
 
     result = df.groupby(["A", "B"]).agg(lambda df: df.isna().sum())
-    index = pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
+    index = MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
     expected = DataFrame(
         data={
             "numerical_col": [1.0, 0.0],
@@ -1639,8 +1643,8 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     val = [0, 1, 1, 0]
     df = DataFrame({"a": cat, "b": cat, "c": val})
 
-    idx = Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    cat2 = Categorical([0, 1])
+    idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
         "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
@@ -1664,8 +1668,8 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     val = [0, 1, 1, 0]
     df = DataFrame({"a": cat, "b": cat, "c": val})
 
-    idx = Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    cat2 = Categorical([0, 1])
+    idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
         "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
@@ -1678,3 +1682,23 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     df_grp = df.groupby(["a", "b"], observed=observed)
     result = getattr(df_grp, func)()
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_categorical_indices_unused_categories():
+    # GH#38642
+    df = DataFrame(
+        {
+            "key": Categorical(["b", "b", "a"], categories=["a", "b", "c"]),
+            "col": range(3),
+        }
+    )
+    grouped = df.groupby("key", sort=False)
+    result = grouped.indices
+    expected = {
+        "b": np.array([0, 1], dtype="int64"),
+        "a": np.array([2], dtype="int64"),
+        "c": np.array([], dtype="int64"),
+    }
+    assert result.keys() == expected.keys()
+    for key in result.keys():
+        tm.assert_numpy_array_equal(result[key], expected[key])

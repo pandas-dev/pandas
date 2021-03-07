@@ -1726,7 +1726,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
         // Process string of digits.
         num_digits = 0;
         n = 0;
-        while (isdigit_ascii(*p)) {
+        while (num_digits < max_digits && isdigit_ascii(*p)) {
             n = n * 10 + (*p - '0');
             num_digits++;
             p++;
@@ -1747,10 +1747,13 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
     } else if (exponent > 0) {
         number *= e[exponent];
     } else if (exponent < -308) {  // Subnormal
-        if (exponent < -616)       // Prevent invalid array access.
+        if (exponent < -616) {  // Prevent invalid array access.
             number = 0.;
-        number /= e[-308 - exponent];
-        number /= e[308];
+        } else {
+            number /= e[-308 - exponent];
+            number /= e[308];
+        }
+
     } else {
         number /= e[-exponent];
     }

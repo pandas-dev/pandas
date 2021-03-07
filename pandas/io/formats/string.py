@@ -2,7 +2,11 @@
 Module for formatting output data in console (to string).
 """
 from shutil import get_terminal_size
-from typing import Iterable, List, Optional
+from typing import (
+    Iterable,
+    List,
+    Optional,
+)
 
 import numpy as np
 
@@ -160,7 +164,7 @@ class StringFormatter:
         counter = 0
         while adj_dif > 0 and n_cols > 1:
             counter += 1
-            mid = int(round(n_cols / 2.0))
+            mid = round(n_cols / 2)
             mid_ix = col_lens.index[mid]
             col_len = col_lens[mid_ix]
             # adjoin adds one

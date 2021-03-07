@@ -9,21 +9,16 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringDtype,
+)
 
 skip_if_no_pyarrow = td.skip_if_no("pyarrow", min_version="1.0.0")
 
 
 @pytest.fixture(
-    params=[
-        # pandas\tests\arrays\string_\test_string.py:16: error: List item 1 has
-        # incompatible type "ParameterSet"; expected
-        # "Sequence[Collection[object]]"  [list-item]
-        "string",
-        pytest.param(
-            "arrow_string", marks=skip_if_no_pyarrow
-        ),  # type:ignore[list-item]
-    ]
+    params=["string", pytest.param("arrow_string", marks=skip_if_no_pyarrow)]
 )
 def dtype(request):
     return request.param
@@ -126,7 +121,12 @@ def test_string_methods(input, method, dtype, request):
 def test_astype_roundtrip(dtype, request):
     if dtype == "arrow_string":
         reason = "ValueError: Could not convert object to NumPy datetime"
-        mark = pytest.mark.xfail(reason=reason)
+        mark = pytest.mark.xfail(reason=reason, raises=ValueError)
+        request.node.add_marker(mark)
+    else:
+        mark = pytest.mark.xfail(
+            reason="GH#36153 casting from StringArray to dt64 fails", raises=ValueError
+        )
         request.node.add_marker(mark)
 
     ser = pd.Series(pd.date_range("2000", periods=12))
@@ -492,7 +492,7 @@ def test_value_counts_na(dtype, request):
 
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", pd.NA, "b"], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
