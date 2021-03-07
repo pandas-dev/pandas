@@ -138,6 +138,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import (
     ArrayManager,
     BlockManager,
+    SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
@@ -275,6 +276,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             else:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
+
+    @classmethod
+    def _from_mgr(cls, mgr: Manager):
+        """
+        Fastpath to create a new DataFrame/Series from just a BlockManager/ArrayManager.
+
+        Notes
+        -----
+        Skips setting `_flags` attribute; caller is responsible for doing so.
+        """
+        obj = cls.__new__(cls)
+        object.__setattr__(obj, "_is_copy", None)
+        object.__setattr__(obj, "_mgr", mgr)
+        object.__setattr__(obj, "_item_cache", {})
+        object.__setattr__(obj, "_attrs", {})
+        return obj
 
     # ----------------------------------------------------------------------
     # attrs and flags
@@ -735,7 +752,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
         return self._constructor(
-            new_values, *new_axes  # type: ignore[arg-type]
+            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
+            # None, None]"; expected "bool" [arg-type]
+            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
+            # None, None]"; expected "Optional[Mapping[Optional[Hashable], Any]]"
+            new_values,
+            *new_axes,  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
 
     @final
@@ -5563,7 +5585,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
-        if isinstance(self._mgr, ArrayManager):
+        if isinstance(self._mgr, (ArrayManager, SingleArrayManager)):
             return f()
         blocks_before = len(self._mgr.blocks)
         result = f()
@@ -8951,8 +8973,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self._info_axis, axis=self._info_axis_number, copy=False
             )
 
-        block_axis = self._get_block_manager_axis(axis)
-
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
@@ -8968,7 +8988,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 cond=cond,
                 align=align,
                 errors=errors,
-                axis=block_axis,
+                axis=axis,
             )
             result = self._constructor(new_data)
             return result.__finalize__(self)
@@ -9279,9 +9299,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if freq is None:
             # when freq is None, data is shifted, index is not
-            block_axis = self._get_block_manager_axis(axis)
+            axis = self._get_axis_number(axis)
             new_data = self._mgr.shift(
-                periods=periods, axis=block_axis, fill_value=fill_value
+                periods=periods, axis=axis, fill_value=fill_value
             )
             return self._constructor(new_data).__finalize__(self, method="shift")
 
@@ -10242,10 +10262,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         GOOG   1769950   1500923   1371819
         APPL  30586265  40912316  41403351
 
-        >>> df.pct_change(axis='columns')
-              2016      2015      2014
-        GOOG   NaN -0.151997 -0.086016
-        APPL   NaN  0.337604  0.012002
+        >>> df.pct_change(axis='columns', periods=-1)
+                  2016      2015  2014
+        GOOG  0.179241  0.094112   NaN
+        APPL -0.252395 -0.011860   NaN
         """
         axis = self._get_axis_number(kwargs.pop("axis", self._stat_axis_name))
         if fill_method is None:
@@ -11031,37 +11051,47 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self
 
     def __iadd__(self, other):
+        # error: Unsupported left operand type for + ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__add__)  # type: ignore[operator]
 
     def __isub__(self, other):
+        # error: Unsupported left operand type for - ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__sub__)  # type: ignore[operator]
 
     def __imul__(self, other):
+        # error: Unsupported left operand type for * ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__mul__)  # type: ignore[operator]
 
     def __itruediv__(self, other):
+        # error: Unsupported left operand type for / ("Type[NDFrame]")
         return self._inplace_method(
             other, type(self).__truediv__  # type: ignore[operator]
         )
 
     def __ifloordiv__(self, other):
+        # error: Unsupported left operand type for // ("Type[NDFrame]")
         return self._inplace_method(
             other, type(self).__floordiv__  # type: ignore[operator]
         )
 
     def __imod__(self, other):
+        # error: Unsupported left operand type for % ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__mod__)  # type: ignore[operator]
 
     def __ipow__(self, other):
+        # error: Unsupported left operand type for ** ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__pow__)  # type: ignore[operator]
 
     def __iand__(self, other):
+        # error: Unsupported left operand type for & ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__and__)  # type: ignore[operator]
 
     def __ior__(self, other):
+        # error: Unsupported left operand type for | ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__or__)  # type: ignore[operator]
 
     def __ixor__(self, other):
+        # error: Unsupported left operand type for ^ ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__xor__)  # type: ignore[operator]
 
     # ----------------------------------------------------------------------
