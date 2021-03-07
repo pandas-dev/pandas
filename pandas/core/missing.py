@@ -660,15 +660,15 @@ def interpolate_2d(
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values[np.newaxis, :]
 
-    mask = isna(values)
-
-    if needs_i8_conversion(values.dtype):
-        values = values.view("i8")
-
     # reverse stride for backfill
     method = clean_fill_method(method)
     if method == "backfill":
         values = values[:, ::-1]
+
+    mask = isna(values)
+
+    if needs_i8_conversion(values.dtype):
+        values = values.view("i8")
 
     algos.pad_2d_inplace(values, mask.view(np.uint8), limit=limit)
 
