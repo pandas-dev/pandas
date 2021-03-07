@@ -153,11 +153,23 @@ _apply_docs = {
     transform : Apply function column-by-column to the GroupBy object.
     Series.apply : Apply a function to a Series.
     DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+    Notes
+    -----
+    In the current implementation `apply` calls `func` twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if `func` has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
-                           'B': [1,2,3],
-                           'C': [4,6, 5]})
+    ...                    'B': [1,2,3],
+    ...                    'C': [4,6, 5]})
     >>> g = df.groupby('A')
 
     Notice that ``g`` has two groups, ``a`` and ``b``.
@@ -192,8 +204,7 @@ _apply_docs = {
     A
     a    5
     b    2
-    dtype: int64
-    """,
+    dtype: int64""",
     "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = s.groupby(s.index)
@@ -206,9 +217,9 @@ _apply_docs = {
     each group together into a new Series:
 
     >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
-    0    0.0
-    1    0.5
-    2    4.0
+    a    0.0
+    a    0.5
+    b    4.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
@@ -219,20 +230,7 @@ _apply_docs = {
     >>> g.apply(lambda x: x.max() - x.min())
     a    1
     b    0
-    dtype: int64
-
-    Notes
-    -----
-    In the current implementation `apply` calls `func` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    Examples
-    --------
-    {examples}
-    """,
+    dtype: int64""",
 }
 
 _groupby_agg_method_template = """
@@ -981,7 +979,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
         return self._wrap_applied_output(
-            keys, values, not_indexed_same=mutated or self.mutated
+            data, keys, values, not_indexed_same=mutated or self.mutated
         )
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -1058,7 +1056,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
     @final
@@ -1546,11 +1544,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2    4.0
         Name: B, dtype: float64
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "mean",
             alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
@@ -1572,11 +1571,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Median of values within each group.
         """
-        return self._cython_agg_general(
+        result = self._cython_agg_general(
             "median",
             alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
@@ -1916,7 +1916,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import RollingGroupby
 
-        return RollingGroupby(self, *args, **kwargs)
+        return RollingGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1928,7 +1933,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExpandingGroupby
 
-        return ExpandingGroupby(self, *args, **kwargs)
+        return ExpandingGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1939,7 +1949,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
-        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
+        return ExponentialMovingWindowGroupby(
+            self._selected_obj,
+            *args,
+            _grouper=self.grouper,
+            **kwargs,
+        )
 
     @final
     def _fill(self, direction, limit=None):
@@ -3074,18 +3089,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if weights is not None:
             weights = Series(weights, index=self._selected_obj.index)
-            ws = [weights[idx] for idx in self.indices.values()]
+            ws = [weights.iloc[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
 
         if random_state is not None:
             random_state = com.random_state(random_state)
 
+        group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
         samples = [
             obj.sample(
                 n=n, frac=frac, replace=replace, weights=w, random_state=random_state
             )
-            for (_, obj), w in zip(self, ws)
+            for (_, obj), w in zip(group_iterator, ws)
         ]
 
         return concat(samples, axis=self.axis)

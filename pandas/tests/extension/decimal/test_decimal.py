@@ -178,13 +178,6 @@ class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
 class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
-        if any(x != x for x in all_data):
-            mark = pytest.mark.xfail(
-                reason="tm.assert_series_equal incorrectly raises",
-                raises=AssertionError,
-            )
-            request.node.add_marker(mark)
-
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])
@@ -212,12 +205,6 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    def test_groupby_apply_identity(self, data_for_grouping, request):
-        if any(x != x for x in data_for_grouping):
-            mark = pytest.mark.xfail(reason="tm.assert_series_equal raises incorrectly")
-            request.node.add_marker(mark)
-        super().test_groupby_apply_identity(data_for_grouping)
-
     def test_groupby_agg_extension(self, data_for_grouping):
         super().test_groupby_agg_extension(data_for_grouping)
 

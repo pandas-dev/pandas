@@ -783,6 +783,8 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result.replace(-1e8, np.nan), float_string_frame)
 
+    def test_replace_mixed_int_block_upcasting(self):
+
         # int block upcasting
         df = DataFrame(
             {
@@ -803,6 +805,8 @@ class TestDataFrameReplace:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
+    def test_replace_mixed_int_block_splitting(self):
+
         # int block splitting
         df = DataFrame(
             {
@@ -820,6 +824,8 @@ class TestDataFrameReplace:
         )
         result = df.replace(0, 0.5)
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_mixed2(self):
 
         # to object block upcasting
         df = DataFrame(
@@ -846,6 +852,7 @@ class TestDataFrameReplace:
         result = df.replace([1, 2], ["foo", "bar"])
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_mixed3(self):
         # test case from
         df = DataFrame(
             {"A": Series([3, 0], dtype="int64"), "B": Series([0, 3], dtype="int64")}

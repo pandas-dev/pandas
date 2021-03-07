@@ -1026,7 +1026,7 @@ class TestCustomDateRange:
 
 def test_date_range_with_custom_holidays():
     # GH 30593
-    freq = pd.offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
+    freq = offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
     result = date_range(start="2020-11-25 15:00", periods=4, freq=freq)
     expected = DatetimeIndex(
         [
