@@ -1098,9 +1098,9 @@ class Block(PandasObject):
                 n = new
                 if is_array:
                     # we have a different value per-column
-                    n = new.T[[i]].T
+                    n = new[:, i : i + 1]
 
-                submask = orig_mask.T[[i]].T
+                submask = orig_mask[:, i : i + 1]
                 rbs = nb.putmask(submask, n)
                 res_blocks.extend(rbs)
             return res_blocks
