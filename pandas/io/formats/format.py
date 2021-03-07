@@ -1,5 +1,5 @@
 """
-Internal module for formatting output data in csv, html,
+Internal module for formatting output data in csv, html, xml,
 and latex files. This module also applies to display formatting.
 """
 from __future__ import annotations
