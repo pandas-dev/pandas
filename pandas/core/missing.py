@@ -646,6 +646,9 @@ def interpolate_2d(
             values,
         )
 
+    if not np.all(values.shape):
+        return values
+
     orig_values = values
 
     if axis == 1:
@@ -657,12 +660,25 @@ def interpolate_2d(
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values[np.newaxis, :]
 
+    mask = isna(values)
+
+    if needs_i8_conversion(values.dtype):
+        values = values.view("i8")
+
     # reverse stride for backfill
     method = clean_fill_method(method)
     if method == "backfill":
         values = values[:, ::-1]
 
-    _pad_2d(values, limit=limit)
+    algos.pad_2d_inplace(values, mask.view(np.uint8), limit=limit)
+
+    # if method == "pad":
+    #     func = algos.pad_2d_inplace
+    # else:
+    #     func = algos.backfill_2d_inplace
+
+    # func(values, mask.view(np.uint8), limit=limit)
+
     return orig_values
 
 
@@ -715,18 +731,6 @@ def _backfill_1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
-    return values, mask
-
-
-@_datetimelike_compat
-def _pad_2d(values, limit=None, mask=None):
-    mask = _fillna_prep(values, mask)
-
-    if np.all(values.shape):
-        algos.pad_2d_inplace(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
     return values, mask
 
 
