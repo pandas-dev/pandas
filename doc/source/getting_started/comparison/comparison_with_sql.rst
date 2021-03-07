@@ -193,7 +193,7 @@ to your grouped DataFrame, indicating which functions to apply to specific colum
     Fri   2.734737   19
     Sat   2.993103   87
     Sun   3.255132   76
-    Thur  2.771452   62
+    Thu  2.771452   62
     */
 
 .. ipython:: python
@@ -213,11 +213,11 @@ Grouping by more than one column is done by passing a list of columns to the
     No     Fri      4  2.812500
            Sat     45  3.102889
            Sun     57  3.167895
-           Thur    45  2.673778
+           Thu    45  2.673778
     Yes    Fri     15  2.714000
            Sat     42  2.875476
            Sun     19  3.516842
-           Thur    17  3.030000
+           Thu    17  3.030000
     */
 
 .. ipython:: python

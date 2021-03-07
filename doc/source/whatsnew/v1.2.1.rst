@@ -18,7 +18,7 @@ Fixed regressions
 - Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamReaderWriter`` in binary mode instead of in text mode (:issue:`39247`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
 - Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
-- Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occured (:issue:`39202`)
+- Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occurred (:issue:`39202`)
 - Fixed regression in ``DataFrame.__setitem__`` raising ``ValueError`` when expanding :class:`DataFrame` and new column is from type ``"0 - name"`` (:issue:`39010`)
 - Fixed regression in setting with :meth:`DataFrame.loc`  raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
 - Fixed regression in setting with :meth:`DataFrame.loc` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
@@ -135,7 +135,7 @@ Other
 - Bumped minimum fastparquet version to 0.4.0 to avoid ``AttributeError`` from numba (:issue:`38344`)
 - Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
 - Fixed build failure on MacOS 11 in Python 3.9.1 (:issue:`38766`)
-- Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 whats new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
+- Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 what's new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
 
 .. ---------------------------------------------------------------------------
 

@@ -461,4 +461,4 @@ pandas' :meth:`~DataFrame.replace` is comparable to Excel's ``Replace All``.
 
 .. ipython:: python
 
-    tips.replace("Thur", "Thu")
+    tips.replace("Thu", "Thursday")
