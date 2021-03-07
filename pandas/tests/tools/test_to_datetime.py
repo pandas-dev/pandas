@@ -725,9 +725,7 @@ class TestToDatetime:
 
         # Test scalar case as well
         for scalar, expected in zip(data, expected_data):
-            result = to_datetime(
-                scalar, format="%Y%m%d %H%M%S", utc=True, cache=cache
-            )
+            result = to_datetime(scalar, format="%Y%m%d %H%M%S", utc=True, cache=cache)
             assert result == expected
 
     @pytest.mark.parametrize("cache", [True, False])
@@ -1772,9 +1770,7 @@ class TestToDatetimeMisc:
     @pytest.mark.parametrize("cache", [True, False])
     def test_dti_constructor_numpy_timeunits(self, cache, dtype):
         # GH 9114
-        base = to_datetime(
-            ["2000-01-01T00:00", "2000-01-02T00:00", "NaT"], cache=cache
-        )
+        base = to_datetime(["2000-01-01T00:00", "2000-01-02T00:00", "NaT"], cache=cache)
 
         values = base.values.astype(dtype)
 
@@ -1845,9 +1841,7 @@ class TestToDatetimeInferFormat:
         for test_format in test_formats:
             s_as_dt_strings = s.apply(lambda x: x.strftime(test_format))
 
-            with_format = to_datetime(
-                s_as_dt_strings, format=test_format, cache=cache
-            )
+            with_format = to_datetime(s_as_dt_strings, format=test_format, cache=cache)
             no_infer = to_datetime(
                 s_as_dt_strings, infer_datetime_format=False, cache=cache
             )
@@ -1935,9 +1929,7 @@ class TestToDatetimeInferFormat:
             ]
         )
         tm.assert_series_equal(to_datetime(s, cache=cache), expected)
-        tm.assert_series_equal(
-            to_datetime(s, format="%Y-%m-%d", cache=cache), expected
-        )
+        tm.assert_series_equal(to_datetime(s, format="%Y-%m-%d", cache=cache), expected)
 
 
 class TestDaysInMonth:
