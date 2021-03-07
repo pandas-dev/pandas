@@ -583,28 +583,29 @@ def _pad_inplace(
 @numba.jit
 def _pad_inplace_no_limit(values: np.ndarray, mask: np.ndarray) -> None:
     N = len(values)
-    val = values[0]
+    val, prev_mask = values[0], mask[0]
     for i in range(N):
         if mask[i]:
-            values[i] = val
+            values[i], mask[i] = val, prev_mask
         else:
-            val = values[i]
+            val, prev_mask = values[i], mask[i]
 
 
 @numba.jit
 def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) -> None:
     N = len(values)
     fill_count = 0
-    val = values[0]
+    val, prev_mask = values[0], mask[0]
     for i in range(N):
         if mask[i]:
             if fill_count >= limit:
                 continue
             fill_count += 1
-            values[i] = val
+            values[i], mask[i] = val, prev_mask
+
         else:
             fill_count = 0
-            val = values[i]
+            val, prev_mask = values[i], mask[i]
 
 
 def pad_2d_inplace(

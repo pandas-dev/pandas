@@ -676,13 +676,12 @@ def _pad_1d(values, limit=None, mask=None):
     if mask is None:
         mask = isna(values)
     algos_numba.pad_inplace(values, mask, limit=limit)
-    return values
+    return values, mask
 
 
 def _backfill_1d(values, limit=None, mask=None):
-    if mask is not None:
-        mask = mask[::-1]
-    return _pad_1d(values[::-1], limit, mask)[::-1]
+    _, new_mask = _pad_1d(values[::-1], limit, mask[::-1] if mask is not None else None)
+    return values, (mask if mask is not None else new_mask)
 
 
 def _pad_2d(values, limit=None, mask=None):
@@ -698,9 +697,10 @@ def _pad_2d(values, limit=None, mask=None):
 
 
 def _backfill_2d(values, limit=None, mask=None):
-    if mask is not None:
-        mask = mask[:, ::-1]
-    return _pad_2d(values[:, ::-1], limit, mask)[:, ::-1]
+    _, new_mask = _pad_2d(
+        values[:, ::-1], limit, mask[:, ::-1] if mask is not None else None
+    )
+    return values, (mask if mask is not None else new_mask)
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
