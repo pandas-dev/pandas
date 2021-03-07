@@ -648,36 +648,26 @@ def interpolate_2d(
 
     orig_values = values
 
-    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
+    if axis == 1:
+        values = values.T
 
     # reshape a 1 dim if needed
-    ndim = values.ndim
     if values.ndim == 1:
-        if axis != 0:  # pragma: no cover
+        if axis != 0:
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
+        values = values[np.newaxis, :]
 
+    # reverse stride for backfill
     method = clean_fill_method(method)
-    tvalues = transf(values)
-    if method == "pad":
-        result, _ = _pad_2d(tvalues, limit=limit)
-    else:
-        result, _ = _backfill_2d(tvalues, limit=limit)
+    if method == "backfill":
+        values = values[:, ::-1]
 
-    result = transf(result)
-    # reshape back
-    if ndim == 1:
-        result = result[0]
-
-    if orig_values.dtype.kind in ["m", "M"]:
-        # convert float back to datetime64/timedelta64
-        result = result.view(orig_values.dtype)
-
-    return result
+    _pad_2d(values, limit=limit)
+    return orig_values
 
 
 def _fillna_prep(values, mask=None):
-    # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
+    # boilerplate for _pad_1d, _backfill_1d, _pad_2d
 
     if mask is None:
         mask = isna(values)
@@ -734,18 +724,6 @@ def _pad_2d(values, limit=None, mask=None):
 
     if np.all(values.shape):
         algos.pad_2d_inplace(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
-    return values, mask
-
-
-@_datetimelike_compat
-def _backfill_2d(values, limit=None, mask=None):
-    mask = _fillna_prep(values, mask)
-
-    if np.all(values.shape):
-        algos.backfill_2d_inplace(values, mask, limit=limit)
     else:
         # for test coverage
         pass
