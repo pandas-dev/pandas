@@ -130,6 +130,9 @@ def arrays_to_mgr(
     if typ == "block":
         return create_block_manager_from_arrays(arrays, arr_names, axes)
     elif typ == "array":
+        if len(columns) != len(arrays):
+            assert len(arrays) == 0
+            arrays = [np.array([], dtype=object) for _ in range(len(columns))]
         return ArrayManager(arrays, [index, columns])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")

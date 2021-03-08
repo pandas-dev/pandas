@@ -655,7 +655,7 @@ class BaseGrouper:
             result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
             result = maybe_fill(
-                np.empty_like(values, dtype=out_dtype), fill_value=np.nan
+                np.empty(values.shape, dtype=out_dtype), fill_value=np.nan
             )
 
             # TODO: min_count
