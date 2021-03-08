@@ -6,6 +6,7 @@ from datetime import (
 from functools import partial
 from io import BytesIO
 import os
+import re
 
 import numpy as np
 import pytest
@@ -1398,3 +1399,27 @@ class TestFSPath:
         with tm.ensure_clean("foo.xlsx") as path:
             with ExcelWriter(path) as writer:
                 assert os.fspath(writer) == str(path)
+
+
+@pytest.mark.parametrize(
+    "engine,ext",
+    [
+        pytest.param(
+            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
+        ),
+        pytest.param(
+            "xlsxwriter",
+            ".xlsx",
+            marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param("odf", ".ods", marks=td.skip_if_no("odf")),
+    ],
+)
+@pytest.mark.usefixtures("set_engine")
+def test_if_sheet_exists_raises(ext):
+    # GH 40230
+    msg = "if_sheet_exists is only valid in append mode (mode='a')"
+
+    with tm.ensure_clean(ext) as f:
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            ExcelWriter(f, if_sheet_exists="replace")
