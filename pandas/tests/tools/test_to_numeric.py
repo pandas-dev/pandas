@@ -4,6 +4,8 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+from pandas.compat import ARM64
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -11,7 +13,6 @@ from pandas import (
     Series,
     to_numeric,
 )
-from pandas.compat import ARM64
 import pandas._testing as tm
 
 
