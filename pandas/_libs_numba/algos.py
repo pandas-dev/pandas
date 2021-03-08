@@ -482,7 +482,7 @@ def kth_smallest(a: np.ndarray, k):
 # ----------------------------------------------------------------------
 
 
-def _validate_limit(limit: int | None = None) -> None:
+def validate_limit(limit: int | None = None) -> None:
     """
     Check that the `limit` argument is a positive integer or None.
     """
@@ -552,7 +552,7 @@ def _validate_limit(limit: int | None = None) -> None:
 
 
 def pad_inplace(values: np.ndarray, mask: np.ndarray, limit: int | None = None) -> None:
-    _validate_limit(limit)
+    validate_limit(limit)
     _pad_inplace(values, mask, limit)
 
 
@@ -598,7 +598,7 @@ def _pad_inplace_with_limit(values: np.ndarray, mask: np.ndarray, limit: int) ->
 def pad_2d_inplace(
     values: np.ndarray, mask: np.ndarray, limit: int | None = None
 ) -> None:
-    _validate_limit(limit)
+    validate_limit(limit)
     _pad_2d_inplace(values, mask, limit)
 
 

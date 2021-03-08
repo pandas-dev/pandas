@@ -15,11 +15,8 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    algos,
-    lib,
-)
-from pandas._libs_numba import algos as algos_numba
+from pandas._libs import lib
+from pandas._libs_numba import algos
 from pandas._typing import (
     ArrayLike,
     Axis,
@@ -244,7 +241,7 @@ def interpolate_1d(
             )
 
     # default limit is unlimited GH #16282
-    limit = algos.validate_limit(nobs=None, limit=limit)
+    algos.validate_limit(limit=limit)
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
@@ -675,7 +672,7 @@ def interpolate_2d(
 def _pad_1d(values, limit=None, mask=None):
     if mask is None:
         mask = isna(values)
-    algos_numba.pad_inplace(values, mask, limit=limit)
+    algos.pad_inplace(values, mask, limit=limit)
     return values, mask
 
 
@@ -689,7 +686,7 @@ def _pad_2d(values, limit=None, mask=None):
         mask = isna(values)
 
     if np.all(values.shape):
-        algos_numba.pad_2d_inplace(values, mask, limit=limit)
+        algos.pad_2d_inplace(values, mask, limit=limit)
     else:
         # for test coverage
         pass
