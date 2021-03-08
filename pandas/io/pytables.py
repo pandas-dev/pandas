@@ -4554,13 +4554,9 @@ class AppendableFrameTable(AppendableTable):
 
             # if we have a DataIndexableCol, its shape will only be 1 dim
             if values.ndim == 1 and isinstance(values, np.ndarray):
-                # TODO(EA2D): special case not needed with 2D EAs
                 values = values.reshape((1, values.shape[0]))
-            if isinstance(values, DatetimeIndex) and len(cols_) != 1:
-                # FIXME: kludge
-                values = values._data.reshape(len(cols_), -1, order="F")
 
-            if isinstance(values, (np.ndarray, DatetimeArray)):
+            if isinstance(values, np.ndarray):
                 df = DataFrame(values.T, columns=cols_, index=index_)
             elif isinstance(values, Index):
                 df = DataFrame(values, columns=cols_, index=index_)
