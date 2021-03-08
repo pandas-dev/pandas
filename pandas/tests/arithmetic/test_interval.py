@@ -98,12 +98,12 @@ class TestComparison:
         """
         return request.param
 
-    def elementwise_comparison(self, op, array, other):
+    def elementwise_comparison(self, op, arrays, other):
         """
         Helper that performs elementwise comparisons between `array` and `other`
         """
-        other = other if is_list_like(other) else [other] * len(array)
-        expected = np.array([op(x, y) for x, y in zip(array, other)])
+        other = other if is_list_like(other) else [other] * len(arrays)
+        expected = np.array([op(x, y) for x, y in zip(arrays, other)])
         if isinstance(other, Series):
             return Series(expected, index=other.index)
         return expected
@@ -234,8 +234,8 @@ class TestComparison:
             period_range("2017-01-01", periods=4, freq="D"),
             Categorical(list("abab")),
             Categorical(date_range("2017-01-01", periods=4)),
-            pd.array(list("abcd")),
-            pd.array(["foo", 3.14, None, object()]),
+            array(list("abcd")),
+            array(["foo", 3.14, None, object()]),
         ],
         ids=lambda x: str(x.dtype),
     )

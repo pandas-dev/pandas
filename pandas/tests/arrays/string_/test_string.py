@@ -223,31 +223,31 @@ def test_mul(dtype, request):
 
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_strings(dtype):
-    array = pd.array(["a", "b", "c", "d"], dtype=dtype)
+    arrs = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "u", "v", "w"]])
-    assert array.__add__(df) is NotImplemented
+    assert arrs.__add__(df) is NotImplemented
 
-    result = array + df
+    result = arrs + df
     expected = pd.DataFrame([["at", "bu", "cv", "dw"]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
-    result = df + array
+    result = df + arrs
     expected = pd.DataFrame([["ta", "ub", "vc", "wd"]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_frame(dtype):
-    array = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
+    arrs = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
 
-    assert array.__add__(df) is NotImplemented
+    assert arrs.__add__(df) is NotImplemented
 
-    result = array + df
+    result = arrs + df
     expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
-    result = df + array
+    result = df + arrs
     expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
