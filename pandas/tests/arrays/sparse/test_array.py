@@ -522,7 +522,7 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(np.asarray(res.to_dense()), vals.astype(typ))
 
     @pytest.mark.parametrize(
-        "arrays, dtype, expected",
+        "sparse_array, dtype, expected",
         [
             (
                 SparseArray([0, 1]),
@@ -557,8 +557,8 @@ class TestSparseArray:
             ),
         ],
     )
-    def test_astype_more(self, arrays, dtype, expected):
-        result = arrays.astype(dtype)
+    def test_astype_more(self, sparse_array, dtype, expected):
+        result = sparse_array.astype(dtype)
         tm.assert_sp_array_equal(result, expected)
 
     def test_astype_nan_raises(self):

@@ -1160,7 +1160,7 @@ class TestPeriodArray(SharedTests):
 
 
 @pytest.mark.parametrize(
-    "arrays,casting_nats",
+    "ts_array,casting_nats",
     [
         (
             TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
@@ -1174,17 +1174,17 @@ class TestPeriodArray(SharedTests):
     ],
     ids=lambda x: type(x).__name__,
 )
-def test_casting_nat_setitem_array(arrays, casting_nats):
-    expected = type(arrays)._from_sequence([NaT, arrays[1], arrays[2]])
+def test_casting_nat_setitem_array(ts_array, casting_nats):
+    expected = type(ts_array)._from_sequence([NaT, ts_array[1], ts_array[2]])
 
     for nat in casting_nats:
-        arr = arrays.copy()
+        arr = ts_array.copy()
         arr[0] = nat
         tm.assert_equal(arr, expected)
 
 
 @pytest.mark.parametrize(
-    "arrays,non_casting_nats",
+    "ts_array,non_casting_nats",
     [
         (
             TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
@@ -1201,7 +1201,7 @@ def test_casting_nat_setitem_array(arrays, casting_nats):
     ],
     ids=lambda x: type(x).__name__,
 )
-def test_invalid_nat_setitem_array(arrays, non_casting_nats):
+def test_invalid_nat_setitem_array(ts_array, non_casting_nats):
     msg = (
         "value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
         "Got '(timedelta64|datetime64|int)' instead."
@@ -1209,42 +1209,42 @@ def test_invalid_nat_setitem_array(arrays, non_casting_nats):
 
     for nat in non_casting_nats:
         with pytest.raises(TypeError, match=msg):
-            arrays[0] = nat
+            ts_array[0] = nat
 
 
 @pytest.mark.parametrize(
-    "arrays",
+    "ts_array",
     [
         pd.date_range("2000", periods=4).array,
         pd.timedelta_range("2000", periods=4).array,
     ],
 )
-def test_to_numpy_extra(arrays):
+def test_to_numpy_extra(ts_array):
     if np_version_under1p18:
         # np.isnan(NaT) raises, so use pandas'
         isnan = pd.isna
     else:
         isnan = np.isnan
 
-    arrays[0] = NaT
-    original = arrays.copy()
+    ts_array[0] = NaT
+    original = ts_array.copy()
 
-    result = arrays.to_numpy()
+    result = ts_array.to_numpy()
     assert isnan(result[0])
 
-    result = arrays.to_numpy(dtype="int64")
+    result = ts_array.to_numpy(dtype="int64")
     assert result[0] == -9223372036854775808
 
-    result = arrays.to_numpy(dtype="int64", na_value=0)
+    result = ts_array.to_numpy(dtype="int64", na_value=0)
     assert result[0] == 0
 
-    result = arrays.to_numpy(na_value=arrays[1].to_numpy())
+    result = ts_array.to_numpy(na_value=ts_array[1].to_numpy())
     assert result[0] == result[1]
 
-    result = arrays.to_numpy(na_value=arrays[1].to_numpy(copy=False))
+    result = ts_array.to_numpy(na_value=ts_array[1].to_numpy(copy=False))
     assert result[0] == result[1]
 
-    tm.assert_equal(arrays, original)
+    tm.assert_equal(ts_array, original)
 
 
 @pytest.mark.parametrize("as_index", [True, False])
