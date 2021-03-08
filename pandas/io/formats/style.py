@@ -362,7 +362,7 @@ class Styler:
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
-        BLANK_VALUE = ""
+        BLANK_VALUE = "&nbsp;"
 
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
