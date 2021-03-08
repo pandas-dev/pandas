@@ -6,6 +6,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import ARM64
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import (
@@ -896,6 +897,7 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(ARM64, reason="GH 38921")
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [

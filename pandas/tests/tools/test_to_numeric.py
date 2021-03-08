@@ -11,6 +11,7 @@ from pandas import (
     Series,
     to_numeric,
 )
+from pandas.compat import ARM64
 import pandas._testing as tm
 
 
@@ -752,7 +753,7 @@ def test_to_numeric_from_nullable_string(values, expected):
             "UInt64",
             "signed",
             "UInt64",
-            marks=pytest.mark.xfail(reason="GH38798"),
+            marks=pytest.mark.xfail(not ARM64, reason="GH38798"),
         ),
         ([1, 1], "Int64", "unsigned", "UInt8"),
         ([1.0, 1.0], "Float32", "unsigned", "UInt8"),

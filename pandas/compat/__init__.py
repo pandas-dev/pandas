@@ -26,6 +26,7 @@ PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
 PYPY = platform.python_implementation() == "PyPy"
 IS64 = sys.maxsize > 2 ** 32
+ARM64 = platform.machine() in ["arm64", "aarch64"]
 
 
 def set_function_name(f: F, name: str, cls) -> F:
