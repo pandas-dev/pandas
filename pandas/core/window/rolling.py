@@ -347,6 +347,13 @@ class BaseWindow(SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
+    @property
+    def _index_array(self):
+        # TODO: why do we get here with e.g. MultiIndex?
+        if needs_i8_conversion(self._on.dtype):
+            return self._on.asi8
+        return None
+
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
         """Validate and finalize result."""
         if out.shape[1] == 0 and obj.shape[1] > 0:
@@ -365,7 +372,7 @@ class BaseWindow(SelectionMixin):
             return self.window
         if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
-                index_array=self._on.asi8, window_size=self._win_freq_i8
+                index_array=self._index_array, window_size=self._win_freq_i8
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -2189,7 +2196,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
-        index_array = self._on.asi8
+        index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
