@@ -752,7 +752,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
         return self._constructor(
-            new_values, *new_axes  # type: ignore[arg-type]
+            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
+            # None, None]"; expected "bool" [arg-type]
+            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
+            # None, None]"; expected "Optional[Mapping[Optional[Hashable], Any]]"
+            new_values,
+            *new_axes,  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
 
     @final
@@ -10257,10 +10262,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         GOOG   1769950   1500923   1371819
         APPL  30586265  40912316  41403351
 
-        >>> df.pct_change(axis='columns')
-              2016      2015      2014
-        GOOG   NaN -0.151997 -0.086016
-        APPL   NaN  0.337604  0.012002
+        >>> df.pct_change(axis='columns', periods=-1)
+                  2016      2015  2014
+        GOOG  0.179241  0.094112   NaN
+        APPL -0.252395 -0.011860   NaN
         """
         axis = self._get_axis_number(kwargs.pop("axis", self._stat_axis_name))
         if fill_method is None:
@@ -10596,8 +10601,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.any = any  # type: ignore[assignment]
+        setattr(cls, "any", any)
 
         @doc(
             _bool_doc,
@@ -10612,12 +10616,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
-        # error: Cannot assign to a method
-
-        # error: Incompatible types in assignment (expression has type
-        # "Callable[[Iterable[object]], bool]", variable has type "Callable[[NDFrame,
-        # Any, Any, Any, Any, KwArg(Any)], Any]")
-        cls.all = all  # type: ignore[assignment]
+        setattr(cls, "all", all)
 
         # error: Argument 1 to "doc" has incompatible type "Optional[str]"; expected
         # "Union[str, Callable[..., Any]]"
@@ -10634,8 +10633,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mad(self, axis=None, skipna=None, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
-        # error: Cannot assign to a method
-        cls.mad = mad  # type: ignore[assignment]
+        setattr(cls, "mad", mad)
 
         @doc(
             _num_ddof_doc,
@@ -10657,8 +10655,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.sem(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.sem = sem  # type: ignore[assignment]
+        setattr(cls, "sem", sem)
 
         @doc(
             _num_ddof_doc,
@@ -10679,8 +10676,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.var(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.var = var  # type: ignore[assignment]
+        setattr(cls, "var", var)
 
         @doc(
             _num_ddof_doc,
@@ -10702,8 +10698,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.std(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.std = std  # type: ignore[assignment]
+        setattr(cls, "std", std)
 
         @doc(
             _cnum_doc,
@@ -10717,8 +10712,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummin(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cummin = cummin  # type: ignore[assignment]
+        setattr(cls, "cummin", cummin)
 
         @doc(
             _cnum_doc,
@@ -10732,8 +10726,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummax(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cummax = cummax  # type: ignore[assignment]
+        setattr(cls, "cummax", cummax)
 
         @doc(
             _cnum_doc,
@@ -10747,8 +10740,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumsum(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cumsum = cumsum  # type: ignore[assignment]
+        setattr(cls, "cumsum", cumsum)
 
         @doc(
             _cnum_doc,
@@ -10762,8 +10754,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumprod(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cumprod = cumprod  # type: ignore[assignment]
+        setattr(cls, "cumprod", cumprod)
 
         @doc(
             _num_doc,
@@ -10789,8 +10780,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        # error: Cannot assign to a method
-        cls.sum = sum  # type: ignore[assignment]
+        setattr(cls, "sum", sum)
 
         @doc(
             _num_doc,
@@ -10815,8 +10805,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        # error: Cannot assign to a method
-        cls.prod = prod  # type: ignore[assignment]
+        setattr(cls, "prod", prod)
         cls.product = prod
 
         @doc(
@@ -10832,8 +10821,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.mean = mean  # type: ignore[assignment]
+        setattr(cls, "mean", mean)
 
         @doc(
             _num_doc,
@@ -10848,8 +10836,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.skew = skew  # type: ignore[assignment]
+        setattr(cls, "skew", skew)
 
         @doc(
             _num_doc,
@@ -10867,8 +10854,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.kurt = kurt  # type: ignore[assignment]
+        setattr(cls, "kurt", kurt)
         cls.kurtosis = kurt
 
         @doc(
@@ -10886,8 +10872,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.median = median  # type: ignore[assignment]
+        setattr(cls, "median", median)
 
         @doc(
             _num_doc,
@@ -10904,8 +10889,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.max = max  # type: ignore[assignment]
+        setattr(cls, "max", max)
 
         @doc(
             _num_doc,
@@ -10922,8 +10906,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.min = min  # type: ignore[assignment]
+        setattr(cls, "min", min)
 
     @final
     @doc(Rolling)
@@ -11046,37 +11029,47 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self
 
     def __iadd__(self, other):
+        # error: Unsupported left operand type for + ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__add__)  # type: ignore[operator]
 
     def __isub__(self, other):
+        # error: Unsupported left operand type for - ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__sub__)  # type: ignore[operator]
 
     def __imul__(self, other):
+        # error: Unsupported left operand type for * ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__mul__)  # type: ignore[operator]
 
     def __itruediv__(self, other):
+        # error: Unsupported left operand type for / ("Type[NDFrame]")
         return self._inplace_method(
             other, type(self).__truediv__  # type: ignore[operator]
         )
 
     def __ifloordiv__(self, other):
+        # error: Unsupported left operand type for // ("Type[NDFrame]")
         return self._inplace_method(
             other, type(self).__floordiv__  # type: ignore[operator]
         )
 
     def __imod__(self, other):
+        # error: Unsupported left operand type for % ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__mod__)  # type: ignore[operator]
 
     def __ipow__(self, other):
+        # error: Unsupported left operand type for ** ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__pow__)  # type: ignore[operator]
 
     def __iand__(self, other):
+        # error: Unsupported left operand type for & ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__and__)  # type: ignore[operator]
 
     def __ior__(self, other):
+        # error: Unsupported left operand type for | ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__or__)  # type: ignore[operator]
 
     def __ixor__(self, other):
+        # error: Unsupported left operand type for ^ ("Type[NDFrame]")
         return self._inplace_method(other, type(self).__xor__)  # type: ignore[operator]
 
     # ----------------------------------------------------------------------

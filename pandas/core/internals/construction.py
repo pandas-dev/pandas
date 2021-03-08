@@ -133,6 +133,9 @@ def arrays_to_mgr(
             arrays, arr_names, axes, consolidate=consolidate
         )
     elif typ == "array":
+        if len(columns) != len(arrays):
+            assert len(arrays) == 0
+            arrays = [np.array([], dtype=object) for _ in range(len(columns))]
         return ArrayManager(arrays, [index, columns])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
