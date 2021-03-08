@@ -3516,6 +3516,12 @@ class DataFrame(NDFrame, OpsMixin):
                 self._iset_not_inplace(key, value)
 
     def _iset_not_inplace(self, key, value):
+        # GH#39510 when setting with df[key] = obj with a list-like key and
+        #  list-like value, we iterate over those listlikes and set columns
+        #  one at a time.  This is different from dispatching to
+        #  `self.loc[:, key]= value`  because loc.__setitem__ may overwrite
+        #  data inplace, whereas this will insert new arrays.
+
         def igetitem(obj, i: int):
             # Note: we catch DataFrame obj before getting here, but
             #  hypothetically would return obj.iloc[:, i]
