@@ -348,41 +348,6 @@ class Styler:
             engine=engine,
         )
 
-    def to_json(self, **kwargs):
-        """
-        Convert a ``Styler`` object to JSON
-
-        Uses the ``:meth:DataFrame.to_json`` method but includes the set
-        formats applied to ``Styler``.
-
-        Parameters
-        ----------
-        **kwargs
-            Any additional keyword arguments are passed to ``DataFrame.to_json()``.
-            Useful to control the output structure of the JSON return.
-
-        Returns
-        -------
-        None or str
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(data=[[1.9999, 1.9999, 1.9999, 1.9999]],
-                              columns=['A', 'B', 'C', 'D'])
-        >>> df.style.format({
-        ...  'A': lambda x: float(f'{x:,.02f}'),
-        ...  'B': lambda x: int(f'{x:,.00f}'),
-        ...  'C': '{:,.01f}'.format
-        ...  }).to_json()
-        {"A":{"0":2.00},"B":{"0":2.0},"C":{"0":"2.0"},"D":{"0":"1.999900"}}
-        """
-        df = self.data.copy()
-        for r, row_tup in enumerate(df.itertuples()):
-            for c, value in enumerate(row_tup[1:]):
-                formatter = self._display_funcs[(r, c)]
-                df.iloc[r, c] = formatter(value)
-        return df.to_json(**kwargs)
-
     def to_html(
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
