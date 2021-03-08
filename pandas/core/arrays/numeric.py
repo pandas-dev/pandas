@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     List,
+    TypeVar,
     Union,
 )
 
@@ -15,6 +16,7 @@ from pandas._libs import (
     Timedelta,
     missing as libmissing,
 )
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -33,6 +35,8 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
+T = TypeVar("T", bound="NumericArray")
 
 
 class NumericDtype(BaseMaskedDtype):
@@ -199,3 +203,40 @@ class NumericArray(BaseMaskedArray):
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
+
+    def __neg__(self):
+        return type(self)(-self._data, self._mask.copy())
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return type(self)(abs(self._data), self._mask.copy())
+
+    def round(self: T, decimals: int = 0, *args, **kwargs) -> T:
+        """
+        Round each value in the array a to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+
+        Returns
+        -------
+        NumericArray
+            Rounded values of the NumericArray.
+
+        See Also
+        --------
+        numpy.around : Round values of an np.array.
+        DataFrame.round : Round values of a DataFrame.
+        Series.round : Round values of a Series.
+        """
+        nv.validate_round(args, kwargs)
+        values = np.round(self._data, decimals=decimals, **kwargs)
+        return type(self)(values, self._mask.copy())

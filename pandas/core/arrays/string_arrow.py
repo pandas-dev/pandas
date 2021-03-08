@@ -6,6 +6,7 @@ from typing import (
     Any,
     Optional,
     Sequence,
+    Tuple,
     Type,
     Union,
 )
@@ -20,6 +21,7 @@ from pandas._typing import (
     Dtype,
     NpDtype,
 )
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -273,9 +275,22 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return len(self._data)
 
-    @classmethod
-    def _from_factorized(cls, values, original):
-        return cls._from_sequence(values)
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+        encoded = self._data.dictionary_encode()
+        indices = pa.chunked_array(
+            [c.indices for c in encoded.chunks], type=encoded.type.index_type
+        ).to_pandas()
+        if indices.dtype.kind == "f":
+            indices[np.isnan(indices)] = na_sentinel
+        indices = indices.astype(np.int64, copy=False)
+
+        if encoded.num_chunks:
+            uniques = type(self)(encoded.chunk(0).dictionary)
+        else:
+            uniques = type(self)(pa.array([], type=encoded.type.value_type))
+
+        return indices.values, uniques
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> ArrowStringArray:
@@ -385,7 +400,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values = func(self.to_numpy(object), limit=limit, mask=mask)
+                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value

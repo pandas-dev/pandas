@@ -141,13 +141,17 @@ from pandas.core.base import (
     PandasObject,
 )
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     ensure_key_mapped,
+    get_group_index_sorter,
     nargsort,
 )
 from pandas.core.strings import StringMethods
@@ -816,7 +820,7 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
                 arr_cls = idx_cls._data_cls
-                arr = arr_cls._simple_new(self._data.view("i8"), dtype=dtype)
+                arr = arr_cls(self._data.view("i8"), dtype=dtype)
                 return idx_cls._simple_new(arr, name=self.name)
 
             result = self._data.view(cls)
@@ -1152,7 +1156,7 @@ class Index(IndexOpsMixin, PandasObject):
         values = self._values
 
         if is_object_dtype(values.dtype):
-            values = lib.maybe_convert_objects(values, safe=1)
+            values = lib.maybe_convert_objects(values, safe=True)
 
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
 
@@ -2912,7 +2916,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._wrap_setop_result(other, result)
 
-    def _union(self, other, sort):
+    def _union(self, other: Index, sort):
         """
         Specific union logic should go here. In subclasses, union behavior
         should be overwritten here rather than in `self.union`.
@@ -2935,32 +2939,44 @@ class Index(IndexOpsMixin, PandasObject):
         lvals = self._values
         rvals = other._values
 
-        if sort is None and self.is_monotonic and other.is_monotonic:
+        if (
+            sort is None
+            and self.is_monotonic
+            and other.is_monotonic
+            and not (self.has_duplicates and other.has_duplicates)
+        ):
+            # Both are unique and monotonic, so can use outer join
             try:
-                result = self._outer_indexer(lvals, rvals)[0]
+                return self._outer_indexer(lvals, rvals)[0]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
-                result = list(lvals)
+                value_list = list(lvals)
 
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
-                result.extend([x for x in rvals if x not in value_set])
-                result = Index(result)._values  # do type inference here
+                value_list.extend([x for x in rvals if x not in value_set])
+                return Index(value_list)._values  # do type inference here
+
+        elif not other.is_unique and not self.is_unique:
+            # self and other both have duplicates
+            result = algos.union_with_duplicates(lvals, rvals)
+            return _maybe_try_sort(result, sort)
+
+        # Either other or self is not unique
+        # find indexes of things in "other" that are not in "self"
+        if self.is_unique:
+            indexer = self.get_indexer(other)
+            missing = (indexer == -1).nonzero()[0]
         else:
-            # find indexes of things in "other" that are not in "self"
-            if self.is_unique:
-                indexer = self.get_indexer(other)
-                missing = (indexer == -1).nonzero()[0]
-            else:
-                missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
+            missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
-            if len(missing) > 0:
-                other_diff = algos.take_nd(rvals, missing, allow_fill=False)
-                result = concat_compat((lvals, other_diff))
+        if len(missing) > 0:
+            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+            result = concat_compat((lvals, other_diff))
+        else:
+            result = lvals
 
-            else:
-                result = lvals
-
+        if not self.is_monotonic or not other.is_monotonic:
             result = _maybe_try_sort(result, sort)
 
         return result
@@ -3041,7 +3057,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = self._intersection(other, sort=sort)
         return self._wrap_setop_result(other, result)
 
-    def _intersection(self, other, sort=False):
+    def _intersection(self, other: Index, sort=False):
         """
         intersection specialized to the case with matching dtypes.
         """
@@ -3055,13 +3071,14 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
             else:
-                return algos.unique1d(result)
+                # TODO: algos.unique1d should preserve DTA/TDA
+                res = algos.unique1d(result)
+                return ensure_wrapped_if_datetimelike(res)
 
         try:
             indexer = other.get_indexer(lvals)
-        except (InvalidIndexError, IncompatibleFrequency):
+        except InvalidIndexError:
             # InvalidIndexError raised by get_indexer if non-unique
-            # IncompatibleFrequency raised by PeriodIndex.get_indexer
             indexer, _ = other.get_indexer_non_unique(lvals)
 
         mask = indexer != -1
@@ -4098,9 +4115,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return np.empty(0, dtype="int64")
 
             if len(labels) == 1:
-                lab = ensure_int64(labels[0])
-                sorter, _ = libalgos.groupsort_indexer(lab, 1 + lab.max())
-                return sorter
+                return get_group_index_sorter(labels[0])
 
             # find indexers of beginning of each set of
             # same-key labels w.r.t all but last level
@@ -4519,7 +4534,6 @@ class Index(IndexOpsMixin, PandasObject):
         # There's no custom logic to be implemented in __getslice__, so it's
         # not overloaded intentionally.
         getitem = self._data.__getitem__
-        promote = self._shallow_copy
 
         if is_scalar(key):
             key = com.cast_scalar_indexer(key, warn_float=True)
@@ -4528,7 +4542,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
             # pessimization of basic indexing.
-            return promote(getitem(key))
+            result = getitem(key)
+            # Going through simple_new for performance.
+            return type(self)._simple_new(result, name=self.name)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -4538,7 +4554,9 @@ class Index(IndexOpsMixin, PandasObject):
             if np.ndim(result) > 1:
                 deprecate_ndim_indexing(result)
                 return result
-            return promote(result)
+            # NB: Using _constructor._simple_new would break if MultiIndex
+            #  didn't override __getitem__
+            return self._constructor._simple_new(result, name=self.name)
         else:
             return result
 
@@ -5949,9 +5967,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         *args
-            These parameters will be passed to numpy.any.
+            Required for compatibility with numpy.
         **kwargs
-            These parameters will be passed to numpy.any.
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -5978,20 +5996,20 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index.any()
         False
         """
-        # FIXME: docstr inaccurate, args/kwargs not passed
+        nv.validate_any(args, kwargs)
         self._maybe_disable_logical_methods("any")
         return np.any(self.values)
 
-    def all(self):
+    def all(self, *args, **kwargs):
         """
         Return whether all elements are Truthy.
 
         Parameters
         ----------
         *args
-            These parameters will be passed to numpy.all.
+            Required for compatibility with numpy.
         **kwargs
-            These parameters will be passed to numpy.all.
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -6035,8 +6053,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([0, 0, 0]).any()
         False
         """
-        # FIXME: docstr inaccurate, args/kwargs not passed
-
+        nv.validate_all(args, kwargs)
         self._maybe_disable_logical_methods("all")
         return np.all(self.values)
 

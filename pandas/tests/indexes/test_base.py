@@ -162,7 +162,7 @@ class TestIndex(Base):
         dts = ["1-1-1990", "2-1-1990", "3-1-1990", "4-1-1990", "5-1-1990"]
         expected = DatetimeIndex(dts, freq="MS")
 
-        df = pd.DataFrame(np.random.rand(5, 3))
+        df = DataFrame(np.random.rand(5, 3))
         df["date"] = dts
         result = DatetimeIndex(df["date"], freq="MS")
 
@@ -383,7 +383,7 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
-    @pytest.mark.parametrize("klass", [Index, pd.TimedeltaIndex])
+    @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
         index = pd.timedelta_range("1 days", periods=5)
         index = index._with_freq(None)  # wont be preserved by constructors
@@ -1282,7 +1282,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "labels,dtype",
         [
-            (pd.Int64Index([]), np.int64),
+            (Int64Index([]), np.int64),
             (Float64Index([]), np.float64),
             (DatetimeIndex([]), np.datetime64),
         ],
@@ -1295,7 +1295,7 @@ class TestIndex(Base):
     def test_reindex_no_type_preserve_target_empty_mi(self):
         index = Index(list("abc"))
         result = index.reindex(
-            MultiIndex([pd.Int64Index([]), Float64Index([])], [[], []])
+            MultiIndex([Int64Index([]), Float64Index([])], [[], []])
         )[0]
         assert result.levels[0].dtype.type == np.int64
         assert result.levels[1].dtype.type == np.float64
@@ -1378,7 +1378,7 @@ class TestIndex(Base):
 
     def test_contains_method_removed(self, index):
         # GH#30103 method removed for all types except IntervalIndex
-        if isinstance(index, pd.IntervalIndex):
+        if isinstance(index, IntervalIndex):
             index.contains(1)
         else:
             msg = f"'{type(index).__name__}' object has no attribute 'contains'"
@@ -1519,12 +1519,12 @@ class TestMixedIntIndex(Base):
                 DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
             ),
             (
-                pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
-                pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
+                TimedeltaIndex(["1 days", "2 days", "3 days"]),
+                TimedeltaIndex(["1 days", "2 days", "3 days"]),
             ),
             (
-                pd.TimedeltaIndex([pd.NaT, "1 days", "2 days", "3 days", pd.NaT]),
-                pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
+                TimedeltaIndex([pd.NaT, "1 days", "2 days", "3 days", pd.NaT]),
+                TimedeltaIndex(["1 days", "2 days", "3 days"]),
             ),
             (
                 PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
@@ -1673,13 +1673,13 @@ def test_deprecated_fastpath():
         Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 
     with pytest.raises(TypeError, match=msg):
-        pd.Int64Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
+        Int64Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
 
     with pytest.raises(TypeError, match=msg):
         RangeIndex(0, 5, 2, name="test", fastpath=True)
 
     with pytest.raises(TypeError, match=msg):
-        pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
+        CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
 
 
 def test_shape_of_invalid_index():
@@ -1706,12 +1706,12 @@ def test_validate_1d_input():
         Float64Index(arr.astype(np.float64))
 
     with pytest.raises(ValueError, match=msg):
-        pd.Int64Index(arr.astype(np.int64))
+        Int64Index(arr.astype(np.int64))
 
     with pytest.raises(ValueError, match=msg):
-        pd.UInt64Index(arr.astype(np.uint64))
+        UInt64Index(arr.astype(np.uint64))
 
-    df = pd.DataFrame(arr.reshape(4, 2))
+    df = DataFrame(arr.reshape(4, 2))
     with pytest.raises(ValueError, match=msg):
         Index(df)
 

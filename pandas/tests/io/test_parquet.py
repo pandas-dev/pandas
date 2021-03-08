@@ -359,7 +359,7 @@ class Base:
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
             "master/pandas/tests/io/data/parquet/simple.parquet"
         )
-        df = pd.read_parquet(url)
+        df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
 
 
@@ -605,7 +605,7 @@ class TestParquetPyArrow(Base):
         assert isinstance(buf_bytes, bytes)
 
         buf_stream = BytesIO(buf_bytes)
-        res = pd.read_parquet(buf_stream)
+        res = read_parquet(buf_stream)
 
         tm.assert_frame_equal(df_full, res)
 
@@ -740,7 +740,7 @@ class TestParquetPyArrow(Base):
     def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
-        df_from_buf = pd.read_parquet(buffer)
+        df_from_buf = read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
     @td.skip_if_no("pyarrow")
@@ -748,7 +748,7 @@ class TestParquetPyArrow(Base):
         monkeypatch.setenv("HOME", "TestingUser")
         monkeypatch.setenv("USERPROFILE", "TestingUser")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
-            pd.read_parquet("~/file.parquet")
+            read_parquet("~/file.parquet")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
             df_compat.to_parquet("~/file.parquet")
 

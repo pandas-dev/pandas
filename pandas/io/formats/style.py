@@ -7,7 +7,6 @@ from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
-from itertools import product
 from typing import (
     Any,
     Callable,
@@ -19,8 +18,10 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 from uuid import uuid4
+import warnings
 
 import numpy as np
 
@@ -37,14 +38,10 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import is_float
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas as pd
-from pandas.api.types import (
-    is_dict_like,
-    is_list_like,
-)
+from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -55,10 +52,15 @@ from pandas.io.formats.format import save_to_buffer
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
+BaseFormatter = Union[str, Callable]
+ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
-CSSStyles = List[Dict[str, CSSProperties]]
+CSSStyles = List[Dict[str, CSSProperties]]  # = List[CSSDict]
+# class CSSDict(TypedDict):  # available when TypedDict is valid in pandas
+#     selector: str
+#     props: CSSProperties
 
 try:
     from matplotlib import colors
@@ -181,9 +183,6 @@ class Styler:
         self.data: DataFrame = data
         self.index: pd.Index = data.index
         self.columns: pd.Index = data.columns
-        if precision is None:
-            precision = get_option("display.precision")
-        self.precision = precision
         self.table_styles = table_styles
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
@@ -192,7 +191,6 @@ class Styler:
         self.caption = caption
         self.table_attributes = table_attributes
         self.cell_ids = cell_ids
-        self.na_rep = na_rep
 
         # assign additional default vars
         self.hidden_index: bool = False
@@ -203,7 +201,10 @@ class Styler:
         self.tooltips: Optional[_Tooltips] = None
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: self._default_display_func)
+        ] = defaultdict(lambda: partial(_default_formatter, precision=None))
+        self.precision = precision  # can be removed on set_precision depr cycle
+        self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
+        self.format(formatter=None, precision=precision, na_rep=na_rep)
 
     def _repr_html_(self) -> str:
         """
@@ -211,29 +212,12 @@ class Styler:
         """
         return self.render()
 
-    def _init_tooltips(self):
-        """
-        Checks parameters compatible with tooltips and creates instance if necessary
-        """
-        if not self.cell_ids:
-            # tooltips not optimised for individual cell check. requires reasonable
-            # redesign and more extensive code for a feature that might be rarely used.
-            raise NotImplementedError(
-                "Tooltips can only render with 'cell_ids' is True."
-            )
-        if self.tooltips is None:
-            self.tooltips = _Tooltips()
-
-    def _default_display_func(self, x):
-        if self.na_rep is not None and pd.isna(x):
-            return self.na_rep
-        elif is_float(x):
-            display_format = f"{x:.{self.precision}f}"
-            return display_format
-        else:
-            return x
-
-    def set_tooltips(self, ttips: DataFrame) -> Styler:
+    def set_tooltips(
+        self,
+        ttips: DataFrame,
+        props: Optional[CSSProperties] = None,
+        css_class: Optional[str] = None,
+    ) -> Styler:
         """
         Add string based tooltips that will appear in the `Styler` HTML result. These
         tooltips are applicable only to`<td>` elements.
@@ -247,6 +231,13 @@ class Styler:
             by identical column and index values that must exist on the underlying
             `Styler` data. None, NaN values, and empty strings will be ignored and
             not affect the rendered HTML.
+        props : list-like or str, optional
+            List of (attr, value) tuples or a valid CSS string. If ``None`` adopts
+            the internal default values described in notes.
+        css_class : str, optional
+            Name of the tooltip class used in CSS, should conform to HTML standards.
+            Only useful if integrating tooltips with external CSS. If ``None`` uses the
+            internal default value 'pd-t'.
 
         Returns
         -------
@@ -256,51 +247,7 @@ class Styler:
         -----
         Tooltips are created by adding `<span class="pd-t"></span>` to each data cell
         and then manipulating the table level CSS to attach pseudo hover and pseudo
-        after selectors to produce the required the results. For styling control
-        see `:meth:Styler.set_tooltips_class`.
-        Tooltips are not designed to be efficient, and can add large amounts of
-        additional HTML for larger tables, since they also require that `cell_ids`
-        is forced to `True`.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(data=[[0, 1], [2, 3]])
-        >>> ttips = pd.DataFrame(
-        ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
-        ... )
-        >>> s = df.style.set_tooltips(ttips).render()
-        """
-        self._init_tooltips()
-        assert self.tooltips is not None  # mypy requiremen
-        self.tooltips.tt_data = ttips
-        return self
-
-    def set_tooltips_class(
-        self,
-        name: Optional[str] = None,
-        properties: Optional[CSSProperties] = None,
-    ) -> Styler:
-        """
-        Manually configure the name and/or properties of the class for
-        creating tooltips on hover.
-
-        .. versionadded:: 1.3.0
-
-        Parameters
-        ----------
-        name : str, default None
-            Name of the tooltip class used in CSS, should conform to HTML standards.
-        properties : list-like or str, default None
-            List of (attr, value) tuples or a valid CSS string; see example.
-
-        Returns
-        -------
-        self : Styler
-
-        Notes
-        -----
-        If arguments are `None` will not make any changes to the underlying ``Tooltips``
-        existing values.
+        after selectors to produce the required the results.
 
         The default properties for the tooltip CSS class are:
 
@@ -311,26 +258,47 @@ class Styler:
         - color: white
         - transform: translate(-20px, -20px)
 
-        The property ('visibility', 'hidden') is a key prerequisite to the hover
+        The property 'visibility: hidden;' is a key prerequisite to the hover
         functionality, and should always be included in any manual properties
-        specification.
+        specification, using the ``props`` argument.
+
+        Tooltips are not designed to be efficient, and can add large amounts of
+        additional HTML for larger tables, since they also require that ``cell_ids``
+        is forced to `True`.
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 4))
-        >>> df.style.set_tooltips_class(name='tt-add', properties=[
+        Basic application
+
+        >>> df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        >>> ttips = pd.DataFrame(
+        ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
+        ... )
+        >>> s = df.style.set_tooltips(ttips).render()
+
+        Optionally controlling the tooltip visual display
+
+        >>> df.style.set_tooltips(ttips, css_class='tt-add', props=[
         ...     ('visibility', 'hidden'),
         ...     ('position', 'absolute'),
         ...     ('z-index', 1)])
-        >>> df.style.set_tooltips_class(name='tt-add',
-        ...     properties='visibility:hidden; position:absolute; z-index:1;')
+        >>> df.style.set_tooltips(ttips, css_class='tt-add',
+        ...     props='visibility:hidden; position:absolute; z-index:1;')
         """
-        self._init_tooltips()
-        assert self.tooltips is not None  # mypy requirement
-        if properties:
-            self.tooltips.class_properties = properties
-        if name:
-            self.tooltips.class_name = name
+        if not self.cell_ids:
+            # tooltips not optimised for individual cell check. requires reasonable
+            # redesign and more extensive code for a feature that might be rarely used.
+            raise NotImplementedError(
+                "Tooltips can only render with 'cell_ids' is True."
+            )
+        if self.tooltips is None:  # create a default instance if necessary
+            self.tooltips = _Tooltips()
+        self.tooltips.tt_data = ttips
+        if props:
+            self.tooltips.class_properties = props
+        if css_class:
+            self.tooltips.class_name = css_class
+
         return self
 
     @doc(
@@ -486,7 +454,6 @@ class Styler:
         table_styles = self.table_styles or []
         caption = self.caption
         ctx = self.ctx
-        precision = self.precision
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
         uuid = self.uuid
@@ -666,8 +633,7 @@ class Styler:
             "cellstyle": cellstyle,
             "body": body,
             "uuid": uuid,
-            "precision": precision,
-            "table_styles": table_styles,
+            "table_styles": _format_table_styles(table_styles),
             "caption": caption,
             "table_attributes": table_attr,
         }
@@ -676,14 +642,20 @@ class Styler:
 
         return d
 
-    def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> Styler:
+    def format(
+        self,
+        formatter: Optional[ExtFormatter] = None,
+        subset: Optional[Union[slice, Sequence[Any]]] = None,
+        na_rep: Optional[str] = None,
+        precision: Optional[int] = None,
+    ) -> Styler:
         """
         Format the text display value of cells.
 
         Parameters
         ----------
         formatter : str, callable, dict or None
-            If ``formatter`` is None, the default formatter is used.
+            Object to define how values are displayed. See notes.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
@@ -693,58 +665,107 @@ class Styler:
 
             .. versionadded:: 1.0.0
 
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+
+            .. versionadded:: 1.3.0
+
         Returns
         -------
         self : Styler
 
         Notes
         -----
-        ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
-        ``a`` is one of
+        This method assigns a formatting function, ``formatter``, to each cell in the
+        DataFrame. If ``formatter`` is ``None``, then the default formatter is used.
+        If a callable then that function should take a data value as input and return
+        a displayable representation, such as a string. If ``formatter`` is
+        given as a string this is assumed to be a valid Python format specification
+        and is wrapped to a callable as ``string.format(x)``. If a ``dict`` is given,
+        keys should correspond to column names, and values should be string or
+        callable, as above.
 
-        - str: this will be wrapped in: ``a.format(x)``
-        - callable: called with the value of an individual cell
+        The default formatter currently expresses floats and complex numbers with the
+        pandas display precision unless using the ``precision`` argument here. The
+        default formatter does not adjust the representation of missing values unless
+        the ``na_rep`` argument is used.
 
-        The default display value for numeric values is the "general" (``g``)
-        format with ``pd.options.display.precision`` precision.
+        The ``subset`` argument defines which region to apply the formatting function
+        to. If the ``formatter`` argument is given in dict form but does not include
+        all columns within the subset then these columns will have the default formatter
+        applied. Any columns in the formatter dict excluded from the subset will
+        raise a ``KeyError``.
+
+        When using a ``formatter`` string the dtypes must be compatible, otherwise a
+        `ValueError` will be raised.
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
-        >>> df.style.format("{:.2%}")
-        >>> df['c'] = ['a', 'b', 'c', 'd']
-        >>> df.style.format({'c': str.upper})
+        Using ``na_rep`` and ``precision`` with the default ``formatter``
+
+        >>> df = pd.DataFrame([[np.nan, 1.0, 'A'], [2.0, np.nan, 3.0]])
+        >>> df.style.format(na_rep='MISS', precision=3)
+                0       1       2
+        0    MISS   1.000       A
+        1   2.000    MISS   3.000
+
+        Using a format specification on consistent column dtypes
+
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])
+                0      1          2
+        0    MISS   1.00          A
+        1    2.00   MISS   3.000000
+
+        Using the default ``formatter`` for unspecified columns
+
+        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
+                 0      1     2
+        0    MISS   £ 1.0     A
+        1    2.00    MISS   3.0
+
+        Multiple ``na_rep`` or ``precision`` specifications under the default
+        ``formatter``.
+
+        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])
+                0      1      2
+        0    MISS   1.00      A
+        1     2.0   PASS   3.00
+
+        Using a callable formatting function
+
+        >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
+        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
+                0        1        2
+        0    MISS   1.0000   STRING
+        1     2.0     MISS    FLOAT
         """
-        if formatter is None:
-            assert self._display_funcs.default_factory is not None
-            formatter = self._display_funcs.default_factory()
+        if all((formatter is None, subset is None, precision is None, na_rep is None)):
+            self._display_funcs.clear()
+            return self  # clear the formatter / revert to default and avoid looping
 
-        if subset is None:
-            row_locs = range(len(self.data))
-            col_locs = range(len(self.data.columns))
-        else:
-            subset = _non_reducing_slice(subset)
-            if len(subset) == 1:
-                subset = subset, self.data.columns
+        subset = slice(None) if subset is None else subset
+        subset = _non_reducing_slice(subset)
+        data = self.data.loc[subset]
 
-            sub_df = self.data.loc[subset]
-            row_locs = self.data.index.get_indexer_for(sub_df.index)
-            col_locs = self.data.columns.get_indexer_for(sub_df.columns)
+        columns = data.columns
+        if not isinstance(formatter, dict):
+            formatter = {col: formatter for col in columns}
 
-        if is_dict_like(formatter):
-            for col, col_formatter in formatter.items():
-                # formatter must be callable, so '{}' are converted to lambdas
-                col_formatter = _maybe_wrap_formatter(col_formatter, na_rep)
-                col_num = self.data.columns.get_indexer_for([col])[0]
+        for col in columns:
+            try:
+                format_func = formatter[col]
+            except KeyError:
+                format_func = None
+            format_func = _maybe_wrap_formatter(
+                format_func, na_rep=na_rep, precision=precision
+            )
 
-                for row_num in row_locs:
-                    self._display_funcs[(row_num, col_num)] = col_formatter
-        else:
-            # single scalar to format all cells with
-            formatter = _maybe_wrap_formatter(formatter, na_rep)
-            locs = product(*(row_locs, col_locs))
-            for i, j in locs:
-                self._display_funcs[(i, j)] = formatter
+            for row, value in data[[col]].itertuples():
+                i, j = self.index.get_loc(row), self.columns.get_loc(col)
+                self._display_funcs[(i, j)] = format_func
+
         return self
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
@@ -845,7 +866,6 @@ class Styler:
         * cellstyle
         * body
         * uuid
-        * precision
         * table_styles
         * caption
         * table_attributes
@@ -883,16 +903,29 @@ class Styler:
             self.data,
             precision=self.precision,
             caption=self.caption,
-            uuid=self.uuid,
-            table_styles=self.table_styles,
+            table_attributes=self.table_attributes,
+            cell_ids=self.cell_ids,
             na_rep=self.na_rep,
         )
+
+        styler.uuid = self.uuid
+        styler.hidden_index = self.hidden_index
+
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
             styler._todo = copy.deepcopy(self._todo)
+            styler.table_styles = copy.deepcopy(self.table_styles)
+            styler.hidden_columns = copy.copy(self.hidden_columns)
+            styler.cell_context = copy.deepcopy(self.cell_context)
+            styler.tooltips = copy.deepcopy(self.tooltips)
         else:
             styler.ctx = self.ctx
             styler._todo = self._todo
+            styler.table_styles = self.table_styles
+            styler.hidden_columns = self.hidden_columns
+            styler.cell_context = self.cell_context
+            styler.tooltips = self.tooltips
+
         return styler
 
     def __copy__(self) -> Styler:
@@ -1026,7 +1059,7 @@ class Styler:
         Examples
         --------
         >>> def highlight_max(x, color):
-        ...     return np.where(x == np.nanmax(x.values), f"color: {color};", None)
+        ...     return np.where(x == np.nanmax(x.to_numpy()), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2))
         >>> df.style.apply(highlight_max, color='red')
         >>> df.style.apply(highlight_max, color='blue', axis=1)
@@ -1133,7 +1166,9 @@ class Styler:
 
     def set_precision(self, precision: int) -> Styler:
         """
-        Set the precision used to render.
+        Set the precision used to display values.
+
+        .. deprecated:: 1.3.0
 
         Parameters
         ----------
@@ -1142,9 +1177,18 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method is deprecated see `Styler.format`.
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.format(precision=..)`",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.precision = precision
-        return self
+        return self.format(precision=precision, na_rep=self.na_rep)
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
@@ -1355,6 +1399,8 @@ class Styler:
 
         .. versionadded:: 1.0.0
 
+        .. deprecated:: 1.3.0
+
         Parameters
         ----------
         na_rep : str
@@ -1362,9 +1408,18 @@ class Styler:
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method is deprecated. See `Styler.format()`
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.format(na_rep=..)`",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.na_rep = na_rep
-        return self
+        return self.format(na_rep=na_rep, precision=self.precision)
 
     def hide_index(self) -> Styler:
         """
@@ -1721,9 +1776,10 @@ class Styler:
         self,
         null_color: str = "red",
         subset: Optional[IndexLabel] = None,
+        props: Optional[str] = None,
     ) -> Styler:
         """
-        Shade the background ``null_color`` for missing values.
+        Highlight missing values with a style.
 
         Parameters
         ----------
@@ -1733,79 +1789,114 @@ class Styler:
 
             .. versionadded:: 1.1.0
 
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+            .. versionadded:: 1.3.0
+
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.highlight_max: Highlight the maximum with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
-            return np.where(pd.isna(data).values, props, "")
+            return np.where(pd.isna(data).to_numpy(), props, "")
 
-        return self.apply(
-            f, axis=None, subset=subset, props=f"background-color: {null_color};"
-        )
+        if props is None:
+            props = f"background-color: {null_color};"
+        return self.apply(f, axis=None, subset=subset, props=props)
 
     def highlight_max(
         self,
         subset: Optional[IndexLabel] = None,
         color: str = "yellow",
         axis: Optional[Axis] = 0,
+        props: Optional[str] = None,
     ) -> Styler:
         """
-        Highlight the maximum by shading the background.
+        Highlight the maximum with a style.
 
         Parameters
         ----------
         subset : IndexSlice, default None
             A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
+            Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_min: Highlight the minimum with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmax(data.values), props, "")
+            return np.where(data == np.nanmax(data.to_numpy()), props, "")
 
-        return self.apply(
-            f, axis=axis, subset=subset, props=f"background-color: {color};"
-        )
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(f, axis=axis, subset=subset, props=props)
 
     def highlight_min(
         self,
         subset: Optional[IndexLabel] = None,
         color: str = "yellow",
         axis: Optional[Axis] = 0,
+        props: Optional[str] = None,
     ) -> Styler:
         """
-        Highlight the minimum by shading the background.
+        Highlight the minimum with a style.
 
         Parameters
         ----------
         subset : IndexSlice, default None
             A valid slice for ``data`` to limit the style application to.
         color : str, default 'yellow'
+            Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.highlight_null: Highlight missing values with a style.
+        Styler.highlight_max: Highlight the maximum with a style.
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmin(data.values), props, "")
+            return np.where(data == np.nanmin(data.to_numpy()), props, "")
 
-        return self.apply(
-            f, axis=axis, subset=subset, props=f"background-color: {color};"
-        )
+        if props is None:
+            props = f"background-color: {color};"
+        return self.apply(f, axis=axis, subset=subset, props=props)
 
     @classmethod
     def from_custom_template(cls, searchpath, name):
@@ -2006,25 +2097,14 @@ class _Tooltips:
         -------
         pseudo_css : List
         """
+        selector_id = "#T_" + uuid + "row" + str(row) + "_col" + str(col)
         return [
             {
-                "selector": "#T_"
-                + uuid
-                + "row"
-                + str(row)
-                + "_col"
-                + str(col)
-                + f":hover .{name}",
+                "selector": selector_id + f":hover .{name}",
                 "props": [("visibility", "visible")],
             },
             {
-                "selector": "#T_"
-                + uuid
-                + "row"
-                + str(row)
-                + "_col"
-                + str(col)
-                + f" .{name}::after",
+                "selector": selector_id + f" .{name}::after",
                 "props": [("content", f'"{text}"')],
             },
         ]
@@ -2137,24 +2217,52 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
+def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
+    """
+    Format the display of a value
+
+    Parameters
+    ----------
+    x : Any
+        Input variable to be formatted
+    precision : Int, optional
+        Floating point precision used if ``x`` is float or complex.
+
+    Returns
+    -------
+    value : Any
+        Matches input type, or string if input is float or complex.
+    """
+    if precision is None:
+        precision = get_option("display.precision")
+    if isinstance(x, (float, complex)):
+        return f"{x:.{precision}f}"
+    return x
+
+
 def _maybe_wrap_formatter(
-    formatter: Union[Callable, str], na_rep: Optional[str]
+    formatter: Optional[BaseFormatter] = None,
+    na_rep: Optional[str] = None,
+    precision: Optional[int] = None,
 ) -> Callable:
+    """
+    Allows formatters to be expressed as str, callable or None, where None returns
+    a default formatting function. wraps with na_rep, and precision where they are
+    available.
+    """
     if isinstance(formatter, str):
         formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):
         formatter_func = formatter
+    elif formatter is None:
+        formatter_func = partial(_default_formatter, precision=precision)
     else:
-        msg = f"Expected a template string or callable, got {formatter} instead"
-        raise TypeError(msg)
+        raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
     if na_rep is None:
         return formatter_func
-    elif isinstance(na_rep, str):
-        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
     else:
-        msg = f"Expected a string, got {na_rep} instead"
-        raise TypeError(msg)
+        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
 
 
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
@@ -2177,6 +2285,26 @@ def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def _format_table_styles(styles: CSSStyles) -> CSSStyles:
+    """
+    looks for multiple CSS selectors and separates them:
+    [{'selector': 'td, th', 'props': 'a:v;'}]
+        ---> [{'selector': 'td', 'props': 'a:v;'},
+              {'selector': 'th', 'props': 'a:v;'}]
+    """
+    return [
+        item
+        for sublist in [
+            [  # this is a CSSDict when TypedDict is available to avoid cast.
+                {"selector": x, "props": style["props"]}
+                for x in cast(str, style["selector"]).split(",")
+            ]
+            for style in styles
+        ]
+        for item in sublist
+    ]
 
 
 def _non_reducing_slice(slice_):

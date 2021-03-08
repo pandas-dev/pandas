@@ -303,6 +303,7 @@ def array(
         raise ValueError(msg)
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
+        # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
@@ -456,13 +457,30 @@ def sanitize_array(
     index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
-    raise_cast_failure: bool = False,
+    raise_cast_failure: bool = True,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
     coerce to the dtype if specified.
-    """
 
+    Parameters
+    ----------
+    data : Any
+    index : Index or None, default None
+    dtype : np.dtype, ExtensionDtype, or None, default None
+    copy : bool, default False
+    raise_cast_failure : bool, default True
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+
+    Notes
+    -----
+    raise_cast_failure=False is only intended to be True when called from the
+    DataFrame constructor, as the dtype keyword there may be interpreted as only
+    applying to a subset of columns, see GH#24435.
+    """
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
@@ -499,9 +517,9 @@ def sanitize_array(
 
     elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
         # TODO: deque, array.array
-        if isinstance(data, set):
+        if isinstance(data, (set, frozenset)):
             # Raise only for unordered sets, e.g., not for dict_keys
-            raise TypeError("Set type is unordered")
+            raise TypeError(f"'{type(data).__name__}' type is unordered")
         data = list(data)
 
         if dtype is not None:
@@ -536,6 +554,7 @@ def sanitize_array(
             inferred = lib.infer_dtype(subarr, skipna=False)
             if inferred in {"interval", "period"}:
                 subarr = array(subarr)
+                subarr = extract_array(subarr, extract_numpy=True)
 
     return subarr
 
@@ -651,8 +670,10 @@ def _try_cast(
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
+            if dtype is not None and dtype.kind == "M":
+                return subarr
 
-        if not isinstance(subarr, (ABCExtensionArray, ABCIndex)):
+        if not isinstance(subarr, ABCExtensionArray):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise

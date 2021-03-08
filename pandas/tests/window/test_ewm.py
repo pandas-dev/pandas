@@ -142,6 +142,29 @@ def test_ewm_with_nat_raises(halflife_with_times):
         ser.ewm(com=0.1, halflife=halflife_with_times, times=times)
 
 
+def test_ewm_with_times_getitem(halflife_with_times):
+    # GH 40164
+    halflife = halflife_with_times
+    data = np.arange(10.0)
+    data[::2] = np.nan
+    times = date_range("2000", freq="D", periods=10)
+    df = DataFrame({"A": data, "B": data})
+    result = df.ewm(halflife=halflife, times=times)["A"].mean()
+    expected = df.ewm(halflife=1.0)["A"].mean()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("arg", ["com", "halflife", "span", "alpha"])
+def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
+    # GH 40164
+    kwargs = {arg: 1, "adjust": adjust, "ignore_na": ignore_na}
+    ewm = DataFrame({"A": range(1), "B": range(1)}).ewm(**kwargs)
+    expected = {attr: getattr(ewm, attr) for attr in ewm._attributes}
+    ewm_slice = ewm["A"]
+    result = {attr: getattr(ewm, attr) for attr in ewm_slice._attributes}
+    assert result == expected
+
+
 def test_ewm_vol_deprecated():
     ser = Series(range(1))
     with tm.assert_produces_warning(FutureWarning):

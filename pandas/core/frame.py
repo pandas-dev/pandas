@@ -99,7 +99,6 @@ from pandas.core.dtypes.cast import (
     maybe_box_native,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
-    maybe_infer_to_datetimelike,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -147,6 +146,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     extract_array,
+    sanitize_array,
     sanitize_masked_array,
 )
 from pandas.core.generic import (
@@ -177,13 +177,12 @@ from pandas.core.internals import (
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
-    init_dict,
-    init_ndarray,
-    masked_rec_array_to_mgr,
+    dict_to_mgr,
     mgr_to_mgr,
+    ndarray_to_mgr,
     nested_data_to_arrays,
+    rec_array_to_mgr,
     reorder_arrays,
-    sanitize_index,
     to_arrays,
     treat_as_nested,
 )
@@ -564,41 +563,55 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        if isinstance(data, (BlockManager, ArrayManager)):
-            if index is None and columns is None and dtype is None and copy is False:
-                # GH#33357 fastpath
-                NDFrame.__init__(self, data)
-                return
+        # first check if a Manager is passed without any other arguments
+        # -> use fastpath (without checking Manager type)
+        if (
+            index is None
+            and columns is None
+            and dtype is None
+            and copy is False
+            and isinstance(data, (BlockManager, ArrayManager))
+        ):
+            # GH#33357 fastpath
+            NDFrame.__init__(self, data)
+            return
 
+        manager = get_option("mode.data_manager")
+
+        if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
         elif isinstance(data, dict):
-            mgr = init_dict(data, index, columns, dtype=dtype)
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = masked_rec_array_to_mgr(data, index, columns, dtype, copy)
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
 
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                mgr = ndarray_to_mgr(
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
+                )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
-                data_columns = list(data.dtype.names)
-                data = {k: data[k] for k in data_columns}
-                if columns is None:
-                    columns = data_columns
-                mgr = init_dict(data, index, columns, dtype=dtype)
+                # i.e. numpy structured array
+                mgr = rec_array_to_mgr(data, index, columns, dtype, copy, typ=manager)
             elif getattr(data, "name", None) is not None:
-                mgr = init_dict({data.name: data}, index, columns, dtype=dtype)
+                # i.e. Series/Index with non-None name
+                mgr = dict_to_mgr(
+                    {data.name: data}, index, columns, dtype=dtype, typ=manager
+                )
             else:
-                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                mgr = ndarray_to_mgr(
+                    data, index, columns, dtype=dtype, copy=copy, typ=manager
+                )
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
@@ -608,14 +621,20 @@ class DataFrame(NDFrame, OpsMixin):
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
                 if treat_as_nested(data):
+                    if columns is not None:
+                        columns = ensure_index(columns)
                     arrays, columns, index = nested_data_to_arrays(
                         data, columns, index, dtype
                     )
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                    mgr = arrays_to_mgr(
+                        arrays, columns, index, columns, dtype=dtype, typ=manager
+                    )
                 else:
-                    mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                    mgr = ndarray_to_mgr(
+                        data, index, columns, dtype=dtype, copy=copy, typ=manager
+                    )
             else:
-                mgr = init_dict({}, index, columns, dtype=dtype)
+                mgr = dict_to_mgr({}, index, columns, dtype=dtype, typ=manager)
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -632,18 +651,19 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+                mgr = arrays_to_mgr(
+                    values, columns, index, columns, dtype=None, typ=manager
+                )
             else:
                 values = construct_2d_arraylike_from_scalar(
                     data, len(index), len(columns), dtype, copy
                 )
 
-                mgr = init_ndarray(
-                    values, index, columns, dtype=values.dtype, copy=False
+                mgr = ndarray_to_mgr(
+                    values, index, columns, dtype=values.dtype, copy=False, typ=manager
                 )
 
         # ensure correct Manager type according to settings
-        manager = get_option("mode.data_manager")
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
@@ -1919,12 +1939,11 @@ class DataFrame(NDFrame, OpsMixin):
                         arr_columns_list.append(k)
                         arrays.append(v)
 
-                arrays, arr_columns = reorder_arrays(arrays, arr_columns_list, columns)
+                arr_columns = Index(arr_columns_list)
+                arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns)
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
-            if columns is not None:
-                columns = ensure_index(columns)
             arr_columns = columns
         else:
             arrays, arr_columns = to_arrays(data, columns)
@@ -1934,9 +1953,7 @@ class DataFrame(NDFrame, OpsMixin):
                         arrays[i] = lib.maybe_convert_objects(arr, try_float=True)
 
             arr_columns = ensure_index(arr_columns)
-            if columns is not None:
-                columns = ensure_index(columns)
-            else:
+            if columns is None:
                 columns = arr_columns
 
         if exclude is None:
@@ -1971,7 +1988,8 @@ class DataFrame(NDFrame, OpsMixin):
             arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
-        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns)
+        manager = get_option("mode.data_manager")
+        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns, typ=manager)
 
         return cls(mgr)
 
@@ -2178,6 +2196,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
+        manager = get_option("mode.data_manager")
         mgr = arrays_to_mgr(
             arrays,
             columns,
@@ -2185,6 +2204,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns,
             dtype=dtype,
             verify_integrity=verify_integrity,
+            typ=manager,
         )
         return cls(mgr)
 
@@ -2640,6 +2660,209 @@ class DataFrame(NDFrame, OpsMixin):
             table_id=table_id,
             render_links=render_links,
         )
+
+    @doc(storage_options=generic._shared_docs["storage_options"])
+    def to_xml(
+        self,
+        path_or_buffer: Optional[FilePathOrBuffer] = None,
+        index: bool = True,
+        root_name: Optional[str] = "data",
+        row_name: Optional[str] = "row",
+        na_rep: Optional[str] = None,
+        attr_cols: Optional[Union[str, List[str]]] = None,
+        elem_cols: Optional[Union[str, List[str]]] = None,
+        namespaces: Optional[Dict[Optional[str], str]] = None,
+        prefix: Optional[str] = None,
+        encoding: str = "utf-8",
+        xml_declaration: Optional[bool] = True,
+        pretty_print: Optional[bool] = True,
+        parser: Optional[str] = "lxml",
+        stylesheet: Optional[FilePathOrBuffer] = None,
+        compression: CompressionOptions = "infer",
+        storage_options: StorageOptions = None,
+    ) -> Optional[str]:
+        """
+        Render a DataFrame to an XML document.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        path_or_buffer : str, path object or file-like object, optional
+            File to write output to. If None, the output is returned as a
+            string.
+        index : bool, default True
+            Whether to include index in XML document.
+        root_name : str, default 'data'
+            The name of root element in XML document.
+        row_name : str, default 'row'
+            The name of row element in XML document.
+        na_rep : str, optional
+            Missing data representation.
+        attr_cols : list-like, optional
+            List of columns to write as attributes in row element.
+            Hierarchical columns will be flattened with underscore
+            delimiting the different levels.
+        elem_cols : list-like, optional
+            List of columns to write as children in row element. By default,
+            all columns output as children of row element. Hierarchical
+            columns will be flattened with underscore delimiting the
+            different levels.
+        namespaces : dict, optional
+            All namespaces to be defined in root element. Keys of dict
+            should be prefix names and values of dict corresponding URIs.
+            Default namespaces should be given empty string key. For
+            example, ::
+
+                namespaces = {{"": "https://example.com"}}
+
+        prefix : str, optional
+            Namespace prefix to be used for every element and/or attribute
+            in document. This should be one of the keys in ``namespaces``
+            dict.
+        encoding : str, default 'utf-8'
+            Encoding of the resulting document.
+        xml_declaration : bool, default True
+            Whether to include the XML declaration at start of document.
+        pretty_print : bool, default True
+            Whether output should be pretty printed with indentation and
+            line breaks.
+        parser : {{'lxml','etree'}}, default 'lxml'
+            Parser module to use for building of tree. Only 'lxml' and
+            'etree' are supported. With 'lxml', the ability to use XSLT
+            stylesheet is supported.
+        stylesheet : str, path object or file-like object, optional
+            A URL, file-like object, or a raw string containing an XSLT
+            script used to transform the raw XML output. Script should use
+            layout of elements and attributes from original output. This
+            argument requires ``lxml`` to be installed. Only XSLT 1.0
+            scripts and not later versions is currently supported.
+        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+            For on-the-fly decompression of on-disk data. If 'infer', then use
+            gzip, bz2, zip or xz if path_or_buffer is a string ending in
+            '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
+            otherwise. If using 'zip', the ZIP file must contain only one data
+            file to be read in. Set to None for no decompression.
+        {storage_options}
+
+        Returns
+        -------
+        None or str
+            If ``io`` is None, returns the resulting XML format as a
+            string. Otherwise returns None.
+
+        See Also
+        --------
+        to_json : Convert the pandas object to a JSON string.
+        to_html : Convert DataFrame to a html.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({{'shape': ['square', 'circle', 'triangle'],
+        ...                    'degrees': [360, 360, 180],
+        ...                    'sides': [4, np.nan, 3]}})
+
+        >>> df.to_xml()  # doctest: +SKIP
+        <?xml version='1.0' encoding='utf-8'?>
+        <data>
+          <row>
+            <index>0</index>
+            <shape>square</shape>
+            <degrees>360</degrees>
+            <sides>4.0</sides>
+          </row>
+          <row>
+            <index>1</index>
+            <shape>circle</shape>
+            <degrees>360</degrees>
+            <sides/>
+          </row>
+          <row>
+            <index>2</index>
+            <shape>triangle</shape>
+            <degrees>180</degrees>
+            <sides>3.0</sides>
+          </row>
+        </data>
+
+        >>> df.to_xml(attr_cols=[
+        ...           'index', 'shape', 'degrees', 'sides'
+        ...           ])  # doctest: +SKIP
+        <?xml version='1.0' encoding='utf-8'?>
+        <data>
+          <row index="0" shape="square" degrees="360" sides="4.0"/>
+          <row index="1" shape="circle" degrees="360"/>
+          <row index="2" shape="triangle" degrees="180" sides="3.0"/>
+        </data>
+
+        >>> df.to_xml(namespaces={{"doc": "https://example.com"}},
+        ...           prefix="doc")  # doctest: +SKIP
+        <?xml version='1.0' encoding='utf-8'?>
+        <doc:data xmlns:doc="https://example.com">
+          <doc:row>
+            <doc:index>0</doc:index>
+            <doc:shape>square</doc:shape>
+            <doc:degrees>360</doc:degrees>
+            <doc:sides>4.0</doc:sides>
+          </doc:row>
+          <doc:row>
+            <doc:index>1</doc:index>
+            <doc:shape>circle</doc:shape>
+            <doc:degrees>360</doc:degrees>
+            <doc:sides/>
+          </doc:row>
+          <doc:row>
+            <doc:index>2</doc:index>
+            <doc:shape>triangle</doc:shape>
+            <doc:degrees>180</doc:degrees>
+            <doc:sides>3.0</doc:sides>
+          </doc:row>
+        </doc:data>
+        """
+
+        from pandas.io.formats.xml import (
+            EtreeXMLFormatter,
+            LxmlXMLFormatter,
+        )
+
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
+        TreeBuilder: Union[Type[EtreeXMLFormatter], Type[LxmlXMLFormatter]]
+
+        if parser == "lxml":
+            if lxml is not None:
+                TreeBuilder = LxmlXMLFormatter
+            else:
+                raise ImportError(
+                    "lxml not found, please install or use the etree parser."
+                )
+
+        elif parser == "etree":
+            TreeBuilder = EtreeXMLFormatter
+
+        else:
+            raise ValueError("Values for parser can only be lxml or etree.")
+
+        xml_formatter = TreeBuilder(
+            self,
+            path_or_buffer=path_or_buffer,
+            index=index,
+            root_name=root_name,
+            row_name=row_name,
+            na_rep=na_rep,
+            attr_cols=attr_cols,
+            elem_cols=elem_cols,
+            namespaces=namespaces,
+            prefix=prefix,
+            encoding=encoding,
+            xml_declaration=xml_declaration,
+            pretty_print=pretty_print,
+            stylesheet=stylesheet,
+            compression=compression,
+            storage_options=storage_options,
+        )
+
+        return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
     @Substitution(
@@ -3856,7 +4079,13 @@ class DataFrame(NDFrame, OpsMixin):
                 for unique_dtype in unique_dtypes
                 if (
                     issubclass(
-                        unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                        # error: Argument 1 to "tuple" has incompatible type
+                        # "FrozenSet[Union[ExtensionDtype, Union[str, Any], Type[str],
+                        # Type[float], Type[int], Type[complex], Type[bool],
+                        # Type[object]]]"; expected "Iterable[Union[type, Tuple[Any,
+                        # ...]]]"
+                        unique_dtype.type,
+                        tuple(dtypes_set),  # type: ignore[arg-type]
                     )
                     or (
                         np.number in dtypes_set
@@ -4024,15 +4253,14 @@ class DataFrame(NDFrame, OpsMixin):
             value = _reindex_for_setitem(value, self.index)
 
         elif isinstance(value, ExtensionArray):
-            # Explicitly copy here, instead of in sanitize_index,
-            # as sanitize_index won't copy an EA, even with copy=True
+            # Explicitly copy here
             value = value.copy()
-            value = sanitize_index(value, self.index)
+            com.require_length_match(value, self.index)
 
         elif is_sequence(value):
+            com.require_length_match(value, self.index)
 
             # turn me into an ndarray
-            value = sanitize_index(value, self.index)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
                     value = maybe_convert_platform(value)
@@ -4045,7 +4273,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # possibly infer to datetimelike
             if is_object_dtype(value.dtype):
-                value = maybe_infer_to_datetimelike(value)
+                value = sanitize_array(value, None)
 
         else:
             value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
@@ -5625,7 +5853,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         axis: Axis = 0,
         level: Optional[Level] = None,
-        ascending: bool = True,
+        ascending: Union[Union[bool, int], Sequence[Union[bool, int]]] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -5646,7 +5874,7 @@ class DataFrame(NDFrame, OpsMixin):
             and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
             If not None, sort on values in specified index level(s).
-        ascending : bool or list of bools, default True
+        ascending : bool or list-like of bools, default True
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False
@@ -6160,7 +6388,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             # TODO operate_blockwise expects a manager of the same type
             bm = self._mgr.operate_blockwise(
-                right._mgr, array_op  # type: ignore[arg-type]
+                # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
+                # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                # "ArrayManager"
+                # error: Argument 1 to "operate_blockwise" of "BlockManager" has
+                # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                # "BlockManager"
+                right._mgr,  # type: ignore[arg-type]
+                array_op,
             )
             return type(self)(bm)
 
@@ -6550,6 +6785,7 @@ Keep all original rows and columns and also all original values
         Returns
         -------
         DataFrame
+            The result of combining the provided DataFrame with the other object.
 
         See Also
         --------
@@ -7621,12 +7857,11 @@ NaN 12.3   33.0
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
-        bm_axis = self._get_block_manager_axis(axis)
-
-        if bm_axis == 0 and periods != 0:
+        axis = self._get_axis_number(axis)
+        if axis == 1 and periods != 0:
             return self - self.shift(periods, axis=axis)
 
-        new_data = self._mgr.diff(n=periods, axis=bm_axis)
+        new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
@@ -8916,7 +9151,7 @@ NaN 12.3   33.0
 
         return result.astype("int64")
 
-    def _count_level(self, level: Level, axis: Axis = 0, numeric_only=False):
+    def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
         if numeric_only:
             frame = self._get_numeric_data()
         else:
@@ -8973,6 +9208,7 @@ NaN 12.3   33.0
         **kwds,
     ):
 
+        min_count = kwds.get("min_count", 0)
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
@@ -9017,7 +9253,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None or axis == 0:
+        if (numeric_only is not None or axis == 0) and min_count == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -9034,7 +9270,7 @@ NaN 12.3   33.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, indexer = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
@@ -9062,14 +9298,15 @@ NaN 12.3   33.0
             with np.errstate(all="ignore"):
                 result = func(values)
 
-        if filter_type == "bool" and notna(result).all():
-            result = result.astype(np.bool_)
-        elif filter_type is None and is_object_dtype(result.dtype):
-            try:
-                result = result.astype(np.float64)
-            except (ValueError, TypeError):
-                # try to coerce to the original dtypes item by item if we can
-                pass
+        if hasattr(result, "dtype"):
+            if filter_type == "bool" and notna(result).all():
+                result = result.astype(np.bool_)
+            elif filter_type is None and is_object_dtype(result.dtype):
+                try:
+                    result = result.astype(np.float64)
+                except (ValueError, TypeError):
+                    # try to coerce to the original dtypes item by item if we can
+                    pass
 
         result = self._constructor_sliced(result, index=labels)
         return result
@@ -9457,9 +9694,8 @@ NaN 12.3   33.0
         q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
         axis = self._get_axis_number(axis)
-        is_transposed = axis == 1
 
-        if is_transposed:
+        if axis == 1:
             data = data.T
 
         if len(data.columns) == 0:
@@ -9469,15 +9705,9 @@ NaN 12.3   33.0
                 return self._constructor([], index=q, columns=cols)
             return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
 
-        result = data._mgr.quantile(
-            qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
-        )
+        res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
-        result = self._constructor(result)
-
-        if is_transposed:
-            result = result.T
-
+        result = self._constructor(res)
         return result
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)

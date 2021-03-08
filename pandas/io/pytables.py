@@ -348,19 +348,15 @@ def read_hdf(
 
     Parameters
     ----------
-    path_or_buf : str, path object, pandas.HDFStore or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be: ``file://localhost/path/to/table.h5``.
+    path_or_buf : str, path object, pandas.HDFStore
+        Any valid string path is acceptable. Only supports the local file system,
+        remote URLs and file-like objects are not supported.
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
         Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
 
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -4026,10 +4022,14 @@ class Table(Fixed):
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
 
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
+            # attribute "blocks"
             blocks = list(mgr.blocks)  # type: ignore[union-attr]
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
+                # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has
+                # no attribute "blocks"
                 blocks.extend(mgr.blocks)  # type: ignore[union-attr]
                 blk_items.extend(get_blk_items(mgr))
 
