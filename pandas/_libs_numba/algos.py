@@ -479,20 +479,7 @@ def kth_smallest(a: np.ndarray, k):
 #     return result
 
 
-# # ----------------------------------------------------------------------
-
-# ctypedef fused algos_t:
-#     float64_t
-#     float32_t
-#     object
-#     int64_t
-#     int32_t
-#     int16_t
-#     int8_t
-#     uint64_t
-#     uint32_t
-#     uint16_t
-#     uint8_t
+# ----------------------------------------------------------------------
 
 
 def _validate_limit(limit: int | None = None) -> None:
@@ -735,38 +722,6 @@ def _pad_2d_inplace_with_limit(values, mask, limit):
 #         cur = prev
 
 #     return indexer
-
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def backfill_2d_inplace(algos_t[:, :] values,
-#                         const uint8_t[:, :] mask,
-#                         limit=None):
-#     cdef:
-#         Py_ssize_t i, j, N, K
-#         algos_t val
-#         int lim, fill_count = 0
-
-#     K, N = (<object>values).shape
-
-#     # GH#2778
-#     if N == 0:
-#         return
-
-#     lim = validate_limit(N, limit)
-
-#     for j in range(K):
-#         fill_count = 0
-#         val = values[j, N - 1]
-#         for i in range(N - 1, -1, -1):
-#             if mask[j, i]:
-#                 if fill_count >= lim:
-#                     continue
-#                 fill_count += 1
-#                 values[j, i] = val
-#             else:
-#                 fill_count = 0
-#                 val = values[j, i]
 
 
 @numba.njit
