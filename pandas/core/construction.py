@@ -388,7 +388,7 @@ def extract_array(
         Whether to extract the ndarray from a PandasArray
 
     extract_range : bool, default False
-        If we have a RangeIndex, return range._values if True, otherwise
+        If we have a RangeIndex, return range._values if True (which is a materialized integer ndarray), otherwise
         return unchanged.
 
     Returns
