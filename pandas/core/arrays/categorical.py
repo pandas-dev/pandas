@@ -52,6 +52,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
+    ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -518,7 +519,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            result = take_nd(new_cats, libalgos.ensure_platform_int(self._codes))
+            result = take_nd(new_cats, ensure_platform_int(self._codes))
 
         return result
 
