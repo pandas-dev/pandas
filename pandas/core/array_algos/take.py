@@ -471,7 +471,7 @@ def _take_2d_multi_object(
 
 def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
-    indexer: Optional[np.ndarray],
+    indexer: np.ndarray,
     out: Optional[np.ndarray],
     fill_value,
     allow_fill: bool,
