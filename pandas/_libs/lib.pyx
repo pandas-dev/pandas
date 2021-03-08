@@ -269,7 +269,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool = True):
+def fast_unique_multiple(list arrays, sort: bool = True) -> list:
     """
     Generate a list of unique values from a list of arrays.
 
@@ -345,7 +345,7 @@ def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list_gen(object gen, bint sort=True):
+def fast_unique_multiple_list_gen(object gen, bint sort=True) -> list:
     """
     Generate a list of unique values from a generator of lists.
 
@@ -409,7 +409,7 @@ def dicts_to_array(dicts: list, columns: list):
     return result
 
 
-def fast_zip(list ndarrays):
+def fast_zip(list ndarrays) -> ndarray[object]:
     """
     For zipping multiple ndarrays into an ndarray of tuples.
     """
@@ -621,7 +621,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, new_dtype):
+def astype_intsafe(ndarray[object] arr, new_dtype) -> ndarray:
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
@@ -891,7 +891,7 @@ def generate_slices(const int64_t[:] labels, Py_ssize_t ngroups):
 
 
 def indices_fast(ndarray index, const int64_t[:] labels, list keys,
-                 list sorted_labels):
+                 list sorted_labels) -> dict:
     """
     Parameters
     ----------
@@ -1979,8 +1979,12 @@ cpdef bint is_interval_array(ndarray values):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def maybe_convert_numeric(ndarray[object] values, set na_values,
-                          bint convert_empty=True, bint coerce_numeric=False):
+def maybe_convert_numeric(
+    ndarray[object] values,
+    set na_values,
+    bint convert_empty=True,
+    bint coerce_numeric=False,
+) -> ndarray:
     """
     Convert object array to a numeric array if possible.
 
@@ -2154,7 +2158,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                           bint safe=False, bint convert_datetime=False,
                           bint convert_timedelta=False,
-                          bint convert_to_nullable_integer=False):
+                          bint convert_to_nullable_integer=False) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2181,6 +2185,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
     Returns
     -------
     np.ndarray or ExtensionArray
+        Array of converted object values to more specific dtypes if applicable.
     """
     cdef:
         Py_ssize_t i, n
@@ -2408,13 +2413,13 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
 
 
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = object()  #: Sentinel indicating the default value.
+no_default = object()  # Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, object dtype=object):
+                   object na_value=no_default, object dtype=object) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2469,7 +2474,9 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer(ndarray arr, object f, bint convert=True, bint ignore_na=False):
+def map_infer(
+    ndarray arr, object f, bint convert=True, bint ignore_na=False
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2483,7 +2490,7 @@ def map_infer(ndarray arr, object f, bint convert=True, bint ignore_na=False):
 
     Returns
     -------
-    ndarray
+    np.ndarray or ExtensionArray
     """
     cdef:
         Py_ssize_t i, n
@@ -2513,7 +2520,7 @@ def map_infer(ndarray arr, object f, bint convert=True, bint ignore_na=False):
     return result
 
 
-def to_object_array(rows: object, int min_width=0):
+def to_object_array(rows: object, min_width: int = 0) -> ndarray:
     """
     Convert a list of lists into an object array.
 
@@ -2529,7 +2536,7 @@ def to_object_array(rows: object, int min_width=0):
 
     Returns
     -------
-    numpy array of the object dtype.
+    np.ndarray[object, ndim=2]
     """
     cdef:
         Py_ssize_t i, j, n, k, tmp
@@ -2621,7 +2628,7 @@ def to_object_array_tuples(rows: object):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, ndarray keys, default=np.nan):
+def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n = len(keys)
         object val
