@@ -1646,7 +1646,8 @@ class DataFrame(NDFrame, OpsMixin):
         }:
             warnings.warn(
                 "Using short name for 'orient' is deprecated. Only the "
-                "options: ('dict', 'list', 'ndarray', 'series', 'split', 'records', 'index') "
+                "options: ('dict', 'list', 'ndarray', "
+                "'series', 'split', 'records', 'index') "
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
