@@ -69,6 +69,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
@@ -410,7 +411,14 @@ class BaseWindow(SelectionMixin):
             res_values = homogeneous_func(values)
             return getattr(res_values, "T", res_values)
 
-        new_mgr = mgr.apply(hfunc, ignore_failures=True)
+        def hfunc2d(values: ArrayLike) -> ArrayLike:
+            values = self._prep_values(values)
+            return homogeneous_func(values)
+
+        if isinstance(mgr, ArrayManager) and self.axis == 1:
+            new_mgr = mgr.apply_2d(hfunc2d, ignore_failures=True)
+        else:
+            new_mgr = mgr.apply(hfunc, ignore_failures=True)
         out = obj._constructor(new_mgr)
 
         if out.shape[1] == 0 and obj.shape[1] > 0:

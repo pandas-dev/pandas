@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -10,8 +8,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestDataFrameQuantile:
@@ -526,12 +522,13 @@ class TestDataFrameQuantile:
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 
-    def test_quantile_item_cache(self):
+    def test_quantile_item_cache(self, using_array_manager):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
         df["D"] = df["A"] * 2
         ser = df["A"]
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
 
         df.quantile(numeric_only=False)
         ser.values[0] = 99
@@ -610,11 +607,17 @@ class TestQuantileExtensionDtype:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
+    # TODO: filtering can be removed after GH#39763 is fixed
+    @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
     def test_quantile_ea_all_na(self, index, frame_or_series):
 
         obj = frame_or_series(index).copy()
 
         obj.iloc[:] = index._na_value
+
+        # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
+        obj[:] = obj.astype(index.dtype)
+        assert np.all(obj.dtypes == index.dtype)
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)

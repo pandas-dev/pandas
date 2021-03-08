@@ -565,7 +565,7 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = {
+    idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
         "s": makeStringIndex,
@@ -573,10 +573,10 @@ def makeCustomIndex(
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
-    }.get(idx_type)
+    }
+    idx_func = idx_func_dict.get(idx_type)
     if idx_func:
-        # error: Cannot call function of unknown type
-        idx = idx_func(nentries)  # type: ignore[operator]
+        idx = idx_func(nentries)
         # but we need to fill in the name
         if names:
             idx.name = names[0]
