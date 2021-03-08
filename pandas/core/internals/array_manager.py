@@ -1000,11 +1000,16 @@ class ArrayManager(DataManager):
 
         else:
             validate_indices(indexer, len(self._axes[0]))
+            indexer = ensure_int64(indexer)
+            if (indexer == -1).any():
+                allow_fill = True
+            else:
+                allow_fill = False
             new_arrays = [
                 take_1d(
                     arr,
                     indexer,
-                    allow_fill=True,
+                    allow_fill=allow_fill,
                     fill_value=fill_value,
                     # if fill_value is not None else blk.fill_value
                 )
@@ -1076,7 +1081,7 @@ class ArrayManager(DataManager):
         unstacked : BlockManager
         """
         indexer, _ = unstacker._indexer_and_to_sort
-        if np.all(unstacker.mask):
+        if unstacker.mask.all():
             new_indexer = indexer
             allow_fill = False
         else:
