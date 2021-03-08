@@ -173,7 +173,6 @@ if TYPE_CHECKING:
         RangeIndex,
         Series,
     )
-    from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 __all__ = ["Index"]
@@ -2983,10 +2982,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _wrap_setop_result(self, other: Index, result) -> Index:
-        if needs_i8_conversion(self.dtype) and isinstance(result, np.ndarray):
-            self = cast("DatetimeIndexOpsMixin", self)
-            result = type(self._data)._simple_new(result, dtype=self.dtype)
-        elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
+        if is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
             result = Categorical(result, dtype=self.dtype)
 
         name = get_op_result_name(self, other)
