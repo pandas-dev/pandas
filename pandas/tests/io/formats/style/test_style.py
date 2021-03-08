@@ -1,6 +1,5 @@
 import copy
 import re
-import textwrap
 
 import numpy as np
 import pytest
@@ -1405,48 +1404,3 @@ class TestStyler:
         expected = df.loc[slice_]
         result = df.loc[_non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
-
-
-def test_block_names():
-    # catch accidental removal of a block
-    expected = {
-        "before_style",
-        "style",
-        "table_styles",
-        "before_cellstyle",
-        "cellstyle",
-        "before_table",
-        "table",
-        "caption",
-        "thead",
-        "tbody",
-        "after_table",
-        "before_head_rows",
-        "head_tr",
-        "after_head_rows",
-        "before_rows",
-        "tr",
-        "after_rows",
-    }
-    result = set(Styler.template.blocks)
-    assert result == expected
-
-
-def test_from_custom_template(tmpdir):
-    p = tmpdir.mkdir("templates").join("myhtml.tpl")
-    p.write(
-        textwrap.dedent(
-            """\
-        {% extends "html.tpl" %}
-        {% block table %}
-        <h1>{{ table_title|default("My Table") }}</h1>
-        {{ super() }}
-        {% endblock table %}"""
-        )
-    )
-    result = Styler.from_custom_template(str(tmpdir.join("templates")), "myhtml.tpl")
-    assert issubclass(result, Styler)
-    assert result.env is not Styler.env
-    assert result.template is not Styler.template
-    styler = result(DataFrame({"A": [1, 2]}))
-    assert styler.render()
