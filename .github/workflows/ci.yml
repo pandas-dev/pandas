@@ -184,6 +184,7 @@ jobs:
         pytest pandas/tests/dtypes/
         pytest pandas/tests/generic/
         pytest pandas/tests/indexes/
+        pytest pandas/tests/io/
         pytest pandas/tests/libs/
         pytest pandas/tests/plotting/
         pytest pandas/tests/scalar/
