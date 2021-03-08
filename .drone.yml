@@ -11,21 +11,25 @@ steps:
   commands:
     - git fetch --tags
 
-- name: Install Dependencies
+- name: Setup Environment
   image: python:3.7
   commands:
-  - pip install --upgrade pip setuptools
-  - pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis
+  - python -m venv pandas-dev
+  - . pandas-dev/bin/activate
+  - python -m pip install --upgrade pip setuptools
+  - python -m pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis
 
 - name: Build Pandas
   image: python:3.7
   commands:
+  - . pandas-dev/bin/activate
   - python setup.py build_ext -j 4
   - python -m pip install -e . --no-build-isolation --no-use-pep517
 
 - name: Run Test
   image: python:3.7
   commands:
+  - . pandas-dev/bin/activate
   - pytest -m "(not slow and not network and not clipboard and not arm_slow)" -n 2  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas
 
 trigger:
