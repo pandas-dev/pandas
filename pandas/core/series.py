@@ -4529,10 +4529,11 @@ Keep all original rows and also all original values
 
         orig_dtype = self.dtype
         result = self if inplace else self.copy()
-        fill_f = missing.get_fill_func(method)
 
         mask = missing.mask_missing(result.values, to_replace)
-        values, _ = fill_f(result.values, limit=limit, mask=mask)
+        values, _ = missing.interpolate_2d(
+            result.values, method=method, limit=limit, mask=mask
+        )
 
         if values.dtype == orig_dtype and inplace:
             return

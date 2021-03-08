@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -156,24 +155,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self._mask
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
-                new_values, new_mask = func(
+                new_values, new_mask = missing.interpolate_2d(
                     self._data.copy(),
+                    method=method,
                     limit=limit,
                     mask=mask.copy(),
                 )
-                return type(self)(new_values, new_mask.view(np.bool_))
+                return type(self)(new_values, new_mask)
             else:
                 # fill with value
                 new_values = self.copy()

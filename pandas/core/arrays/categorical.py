@@ -1774,10 +1774,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # pad / bfill
 
             # TODO: dispatch when self.categories is EA-dtype
-            values = np.asarray(self).reshape(-1, len(self))
-            values = interpolate_2d(values, method, 0, None).astype(
-                self.categories.dtype
-            )[0]
+            values, _ = interpolate_2d(np.asarray(self), method=method)
+            values = values.astype(self.categories.dtype)
             codes = _get_codes_for_values(values, self.categories)
 
         else:

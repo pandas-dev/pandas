@@ -1208,7 +1208,7 @@ class Block(PandasObject):
 
         values = self.values if inplace else self.values.copy()
 
-        values = missing.interpolate_2d(
+        values, _ = missing.interpolate_2d(
             values,
             method=method,
             axis=axis,

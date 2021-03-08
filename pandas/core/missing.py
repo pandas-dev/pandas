@@ -3,18 +3,15 @@ Routines for filling missing data.
 """
 from __future__ import annotations
 
-from functools import (
-    partial,
-    wraps,
-)
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
     List,
     Optional,
     Set,
+    Tuple,
     Union,
-    cast,
 )
 
 import numpy as np
@@ -26,7 +23,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
-    F,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -589,7 +585,7 @@ def _interpolate_with_limit_area(
         first = find_valid_index(values, "first")
         last = find_valid_index(values, "last")
 
-        values = interpolate_2d(
+        values, _ = interpolate_2d(
             values,
             method=method,
             limit=limit,
@@ -607,11 +603,13 @@ def _interpolate_with_limit_area(
 
 def interpolate_2d(
     values,
+    *,
     method: str = "pad",
     axis: Axis = 0,
     limit: Optional[int] = None,
     limit_area: Optional[str] = None,
-):
+    mask: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
@@ -620,37 +618,44 @@ def interpolate_2d(
     ----------
     values: array-like
         Input array.
-    method: str, default "pad"
-        Interpolation method. Could be "bfill" or "pad"
+    method: {"pad", "backfill", "ffill", "bfill"}, default "pad"
+        Interpolation method.
     axis: 0 or 1
         Interpolation axis
     limit: int, optional
         Index limit on interpolation.
     limit_area: str, optional
-        Limit area for interpolation. Can be "inside" or "outside"
+        Limit area for interpolation. Can be "inside" or "outside".
+    mask: numpy array, optional
+        boolean array of values to be interpolated.
 
     Returns
     -------
-    values: array-like
-        Interpolated array.
+    tuple of values: array-like, mask: array or None
+        Interpolated array and updated mask.
     """
     if limit_area is not None:
-        return np.apply_along_axis(
-            partial(
-                _interpolate_with_limit_area,
-                method=method,
-                limit=limit,
-                limit_area=limit_area,
+        return (
+            np.apply_along_axis(
+                partial(
+                    _interpolate_with_limit_area,
+                    method=method,
+                    limit=limit,
+                    limit_area=limit_area,
+                ),
+                axis,
+                values,
             ),
-            axis,
-            values,
+            mask,
         )
 
     if not np.all(values.shape):
-        return values
+        return values, mask
 
-    orig_values = values
-    mask = isna(values)
+    orig_values, orig_mask = values, mask
+
+    if mask is None:
+        mask = isna(values)
 
     if axis == 1:
         values, mask = values.T, mask.T
@@ -671,74 +676,7 @@ def interpolate_2d(
 
     algos.pad_2d_inplace(values, mask.view(np.uint8), limit=limit)
 
-    # if method == "pad":
-    #     func = algos.pad_2d_inplace
-    # else:
-    #     func = algos.backfill_2d_inplace
-
-    # func(values, mask.view(np.uint8), limit=limit)
-
-    return orig_values
-
-
-def _fillna_prep(values, mask=None):
-    # boilerplate for _pad_1d, _backfill_1d, _pad_2d
-
-    if mask is None:
-        mask = isna(values)
-
-    mask = mask.view(np.uint8)
-    return mask
-
-
-def _datetimelike_compat(func: F) -> F:
-    """
-    Wrapper to handle datetime64 and timedelta64 dtypes.
-    """
-
-    @wraps(func)
-    def new_func(values, limit=None, mask=None):
-        if needs_i8_conversion(values.dtype):
-            if mask is None:
-                # This needs to occur before casting to int64
-                mask = isna(values)
-
-            result, mask = func(values.view("i8"), limit=limit, mask=mask)
-            return result.view(values.dtype), mask
-
-        return func(values, limit=limit, mask=mask)
-
-    return cast(F, new_func)
-
-
-@_datetimelike_compat
-def _pad_1d(
-    values: np.ndarray,
-    limit: int | None = None,
-    mask: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    mask = _fillna_prep(values, mask)
-    algos.pad_inplace(values, mask, limit=limit)
-    return values, mask
-
-
-@_datetimelike_compat
-def _backfill_1d(
-    values: np.ndarray,
-    limit: int | None = None,
-    mask: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    mask = _fillna_prep(values, mask)
-    algos.backfill_inplace(values, mask, limit=limit)
-    return values, mask
-
-
-_fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
-
-
-def get_fill_func(method):
-    method = clean_fill_method(method)
-    return _fill_methods[method]
+    return orig_values, orig_mask
 
 
 def clean_reindex_fill_method(method):

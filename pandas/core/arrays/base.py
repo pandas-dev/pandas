@@ -701,8 +701,9 @@ class ExtensionArray:
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
-                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
+                new_values, _ = missing.interpolate_2d(
+                    self.astype(object), method=method, limit=limit, mask=mask
+                )
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
                 # fill with value
