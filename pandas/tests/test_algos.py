@@ -1478,7 +1478,7 @@ class TestDuplicated:
             )
 
     @pytest.mark.parametrize(
-        "arr, unique",
+        "arr, uniques",
         [
             (
                 [(0, 0), (0, 1), (1, 0), (1, 1), (0, 0), (0, 1), (1, 0), (1, 1)],
