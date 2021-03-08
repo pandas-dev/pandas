@@ -107,11 +107,11 @@ def test_append_with_timezones(setup_path, gettz):
         _compare_with_tz(result, df_crosses_dst)
         tm.assert_frame_equal(result, df_crosses_dst)
 
-        # df_mixed_tz has two blocks, whereas df_crosses_dst only has one,
-        #  so we cannot set into the same pytables structure
-        assert df_crosses_dst._mgr.nblocks == 1
-        assert df_mixed_tz._mgr.nblocks == 2
-        msg = r"cannot match existing table structure for \[A,B\] on appending data"
+        msg = (
+            r"invalid info for \[values_block_1\] for \[tz\], "
+            r"existing_value \[(dateutil/.*)?US/Eastern\] "
+            r"conflicts with new value \[(dateutil/.*)?EET\]"
+        )
         with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df_mixed_tz)
 

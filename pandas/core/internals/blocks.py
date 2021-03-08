@@ -2092,7 +2092,7 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
     is_extension = True
 
     _validate_ndim = True
-    _can_consolidate = True
+    _can_consolidate = False
 
     to_native_types = DatetimeBlock.to_native_types  # needed for mypy
 
@@ -2116,7 +2116,7 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
     get_block_values_for_json = Block.get_block_values_for_json
 
     # TODO: we still share these with ExtensionBlock (and not DatetimeBlock)
-    # ['interpolate', 'quantile']
+    # ['interpolate']
     # [x for x in dir(DatetimeTZBlock) if hasattr(ExtensionBlock, x)
     #  and getattr(DatetimeTZBlock, x) is getattr(ExtensionBlock, x)
     #  and getattr(ExtensionBlock, x) is not getattr(Block, x)]
