@@ -6,7 +6,16 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np

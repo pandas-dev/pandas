@@ -4,7 +4,16 @@ Extend pandas with custom array types.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 
