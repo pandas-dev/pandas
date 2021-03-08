@@ -304,8 +304,7 @@ class BaseWindow(SelectionMixin):
         """Convert input to numpy arrays for Cython routines"""
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
-                # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
-                f"ops for {type(self).__name__} for this "  # type: ignore[union-attr]
+                f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} are not implemented"
             )
         else:
@@ -314,9 +313,7 @@ class BaseWindow(SelectionMixin):
             try:
                 values = ensure_float64(values)
             except (ValueError, TypeError) as err:
-                # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
-                tmp = values.dtype  # type: ignore[union-attr]
-                raise TypeError(f"cannot handle this type -> {tmp}") from err
+                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
 

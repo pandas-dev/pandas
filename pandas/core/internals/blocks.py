@@ -1097,7 +1097,9 @@ class Block(PandasObject):
         List[Block]
         """
         orig_mask = mask
-        mask, noop = validate_putmask(self.values.T, mask)
+        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
+        # "Union[ndarray, ExtensionArray]"
+        mask, noop = validate_putmask(self.values.T, mask)  # type: ignore[type-var]
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
         # if we are passed a scalar None, convert it here
@@ -1106,7 +1108,9 @@ class Block(PandasObject):
 
         if self._can_hold_element(new):
 
-            putmask_without_repeat(self.values.T, mask, new)
+            # error: Argument 1 to "putmask_without_repeat" has incompatible type
+            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
+            putmask_without_repeat(self.values.T, mask, new)  # type: ignore[arg-type]
             return [self]
 
         elif noop:
@@ -1121,7 +1125,10 @@ class Block(PandasObject):
 
         elif self.ndim == 1 or self.shape[0] == 1:
             # no need to split columns
-            nv = putmask_smart(self.values.T, mask, new).T
+
+            # error: Argument 1 to "putmask_smart" has incompatible type "Union[ndarray,
+            # ExtensionArray]"; expected "ndarray"
+            nv = putmask_smart(self.values.T, mask, new).T  # type: ignore[arg-type]
             return [self.make_block(nv)]
 
         else:
