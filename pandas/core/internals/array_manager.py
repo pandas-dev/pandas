@@ -148,6 +148,7 @@ class ArrayManager(DataManager):
         return self._axes[-1]
 
     @property
+    # error: Signature of "axes" incompatible with supertype "DataManager"
     def axes(self) -> List[Index]:  # type: ignore[override]
         # mypy doesn't work to override attribute with property
         # see https://github.com/python/mypy/issues/4125
@@ -464,12 +465,20 @@ class ArrayManager(DataManager):
                         if obj.ndim == 2:
                             kwargs[k] = obj[[i]]
 
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "tz"
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
+
+                # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+                # attribute "_data"
                 arr = arr._data  # type: ignore[union-attr]
             elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
-                # error: "ExtensionArray" has no attribute "_data"
-                arr = arr._data  # type: ignore[attr-defined]
+                # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
+
+                # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+                # attribute "_data"
+                arr = arr._data  # type: ignore[union-attr]
 
             if self.ndim == 2:
                 if isinstance(arr, np.ndarray):
