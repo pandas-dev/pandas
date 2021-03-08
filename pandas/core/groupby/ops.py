@@ -997,19 +997,27 @@ class DataSplitter(Generic[FrameOrSeries]):
 
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
-        for i, (start, end) in enumerate(zip(starts, ends)):
-            yield i, self._chop(sdata, slice(start, end))
+        if self.axis == 0:
+            for i, (start, end) in enumerate(zip(starts, ends)):
+                yield i, self._chop_index(sdata, slice(start, end))
+
+        else:
+            for i, (start, end) in enumerate(zip(starts, ends)):
+                yield i, self._chop_columns(sdata, slice(start, end))
 
     @cache_readonly
     def sorted_data(self) -> FrameOrSeries:
         return self.data.take(self.sort_idx, axis=self.axis)
 
-    def _chop(self, sdata, slice_obj: slice) -> NDFrame:
+    def _chop_columns(self, sdata, slice_obj: slice) -> NDFrame:
+        raise AbstractMethodError(self)
+
+    def _chop_index(self, sdata, slice_obj: slice) -> NDFrame:
         raise AbstractMethodError(self)
 
 
 class SeriesSplitter(DataSplitter):
-    def _chop(self, sdata: Series, slice_obj: slice) -> Series:
+    def _chop_index(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
         # __finalize__ not called here, must be applied by caller if applicable
@@ -1028,13 +1036,23 @@ class FrameSplitter(DataSplitter):
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
-    def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
-        # Fastpath equivalent to:
-        # if self.axis == 0:
-        #     return sdata.iloc[slice_obj]
-        # else:
-        #     return sdata.iloc[:, slice_obj]
-        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+    def _chop_index(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
+        """
+        Fastpath equivalent to `sdata.iloc[slice_obj]`
+        """
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1)
+        # __finalize__ not called here, must be applied by caller if applicable
+
+        # fastpath equivalent to `return sdata._constructor(mgr)`
+        obj = type(sdata)._from_mgr(mgr)
+        object.__setattr__(obj, "_flags", sdata._flags)
+        return obj
+
+    def _chop_columns(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
+        """
+        Fastpath equivalent to `sdata.iloc[:, slice_obj]`
+        """
+        mgr = sdata._mgr.get_slice(slice_obj, axis=0)
         # __finalize__ not called here, must be applied by caller if applicable
 
         # fastpath equivalent to `return sdata._constructor(mgr)`

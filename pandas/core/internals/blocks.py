@@ -358,21 +358,32 @@ class Block(PandasObject):
         return self.values[slicer]
 
     @final
-    def getitem_block(self, slicer, new_mgr_locs=None) -> Block:
+    def getitem_block(self, slicer) -> Block:
         """
         Perform __getitem__-like, return result as block.
 
         Only supports slices that preserve dimensionality.
         """
-        if new_mgr_locs is None:
-            axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
-            new_mgr_locs = self.mgr_locs[axis0_slicer]
-        elif not isinstance(new_mgr_locs, BlockPlacement):
-            new_mgr_locs = BlockPlacement(new_mgr_locs)
+        axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
+        new_mgr_locs = self.mgr_locs[axis0_slicer]
 
         new_values = self._slice(slicer)
 
-        if self._validate_ndim and new_values.ndim != self.ndim:
+        if new_values.ndim != self.values.ndim:
+            raise ValueError("Only same dim slicing is allowed")
+
+        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
+
+    @final
+    def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
+        """
+        Perform __getitem__-like, return result as block.
+
+        Only supports slices that preserve dimensionality.
+        """
+        new_values = self._slice(slicer)
+
+        if new_values.ndim != self.values.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
