@@ -418,20 +418,21 @@ class OpenpyxlWriter(ExcelWriter):
 
         _style_cache: Dict[str, Dict[str, Serialisable]] = {}
 
-        if sheet_name in self.sheets:
+        if sheet_name in self.sheets and self.if_sheet_exists != "new":
             if "r+" in self.mode:
-                if self.if_sheet_exists == "new":
-                    wks = self.book.create_sheet()
-                    # openpyxl will create a name for the new sheet by appending digits
-                    wks.title = sheet_name
-                    self.sheets[wks.title] = wks
-                elif self.if_sheet_exists == "replace":
-                    wks = self.sheets[sheet_name]
-                    wks.delete_cols(1, wks.max_column)
+                if self.if_sheet_exists == "replace":
+                    old_wks = self.sheets[sheet_name]
+                    target_index = self.book.index(old_wks)
+                    del self.book[sheet_name]
+                    wks = self.book.create_sheet(sheet_name, target_index)
+                    self.sheets[sheet_name] = wks
                 elif self.if_sheet_exists == "overwrite":
                     wks = self.sheets[sheet_name]
                 elif self.if_sheet_exists == "fail":
-                    raise ValueError(f"Sheet '{sheet_name}' already exists.")
+                    raise ValueError(
+                        f"Sheet '{sheet_name}' already exists and "
+                        f"if_sheet_exists is set to 'fail'."
+                    )
                 else:
                     raise ValueError(
                         f"'{self.if_sheet_exists}' is not valid for if_sheet_exists. "
