@@ -497,8 +497,9 @@ def _group_add(complexfloating_t[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    sumx = np.zeros_like(out)
-    compensation = np.zeros_like(out)
+    # the below is equivalent to `np.zeros_like(out)` but faster
+    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -555,7 +556,7 @@ def _group_prod(floating[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    prodx = np.ones_like(out)
+    prodx = np.ones((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -608,7 +609,7 @@ def _group_var(floating[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    mean = np.zeros_like(out)
+    mean = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 
@@ -665,8 +666,9 @@ def _group_mean(floating[:, :] out,
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    sumx = np.zeros_like(out)
-    compensation = np.zeros_like(out)
+    # the below is equivalent to `np.zeros_like(out)` but faster
+    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
 

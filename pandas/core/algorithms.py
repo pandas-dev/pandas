@@ -84,7 +84,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
-    array,
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -474,7 +474,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
-        return array(comps).isin(values)
+        return pd_array(comps).isin(values)
     elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
         # e.g. comps are integers and values are datetime64s
         return np.zeros(comps.shape, dtype=bool)
@@ -1566,7 +1566,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         if is_scalar(value):
             value = dtype.type(value)
         else:
-            value = array(value, dtype=dtype)
+            value = pd_array(value, dtype=dtype)
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):
@@ -1866,3 +1866,31 @@ def _sort_tuples(values: np.ndarray):
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
+
+
+def union_with_duplicates(lvals: np.ndarray, rvals: np.ndarray) -> np.ndarray:
+    """
+    Extracts the union from lvals and rvals with respect to duplicates and nans in
+    both arrays.
+
+    Parameters
+    ----------
+    lvals: np.ndarray
+        left values which is ordered in front.
+    rvals: np.ndarray
+        right values ordered after lvals.
+
+    Returns
+    -------
+    np.ndarray containing the unsorted union of both arrays
+    """
+    indexer = []
+    l_count = value_counts(lvals, dropna=False)
+    r_count = value_counts(rvals, dropna=False)
+    l_count, r_count = l_count.align(r_count, fill_value=0)
+    unique_array = unique(np.append(lvals, rvals))
+    if is_extension_array_dtype(lvals) or is_extension_array_dtype(rvals):
+        unique_array = pd_array(unique_array)
+    for i, value in enumerate(unique_array):
+        indexer += [i] * int(max(l_count[value], r_count[value]))
+    return unique_array.take(indexer)
