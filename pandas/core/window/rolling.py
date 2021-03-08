@@ -64,7 +64,6 @@ from pandas.core.base import (
     SelectionMixin,
 )
 import pandas.core.common as common
-from pandas.core.construction import extract_array
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -301,11 +300,8 @@ class BaseWindow(SelectionMixin):
             result = obj.iloc[slice(s, e)]
             yield result
 
-    def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
+    def _prep_values(self, values: ArrayLike) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
-        if values is None:
-            values = extract_array(self._selected_obj, extract_numpy=True)
-
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
                 f"ops for {type(self).__name__} for this "
@@ -357,6 +353,16 @@ class BaseWindow(SelectionMixin):
         if needs_i8_conversion(self._on.dtype):
             return self._on.asi8
         return None
+
+    def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
+        """Validate and finalize result."""
+        if out.shape[1] == 0 and obj.shape[1] > 0:
+            raise DataError("No numeric types to aggregate")
+        elif out.shape[1] == 0:
+            return obj.astype("float64")
+
+        self._insert_on_column(out, obj)
+        return out
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -421,13 +427,7 @@ class BaseWindow(SelectionMixin):
             new_mgr = mgr.apply(hfunc, ignore_failures=True)
         out = obj._constructor(new_mgr)
 
-        if out.shape[1] == 0 and obj.shape[1] > 0:
-            raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
-            return obj.astype("float64")
-
-        self._insert_on_column(out, obj)
-        return out
+        return self._resolve_output(out, obj)
 
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
@@ -444,13 +444,7 @@ class BaseWindow(SelectionMixin):
         result = result.T if self.axis == 1 else result
         out = obj._constructor(result, index=obj.index, columns=obj.columns)
 
-        if out.shape[1] == 0 and obj.shape[1] > 0:
-            raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
-            return obj.astype("float64")
-
-        self._insert_on_column(out, obj)
-        return out
+        return self._resolve_output(out, obj)
 
     def _apply_pairwise(
         self,
@@ -2203,7 +2197,6 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
         index_array = self._index_array
-        window = self.window
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
@@ -2216,7 +2209,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             window = self._win_freq_i8
         else:
             rolling_indexer = FixedWindowIndexer
-            index_array = None
+            window = self.window
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
