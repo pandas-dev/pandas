@@ -185,13 +185,6 @@ class RangeIndex(Int64Index):
         """
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
-    @property
-    def array(self):
-        raise ValueError(
-            f"{type(self).__name__} has no single backing array. Use "
-            f"'{type(self).__name__}.to_numpy()' to get a NumPy array."
-        )
-
     @cache_readonly
     def _cached_int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
@@ -897,7 +890,7 @@ class RangeIndex(Int64Index):
             step = op
 
         # TODO: if other is a RangeIndex we may have more efficient options
-        other = extract_array(other, extract_numpy=True, range_compat=True)
+        other = extract_array(other, extract_numpy=True, extract_range=True)
         attrs = self._get_attributes_dict()
 
         left, right = self, other

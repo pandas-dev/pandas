@@ -371,7 +371,7 @@ def array(
 
 
 def extract_array(
-    obj: object, extract_numpy: bool = False, range_compat: bool = False
+    obj: object, extract_numpy: bool = False, extract_range: bool = False
 ) -> Union[Any, ArrayLike]:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
@@ -387,8 +387,9 @@ def extract_array(
     extract_numpy : bool, default False
         Whether to extract the ndarray from a PandasArray
 
-    range_compat : bool, default False
-        If we have a RangeIndex, return range._values if True, otherwise raise.
+    extract_range : bool, default False
+        If we have a RangeIndex, return range._values if True, otherwise
+        return unchanged.
 
     Returns
     -------
@@ -418,8 +419,11 @@ def extract_array(
     array([1, 2, 3])
     """
     if isinstance(obj, (ABCIndex, ABCSeries)):
-        if range_compat and isinstance(obj, ABCRangeIndex):
-            return obj._values
+        if isinstance(obj, ABCRangeIndex):
+            if extract_range:
+                return obj._values
+            return obj
+
         obj = obj.array
 
     if extract_numpy and isinstance(obj, ABCPandasArray):
