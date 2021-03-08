@@ -41,7 +41,7 @@ and assign yourself one you like by writing a comment with the exact text ``take
 
 If for whatever reason you are not able to continue working with the issue, please try to
 unassign it, so other people know it's available again. You can check the list of
-assigned issues, since people may not be working in them anymore. If you want to work on one
+assigned issues, since people may not be working on them anymore. If you want to work on one
 that is assigned, feel free to kindly ask the current assignee if you can take it
 (please allow at least a week of inactivity before considering work in the issue discontinued).
 
@@ -54,7 +54,7 @@ Bug reports and enhancement requests
 ====================================
 
 Bug reports are an important part of making pandas more stable. Having a complete bug report
-will allow others to reproduce the bug and provide insight into fixing. See
+will allow others to reproduce the bug and provide insight into fixing it. See
 `this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
 `this blogpost <https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
 for tips on writing a good bug report.
@@ -89,8 +89,8 @@ The issue will then show up to the pandas community and be open to comments/idea
 Working with the code
 =====================
 
-Now that you have an issue you want to fix, enhancement to add, or documentation to improve,
-you need to learn how to work with GitHub and the pandas code base.
+Now that you have an issue you want to fix, an enhancement to add, or documentation to improve,
+you need to learn how to work with GitHub and the pandas codebase.
 
 .. _contributing.version_control:
 
@@ -145,7 +145,7 @@ as the version number cannot be computed anymore.
 Creating a development environment
 ----------------------------------
 
-To test out code changes, you'll need to build pandas from source, which
+To test out code changes, you'll need to build pandas from the source, which
 requires a C/C++ compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but if you skip
 creating the development environment you won't be able to build the documentation
@@ -192,7 +192,7 @@ Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 pandas uses C extensions (mostly written using Cython) to speed up certain
-operations. To install pandas from source, you need to compile these C
+operations. To install pandas from the source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
@@ -232,7 +232,7 @@ To setup the right paths on the commandline, call
 **macOS**
 
 To use the ``conda``-based compilers, you will need to install the
-Developer Tools using ``xcode-select --install``. Otherwise
+Developer Tools using ``xcode-select --install``. Otherwise,
 information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
 
@@ -261,7 +261,7 @@ installed (or you wish to install a newer version) you can install a compiler
     # for Red Had/RHEL/CentOS/Fedora
     yum groupinstall "Development Tools"
 
-For other Linux distributions, consult your favourite search engine for
+For other Linux distributions, consult your favorite search engine for
 compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on

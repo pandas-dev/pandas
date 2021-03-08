@@ -7,7 +7,7 @@ API reference
 =============
 
 This page gives an overview of all public pandas objects, functions and
-methods. All classes and functions exposed in ``pandas.*`` namespace are public.
+methods. All classes and functions are exposed in ``pandas.*`` namespace are public.
 
 Some subpackages are public which include ``pandas.errors``,
 ``pandas.plotting``, and ``pandas.testing``. Public functions in
