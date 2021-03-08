@@ -550,7 +550,7 @@ class BaseWindowGroupby(BaseWindow):
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         *args,
         _grouper=None,
         **kwargs,
@@ -1615,7 +1615,13 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="apply",
     )
     def apply(
-        self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None
+        self,
+        func: Callable[..., Any],
+        raw: bool = False,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         return super().apply(
             func,
