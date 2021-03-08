@@ -1048,9 +1048,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = GroupByApply(
-                        self, [func], args=(), kwargs={"_axis": self.axis}
-                    ).agg()
+                    result = GroupByApply(self, [func], args=(), kwargs={}).agg()
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040

@@ -255,15 +255,15 @@ class ExponentialMovingWindow(BaseWindow):
         self.ignore_na = ignore_na
         self.times = times
         if self.times is not None:
-            if isinstance(times, str):
-                self.times = self._selected_obj[times]
+            if isinstance(self.times, str):
+                self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
             # FrameOrSeries, None]"; expected "Sized"
             if len(self.times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
-            if not isinstance(halflife, (str, datetime.timedelta)):
+            if not isinstance(self.halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
