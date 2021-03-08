@@ -191,10 +191,11 @@ def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> List[np.ndarr
     return new_arrays
 
 
-def mgr_to_mgr(mgr, typ: str):
+def mgr_to_mgr(mgr, typ: str, copy: bool = True):
     """
     Convert to specific type of Manager. Does not copy if the type is already
-    correct. Does not guarantee a copy otherwise.
+    correct. Does not guarantee a copy otherwise. `copy` keyword only controls
+    whether conversion from Block->ArrayManager copies the 1D arrays.
     """
     new_mgr: Manager
 
@@ -209,7 +210,10 @@ def mgr_to_mgr(mgr, typ: str):
         if isinstance(mgr, ArrayManager):
             new_mgr = mgr
         else:
-            arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
+            if copy:
+                arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
+            else:
+                arrays = [mgr.iget_values(i) for i in range(len(mgr.axes[0]))]
             new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
