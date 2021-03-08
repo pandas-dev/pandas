@@ -2,36 +2,93 @@ from __future__ import annotations
 
 import copy
 import itertools
-from typing import TYPE_CHECKING, Dict, List, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Sequence,
+)
 
 import numpy as np
 
 from pandas._libs import internals as libinternals
-from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+    Manager,
+    Shape,
+)
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na, find_common_type
+from pandas.core.dtypes.cast import (
+    ensure_dtype_can_hold_na,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import is_valid_na_for_dtype, isna_all
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna_all,
+)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+)
 from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import make_block
+from pandas.core.internals.blocks import new_block
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
     from pandas import Index
 
 
-def concatenate_block_managers(
+def concatenate_array_managers(
+    mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
+) -> Manager:
+    """
+    Concatenate array managers into one.
+
+    Parameters
+    ----------
+    mgrs_indexers : list of (ArrayManager, {axis: indexer,...}) tuples
+    axes : list of Index
+    concat_axis : int
+    copy : bool
+
+    Returns
+    -------
+    ArrayManager
+    """
+    # reindex all arrays
+    mgrs = []
+    for mgr, indexers in mgrs_indexers:
+        for ax, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(axes[ax], indexer, axis=ax, allow_dups=True)
+        mgrs.append(mgr)
+
+    if concat_axis == 1:
+        # concatting along the rows -> concat the reindexed arrays
+        # TODO(ArrayManager) doesn't yet preserve the correct dtype
+        arrays = [
+            concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            for j in range(len(mgrs[0].arrays))
+        ]
+        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+    else:
+        # concatting along the columns -> combine reindexed arrays in a single manager
+        assert concat_axis == 0
+        arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+
+
+def concatenate_managers(
     mgrs_indexers, axes: List[Index], concat_axis: int, copy: bool
 ) -> Manager:
     """
@@ -48,20 +105,9 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
+    # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-
-        if concat_axis == 1:
-            # TODO for now only fastpath without indexers
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = [
-                concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))], axis=0)
-                for j in range(len(mgrs[0].arrays))
-            ]
-            return ArrayManager(arrays, [axes[1], axes[0]])
-        elif concat_axis == 0:
-            mgrs = [t[0] for t in mgrs_indexers]
-            arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-            return ArrayManager(arrays, [axes[1], axes[0]])
+        return concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -98,13 +144,10 @@ def concatenate_block_managers(
                 # Fast-path
                 b = blk.make_block_same_class(values, placement=placement)
             else:
-                b = make_block(values, placement=placement, ndim=blk.ndim)
+                b = new_block(values, placement=placement, ndim=blk.ndim)
         else:
-            b = make_block(
-                _concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement,
-                ndim=len(axes),
-            )
+            new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            b = new_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
     return BlockManager(blocks, axes)
@@ -291,20 +334,15 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if is_datetime64tz_dtype(blk_dtype) or is_datetime64tz_dtype(
-                    empty_dtype
-                ):
+                if is_datetime64tz_dtype(empty_dtype):
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
-                elif is_categorical_dtype(blk_dtype):
-                    pass
                 elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
-                    missing_arr = empty_dtype.construct_array_type()._from_sequence(
-                        [], dtype=empty_dtype
-                    )
+                    cls = empty_dtype.construct_array_type()
+                    missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
                     empty_arr = -1 * np.ones((nrows,), dtype=np.intp)

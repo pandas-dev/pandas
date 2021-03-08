@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections
 from datetime import datetime
+from decimal import Decimal
 from functools import wraps
 import operator
 import os
@@ -99,10 +100,18 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
 
 if TYPE_CHECKING:
-    from pandas import PeriodIndex, TimedeltaIndex
+    from pandas import (
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 _N = 30
 _K = 4
@@ -138,7 +147,7 @@ ALL_NUMPY_DTYPES = (
     + BYTES_DTYPES
 )
 
-NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
+NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -207,8 +216,10 @@ def box_expected(expected, box_cls, transpose=True):
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
-            #  vectors of the same length.
+            #  vectors of the same length. But convert to two rows to avoid
+            #  single-row special cases in datetime arithmetic
             expected = expected.T
+            expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)
@@ -549,7 +560,7 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = {
+    idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
         "s": makeStringIndex,
@@ -557,10 +568,10 @@ def makeCustomIndex(
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
-    }.get(idx_type)
+    }
+    idx_func = idx_func_dict.get(idx_type)
     if idx_func:
-        # pandas\_testing.py:2120: error: Cannot call function of unknown type
-        idx = idx_func(nentries)  # type: ignore[operator]
+        idx = idx_func(nentries)
         # but we need to fill in the name
         if names:
             idx.name = names[0]

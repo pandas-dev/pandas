@@ -1,11 +1,17 @@
 """
 Ops for masked arrays.
 """
-from typing import Optional, Union
+from typing import (
+    Optional,
+    Union,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 
 
 def kleene_or(
@@ -173,6 +179,6 @@ def kleene_and(
     return result, mask
 
 
-def raise_for_nan(value, method):
+def raise_for_nan(value, method: str):
     if lib.is_float(value) and np.isnan(value):
         raise ValueError(f"Cannot perform logical '{method}' with floating NaN")

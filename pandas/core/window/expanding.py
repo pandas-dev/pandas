@@ -1,5 +1,12 @@
 from textwrap import dedent
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -19,8 +26,15 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
     window_apply_parameters,
 )
-from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
-from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    ExpandingIndexer,
+    GroupbyIndexer,
+)
+from pandas.core.window.rolling import (
+    BaseWindowGroupby,
+    RollingAndExpandingMixin,
+)
 
 
 class Expanding(RollingAndExpandingMixin):
@@ -80,9 +94,7 @@ class Expanding(RollingAndExpandingMixin):
 
     _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(
-        self, obj, min_periods=1, center=None, axis=0, method="single", **kwargs
-    ):
+    def __init__(self, obj, min_periods=1, center=None, axis=0, method="single"):
         super().__init__(
             obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
         )
@@ -183,7 +195,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="expanding",
         aggregation_description="sum",
         agg_method="sum",
@@ -203,7 +215,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="expanding",
         aggregation_description="maximum",
         agg_method="max",
@@ -223,7 +235,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="expanding",
         aggregation_description="minimum",
         agg_method="min",
@@ -243,7 +255,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="expanding",
         aggregation_description="mean",
         agg_method="mean",
@@ -262,7 +274,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="expanding",
         aggregation_description="median",
         agg_method="median",
@@ -387,7 +399,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of one period is required for the calculation.\n",
+        "A minimum of one period is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -436,7 +448,7 @@ class Expanding(RollingAndExpandingMixin):
         "scipy.stats.kurtosis : Reference SciPy method.\n",
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of four periods is required for the calculation.\n",
+        "A minimum of four periods is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -615,9 +627,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     Provide a expanding groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return Expanding
+    _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
@@ -628,7 +638,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._groupby.indices,
+            groupby_indicies=self._grouper.indices,
             window_indexer=ExpandingIndexer,
         )
         return window_indexer

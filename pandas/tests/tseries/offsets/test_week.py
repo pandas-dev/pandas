@@ -1,12 +1,19 @@
 """
 Tests for offset.Week, offset.WeekofMonth and offset.LastWeekofMonth
 """
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.offsets import LastWeekOfMonth, Week, WeekOfMonth
+from pandas._libs.tslibs.offsets import (
+    LastWeekOfMonth,
+    Week,
+    WeekOfMonth,
+)
 
 from pandas.tests.tseries.offsets.common import (
     Base,

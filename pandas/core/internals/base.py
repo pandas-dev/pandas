@@ -2,12 +2,18 @@
 Base class for the internal managers. Both BlockManager and ArrayManager
 inherit from this class.
 """
-from typing import List, TypeVar
+from typing import (
+    List,
+    TypeVar,
+)
 
 from pandas.errors import AbstractMethodError
 
 from pandas.core.base import PandasObject
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+)
 
 T = TypeVar("T", bound="DataManager")
 
@@ -92,3 +98,7 @@ class DataManager(PandasObject):
             return False
 
         return self._equal_values(other)
+
+
+class SingleDataManager(DataManager):
+    ndim = 1

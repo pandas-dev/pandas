@@ -5,7 +5,10 @@ import struct
 import numpy as np
 import pytest
 
-from pandas._libs import algos as libalgos, hashtable as ht
+from pandas._libs import (
+    algos as libalgos,
+    hashtable as ht,
+)
 from pandas.compat import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -2413,3 +2416,12 @@ class TestDiff:
         result = algos.diff(arr, 1)
         expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_union_with_duplicates():
+    # GH#36289
+    lvals = np.array([3, 1, 3, 4])
+    rvals = np.array([2, 3, 1, 1])
+    result = algos.union_with_duplicates(lvals, rvals)
+    expected = np.array([3, 3, 1, 1, 4, 2])
+    tm.assert_numpy_array_equal(result, expected)

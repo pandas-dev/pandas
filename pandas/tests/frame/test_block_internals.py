@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from io import StringIO
 import itertools
 
@@ -6,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -18,10 +22,18 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.internals import NumericBlock, ObjectBlock
+from pandas.core.internals import (
+    NumericBlock,
+    ObjectBlock,
+)
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
+
+
+# TODO(ArrayManager) check which of those tests need to be rewritten to test the
+# equivalent for ArrayManager
+pytestmark = td.skip_array_manager_invalid_test
 
 
 class TestDataFrameBlockInternals:

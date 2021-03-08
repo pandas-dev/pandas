@@ -6,13 +6,20 @@ arguments when parsing.
 """
 
 import csv
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 

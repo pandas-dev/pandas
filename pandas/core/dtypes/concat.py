@@ -5,7 +5,10 @@ from typing import cast
 
 import numpy as np
 
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
@@ -14,11 +17,17 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_sparse,
 )
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex,
+    ABCSeries,
+)
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
-from pandas.core.construction import array, ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+)
 
 
 def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
@@ -57,7 +66,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
 
     if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
         # numpy's astype cannot handle ExtensionDtypes
-        return array(arr, dtype=dtype, copy=False)
+        return pd_array(arr, dtype=dtype, copy=False)
     return arr.astype(dtype, copy=False)
 
 
