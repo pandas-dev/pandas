@@ -148,7 +148,12 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
     "mode,if_sheet_exists,msg",
     [
         ("w", "new", "if_sheet_exists is only valid in append mode (mode='a')"),
-        ("a", "invalid", "'invalid' is not valid for if_sheet_exists"),
+        (
+            "a",
+            "invalid",
+            "'invalid' is not valid for if_sheet_exists. Valid options "
+            "are 'new', 'replace', 'overwrite' and 'fail'.",
+        ),
         (
             "a",
             "fail",

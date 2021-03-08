@@ -882,7 +882,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         ise_valid = [None, "new", "replace", "overwrite", "fail"]
         if if_sheet_exists not in ise_valid:
-            raise ValueError(f"'{if_sheet_exists}' is not valid for if_sheet_exists")
+            raise ValueError(
+                f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
+                "Valid options are 'new', 'replace', 'overwrite' and 'fail'."
+            )
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
         if if_sheet_exists is None and "r+" in mode:
