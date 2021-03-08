@@ -646,8 +646,6 @@ def interpolate_2d(
             values,
         )
 
-    orig_values = values
-
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
@@ -668,10 +666,6 @@ def interpolate_2d(
     # reshape back
     if ndim == 1:
         result = result[0]
-
-    if orig_values.dtype.kind in ["m", "M"]:
-        # convert float back to datetime64/timedelta64
-        result = result.view(orig_values.dtype)
 
     return result
 

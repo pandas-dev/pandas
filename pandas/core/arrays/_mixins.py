@@ -298,8 +298,12 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         if mask.any():
             if method is not None:
+                # TODO: check value is None
+                # (for now) when self.ndim == 2, we assume axis=0
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                new_values, _ = func(self._ndarray.copy(), limit=limit, mask=mask)
+                new_values, _ = func(self._ndarray.T.copy(), limit=limit, mask=mask.T)
+                new_values = new_values.T
+
                 # TODO: PandasArray didn't used to copy, need tests for this
                 new_values = self._from_backing_data(new_values)
             else:
