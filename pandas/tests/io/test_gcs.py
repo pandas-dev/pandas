@@ -48,7 +48,7 @@ def gcs_buffer(monkeypatch):
     "format",
     [
         "csv",
-        pytest.mark("json", marks=td.skip_array_manager_not_yet_implemented),
+        pytest.param("json", marks=td.skip_array_manager_not_yet_implemented),
         "parquet",
         "excel",
         "markdown",
