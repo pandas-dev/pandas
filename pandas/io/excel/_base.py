@@ -670,7 +670,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
-        * new: Create a new sheet with a different name.
+        * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
         * overwrite: Write directly to the named sheet
           without deleting the previous contents.
