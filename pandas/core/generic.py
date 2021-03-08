@@ -753,11 +753,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
         return self._constructor(
+            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
+            # "Union[ArrayManager, BlockManager]"
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
             # None, None]"; expected "bool" [arg-type]
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
             # None, None]"; expected "Optional[Mapping[Optional[Hashable], Any]]"
-            new_values,
+            new_values,  # type: ignore[arg-type]
             *new_axes,  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
 

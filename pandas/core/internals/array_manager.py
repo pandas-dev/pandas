@@ -476,9 +476,8 @@ class ArrayManager(DataManager):
             elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
                 # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
 
-                # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-                # attribute "_data"
-                arr = arr._data  # type: ignore[union-attr]
+                # error: "ExtensionArray" has no attribute "_data"
+                arr = arr._data  # type: ignore[attr-defined]
 
             if self.ndim == 2:
                 if isinstance(arr, np.ndarray):
