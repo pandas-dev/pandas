@@ -6,6 +6,7 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Hashable,
     Iterator,
     List,
     Optional,
@@ -168,7 +169,7 @@ def hash_pandas_object(
 
 
 def hash_tuples(
-    vals: Union[MultiIndex, List[Tuple]],
+    vals: Union[MultiIndex, List[Tuple[Hashable, ...]]],
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
 ) -> np.ndarray:
@@ -262,7 +263,7 @@ def hash_array(
 
     Parameters
     ----------
-    vals : ndarray, Categorical
+    vals : ndarray or ExtensionArray
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
@@ -287,7 +288,6 @@ def hash_array(
         return _hash_categorical(vals, encoding, hash_key)
     elif is_extension_array_dtype(dtype):
         vals, _ = vals._values_for_factorize()
-        dtype = vals.dtype
 
     return _hash_ndarray(vals, encoding, hash_key, categorize)
 
