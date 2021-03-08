@@ -34,6 +34,7 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    ensure_int64,
     is_bool_dtype,
     is_datetime64_ns_dtype,
     is_dtype_equal,
@@ -205,7 +206,7 @@ class ArrayManager(DataManager):
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
-        if self.ndim == 1:
+        if self.ndim == 2:
             output += f"\nColumns: {self._axes[1]}"
         output += f"\n{len(self.arrays)} arrays:"
         for arr in self.arrays:
@@ -1075,15 +1076,24 @@ class ArrayManager(DataManager):
         unstacked : BlockManager
         """
         indexer, _ = unstacker._indexer_and_to_sort
-        new_indexer = np.full(unstacker.mask.shape, -1)
-        new_indexer[unstacker.mask] = indexer
+        if np.all(unstacker.mask):
+            new_indexer = indexer
+            allow_fill = False
+        else:
+            new_indexer = np.full(unstacker.mask.shape, -1)
+            new_indexer[unstacker.mask] = indexer
+            allow_fill = True
         new_indexer2D = new_indexer.reshape(*unstacker.full_shape)
+        new_indexer2D = ensure_int64(new_indexer2D)
 
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
                 new_arr = take_1d(
-                    arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
+                    arr,
+                    new_indexer2D[:, i],
+                    allow_fill=allow_fill,
+                    fill_value=fill_value,
                 )
                 new_arrays.append(new_arr)
 
