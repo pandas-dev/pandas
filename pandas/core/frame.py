@@ -1545,11 +1545,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        orient : str {'dict', 'list', 'series', 'split', 'records', 'index'}
+        orient : str {'dict', 'list', 'ndarray', 'series', 'split', 'records', 'index'}
             Determines the type of the values of the dictionary.
 
             - 'dict' (default) : dict like {column -> {index -> value}}
             - 'list' : dict like {column -> [values]}
+            - 'ndarray' : dict like {column -> [values]}
             - 'series' : dict like {column -> Series(values)}
             - 'split' : dict like
               {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
@@ -1634,9 +1635,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         orient = orient.lower()
         # GH32515
-        if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
+        if orient.startswith(("d", "l", "n", "s", "r", "i")) and orient not in {
             "dict",
             "list",
+            "ndarray",
             "series",
             "split",
             "records",
@@ -1644,7 +1646,7 @@ class DataFrame(NDFrame, OpsMixin):
         }:
             warnings.warn(
                 "Using short name for 'orient' is deprecated. Only the "
-                "options: ('dict', list, 'series', 'split', 'records', 'index') "
+                "options: ('dict', 'list', 'ndarray', 'series', 'split', 'records', 'index') "
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
@@ -1654,6 +1656,8 @@ class DataFrame(NDFrame, OpsMixin):
                 orient = "dict"
             elif orient.startswith("l"):
                 orient = "list"
+            elif orient.startswith("n"):
+                orient = "ndarray"
             elif orient.startswith("sp"):
                 orient = "split"
             elif orient.startswith("s"):
@@ -1668,6 +1672,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif orient == "list":
             return into_c((k, v.tolist()) for k, v in self.items())
+
+        elif orient == "ndarray":
+            return into_c((k, v.to_numpy()) for k, v in self.items())
 
         elif orient == "split":
             return into_c(
