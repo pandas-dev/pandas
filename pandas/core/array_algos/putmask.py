@@ -81,7 +81,7 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
 
     # n should be the length of the mask or a scalar here
     if not is_list_like(new):
-        new = np.repeat(new, len(mask))
+        new = np.broadcast_to(new, mask.shape)
 
     # see if we are only masking values that if putted
     # will work in the current dtype
