@@ -7,8 +7,8 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Iterable,
     Iterator,
-    List,
     Optional,
     Tuple,
     Union,
@@ -169,16 +169,16 @@ def hash_pandas_object(
 
 
 def hash_tuples(
-    vals: Union[MultiIndex, List[Tuple[Hashable, ...]]],
+    vals: Union[MultiIndex, Iterable[Tuple[Hashable, ...]]],
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
 ) -> np.ndarray:
     """
-    Hash an MultiIndex / list-of-tuples efficiently.
+    Hash an MultiIndex / listlike-of-tuples efficiently.
 
     Parameters
     ----------
-    vals : MultiIndex or list-of-tuples
+    vals : MultiIndex or listlike-of-tuples
     encoding : str, default 'utf8'
     hash_key : str, default _default_hash_key
 
