@@ -24,11 +24,10 @@ from pandas._config import get_option
 
 from pandas._libs import (
     NaT,
-    algos as libalgos,
     hashtable as htable,
 )
 from pandas._libs.lib import no_default
-from pandas._libs_numba import algos as libalgos_numba
+from pandas._libs_numba import algos as libalgos
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -53,6 +52,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
+    ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -519,7 +519,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            result = take_nd(new_cats, libalgos.ensure_platform_int(self._codes))
+            result = take_nd(new_cats, ensure_platform_int(self._codes))
 
         return result
 
@@ -2015,7 +2015,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         """
         categories = self.categories
-        r, counts = libalgos_numba.groupsort_indexer(
+        r, counts = libalgos.groupsort_indexer(
             self.codes.astype("int64"), categories.size
         )
         counts = counts.cumsum()

@@ -1341,6 +1341,66 @@ def is_monotonic(arr: np.ndarray) -> tuple[bool, bool, bool]:
 #                                 out[i, j] = left - right
 
 
+# ----------------------------------------------------------------------
+# ensure_dtype
+# ----------------------------------------------------------------------
+
+
+def ensure_platform_int(arr):
+    # GH3033, GH1392
+    # platform int is the size of the int pointer, e.g. np.intp
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.intp, copy=False)
+    else:
+        return np.array(arr, dtype=np.intp)
+
+
+# def ensure_object(object arr):
+#     if util.is_array(arr):
+#         if (<ndarray>arr).descr.type_num == NPY_OBJECT:
+#             return arr
+#         else:
+#             # equiv: arr.astype(object)
+#             return cnp.PyArray_Cast(<ndarray>arr, NPY_OBJECT)
+#     else:
+#         return np.array(arr, dtype=np.object_)
+
+# {{py:
+
+# # name, c_type, dtype
+# dtypes = [('float64', 'FLOAT64', 'float64'),
+#           ('float32', 'FLOAT32', 'float32'),
+#           ('int8', 'INT8', 'int8'),
+#           ('int16', 'INT16', 'int16'),
+#           ('int32', 'INT32', 'int32'),
+#           ('int64', 'INT64', 'int64'),
+#           ('uint8', 'UINT8', 'uint8'),
+#           ('uint16', 'UINT16', 'uint16'),
+#           ('uint32', 'UINT32', 'uint32'),
+#           ('uint64', 'UINT64', 'uint64'),
+#           # ('platform_int', 'INT', 'int_'),
+#           # ('object', 'OBJECT', 'object_'),
+# ]
+
+# def get_dispatch(dtypes):
+
+#     for name, c_type, dtype in dtypes:
+#         yield name, c_type, dtype
+# }}
+
+# {{for name, c_type, dtype in get_dispatch(dtypes)}}
+
+
+# def ensure_{{name}}(object arr, copy=True):
+#     if util.is_array(arr):
+#         if (<ndarray>arr).descr.type_num == NPY_{{c_type}}:
+#             return arr
+#         else:
+#             return arr.astype(np.{{dtype}}, copy=copy)
+#     else:
+#         return np.array(arr, dtype=np.{{dtype}})
+
+# {{endfor}}
+
 # # generated from template
-# include "algos_common_helper.pxi"
 # include "algos_take_helper.pxi"
