@@ -144,25 +144,26 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
         wb.close()
 
 
-def test_if_sheet_exists_raises(ext):
-    mode_msg = "if_sheet_exists is only valid in append mode (mode='a')"
-    invalid_msg = "'invalid' is not valid for if_sheet_exists"
-    fail_msg = "Sheet 'foo' already exists."
+@pytest.mark.parametrize(
+    "mode,if_sheet_exists,msg",
+    [
+        ("w", "new", "if_sheet_exists is only valid in append mode (mode='a')"),
+        ("a", "invalid", "'invalid' is not valid for if_sheet_exists"),
+        (
+            "a",
+            "fail",
+            "Sheet 'foo' already exists and if_sheet_exists is set to 'fail'.",
+        ),
+    ],
+)
+def test_if_sheet_exists_raises(ext, mode, if_sheet_exists, msg):
+    # GH 40230
     df = DataFrame({"fruit": ["pear"]})
-
     with tm.ensure_clean(ext) as f:
-        with pytest.raises(ValueError, match=re.escape(mode_msg)):
-            ExcelWriter(f, engine="openpyxl", mode="w", if_sheet_exists="new")
-
-    with tm.ensure_clean(ext) as f:
-        with pytest.raises(ValueError, match=invalid_msg):
-            ExcelWriter(f, engine="openpyxl", mode="a", if_sheet_exists="invalid")
-
-    with tm.ensure_clean(ext) as f:
-        with pytest.raises(ValueError, match=fail_msg):
+        with pytest.raises(ValueError, match=re.escape(msg)):
             df.to_excel(f, "foo", engine="openpyxl")
             with pd.ExcelWriter(
-                f, engine="openpyxl", mode="a", if_sheet_exists="fail"
+                f, engine="openpyxl", mode=mode, if_sheet_exists=if_sheet_exists
             ) as writer:
                 df.to_excel(writer, sheet_name="foo")
 
