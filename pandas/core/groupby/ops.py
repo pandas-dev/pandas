@@ -31,7 +31,7 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
 from pandas._typing import (
-    ArrayLike,
+    DtypeObj,
     F,
     FrameOrSeries,
     Shape,
@@ -46,7 +46,6 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
-    ensure_float,
     ensure_float64,
     ensure_int64,
     ensure_int_or_float,
@@ -490,7 +489,9 @@ class BaseGrouper:
         return func, values
 
     @final
-    def _disallow_invalid_ops(self, values: ArrayLike, how: str):
+    def _disallow_invalid_ops(
+        self, dtype: DtypeObj, how: str, is_numeric: bool = False
+    ):
         """
         Check if we can do this operation with our cython functions.
 
@@ -500,7 +501,9 @@ class BaseGrouper:
             This is either not a valid function for this dtype, or
             valid but not implemented in cython.
         """
-        dtype = values.dtype
+        if is_numeric:
+            # never an invalid op for those dtypes, so return early as fastpath
+            return
 
         if is_categorical_dtype(dtype) or is_sparse(dtype):
             # categoricals are only 1d, so we
@@ -587,32 +590,34 @@ class BaseGrouper:
             #  as we can have 1D ExtensionArrays that we need to treat as 2D
             assert axis == 1, axis
 
+        dtype = values.dtype
+        is_numeric = is_numeric_dtype(dtype)
+
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
-        self._disallow_invalid_ops(values, how)
+        self._disallow_invalid_ops(values, how, is_numeric)
 
-        if is_extension_array_dtype(values.dtype):
+        if is_extension_array_dtype(dtype):
             return self._ea_wrap_cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
 
-        is_datetimelike = needs_i8_conversion(values.dtype)
-        is_numeric = is_numeric_dtype(values.dtype)
+        is_datetimelike = needs_i8_conversion(dtype)
 
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
-        elif is_bool_dtype(values.dtype):
+        elif is_bool_dtype(dtype):
             values = ensure_int_or_float(values)
-        elif is_integer_dtype(values):
+        elif is_integer_dtype(dtype):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
             if (values == iNaT).any():
                 values = ensure_float64(values)
             else:
                 values = ensure_int_or_float(values)
-        elif is_numeric and not is_complex_dtype(values):
-            values = ensure_float64(ensure_float(values))
+        elif is_numeric and not is_complex_dtype(dtype):
+            values = ensure_float64(values)
         else:
             values = values.astype(object)
 
@@ -647,20 +652,18 @@ class BaseGrouper:
         codes, _, _ = self.group_info
 
         if kind == "aggregate":
-            result = maybe_fill(np.empty(out_shape, dtype=out_dtype), fill_value=np.nan)
+            result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
-            result = maybe_fill(
-                np.empty(values.shape, dtype=out_dtype), fill_value=np.nan
-            )
+            result = maybe_fill(np.empty(values.shape, dtype=out_dtype))
 
             # TODO: min_count
             result = self._transform(
                 result, values, codes, func, is_datetimelike, **kwargs
             )
 
-        if is_integer_dtype(result) and not is_datetimelike:
+        if is_integer_dtype(result.dtype) and not is_datetimelike:
             mask = result == iNaT
             if mask.any():
                 result = result.astype("float64")
