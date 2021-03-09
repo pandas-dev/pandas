@@ -5,11 +5,9 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     List,
     Optional,
     Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -44,7 +42,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_period_dtype,
-    is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
 
@@ -119,7 +116,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    _data_cls: Union[Type[DatetimeArray], Type[TimedeltaArray], Type[PeriodArray]]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
@@ -131,25 +127,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
     _hasnans = hasnans  # for index / array -agnostic code
-
-    @classmethod
-    def _simple_new(
-        cls,
-        values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
-        name: Optional[Hashable] = None,
-    ):
-        assert isinstance(values, cls._data_cls), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        result._name = name
-        result._cache = {}
-
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._ndarray
-
-        result._reset_identity()
-        return result
 
     @property
     def _is_all_dates(self) -> bool:
@@ -219,12 +196,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
-            res = self.get_loc(key)
+            self.get_loc(key)
         except (KeyError, TypeError, ValueError):
             return False
-        return bool(
-            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
-        )
+        return True
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):

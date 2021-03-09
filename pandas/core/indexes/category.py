@@ -178,6 +178,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     """
 
     _typ = "categoricalindex"
+    _data_cls = Categorical
 
     @property
     def _can_hold_strings(self):
@@ -224,18 +225,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         )
 
         return cls._simple_new(data, name=name)
-
-    @classmethod
-    def _simple_new(cls, values: Categorical, name: Optional[Hashable] = None):
-        assert isinstance(values, Categorical), type(values)
-        result = object.__new__(cls)
-
-        result._data = values
-        result._name = name
-        result._cache = {}
-
-        result._reset_identity()
-        return result
 
     # --------------------------------------------------------------------
 

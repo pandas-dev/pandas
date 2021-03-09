@@ -2,7 +2,9 @@
 Shared methods for Index subclasses backed by ExtensionArray.
 """
 from typing import (
+    Hashable,
     List,
+    Type,
     TypeVar,
     Union,
 )
@@ -30,7 +32,13 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    IntervalArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
@@ -351,6 +359,32 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     """
 
     _data: NDArrayBackedExtensionArray
+
+    _data_cls: Union[
+        Type[Categorical],
+        Type[DatetimeArray],
+        Type[TimedeltaArray],
+        Type[PeriodArray],
+    ]
+
+    @classmethod
+    def _simple_new(
+        cls,
+        values: NDArrayBackedExtensionArray,
+        name: Hashable = None,
+    ):
+        assert isinstance(values, cls._data_cls), type(values)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._name = name
+        result._cache = {}
+
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = values._ndarray
+
+        result._reset_identity()
+        return result
 
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray

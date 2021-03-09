@@ -232,6 +232,7 @@ class IntegerIndex(NumericIndex):
         hash(key)
         try:
             if is_float(key) and int(key) != key:
+                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
                 return False
             return key in self._engine
         except (OverflowError, TypeError, ValueError):

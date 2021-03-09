@@ -122,10 +122,6 @@ def test_intercept_builtin_sum():
     tm.assert_series_equal(result2, expected)
 
 
-# @pytest.mark.parametrize("f", [max, min, sum])
-# def test_builtins_apply(f):
-
-
 @pytest.mark.parametrize("f", [max, min, sum])
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
