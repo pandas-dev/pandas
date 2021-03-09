@@ -639,8 +639,6 @@ def interpolate_2d(
             values,
         )
 
-    orig_values = values
-
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
@@ -661,10 +659,6 @@ def interpolate_2d(
     # reshape back
     if ndim == 1:
         result = result[0]
-
-    if orig_values.dtype.kind in ["m", "M"]:
-        # convert float back to datetime64/timedelta64
-        result = result.view(orig_values.dtype)
 
     return result
 
@@ -703,9 +697,11 @@ def _backfill_2d(values, limit=None, mask=None):
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
-def get_fill_func(method):
+def get_fill_func(method, ndim: int = 1):
     method = clean_fill_method(method)
-    return _fill_methods[method]
+    if ndim == 1:
+        return _fill_methods[method]
+    return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
 def clean_reindex_fill_method(method):
