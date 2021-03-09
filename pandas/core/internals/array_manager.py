@@ -1153,7 +1153,13 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def _verify_integrity(self) -> None:
         (n_rows,) = self.shape
         assert len(self.arrays) == 1
-        assert len(self.arrays[0]) == n_rows
+        arr = self.arrays[0]
+        assert len(arr) == n_rows
+        if not arr.ndim == 1:
+            raise ValueError(
+                "Passed array should be 1-dimensional, got array with "
+                f"{arr.ndim} dimensions instead."
+            )
 
     @staticmethod
     def _normalize_axis(axis):
