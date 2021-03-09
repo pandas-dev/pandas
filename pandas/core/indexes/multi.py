@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Collection,
     Hashable,
     Iterable,
     List,
@@ -504,7 +505,7 @@ class MultiIndex(Index):
     @names_compat
     def from_tuples(
         cls,
-        tuples,
+        tuples: Iterable[Tuple[Hashable, ...]],
         sortorder: Optional[int] = None,
         names: Optional[Sequence[Hashable]] = None,
     ) -> MultiIndex:
@@ -547,6 +548,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         elif is_iterator(tuples):
             tuples = list(tuples)
+        tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
 
         arrays: List[Sequence[Hashable]]
         if len(tuples) == 0:
@@ -561,7 +563,8 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = zip(*tuples)
+            arrs = zip(*tuples)
+            arrays = cast(List[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
@@ -763,7 +766,7 @@ class MultiIndex(Index):
     # Levels Methods
 
     @cache_readonly
-    def levels(self):
+    def levels(self) -> FrozenList:
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
@@ -1713,7 +1716,7 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def to_frame(self, index=True, name=None):
+    def to_frame(self, index=True, name=None) -> DataFrame:
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
