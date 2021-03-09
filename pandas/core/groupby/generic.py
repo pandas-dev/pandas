@@ -81,10 +81,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.arrays import (
-    Categorical,
-    ExtensionArray,
-)
+from pandas.core.arrays import Categorical
 from pandas.core.base import (
     DataError,
     SpecificationError,
@@ -1023,9 +1020,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = GroupByApply(
-                        self, [func], args=(), kwargs={"_axis": self.axis}
-                    ).agg()
+                    result = GroupByApply(self, [func], args=(), kwargs={}).agg()
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
@@ -1125,8 +1120,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             obj: FrameOrSeriesUnion
 
             # call our grouper again with only this block
-            if isinstance(values, ExtensionArray) or values.ndim == 1:
-                # TODO(EA2D): special case not needed with 2D EAs
+            if values.ndim == 1:
                 obj = Series(values)
             else:
                 # TODO special case not needed with ArrayManager

@@ -118,6 +118,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
+_dtype_obj = np.dtype(object)  # comparison is faster than is_object_dtype
+
+
 class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
@@ -170,6 +173,10 @@ class Block(PandasObject):
                 f"placement implies {len(self.mgr_locs)}"
             )
 
+        elif self.is_extension and self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(EA2D): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
+
     @classmethod
     def _maybe_coerce_values(cls, values):
         """
@@ -185,7 +192,7 @@ class Block(PandasObject):
         """
         return values
 
-    def _check_ndim(self, values, ndim):
+    def _check_ndim(self, values, ndim: int):
         """
         ndim inference and validation.
 
@@ -196,7 +203,7 @@ class Block(PandasObject):
         Parameters
         ----------
         values : array-like
-        ndim : int or None
+        ndim : int
 
         Returns
         -------
@@ -206,8 +213,7 @@ class Block(PandasObject):
         ------
         ValueError : the number of dimensions do not match
         """
-        if ndim is None:
-            ndim = values.ndim
+        assert isinstance(ndim, int)  # GH#38134 enforce this
 
         if self._validate_ndim:
             if values.ndim != ndim:
@@ -278,8 +284,8 @@ class Block(PandasObject):
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
         """
-        if is_object_dtype(dtype):
-            return self.values.astype(object)
+        if dtype == _dtype_obj:
+            return self.values.astype(_dtype_obj)
         return self.values
 
     @final
@@ -1058,21 +1064,17 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        transpose = self.ndim == 2
+        orig_mask = mask
         mask, noop = validate_putmask(self.values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
-        new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
-        if not is_list_like(new) and isna(new) and not self.is_object:
-            # FIXME: make sure we have compatible NA
+        if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            if transpose:
-                new_values = new_values.T
 
-            putmask_without_repeat(new_values, mask, new)
+            putmask_without_repeat(self.values.T, mask, new)
             return [self]
 
         elif noop:
@@ -1080,42 +1082,31 @@ class Block(PandasObject):
 
         dtype, _ = infer_dtype_from(new)
         if dtype.kind in ["m", "M"]:
-            # using putmask with object dtype will incorrect cast to object
+            # using putmask with object dtype will incorrectly cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
             return self.where(new, ~mask)
 
+        elif self.ndim == 1 or self.shape[0] == 1:
+            # no need to split columns
+            nv = putmask_smart(self.values.T, mask, new).T
+            return [self.make_block(nv)]
+
         else:
-            # may need to upcast
-            if transpose:
-                mask = mask.T
-                if isinstance(new, np.ndarray):
-                    new = new.T
+            is_array = isinstance(new, np.ndarray)
 
-            # operate column-by-column
-            def f(mask, val, idx):
+            res_blocks = []
+            nbs = self._split()
+            for i, nb in enumerate(nbs):
+                n = new
+                if is_array:
+                    # we have a different value per-column
+                    n = new[:, i : i + 1]
 
-                if idx is None:
-                    # ndim==1 case.
-                    n = new
-                else:
-
-                    if isinstance(new, np.ndarray):
-                        n = np.squeeze(new[idx % new.shape[0]])
-                    else:
-                        n = np.array(new)
-
-                    # type of the new block
-                    dtype = find_common_type([n.dtype, val.dtype])
-
-                    # we need to explicitly astype here to make a copy
-                    n = n.astype(dtype)
-
-                nv = putmask_smart(val, mask, n)
-                return nv
-
-            new_blocks = self.split_and_operate(mask, f, True)
-            return new_blocks
+                submask = orig_mask[:, i : i + 1]
+                rbs = nb.putmask(submask, n)
+                res_blocks.extend(rbs)
+            return res_blocks
 
     @final
     def coerce_to_target_dtype(self, other) -> Block:
@@ -1480,33 +1471,6 @@ class ExtensionBlock(Block):
     is_extension = True
 
     values: ExtensionArray
-
-    def __init__(self, values, placement, ndim: int):
-        """
-        Initialize a non-consolidatable block.
-
-        'ndim' may be inferred from 'placement'.
-
-        This will call continue to call __init__ for the other base
-        classes mixed in with this Mixin.
-        """
-
-        # Placement must be converted to BlockPlacement so that we can check
-        # its length
-        if not isinstance(placement, libinternals.BlockPlacement):
-            placement = libinternals.BlockPlacement(placement)
-
-        # Maybe infer ndim from placement
-        if ndim is None:
-            if len(placement) != 1:
-                ndim = 1
-            else:
-                ndim = 2
-        super().__init__(values, placement, ndim=ndim)
-
-        if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(EA2D): check unnecessary with 2D EAs
-            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self) -> Shape:

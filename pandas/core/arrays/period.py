@@ -639,6 +639,14 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(value, side=side, sorter=sorter)
 
+    def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
+        if method is not None:
+            # view as dt64 so we get treated as timelike in core.missing
+            dta = self.view("M8[ns]")
+            result = dta.fillna(value=value, method=method, limit=limit)
+            return result.view(self.dtype)
+        return super().fillna(value=value, method=method, limit=limit)
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 

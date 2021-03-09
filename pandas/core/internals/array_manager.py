@@ -85,7 +85,10 @@ from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
 )
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 
 if TYPE_CHECKING:
     from pandas import Float64Index
@@ -148,6 +151,7 @@ class ArrayManager(DataManager):
         return self._axes[-1]
 
     @property
+    # error: Signature of "axes" incompatible with supertype "DataManager"
     def axes(self) -> List[Index]:  # type: ignore[override]
         # mypy doesn't work to override attribute with property
         # see https://github.com/python/mypy/issues/4125
@@ -454,11 +458,19 @@ class ArrayManager(DataManager):
                         if obj.ndim == 2:
                             kwargs[k] = obj[[i]]
 
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "tz"
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
+
+                # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+                # attribute "_data"
                 arr = arr._data  # type: ignore[union-attr]
             elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
                 # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
+
+                # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+                # attribute "_data"
                 arr = arr._data  # type: ignore[union-attr]
 
             if self.ndim == 2:
@@ -488,10 +500,7 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        arrs = [
-            x if not isinstance(x, np.ndarray) else np.atleast_2d(x)
-            for x in self.arrays
-        ]
+        arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
         new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
         for i, arr in enumerate(new_arrs):

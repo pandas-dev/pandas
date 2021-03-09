@@ -1741,13 +1741,14 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             # restore NaT elements
             y[mask] = iNaT  # TODO: could try/finally for this?
 
-        if isinstance(values, np.ndarray):
+        if isinstance(values.dtype, np.dtype):
             result = result.view(orig_dtype)
         else:
             # DatetimeArray/TimedeltaArray
             # TODO: have this case go through a DTA method?
             # For DatetimeTZDtype, view result as M8[ns]
             npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
+            # error: "Type[ExtensionArray]" has no attribute "_simple_new"
             result = type(values)._simple_new(  # type: ignore[attr-defined]
                 result.view(npdtype), dtype=orig_dtype
             )
