@@ -859,7 +859,7 @@ class ArrayManager(DataManager):
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
                 assert value.shape[1] == 1
-                value = value[0, :]
+                value = value[:, 0]
 
             # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
             # but we should avoid that and pass directly the proper array

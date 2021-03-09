@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.base import registry as ea_registry
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -282,7 +284,7 @@ class TestDataFrameSetItem:
         df["dates"] = vals
         assert (df["dates"].values == ex_vals).all()
 
-    def test_setitem_dt64tz(self, timezone_frame):
+    def test_setitem_dt64tz(self, timezone_frame, using_array_manager):
 
         df = timezone_frame
         idx = df["B"].rename("foo")
@@ -295,6 +297,10 @@ class TestDataFrameSetItem:
         df["D"] = idx
         tm.assert_series_equal(df["D"], Series(idx, name="D"))
         del df["D"]
+
+        if using_array_manager:
+            # TODO(ArrayManager) rewrite test for ArrayManager
+            return
 
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
@@ -366,7 +372,7 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self):
+    def test_setitem_frame_duplicate_columns(self, using_array_manager):
         # GH#15695
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
@@ -382,6 +388,9 @@ class TestDataFrameSetItem:
             columns=cols,
             dtype="object",
         )
+        if using_array_manager:
+            expected["B"] = expected["B"].astype("int64")
+            expected["C"] = expected["C"].astype("int64")
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
@@ -628,6 +637,8 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
+    # TODO(ArrayManager) update parent (_maybe_update_cacher)
+    @td.skip_array_manager_not_yet_implemented
     def test_setitem_listlike_views(self):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
@@ -699,7 +710,7 @@ class TestDataFrameSetItemWithExpansion:
 
         result1 = df["D"]
         result2 = df["E"]
-        tm.assert_categorical_equal(result1._mgr._block.values, cat)
+        tm.assert_categorical_equal(result1._mgr.array, cat)
 
         # sorting
         ser.name = "E"
@@ -767,6 +778,7 @@ class TestDataFrameSetItemCallable:
 
 
 class TestDataFrameSetItemBooleanMask:
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     @pytest.mark.parametrize(
         "mask_type",
         [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
