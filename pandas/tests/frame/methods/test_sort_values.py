@@ -82,6 +82,7 @@ class TestDataFrameSortValues:
         # https://github.com/pandas-dev/pandas/issues/40258
         sorted_df = frame.sort_values(by=[])
         tm.assert_frame_equal(sorted_df, frame)
+        assert sorted_df is not frame
 
     def test_sort_values_inplace(self):
         frame = DataFrame(

@@ -5834,7 +5834,7 @@ class DataFrame(NDFrame, OpsMixin):
                 k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
         else:
-            return self
+            return self.copy()
 
         new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
