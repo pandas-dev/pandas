@@ -4,10 +4,14 @@ inherit from this class.
 """
 from typing import (
     List,
+    Optional,
     TypeVar,
 )
 
+from pandas._typing import DtypeObj
 from pandas.errors import AbstractMethodError
+
+from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.base import PandasObject
 from pandas.core.indexes.api import (
@@ -102,3 +106,22 @@ class DataManager(PandasObject):
 
 class SingleDataManager(DataManager):
     ndim = 1
+
+
+def interleaved_dtype(dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    """
+    Find the common dtype for `blocks`.
+
+    Parameters
+    ----------
+    blocks : List[DtypeObj]
+
+    Returns
+    -------
+    dtype : np.dtype, ExtensionDtype, or None
+        None is returned when `blocks` is empty.
+    """
+    if not len(dtypes):
+        return None
+
+    return find_common_type(dtypes)

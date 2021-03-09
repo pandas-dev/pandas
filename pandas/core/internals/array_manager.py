@@ -22,14 +22,12 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
-    DtypeObj,
     Hashable,
 )
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_array_safe,
-    find_common_type,
     infer_dtype_from_scalar,
     soft_convert_objects,
 )
@@ -84,6 +82,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    interleaved_dtype,
 )
 from pandas.core.internals.blocks import new_block
 
@@ -752,7 +751,7 @@ class ArrayManager(DataManager):
         copy = copy or na_value is not lib.no_default
 
         if not dtype:
-            dtype = _interleaved_dtype(self.arrays)
+            dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
 
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
@@ -800,7 +799,7 @@ class ArrayManager(DataManager):
         -------
         np.ndarray or ExtensionArray
         """
-        dtype = _interleaved_dtype(self.arrays)
+        dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
 
         values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
@@ -1096,26 +1095,6 @@ class ArrayManager(DataManager):
     # TODO
     # equals
     # to_dict
-    # quantile
-
-
-def _interleaved_dtype(blocks) -> Optional[DtypeObj]:
-    """
-    Find the common dtype for `blocks`.
-
-    Parameters
-    ----------
-    blocks : List[Block]
-
-    Returns
-    -------
-    dtype : np.dtype, ExtensionDtype, or None
-        None is returned when `blocks` is empty.
-    """
-    if not len(blocks):
-        return None
-
-    return find_common_type([b.dtype for b in blocks])
 
 
 class SingleArrayManager(ArrayManager, SingleDataManager):

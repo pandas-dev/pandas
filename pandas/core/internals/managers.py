@@ -32,10 +32,7 @@ from pandas._typing import (
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    infer_dtype_from_scalar,
-)
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_dtype_equal,
@@ -64,6 +61,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
     Block,
@@ -916,7 +914,7 @@ class BlockManager(DataManager):
         Items must be contained in the blocks
         """
         if not dtype:
-            dtype = _interleaved_dtype(self.blocks)
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
@@ -981,7 +979,7 @@ class BlockManager(DataManager):
         if len(self.blocks) == 1:
             return self.blocks[0].iget((slice(None), loc))
 
-        dtype = _interleaved_dtype(self.blocks)
+        dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         n = len(self)
         if is_extension_array_dtype(dtype):
@@ -1320,7 +1318,7 @@ class BlockManager(DataManager):
             new_blocks = [
                 blk.take_nd(
                     indexer,
-                    axis=axis,
+                    axis=1,
                     fill_value=(
                         fill_value if fill_value is not None else blk.fill_value
                     ),
@@ -1890,25 +1888,6 @@ def _stack_arrays(tuples, dtype: np.dtype):
         stacked[i] = arr
 
     return stacked, placement
-
-
-def _interleaved_dtype(blocks: Sequence[Block]) -> Optional[DtypeObj]:
-    """
-    Find the common dtype for `blocks`.
-
-    Parameters
-    ----------
-    blocks : List[Block]
-
-    Returns
-    -------
-    dtype : np.dtype, ExtensionDtype, or None
-        None is returned when `blocks` is empty.
-    """
-    if not len(blocks):
-        return None
-
-    return find_common_type([b.dtype for b in blocks])
 
 
 def _consolidate(blocks: Tuple[Block, ...]) -> List[Block]:
