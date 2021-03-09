@@ -47,7 +47,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -159,16 +158,9 @@ class Block(PandasObject):
         ndim : int
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
         """
-        # TODO(EA2D): ndim will be unnecessary with 2D EAs
-        self.ndim = self._check_ndim(values, ndim)
+        self.ndim = ndim
         self.mgr_locs = placement
         self.values = self._maybe_coerce_values(values)
-
-        if self._validate_ndim and self.ndim and len(self.mgr_locs) != len(self.values):
-            raise ValueError(
-                f"Wrong number of items passed {len(self.values)}, "
-                f"placement implies {len(self.mgr_locs)}"
-            )
 
     @classmethod
     def _maybe_coerce_values(cls, values):
@@ -184,44 +176,6 @@ class Block(PandasObject):
         np.ndarray or ExtensionArray
         """
         return values
-
-    def _check_ndim(self, values, ndim):
-        """
-        ndim inference and validation.
-
-        Infers ndim from 'values' if not provided to __init__.
-        Validates that values.ndim and ndim are consistent if and only if
-        the class variable '_validate_ndim' is True.
-
-        Parameters
-        ----------
-        values : array-like
-        ndim : int or None
-
-        Returns
-        -------
-        ndim : int
-
-        Raises
-        ------
-        ValueError : the number of dimensions do not match
-        """
-        if ndim is None:
-            ndim = values.ndim
-
-        if self._validate_ndim:
-            if values.ndim != ndim:
-                raise ValueError(
-                    "Wrong number of dimensions. "
-                    f"values.ndim != ndim [{values.ndim} != {ndim}]"
-                )
-        elif values.ndim > ndim:
-            # ExtensionBlock
-            raise ValueError(
-                "Wrong number of dimensions. "
-                f"values.ndim > ndim [{values.ndim} > {ndim}]"
-            )
-        return ndim
 
     @property
     def _holder(self):
@@ -372,7 +326,7 @@ class Block(PandasObject):
 
         new_values = self._slice(slicer)
 
-        if self._validate_ndim and new_values.ndim != self.ndim:
+        if new_values.ndim != self.values.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
@@ -1475,18 +1429,6 @@ class ExtensionBlock(Block):
         This will call continue to call __init__ for the other base
         classes mixed in with this Mixin.
         """
-
-        # Placement must be converted to BlockPlacement so that we can check
-        # its length
-        if not isinstance(placement, libinternals.BlockPlacement):
-            placement = libinternals.BlockPlacement(placement)
-
-        # Maybe infer ndim from placement
-        if ndim is None:
-            if len(placement) != 1:
-                ndim = 1
-            else:
-                ndim = 2
         super().__init__(values, placement, ndim=ndim)
 
         if self.ndim == 2 and len(self.mgr_locs) != 1:
@@ -2283,9 +2225,63 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     return cls
 
 
-def new_block(
-    values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
-) -> Block:
+def new_block(values, placement, *, ndim: int, klass=None) -> Block:
+
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
+
+    values, _ = extract_pandas_array(values, None, ndim)
+    check_ndim(values, placement, ndim)
+
+    if klass is None:
+        klass = get_block_type(values, values.dtype)
+
+    return klass(values, ndim=ndim, placement=placement)
+
+
+def check_ndim(values, placement: BlockPlacement, ndim: int):
+    """
+    ndim inference and validation.
+
+    Validates that values.ndim and ndim are consistent.
+    Validates that len(values) and len(placement) are consistent.
+
+    Parameters
+    ----------
+    values : array-like
+    placement : BlockPlacement
+    ndim : int
+
+    Raises
+    ------
+    ValueError : the number of dimensions do not match
+    """
+
+    if values.ndim > ndim:
+        # Check for both np.ndarray and ExtensionArray
+        raise ValueError(
+            "Wrong number of dimensions. "
+            f"values.ndim > ndim [{values.ndim} > {ndim}]"
+        )
+
+    elif isinstance(values.dtype, np.dtype):
+        # TODO(EA2D): special case not needed with 2D EAs
+        if values.ndim != ndim:
+            raise ValueError(
+                "Wrong number of dimensions. "
+                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+            )
+        if len(placement) != len(values):
+            raise ValueError(
+                f"Wrong number of items passed {len(values)}, "
+                f"placement implies {len(placement)}"
+            )
+    elif ndim == 2 and len(placement) != 1:
+        # TODO(EA2D): special case unnecessary with 2D EAs
+        raise AssertionError("block.size != values.size")
+
+
+def extract_pandas_array(values, dtype, ndim):
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
@@ -2297,16 +2293,7 @@ def new_block(
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 
-    if klass is None:
-        dtype = dtype or values.dtype
-        klass = get_block_type(values, dtype)
-
-    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
-        # TODO: This is no longer hit internally; does it need to be retained
-        #  for e.g. pyarrow?
-        values = DatetimeArray._simple_new(values, dtype=dtype)
-
-    return klass(values, ndim=ndim, placement=placement)
+    return values, dtype
 
 
 # -----------------------------------------------------------------
