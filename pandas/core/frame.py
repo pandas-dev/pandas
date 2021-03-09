@@ -555,12 +555,17 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Optional[Dtype] = None,
         copy: Optional[bool] = None,
     ):
-        orig_copy = copy  # GH#38939
-        copy = copy if copy is not None else False
+
+        if copy is None:
+            # GH#38939
+            if isinstance(data, dict) or data is None:
+                # retain pre-GH38939 default behavior
+                copy = True
+            else:
+                copy = False
 
         if data is None:
             data = {}
-            copy = True
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
@@ -570,8 +575,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
             # -> use fastpath (without checking Manager type)
-            copy = copy if copy is not None else False
-            if index is None and columns is None and dtype is None and copy is False:
+            if index is None and columns is None and dtype is None and not copy:
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
                 return
@@ -585,7 +589,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif isinstance(data, dict):
             # GH#38939 de facto copy defaults to False only in non-dict cases
-            copy = orig_copy if orig_copy is not None else True
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords

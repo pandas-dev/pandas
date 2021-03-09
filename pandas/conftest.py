@@ -749,7 +749,7 @@ def float_frame():
 
     [30 rows x 4 columns]
     """
-    return DataFrame(tm.getSeriesData())._consolidate()
+    return DataFrame(tm.getSeriesData())
 
 
 @pytest.fixture
