@@ -43,7 +43,10 @@ import pandas as pd
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
+from pandas.core.frame import (
+    DataFrame,
+    Series,
+)
 from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
 
@@ -1411,9 +1414,11 @@ class Styler:
 
         gmap : array-like, optional
             Gradient map for determining the background colors. If not supplied
-            will use the input data from rows, columns or frame. Must be an
-            identical shape for sampling columns, rows or DataFrame based on ``axis``.
-            If supplied ``vmin`` and ``vmax`` should be given relative to this
+            will use the underlying data from rows, columns or frame. If given as an
+            ndarray or list-like must be an identical shape to the underlying data
+            considering ``axis`` and ``subset``. If given as DataFrame or Series must
+            have same index and column labels considering ``axis`` and ``subset``.
+            If supplied, ``vmin`` and ``vmax`` should be given relative to this
             gradient map.
 
             .. versionadded:: 1.3.0
@@ -1446,7 +1451,7 @@ class Styler:
         ...          'Wind (m/s)': [3.2, 3.1, 6.7]
         ... })
 
-        Shading the values column-wise, with ``axis=0``
+        Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
         >>> df.style.background_gradient(axis=0)
 
@@ -1489,6 +1494,23 @@ class Styler:
         if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
+        if isinstance(gmap, DataFrame):  # will align columns
+            if axis is None:
+                subset = slice(None) if subset is None else subset
+                subset = _non_reducing_slice(subset)
+                data_ = self.data.loc[subset]
+                try:
+                    gmap = gmap.loc[:, data_.columns]
+                except KeyError as e:
+                    raise KeyError(
+                        f"`gmap` as DataFrame must contain at least the columns in the "
+                        f"underlying data. {str(e)}"
+                    )
+            else:
+                raise ValueError(
+                    "`gmap` as DataFrame can only be used with `axis` is `None`"
+                )
+
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1517,20 +1539,20 @@ class Styler:
         """
         Color background in a range according to the data or a gradient map
         """
-        if gmap is None:
+        if gmap is None:  # the data is used the gmap
             gmap = s.to_numpy(dtype=float)
-        else:
-            if s.ndim == 1:  # s is Series(n): gmap can be (n,), (n,1) or (1,n)
-                gmap = np.asarray(gmap, dtype=float).reshape(-1)
-            else:  # s is DataFrame(n,m): gmap must be (n,m)
+        else:  # gmap is conformed to the data shape
+            if isinstance(gmap, (Series, DataFrame)):
+                gmap = gmap.reindex_like(s, method=None).to_numpy()  # align indexes
+            else:
                 gmap = np.asarray(gmap, dtype=float)
-            assert isinstance(gmap, np.ndarray)  # mypy fix for gmap.shape
-            if gmap.shape != s.shape:
-                raise ValueError(
-                    "supplied 'gmap' is not right shape for data over "
-                    f"selected 'axis': got {gmap.shape}, "
-                    f"expected {s.shape}"
-                )
+                if gmap.shape != s.shape:  # check valid input
+                    raise ValueError(
+                        "supplied 'gmap' is not right shape for data over "
+                        f"selected 'axis': got {gmap.shape}, "
+                        f"expected {s.shape}"
+                    )
+
         with _mpl(Styler.background_gradient) as (plt, colors):
             smin = np.nanmin(gmap) if vmin is None else vmin
             smax = np.nanmax(gmap) if vmax is None else vmax
