@@ -25,7 +25,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
-- Fixed bug in :meth:`DataFrame.sort_values` raising an :class:`IndexError` for empty ``by`` (:issue:`40258`)
+-
 -
 
 .. ---------------------------------------------------------------------------
