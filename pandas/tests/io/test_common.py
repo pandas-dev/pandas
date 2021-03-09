@@ -515,5 +515,5 @@ def test_encoding_errors(encoding_errors, format):
 def test_bad_encdoing_errors():
     # GH 39777
     with tm.ensure_clean() as path:
-        with pytest.raises(ValueError, match="Invalide value for `encoding_errors`"):
+        with pytest.raises(ValueError, match="Invalid value for `encoding_errors`"):
             icom.get_handle(path, "w", errors="bad")
