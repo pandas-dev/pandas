@@ -10,6 +10,7 @@ from typing import Optional
 
 import numpy as np
 
+from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
@@ -57,5 +58,18 @@ def make_block(
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)
+
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
+
+    if ndim is None:
+        # GH#38134 Block constructor now assumes ndim is not None
+        if not isinstance(values.dtype, np.dtype):
+            if len(placement) != 1:
+                ndim = 1
+            else:
+                ndim = 2
+        else:
+            ndim = values.ndim
 
     return klass(values, ndim=ndim, placement=placement)
