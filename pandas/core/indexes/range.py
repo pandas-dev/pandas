@@ -116,7 +116,8 @@ class RangeIndex(Int64Index):
 
         # RangeIndex
         if isinstance(start, RangeIndex):
-            start = start._range
+            return start.copy(name=name)
+        elif isinstance(start, range):
             return cls._simple_new(start, name=name)
 
         # validate the arguments

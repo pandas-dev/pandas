@@ -366,13 +366,8 @@ class Index(IndexOpsMixin, PandasObject):
         data_dtype = getattr(data, "dtype", None)
 
         # range
-        if isinstance(data, RangeIndex):
+        if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=copy, name=name)
-            if dtype is not None:
-                return result.astype(dtype, copy=False)
-            return result
-        elif isinstance(data, range):
-            result = RangeIndex.from_range(data, name=name)
             if dtype is not None:
                 return result.astype(dtype, copy=False)
             return result
