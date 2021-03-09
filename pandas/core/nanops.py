@@ -1741,7 +1741,7 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             # restore NaT elements
             y[mask] = iNaT  # TODO: could try/finally for this?
 
-        if isinstance(values, np.ndarray):
+        if isinstance(values.dtype, np.dtype):
             result = result.view(orig_dtype)
         else:
             # DatetimeArray/TimedeltaArray
