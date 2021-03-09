@@ -1,7 +1,5 @@
 import pytest
 
-import pandas.util._test_decorators as td
-
 pytestmark = [
     # pytables https://github.com/PyTables/PyTables/issues/822
     pytest.mark.filterwarnings(
@@ -11,6 +9,4 @@ pytestmark = [
     pytest.mark.filterwarnings(
         r"ignore:`np\.object` is a deprecated alias:DeprecationWarning"
     ),
-    # TODO(ArrayManager) HDFStore relies on accessing the blocks
-    td.skip_array_manager_not_yet_implemented,
 ]

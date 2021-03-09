@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -24,7 +25,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
 
 
 @pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
