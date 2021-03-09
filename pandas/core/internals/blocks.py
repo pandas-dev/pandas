@@ -7,6 +7,7 @@ from typing import (
     Callable,
     List,
     Optional,
+    Tuple,
     Type,
     Union,
     cast,
@@ -2269,8 +2270,12 @@ def check_ndim(values, placement: BlockPlacement, ndim: int):
         raise AssertionError("block.size != values.size")
 
 
-def extract_pandas_array(values, dtype, ndim):
-    # Ensure that we don't allow PandasArray / PandasDtype in internals.
+def extract_pandas_array(
+    values: ArrayLike, dtype: Optional[DtypeObj], ndim: int
+) -> Tuple[ArrayLike, Optional[DtypeObj]]:
+    """
+    Ensure that we don't allow PandasArray / PandasDtype in internals.
+    """
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
         values = values.to_numpy()

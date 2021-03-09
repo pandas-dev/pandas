@@ -1611,7 +1611,8 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         blk = self._block
         array = blk._slice(slobj)
         if array.ndim > blk.values.ndim:
-            raise ValueError
+            # This will be caught by Series._get_values
+            raise ValueError("dimension-expanding indexing not allowed")
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         return type(self)(block, self.index[slobj])
 
