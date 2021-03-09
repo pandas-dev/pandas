@@ -109,6 +109,7 @@ parser_defaults = {
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
+    "encoding_errors": "strict",
 }
 
 
@@ -212,6 +213,7 @@ class ParserBase:
             compression=kwds.get("compression", None),
             memory_map=kwds.get("memory_map", False),
             storage_options=kwds.get("storage_options", None),
+            errors=kwds.get("encoding_errors", "strict"),
         )
 
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
