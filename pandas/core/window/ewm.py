@@ -255,6 +255,8 @@ class ExponentialMovingWindow(BaseWindow):
         self.ignore_na = ignore_na
         self.times = times
         if self.times is not None:
+            if not self.adjust:
+                raise NotImplementedError("times is not supported with adjust=False.")
             if isinstance(self.times, str):
                 self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
