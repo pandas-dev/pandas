@@ -604,15 +604,17 @@ def _stack_multi_column_index(columns):
     """Creates a MultiIndex from the first N-1 levels of this MultiIndex."""
     if len(columns.levels) <= 2:
         return columns.levels[0]._rename(name=columns.names[0])
-    levs = []
-    for lev, level_codes in zip(columns.levels[:-1], columns.codes[:-1]):
-        if -1 in level_codes:
-            lev = np.append(lev, None)
-        levs.append(np.take(lev, level_codes))
+
+    levs = [
+        [lev[c] if c >= 0 else None for c in codes]
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+    ]
+
     # Remove duplicate tuples in the MultiIndex.
     tuples = zip(*levs)
     unique_tuples = (key for key, _ in itertools.groupby(tuples))
     new_levs = zip(*unique_tuples)
+
     # The dtype of each level must be explicitly set to avoid inferring the wrong type.
     # See GH-36991.
     return MultiIndex.from_arrays(
