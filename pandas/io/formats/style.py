@@ -1494,23 +1494,6 @@ class Styler:
         if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
-        if isinstance(gmap, DataFrame):  # will align columns
-            if axis is None:
-                subset = slice(None) if subset is None else subset
-                subset = _non_reducing_slice(subset)
-                data_ = self.data.loc[subset]
-                try:
-                    gmap = gmap.loc[:, data_.columns]
-                except KeyError as e:
-                    raise KeyError(
-                        f"`gmap` as DataFrame must contain at least the columns in the "
-                        f"underlying data. {str(e)}"
-                    )
-            else:
-                raise ValueError(
-                    "`gmap` as DataFrame can only be used with `axis` is `None`"
-                )
-
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1543,7 +1526,7 @@ class Styler:
             gmap = s.to_numpy(dtype=float)
         else:  # gmap is conformed to the data shape
             if isinstance(gmap, (Series, DataFrame)):
-                gmap = gmap.reindex_like(s, method=None).to_numpy()  # align indexes
+                gmap = gmap.reindex_like(s, method=None).to_numpy()  # align indx / cols
             else:
                 gmap = np.asarray(gmap, dtype=float)
                 if gmap.shape != s.shape:  # check valid input

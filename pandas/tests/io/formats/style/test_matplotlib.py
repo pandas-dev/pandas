@@ -203,17 +203,3 @@ class TestStylerMatplotlibDep:
         expected = df.style.background_gradient(axis=None, gmap=exp_gmap)._compute()
         result = df.style.background_gradient(axis=axis, gmap=gmap)._compute()
         assert expected.ctx == result.ctx
-
-    def test_background_gradient_gmap_dataframe_raises(self):
-        df = DataFrame([[0, 0, 0], [0, 0, 0]], columns=["A", "B", "C"])
-
-        msg = "`gmap` as DataFrame must contain at least the columns"
-        gmap = DataFrame([[1, 2, 3], [1, 2, 3]], columns=["A", "B", "X"])
-        with pytest.raises(KeyError, match=msg):
-            df.style.background_gradient(gmap=gmap, axis=None)._compute()
-
-        msg = "`gmap` as DataFrame can only be used with `axis` is `None`"
-        with pytest.raises(ValueError, match=msg):
-            df.style.background_gradient(gmap=gmap, axis=1)._compute()
-        with pytest.raises(ValueError, match=msg):
-            df.style.background_gradient(gmap=gmap, axis=0)._compute()
