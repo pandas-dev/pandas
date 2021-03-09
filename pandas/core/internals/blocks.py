@@ -133,11 +133,7 @@ def maybe_split(meth: F) -> F:
             return meth(self, *args, **kwargs)
         else:
             # Split and operate column-by-column
-            res_blocks = []
-            for nb in self._split():
-                rbs = meth(nb, *args, **kwargs)
-                res_blocks.extend(rbs)
-            return res_blocks
+            return self.split_and_operate(meth, *args, **kwargs)
 
     return cast(F, newfunc)
 
@@ -520,12 +516,9 @@ class Block(PandasObject):
 
         else:
             # operate column-by-column
-            res_blocks = []
-            nbs = self._split()
-            for nb in nbs:
-                rbs = nb.fillna(value, limit=limit, inplace=inplace, downcast=None)
-                res_blocks.extend(rbs)
-            return res_blocks
+            return self.split_and_operate(
+                type(self).fillna, value, limit=limit, inplace=inplace, downcast=None
+            )
 
     @final
     def _split(self) -> List[Block]:
@@ -538,80 +531,32 @@ class Block(PandasObject):
         for i, ref_loc in enumerate(self.mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
-            nb = self.make_block(vals, [ref_loc])
+            nb = self.make_block(vals, BlockPlacement(ref_loc))
             new_blocks.append(nb)
         return new_blocks
 
     @final
-    def split_and_operate(
-        self, mask, f, inplace: bool, ignore_failures: bool = False
-    ) -> List[Block]:
+    def split_and_operate(self, func, *args, **kwargs) -> List[Block]:
         """
-        split the block per-column, and apply the callable f
-        per-column, return a new block for each. Handle
-        masking which will not change a block unless needed.
+        Split the block and apply func column-by-column.
 
         Parameters
         ----------
-        mask : 2-d boolean mask
-        f : callable accepting (1d-mask, 1d values, indexer)
-        inplace : bool
-        ignore_failures : bool, default False
+        func : Block method
+        *args
+        **kwargs
 
         Returns
         -------
-        list of blocks
+        List[Block]
         """
-        if mask is None:
-            mask = np.broadcast_to(True, shape=self.shape)
+        assert self.ndim == 2 and self.shape[0] != 1
 
-        new_values = self.values
-
-        def make_a_block(nv, ref_loc):
-            if isinstance(nv, list):
-                assert len(nv) == 1, nv
-                assert isinstance(nv[0], Block)
-                block = nv[0]
-            else:
-                # Put back the dimension that was taken from it and make
-                # a block out of the result.
-                nv = ensure_block_shape(nv, ndim=self.ndim)
-                block = self.make_block(values=nv, placement=ref_loc)
-            return block
-
-        # ndim == 1
-        if self.ndim == 1:
-            if mask.any():
-                nv = f(mask, new_values, None)
-            else:
-                nv = new_values if inplace else new_values.copy()
-            block = make_a_block(nv, self.mgr_locs)
-            return [block]
-
-        # ndim > 1
-        new_blocks = []
-        for i, ref_loc in enumerate(self.mgr_locs):
-            m = mask[i]
-            v = new_values[i]
-
-            # need a new block
-            if m.any() or m.size == 0:
-                # Apply our function; we may ignore_failures if this is a
-                #  reduction that is dropping nuisance columns GH#37827
-                try:
-                    nv = f(m, v, i)
-                except TypeError:
-                    if ignore_failures:
-                        continue
-                    else:
-                        raise
-            else:
-                nv = v if inplace else v.copy()
-
-            block = make_a_block(nv, [ref_loc])
-            new_blocks.append(block)
-
-        return new_blocks
+        res_blocks = []
+        for nb in self._split():
+            rbs = func(nb, *args, **kwargs)
+            res_blocks.extend(rbs)
+        return res_blocks
 
     def _maybe_downcast(self, blocks: List[Block], downcast=None) -> List[Block]:
 
@@ -788,18 +733,13 @@ class Block(PandasObject):
             #  bc _can_hold_element is incorrect.
             return [self] if inplace else [self.copy()]
 
-        if not self._can_hold_element(value):
-            if self.ndim == 2 and self.shape[0] > 1:
-                # split so that we only upcast where necessary
-                nbs = self._split()
-                res_blocks = extend_blocks(
-                    [
-                        blk.replace(to_replace, value, inplace=inplace, regex=regex)
-                        for blk in nbs
-                    ]
-                )
-                return res_blocks
+        elif self._can_hold_element(value):
+            blk = self if inplace else self.copy()
+            putmask_inplace(blk.values, mask, value)
+            blocks = blk.convert(numeric=False, copy=False)
+            return blocks
 
+        elif self.ndim == 1 or self.shape[0] == 1:
             blk = self.coerce_to_target_dtype(value)
             return blk.replace(
                 to_replace=to_replace,
@@ -808,10 +748,11 @@ class Block(PandasObject):
                 regex=regex,
             )
 
-        blk = self if inplace else self.copy()
-        putmask_inplace(blk.values, mask, value)
-        blocks = blk.convert(numeric=False, copy=False)
-        return blocks
+        else:
+            # split so that we only upcast where necessary
+            return self.split_and_operate(
+                type(self).replace, to_replace, value, inplace=inplace, regex=regex
+            )
 
     @final
     def _replace_regex(
