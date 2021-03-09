@@ -73,7 +73,7 @@ class TestStylerTooltip:
     def test_tooltip_ignored(self):
         # GH 21266
         df = DataFrame(data=[[0, 1], [2, 3]])
-        s = Styler(df).set_tooltips_class("pd-t").render()  # no set_tooltips()
+        s = Styler(df).render()  # no set_tooltips() creates no <span>
         assert '<style type="text/css">\n</style>' in s
         assert '<span class="pd-t"></span>' not in s
 
@@ -82,8 +82,11 @@ class TestStylerTooltip:
         df = DataFrame(data=[[0, 1], [2, 3]])
         s = (
             Styler(df, uuid_len=0)
-            .set_tooltips(DataFrame([["tooltip"]]))
-            .set_tooltips_class(name="other-class", properties=[("color", "green")])
+            .set_tooltips(
+                DataFrame([["tooltip"]]),
+                css_class="other-class",
+                props=[("color", "green")],
+            )
             .render()
         )
         assert "#T__ .other-class {\n  color: green;\n" in s
@@ -92,8 +95,11 @@ class TestStylerTooltip:
         # GH 39563
         s = (
             Styler(df, uuid_len=0)
-            .set_tooltips(DataFrame([["tooltip"]]))
-            .set_tooltips_class(name="other-class", properties="color:green;color:red;")
+            .set_tooltips(
+                DataFrame([["tooltip"]]),
+                css_class="other-class",
+                props="color:green;color:red;",
+            )
             .render()
         )
         assert "#T__ .other-class {\n  color: green;\n  color: red;\n}" in s
