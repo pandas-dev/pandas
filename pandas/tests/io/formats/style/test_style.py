@@ -181,9 +181,8 @@ class TestStyler:
         s = s._compute()
         # ctx and _todo items affected when a render takes place
         assert len(s.ctx) > 0
-        assert len(s._todo) == 0  # _todo is emptied after compute.
+        assert len(s._todo) > 0  # _todo is maintained after compute.
 
-        s._todo = [1]
         s.clear()
         # ctx, _todo, tooltips and cell_context items all revert to null state.
         assert len(s.ctx) == 0
