@@ -58,6 +58,9 @@ def make_block(
 
 
 def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> int:
+    """
+    If `ndim` is not provided, infer it from placment and values.
+    """
     if ndim is None:
         # GH#38134 Block constructor now assumes ndim is not None
         if not isinstance(values.dtype, np.dtype):

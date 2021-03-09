@@ -117,6 +117,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
+_dtype_obj = np.dtype(object)  # comparison is faster than is_object_dtype
+
+
 class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
@@ -232,8 +235,8 @@ class Block(PandasObject):
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
         """
-        if is_object_dtype(dtype):
-            return self.values.astype(object)
+        if dtype == _dtype_obj:
+            return self.values.astype(_dtype_obj)
         return self.values
 
     @final
@@ -1419,21 +1422,6 @@ class ExtensionBlock(Block):
     is_extension = True
 
     values: ExtensionArray
-
-    def __init__(self, values, placement, ndim: int):
-        """
-        Initialize a non-consolidatable block.
-
-        'ndim' may be inferred from 'placement'.
-
-        This will call continue to call __init__ for the other base
-        classes mixed in with this Mixin.
-        """
-        super().__init__(values, placement, ndim=ndim)
-
-        if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(EA2D): check unnecessary with 2D EAs
-            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self) -> Shape:
