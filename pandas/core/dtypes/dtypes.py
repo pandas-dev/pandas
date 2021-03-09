@@ -469,8 +469,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
             )
         else:
-            cat_array = [cat_array]
-        hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+            # error: Incompatible types in assignment (expression has type
+            # "List[ndarray]", variable has type "ndarray")
+            cat_array = [cat_array]  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "int")
+        hashed = combine_hash_arrays(  # type: ignore[assignment]
+            iter(cat_array), num_items=len(cat_array)
+        )
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
