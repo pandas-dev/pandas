@@ -1618,6 +1618,15 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         return self.axes[0]
 
     @property
+    def array(self) -> ArrayLike:
+        """
+        Quick access to the backing array of the Block.
+
+        Only for compatibility with ArrayManager for testing convenience.
+        """
+        return self._block.values
+
+    @property
     def dtype(self) -> DtypeObj:
         return self._block.dtype
 
