@@ -13,10 +13,7 @@ import numpy as np
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import ABCPandasArray
 
@@ -66,12 +63,15 @@ def make_block(
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
-    if is_extension_array_dtype(values.dtype):
-        if ndim is None:
+    if ndim is None:
+        # GH#38134 Block constructor now assumes ndim is not None
+        if not isinstance(values.dtype, np.dtype):
             if len(placement) != 1:
                 ndim = 1
             else:
                 ndim = 2
+        else:
+            ndim = values.ndim
 
         values = ensure_block_shape(values, ndim)
 

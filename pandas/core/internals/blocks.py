@@ -183,6 +183,14 @@ class Block(PandasObject):
                 f"placement implies {len(self.mgr_locs)}"
             )
 
+        elif (
+            is_1d_only_ea_obj(self.values)
+            and self.ndim == 2
+            and len(self.mgr_locs) != 1
+        ):
+            # TODO(EA2D): check unnecessary with 2D EAs
+            raise ValueError("need to split... for now")
+
     @classmethod
     def _maybe_coerce_values(cls, values):
         """
@@ -198,7 +206,7 @@ class Block(PandasObject):
         """
         return values
 
-    def _check_ndim(self, values, ndim):
+    def _check_ndim(self, values, ndim: int):
         """
         ndim inference and validation.
 
@@ -209,7 +217,7 @@ class Block(PandasObject):
         Parameters
         ----------
         values : array-like
-        ndim : int or None
+        ndim : int
 
         Returns
         -------
@@ -219,8 +227,7 @@ class Block(PandasObject):
         ------
         ValueError : the number of dimensions do not match
         """
-        if ndim is None:
-            ndim = values.ndim
+        assert isinstance(ndim, int)  # GH#38134 enforce this
 
         if self._validate_ndim:
             if values.ndim != ndim:
@@ -1479,32 +1486,6 @@ class ExtensionBlock(Block):
     is_extension = True
 
     values: ExtensionArray
-
-    def __init__(self, values, placement, ndim: int):
-        """
-        Initialize a non-consolidatable block.
-
-        'ndim' may be inferred from 'placement'.
-
-        This will call continue to call __init__ for the other base
-        classes mixed in with this Mixin.
-        """
-
-        # Placement must be converted to BlockPlacement so that we can check
-        # its length
-        if not isinstance(placement, libinternals.BlockPlacement):
-            placement = libinternals.BlockPlacement(placement)
-
-        # Maybe infer ndim from placement
-        if ndim is None:
-            if len(placement) != 1:
-                ndim = 1
-            else:
-                ndim = 2
-        super().__init__(values, placement, ndim=ndim)
-
-        if self.ndim == 2 and len(self.mgr_locs) > 1:
-            raise ValueError("need to split... for now")
 
     @property
     def shape(self) -> Shape:
