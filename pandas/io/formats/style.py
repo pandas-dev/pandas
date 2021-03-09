@@ -1529,6 +1529,7 @@ class Styler:
                 gmap = gmap.reindex_like(s, method=None).to_numpy(dtype=float)
             else:
                 gmap = np.asarray(gmap, dtype=float)
+                assert isinstance(gmap, np.ndarray)  # mypy requirement
                 if gmap.shape != s.shape:  # check valid input
                     raise ValueError(
                         "supplied 'gmap' is not right shape for data over "
