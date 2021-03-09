@@ -9191,7 +9191,7 @@ NaN 12.3   33.0
 
         return result.astype("int64")
 
-    def _count_level(self, level: Level, axis: Axis = 0, numeric_only=False):
+    def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
         if numeric_only:
             frame = self._get_numeric_data()
         else:

@@ -226,6 +226,7 @@ class TestDatetimeArray:
         res4 = dta2.fillna(method="backfill")
         tm.assert_extension_array_equal(res4, expected2)
 
+        # test the DataFrame method while we're here
         df = pd.DataFrame(dta)
         res = df.fillna(method="pad")
         expected = pd.DataFrame(expected1)
