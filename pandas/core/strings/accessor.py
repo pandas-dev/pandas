@@ -3021,10 +3021,8 @@ def _str_extract_noexpand(arr, pat, flags=0):
     Index.
 
     """
-    from pandas import (
-        DataFrame,
-        array as pd_array,
-    )
+    from pandas import DataFrame
+    from pandas.core.construction import pd_array
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)

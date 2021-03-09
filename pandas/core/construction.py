@@ -74,7 +74,7 @@ if TYPE_CHECKING:
     )
 
 
-def array(
+def pd_array(
     data: Union[Sequence[object], AnyArrayLike],
     dtype: Optional[Dtype] = None,
     copy: bool = True,
@@ -560,7 +560,7 @@ def sanitize_array(
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
             inferred = lib.infer_dtype(subarr, skipna=False)
             if inferred in {"interval", "period"}:
-                subarr = array(subarr)
+                subarr = pd_array(subarr)
                 subarr = extract_array(subarr, extract_numpy=True)
 
     return subarr

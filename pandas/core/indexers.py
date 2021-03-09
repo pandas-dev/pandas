@@ -514,7 +514,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     ...
     IndexError: arrays used as indices must be of integer or boolean type
     """
-    from pandas.core.construction import array as pd_array
+    from pandas.core.construction import pd_array
 
     # whatever is not an array-like is returned as-is (possible valid array
     # indexers that are not array-like: integer, slice, Ellipsis, None)

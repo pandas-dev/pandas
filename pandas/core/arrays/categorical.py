@@ -97,8 +97,8 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     extract_array,
+    pd_array,
     sanitize_array,
 )
 from pandas.core.indexers import deprecate_ndim_indexing

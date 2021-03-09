@@ -76,9 +76,9 @@ from pandas.core.arrays.base import (
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
+    pd_array,
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index

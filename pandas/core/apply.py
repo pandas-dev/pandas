@@ -52,8 +52,8 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     create_series_with_explicit_dtype,
+    pd_array,
 )
 
 if TYPE_CHECKING:

@@ -48,7 +48,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array
+from pandas.core.construction import pd_array
 from pandas.core.indexers import (
     check_array_indexer,
     is_exact_shape_match,
