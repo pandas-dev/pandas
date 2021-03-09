@@ -806,7 +806,6 @@ class TestDatetime64Arithmetic:
     # -------------------------------------------------------------
     # Addition/Subtraction of timedelta-like
 
-    @pytest.mark.arm_slow
     def test_dt64arr_add_timedeltalike_scalar(
         self, tz_naive_fixture, two_hours, box_with_array
     ):

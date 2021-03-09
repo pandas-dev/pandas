@@ -82,9 +82,6 @@ def pytest_configure(config):
     )
     config.addinivalue_line("markers", "high_memory: mark a test as a high-memory only")
     config.addinivalue_line("markers", "clipboard: mark a pd.read_clipboard test")
-    config.addinivalue_line(
-        "markers", "arm_slow: mark a test as slow for arm64 architecture"
-    )
 
 
 def pytest_addoption(parser):

@@ -262,7 +262,6 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
     tm.assert_frame_equal(grouped, expected)
 
 
-@pytest.mark.arm_slow
 @pytest.mark.parametrize(
     "datetime1, datetime2",
     [

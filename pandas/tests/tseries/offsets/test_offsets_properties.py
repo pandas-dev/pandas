@@ -91,7 +91,6 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
-@pytest.mark.arm_slow
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)

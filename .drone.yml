@@ -30,7 +30,7 @@ steps:
   image: python:3.7
   commands:
   - . pandas-dev/bin/activate
-  - pytest -m "(not slow and not network and not clipboard and not arm_slow)" -n 2  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas
+  - pytest -m "(not slow and not network and not clipboard)" -n 2  --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml pandas
 
 trigger:
   branch:

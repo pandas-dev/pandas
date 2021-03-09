@@ -154,7 +154,6 @@ class TestChaining:
         result = df.head()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment(self):
 
         pd.set_option("chained_assignment", "raise")
@@ -168,7 +167,6 @@ class TestChaining:
         df["A"][1] = -6
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_raises(self):
 
         # test with the chaining
@@ -188,7 +186,6 @@ class TestChaining:
 
         assert df["A"]._is_copy is None
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_fails(self):
 
         # Using a copy (the chain), fails
@@ -202,7 +199,6 @@ class TestChaining:
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df.loc[0]["A"] = -5
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_doc_example(self):
 
         # Doc example
@@ -218,7 +214,6 @@ class TestChaining:
             indexer = df.a.str.startswith("o")
             df[indexer]["c"] = 42
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_object_dtype(self):
 
         expected = DataFrame({"A": [111, "bbb", "ccc"], "B": [1, 2, 3]})
@@ -233,7 +228,6 @@ class TestChaining:
         df.loc[0, "A"] = 111
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_is_copy_pickle(self):
 
         # gh-5475: Make sure that is_copy is picked up reconstruction
@@ -246,7 +240,6 @@ class TestChaining:
             df2["B"] = df2["A"]
             df2["B"] = df2["A"]
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_setting_entire_column(self):
 
         # gh-5597: a spurious raise as we are setting the entire column here
@@ -267,7 +260,6 @@ class TestChaining:
         assert df._is_copy is None
         df["letters"] = df["letters"].apply(str.lower)
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_implicit_take(self):
 
         # Implicitly take
@@ -278,7 +270,6 @@ class TestChaining:
         assert df._is_copy is not None
         df["letters"] = df["letters"].apply(str.lower)
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_implicit_take2(self):
 
         # Implicitly take 2
@@ -295,14 +286,12 @@ class TestChaining:
         df["letters"] = df["letters"].apply(str.lower)
         assert df._is_copy is None
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_str(self):
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
         df.loc[indexer, "letters"] = df.loc[indexer, "letters"].apply(str.lower)
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_is_copy(self):
 
         # an identical take, so no copy
@@ -310,7 +299,6 @@ class TestChaining:
         assert df._is_copy is None
         df["a"] += 1
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_sorting(self):
 
         df = DataFrame(np.random.randn(10, 4))
@@ -319,7 +307,6 @@ class TestChaining:
         tm.assert_series_equal(ser, df.iloc[:, 0].sort_values())
         tm.assert_series_equal(ser, df[0].sort_values())
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_false_positives(self):
 
         # see gh-6025: false positives
@@ -335,7 +322,6 @@ class TestChaining:
         df["column1"] = df["column1"] + "c"
         str(df)
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_undefined_column(self):
 
         # from SO:
@@ -346,7 +332,6 @@ class TestChaining:
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df.iloc[0:5]["group"] = "a"
 
-    @pytest.mark.arm_slow
     def test_detect_chained_assignment_changing_dtype(self):
 
         # Mixed type setting but same dtype & changing dtype

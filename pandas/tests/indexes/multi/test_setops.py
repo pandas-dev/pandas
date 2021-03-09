@@ -41,7 +41,6 @@ def test_intersection_base(idx, sort, klass):
         first.intersection([1, 2, 3], sort=sort)
 
 
-@pytest.mark.arm_slow
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
 def test_union_base(idx, sort, klass):
     first = idx[::-1]

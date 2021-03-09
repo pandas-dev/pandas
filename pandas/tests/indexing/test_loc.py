@@ -853,7 +853,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({"A": [2, 4, 5], "B": [4, 6, 7]}, index=[1, 1, 2])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.arm_slow
     def test_loc_non_unique_memory_error(self):
 
         # GH 4280
