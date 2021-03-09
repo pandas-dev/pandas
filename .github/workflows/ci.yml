@@ -174,8 +174,8 @@ jobs:
         pytest pandas/tests/frame/indexing/test_where.py
         pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_multi_index
         pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_listlike_indexer_duplicate_columns
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column
+
+        pytest pandas/tests/indexing/
 
         pytest pandas/tests/api/
         pytest pandas/tests/base/

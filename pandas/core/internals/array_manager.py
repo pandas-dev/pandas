@@ -205,7 +205,7 @@ class ArrayManager(DataManager):
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
-        if self.ndim == 1:
+        if self.ndim == 2:
             output += f"\nColumns: {self._axes[1]}"
         output += f"\n{len(self.arrays)} arrays:"
         for arr in self.arrays:
@@ -229,6 +229,11 @@ class ArrayManager(DataManager):
                 raise ValueError(
                     "Passed arrays should be np.ndarray or ExtensionArray instances, "
                     f"got {type(arr)} instead"
+                )
+            if not arr.ndim == 1:
+                raise ValueError(
+                    "Passed arrays should be 1-dimensional, got array with "
+                    f"{arr.ndim} dimensions instead."
                 )
 
     def reduce(
@@ -1153,7 +1158,13 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def _verify_integrity(self) -> None:
         (n_rows,) = self.shape
         assert len(self.arrays) == 1
-        assert len(self.arrays[0]) == n_rows
+        arr = self.arrays[0]
+        assert len(arr) == n_rows
+        if not arr.ndim == 1:
+            raise ValueError(
+                "Passed array should be 1-dimensional, got array with "
+                f"{arr.ndim} dimensions instead."
+            )
 
     @staticmethod
     def _normalize_axis(axis):
