@@ -31,17 +31,17 @@ def arrays_for_binary_ufunc():
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 def test_unary_ufunc(ufunc, sparse):
     # Test that ufunc(pd.Series) == pd.Series(ufunc)
-    u_arr = np.random.randint(0, 10, 10, dtype="int64")
-    u_arr[::2] = 0
+    arr = np.random.randint(0, 10, 10, dtype="int64")
+    arr[::2] = 0
     if sparse:
-        u_arr = SparseArray(u_arr, dtype=pd.SparseDtype("int64", 0))
+        arr = SparseArray(arr, dtype=pd.SparseDtype("int64", 0))
 
     index = list(string.ascii_letters[:10])
     name = "name"
-    series = pd.Series(u_arr, index=index, name=name)
+    series = pd.Series(arr, index=index, name=name)
 
     result = ufunc(series)
-    expected = pd.Series(ufunc(u_arr), index=index, name=name)
+    expected = pd.Series(ufunc(arr), index=index, name=name)
     tm.assert_series_equal(result, expected)
 
 
@@ -148,14 +148,14 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     # Test that
     #   * ufunc(pd.Series, scalar) == pd.Series(ufunc(array, scalar))
     #   * ufunc(pd.Series, scalar) == ufunc(scalar, pd.Series)
-    u_arr, _ = arrays_for_binary_ufunc
+    arr, _ = arrays_for_binary_ufunc
     if sparse:
-        u_arr = SparseArray(u_arr)
+        arr = SparseArray(arr)
     other = 2
-    series = pd.Series(u_arr, name="name")
+    series = pd.Series(arr, name="name")
 
     series_args = (series, other)
-    array_args = (u_arr, other)
+    array_args = (arr, other)
 
     if flip:
         series_args = tuple(reversed(series_args))
@@ -207,14 +207,14 @@ def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary
 def test_multiple_output_ufunc(sparse, arrays_for_binary_ufunc):
     # Test that the same conditions from unary input apply to multi-output
     # ufuncs
-    u_arr, _ = arrays_for_binary_ufunc
+    arr, _ = arrays_for_binary_ufunc
 
     if sparse:
-        u_arr = SparseArray(u_arr)
+        arr = SparseArray(arr)
 
-    series = pd.Series(u_arr, name="name")
+    series = pd.Series(arr, name="name")
     result = np.modf(series)
-    expected = np.modf(u_arr)
+    expected = np.modf(arr)
 
     assert isinstance(result, tuple)
     assert isinstance(expected, tuple)
