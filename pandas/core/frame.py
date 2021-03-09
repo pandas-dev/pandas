@@ -5184,8 +5184,13 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     def reset_index(
-        self, level=None, drop=False, inplace=False, col_level=0, col_fill=""
-    ):
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        drop: bool = False,
+        inplace: bool = False,
+        col_level: Hashable = 0,
+        col_fill: Hashable = "",
+    ) -> Optional[DataFrame]:
         """
         Reset the index, or a level of it.
 
