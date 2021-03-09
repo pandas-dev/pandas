@@ -1355,52 +1355,82 @@ def ensure_platform_int(arr):
         return np.array(arr, dtype=np.intp)
 
 
-# def ensure_object(object arr):
-#     if util.is_array(arr):
-#         if (<ndarray>arr).descr.type_num == NPY_OBJECT:
-#             return arr
-#         else:
-#             # equiv: arr.astype(object)
-#             return cnp.PyArray_Cast(<ndarray>arr, NPY_OBJECT)
-#     else:
-#         return np.array(arr, dtype=np.object_)
-
-# {{py:
-
-# # name, c_type, dtype
-# dtypes = [('float64', 'FLOAT64', 'float64'),
-#           ('float32', 'FLOAT32', 'float32'),
-#           ('int8', 'INT8', 'int8'),
-#           ('int16', 'INT16', 'int16'),
-#           ('int32', 'INT32', 'int32'),
-#           ('int64', 'INT64', 'int64'),
-#           ('uint8', 'UINT8', 'uint8'),
-#           ('uint16', 'UINT16', 'uint16'),
-#           ('uint32', 'UINT32', 'uint32'),
-#           ('uint64', 'UINT64', 'uint64'),
-#           # ('platform_int', 'INT', 'int_'),
-#           # ('object', 'OBJECT', 'object_'),
-# ]
-
-# def get_dispatch(dtypes):
-
-#     for name, c_type, dtype in dtypes:
-#         yield name, c_type, dtype
-# }}
-
-# {{for name, c_type, dtype in get_dispatch(dtypes)}}
+def ensure_object(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.object_, copy=False)
+    else:
+        return np.array(arr, dtype=np.object_)
 
 
-# def ensure_{{name}}(object arr, copy=True):
-#     if util.is_array(arr):
-#         if (<ndarray>arr).descr.type_num == NPY_{{c_type}}:
-#             return arr
-#         else:
-#             return arr.astype(np.{{dtype}}, copy=copy)
-#     else:
-#         return np.array(arr, dtype=np.{{dtype}})
+def ensure_float64(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.float64, copy=False)
+    else:
+        return np.array(arr, dtype=np.float64)
 
-# {{endfor}}
+
+def ensure_float32(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.float32, copy=False)
+    else:
+        return np.array(arr, dtype=np.float32)
+
+
+def ensure_int8(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.int8, copy=False)
+    else:
+        return np.array(arr, dtype=np.int8)
+
+
+def ensure_int16(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.int16, copy=False)
+    else:
+        return np.array(arr, dtype=np.int16)
+
+
+def ensure_int32(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.int32, copy=False)
+    else:
+        return np.array(arr, dtype=np.int32)
+
+
+def ensure_int64(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.int64, copy=False)
+    else:
+        return np.array(arr, dtype=np.int64)
+
+
+def ensure_uint8(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.uint8, copy=False)
+    else:
+        return np.array(arr, dtype=np.uint8)
+
+
+def ensure_uint16(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.uint16, copy=False)
+    else:
+        return np.array(arr, dtype=np.uint16)
+
+
+def ensure_uint32(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.uint32, copy=False)
+    else:
+        return np.array(arr, dtype=np.uint32)
+
+
+def ensure_uint64(arr):
+    if isinstance(arr, np.ndarray):
+        return arr.astype(np.uint64, copy=False)
+    else:
+        return np.array(arr, dtype=np.uint64)
+
 
 # # generated from template
 # include "algos_take_helper.pxi"

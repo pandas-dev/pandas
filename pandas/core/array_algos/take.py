@@ -474,7 +474,7 @@ def _take_preprocess_indexer_and_fill_value(
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = ensure_int64(indexer, copy=False)
+        indexer = ensure_int64(indexer)
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
             mask_info = None, False

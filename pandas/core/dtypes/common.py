@@ -14,10 +14,9 @@ import numpy as np
 from pandas._libs import (
     Interval,
     Period,
-    algos,
 )
 from pandas._libs.tslibs import conversion
-from pandas._libs_numba import algos as algos_numba
+from pandas._libs_numba import algos
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -114,7 +113,7 @@ ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
-ensure_platform_int = algos_numba.ensure_platform_int
+ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
 
