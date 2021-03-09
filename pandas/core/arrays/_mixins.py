@@ -8,6 +8,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    overload,
 )
 
 import numpy as np
@@ -247,6 +248,22 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    @overload
+    def __getitem__(self: NDArrayBackedExtensionArrayT, key: int) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, key: slice
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, key: np.ndarray
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]

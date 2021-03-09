@@ -14,7 +14,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast,
 )
 import warnings
 
@@ -1204,7 +1203,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if skipna:
             arr = self
         else:
-            arr = cast(SparseArray, self.dropna())
+            arr = self.dropna()
 
         # we don't support these kwargs.
         # They should only be present when called via pandas, so do it here.
