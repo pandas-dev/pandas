@@ -179,7 +179,7 @@ class TestStyler:
         assert len(s.cell_context) > 0
 
         s = s._compute()
-        # ctx and _todo items affected when a render takes place
+        # ctx item affected when a render takes place. _todo is maintained
         assert len(s.ctx) > 0
         assert len(s._todo) > 0  # _todo is maintained after compute.
 
