@@ -100,7 +100,8 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
-        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
+        # float64 can hold df.loc[:, "A"], so setting is inplace
+        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0.0, 2.0, 4.0])}))
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
         df.loc[:, "B"] = df.loc[:, "A"]
@@ -120,6 +121,7 @@ class TestPartialSetting:
         df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
+    def test_partial_setting2(self):
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(

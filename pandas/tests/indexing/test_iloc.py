@@ -74,24 +74,14 @@ class TestiLocBaseIndependent:
         orig_vals = df.values
         indexer(df)[key, 0] = cat
 
-        overwrite = isinstance(key, slice) and key == slice(None)
-
-        if overwrite:
-            # TODO: GH#39986 this probably shouldn't behave differently
-            expected = DataFrame({0: cat})
-            assert not np.shares_memory(df.values, orig_vals)
-        else:
-            expected = DataFrame({0: cat}).astype(object)
-            assert np.shares_memory(df.values, orig_vals)
+        expected = DataFrame({0: cat.astype(object)})
+        assert np.shares_memory(df.values, orig_vals)
 
         tm.assert_frame_equal(df, expected)
 
         # check we dont have a view on cat (may be undesired GH#39986)
         df.iloc[0, 0] = "gamma"
-        if overwrite:
-            assert cat[0] != "gamma"
-        else:
-            assert cat[0] != "gamma"
+        assert cat[0] != "gamma"
 
     @pytest.mark.parametrize("box", [pd_array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
@@ -824,7 +814,6 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
-    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])

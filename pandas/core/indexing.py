@@ -1676,6 +1676,7 @@ class _iLocIndexer(_LocationIndexer):
         # Above we only set take_split_path to True for 2D cases
         assert self.ndim == 2
 
+        orig = indexer
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
         if len(indexer) > self.ndim:
@@ -1689,8 +1690,20 @@ class _iLocIndexer(_LocationIndexer):
 
         info_idx = indexer[1]
         pi = indexer[0]
+        if (
+            isinstance(pi, ABCDataFrame)
+            and orig is pi
+            and hasattr(self.obj._mgr, "blocks")
+            and len(self.obj._mgr.blocks) == 1
+        ):
+            # FIXME: kludge
+            return self._setitem_single_block(orig, value, name)
 
-        if com.is_null_slice(info_idx) and is_scalar(value):
+        if (
+            com.is_null_slice(info_idx)
+            and is_scalar(value)
+            and not isinstance(pi, ABCDataFrame)
+        ):
             # We can go directly through BlockManager.setitem without worrying
             #  about alignment.
             # TODO: do we need to do some kind of copy_with_setting check?
@@ -1734,7 +1747,8 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
-                self._setitem_single_column(ilocs[0], value, pi)
+                self._setitem_iat_loc(ilocs[0], pi, value)
+                # self._setitem_single_column(ilocs[0], value, pi)
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
                 # We are trying to set N values into M entries of a single
@@ -1758,7 +1772,8 @@ class _iLocIndexer(_LocationIndexer):
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):
-                    self._setitem_single_column(loc, v, pi)
+                    self._setitem_iat_loc(loc, pi, v)
+                    # self._setitem_single_column(loc, v, pi)
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
                 # This is a setitem-with-expansion, see
@@ -1796,6 +1811,7 @@ class _iLocIndexer(_LocationIndexer):
 
         for i, loc in enumerate(ilocs):
             # setting with a list, re-coerces
+            # self._setitem_iat_loc(loc, pi, value[:, i].tolist())
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
@@ -1812,7 +1828,8 @@ class _iLocIndexer(_LocationIndexer):
         if name == "iloc":
             for i, loc in enumerate(ilocs):
                 val = value.iloc[:, i]
-                self._setitem_single_column(loc, val, pi)
+                self._setitem_iat_loc(loc, pi, val)
+                # self._setitem_single_column(loc, val, pi)
 
         elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
@@ -1829,7 +1846,8 @@ class _iLocIndexer(_LocationIndexer):
                 else:
                     val = np.nan
 
-                self._setitem_single_column(loc, val, pi)
+                self._setitem_iat_loc(loc, pi, val)
+                # self._setitem_single_column(loc, val, pi)
 
         elif not unique_cols:
             raise ValueError("Setting with non-unique columns is not allowed.")
@@ -1848,7 +1866,8 @@ class _iLocIndexer(_LocationIndexer):
                 else:
                     val = np.nan
 
-                self._setitem_single_column(loc, val, pi)
+                self._setitem_iat_loc(loc, pi, val)
+                # self._setitem_single_column(loc, val, pi)
 
     def _setitem_single_column(self, loc: int, value, plane_indexer):
         """
@@ -1881,6 +1900,29 @@ class _iLocIndexer(_LocationIndexer):
 
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser)
+
+    def _setitem_iat_loc(self, loc: int, pi, value):
+        # TODO: likely a BM method?
+        mgr = self.obj._mgr
+        blkno = mgr.blknos[loc]
+        blkloc = mgr.blklocs[loc]
+        blk = mgr.blocks[blkno]
+        assert blk.mgr_locs[blkloc] == loc
+
+        if blk._can_hold_element(value):
+            # NB: we are assuming here that _can_hold_element is accurate
+            # TODO: do we need to do some kind of copy_with_setting check?
+            try:
+                self.obj._check_is_chained_assignment_possible()
+                blk.setitem_inplace((pi, blkloc), value)
+                self.obj._maybe_update_cacher(clear=True)
+            except ValueError:
+                if blk.is_extension:
+                    # FIXME: kludge bc _can_hold_element is wrong for EABLock
+                    return self._setitem_single_column(loc, value, pi)
+                raise
+        else:
+            self._setitem_single_column(loc, value, pi)
 
     def _setitem_single_block(self, indexer, value, name: str):
         """

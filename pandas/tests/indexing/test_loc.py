@@ -781,6 +781,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[1]]
         tm.assert_series_equal(result.dtypes, expected)
 
+    def test_loc_coercion2(self):
         # 12045
         import datetime
 
@@ -795,6 +796,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[1]]
         tm.assert_series_equal(result.dtypes, expected)
 
+    def test_loc_coercion3(self):
         # 11594
         df = DataFrame({"text": ["some words"] + [None] * 9})
         expected = df.dtypes
@@ -1208,7 +1210,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
-        expected = Series(categories, index=df.index, name="Alpha")
+        expected = Series(categories, index=df.index, name="Alpha").astype(object)
         tm.assert_series_equal(result, expected)
 
     def test_loc_setitem_datetime_coercion(self):

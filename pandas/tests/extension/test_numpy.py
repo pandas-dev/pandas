@@ -351,26 +351,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         super().test_setitem_sequence_broadcasts(data, box_in_series)
 
     @skip_nested
-    def test_setitem_loc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_loc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_multiple_homogoneous(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
-
-    @skip_nested
     @pytest.mark.parametrize("setter", ["loc", None])
     def test_setitem_mask_broadcast(self, data, setter):
         # ValueError: cannot set using a list-like indexer with a different

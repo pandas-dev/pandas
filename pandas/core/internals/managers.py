@@ -1464,6 +1464,7 @@ class BlockManager(DataManager):
         """
         Take items along any axis.
         """
+        # TODO: should these be np.intp?
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)

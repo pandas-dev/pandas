@@ -4950,11 +4950,26 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax[i]]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res.iloc[:, i] = newobj
+                res._isetitem(i, newobj)
 
         if inplace:
             return
         return res.__finalize__(self)
+
+    def _isetitem(self, loc: int, value):
+        cols = self.columns
+        if cols.is_unique:
+            col = cols[loc]
+            self[col] = value
+            return
+
+        # Otherwise we temporarily pin unique columns and call __setitem__
+        newcols = Index(range(len(cols)))
+        try:
+            self.columns = newcols
+            self[loc] = value
+        finally:
+            self.columns = cols
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(

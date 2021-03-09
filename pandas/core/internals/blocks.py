@@ -1008,22 +1008,15 @@ class Block(PandasObject):
             values[indexer] = value
 
         elif exact_match and is_categorical_dtype(arr_value.dtype):
-            # GH25495 - If the current dtype is not categorical,
-            # we need to create a new categorical block
             values[indexer] = value
 
         elif exact_match and is_ea_value:
-            # GH#32395 if we're going to replace the values entirely, just
-            #  substitute in the new array
             if not self.is_object and isinstance(value, (IntegerArray, FloatingArray)):
                 values[indexer] = value.to_numpy(value.dtype.numpy_dtype)
             else:
                 values[indexer] = np.asarray(value)
 
-        # if we are an exact match (ex-broadcasting),
-        # then use the resultant dtype
         elif exact_match:
-            # We are setting _all_ of the array's values, so can cast to new dtype
             values[indexer] = value
 
         elif is_ea_value:
