@@ -24,6 +24,9 @@ import pandas.core.common as com
 
 from pandas.io.common import get_handle
 
+from zipfile import ZipFile
+from pathlib import Path
+
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
     "uint8",
@@ -1343,14 +1346,10 @@ class TestDataFrameToCSV:
         ]
     )
     def test_to_csv_content_name_in_zipped_file(self, df, csv_name):
-        from zipfile import ZipFile
-        from pathlib import Path
         suffix_zip_name = csv_name + '.zip'
         with tm.ensure_clean(suffix_zip_name) as pth:
-            '''
-            ensure_clean will add random str before suffix_zip_name,
-            need Path.stem to get real file name
-            '''
+            #ensure_clean will add random str before suffix_zip_name,
+            #need Path.stem to get real file name
             df.to_csv(pth)
             zf = ZipFile(pth)
             pp = Path(pth)
