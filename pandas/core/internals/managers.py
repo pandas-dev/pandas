@@ -802,6 +802,7 @@ class BlockManager(DataManager):
         return type(self).from_blocks(new_blocks, axes)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
+        assert isinstance(slobj, slice), type(slobj)
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
@@ -812,7 +813,7 @@ class BlockManager(DataManager):
             raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
-        new_axes[axis] = new_axes[axis][slobj]
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
         return type(self)._simple_new(tuple(new_blocks), new_axes)
 
@@ -1201,7 +1202,9 @@ class BlockManager(DataManager):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
+    def insert(
+        self, loc: int, item: Hashable, value: ArrayLike, allow_duplicates: bool = False
+    ):
         """
         Insert item at selected position.
 
@@ -1209,7 +1212,7 @@ class BlockManager(DataManager):
         ----------
         loc : int
         item : hashable
-        value : array_like
+        value : np.ndarray or ExtensionArray
         allow_duplicates: bool
             If False, trying to insert non-unique item will raise
 
@@ -1226,11 +1229,9 @@ class BlockManager(DataManager):
 
         if value.ndim == 2:
             value = value.T
-        elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
-            # TODO(EA2D): special case not needed with 2D EAs
-            value = ensure_block_shape(value, ndim=2)
+        else:
+            value = ensure_block_shape(value, ndim=self.ndim)
 
-        # TODO: type value as ArrayLike
         block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
         for blkno, count in _fast_count_smallints(self.blknos[loc:]):
@@ -1367,6 +1368,7 @@ class BlockManager(DataManager):
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
+                # TODO: tests all have isinstance(slobj, slice), other possibilities?
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
@@ -1376,9 +1378,11 @@ class BlockManager(DataManager):
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
                     blocks = [
-                        blk.getitem_block([ml], new_mgr_locs=i)
+                        blk.getitem_block(slice(ml, ml + 1), new_mgr_locs=i)
                         for i, ml in enumerate(slobj)
                     ]
+                    # We have
+                    #  all(np.shares_memory(nb.values, blk.values) for nb in blocks)
                     return blocks
                 else:
                     return [
@@ -1440,7 +1444,8 @@ class BlockManager(DataManager):
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
                         for i, ml in zip(taker, mgr_locs):
-                            nb = blk.getitem_block([i], new_mgr_locs=ml)
+                            nb = blk.getitem_block(slice(i, i + 1), new_mgr_locs=ml)
+                            # We have np.shares_memory(nb.values, blk.values)
                             blocks.append(nb)
                     else:
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
@@ -1604,14 +1609,23 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         """ compat with BlockManager """
         return None
 
+    def getitem_mgr(self, indexer) -> SingleBlockManager:
+        # similar to get_slice, but not restricted to slice indexer
+        blk = self._block
+        array = blk._slice(indexer)
+        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
+        return type(self)(block, self.index[indexer])
+
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
+        assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
         blk = self._block
         array = blk._slice(slobj)
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
-        return type(self)(block, self.index[slobj])
+        new_index = self.index._getitem_slice(slobj)
+        return type(self)(block, new_index)
 
     @property
     def index(self) -> Index:
@@ -1975,6 +1989,7 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length: int, allow_fill: bool
     ):
         return "mask", slice_or_indexer, slice_or_indexer.sum()
     else:
+        # TODO: np.intp?
         indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
