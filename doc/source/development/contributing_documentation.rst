@@ -141,7 +141,7 @@ Requirements
 ~~~~~~~~~~~~
 
 First, you need to have a development environment to be able to build pandas
-(see the docs on :ref:`creating a development environment <contributing.dev_env>`).
+(see the docs on :any:`creating a development environment <contributing.dev_env>`).
 
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -207,7 +207,7 @@ Building master branch documentation
 When pull requests are merged into the pandas ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <https://pandas.pydata.org/docs/dev/>`__, see also
-the :ref:`Continuous Integration <contributing.ci>` section.
+the :any:`Continuous Integration <contributing.ci>` section.
 
 Previewing changes
 ------------------
