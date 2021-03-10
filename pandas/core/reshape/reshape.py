@@ -600,7 +600,7 @@ def stack_multiple(frame, level, dropna=True):
     return result
 
 
-def _stack_multi_column_index(columns):
+def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
     """Creates a MultiIndex from the first N-1 levels of this MultiIndex."""
     if len(columns.levels) <= 2:
         return columns.levels[0]._rename(name=columns.names[0])
