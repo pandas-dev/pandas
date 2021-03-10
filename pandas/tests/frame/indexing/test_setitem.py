@@ -433,7 +433,7 @@ class TestDataFrameSetItem:
         assert is_categorical_dtype(df["D"].dtype)
         assert is_interval_dtype(df["D"].cat.categories)
 
-        # These goes through the Series constructor and so get inferred back
+        # These go through the Series constructor and so get inferred back
         #  to IntervalDtype
         assert is_interval_dtype(df["C"])
         assert is_interval_dtype(df["E"])
