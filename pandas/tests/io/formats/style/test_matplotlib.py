@@ -203,3 +203,18 @@ class TestStylerMatplotlibDep:
         expected = df.style.background_gradient(axis=None, gmap=exp_gmap)._compute()
         result = df.style.background_gradient(axis=axis, gmap=gmap)._compute()
         assert expected.ctx == result.ctx
+
+    @pytest.mark.parametrize(
+        "gmap, axis",
+        [
+            (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 1),
+            (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 0),
+            (Series([1, 2], index=["X", "Y"]), None),
+            (Series([1, 2], index=["X", "Y"]), 1),
+            (Series([1, 2], index=["A", "B"]), 0),
+        ],
+    )
+    def test_background_gradient_gmap_wrong_series_dataframe(self, gmap, axis):
+        # test giving a gmap in DataFrame or Series form but with wrong axis
+        df = DataFrame([[0, 0], [0, 0]], columns=["A", "B"], index=["X", "Y"])
+        df.style.background_gradient(axis=axis, gmap=gmap)._compute()
