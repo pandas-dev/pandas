@@ -581,7 +581,7 @@ The following formula is used to compute exponentially weighted mean with an inp
 
 .. math::
 
-    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 
 ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how
