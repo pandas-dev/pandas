@@ -147,7 +147,7 @@ Creating a development environment
 
 To test out code changes, you'll need to build pandas from source, which
 requires a C/C++ compiler and Python environment. If you're making documentation
-changes, you can skip to :ref:`contributing.documentation` but if you skip
+changes, you can skip to :ref:`contributing to the documentation <contributing_documentation>` but if you skip 
 creating the development environment you won't be able to build the documentation
 locally before pushing your changes.
 
@@ -1605,7 +1605,7 @@ automatically updated.  Pushing them to GitHub again is done by::
     git push origin shiny-new-feature
 
 This will automatically update your pull request with the latest code and restart the
-:ref:`Continuous Integration <contributing.ci>` tests.
+:any:`Continuous Integration <contributing.ci>` tests.
 
 Another reason you might need to update your pull request is to solve conflicts
 with changes that have been merged into the master branch since you opened your
