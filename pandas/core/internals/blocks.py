@@ -1724,6 +1724,7 @@ class ExtensionBlock(Block):
         return [self.make_block_same_class(new_values)]
 
     def where(self, other, cond, errors="raise", axis: int = 0) -> List[Block]:
+
         cond = extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
