@@ -178,6 +178,7 @@ jobs:
         pytest pandas/tests/indexing/
 
         pytest pandas/tests/api/
+        pytest pandas/tests/arrays/
         pytest pandas/tests/base/
         pytest pandas/tests/computation/
         pytest pandas/tests/config/
