@@ -7,6 +7,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import copy
 from functools import partial
+import operator
 from typing import (
     Any,
     Callable,
@@ -1920,13 +1921,13 @@ class Styler:
 
             # get ops with correct boundary attribution
             if inclusive == "both":
-                ops = ("__ge__", "__le__")
+                ops = (operator.ge, operator.le)
             elif inclusive == "neither":
-                ops = ("__gt__", "__lt__")
+                ops = (operator.gt, operator.lt)
             elif inclusive == "left":
-                ops = ("__ge__", "__lt__")
+                ops = (operator.ge, operator.lt)
             elif inclusive == "right":
-                ops = ("__gt__", "__le__")
+                ops = (operator.gt, operator.le)
             else:
                 raise ValueError(
                     f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
@@ -1934,12 +1935,12 @@ class Styler:
                 )
 
             g_left = (
-                getattr(data, ops[0])(left)
+                ops[0](data, left)
                 if left is not None
                 else np.full_like(data, True, dtype=bool)
             )
             l_right = (
-                getattr(data, ops[1])(right)
+                ops[1](data, right)
                 if right is not None
                 else np.full_like(data, True, dtype=bool)
             )
