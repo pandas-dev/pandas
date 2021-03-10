@@ -8,7 +8,10 @@ from typing import (
     TypeVar,
 )
 
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+    Shape,
+)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import find_common_type
@@ -38,6 +41,16 @@ class DataManager(PandasObject):
     @property
     def ndim(self) -> int:
         return len(self.axes)
+
+    @property
+    def shape(self) -> Shape:
+        return tuple(len(ax) for ax in self.axes)
+
+    def _normalize_axis(self, axis: int) -> int:
+        # switch axis
+        if self.ndim == 2:
+            axis = 1 if axis == 0 else 0
+        return axis
 
     def reindex_indexer(
         self: T,
@@ -102,6 +115,18 @@ class DataManager(PandasObject):
             return False
 
         return self._equal_values(other)
+
+    def apply(
+        self: T,
+        f,
+        align_keys: Optional[List[str]] = None,
+        ignore_failures: bool = False,
+        **kwargs,
+    ) -> T:
+        raise AbstractMethodError(self)
+
+    def isna(self: T, func) -> T:
+        return self.apply("apply", func=func)
 
 
 class SingleDataManager(DataManager):

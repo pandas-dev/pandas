@@ -155,20 +155,9 @@ class ArrayManager(DataManager):
         return [self._axes[1], self._axes[0]]
 
     @property
-    def shape(self) -> Tuple[int, ...]:
-        # this still gives the BlockManager-compatible transposed shape
-        return tuple(len(ax) for ax in self.axes)
-
-    @property
     def shape_proper(self) -> Tuple[int, ...]:
         # this returns (n_rows, n_columns)
         return tuple(len(ax) for ax in self._axes)
-
-    @staticmethod
-    def _normalize_axis(axis):
-        # switch axis
-        axis = 1 if axis == 0 else 0
-        return axis
 
     def set_axis(
         self, axis: int, new_labels: Index, verify_integrity: bool = True
@@ -509,9 +498,6 @@ class ArrayManager(DataManager):
 
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
-
-    def isna(self, func) -> ArrayManager:
-        return self.apply("apply", func=func)
 
     def where(self, other, cond, align: bool, errors: str, axis: int) -> ArrayManager:
         if align:

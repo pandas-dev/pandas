@@ -245,16 +245,6 @@ class BlockManager(DataManager):
     # Python3 compat
     __bool__ = __nonzero__
 
-    @property
-    def shape(self) -> Shape:
-        return tuple(len(ax) for ax in self.axes)
-
-    def _normalize_axis(self, axis):
-        # switch axis to follow BlockManager logic
-        if self.ndim == 2:
-            axis = 1 if axis == 0 else 0
-        return axis
-
     def set_axis(
         self, axis: int, new_labels: Index, verify_integrity: bool = True
     ) -> None:
@@ -359,9 +349,6 @@ class BlockManager(DataManager):
         self._is_consolidated = False
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
-
-    def __len__(self) -> int:
-        return len(self.items)
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -573,9 +560,6 @@ class BlockManager(DataManager):
         ]
 
         return type(self)(blocks, new_axes)
-
-    def isna(self, func) -> BlockManager:
-        return self.apply("apply", func=func)
 
     def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
         axis = self._normalize_axis(axis)
