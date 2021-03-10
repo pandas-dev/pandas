@@ -1,6 +1,8 @@
 import csv
 from io import StringIO
 import os
+from zipfile import ZipFile
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -24,8 +26,6 @@ import pandas.core.common as com
 
 from pandas.io.common import get_handle
 
-from zipfile import ZipFile
-from pathlib import Path
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
     "uint8",
