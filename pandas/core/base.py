@@ -80,6 +80,7 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    # results from calls to methods decorated with cache_readonly get added to _cache
     _cache: Dict[str, Any]
 
     @property
@@ -100,21 +101,21 @@ class PandasObject(DirNamesMixin):
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
-        if getattr(self, "_cache", None) is None:
+        if not hasattr(self, "_cache"):
             return
         if key is None:
             self._cache.clear()
         else:
             self._cache.pop(key, None)
 
-    def __sizeof__(self):
+    def __sizeof__(self) -> int:
         """
         Generates the total memory usage for an object that returns
         either a value or Series of values
         """
-        if hasattr(self, "memory_usage"):
-            # error: "PandasObject" has no attribute "memory_usage"
-            mem = self.memory_usage(deep=True)  # type: ignore[attr-defined]
+        memory_usage = getattr(self, "memory_usage", None)
+        if memory_usage:
+            mem = memory_usage(deep=True)
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -1316,5 +1317,5 @@ class IndexOpsMixin(OpsMixin):
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
-    def duplicated(self, keep="first"):
+    def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
         return duplicated(self._values, keep=keep)

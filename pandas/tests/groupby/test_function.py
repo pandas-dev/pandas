@@ -122,10 +122,6 @@ def test_intercept_builtin_sum():
     tm.assert_series_equal(result2, expected)
 
 
-# @pytest.mark.parametrize("f", [max, min, sum])
-# def test_builtins_apply(f):
-
-
 @pytest.mark.parametrize("f", [max, min, sum])
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
@@ -370,7 +366,7 @@ class TestGroupByNonCythonPaths:
     def test_describe(self, df, gb, gni):
         # describe
         expected_index = Index([1, 3], name="A")
-        expected_col = pd.MultiIndex(
+        expected_col = MultiIndex(
             levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
             codes=[[0] * 8, list(range(8))],
         )
@@ -566,7 +562,7 @@ def test_idxmin_idxmax_axis1():
 
     tm.assert_series_equal(alt[indexer], res.droplevel("A"))
 
-    df["E"] = pd.date_range("2016-01-01", periods=10)
+    df["E"] = date_range("2016-01-01", periods=10)
     gb2 = df.groupby("A")
 
     msg = "reduction operation 'argmax' not allowed for this dtype"
@@ -958,7 +954,7 @@ def test_frame_describe_multikey(tsframe):
     for col in tsframe:
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
-        group_col = pd.MultiIndex(
+        group_col = MultiIndex(
             levels=[[col], group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
