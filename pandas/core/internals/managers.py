@@ -1370,11 +1370,8 @@ class BlockManager(DataManager):
                 if sllen == 0:
                     return []
                 # TODO: tests all have isinstance(slobj, slice), other possibilities?
-                return [
-                    blk.getitem_block_columns(
-                        slobj, new_mgr_locs=BlockPlacement(slice(0, sllen))
-                    )
-                ]
+                bp = BlockPlacement(slice(0, sllen))
+                return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
                     fill_value = blk.fill_value
