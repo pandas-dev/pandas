@@ -386,7 +386,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
         index = pd.timedelta_range("1 days", periods=5)
-        index = index._with_freq(None)  # wont be preserved by constructors
+        index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 
         values = getattr(index, attr)
