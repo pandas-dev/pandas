@@ -67,7 +67,7 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0), or other RangeIndex instance
+    start : int (default: 0), range, or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)

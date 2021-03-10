@@ -2,6 +2,7 @@
 Tests for the pandas.io.common functionalities
 """
 import codecs
+from functools import partial
 from io import (
     BytesIO,
     StringIO,
@@ -429,14 +430,6 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("relative/local/path")
 
 
-def test_default_errors():
-    # GH 38989
-    with tm.ensure_clean() as path:
-        file = Path(path)
-        file.write_bytes(b"\xe4\na\n1")
-        tm.assert_frame_equal(pd.read_csv(file, skiprows=[0]), pd.DataFrame({"a": [1]}))
-
-
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
@@ -481,3 +474,46 @@ def test_explicit_encoding(io_class, mode, msg):
     with io_class() as buffer:
         with pytest.raises(TypeError, match=msg):
             expected.to_csv(buffer, mode=f"w{mode}")
+
+
+@pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
+@pytest.mark.parametrize("format", ["csv", "json"])
+def test_encoding_errors(encoding_errors, format):
+    # GH39450
+    msg = "'utf-8' codec can't decode byte"
+    bad_encoding = b"\xe4"
+
+    if format == "csv":
+        return
+        content = bad_encoding + b"\n" + bad_encoding
+        reader = pd.read_csv
+    else:
+        content = (
+            b'{"'
+            + bad_encoding * 2
+            + b'": {"'
+            + bad_encoding
+            + b'":"'
+            + bad_encoding
+            + b'"}}'
+        )
+        reader = partial(pd.read_json, orient="index")
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(content)
+
+        if encoding_errors != "replace":
+            with pytest.raises(UnicodeDecodeError, match=msg):
+                reader(path, encoding_errors=encoding_errors)
+        else:
+            df = reader(path, encoding_errors=encoding_errors)
+            decoded = bad_encoding.decode(errors=encoding_errors)
+            expected = pd.DataFrame({decoded: [decoded]}, index=[decoded * 2])
+            tm.assert_frame_equal(df, expected)
+
+
+def test_bad_encdoing_errors():
+    # GH 39777
+    with tm.ensure_clean() as path:
+        with pytest.raises(ValueError, match="Invalid value for `encoding_errors`"):
+            icom.get_handle(path, "w", errors="bad")

@@ -120,6 +120,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
+_dtype_obj = np.dtype(object)  # comparison is faster than is_object_dtype
+
+
 def maybe_split(meth: F) -> F:
     """
     If we have a multi-column block, split and operate block-wise.  Otherwise
@@ -190,6 +193,10 @@ class Block(PandasObject):
                 f"placement implies {len(self.mgr_locs)}"
             )
 
+        elif self.is_extension and self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(EA2D): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
+
     @classmethod
     def _maybe_coerce_values(cls, values):
         """
@@ -205,7 +212,7 @@ class Block(PandasObject):
         """
         return values
 
-    def _check_ndim(self, values, ndim):
+    def _check_ndim(self, values, ndim: int):
         """
         ndim inference and validation.
 
@@ -216,7 +223,7 @@ class Block(PandasObject):
         Parameters
         ----------
         values : array-like
-        ndim : int or None
+        ndim : int
 
         Returns
         -------
@@ -226,8 +233,7 @@ class Block(PandasObject):
         ------
         ValueError : the number of dimensions do not match
         """
-        if ndim is None:
-            ndim = values.ndim
+        assert isinstance(ndim, int)  # GH#38134 enforce this
 
         if self._validate_ndim:
             if values.ndim != ndim:
@@ -298,8 +304,8 @@ class Block(PandasObject):
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
         """
-        if is_object_dtype(dtype):
-            return self.values.astype(object)
+        if dtype == _dtype_obj:
+            return self.values.astype(_dtype_obj)
         return self.values
 
     @final
@@ -1436,33 +1442,6 @@ class ExtensionBlock(Block):
     is_extension = True
 
     values: ExtensionArray
-
-    def __init__(self, values, placement, ndim: int):
-        """
-        Initialize a non-consolidatable block.
-
-        'ndim' may be inferred from 'placement'.
-
-        This will call continue to call __init__ for the other base
-        classes mixed in with this Mixin.
-        """
-
-        # Placement must be converted to BlockPlacement so that we can check
-        # its length
-        if not isinstance(placement, libinternals.BlockPlacement):
-            placement = libinternals.BlockPlacement(placement)
-
-        # Maybe infer ndim from placement
-        if ndim is None:
-            if len(placement) != 1:
-                ndim = 1
-            else:
-                ndim = 2
-        super().__init__(values, placement, ndim=ndim)
-
-        if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(EA2D): check unnecessary with 2D EAs
-            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self) -> Shape:
