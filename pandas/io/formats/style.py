@@ -157,6 +157,7 @@ class Styler:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template = env.get_template("html.tpl")
+    template2 = env.get_template("latex.tpl")
 
     def __init__(
         self,
@@ -732,12 +733,14 @@ class Styler:
 
         return self
 
-    def render(self, **kwargs) -> str:
+    def render(self, latex: bool = False, **kwargs) -> str:
         """
         Render the built up styles to HTML.
 
         Parameters
         ----------
+        latex : bool
+            Output in latex format rather than HTML.
         **kwargs
             Any additional keyword arguments are passed
             through to ``self.template.render``.
@@ -773,6 +776,8 @@ class Styler:
         # TODO: namespace all the pandas keys
         d = self._translate()
         d.update(kwargs)
+        if latex:
+            return self.template2.render(**d)
         return self.template.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
