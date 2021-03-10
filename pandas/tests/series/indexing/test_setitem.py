@@ -299,16 +299,15 @@ class TestSetitemViewCopySemantics:
         assert dti[1] == ts
         assert dti.freq == "D"
 
-    def test_dt64tz_setitem_does_not_mutate_dti(self, using_array_manager):
+    def test_dt64tz_setitem_does_not_mutate_dti(self):
         # GH#21907, GH#24096
         dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
         ts = dti[0]
         ser = Series(dti)
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
-        if not using_array_manager:
-            assert ser._mgr.blocks[0].values is not dti
-            assert ser._mgr.blocks[0].values._data.base is not dti._data._data.base
+        assert ser._mgr.arrays[0] is not dti
+        assert ser._mgr.arrays[0]._data.base is not dti._data._data.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
