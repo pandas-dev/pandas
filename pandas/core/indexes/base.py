@@ -4551,6 +4551,13 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return result
 
+    def _getitem_slice(self: _IndexT, slobj: slice) -> _IndexT:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        res = self._data[slobj]
+        return type(self)._simple_new(res, name=self._name)
+
     @final
     def _can_hold_identifiers_and_holds_name(self, name) -> bool:
         """
