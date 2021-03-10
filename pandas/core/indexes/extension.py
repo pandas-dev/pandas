@@ -418,7 +418,13 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
             dtype = find_common_type([self.dtype, dtype])
             return self.astype(dtype).insert(loc, item)
         else:
-            new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
+            new_vals = np.concatenate(
+                (
+                    arr._ndarray[:loc],
+                    np.asarray([code], dtype=arr._ndarray.dtype),
+                    arr._ndarray[loc:],
+                )
+            )
             new_arr = arr._from_backing_data(new_vals)
             return type(self)._simple_new(new_arr, name=self.name)
 

@@ -25,6 +25,7 @@ from pandas._libs.util cimport is_integer_object
 
 
 @cython.final
+@cython.freelist(32)
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
