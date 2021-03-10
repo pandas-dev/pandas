@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.base import registry as ea_registry
+from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,

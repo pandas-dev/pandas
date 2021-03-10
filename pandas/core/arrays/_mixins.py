@@ -255,13 +255,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @overload
     def __getitem__(
-        self: NDArrayBackedExtensionArrayT, key: slice
-    ) -> NDArrayBackedExtensionArrayT:
-        ...
-
-    @overload
-    def __getitem__(
-        self: NDArrayBackedExtensionArrayT, key: np.ndarray
+        self: NDArrayBackedExtensionArrayT, key: Union[slice, np.ndarray]
     ) -> NDArrayBackedExtensionArrayT:
         ...
 
