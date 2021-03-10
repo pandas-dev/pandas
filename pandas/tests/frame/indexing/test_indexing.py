@@ -439,8 +439,8 @@ class TestDataFrameIndexing:
         dm["foo"] = "bar"
         assert dm["foo"].dtype == np.object_
 
-        dm["coercable"] = ["1", "2", "3"]
-        assert dm["coercable"].dtype == np.object_
+        dm["coercible"] = ["1", "2", "3"]
+        assert dm["coercible"].dtype == np.object_
 
     def test_setitem_corner2(self):
         data = {
