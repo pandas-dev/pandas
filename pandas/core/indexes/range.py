@@ -827,6 +827,13 @@ class RangeIndex(Int64Index):
         # fall back to Int64Index
         return super().__getitem__(key)
 
+    def _getitem_slice(self: RangeIndex, slobj: slice) -> RangeIndex:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        res = self._range[slobj]
+        return type(self)._simple_new(res, name=self._name)
+
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
 

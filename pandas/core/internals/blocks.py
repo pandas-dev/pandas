@@ -374,7 +374,7 @@ class Block(PandasObject):
         """
         Perform __getitem__-like, return result as block.
 
-        As of now, only supports slices that preserve dimensionality.
+        Only supports slices that preserve dimensionality.
         """
         if new_mgr_locs is None:
             axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer

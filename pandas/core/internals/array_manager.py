@@ -806,6 +806,8 @@ class ArrayManager(DataManager):
 
         return type(self)(arrays, new_axes, verify_integrity=False)
 
+    getitem_mgr = get_slice
+
     def fast_xs(self, loc: int) -> ArrayLike:
         """
         Return the array corresponding to `frame.iloc[loc]`.
