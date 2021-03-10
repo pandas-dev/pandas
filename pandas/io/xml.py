@@ -37,8 +37,6 @@ from pandas.io.common import (
 )
 from pandas.io.parsers import TextParser
 
-lxml = import_optional_dependency("lxml.etree", errors="ignore")
-
 
 class _XMLFrameParser:
     """
@@ -92,6 +90,7 @@ class _XMLFrameParser:
     To subclass this class effectively you must override the following methods:`
         * :func:`parse_data`
         * :func:`_parse_nodes`
+        * :func:`_parse_doc`
         * :func:`_validate_names`
         * :func:`_validate_path`
 
@@ -188,6 +187,15 @@ class _XMLFrameParser:
         """
         raise AbstractMethodError(self)
 
+    def _parse_doc(self) -> bytes:
+        """
+        Build tree from path_or_buffer.
+
+        This method will parse XML object into tree
+        either from string/bytes or file location.
+        """
+        raise AbstractMethodError(self)
+
 
 class _EtreeFrameParser(_XMLFrameParser):
     """
@@ -195,22 +203,18 @@ class _EtreeFrameParser(_XMLFrameParser):
     standard library XML module: `xml.etree.ElementTree`.
     """
 
-    from xml.etree.ElementTree import (
-        Element,
-        ElementTree,
-    )
-
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def parse_data(self) -> List[Dict[str, Optional[str]]]:
+        from xml.etree.ElementTree import XML
 
         if self.stylesheet is not None:
             raise ValueError(
                 "To use stylesheet, you need lxml installed and selected as parser."
             )
 
-        self.xml_doc = self._parse_doc()
+        self.xml_doc = XML(self._parse_doc())
 
         self._validate_path()
         self._validate_names()
@@ -347,16 +351,11 @@ class _EtreeFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _parse_doc(self) -> Union[Element, ElementTree]:
-        """
-        Build tree from path_or_buffer.
-
-        This method will parse XML object into tree
-        either from string/bytes or file location.
-        """
+    def _parse_doc(self) -> bytes:
         from xml.etree.ElementTree import (
             XMLParser,
             parse,
+            tostring,
         )
 
         handle_data = get_data_from_filepath(
@@ -370,7 +369,7 @@ class _EtreeFrameParser(_XMLFrameParser):
             curr_parser = XMLParser(encoding=self.encoding)
             r = parse(xml_data, parser=curr_parser)
 
-        return r
+        return tostring(r.getroot())
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -391,12 +390,13 @@ class _LxmlFrameParser(_XMLFrameParser):
         validate xpath, names, optionally parse and run XSLT,
         and parse original or transformed XML and return specific nodes.
         """
+        from lxml.etree import XML
 
-        self.xml_doc = self._parse_doc(self.path_or_buffer)
+        self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
 
         if self.stylesheet is not None:
-            self.xsl_doc = self._parse_doc(self.stylesheet)
-            self.xml_doc = self._transform_doc()
+            self.xsl_doc = XML(self._parse_doc(self.stylesheet))
+            self.xml_doc = XML(self._transform_doc())
 
         self._validate_path()
         self._validate_names()
@@ -535,62 +535,47 @@ class _LxmlFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    if lxml is not None:
+    def _parse_doc(self, raw_doc) -> bytes:
         from lxml.etree import (
-            Element,
-            ElementTree,
+            XMLParser,
+            fromstring,
+            parse,
+            tostring,
         )
 
-        def _parse_doc(self, raw_doc) -> Union[Element, ElementTree]:
-            """
-            Build tree from path_or_buffer.
+        handle_data = get_data_from_filepath(
+            filepath_or_buffer=raw_doc,
+            encoding=self.encoding,
+            compression=self.compression,
+            storage_options=self.storage_options,
+        )
 
-            This method will parse XML object into tree
-            either from string/bytes or file location.
-            """
+        with preprocess_data(handle_data) as xml_data:
+            curr_parser = XMLParser(encoding=self.encoding)
 
-            from lxml.etree import (
-                XMLParser,
-                fromstring,
-                parse,
-            )
+            if isinstance(xml_data, io.StringIO):
+                doc = fromstring(
+                    xml_data.getvalue().encode(self.encoding), parser=curr_parser
+                )
+            else:
+                doc = parse(xml_data, parser=curr_parser)
 
-            handle_data = get_data_from_filepath(
-                filepath_or_buffer=raw_doc,
-                encoding=self.encoding,
-                compression=self.compression,
-                storage_options=self.storage_options,
-            )
+        return tostring(doc)
 
-            with preprocess_data(handle_data) as xml_data:
-                curr_parser = XMLParser(encoding=self.encoding)
+    def _transform_doc(self) -> bytes:
+        """
+        Transform original tree using stylesheet.
 
-                if isinstance(xml_data, io.StringIO):
-                    doc = fromstring(
-                        xml_data.getvalue().encode(self.encoding), parser=curr_parser
-                    )
-                else:
-                    doc = parse(xml_data, parser=curr_parser)
+        This method will transform original xml using XSLT script into
+        am ideally flatter xml document for easier parsing and migration
+        to Data Frame.
+        """
+        from lxml.etree import XSLT
 
-            return doc
+        transformer = XSLT(self.xsl_doc)
+        new_doc = transformer(self.xml_doc)
 
-        def _transform_doc(self) -> Element:
-            """
-            Transform original tree using stylesheet.
-
-            This method will transform original xml using XSLT script into
-            am ideally flatter xml document for easier parsing and migration
-            to Data Frame.
-            """
-            from lxml.etree import (
-                XML,
-                XSLT,
-            )
-
-            transformer = XSLT(self.xsl_doc)
-            new_doc = transformer(self.xml_doc)
-
-            return XML(bytes(new_doc))
+        return bytes(new_doc)
 
 
 def get_data_from_filepath(
@@ -706,6 +691,8 @@ def _parse(
     ValueError
         * If parser is not lxml or etree.
     """
+
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
     p: Union[_EtreeFrameParser, _LxmlFrameParser]
 
