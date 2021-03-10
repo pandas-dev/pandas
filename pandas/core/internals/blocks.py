@@ -81,7 +81,7 @@ from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
     validate_putmask,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
@@ -92,6 +92,8 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    FloatingArray,
+    IntegerArray,
     PandasArray,
 )
 from pandas.core.base import PandasObject
@@ -114,6 +116,9 @@ if TYPE_CHECKING:
         Index,
     )
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+
+
+_dtype_obj = np.dtype(object)  # comparison is faster than is_object_dtype
 
 
 class Block(PandasObject):
@@ -168,6 +173,10 @@ class Block(PandasObject):
                 f"placement implies {len(self.mgr_locs)}"
             )
 
+        elif self.is_extension and self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(EA2D): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
+
     @classmethod
     def _maybe_coerce_values(cls, values):
         """
@@ -183,7 +192,7 @@ class Block(PandasObject):
         """
         return values
 
-    def _check_ndim(self, values, ndim):
+    def _check_ndim(self, values, ndim: int):
         """
         ndim inference and validation.
 
@@ -194,7 +203,7 @@ class Block(PandasObject):
         Parameters
         ----------
         values : array-like
-        ndim : int or None
+        ndim : int
 
         Returns
         -------
@@ -204,8 +213,7 @@ class Block(PandasObject):
         ------
         ValueError : the number of dimensions do not match
         """
-        if ndim is None:
-            ndim = values.ndim
+        assert isinstance(ndim, int)  # GH#38134 enforce this
 
         if self._validate_ndim:
             if values.ndim != ndim:
@@ -276,8 +284,8 @@ class Block(PandasObject):
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
         """
-        if is_object_dtype(dtype):
-            return self.values.astype(object)
+        if dtype == _dtype_obj:
+            return self.values.astype(_dtype_obj)
         return self.values
 
     @final
@@ -314,7 +322,7 @@ class Block(PandasObject):
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
-        return make_block(values, placement=placement, ndim=self.ndim)
+        return new_block(values, placement=placement, ndim=self.ndim)
 
     @final
     def make_block_same_class(self, values, placement=None) -> Block:
@@ -447,7 +455,7 @@ class Block(PandasObject):
             nbs = []
             for i, loc in enumerate(self.mgr_locs):
                 vals = result[i]
-                block = self.make_block(values=vals, placement=[loc])
+                block = self.make_block(values=vals, placement=loc)
                 nbs.append(block)
             return nbs
 
@@ -994,6 +1002,7 @@ class Block(PandasObject):
         # length checking
         check_setitem_lengths(indexer, value, values)
         exact_match = is_exact_shape_match(values, arr_value)
+
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -1007,26 +1016,20 @@ class Block(PandasObject):
             # GH25495 - If the current dtype is not categorical,
             # we need to create a new categorical block
             values[indexer] = value
-            if values.ndim == 2:
-                # TODO(EA2D): special case not needed with 2D EAs
-                if values.shape[-1] != 1:
-                    # shouldn't get here (at least until 2D EAs)
-                    raise NotImplementedError
-                values = values[:, 0]
-            return self.make_block(Categorical(values, dtype=arr_value.dtype))
 
         elif exact_match and is_ea_value:
             # GH#32395 if we're going to replace the values entirely, just
             #  substitute in the new array
-            return self.make_block(arr_value)
+            if not self.is_object and isinstance(value, (IntegerArray, FloatingArray)):
+                values[indexer] = value.to_numpy(value.dtype.numpy_dtype)
+            else:
+                values[indexer] = np.asarray(value)
 
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
         elif exact_match:
             # We are setting _all_ of the array's values, so can cast to new dtype
             values[indexer] = value
-
-            values = values.astype(arr_value.dtype, copy=False)
 
         elif is_ea_value:
             # GH#38952
@@ -1061,21 +1064,17 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        transpose = self.ndim == 2
+        orig_mask = mask
         mask, noop = validate_putmask(self.values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
-        new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
-        if not is_list_like(new) and isna(new) and not self.is_object:
-            # FIXME: make sure we have compatible NA
+        if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            if transpose:
-                new_values = new_values.T
 
-            putmask_without_repeat(new_values, mask, new)
+            putmask_without_repeat(self.values.T, mask, new)
             return [self]
 
         elif noop:
@@ -1083,42 +1082,31 @@ class Block(PandasObject):
 
         dtype, _ = infer_dtype_from(new)
         if dtype.kind in ["m", "M"]:
-            # using putmask with object dtype will incorrect cast to object
+            # using putmask with object dtype will incorrectly cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
             return self.where(new, ~mask)
 
+        elif self.ndim == 1 or self.shape[0] == 1:
+            # no need to split columns
+            nv = putmask_smart(self.values.T, mask, new).T
+            return [self.make_block(nv)]
+
         else:
-            # may need to upcast
-            if transpose:
-                mask = mask.T
-                if isinstance(new, np.ndarray):
-                    new = new.T
+            is_array = isinstance(new, np.ndarray)
 
-            # operate column-by-column
-            def f(mask, val, idx):
+            res_blocks = []
+            nbs = self._split()
+            for i, nb in enumerate(nbs):
+                n = new
+                if is_array:
+                    # we have a different value per-column
+                    n = new[:, i : i + 1]
 
-                if idx is None:
-                    # ndim==1 case.
-                    n = new
-                else:
-
-                    if isinstance(new, np.ndarray):
-                        n = np.squeeze(new[idx % new.shape[0]])
-                    else:
-                        n = np.array(new)
-
-                    # type of the new block
-                    dtype = find_common_type([n.dtype, val.dtype])
-
-                    # we need to explicitly astype here to make a copy
-                    n = n.astype(dtype)
-
-                nv = putmask_smart(val, mask, n)
-                return nv
-
-            new_blocks = self.split_and_operate(mask, f, True)
-            return new_blocks
+                submask = orig_mask[:, i : i + 1]
+                rbs = nb.putmask(submask, n)
+                res_blocks.extend(rbs)
+            return res_blocks
 
     @final
     def coerce_to_target_dtype(self, other) -> Block:
@@ -1434,7 +1422,7 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement, ndim=2)]
+        blocks = [new_block(new_values, placement=new_placement, ndim=2)]
         return blocks, mask
 
     def quantile(
@@ -1461,13 +1449,9 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        fill_value = self.fill_value
-        values = self.values
-        mask = np.asarray(isna(values))
+        result = quantile_compat(self.values, qs, interpolation, axis)
 
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-
-        return make_block(result, placement=self.mgr_locs, ndim=2)
+        return new_block(result, placement=self.mgr_locs, ndim=2)
 
 
 class ExtensionBlock(Block):
@@ -1487,33 +1471,6 @@ class ExtensionBlock(Block):
     is_extension = True
 
     values: ExtensionArray
-
-    def __init__(self, values, placement, ndim: int):
-        """
-        Initialize a non-consolidatable block.
-
-        'ndim' may be inferred from 'placement'.
-
-        This will call continue to call __init__ for the other base
-        classes mixed in with this Mixin.
-        """
-
-        # Placement must be converted to BlockPlacement so that we can check
-        # its length
-        if not isinstance(placement, libinternals.BlockPlacement):
-            placement = libinternals.BlockPlacement(placement)
-
-        # Maybe infer ndim from placement
-        if ndim is None:
-            if len(placement) != 1:
-                ndim = 1
-            else:
-                ndim = 2
-        super().__init__(values, placement, ndim=ndim)
-
-        if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(EA2D): check unnecessary with 2D EAs
-            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self) -> Shape:
@@ -1734,16 +1691,13 @@ class ExtensionBlock(Block):
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
     ) -> List[Block]:
-        values = self.values if inplace else self.values.copy()
-        values = values.fillna(value=value, limit=limit)
+        values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=values)]
 
     def interpolate(
         self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
     ):
-
-        values = self.values if inplace else self.values.copy()
-        new_values = values.fillna(value=fill_value, method=method, limit=limit)
+        new_values = self.values.fillna(value=fill_value, method=method, limit=limit)
         return self.make_block_same_class(new_values)
 
     def diff(self, n: int, axis: int = 1) -> List[Block]:
@@ -1839,24 +1793,6 @@ class ExtensionBlock(Block):
         ]
         return blocks, mask
 
-    def quantile(self, qs, interpolation="linear", axis: int = 0) -> Block:
-        # asarray needed for Sparse, see GH#24600
-        mask = np.asarray(isna(self.values))
-        mask = np.atleast_2d(mask)
-
-        values, fill_value = self.values._values_for_factorize()
-
-        values = np.atleast_2d(values)
-
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
-
-        if not is_sparse(self.dtype):
-            # shape[0] should be 1 as long as EAs are 1D
-            assert result.shape == (1, len(qs)), result.shape
-            result = type(self.values)._from_factorized(result[0], self.values)
-
-        return make_block(result, placement=self.mgr_locs, ndim=2)
-
 
 class HybridMixin:
     """
@@ -1892,6 +1828,10 @@ class NumericBlock(Block):
     is_numeric = True
 
     def _can_hold_element(self, element: Any) -> bool:
+        element = extract_array(element, extract_numpy=True)
+        if isinstance(element, (IntegerArray, FloatingArray)):
+            if element._mask.any():
+                return False
         return can_hold_element(self.dtype, element)
 
     @property
@@ -2322,7 +2262,7 @@ def get_block_type(values, dtype: Optional[Dtype] = None):
     return cls
 
 
-def make_block(
+def new_block(
     values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None
 ) -> Block:
     # Ensure that we don't allow PandasArray / PandasDtype in internals.

@@ -42,7 +42,10 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import make_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
@@ -144,10 +147,10 @@ def concatenate_managers(
                 # Fast-path
                 b = blk.make_block_same_class(values, placement=placement)
             else:
-                b = make_block(values, placement=placement, ndim=blk.ndim)
+                b = new_block(values, placement=placement, ndim=blk.ndim)
         else:
             new_values = _concatenate_join_units(join_units, concat_axis, copy=copy)
-            b = make_block(new_values, placement=placement, ndim=len(axes))
+            b = new_block(new_values, placement=placement, ndim=len(axes))
         blocks.append(b)
 
     return BlockManager(blocks, axes)
@@ -420,12 +423,8 @@ def _concatenate_join_units(
         # the non-EA values are 2D arrays with shape (1, n)
         to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
-        if not is_extension_array_dtype(concat_values.dtype):
-            # if the result of concat is not an EA but an ndarray, reshape to
-            # 2D to put it a non-EA Block
-            # special case DatetimeArray/TimedeltaArray, which *is* an EA, but
-            # is put in a consolidated 2D block
-            concat_values = np.atleast_2d(concat_values)
+        concat_values = ensure_block_shape(concat_values, 2)
+
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 

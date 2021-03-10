@@ -173,7 +173,6 @@ if TYPE_CHECKING:
         RangeIndex,
         Series,
     )
-    from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 __all__ = ["Index"]
@@ -305,7 +304,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _id: Optional[_Identity] = None
+    _id: Optional[object] = None
     _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
@@ -366,13 +365,8 @@ class Index(IndexOpsMixin, PandasObject):
         data_dtype = getattr(data, "dtype", None)
 
         # range
-        if isinstance(data, RangeIndex):
+        if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=copy, name=name)
-            if dtype is not None:
-                return result.astype(dtype, copy=False)
-            return result
-        elif isinstance(data, range):
-            result = RangeIndex.from_range(data, name=name)
             if dtype is not None:
                 return result.astype(dtype, copy=False)
             return result
@@ -716,7 +710,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Initializes or resets ``_id`` attribute with new object.
         """
-        self._id = _Identity(object())
+        self._id = object()
 
     @final
     def _cleanup(self) -> None:
@@ -1722,7 +1716,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self.sort_values(return_indexer=True, ascending=ascending)
 
-    def _get_level_values(self, level):
+    def _get_level_values(self, level) -> Index:
         """
         Return an Index of values for requested level.
 
@@ -2982,11 +2976,8 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _wrap_setop_result(self, other, result):
-        if needs_i8_conversion(self.dtype) and isinstance(result, np.ndarray):
-            self = cast("DatetimeIndexOpsMixin", self)
-            result = type(self._data)._simple_new(result, dtype=self.dtype)
-        elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
+    def _wrap_setop_result(self, other: Index, result) -> Index:
+        if is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
             result = Categorical(result, dtype=self.dtype)
 
         name = get_op_result_name(self, other)
@@ -4534,7 +4525,6 @@ class Index(IndexOpsMixin, PandasObject):
         # There's no custom logic to be implemented in __getslice__, so it's
         # not overloaded intentionally.
         getitem = self._data.__getitem__
-        promote = self._shallow_copy
 
         if is_scalar(key):
             key = com.cast_scalar_indexer(key, warn_float=True)
@@ -4543,7 +4533,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
             # pessimization of basic indexing.
-            return promote(getitem(key))
+            result = getitem(key)
+            # Going through simple_new for performance.
+            return type(self)._simple_new(result, name=self.name)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -4553,7 +4545,9 @@ class Index(IndexOpsMixin, PandasObject):
             if np.ndim(result) > 1:
                 deprecate_ndim_indexing(result)
                 return result
-            return promote(result)
+            # NB: Using _constructor._simple_new would break if MultiIndex
+            #  didn't override __getitem__
+            return self._constructor._simple_new(result, name=self.name)
         else:
             return result
 
@@ -5964,9 +5958,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         *args
-            These parameters will be passed to numpy.any.
+            Required for compatibility with numpy.
         **kwargs
-            These parameters will be passed to numpy.any.
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -5993,20 +5987,20 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index.any()
         False
         """
-        # FIXME: docstr inaccurate, args/kwargs not passed
+        nv.validate_any(args, kwargs)
         self._maybe_disable_logical_methods("any")
         return np.any(self.values)
 
-    def all(self):
+    def all(self, *args, **kwargs):
         """
         Return whether all elements are Truthy.
 
         Parameters
         ----------
         *args
-            These parameters will be passed to numpy.all.
+            Required for compatibility with numpy.
         **kwargs
-            These parameters will be passed to numpy.all.
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -6050,8 +6044,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([0, 0, 0]).any()
         False
         """
-        # FIXME: docstr inaccurate, args/kwargs not passed
-
+        nv.validate_all(args, kwargs)
         self._maybe_disable_logical_methods("all")
         return np.all(self.values)
 

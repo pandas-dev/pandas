@@ -64,11 +64,11 @@ from pandas.core.base import (
     SelectionMixin,
 )
 import pandas.core.common as common
-from pandas.core.construction import extract_array
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
@@ -300,11 +300,8 @@ class BaseWindow(SelectionMixin):
             result = obj.iloc[slice(s, e)]
             yield result
 
-    def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
+    def _prep_values(self, values: ArrayLike) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
-        if values is None:
-            values = extract_array(self._selected_obj, extract_numpy=True)
-
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
                 f"ops for {type(self).__name__} for this "
@@ -356,6 +353,16 @@ class BaseWindow(SelectionMixin):
         if needs_i8_conversion(self._on.dtype):
             return self._on.asi8
         return None
+
+    def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
+        """Validate and finalize result."""
+        if out.shape[1] == 0 and obj.shape[1] > 0:
+            raise DataError("No numeric types to aggregate")
+        elif out.shape[1] == 0:
+            return obj.astype("float64")
+
+        self._insert_on_column(out, obj)
+        return out
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -410,16 +417,17 @@ class BaseWindow(SelectionMixin):
             res_values = homogeneous_func(values)
             return getattr(res_values, "T", res_values)
 
-        new_mgr = mgr.apply(hfunc, ignore_failures=True)
+        def hfunc2d(values: ArrayLike) -> ArrayLike:
+            values = self._prep_values(values)
+            return homogeneous_func(values)
+
+        if isinstance(mgr, ArrayManager) and self.axis == 1:
+            new_mgr = mgr.apply_2d(hfunc2d, ignore_failures=True)
+        else:
+            new_mgr = mgr.apply(hfunc, ignore_failures=True)
         out = obj._constructor(new_mgr)
 
-        if out.shape[1] == 0 and obj.shape[1] > 0:
-            raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
-            return obj.astype("float64")
-
-        self._insert_on_column(out, obj)
-        return out
+        return self._resolve_output(out, obj)
 
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
@@ -436,13 +444,7 @@ class BaseWindow(SelectionMixin):
         result = result.T if self.axis == 1 else result
         out = obj._constructor(result, index=obj.index, columns=obj.columns)
 
-        if out.shape[1] == 0 and obj.shape[1] > 0:
-            raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
-            return obj.astype("float64")
-
-        self._insert_on_column(out, obj)
-        return out
+        return self._resolve_output(out, obj)
 
     def _apply_pairwise(
         self,
@@ -1656,7 +1658,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes,
+        numba_notes[:-1],
         window_method="rolling",
         aggregation_description="maximum",
         agg_method="max",
@@ -1798,7 +1800,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1847,7 +1849,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -1908,7 +1910,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of one period is required for the calculation.\n",
+        "A minimum of one period is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -1938,7 +1940,7 @@ class Rolling(RollingAndExpandingMixin):
         "scipy.stats.kurtosis : Reference SciPy method.\n",
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of four periods is required for the calculation.\n",
+        "A minimum of four periods is required for the calculation.\n\n",
         create_section_header("Examples"),
         dedent(
             """
@@ -2106,7 +2108,7 @@ class Rolling(RollingAndExpandingMixin):
         columns on the second level.
 
         In the case of missing elements, only complete pairwise observations
-        will be used.
+        will be used.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -2195,7 +2197,6 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
         index_array = self._index_array
-        window = self.window
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
@@ -2208,7 +2209,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             window = self._win_freq_i8
         else:
             rolling_indexer = FixedWindowIndexer
-            index_array = None
+            window = self.window
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
