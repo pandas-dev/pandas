@@ -602,9 +602,8 @@ class MPLPlot:
         return label
 
     def _add_legend_handle(self, handle: Artist, label: str) -> None:
-        if label is not None:
-            self.legend_handles.append(handle)
-            self.legend_labels.append(label)
+        self.legend_handles.append(handle)
+        self.legend_labels.append(label)
 
     def _make_legend(self):
         ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
