@@ -85,7 +85,10 @@ from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
 )
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 
 if TYPE_CHECKING:
     from pandas import Float64Index
@@ -497,10 +500,7 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        arrs = [
-            x if not isinstance(x, np.ndarray) else np.atleast_2d(x)
-            for x in self.arrays
-        ]
+        arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
         new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
         for i, arr in enumerate(new_arrs):
@@ -554,7 +554,7 @@ class ArrayManager(DataManager):
             # with axis=0 is equivalent
             assert n == 0
             axis = 0
-        return self.apply(algos.diff, n=n, axis=axis)
+        return self.apply(algos.diff, n=n, axis=axis, stacklevel=5)
 
     def interpolate(self, **kwargs) -> ArrayManager:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
@@ -787,6 +787,8 @@ class ArrayManager(DataManager):
         new_axes[axis] = new_axes[axis][slobj]
 
         return type(self)(arrays, new_axes, verify_integrity=False)
+
+    getitem_mgr = get_slice
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """

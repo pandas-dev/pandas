@@ -856,10 +856,10 @@ class Styler:
 
         (application method, *args, **kwargs)
         """
+        self.ctx.clear()
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
-        self._todo = []
         return r
 
     def _apply(
