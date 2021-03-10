@@ -99,6 +99,12 @@ class DataManager(PandasObject):
 
         return self._equal_values(other)
 
+    def get_slice_index(self: T, slobj: slice) -> T:
+        """
+        get_slice specialized to axis=self.ndim-1
+        """
+        return self.get_slice(slobj, axis=self.ndim - 1)
+
 
 class SingleDataManager(DataManager):
     ndim = 1

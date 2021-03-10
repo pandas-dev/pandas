@@ -349,6 +349,15 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                     "Only integers, slices and integer or "
                     "boolean arrays are valid indices."
                 )
+        elif isinstance(item, tuple):
+            # possibly unpack arr[:, n] to arr[n]
+            if len(item) == 1:
+                item = item[0]
+            elif len(item) == 2:
+                if item[0] is Ellipsis:
+                    item = item[1]
+                elif item[1] is Ellipsis:
+                    item = item[0]
 
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.

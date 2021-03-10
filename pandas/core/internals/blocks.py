@@ -381,6 +381,16 @@ class Block(PandasObject):
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @final
+    def getitem_block_index(self, slicer: slice) -> Block:
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        new_values = self.values[..., slicer]
+        return type(self)._simple_new(new_values, self._mgr_locs, ndim=self.ndim)
+
+    @final
     def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
         """
         Perform __getitem__-like, return result as block.

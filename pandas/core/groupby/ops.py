@@ -1040,7 +1040,7 @@ class FrameSplitter(DataSplitter):
         """
         Fastpath equivalent to `sdata.iloc[slice_obj]`
         """
-        mgr = sdata._mgr.get_slice(slice_obj, axis=1)
+        mgr = sdata._mgr.get_slice_index(slice_obj)
         # __finalize__ not called here, must be applied by caller if applicable
 
         # fastpath equivalent to `return sdata._constructor(mgr)`

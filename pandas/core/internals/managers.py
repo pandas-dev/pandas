@@ -818,6 +818,15 @@ class BlockManager(DataManager):
 
         return type(self)._simple_new(tuple(new_blocks), new_axes)
 
+    def get_slice_index(self, slobj: slice) -> BlockManager:
+        # get_slice specialized to axis = 1 and ndim == 2
+        new_blocks = [blk.getitem_block_index(slobj) for blk in self.blocks]
+
+        axes = self.axes
+        new_axes = [axes[0], axes[1]._getitem_slice(slobj)]
+
+        return type(self)._simple_new(tuple(new_blocks), new_axes)
+
     @property
     def nblocks(self) -> int:
         return len(self.blocks)
