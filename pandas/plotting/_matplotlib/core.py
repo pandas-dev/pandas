@@ -579,14 +579,26 @@ class MPLPlot:
             stringified = map(pprint_thing, self.data.columns.names)
             return ",".join(stringified)
 
-    def _mark_right_label(
-        self, label: Optional[str], index: Optional[int]
-    ) -> Optional[str]:
-        if not self.subplots:  # (right) is only attached when subplots=False
-            if label is not None:
-                if self.mark_right and index is not None:
-                    if self.on_right(index):
-                        label = label + " (right)"
+    def _mark_right_label(self, label: str, index: int) -> str:
+        """
+        Append ``(right)`` to the label of a line if it's plotted on the right axis.
+
+        Note that ``(right)`` is only appended when ``subplots=False``.
+
+        Parameters
+        ----------
+        label: str
+            Label of line being plotted.
+        index: int
+            Index of line within plotted data.
+
+        Returns
+        -------
+        str
+            Updated label.
+        """
+        if not self.subplots and self.mark_right and self.on_right(index):
+            label += " (right)"
         return label
 
     def _add_legend_handle(self, handle: Artist, label: str) -> None:
