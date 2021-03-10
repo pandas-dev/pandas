@@ -6,12 +6,14 @@
 #     4. invalid result shape/type
 # If your test does not fit into one of these categories, add to this list.
 
+from itertools import chain
 import re
 
 import numpy as np
 import pytest
 
 from pandas import (
+    Categorical,
     DataFrame,
     Series,
     date_range,
@@ -34,6 +36,19 @@ def test_result_type_error(result_type, int_frame_const_col):
         df.apply(lambda x: [1, 2, 3], axis=1, result_type=result_type)
 
 
+def test_apply_invalid_axis_value():
+    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
+    msg = "No axis named 2 for object type DataFrame"
+    with pytest.raises(ValueError, match=msg):
+        df.apply(lambda x: x, 2)
+
+
+def test_applymap_invalid_na_action(float_frame):
+    # GH 23803
+    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
+        float_frame.applymap(lambda x: len(str(x)), na_action="abc")
+
+
 def test_agg_raises():
     # GH 26513
     df = DataFrame({"A": [0, 1], "B": [1, 2]})
@@ -41,6 +56,28 @@ def test_agg_raises():
 
     with pytest.raises(TypeError, match=msg):
         df.agg()
+
+
+def test_map_with_invalid_na_action_raises():
+    # https://github.com/pandas-dev/pandas/issues/32815
+    s = Series([1, 2, 3])
+    msg = "na_action must either be 'ignore' or None"
+    with pytest.raises(ValueError, match=msg):
+        s.map(lambda x: x, na_action="____")
+
+
+def test_map_categorical_na_action():
+    values = Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
+    s = Series(values, name="XX", index=list("abcdefg"))
+    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
+        s.map(lambda x: x, na_action="ignore")
+
+
+def test_map_datetimetz_na_action():
+    values = date_range("2011-01-01", "2011-01-02", freq="H").tz_localize("Asia/Tokyo")
+    s = Series(values, name="XX")
+    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
+        s.map(lambda x: x, na_action="ignore")
 
 
 @pytest.mark.parametrize("box", [DataFrame, Series])
@@ -52,6 +89,22 @@ def test_nested_renamer(box, method, func):
     match = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=match):
         getattr(obj, method)(func)
+
+
+def test_series_agg_nested_renamer():
+    s = Series(range(6), dtype="int64", name="series")
+    msg = "nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        s.agg({"foo": ["min", "max"]})
+
+
+def test_multiple_aggregators_with_dict_api():
+
+    s = Series(range(6), dtype="int64", name="series")
+    # nested renaming
+    msg = "nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
 
 
 def test_transform_nested_renamer():
@@ -208,11 +261,35 @@ def test_apply_modify_traceback():
         DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
     ),
 )
-def test_agg_cython_table_raises(df, func, expected, axis):
+def test_agg_cython_table_raises_frame(df, func, expected, axis):
     # GH 21224
     msg = "can't multiply sequence by non-int of type 'str'"
     with pytest.raises(expected, match=msg):
         df.agg(func, axis=axis)
+
+
+@pytest.mark.parametrize(
+    "series, func, expected",
+    chain(
+        tm.get_cython_table_params(
+            Series("a b c".split()),
+            [
+                ("mean", TypeError),  # mean raises TypeError
+                ("prod", TypeError),
+                ("std", TypeError),
+                ("var", TypeError),
+                ("median", TypeError),
+                ("cumprod", TypeError),
+            ],
+        )
+    ),
+)
+def test_agg_cython_table_raises_series(series, func, expected):
+    # GH21224
+    msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+    with pytest.raises(expected, match=msg):
+        # e.g. Series('a b'.split()).cumprod() will raise
+        series.agg(func)
 
 
 def test_transform_none_to_type():
