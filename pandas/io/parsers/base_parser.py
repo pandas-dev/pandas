@@ -24,8 +24,14 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import DtypeArg, FilePathOrBuffer
-from pandas.errors import ParserError, ParserWarning
+from pandas._typing import (
+    DtypeArg,
+    FilePathOrBuffer,
+)
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -49,11 +55,18 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    ensure_index_from_sequences,
+)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import IOHandles, get_handle
+from pandas.io.common import (
+    IOHandles,
+    get_handle,
+)
 from pandas.io.date_converters import generic_parser
 
 parser_defaults = {
@@ -96,6 +109,7 @@ parser_defaults = {
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
+    "encoding_errors": "strict",
 }
 
 
@@ -199,6 +213,7 @@ class ParserBase:
             compression=kwds.get("compression", None),
             memory_map=kwds.get("memory_map", False),
             storage_options=kwds.get("storage_options", None),
+            errors=kwds.get("encoding_errors", "strict"),
         )
 
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:

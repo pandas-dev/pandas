@@ -6,14 +6,23 @@ from datetime import datetime
 from inspect import signature
 from io import StringIO
 import os
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.errors import EmptyDataError, ParserError
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 
-from pandas import DataFrame, Index, Series, compat
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    compat,
+)
 import pandas._testing as tm
 
 from pandas.io.parsers import TextFileReader
@@ -726,3 +735,21 @@ def test_dict_keys_as_names(all_parsers):
     result = parser.read_csv(StringIO(data), names=keys)
     expected = DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_encoding_surrogatepass(all_parsers):
+    # GH39017
+    parser = all_parsers
+    content = b"\xed\xbd\xbf"
+    decoded = content.decode("utf-8", errors="surrogatepass")
+    expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
+    expected.index.name = decoded * 2
+
+    with tm.ensure_clean() as path:
+        Path(path).write_bytes(
+            content * 2 + b"," + content + b"\n" + content * 2 + b"," + content
+        )
+        df = parser.read_csv(path, encoding_errors="surrogatepass", index_col=0)
+        tm.assert_frame_equal(df, expected)
+        with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
+            parser.read_csv(path)

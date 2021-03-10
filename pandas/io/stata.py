@@ -36,8 +36,16 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import Buffer, CompressionOptions, FilePathOrBuffer, StorageOptions
-from pandas.util._decorators import Appender, doc
+from pandas._typing import (
+    Buffer,
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -1083,6 +1091,9 @@ class StataReader(StataParser, abc.Iterator):
             compression=compression,
         ) as handles:
             # Copy to BytesIO, and ensure no encoding
+
+            # Argument 1 to "BytesIO" has incompatible type "Union[Any, bytes, None,
+            # str]"; expected "bytes"
             self.path_or_buf = BytesIO(handles.handle.read())  # type: ignore[arg-type]
 
         self._read_header()

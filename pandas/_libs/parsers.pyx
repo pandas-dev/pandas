@@ -1,22 +1,42 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
-from csv import QUOTE_MINIMAL, QUOTE_NONE, QUOTE_NONNUMERIC
+from csv import (
+    QUOTE_MINIMAL,
+    QUOTE_NONE,
+    QUOTE_NONNUMERIC,
+)
 from errno import ENOENT
 import sys
 import time
 import warnings
 
 from libc.stdlib cimport free
-from libc.string cimport strcasecmp, strlen, strncpy
+from libc.string cimport (
+    strcasecmp,
+    strlen,
+    strncpy,
+)
 
 import cython
 from cython import Py_ssize_t
 
-from cpython.bytes cimport PyBytes_AsString
-from cpython.exc cimport PyErr_Fetch, PyErr_Occurred
+from cpython.bytes cimport (
+    PyBytes_AsString,
+    PyBytes_FromString,
+)
+from cpython.exc cimport (
+    PyErr_Fetch,
+    PyErr_Occurred,
+)
 from cpython.object cimport PyObject
-from cpython.ref cimport Py_XDECREF
-from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
+from cpython.ref cimport (
+    Py_INCREF,
+    Py_XDECREF,
+)
+from cpython.unicode cimport (
+    PyUnicode_AsUTF8String,
+    PyUnicode_Decode,
+)
 
 
 cdef extern from "Python.h":
@@ -26,12 +46,22 @@ cdef extern from "Python.h":
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray, uint8_t, uint64_t
+from numpy cimport (
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint64_t,
+)
 
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX
+from pandas._libs.util cimport (
+    INT64_MAX,
+    INT64_MIN,
+    UINT64_MAX,
+)
 
 import pandas._libs.lib as lib
 
@@ -62,7 +92,12 @@ from pandas._libs.khash cimport (
     khiter_t,
 )
 
-from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
+from pandas.errors import (
+    DtypeWarning,
+    EmptyDataError,
+    ParserError,
+    ParserWarning,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -114,7 +149,7 @@ cdef extern from "parser/tokenizer.h":
     enum: ERROR_OVERFLOW
 
     ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
-                                  int *status)
+                                  int *status, const char *encoding_errors)
     ctypedef int (*io_cleanup)(void *src)
 
     ctypedef struct parser_t:
@@ -226,8 +261,8 @@ cdef extern from "parser/tokenizer.h":
 
     int parser_trim_buffers(parser_t *self)
 
-    int tokenize_all_rows(parser_t *self) nogil
-    int tokenize_nrows(parser_t *self, size_t nrows) nogil
+    int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
+    int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
 
     int64_t str_to_int64(char *p_item, int64_t int_min,
                          int64_t int_max, int *error, char tsep) nogil
@@ -264,7 +299,7 @@ cdef extern from "parser/io.h":
                             size_t *bytes_read, int *status)
 
     void* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status)
+                          size_t *bytes_read, int *status, const char *encoding_errors)
 
 
 cdef class TextReader:
@@ -287,6 +322,7 @@ cdef class TextReader:
         uint64_t parser_start
         list clocks
         char *c_encoding
+        const char *encoding_errors
         kh_str_starts_t *false_set
         kh_str_starts_t *true_set
 
@@ -341,10 +377,15 @@ cdef class TextReader:
                   bint verbose=False,
                   bint mangle_dupe_cols=True,
                   float_precision=None,
-                  bint skip_blank_lines=True):
+                  bint skip_blank_lines=True,
+                  encoding_errors=b"strict"):
 
         # set encoding for native Python and C library
         self.c_encoding = NULL
+        if isinstance(encoding_errors, str):
+            encoding_errors = encoding_errors.encode("utf-8")
+        Py_INCREF(encoding_errors)
+        self.encoding_errors = PyBytes_AsString(encoding_errors)
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
@@ -529,13 +570,7 @@ cdef class TextReader:
         pass
 
     def __dealloc__(self):
-        parser_free(self.parser)
-        if self.true_set:
-            kh_destroy_str_starts(self.true_set)
-            self.true_set = NULL
-        if self.false_set:
-            kh_destroy_str_starts(self.false_set)
-            self.false_set = NULL
+        self.close()
         parser_del(self.parser)
 
     def close(self):
@@ -603,7 +638,6 @@ cdef class TextReader:
             char *word
             object name, old_name
             uint64_t hr, data_line = 0
-            char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
             list header = []
             set unnamed_cols = set()
@@ -644,11 +678,8 @@ cdef class TextReader:
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
-                    if path == UTF8:
-                        name = PyUnicode_FromString(word)
-                    elif path == ENCODED:
-                        name = PyUnicode_Decode(word, strlen(word),
-                                                self.c_encoding, errors)
+                    name = PyUnicode_Decode(word, strlen(word),
+                                            self.c_encoding, self.encoding_errors)
 
                     # We use this later when collecting placeholder names.
                     old_name = name
@@ -802,7 +833,7 @@ cdef class TextReader:
             int status
 
         with nogil:
-            status = tokenize_nrows(self.parser, nrows)
+            status = tokenize_nrows(self.parser, nrows, self.encoding_errors)
 
         if self.parser.warn_msg != NULL:
             print(self.parser.warn_msg, file=sys.stderr)
@@ -830,7 +861,7 @@ cdef class TextReader:
                                  'the whole file')
         else:
             with nogil:
-                status = tokenize_all_rows(self.parser)
+                status = tokenize_all_rows(self.parser, self.encoding_errors)
 
             if self.parser.warn_msg != NULL:
                 print(self.parser.warn_msg, file=sys.stderr)
@@ -1172,7 +1203,7 @@ cdef class TextReader:
 
         if path == UTF8:
             return _string_box_utf8(self.parser, i, start, end, na_filter,
-                                    na_hashset)
+                                    na_hashset, self.encoding_errors)
         elif path == ENCODED:
             return _string_box_decode(self.parser, i, start, end,
                                       na_filter, na_hashset, self.c_encoding)
@@ -1323,7 +1354,8 @@ cdef inline StringPath _string_path(char *encoding):
 
 cdef _string_box_utf8(parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end,
-                      bint na_filter, kh_str_starts_t *na_hashset):
+                      bint na_filter, kh_str_starts_t *na_hashset,
+                      const char *encoding_errors):
     cdef:
         int error, na_count = 0
         Py_ssize_t i, lines
@@ -1362,7 +1394,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             pyval = <object>table.vals[k]
         else:
             # box it. new ref?
-            pyval = PyUnicode_FromString(word)
+            pyval = PyUnicode_Decode(word, strlen(word), "utf-8", encoding_errors)
 
             k = kh_put_strbox(table, word, &ret)
             table.vals[k] = <PyObject *>pyval

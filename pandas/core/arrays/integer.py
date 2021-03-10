@@ -1,16 +1,33 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple, Type
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import iNaT, lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype, DtypeObj
+from pandas._libs import (
+    iNaT,
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -23,8 +40,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
-from pandas.core.arrays.numeric import NumericArray, NumericDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
+from pandas.core.arrays.numeric import (
+    NumericArray,
+    NumericDtype,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
@@ -291,15 +314,6 @@ class IntegerArray(NumericArray):
                 "the 'pd.array' function instead"
             )
         super().__init__(values, mask, copy=copy)
-
-    def __neg__(self):
-        return type(self)(-self._data, self._mask)
-
-    def __pos__(self):
-        return self
-
-    def __abs__(self):
-        return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
     def _from_sequence(

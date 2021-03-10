@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from functools import wraps
-from typing import Any, Optional, Sequence, Type, TypeVar, Union
+from typing import (
+    Any,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -9,15 +16,21 @@ from pandas._libs import lib
 from pandas._typing import Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
-from pandas.core.algorithms import take, unique, value_counts
+from pandas.core.algorithms import (
+    take,
+    unique,
+    value_counts,
+)
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
@@ -261,20 +274,16 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        # TODO: share this with EA base class implementation
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
-                new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
+                # TODO: check value is None
+                # (for now) when self.ndim == 2, we assume axis=0
+                func = missing.get_fill_func(method, ndim=self.ndim)
+                new_values, _ = func(self._ndarray.T.copy(), limit=limit, mask=mask.T)
+                new_values = new_values.T
+
                 # TODO: PandasArray didn't used to copy, need tests for this
                 new_values = self._from_backing_data(new_values)
             else:
@@ -364,8 +373,16 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
 
-    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
-        res_values = np.delete(self._ndarray, loc)
+    def delete(
+        self: NDArrayBackedExtensionArrayT, loc, axis: int = 0
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc, axis=axis)
+        return self._from_backing_data(res_values)
+
+    def swapaxes(
+        self: NDArrayBackedExtensionArrayT, axis1, axis2
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = self._ndarray.swapaxes(axis1, axis2)
         return self._from_backing_data(res_values)
 
     # ------------------------------------------------------------------------
@@ -389,7 +406,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         if self.ndim != 1:
             raise NotImplementedError
 
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
 
         if dropna:
             values = self[~self.isna()]._ndarray

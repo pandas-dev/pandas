@@ -4,7 +4,13 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, to_timedelta
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    to_timedelta,
+)
 import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -110,16 +116,26 @@ class FrameWithFrameWide:
             operator.add,
             operator.floordiv,
             operator.gt,
-        ]
+        ],
+        [
+            # (n_rows, n_columns)
+            (1_000_000, 10),
+            (100_000, 100),
+            (10_000, 1000),
+            (1000, 10_000),
+        ],
     ]
-    param_names = ["op"]
+    param_names = ["op", "shape"]
 
-    def setup(self, op):
+    def setup(self, op, shape):
         # we choose dtypes so as to make the blocks
         #  a) not perfectly match between right and left
         #  b) appreciably bigger than single columns
-        n_cols = 2000
-        n_rows = 500
+        n_rows, n_cols = shape
+
+        if op is operator.floordiv:
+            # floordiv is much slower than the other operations -> use less data
+            n_rows = n_rows // 10
 
         # construct dataframe with 2 blocks
         arr1 = np.random.randn(n_rows, n_cols // 2).astype("f8")
@@ -131,7 +147,7 @@ class FrameWithFrameWide:
         df._consolidate_inplace()
 
         # TODO: GH#33198 the setting here shoudlnt need two steps
-        arr1 = np.random.randn(n_rows, n_cols // 4).astype("f8")
+        arr1 = np.random.randn(n_rows, max(n_cols // 4, 3)).astype("f8")
         arr2 = np.random.randn(n_rows, n_cols // 2).astype("i8")
         arr3 = np.random.randn(n_rows, n_cols // 4).astype("f8")
         df2 = pd.concat(
@@ -145,11 +161,11 @@ class FrameWithFrameWide:
         self.left = df
         self.right = df2
 
-    def time_op_different_blocks(self, op):
+    def time_op_different_blocks(self, op, shape):
         # blocks (and dtypes) are not aligned
         op(self.left, self.right)
 
-    def time_op_same_blocks(self, op):
+    def time_op_same_blocks(self, op, shape):
         # blocks (and dtypes) are aligned
         op(self.left, self.left)
 

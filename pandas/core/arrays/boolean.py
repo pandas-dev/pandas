@@ -1,13 +1,26 @@
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+)
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -19,11 +32,17 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow
@@ -57,7 +76,8 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
-    # mypy: https://github.com/python/mypy/issues/4125
+    # https://github.com/python/mypy/issues/4125
+    # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
     def type(self) -> Type:  # type: ignore[override]
         return np.bool_
@@ -596,7 +616,10 @@ class BooleanArray(BaseMaskedArray):
         return BooleanArray(result, mask)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import FloatingArray, IntegerArray
+        from pandas.arrays import (
+            FloatingArray,
+            IntegerArray,
+        )
 
         if isinstance(other, (IntegerArray, FloatingArray)):
             return NotImplemented

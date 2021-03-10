@@ -1,4 +1,7 @@
-from datetime import datetime, time
+from datetime import (
+    datetime,
+    time,
+)
 from functools import partial
 import os
 from urllib.error import URLError
@@ -10,7 +13,12 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
 
@@ -116,6 +124,30 @@ class TestReaders:
         func = partial(pd.read_excel, engine=engine)
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
+
+    def test_engine_used(self, read_ext, engine, monkeypatch):
+        # GH 38884
+        def parser(self, *args, **kwargs):
+            return self.engine
+
+        monkeypatch.setattr(pd.ExcelFile, "parse", parser)
+
+        expected_defaults = {
+            "xlsx": "openpyxl",
+            "xlsm": "openpyxl",
+            "xlsb": "pyxlsb",
+            "xls": "xlrd",
+            "ods": "odf",
+        }
+
+        with open("test1" + read_ext, "rb") as f:
+            result = pd.read_excel(f)
+
+        if engine is not None:
+            expected = engine
+        else:
+            expected = expected_defaults[read_ext[1:]]
+        assert result == expected
 
     def test_usecols_int(self, read_ext, df_ref):
         df_ref = df_ref.reindex(columns=["A", "B", "C"])
@@ -1153,6 +1185,14 @@ class TestReaders:
         )
         tm.assert_frame_equal(expected, result)
 
+    def test_one_col_noskip_blank_line(self, read_ext):
+        # GH 39808
+        file_name = "one_col_blank_line" + read_ext
+        data = [0.5, np.nan, 1, 2]
+        expected = DataFrame(data, columns=["numbers"])
+        result = pd.read_excel(file_name)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
@@ -1163,6 +1203,24 @@ class TestExcelFileRead:
         func = partial(pd.ExcelFile, engine=engine)
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
+
+    def test_engine_used(self, read_ext, engine, monkeypatch):
+        expected_defaults = {
+            "xlsx": "openpyxl",
+            "xlsm": "openpyxl",
+            "xlsb": "pyxlsb",
+            "xls": "xlrd",
+            "ods": "odf",
+        }
+
+        with pd.ExcelFile("test1" + read_ext) as excel:
+            result = excel.engine
+
+        if engine is not None:
+            expected = engine
+        else:
+            expected = expected_defaults[read_ext[1:]]
+        assert result == expected
 
     def test_excel_passes_na(self, read_ext):
         with pd.ExcelFile("test4" + read_ext) as excel:

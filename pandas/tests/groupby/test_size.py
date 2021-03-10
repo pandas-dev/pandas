@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, PeriodIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    PeriodIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

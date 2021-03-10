@@ -3,7 +3,15 @@ from __future__ import annotations
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import TYPE_CHECKING, Any, Hashable, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
@@ -12,7 +20,10 @@ from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.common import (
@@ -31,7 +42,10 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
-from pandas.core.indexes.numeric import Float64Index, Int64Index
+from pandas.core.indexes.numeric import (
+    Float64Index,
+    Int64Index,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -53,7 +67,7 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0), or other RangeIndex instance
+    start : int (default: 0), range, or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
@@ -102,7 +116,8 @@ class RangeIndex(Int64Index):
 
         # RangeIndex
         if isinstance(start, RangeIndex):
-            start = start._range
+            return start.copy(name=name)
+        elif isinstance(start, range):
             return cls._simple_new(start, name=name)
 
         # validate the arguments
@@ -150,7 +165,7 @@ class RangeIndex(Int64Index):
         assert isinstance(values, range)
 
         result._range = values
-        result.name = name
+        result._name = name
         result._cache = {}
         result._reset_identity()
         return result
@@ -158,7 +173,7 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
 
     @cache_readonly
-    def _constructor(self):
+    def _constructor(self) -> Type[Int64Index]:
         """ return the class to use for construction """
         return Int64Index
 
@@ -224,7 +239,7 @@ class RangeIndex(Int64Index):
         "instead"
     )
 
-    @cache_readonly
+    @property
     def start(self):
         """
         The value of the `start` parameter (``0`` if this was not supplied).
@@ -247,7 +262,7 @@ class RangeIndex(Int64Index):
         )
         return self.start
 
-    @cache_readonly
+    @property
     def stop(self):
         """
         The value of the `stop` parameter.
@@ -270,7 +285,7 @@ class RangeIndex(Int64Index):
         )
         return self.stop
 
-    @cache_readonly
+    @property
     def step(self):
         """
         The value of the `step` parameter (``1`` if this was not supplied).
@@ -513,7 +528,7 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other, sort=False):
+    def _intersection(self, other: Index, sort=False):
 
         if not isinstance(other, RangeIndex):
             # Int64Index
@@ -588,7 +603,7 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def _union(self, other, sort):
+    def _union(self, other: Index, sort):
         """
         Form the union of two Index objects and sorts if possible
 

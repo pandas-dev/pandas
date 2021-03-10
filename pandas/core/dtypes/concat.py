@@ -5,7 +5,10 @@ from typing import cast
 
 import numpy as np
 
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
@@ -14,11 +17,17 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_sparse,
 )
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex,
+    ABCSeries,
+)
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
-from pandas.core.construction import array, ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+)
 
 
 def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
@@ -57,11 +66,11 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
 
     if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
         # numpy's astype cannot handle ExtensionDtypes
-        return array(arr, dtype=dtype, copy=False)
+        return pd_array(arr, dtype=dtype, copy=False)
     return arr.astype(dtype, copy=False)
 
 
-def concat_compat(to_concat, axis: int = 0):
+def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -72,6 +81,9 @@ def concat_compat(to_concat, axis: int = 0):
     ----------
     to_concat : array of arrays
     axis : axis to provide concatenation
+    ea_compat_axis : bool, default False
+        For ExtensionArray compat, behave as if axis == 1 when determining
+        whether to drop empty arrays.
 
     Returns
     -------
@@ -91,7 +103,8 @@ def concat_compat(to_concat, axis: int = 0):
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
     non_empties = [x for x in to_concat if is_nonempty(x)]
-    if non_empties and axis == 0:
+    if non_empties and axis == 0 and not ea_compat_axis:
+        # ea_compat_axis see GH#39574
         to_concat = non_empties
 
     kinds = {obj.dtype.kind for obj in to_concat}
@@ -272,9 +285,9 @@ def union_categoricals(
             categories = categories.sort_values()
             indexer = categories.get_indexer(first.categories)
 
-            from pandas.core.algorithms import take_1d
+            from pandas.core.algorithms import take_nd
 
-            new_codes = take_1d(indexer, new_codes, fill_value=-1)
+            new_codes = take_nd(indexer, new_codes, fill_value=-1)
     elif ignore_order or all(not c.ordered for c in to_union):
         # different categories - union and recode
         cats = first.categories.append([c.categories for c in to_union[1:]])

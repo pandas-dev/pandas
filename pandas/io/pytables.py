@@ -6,7 +6,10 @@ from __future__ import annotations
 
 from contextlib import suppress
 import copy
-from datetime import date, tzinfo
+from datetime import (
+    date,
+    tzinfo,
+)
 import itertools
 import os
 import re
@@ -29,11 +32,23 @@ import warnings
 
 import numpy as np
 
-from pandas._config import config, get_option
+from pandas._config import (
+    config,
+    get_option,
+)
 
-from pandas._libs import lib, writers as libwriters
+from pandas._libs import (
+    lib,
+    writers as libwriters,
+)
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, DtypeArg, FrameOrSeries, FrameOrSeriesUnion, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -65,18 +80,32 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    PeriodArray,
+)
 import pandas.core.common as com
-from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.computation.pytables import (
+    PyTablesExpr,
+    maybe_expression,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 from pandas.core.internals import BlockManager
 
 from pandas.io.common import stringify_path
-from pandas.io.formats.printing import adjoin, pprint_thing
+from pandas.io.formats.printing import (
+    adjoin,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from tables import Col, File, Node
+    from tables import (
+        Col,
+        File,
+        Node,
+    )
 
     from pandas.core.internals import Block
 
@@ -319,19 +348,15 @@ def read_hdf(
 
     Parameters
     ----------
-    path_or_buf : str, path object, pandas.HDFStore or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be: ``file://localhost/path/to/table.h5``.
+    path_or_buf : str, path object, pandas.HDFStore
+        Any valid string path is acceptable. Only supports the local file system,
+        remote URLs and file-like objects are not supported.
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
         Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
 
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -3410,8 +3435,8 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
-        # and "List[Tuple[str, None]]")
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
+        # "List[Tuple[str, None]]")
         return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
@@ -3997,10 +4022,14 @@ class Table(Fixed):
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
 
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
+            # attribute "blocks"
             blocks = list(mgr.blocks)  # type: ignore[union-attr]
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
+                # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has
+                # no attribute "blocks"
                 blocks.extend(mgr.blocks)  # type: ignore[union-attr]
                 blk_items.extend(get_blk_items(mgr))
 

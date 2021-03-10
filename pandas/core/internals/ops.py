@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import TYPE_CHECKING, Iterator, List, Tuple
-
-import numpy as np
+from typing import (
+    TYPE_CHECKING,
+    Iterator,
+    List,
+    Tuple,
+)
 
 from pandas._typing import ArrayLike
 
@@ -27,7 +30,7 @@ def _iter_block_pairs(
         locs = blk.mgr_locs
         blk_vals = blk.values
 
-        left_ea = not isinstance(blk_vals, np.ndarray)
+        left_ea = blk_vals.ndim == 1
 
         rblks = right._slice_take_blocks_ax0(locs.indexer, only_slice=True)
 
@@ -38,7 +41,7 @@ def _iter_block_pairs(
         #    assert rblks[0].shape[0] == 1, rblks[0].shape
 
         for k, rblk in enumerate(rblks):
-            right_ea = not isinstance(rblk.values, np.ndarray)
+            right_ea = rblk.values.ndim == 1
 
             lvals, rvals = _get_same_shape_values(blk, rblk, left_ea, right_ea)
             info = BlockPairInfo(lvals, rvals, locs, left_ea, right_ea, rblk)
@@ -75,7 +78,7 @@ def operate_blockwise(
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
 
-    new_mgr = type(right)(res_blks, axes=right.axes, do_integrity_check=False)
+    new_mgr = type(right)(res_blks, axes=right.axes, verify_integrity=False)
     return new_mgr
 
 
