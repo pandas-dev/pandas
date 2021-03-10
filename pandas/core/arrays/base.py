@@ -682,7 +682,7 @@ class ExtensionArray:
         return nargminmax(self, "argmax")
 
     def fillna(
-        self: ExtensionArray,
+        self,
         value: Optional[Union[Any, ArrayLike]] = None,
         method: Optional[Literal["backfill", "bfill", "ffill", "pad"]] = None,
         limit: Optional[int] = None,
@@ -741,9 +741,7 @@ class ExtensionArray:
         """
         return self[~self.isna()]
 
-    def shift(
-        self: ExtensionArray, periods: int = 1, fill_value: object = None
-    ) -> ExtensionArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """
         Shift values by desired number.
 
@@ -797,7 +795,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self: ExtensionArray) -> ExtensionArray:
+    def unique(self) -> ExtensionArray:
         """
         Compute the ExtensionArray of unique values.
 
@@ -1029,7 +1027,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(
-        self: ExtensionArray,
+        self,
         repeats: Union[int, Sequence[int]],
         axis: Literal[None] = None,
     ) -> ExtensionArray:
@@ -1042,7 +1040,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def take(
-        self: ExtensionArray,
+        self,
         indices: Sequence[int],
         *,
         allow_fill: bool = False,
@@ -1136,7 +1134,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self: ExtensionArray) -> ExtensionArray:
+    def copy(self) -> ExtensionArray:
         """
         Return a copy of the array.
 
@@ -1216,7 +1214,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self: ExtensionArray, *axes: int) -> ExtensionArray:
+    def transpose(self, *axes: int) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
@@ -1226,11 +1224,11 @@ class ExtensionArray:
         return self[:]
 
     @property
-    def T(self: ExtensionArray) -> ExtensionArray:
+    def T(self) -> ExtensionArray:
         return self.transpose()
 
     def ravel(
-        self: ExtensionArray, order: Optional[Literal["C", "F", "A", "K"]] = "C"
+        self, order: Optional[Literal["C", "F", "A", "K"]] = "C"
     ) -> ExtensionArray:
         """
         Return a flattened view on this array.
@@ -1311,7 +1309,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
 
-    def delete(self: ExtensionArray, loc: Union[int, Sequence[int]]) -> ExtensionArray:
+    def delete(self, loc: Union[int, Sequence[int]]) -> ExtensionArray:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
