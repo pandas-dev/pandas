@@ -37,6 +37,8 @@ from pandas.io.common import (
 )
 from pandas.io.parsers import TextParser
 
+lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
 
 class _XMLFrameParser:
     """
@@ -90,7 +92,6 @@ class _XMLFrameParser:
     To subclass this class effectively you must override the following methods:`
         * :func:`parse_data`
         * :func:`_parse_nodes`
-        * :func:`_parse_doc`
         * :func:`_validate_names`
         * :func:`_validate_path`
 
@@ -111,7 +112,7 @@ class _XMLFrameParser:
         stylesheet,
         compression,
         storage_options,
-    ):
+    ) -> None:
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
         self.namespaces = namespaces
@@ -187,16 +188,6 @@ class _XMLFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _parse_doc(self):
-        """
-        Build tree from io.
-
-        This method will parse io object into tree for parsing
-        conditionally by its specific object type.
-        """
-
-        raise AbstractMethodError(self)
-
 
 class _EtreeFrameParser(_XMLFrameParser):
     """
@@ -209,7 +200,7 @@ class _EtreeFrameParser(_XMLFrameParser):
         ElementTree,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def parse_data(self) -> List[Dict[str, Optional[str]]]:
@@ -357,6 +348,12 @@ class _EtreeFrameParser(_XMLFrameParser):
                 )
 
     def _parse_doc(self) -> Union[Element, ElementTree]:
+        """
+        Build tree from path_or_buffer.
+
+        This method will parse XML object into tree
+        either from string/bytes or file location.
+        """
         from xml.etree.ElementTree import (
             XMLParser,
             parse,
@@ -383,7 +380,7 @@ class _LxmlFrameParser(_XMLFrameParser):
     XPath 1.0 and XSLT 1.0.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def parse_data(self) -> List[Dict[str, Optional[str]]]:
@@ -491,21 +488,6 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return dicts
 
-    def _transform_doc(self):
-        """
-        Transform original tree using stylesheet.
-
-        This method will transform original xml using XSLT script into
-        am ideally flatter xml document for easier parsing and migration
-        to Data Frame.
-        """
-        from lxml.etree import XSLT
-
-        transformer = XSLT(self.xsl_doc)
-        new_doc = transformer(self.xml_doc)
-
-        return new_doc
-
     def _validate_path(self) -> None:
 
         msg = (
@@ -553,31 +535,62 @@ class _LxmlFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _parse_doc(self, raw_doc):
+    if lxml is not None:
         from lxml.etree import (
-            XMLParser,
-            fromstring,
-            parse,
+            Element,
+            ElementTree,
         )
 
-        handle_data = get_data_from_filepath(
-            filepath_or_buffer=raw_doc,
-            encoding=self.encoding,
-            compression=self.compression,
-            storage_options=self.storage_options,
-        )
+        def _parse_doc(self, raw_doc) -> Union[Element, ElementTree]:
+            """
+            Build tree from path_or_buffer.
 
-        with preprocess_data(handle_data) as xml_data:
-            curr_parser = XMLParser(encoding=self.encoding)
+            This method will parse XML object into tree
+            either from string/bytes or file location.
+            """
 
-            if isinstance(xml_data, io.StringIO):
-                doc = fromstring(
-                    xml_data.getvalue().encode(self.encoding), parser=curr_parser
-                )
-            else:
-                doc = parse(xml_data, parser=curr_parser)
+            from lxml.etree import (
+                XMLParser,
+                fromstring,
+                parse,
+            )
 
-        return doc
+            handle_data = get_data_from_filepath(
+                filepath_or_buffer=raw_doc,
+                encoding=self.encoding,
+                compression=self.compression,
+                storage_options=self.storage_options,
+            )
+
+            with preprocess_data(handle_data) as xml_data:
+                curr_parser = XMLParser(encoding=self.encoding)
+
+                if isinstance(xml_data, io.StringIO):
+                    doc = fromstring(
+                        xml_data.getvalue().encode(self.encoding), parser=curr_parser
+                    )
+                else:
+                    doc = parse(xml_data, parser=curr_parser)
+
+            return doc
+
+        def _transform_doc(self) -> Element:
+            """
+            Transform original tree using stylesheet.
+
+            This method will transform original xml using XSLT script into
+            am ideally flatter xml document for easier parsing and migration
+            to Data Frame.
+            """
+            from lxml.etree import (
+                XML,
+                XSLT,
+            )
+
+            transformer = XSLT(self.xsl_doc)
+            new_doc = transformer(self.xml_doc)
+
+            return XML(bytes(new_doc))
 
 
 def get_data_from_filepath(
@@ -694,7 +707,6 @@ def _parse(
         * If parser is not lxml or etree.
     """
 
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     p: Union[_EtreeFrameParser, _LxmlFrameParser]
 
     if parser == "lxml":
