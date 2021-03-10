@@ -2350,7 +2350,7 @@ class StringMethods(NoNewAttributesMixin):
                 0
         match
         A 0      1
-        1      2
+          1      2
         B 0      1
 
         Capture group names are used for column names of the result.
@@ -2359,7 +2359,7 @@ class StringMethods(NoNewAttributesMixin):
                 digit
         match
         A 0         1
-        1         2
+          1         2
         B 0         1
 
         A pattern with two groups will return a DataFrame with two columns.
@@ -2368,7 +2368,7 @@ class StringMethods(NoNewAttributesMixin):
                 letter digit
         match
         A 0          a     1
-        1          a     2
+          1          a     2
         B 0          b     1
 
         Optional groups that do not match are NaN in the result.
@@ -2377,7 +2377,7 @@ class StringMethods(NoNewAttributesMixin):
                 letter digit
         match
         A 0          a     1
-        1          a     2
+          1          a     2
         B 0          b     1
         C 0        NaN     1
         """
