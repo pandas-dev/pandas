@@ -389,8 +389,10 @@ class TestDataFrameSetItem:
             dtype="object",
         )
         if using_array_manager:
-            expected["B"] = expected["B"].astype("int64")
+            # setitem replaces column so changes dtype
             expected["C"] = expected["C"].astype("int64")
+            # TODO(ArrayManager) .loc still overwrites
+            expected["B"] = expected["B"].astype("int64")
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("cols", [["a", "b", "c"], ["a", "a", "a"]])
