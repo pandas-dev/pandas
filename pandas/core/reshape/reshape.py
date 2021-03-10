@@ -440,7 +440,7 @@ def unstack(obj, level, fill_value=None):
             obj.index, level=level, constructor=obj._constructor_expanddim
         )
         return unstacker.get_result(
-            obj.values, value_columns=None, fill_value=fill_value
+            obj._values, value_columns=None, fill_value=fill_value
         )
 
 
