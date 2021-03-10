@@ -1524,18 +1524,17 @@ class Styler:
         """
         if gmap is None:  # the data is used the gmap
             gmap = s.to_numpy(dtype=float)
-        else:  # gmap is conformed to the data shape
-            if isinstance(gmap, (Series, DataFrame)):  # align indx / cols
-                gmap = gmap.reindex_like(s, method=None).to_numpy(dtype=float)
-            else:
-                gmap = np.asarray(gmap, dtype=float)
-                assert isinstance(gmap, np.ndarray)  # mypy requirement
-                if gmap.shape != s.shape:  # check valid input
-                    raise ValueError(
-                        "supplied 'gmap' is not right shape for data over "
-                        f"selected 'axis': got {gmap.shape}, "
-                        f"expected {s.shape}"
-                    )
+        elif isinstance(gmap, (Series, DataFrame)):  # align indx / cols to data
+            gmap = gmap.reindex_like(s, method=None).to_numpy(dtype=float)
+        else:
+            gmap = np.asarray(gmap, dtype=float)
+            assert isinstance(gmap, np.ndarray)  # mypy requirement
+            if gmap.shape != s.shape:  # check valid input
+                raise ValueError(
+                    "supplied 'gmap' is not right shape for data over "
+                    f"selected 'axis': got {gmap.shape}, "
+                    f"expected {s.shape}"
+                )
 
         with _mpl(Styler.background_gradient) as (plt, colors):
             smin = np.nanmin(gmap) if vmin is None else vmin
