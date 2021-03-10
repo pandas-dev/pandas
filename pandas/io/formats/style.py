@@ -777,6 +777,7 @@ class Styler:
         d = self._translate()
         d.update(kwargs)
         if latex:
+            self.template2.globals["parse"] = _parse_latex_table_styles
             return self.template2.render(**d)
         return self.template.render(**d)
 
@@ -2249,3 +2250,13 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
+
+
+def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]:
+    for style in styles[::-1]:  # in reverse for most recently applied style
+        if style["selector"] == selector:
+            if style["props"][0][0]:
+                return f"{style['props'][0][0]}:{style['props'][0][1]}"
+            else:
+                return style["props"][0][1]
+    return None
