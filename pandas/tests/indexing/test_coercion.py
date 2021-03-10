@@ -443,7 +443,7 @@ class TestInsertIndexCoercion(CoercionBase):
             assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
-            # mismatched tz --> cast to object (could reasonably cast to commom tz)
+            # mismatched tz --> cast to object (could reasonably cast to common tz)
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
             result = obj.insert(1, ts)
             expected = obj.astype(object).insert(1, ts)

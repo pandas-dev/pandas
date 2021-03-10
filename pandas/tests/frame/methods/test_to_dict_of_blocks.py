@@ -53,7 +53,7 @@ def test_to_dict_of_blocks_item_cache():
 
     df._to_dict_of_blocks()
 
-    # Check that the to_dict_of_blocks didnt break link between ser and df
+    # Check that the to_dict_of_blocks didn't break link between ser and df
     ser.values[0] = "foo"
     assert df.loc[0, "b"] == "foo"
 

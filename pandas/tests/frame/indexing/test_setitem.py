@@ -420,7 +420,7 @@ class TestDataFrameSetItem:
         assert isinstance(ser.cat.categories, IntervalIndex)
 
         # B & D end up as Categoricals
-        # the remainer are converted to in-line objects
+        # the remainder are converted to in-line objects
         # containing an IntervalIndex.values
         df["B"] = ser
         df["C"] = np.array(ser)
@@ -433,13 +433,13 @@ class TestDataFrameSetItem:
         assert is_categorical_dtype(df["D"].dtype)
         assert is_interval_dtype(df["D"].cat.categories)
 
-        # Thes goes through the Series constructor and so get inferred back
+        # These go through the Series constructor and so get inferred back
         #  to IntervalDtype
         assert is_interval_dtype(df["C"])
         assert is_interval_dtype(df["E"])
 
         # But the Series constructor doesn't do inference on Series objects,
-        #  so setting df["F"] doesnt get cast back to IntervalDtype
+        #  so setting df["F"] doesn't get cast back to IntervalDtype
         assert is_object_dtype(df["F"])
 
         # they compare equal as Index

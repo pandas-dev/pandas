@@ -112,7 +112,7 @@ class TestiLocBaseIndependent:
             assert obj.values.base is values.base and values.base is not None
 
     def test_is_scalar_access(self):
-        # GH#32085 index with duplicates doesnt matter for _is_scalar_access
+        # GH#32085 index with duplicates doesn't matter for _is_scalar_access
         index = Index([1, 2, 1])
         ser = Series(range(3), index=index)
 
@@ -739,18 +739,18 @@ class TestiLocBaseIndependent:
                             accessor = getattr(df, method[1:])
                         else:
                             accessor = df
-                        ans = str(bin(accessor[mask]["nums"].sum()))
+                        answer = str(bin(accessor[mask]["nums"].sum()))
                     except (ValueError, IndexingError, NotImplementedError) as e:
-                        ans = str(e)
+                        answer = str(e)
 
                     key = (
                         idx,
                         method,
                     )
                     r = expected.get(key)
-                    if r != ans:
+                    if r != answer:
                         raise AssertionError(
-                            f"[{key}] does not match [{ans}], received [{r}]"
+                            f"[{key}] does not match [{answer}], received [{r}]"
                         )
 
     def test_iloc_non_unique_indexing(self):

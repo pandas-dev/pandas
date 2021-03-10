@@ -76,7 +76,7 @@ class TestCategoricalIndexRepr:
 
         assert repr(idx) == expected
 
-        # Emable Unicode option -----------------------------------------
+        # Enable Unicode option -----------------------------------------
         with cf.option_context("display.unicode.east_asian_width", True):
 
             # short

@@ -519,7 +519,7 @@ class TestDataFrameSubclassing:
         def check_row_subclass(row):
             assert isinstance(row, tm.SubclassedSeries)
 
-        def strech(row):
+        def stretch(row):
             if row["variable"] == "height":
                 row["value"] += 0.5
             return row
@@ -547,7 +547,7 @@ class TestDataFrameSubclassing:
             columns=["first", "last", "variable", "value"],
         )
 
-        result = df.apply(lambda x: strech(x), axis=1)
+        result = df.apply(lambda x: stretch(x), axis=1)
         assert isinstance(result, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result, expected)
 
