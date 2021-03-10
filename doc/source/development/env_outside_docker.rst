@@ -97,7 +97,7 @@ Now create an isolated pandas development environment:
 * Install either `Anaconda <https://www.anaconda.com/download/>`_, `miniconda
   <https://conda.io/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
 * Make sure your conda is up to date (``conda update conda``)
-* Make sure that you have :ref:`cloned the repository <contributing.forking>`
+* Make sure that you have :any:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
 
 We'll now kick off a three-step process:
