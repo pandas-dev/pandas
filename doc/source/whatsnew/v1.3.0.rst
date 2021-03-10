@@ -140,7 +140,9 @@ Other enhancements
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :meth:`pandas.Timedelta` (:issue:`37172`)
 - Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
+- :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
+- :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 
 .. ---------------------------------------------------------------------------
 
@@ -437,6 +439,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile`, :meth:`DataFrame.sort_values` causing incorrect subsequent indexing behavior (:issue:`38351`)
+- Bug in :meth:`DataFrame.sort_values` raising an :class:`IndexError` for empty ``by`` (:issue:`40258`)
 - Bug in :meth:`DataFrame.select_dtypes` with ``include=np.number`` now retains numeric ``ExtensionDtype`` columns (:issue:`35340`)
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 - Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
@@ -570,6 +573,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.sample` where column selection was not applied to sample result (:issue:`39928`)
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would incorrectly raise a ``ValueError`` when providing ``times`` (:issue:`40164`)
 - Bug in :class:`core.window.ewm.ExponentialMovingWindow` when calling ``__getitem__`` would not retain ``com``, ``span``, ``alpha`` or ``halflife`` attributes  (:issue:`40164`)
+- :class:`core.window.ewm.ExponentialMovingWindow` now raises a ``NotImplementedError`` when specifying ``times`` with ``adjust=False`` due to an incorrect calculation (:issue:`40098`)
 
 Reshaping
 ^^^^^^^^^

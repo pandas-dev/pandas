@@ -232,5 +232,5 @@ def test_open_file(all_parsers):
         warnings.simplefilter("always", category=ResourceWarning)
         with warnings.catch_warnings(record=True) as record:
             with pytest.raises(csv.Error, match="Could not determine delimiter"):
-                parser.read_csv(file, sep=None)
+                parser.read_csv(file, sep=None, encoding_errors="replace")
             assert len(record) == 0, record[0].message

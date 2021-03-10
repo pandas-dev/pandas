@@ -5818,7 +5818,7 @@ class DataFrame(NDFrame, OpsMixin):
                 keys, orders=ascending, na_position=na_position, key=key
             )
             indexer = ensure_platform_int(indexer)
-        else:
+        elif len(by):
 
             by = by[0]
             k = self._get_label_or_level_values(by, axis=axis)
@@ -5833,6 +5833,8 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = nargsort(
                 k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
+        else:
+            return self.copy()
 
         new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
@@ -9151,7 +9153,7 @@ NaN 12.3   33.0
 
         return result.astype("int64")
 
-    def _count_level(self, level: Level, axis: Axis = 0, numeric_only=False):
+    def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
         if numeric_only:
             frame = self._get_numeric_data()
         else:
