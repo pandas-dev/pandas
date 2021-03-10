@@ -554,7 +554,7 @@ class ArrayManager(DataManager):
             # with axis=0 is equivalent
             assert n == 0
             axis = 0
-        return self.apply(algos.diff, n=n, axis=axis)
+        return self.apply(algos.diff, n=n, axis=axis, stacklevel=5)
 
     def interpolate(self, **kwargs) -> ArrayManager:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
