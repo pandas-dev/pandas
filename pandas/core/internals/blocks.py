@@ -155,7 +155,7 @@ class Block(PandasObject):
         obj._mgr_locs = placement
         return obj
 
-    def __init__(self, values, placement, ndim: int):
+    def __init__(self, values, placement: BlockPlacement, ndim: int):
         """
         Parameters
         ----------
@@ -164,8 +164,10 @@ class Block(PandasObject):
         ndim : int
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
         """
+        assert isinstance(ndim, int)
+        assert isinstance(placement, BlockPlacement)
         self.ndim = ndim
-        self.mgr_locs = placement
+        self._mgr_locs = placement
         self.values = self._maybe_coerce_values(values)
 
     @classmethod
@@ -259,14 +261,12 @@ class Block(PandasObject):
         return np.nan
 
     @property
-    def mgr_locs(self):
+    def mgr_locs(self) -> BlockPlacement:
         return self._mgr_locs
 
     @mgr_locs.setter
-    def mgr_locs(self, new_mgr_locs):
-        if not isinstance(new_mgr_locs, libinternals.BlockPlacement):
-            new_mgr_locs = libinternals.BlockPlacement(new_mgr_locs)
-
+    def mgr_locs(self, new_mgr_locs: BlockPlacement):
+        assert isinstance(new_mgr_locs, BlockPlacement)
         self._mgr_locs = new_mgr_locs
 
     @final
@@ -283,7 +283,9 @@ class Block(PandasObject):
         return new_block(values, placement=placement, ndim=self.ndim)
 
     @final
-    def make_block_same_class(self, values, placement=None) -> Block:
+    def make_block_same_class(
+        self, values, placement: Optional[BlockPlacement] = None
+    ) -> Block:
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
@@ -1266,7 +1268,11 @@ class Block(PandasObject):
         return self._maybe_downcast(blocks, downcast)
 
     def take_nd(
-        self, indexer, axis: int, new_mgr_locs=None, fill_value=lib.no_default
+        self,
+        indexer,
+        axis: int,
+        new_mgr_locs: Optional[BlockPlacement] = None,
+        fill_value=lib.no_default,
     ) -> Block:
         """
         Take values according to indexer and return them as a block.bb
@@ -1645,7 +1651,11 @@ class ExtensionBlock(Block):
         return self.make_block(values)
 
     def take_nd(
-        self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
+        self,
+        indexer,
+        axis: int = 0,
+        new_mgr_locs: Optional[BlockPlacement] = None,
+        fill_value=lib.no_default,
     ) -> Block:
         """
         Take values according to indexer and return them as a block.
@@ -1812,7 +1822,7 @@ class ExtensionBlock(Block):
         blocks = [
             self.make_block_same_class(
                 self.values.take(indices, allow_fill=True, fill_value=fill_value),
-                [place],
+                BlockPlacement(place),
             )
             for indices, place in zip(new_values.T, new_placement)
         ]
@@ -2299,6 +2309,9 @@ def new_block(values, placement, *, ndim: int, klass=None) -> Block:
 
     if klass is None:
         klass = get_block_type(values, values.dtype)
+
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
 
     return klass(values, ndim=ndim, placement=placement)
 
