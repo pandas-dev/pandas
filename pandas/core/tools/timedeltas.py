@@ -181,5 +181,7 @@ def _convert_listlike(arg, unit=None, errors="raise", name=None):
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(value, unit="ns", name=name)
+    # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
+    # variable has type "ndarray")
+    value = TimedeltaIndex(value, unit="ns", name=name)  # type: ignore[assignment]
     return value

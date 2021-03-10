@@ -320,7 +320,9 @@ class StringArray(PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            arr = self.copy()
+            # error: Incompatible types in assignment (expression has type
+            # "StringArray", variable has type "ndarray")
+            arr = self.copy()  # type: ignore[assignment]
             mask = self.isna()
             arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)
@@ -434,7 +436,12 @@ class StringArray(PandasArray):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                dtype=np.dtype(dtype),
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                # error: Argument 1 to "dtype" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                # "Type[object]"
+                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
             )
 
             if not na_value_is_na:

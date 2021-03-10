@@ -136,7 +136,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # Abstract data attributes
 
     @property
-    def values(self) -> np.ndarray:
+    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
+    # in supertype "Index"
+    def values(self) -> np.ndarray:  # type: ignore[override]
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._ndarray
 
@@ -528,8 +530,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
         arr = self._data.view()
-        arr._freq = self.freq
-        result = arr._time_shift(periods, freq=freq)
+        # error: "ExtensionArray" has no attribute "_freq"
+        arr._freq = self.freq  # type: ignore[attr-defined]
+        # error: "ExtensionArray" has no attribute "_time_shift"
+        result = arr._time_shift(periods, freq=freq)  # type: ignore[attr-defined]
         return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------
@@ -772,7 +776,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right._values[:loc]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[:loc]  # type: ignore[misc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -788,7 +793,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right._values[loc:]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[loc:]  # type: ignore[misc]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq

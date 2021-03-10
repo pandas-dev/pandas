@@ -143,10 +143,17 @@ def quantile_ea_compat(
     mask = np.asarray(values.isna())
     mask = np.atleast_2d(mask)
 
-    values, fill_value = values._values_for_factorize()
-    values = np.atleast_2d(values)
+    # error: Incompatible types in assignment (expression has type "ndarray", variable
+    # has type "ExtensionArray")
+    values, fill_value = values._values_for_factorize()  # type: ignore[assignment]
+    # error: No overload variant of "atleast_2d" matches argument type "ExtensionArray"
+    values = np.atleast_2d(values)  # type: ignore[call-overload]
 
-    result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+    # error: Argument 1 to "quantile_with_mask" has incompatible type "ExtensionArray";
+    # expected "ndarray"
+    result = quantile_with_mask(
+        values, mask, fill_value, qs, interpolation, axis  # type: ignore[arg-type]
+    )
 
     if not is_sparse(orig.dtype):
         # shape[0] should be 1 as long as EAs are 1D
@@ -160,4 +167,5 @@ def quantile_ea_compat(
             assert result.shape == (1, len(qs)), result.shape
             result = type(orig)._from_factorized(result[0], orig)
 
-    return result
+    # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
+    return result  # type: ignore[return-value]

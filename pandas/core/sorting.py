@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 _INT64_MAX = np.iinfo(np.int64).max
 
 
+# error: Function "numpy.array" is not valid as a type
 def get_indexer_indexer(
     target: Index,
     level: Union[str, int, List[str], List[int]],
@@ -51,7 +52,7 @@ def get_indexer_indexer(
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:
+) -> Optional[np.array]:  # type: ignore[valid-type]
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -584,11 +585,16 @@ def get_group_index_sorter(
         df.groupby(key)[col].transform('first')
     """
     if ngroups is None:
-        ngroups = 1 + group_index.max()
+        # error: Incompatible types in assignment (expression has type "number[Any]",
+        # variable has type "Optional[int]")
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    # error: Unsupported operand types for * ("float" and "None")
+    do_groupsort = count > 0 and (
+        (alpha + beta * ngroups) < (count * np.log(count))  # type: ignore[operator]
+    )
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
         return ensure_platform_int(sorter)

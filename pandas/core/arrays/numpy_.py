@@ -97,7 +97,12 @@ class PandasArray(
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
-        result = np.asarray(scalars, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
+        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"
+        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
         if (
             result.ndim > 1
             and not hasattr(scalars, "dtype")
@@ -185,7 +190,9 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def isna(self) -> np.ndarray:
+    # error: Return type "ndarray" of "isna" incompatible with return type
+    # "ArrayLike" in supertype "ExtensionArray"
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         return isna(self._ndarray)
 
     def _validate_fill_value(self, fill_value):
@@ -341,7 +348,10 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,

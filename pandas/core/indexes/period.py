@@ -275,7 +275,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # Data
 
     @property
-    def values(self) -> np.ndarray:
+    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
+    # in supertype "Index"
+    def values(self) -> np.ndarray:  # type: ignore[override]
         return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other):

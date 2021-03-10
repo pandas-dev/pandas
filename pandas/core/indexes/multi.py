@@ -711,14 +711,18 @@ class MultiIndex(Index):
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
                 vals = vals.astype(object)
-            vals = np.array(vals, copy=False)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Index")
+            vals = np.array(vals, copy=False)  # type: ignore[assignment]
             values.append(vals)
 
         arr = lib.fast_zip(values)
         return arr
 
     @property
-    def values(self) -> np.ndarray:
+    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
+    # in supertype "Index"
+    def values(self) -> np.ndarray:  # type: ignore[override]
         return self._values
 
     @property
@@ -2218,7 +2222,11 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                codes = com.index_labels_to_array(codes, dtype=object)
+                # error: Argument "dtype" to "index_labels_to_array" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
+                codes = com.index_labels_to_array(
+                    codes, dtype=object  # type: ignore[arg-type]
+                )
             except ValueError:
                 pass
 
@@ -3162,10 +3170,14 @@ class MultiIndex(Index):
                 indexer = codes.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)
-                m = np.asarray(m)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
+                m = np.asarray(m)  # type: ignore[assignment]
 
             else:
-                m = np.zeros(len(codes), dtype=bool)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
+                m = np.zeros(len(codes), dtype=bool)  # type: ignore[assignment]
                 m[np.in1d(codes, r, assume_unique=Index(codes).is_unique)] = True
 
             return m

@@ -391,13 +391,15 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                return self.isna().any()
+                # error: "ExtensionArray" has no attribute "any"
+                return self.isna().any()  # type: ignore[attr-defined]
             else:
                 return False
         else:
             return (item == self).any()
 
-    def __eq__(self, other: Any) -> ArrayLike:
+    # error: Signature of "__eq__" incompatible with supertype "object"
+    def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
         """
         Return for `self == other` (element-wise equality).
         """
@@ -409,7 +411,8 @@ class ExtensionArray:
         # underlying arrays)
         raise AbstractMethodError(self)
 
-    def __ne__(self, other: Any) -> ArrayLike:
+    # error: Signature of "__ne__" incompatible with supertype "object"
+    def __ne__(self, other: Any) -> ArrayLike:  # type: ignore[override]
         """
         Return for `self != other` (element-wise in-equality).
         """
@@ -446,7 +449,12 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        result = np.asarray(self, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
+        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        result = np.asarray(self, dtype=dtype)  # type: ignore[arg-type]
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
@@ -476,7 +484,8 @@ class ExtensionArray:
         """
         The number of elements in the array.
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @property
     def ndim(self) -> int:
@@ -639,7 +648,8 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        # error: "ExtensionArray" has no attribute "any"
+        if not skipna and self.isna().any():  # type: ignore[attr-defined]
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -663,7 +673,8 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        # error: "ExtensionArray" has no attribute "any"
+        if not skipna and self.isna().any():  # type: ignore[attr-defined]
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -697,9 +708,14 @@ class ExtensionArray:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-        value = missing.check_value_size(value, mask, len(self))
+        # error: Argument 2 to "check_value_size" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
+        value = missing.check_value_size(
+            value, mask, len(self)  # type: ignore[arg-type]
+        )
 
-        if mask.any():
+        # error: "ExtensionArray" has no attribute "any"
+        if mask.any():  # type: ignore[attr-defined]
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values, _ = func(self.astype(object), limit=limit, mask=mask)
@@ -720,7 +736,8 @@ class ExtensionArray:
         -------
         valid : ExtensionArray
         """
-        return self[~self.isna()]
+        # error: Unsupported operand type for ~ ("ExtensionArray")
+        return self[~self.isna()]  # type: ignore[operator]
 
     def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """
@@ -865,7 +882,8 @@ class ExtensionArray:
             if isinstance(equal_values, ExtensionArray):
                 # boolean array with NA -> fill with False
                 equal_values = equal_values.fillna(False)
-            equal_na = self.isna() & other.isna()
+            # error: Unsupported left operand type for & ("ExtensionArray")
+            equal_na = self.isna() & other.isna()  # type: ignore[operator]
             return bool((equal_values | equal_na).all())
 
     def isin(self, values) -> np.ndarray:
@@ -954,7 +972,9 @@ class ExtensionArray:
         )
 
         uniques = self._from_factorized(uniques, self)
-        return codes, uniques
+        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
+        # expected "Tuple[ndarray, ExtensionArray]")
+        return codes, uniques  # type: ignore[return-value]
 
     _extension_array_shared_docs[
         "repeat"
@@ -1136,7 +1156,9 @@ class ExtensionArray:
         #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
-        return self[:]
+        # error: Incompatible return value type (got "Union[ExtensionArray, Any]",
+        # expected "ndarray")
+        return self[:]  # type: ignore[return-value]
 
     # ------------------------------------------------------------------------
     # Printing

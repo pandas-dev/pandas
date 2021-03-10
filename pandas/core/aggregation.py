@@ -181,7 +181,9 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 
     # get the new index of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
-    return aggspec, columns, col_idx_order
+    # error: Incompatible return value type (got "Tuple[defaultdict[Any, Any],
+    # Any, ndarray]", expected "Tuple[Dict[Any, Any], List[str], List[int]]")
+    return aggspec, columns, col_idx_order  # type: ignore[return-value]
 
 
 def _make_unique_kwarg_list(

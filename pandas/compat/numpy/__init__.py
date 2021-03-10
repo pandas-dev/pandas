@@ -43,7 +43,9 @@ def np_datetime64_compat(s, *args, **kwargs):
     warning, when need to pass '2015-01-01 09:00:00'
     """
     s = tz_replacer(s)
-    return np.datetime64(s, *args, **kwargs)
+    # error: No overload variant of "datetime64" matches argument types "Any",
+    # "Tuple[Any, ...]", "Dict[str, Any]"
+    return np.datetime64(s, *args, **kwargs)  # type: ignore[call-overload]
 
 
 def np_array_datetime64_compat(arr, *args, **kwargs):

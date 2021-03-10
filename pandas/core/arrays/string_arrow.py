@@ -248,7 +248,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
@@ -341,7 +344,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                return self.take(item)
+                # error: Argument 1 to "take" of "ArrowStringArray" has incompatible
+                # type "ndarray"; expected "Sequence[int]"
+                return self.take(item)  # type: ignore[arg-type]
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
             else:
@@ -400,7 +405,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
+                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
+                new_values, _ = func(
+                    self.to_numpy(object),  # type: ignore[arg-type]
+                    limit=limit,
+                    mask=mask,
+                )
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value
@@ -423,7 +434,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._data.nbytes
 
-    def isna(self) -> np.ndarray:
+    # error: Return type "ndarray" of "isna" incompatible with return type "ArrayLike"
+    # in supertype "ExtensionArray"
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         """
         Boolean NumPy array indicating if each value is missing.
 
@@ -498,7 +511,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
             # Slice data and insert in-between
             new_data = [
-                *self._data[0:key].chunks,
+                # error: Slice index must be an integer or None
+                *self._data[0:key].chunks,  # type: ignore[misc]
                 pa.array([value], type=pa.string()),
                 *self._data[(key + 1) :].chunks,
             ]
@@ -589,7 +603,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if not is_array_like(indices):
             indices_array = np.asanyarray(indices)
         else:
-            indices_array = indices
+            # error: Incompatible types in assignment (expression has type
+            # "Sequence[int]", variable has type "ndarray")
+            indices_array = indices  # type: ignore[assignment]
 
         if len(self._data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")

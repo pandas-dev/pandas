@@ -385,7 +385,8 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        return np.all(
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return np.all(  # type: ignore[return-value]
             ((weekdays == 0) & (shifts == 3))
             | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
         )

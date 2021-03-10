@@ -365,7 +365,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import is_dates_only
 
-        return self.tz is None and is_dates_only(self._values)
+        # error: Argument 1 to "is_dates_only" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
+        # DatetimeArray, Index, DatetimeIndex]"
+        return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
 
@@ -533,7 +536,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # preserve the tz & copy
             values = self.copy(deep=True)
         else:
-            values = self._values.view("M8[ns]").copy()
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "DatetimeIndex")
+            values = self._values.view("M8[ns]").copy()  # type: ignore[assignment]
 
         return Series(values, index=index, name=name)
 

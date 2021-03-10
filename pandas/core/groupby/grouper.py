@@ -583,7 +583,9 @@ class Grouping:
     def codes(self) -> np.ndarray:
         if self._codes is None:
             self._make_codes()
-        return self._codes
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return self._codes  # type: ignore[return-value]
 
     @cache_readonly
     def result_index(self) -> Index:

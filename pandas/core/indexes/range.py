@@ -111,7 +111,12 @@ class RangeIndex(Int64Index):
         name=None,
     ):
 
-        cls._validate_dtype(dtype)
+        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected
+        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"
+        cls._validate_dtype(dtype)  # type: ignore[arg-type]
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
@@ -155,7 +160,12 @@ class RangeIndex(Int64Index):
                 f"range, {repr(data)} was passed"
             )
 
-        cls._validate_dtype(dtype)
+        # error: Argument 1 to "_validate_dtype" of "NumericIndex" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected
+        # "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"
+        cls._validate_dtype(dtype)  # type: ignore[arg-type]
         return cls._simple_new(data, name=name)
 
     @classmethod
@@ -901,7 +911,8 @@ class RangeIndex(Int64Index):
             # apply if we have an override
             if step:
                 with np.errstate(all="ignore"):
-                    rstep = step(left.step, right)
+                    # error: "bool" not callable
+                    rstep = step(left.step, right)  # type: ignore[operator]
 
                 # we don't have a representable op
                 # so return a base index

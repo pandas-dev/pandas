@@ -504,7 +504,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
-    def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
+    # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
+    # incompatible with return type "ExtensionDtype" in supertype
+    # "ExtensionArray"
+    def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:  # type: ignore[override]
         """
         The dtype for the DatetimeArray.
 

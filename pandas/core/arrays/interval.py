@@ -641,7 +641,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
-        if np.ndim(left) > 1:
+        # error: Argument 1 to "ndim" has incompatible type "Union[ndarray,
+        # ExtensionArray]"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        if np.ndim(left) > 1:  # type: ignore[arg-type]
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -907,7 +911,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
-    def isna(self) -> np.ndarray:
+    # error: Return type "ndarray" of "isna" incompatible with return type
+    # "ArrayLike" in supertype "ExtensionArray"
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         return isna(self._left)
 
     def shift(
@@ -1612,7 +1618,10 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
-        return np.array([], dtype=np.int64)
+
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return np.array([], dtype=np.int64)  # type: ignore[return-value]
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
         # This will raise later, but we avoid passing to maybe_convert_platform
         return values
@@ -1624,4 +1633,5 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    return maybe_convert_platform(values)
+    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
+    return maybe_convert_platform(values)  # type: ignore[return-value]
