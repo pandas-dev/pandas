@@ -1807,7 +1807,7 @@ class Styler:
         axis: Optional[Axis] = 0,
         left: Optional[Union[Scalar, Sequence]] = None,
         right: Optional[Union[Scalar, Sequence]] = None,
-        inclusive: Union[bool, str] = True,
+        inclusive: Union[bool, str] = "both",
         props: Optional[str] = None,
     ) -> Styler:
         """
@@ -1828,7 +1828,7 @@ class Styler:
             Left bound for defining the range.
         right : scalar or datetime-like, or sequence or array-like, default None
             Right bound for defining the range.
-        inclusive : {'both', 'neither', 'left', 'right'} or bool, default True
+        inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
         props : str, default None
             CSS properties to use for highlighting. If ``props`` is given, ``color``
@@ -1919,9 +1919,9 @@ class Styler:
             left, right = reshape(left, "left"), reshape(right, "right")
 
             # get ops with correct boundary attribution
-            if inclusive == "both" or inclusive is True:
+            if inclusive == "both":
                 ops = ("__ge__", "__le__")
-            elif inclusive == "neither" or inclusive is False:
+            elif inclusive == "neither":
                 ops = ("__gt__", "__lt__")
             elif inclusive == "left":
                 ops = ("__ge__", "__lt__")
@@ -1929,8 +1929,8 @@ class Styler:
                 ops = ("__gt__", "__le__")
             else:
                 raise ValueError(
-                    f"'inclusive' values can be 'both', 'left', 'right', 'neither' "
-                    f"or bool, got {inclusive}"
+                    f"'inclusive' values can be 'both', 'left', 'right', or 'neither' "
+                    f"got {inclusive}"
                 )
 
             g_left = (
