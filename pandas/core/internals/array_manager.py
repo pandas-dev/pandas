@@ -162,6 +162,12 @@ class ArrayManager(DataManager):
         # this returns (n_rows, n_columns)
         return tuple(len(ax) for ax in self._axes)
 
+    @staticmethod
+    def _normalize_axis(axis: int) -> int:
+        # switch axis
+        axis = 1 if axis == 0 else 0
+        return axis
+
     def set_axis(
         self, axis: int, new_labels: Index, verify_integrity: bool = True
     ) -> None:

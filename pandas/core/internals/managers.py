@@ -245,6 +245,12 @@ class BlockManager(DataManager):
     # Python3 compat
     __bool__ = __nonzero__
 
+    def _normalize_axis(self, axis: int) -> int:
+        # switch axis
+        if self.ndim == 2:
+            axis = 1 if axis == 0 else 0
+        return axis
+
     def set_axis(
         self, axis: int, new_labels: Index, verify_integrity: bool = True
     ) -> None:

@@ -46,12 +46,6 @@ class DataManager(PandasObject):
     def shape(self) -> Shape:
         return tuple(len(ax) for ax in self.axes)
 
-    def _normalize_axis(self, axis: int) -> int:
-        # switch axis
-        if self.ndim == 2:
-            axis = 1 if axis == 0 else 0
-        return axis
-
     def reindex_indexer(
         self: T,
         new_axis,
