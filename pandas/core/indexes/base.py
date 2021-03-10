@@ -173,7 +173,6 @@ if TYPE_CHECKING:
         RangeIndex,
         Series,
     )
-    from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 __all__ = ["Index"]
@@ -305,7 +304,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _id: Optional[_Identity] = None
+    _id: Optional[object] = None
     _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
@@ -366,13 +365,8 @@ class Index(IndexOpsMixin, PandasObject):
         data_dtype = getattr(data, "dtype", None)
 
         # range
-        if isinstance(data, RangeIndex):
+        if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=copy, name=name)
-            if dtype is not None:
-                return result.astype(dtype, copy=False)
-            return result
-        elif isinstance(data, range):
-            result = RangeIndex.from_range(data, name=name)
             if dtype is not None:
                 return result.astype(dtype, copy=False)
             return result
@@ -716,7 +710,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Initializes or resets ``_id`` attribute with new object.
         """
-        self._id = _Identity(object())
+        self._id = object()
 
     @final
     def _cleanup(self) -> None:
@@ -1722,7 +1716,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self.sort_values(return_indexer=True, ascending=ascending)
 
-    def _get_level_values(self, level):
+    def _get_level_values(self, level) -> Index:
         """
         Return an Index of values for requested level.
 
@@ -2982,11 +2976,8 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _wrap_setop_result(self, other, result):
-        if needs_i8_conversion(self.dtype) and isinstance(result, np.ndarray):
-            self = cast("DatetimeIndexOpsMixin", self)
-            result = type(self._data)._simple_new(result, dtype=self.dtype)
-        elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
+    def _wrap_setop_result(self, other: Index, result) -> Index:
+        if is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
             result = Categorical(result, dtype=self.dtype)
 
         name = get_op_result_name(self, other)
@@ -4559,6 +4550,13 @@ class Index(IndexOpsMixin, PandasObject):
             return self._constructor._simple_new(result, name=self.name)
         else:
             return result
+
+    def _getitem_slice(self: _IndexT, slobj: slice) -> _IndexT:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        res = self._data[slobj]
+        return type(self)._simple_new(res, name=self._name)
 
     @final
     def _can_hold_identifiers_and_holds_name(self, name) -> bool:
