@@ -173,8 +173,12 @@ class BlockManager(DataManager):
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
-        self._blknos = None
-        self._blklocs = None
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blknos = None  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blklocs = None  # type: ignore[assignment]
 
     @classmethod
     def _simple_new(cls, blocks: Tuple[Block, ...], axes: List[Index]):
@@ -316,7 +320,11 @@ class BlockManager(DataManager):
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
-        return [blk.values for blk in self.blocks]
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[ExtensionArray]
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[ndarray]
+        return [blk.values for blk in self.blocks]  # type: ignore[misc]
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -802,6 +810,7 @@ class BlockManager(DataManager):
         return type(self).from_blocks(new_blocks, axes)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
+        assert isinstance(slobj, slice), type(slobj)
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
@@ -812,7 +821,7 @@ class BlockManager(DataManager):
             raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
-        new_axes[axis] = new_axes[axis][slobj]
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
         return type(self)._simple_new(tuple(new_blocks), new_axes)
 
@@ -888,13 +897,21 @@ class BlockManager(DataManager):
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value).reshape(
-                    blk.shape
-                )
+
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    dtype=dtype, na_value=na_value
+                ).reshape(blk.shape)
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    arr = arr.astype(dtype, copy=False)
+                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
+                    # Type[object]]"; expected "Union[dtype[Any], None, type,
+                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -927,7 +944,12 @@ class BlockManager(DataManager):
         elif is_dtype_equal(dtype, str):
             dtype = "object"
 
-        result = np.empty(self.shape, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+        # Any]]]"
+        result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
 
         itemmask = np.zeros(self.shape[0])
 
@@ -935,9 +957,17 @@ class BlockManager(DataManager):
             rl = blk.mgr_locs
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value)
+
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    dtype=dtype, na_value=na_value
+                )
             else:
-                arr = blk.get_values(dtype)
+                # error: Argument 1 to "get_values" of "Block" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+                # "Union[dtype[Any], ExtensionDtype, None]"
+                arr = blk.get_values(dtype)  # type: ignore[arg-type]
             result[rl.indexer] = arr
             itemmask[rl.indexer] = 1
 
@@ -988,7 +1018,12 @@ class BlockManager(DataManager):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
         else:
-            result = np.empty(n, dtype=dtype)
+            # error: Argument "dtype" to "empty" has incompatible type
+            # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype,
+            # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
+            # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
+            # Any]]"
+            result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
 
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
@@ -999,7 +1034,9 @@ class BlockManager(DataManager):
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        return result
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return result  # type: ignore[return-value]
 
     def consolidate(self) -> BlockManager:
         """
@@ -1122,7 +1159,11 @@ class BlockManager(DataManager):
             # We have 6 tests where loc is _not_ an int.
             # In this case, get_blkno_placements will yield only one tuple,
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
-            loc = [loc]
+
+            # error: Incompatible types in assignment (expression has type
+            # "List[Union[int, slice, ndarray]]", variable has type "Union[int,
+            # slice, ndarray]")
+            loc = [loc]  # type: ignore[assignment]
 
         # Accessing public blknos ensures the public versions are initialized
         blknos = self.blknos[loc]
@@ -1201,7 +1242,9 @@ class BlockManager(DataManager):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
+    def insert(
+        self, loc: int, item: Hashable, value: ArrayLike, allow_duplicates: bool = False
+    ):
         """
         Insert item at selected position.
 
@@ -1209,7 +1252,7 @@ class BlockManager(DataManager):
         ----------
         loc : int
         item : hashable
-        value : array_like
+        value : np.ndarray or ExtensionArray
         allow_duplicates: bool
             If False, trying to insert non-unique item will raise
 
@@ -1226,11 +1269,9 @@ class BlockManager(DataManager):
 
         if value.ndim == 2:
             value = value.T
-        elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
-            # TODO(EA2D): special case not needed with 2D EAs
-            value = ensure_block_shape(value, ndim=2)
+        else:
+            value = ensure_block_shape(value, ndim=self.ndim)
 
-        # TODO: type value as ArrayLike
         block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
         for blkno, count in _fast_count_smallints(self.blknos[loc:]):
@@ -1367,6 +1408,7 @@ class BlockManager(DataManager):
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
+                # TODO: tests all have isinstance(slobj, slice), other possibilities?
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
@@ -1376,9 +1418,11 @@ class BlockManager(DataManager):
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
                     blocks = [
-                        blk.getitem_block([ml], new_mgr_locs=i)
+                        blk.getitem_block(slice(ml, ml + 1), new_mgr_locs=i)
                         for i, ml in enumerate(slobj)
                     ]
+                    # We have
+                    #  all(np.shares_memory(nb.values, blk.values) for nb in blocks)
                     return blocks
                 else:
                     return [
@@ -1440,7 +1484,8 @@ class BlockManager(DataManager):
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
                         for i, ml in zip(taker, mgr_locs):
-                            nb = blk.getitem_block([i], new_mgr_locs=ml)
+                            nb = blk.getitem_block(slice(i, i + 1), new_mgr_locs=ml)
+                            # We have np.shares_memory(nb.values, blk.values)
                             blocks.append(nb)
                     else:
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
@@ -1456,7 +1501,11 @@ class BlockManager(DataManager):
         block_shape[0] = len(placement)
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        block_values = np.empty(block_shape, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype,
+        # ExtensionDtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
+        # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
+        block_values = np.empty(block_shape, dtype=dtype)  # type: ignore[arg-type]
         block_values.fill(fill_value)
         return new_block(block_values, placement=placement, ndim=block_values.ndim)
 
@@ -1498,7 +1547,9 @@ class BlockManager(DataManager):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            return array_equals(left, right)
+            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
+            # "Union[ndarray, ExtensionArray]"
+            return array_equals(left, right)  # type: ignore[type-var]
 
         return blockwise_all(self, other, array_equals)
 
@@ -1604,14 +1655,26 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         """ compat with BlockManager """
         return None
 
+    def getitem_mgr(self, indexer) -> SingleBlockManager:
+        # similar to get_slice, but not restricted to slice indexer
+        blk = self._block
+        array = blk._slice(indexer)
+        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
+        return type(self)(block, self.index[indexer])
+
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
+        assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
         blk = self._block
         array = blk._slice(slobj)
+        if array.ndim > blk.values.ndim:
+            # This will be caught by Series._get_values
+            raise ValueError("dimension-expanding indexing not allowed")
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
-        return type(self)(block, self.index[slobj])
+        new_index = self.index._getitem_slice(slobj)
+        return type(self)(block, new_index)
 
     @property
     def index(self) -> Index:
@@ -1870,7 +1933,12 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     new_blocks = []
     for dtype, tup_block in grouper:
 
-        values, placement = _stack_arrays(list(tup_block), dtype)
+        # error: Argument 2 to "_stack_arrays" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "dtype[Any]"
+        values, placement = _stack_arrays(
+            list(tup_block), dtype  # type: ignore[arg-type]
+        )
 
         block = new_block(values, placement=placement, ndim=2)
         new_blocks.append(block)
@@ -1944,7 +2012,11 @@ def _merge_blocks(
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = np.vstack([b.values for b in blocks])
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[Union[complex, generic, Sequence[Union[int,
+        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # _SupportsArray]]
+        new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]
@@ -1975,6 +2047,7 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length: int, allow_fill: bool
     ):
         return "mask", slice_or_indexer, slice_or_indexer.sum()
     else:
+        # TODO: np.intp?
         indexer = np.asanyarray(slice_or_indexer, dtype=np.int64)
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)

@@ -1439,8 +1439,8 @@ class TestDataFrameReplace:
 
         a = pd.Categorical(final_data[:, 0], categories=[3, 2])
 
-        excat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
-        b = pd.Categorical(final_data[:, 1], categories=excat)
+        ex_cat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
+        b = pd.Categorical(final_data[:, 1], categories=ex_cat)
 
         expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)

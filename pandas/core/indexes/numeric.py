@@ -232,6 +232,7 @@ class IntegerIndex(NumericIndex):
         hash(key)
         try:
             if is_float(key) and int(key) != key:
+                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
                 return False
             return key in self._engine
         except (OverflowError, TypeError, ValueError):
@@ -252,7 +253,9 @@ class IntegerIndex(NumericIndex):
             FutureWarning,
             stacklevel=2,
         )
-        return self._values.view(self._default_dtype)
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
+        return self._values.view(self._default_dtype)  # type: ignore[return-value]
 
 
 class Int64Index(IntegerIndex):
@@ -291,7 +294,10 @@ class UInt64Index(IntegerIndex):
         ):
             dtype = np.uint64
 
-        return com.asarray_tuplesafe(keyarr, dtype=dtype)
+        # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+        # "Optional[Type[unsignedinteger[Any]]]"; expected "Union[str, dtype[Any],
+        # None]"
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)  # type: ignore[arg-type]
 
 
 _float64_descr_args = {
@@ -327,7 +333,10 @@ class Float64Index(NumericIndex):
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            arr = astype_nansafe(self._values, dtype=dtype)
+
+            # error: Argument 1 to "astype_nansafe" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            arr = astype_nansafe(self._values, dtype=dtype)  # type: ignore[arg-type]
             return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)
 
