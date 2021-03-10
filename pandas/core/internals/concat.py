@@ -42,7 +42,10 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.internals.array_manager import ArrayManager
-from pandas.core.internals.blocks import new_block
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+    new_block,
+)
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
@@ -444,15 +447,8 @@ def _concatenate_join_units(
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
-        if not is_extension_array_dtype(concat_values.dtype):
-            # if the result of concat is not an EA but an ndarray, reshape to
-            # 2D to put it a non-EA Block
-            # special case DatetimeArray/TimedeltaArray, which *is* an EA, but
-            # is put in a consolidated 2D block
+        concat_values = ensure_block_shape(concat_values, 2)
 
-            # error: No overload variant of "atleast_2d" matches argument type
-            # "ExtensionArray"
-            concat_values = np.atleast_2d(concat_values)  # type: ignore[call-overload]
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 

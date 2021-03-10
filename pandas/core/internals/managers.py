@@ -1266,7 +1266,7 @@ class BlockManager(DataManager):
 
         if value.ndim == 2:
             value = value.T
-        elif value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
+        elif value.ndim == self.ndim - 1:
             # TODO(EA2D): special case not needed with 2D EAs
             value = ensure_block_shape(value, ndim=2)
 
