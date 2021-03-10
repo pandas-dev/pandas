@@ -2085,7 +2085,6 @@ class DatetimeTZBlock(DatetimeBlock, ExtensionBlock):
     #  "Callable[[Block], Tuple[int, ...]]", base class "ExtensionBlock"
     #  defined the type as "Tuple[int, ...]")
     shape = Block.shape  # type:ignore[assignment]
-    __init__ = Block.__init__
     # Incompatible types in assignment (expression has type
     #  "Callable[[Arg(Any, 'indexer'), Arg(int, 'axis'),
     #  DefaultArg(Any, 'new_mgr_locs'), DefaultArg(Any, 'fill_value')], Block]",
