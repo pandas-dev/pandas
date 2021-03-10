@@ -1182,10 +1182,6 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
         return self._axes[0]
 
     @property
-    def array(self):
-        return self.arrays[0]
-
-    @property
     def dtype(self):
         return self.array.dtype
 
