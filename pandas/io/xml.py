@@ -187,7 +187,7 @@ class _XMLFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _parse_doc(self) -> bytes:
+    def _parse_doc(self, raw_doc) -> bytes:
         """
         Build tree from path_or_buffer.
 
@@ -214,7 +214,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "To use stylesheet, you need lxml installed and selected as parser."
             )
 
-        self.xml_doc = XML(self._parse_doc())
+        self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
 
         self._validate_path()
         self._validate_names()
@@ -351,7 +351,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _parse_doc(self) -> bytes:
+    def _parse_doc(self, raw_doc) -> bytes:
         from xml.etree.ElementTree import (
             XMLParser,
             parse,
@@ -359,7 +359,7 @@ class _EtreeFrameParser(_XMLFrameParser):
         )
 
         handle_data = get_data_from_filepath(
-            filepath_or_buffer=self.path_or_buffer,
+            filepath_or_buffer=raw_doc,
             encoding=self.encoding,
             compression=self.compression,
             storage_options=self.storage_options,
