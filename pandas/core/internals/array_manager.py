@@ -509,7 +509,9 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        arrs = [ensure_block_shape(x, 2) for x in self.arrays]
+        # error: Value of type variable "ArrayLike" of "ensure_block_shape" cannot be
+        # "Union[ndarray, ExtensionArray]"
+        arrs = [ensure_block_shape(x, 2) for x in self.arrays]  # type: ignore[type-var]
         assert axis == 1
         # error: Value of type variable "ArrayLike" of "quantile_compat" cannot be
         # "object"
@@ -518,17 +520,12 @@ class ArrayManager(DataManager):
             for x in arrs
         ]
         for i, arr in enumerate(new_arrs):
-            # error: "object" has no attribute "ndim"
-            if arr.ndim == 2:  # type: ignore[attr-defined]
-                # error: "object" has no attribute "shape"
-                assert arr.shape[0] == 1, arr.shape  # type: ignore[attr-defined]
-                # error: Value of type "object" is not indexable
-                new_arrs[i] = arr[0]  # type: ignore[index]
+            if arr.ndim == 2:
+                assert arr.shape[0] == 1, arr.shape
+                new_arrs[i] = arr[0]
 
         axes = [qs, self._axes[1]]
-        # error: Argument 1 to "ArrayManager" has incompatible type "List[object]";
-        # expected "List[Union[ndarray, ExtensionArray]]"
-        return type(self)(new_arrs, axes)  # type: ignore[arg-type]
+        return type(self)(new_arrs, axes)
 
     def isna(self, func) -> ArrayManager:
         return self.apply("apply", func=func)

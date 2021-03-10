@@ -117,8 +117,10 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
+# comparison is faster than is_object_dtype
 
-_dtype_obj = np.dtype(object)  # comparison is faster than is_object_dtype
+# error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
+_dtype_obj = np.dtype(object)  # type: ignore[type-var]
 
 
 class Block(PandasObject):
@@ -288,7 +290,9 @@ class Block(PandasObject):
         """
         if dtype == _dtype_obj:
             return self.values.astype(_dtype_obj)
-        return self.values
+        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
+        # expected "ndarray")
+        return self.values  # type: ignore[return-value]
 
     @final
     def get_block_values_for_json(self) -> np.ndarray:
