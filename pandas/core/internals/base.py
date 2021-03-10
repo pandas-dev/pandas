@@ -7,7 +7,6 @@ from typing import (
     TypeVar,
 )
 
-from pandas._typing import ArrayLike
 from pandas.errors import AbstractMethodError
 
 from pandas.core.base import PandasObject
@@ -105,7 +104,7 @@ class SingleDataManager(DataManager):
     ndim = 1
 
     @property
-    def array(self) -> ArrayLike:
+    def array(self):
         """
         Quick access to the backing array of the Block or SingleArrayManager.
         """
