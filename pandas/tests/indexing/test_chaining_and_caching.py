@@ -3,6 +3,8 @@ from string import ascii_letters as letters
 import numpy as np
 import pytest
 
+from pandas.compat import ARM64
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -11,7 +13,6 @@ from pandas import (
     date_range,
     option_context,
 )
-from pandas.compat import ARM64
 import pandas._testing as tm
 import pandas.core.common as com
 
