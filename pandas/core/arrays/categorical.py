@@ -1506,6 +1506,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             count = np.bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
 
+        ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix = self._from_backing_data(ix)
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
@@ -1801,7 +1802,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._ndarray
 
     def _from_backing_data(self, arr: np.ndarray) -> Categorical:
-        return type(self)(arr, dtype=self.dtype, fastpath=True)
+        assert isinstance(arr, np.ndarray)
+        assert arr.dtype == self._ndarray.dtype
+
+        res = object.__new__(type(self))
+        res._ndarray = arr
+        res._dtype = self.dtype
+        return res
 
     def _box_func(self, i: int):
         if i == -1:
@@ -2116,6 +2123,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             good = self._codes != -1
             codes = self._codes[good]
         codes = sorted(htable.mode_int64(ensure_int64(codes), dropna))
+        codes = coerce_indexer_dtype(codes, self.dtype.categories)
         return self._from_backing_data(codes)
 
     # ------------------------------------------------------------------
