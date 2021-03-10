@@ -247,7 +247,7 @@ Alternatively, you can run a command similar to what was suggested for ``black``
 
 Where similar caveats apply if you are on OSX or Windows.
 
-You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+You can then verify the changes look ok, then git :any:`commit <contributing.commit-code>` and :any:`push <contributing.push-code>`.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -822,7 +822,7 @@ issue/pull request number).
 
 If your code is an enhancement, it is most likely necessary to add usage
 examples to the existing documentation.  This can be done following the section
-regarding documentation :ref:`above <contributing.documentation>`.
+regarding :ref:`documentation <contributing_documentation>`.
 Further, to let users know when this feature was added, the ``versionadded``
 directive is used. The sphinx syntax for that is:
 
