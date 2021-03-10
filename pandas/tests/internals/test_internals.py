@@ -829,7 +829,16 @@ class TestIndexing:
                     slobj = np.concatenate(
                         [slobj, np.zeros(len(ax) - len(slobj), dtype=bool)]
                     )
-            sliced = mgr.get_slice(slobj, axis=axis)
+
+            if isinstance(slobj, slice):
+                sliced = mgr.get_slice(slobj, axis=axis)
+            elif mgr.ndim == 1 and axis == 0:
+                sliced = mgr.getitem_mgr(slobj)
+            else:
+                # BlockManager doesnt support non-slice, SingleBlockManager
+                #  doesnt support axis > 0
+                return
+
             mat_slobj = (slice(None),) * axis + (slobj,)
             tm.assert_numpy_array_equal(
                 mat[mat_slobj], sliced.as_array(), check_dtype=False

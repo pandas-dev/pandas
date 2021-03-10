@@ -176,13 +176,13 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     is_datetimelike = False
 
     data = np.array([[1], [2], [3], [4]], dtype=dtype)
-    ans = np.zeros_like(data)
+    answer = np.zeros_like(data)
 
     labels = np.array([0, 0, 0, 0], dtype=np.int64)
     ngroups = 1
-    pd_op(ans, data, labels, ngroups, is_datetimelike)
+    pd_op(answer, data, labels, ngroups, is_datetimelike)
 
-    tm.assert_numpy_array_equal(np_op(data), ans[:, 0], check_dtype=False)
+    tm.assert_numpy_array_equal(np_op(data), answer[:, 0], check_dtype=False)
 
 
 def test_cython_group_transform_cumsum(any_real_dtype):
