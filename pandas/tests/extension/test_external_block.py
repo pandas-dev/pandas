@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas.core.internals import BlockManager
 from pandas.core.internals.blocks import ExtensionBlock
+
+pytestmark = td.skip_array_manager_invalid_test
 
 
 class CustomBlock(ExtensionBlock):
