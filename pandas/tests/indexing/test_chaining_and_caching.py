@@ -11,6 +11,7 @@ from pandas import (
     date_range,
     option_context,
 )
+from pandas.compat import ARM64
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -28,6 +29,7 @@ def random_text(nobs=100):
     return DataFrame(df, columns=["letters"])
 
 
+@pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
 class TestCaching:
     def test_slice_consolidate_invalidate_item_cache(self):
 
