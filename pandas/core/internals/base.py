@@ -99,6 +99,9 @@ class DataManager(PandasObject):
 
         return self._equal_values(other)
 
+    def get_slice(self: T, slobj: slice, axis: int = 0) -> T:
+        raise AbstractMethodError(self)
+
     def get_slice_index(self: T, slobj: slice) -> T:
         """
         get_slice specialized to axis=self.ndim-1
