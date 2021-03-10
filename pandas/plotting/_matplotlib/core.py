@@ -584,24 +584,17 @@ class MPLPlot:
         Append ``(right)`` to the label of a line if it's plotted on the right axis.
 
         Note that ``(right)`` is only appended when ``subplots=False``.
-
-        Parameters
-        ----------
-        label: str
-            Label of line being plotted.
-        index: int
-            Index of line within plotted data.
-
-        Returns
-        -------
-        str
-            Updated label.
         """
         if not self.subplots and self.mark_right and self.on_right(index):
             label += " (right)"
         return label
 
     def _add_legend_handle(self, handle: Artist, label: str) -> None:
+        """
+        Append current handle and label to ``legend_handles`` and ``legend_labels``.
+
+        These will be used to make the legend.
+        """
         self.legend_handles.append(handle)
         self.legend_labels.append(label)
 
