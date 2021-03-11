@@ -345,7 +345,13 @@ class Styler:
         if caption:
             self.set_caption(caption)
 
-        latex = self.render(latex=True)
+        wrappers = ["position", "label", "caption"]
+        if not any(d["selector"] in wrappers for d in self.table_styles):
+            table_wrapping = False
+        else:
+            table_wrapping = True
+
+        latex = self.render(latex=True, table_wrapping=table_wrapping)
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @doc(

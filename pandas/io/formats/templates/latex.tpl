@@ -1,3 +1,4 @@
+{% if table_wrapping %}
 \begin{table}
 {%- set position = parse_table(table_styles, 'position') %}
 {%- if position is not none %}
@@ -15,6 +16,7 @@
 {% if label is not none %}
 \label{% raw %}{{% endraw %}{{label}}{% raw %}}{% endraw %}
 
+{% endif %}
 {% endif %}
 \begin{tabular}
 {%- set column_format = parse_table(table_styles, 'column_format') %}
@@ -42,4 +44,6 @@
 \{{bottomrule}}
 {% endif %}
 \end{tabular}
+{% if table_wrapping %}
 \end{table}
+{% endif %}
