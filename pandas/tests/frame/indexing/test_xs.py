@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -337,12 +335,26 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    # TODO(ArrayManager) xs with axis=1 can return view
-    @td.skip_array_manager_not_yet_implemented
-    def test_xs_droplevel_false_view(self):
+    def test_xs_droplevel_false_view(self, using_array_manager):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
+        # check that result still views the same data as df
+        assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
+        # modifying original df also modifies result when having a single block
         df.iloc[0, 0] = 2
-        expected = DataFrame({"a": [2]})
+        if not using_array_manager:
+            expected = DataFrame({"a": [2]})
+        else:
+            # TODO(ArrayManager) iloc does not update the array inplace using
+            # "split" path
+            expected = DataFrame({"a": [1]})
+        tm.assert_frame_equal(result, expected)
+
+        # with mixed dataframe, modifying the parent doesn't modify result
+        # TODO the "split" path behaves differently here as with single block
+        df = DataFrame([[1, 2.5, "a"]], columns=Index(["a", "b", "c"]))
+        result = df.xs("a", axis=1, drop_level=False)
+        df.iloc[0, 0] = 2
+        expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
