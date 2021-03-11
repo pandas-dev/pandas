@@ -676,9 +676,7 @@ def _pad_1d(values, limit=None, mask=None):
     if mask is None:
         mask = isna(values)
     algos.pad_inplace(values, mask, limit=limit)
-    # error: Incompatible return value type (got "Tuple[ndarray, Optional[ndarray]]",
-    # expected "Tuple[ndarray, ndarray]")
-    return values, mask  # type: ignore[return-value]
+    return values, mask
 
 
 def _backfill_1d(values, limit=None, mask=None):
