@@ -281,14 +281,14 @@ class TestLoc2:
     def test_loc_setitem_dtype(self):
         # GH31340
         df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
+        orig = df.copy()
         cols = ["a", "b", "c"]
+        # the float32 data (for columns "b" and "c") can be held in the existing
+        #  float64 columns losslessly, so we keep the original underlying arrays
+        #  and our dtypes are not changed.
         df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
-        expected = DataFrame(
-            {"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]}, dtype="float32"
-        )  # id is inferred as object
-
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, orig)
 
     def test_getitem_label_list_with_missing(self):
         s = Series(range(3), index=["a", "b", "c"])

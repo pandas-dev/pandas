@@ -632,12 +632,12 @@ class _LocationIndexer(NDFrameIndexerBase):
         new_self.axis = axis
         return new_self
 
-    def _get_setitem_indexer(self, key):
+    def _get_setitem_indexer(self, key, value):
         """
         Convert a potentially-label-based key into a positional indexer.
         """
         if self.name == "loc":
-            self._ensure_listlike_indexer(key)
+            self._ensure_listlike_indexer(key, value=value)
 
         if self.axis is not None:
             return self._convert_tuple(key, is_setter=True)
@@ -684,9 +684,11 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
+        pi = None
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
+            pi = key[0]
             key = key[column_axis]
             axis = column_axis
 
@@ -700,16 +702,25 @@ class _LocationIndexer(NDFrameIndexerBase):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
 
-            self.obj._mgr = self.obj._mgr.reindex_axis(
-                keys, axis=0, copy=False, consolidate=False, only_slice=True
-            )
+            if isinstance(value, ABCDataFrame) and com.is_null_slice(pi):
+                # We are setting obj.loc[:, new_keys] = newframe
+                # Setting these directly instead of reindexing keeps
+                #  us from converting integer dtypes to floats
+                new_keys = keys.difference(self.obj.columns)
+                self.obj[new_keys] = value[new_keys]
+
+            else:
+
+                self.obj._mgr = self.obj._mgr.reindex_axis(
+                    keys, axis=0, copy=False, consolidate=False, only_slice=True
+                )
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             key = com.apply_if_callable(key, self.obj)
-        indexer = self._get_setitem_indexer(key)
+        indexer = self._get_setitem_indexer(key, value)
         self._has_valid_setitem_indexer(key)
 
         iloc = self if self.name == "iloc" else self.obj.iloc
@@ -1565,7 +1576,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         return key
 
-    def _get_setitem_indexer(self, key):
+    def _get_setitem_indexer(self, key, value):
         # GH#32257 Fall through to let numpy do validation
         return key
 
@@ -1748,7 +1759,6 @@ class _iLocIndexer(_LocationIndexer):
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
                 self._setitem_iat_loc(ilocs[0], pi, value)
-                # self._setitem_single_column(ilocs[0], value, pi)
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
                 # We are trying to set N values into M entries of a single
@@ -1773,7 +1783,6 @@ class _iLocIndexer(_LocationIndexer):
                 # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):
                     self._setitem_iat_loc(loc, pi, v)
-                    # self._setitem_single_column(loc, v, pi)
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
                 # This is a setitem-with-expansion, see
@@ -1829,7 +1838,6 @@ class _iLocIndexer(_LocationIndexer):
             for i, loc in enumerate(ilocs):
                 val = value.iloc[:, i]
                 self._setitem_iat_loc(loc, pi, val)
-                # self._setitem_single_column(loc, val, pi)
 
         elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
@@ -1847,7 +1855,6 @@ class _iLocIndexer(_LocationIndexer):
                     val = np.nan
 
                 self._setitem_iat_loc(loc, pi, val)
-                # self._setitem_single_column(loc, val, pi)
 
         elif not unique_cols:
             raise ValueError("Setting with non-unique columns is not allowed.")
@@ -1867,7 +1874,6 @@ class _iLocIndexer(_LocationIndexer):
                     val = np.nan
 
                 self._setitem_iat_loc(loc, pi, val)
-                # self._setitem_single_column(loc, val, pi)
 
     def _setitem_single_column(self, loc: int, value, plane_indexer):
         """
