@@ -4207,17 +4207,13 @@ class Index(IndexOpsMixin, PandasObject):
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
                 mask = new_lev_codes != -1
-                # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray, Any]"
-                # has no attribute "all"
-                if not mask.all():  # type: ignore[union-attr]
+                if not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
                     left_indexer = left_indexer[mask]
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
-                    # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]"
-                    # has no attribute "max"
-                    ngroups = 1 + new_lev_codes.max()  # type: ignore[union-attr]
+                    ngroups = 1 + new_lev_codes.max()
                     left_indexer, counts = libalgos.groupsort_indexer(
                         new_lev_codes, ngroups
                     )
@@ -4228,9 +4224,7 @@ class Index(IndexOpsMixin, PandasObject):
 
                 else:  # sort the leaves
                     mask = new_lev_codes != -1
-                    # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray,
-                    # Any]" has no attribute "all"
-                    mask_all = mask.all()  # type: ignore[union-attr]
+                    mask_all = mask.all()
                     if not mask_all:
                         new_codes = [lab[mask] for lab in new_codes]
 
@@ -4240,11 +4234,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # left_indexers are w.r.t masked frame.
                     # reverse to original frame!
                     if not mask_all:
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray, Any]" has no attribute "nonzero"
-                        left_indexer = mask.nonzero()[0][  # type: ignore[union-attr]
-                            left_indexer
-                        ]
+                        left_indexer = mask.nonzero()[0][left_indexer]
 
             join_index = MultiIndex(
                 levels=new_levels,

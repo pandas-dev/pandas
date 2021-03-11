@@ -235,9 +235,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarra
             if unit_no_ax0_reindexing:
                 join_unit_indexers.pop(0, None)
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Union[ExtensionArray, Any]", target has type "ndarray")
-                join_unit_indexers[0] = ax0_blk_indexer  # type: ignore[assignment]
+                join_unit_indexers[0] = ax0_blk_indexer
 
             unit = JoinUnit(blk, shape, join_unit_indexers)
 

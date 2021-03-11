@@ -2706,9 +2706,7 @@ def recode_for_categories(
         new_categories.get_indexer(old_categories), new_categories
     )
     new_codes = take_nd(indexer, codes, fill_value=-1)
-    # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-    # expected "ndarray")
-    return new_codes  # type: ignore[return-value]
+    return new_codes
 
 
 def factorize_from_iterable(values):
