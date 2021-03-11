@@ -2359,8 +2359,8 @@ def check_ndim(values, placement: BlockPlacement, ndim: int):
 
 
 def extract_pandas_array(
-    values: ArrayLike, dtype: Optional[DtypeObj], ndim: int
-) -> Tuple[ArrayLike, Optional[DtypeObj]]:
+    values: Union[np.ndarray, ExtensionArray], dtype: Optional[DtypeObj], ndim: int
+) -> Tuple[Union[np.ndarray, ExtensionArray], Optional[DtypeObj]]:
     """
     Ensure that we don't allow PandasArray / PandasDtype in internals.
     """
