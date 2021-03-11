@@ -478,7 +478,7 @@ class Block(PandasObject):
         for i, ref_loc in enumerate(self.mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
-            nb = self.make_block(vals, [ref_loc])
+            nb = self.make_block(vals, BlockPlacement(ref_loc))
             new_blocks.append(nb)
         return new_blocks
 
