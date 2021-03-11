@@ -2316,15 +2316,10 @@ def extract_pandas_array(
     """
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
-        values = values.to_numpy()  # type: ignore[assignment]
+        values = values.to_numpy()
         if ndim and ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs
-
-            # error: No overload variant of "atleast_2d" matches argument type
-            # "PandasArray"
-            values = np.atleast_2d(values)  # type: ignore[call-overload]
+            values = np.atleast_2d(values)
 
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
