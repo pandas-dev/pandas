@@ -166,22 +166,7 @@ class Block(PandasObject):
         """
         self.ndim = ndim
         self.mgr_locs = placement
-        self.values = self._maybe_coerce_values(values)
-
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Ensure we have correctly-typed values.
-
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-
-        Returns
-        -------
-        np.ndarray or ExtensionArray
-        """
-        return values
+        self.values = maybe_coerce_values(values)
 
     @property
     def _holder(self):
@@ -1540,24 +1525,6 @@ class ExtensionBlock(Block):
         new_values[mask] = new
         return [self.make_block(values=new_values)]
 
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Unbox to an extension array.
-
-        This will unbox an ExtensionArray stored in an Index or Series.
-        ExtensionArrays pass through. No dtype coercion is done.
-
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-
-        Returns
-        -------
-        ExtensionArray
-        """
-        return extract_array(values)
-
     @property
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
@@ -2014,30 +1981,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
     is_numeric = False
     _can_hold_na = True
 
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Input validation for values passed to __init__. Ensure that
-        we have nanosecond datetime64/timedelta64, coercing if necessary.
-
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-            Must be convertible to datetime64/timedelta64
-
-        Returns
-        -------
-        values : ndarray[datetime64ns/timedelta64ns]
-        """
-        values = extract_array(values, extract_numpy=True)
-        if isinstance(values, np.ndarray):
-            values = sanitize_to_nanoseconds(values)
-        elif isinstance(values.dtype, np.dtype):
-            # i.e. not datetime64tz
-            values = values._data
-
-        return values
-
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
 
@@ -2110,12 +2053,6 @@ class ObjectBlock(Block):
     __slots__ = ()
     is_object = True
     _can_hold_na = True
-
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        if issubclass(values.dtype.type, str):
-            values = np.array(values, dtype=object)
-        return values
 
     @property
     def is_bool(self):
@@ -2240,6 +2177,36 @@ class CategoricalBlock(ExtensionBlock):
 
 # -----------------------------------------------------------------
 # Constructor Helpers
+
+
+def maybe_coerce_values(values) -> ArrayLike:
+    """
+    Input validation for values passed to __init__. Ensure that
+    any datetime64/timedelta64 dtypes are in nanoseconds.  Ensure
+    that we do not have string dtypes.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    values : np.ndarray or ExtensionArray
+    """
+
+    values = extract_array(values, extract_numpy=True)
+
+    if isinstance(values, np.ndarray):
+        values = sanitize_to_nanoseconds(values)
+
+        if issubclass(values.dtype.type, str):
+            values = np.array(values, dtype=object)
+
+    elif isinstance(values.dtype, np.dtype):
+        # i.e. not datetime64tz, extract DTA/TDA -> ndarray
+        values = values._data
+
+    return values
 
 
 def get_block_type(values, dtype: Optional[Dtype] = None):
