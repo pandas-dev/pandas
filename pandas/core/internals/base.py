@@ -4,10 +4,17 @@ inherit from this class.
 """
 from typing import (
     List,
+    Optional,
     TypeVar,
 )
 
+from pandas._typing import (
+    DtypeObj,
+    Shape,
+)
 from pandas.errors import AbstractMethodError
+
+from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.base import PandasObject
 from pandas.core.indexes.api import (
@@ -34,6 +41,10 @@ class DataManager(PandasObject):
     @property
     def ndim(self) -> int:
         return len(self.axes)
+
+    @property
+    def shape(self) -> Shape:
+        return tuple(len(ax) for ax in self.axes)
 
     def reindex_indexer(
         self: T,
@@ -99,6 +110,37 @@ class DataManager(PandasObject):
 
         return self._equal_values(other)
 
+    def apply(
+        self: T,
+        f,
+        align_keys: Optional[List[str]] = None,
+        ignore_failures: bool = False,
+        **kwargs,
+    ) -> T:
+        raise AbstractMethodError(self)
+
+    def isna(self: T, func) -> T:
+        return self.apply("apply", func=func)
+
 
 class SingleDataManager(DataManager):
     ndim = 1
+
+
+def interleaved_dtype(dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    """
+    Find the common dtype for `blocks`.
+
+    Parameters
+    ----------
+    blocks : List[DtypeObj]
+
+    Returns
+    -------
+    dtype : np.dtype, ExtensionDtype, or None
+        None is returned when `blocks` is empty.
+    """
+    if not len(dtypes):
+        return None
+
+    return find_common_type(dtypes)
