@@ -36,6 +36,9 @@ def take_nd(
     This dispatches to ``take`` defined on ExtensionArrays. It does not
     currently dispatch to ``SparseArray.take`` for sparse ``arr``.
 
+    Note: this function assumes that the indexer is a valid(ated) indexer with
+    no out of bound indices.
+
     Parameters
     ----------
     arr : np.ndarray or ExtensionArray
@@ -133,13 +136,16 @@ def take_1d(
     allow_fill: bool = True,
 ) -> ArrayLike:
     """
-    Specialized version for 1D arrays. Differences compared to take_nd:
+    Specialized version for 1D arrays. Differences compared to `take_nd`:
 
     - Assumes input array has already been converted to numpy array / EA
     - Assumes indexer is already guaranteed to be int64 dtype ndarray
     - Only works for 1D arrays
 
     To ensure the lowest possible overhead.
+
+    Note: similarly to `take_nd`, this function assumes that the indexer is
+    a valid(ated) indexer with no out of bound indices.
 
     TODO(ArrayManager): mainly useful for ArrayManager, otherwise can potentially
     be removed again if we don't end up with ArrayManager.
