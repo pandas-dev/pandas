@@ -91,3 +91,11 @@ class TestAsFreq:
         result = ts2.asfreq("4H", method="ffill")
         expected = ts.asfreq("4H", method="ffill")
         tm.assert_equal(result, expected)
+
+    def test_asfreq_with_unsorted_index(self, frame_or_series):
+        # GH#39805
+        # Test that rows are not dropped when the datetime index is out of order
+        index = to_datetime(["2021-01-04", "2021-01-02", "2021-01-03", "2021-01-01"])
+        ts = frame_or_series(range(4), index=index)
+
+        assert len(ts.asfreq("D")) == 4
