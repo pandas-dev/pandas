@@ -32,10 +32,7 @@ from pandas._typing import (
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    infer_dtype_from_scalar,
-)
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_1d_only_ea_dtype,
@@ -66,6 +63,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
     Block,
@@ -175,8 +173,12 @@ class BlockManager(DataManager):
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
-        self._blknos = None
-        self._blklocs = None
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blknos = None  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blklocs = None  # type: ignore[assignment]
 
     @classmethod
     def _simple_new(cls, blocks: Tuple[Block, ...], axes: List[Index]):
@@ -249,11 +251,7 @@ class BlockManager(DataManager):
     # Python3 compat
     __bool__ = __nonzero__
 
-    @property
-    def shape(self) -> Shape:
-        return tuple(len(ax) for ax in self.axes)
-
-    def _normalize_axis(self, axis):
+    def _normalize_axis(self, axis: int) -> int:
         # switch axis to follow BlockManager logic
         if self.ndim == 2:
             axis = 1 if axis == 0 else 0
@@ -318,7 +316,11 @@ class BlockManager(DataManager):
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
-        return [blk.values for blk in self.blocks]
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[ExtensionArray]
+        # error: List comprehension has incompatible type List[Union[ndarray,
+        # ExtensionArray]]; expected List[ndarray]
+        return [blk.values for blk in self.blocks]  # type: ignore[misc]
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -373,9 +375,6 @@ class BlockManager(DataManager):
         self._is_consolidated = False
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
-
-    def __len__(self) -> int:
-        return len(self.items)
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -587,9 +586,6 @@ class BlockManager(DataManager):
         ]
 
         return type(self)(blocks, new_axes)
-
-    def isna(self, func) -> BlockManager:
-        return self.apply("apply", func=func)
 
     def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
         axis = self._normalize_axis(axis)
@@ -901,13 +897,21 @@ class BlockManager(DataManager):
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value).reshape(
-                    blk.shape
-                )
+
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    dtype=dtype, na_value=na_value
+                ).reshape(blk.shape)
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    arr = arr.astype(dtype, copy=False)
+                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
+                    # Type[object]]"; expected "Union[dtype[Any], None, type,
+                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -929,7 +933,7 @@ class BlockManager(DataManager):
         Items must be contained in the blocks
         """
         if not dtype:
-            dtype = _interleaved_dtype(self.blocks)
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
@@ -940,7 +944,12 @@ class BlockManager(DataManager):
         elif is_dtype_equal(dtype, str):
             dtype = "object"
 
-        result = np.empty(self.shape, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+        # Any]]]"
+        result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
 
         itemmask = np.zeros(self.shape[0])
 
@@ -948,9 +957,17 @@ class BlockManager(DataManager):
             rl = blk.mgr_locs
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value)
+
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    dtype=dtype, na_value=na_value
+                )
             else:
-                arr = blk.get_values(dtype)
+                # error: Argument 1 to "get_values" of "Block" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+                # "Union[dtype[Any], ExtensionDtype, None]"
+                arr = blk.get_values(dtype)  # type: ignore[arg-type]
             result[rl.indexer] = arr
             itemmask[rl.indexer] = 1
 
@@ -994,14 +1011,19 @@ class BlockManager(DataManager):
         if len(self.blocks) == 1:
             return self.blocks[0].iget((slice(None), loc))
 
-        dtype = _interleaved_dtype(self.blocks)
+        dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         n = len(self)
         if is_extension_array_dtype(dtype):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
         else:
-            result = np.empty(n, dtype=dtype)
+            # error: Argument "dtype" to "empty" has incompatible type
+            # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype,
+            # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
+            # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
+            # Any]]"
+            result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
 
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
@@ -1012,7 +1034,9 @@ class BlockManager(DataManager):
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        return result
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return result  # type: ignore[return-value]
 
     def consolidate(self) -> BlockManager:
         """
@@ -1103,7 +1127,8 @@ class BlockManager(DataManager):
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
-        value_is_extension_type = is_1d_only_ea_dtype(value)
+        vdtype = getattr(value, "dtype", None)
+        value_is_extension_type = is_1d_only_ea_dtype(vdtype)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1135,7 +1160,11 @@ class BlockManager(DataManager):
             # We have 6 tests where loc is _not_ an int.
             # In this case, get_blkno_placements will yield only one tuple,
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
-            loc = [loc]
+
+            # error: Incompatible types in assignment (expression has type
+            # "List[Union[int, slice, ndarray]]", variable has type "Union[int,
+            # slice, ndarray]")
+            loc = [loc]  # type: ignore[assignment]
 
         # Accessing public blknos ensures the public versions are initialized
         blknos = self.blknos[loc]
@@ -1333,7 +1362,7 @@ class BlockManager(DataManager):
             new_blocks = [
                 blk.take_nd(
                     indexer,
-                    axis=axis,
+                    axis=1,
                     fill_value=(
                         fill_value if fill_value is not None else blk.fill_value
                     ),
@@ -1473,7 +1502,11 @@ class BlockManager(DataManager):
         block_shape[0] = len(placement)
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        block_values = np.empty(block_shape, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype,
+        # ExtensionDtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
+        # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
+        block_values = np.empty(block_shape, dtype=dtype)  # type: ignore[arg-type]
         block_values.fill(fill_value)
         return new_block(block_values, placement=placement, ndim=block_values.ndim)
 
@@ -1515,7 +1548,9 @@ class BlockManager(DataManager):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            return array_equals(left, right)
+            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
+            # "Union[ndarray, ExtensionArray]"
+            return array_equals(left, right)  # type: ignore[type-var]
 
         return blockwise_all(self, other, array_equals)
 
@@ -1625,6 +1660,9 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         array = blk._slice(indexer)
+        if array.ndim > blk.values.ndim:
+            # This will be caught by Series._get_values
+            raise ValueError("dimension-expanding indexing not allowed")
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         return type(self)(block, self.index[indexer])
 
@@ -1635,6 +1673,9 @@ class SingleBlockManager(BlockManager, SingleDataManager):
 
         blk = self._block
         array = blk._slice(slobj)
+        if array.ndim > blk.values.ndim:
+            # This will be caught by Series._get_values
+            raise ValueError("dimension-expanding indexing not allowed")
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
@@ -1901,7 +1942,12 @@ def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     new_blocks = []
     for dtype, tup_block in grouper:
 
-        values, placement = _stack_arrays(list(tup_block), dtype)
+        # error: Argument 2 to "_stack_arrays" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "dtype[Any]"
+        values, placement = _stack_arrays(
+            list(tup_block), dtype  # type: ignore[arg-type]
+        )
 
         block = new_block(values, placement=placement, ndim=2)
         new_blocks.append(block)
@@ -1921,25 +1967,6 @@ def _stack_arrays(tuples, dtype: np.dtype):
         stacked[i] = arr
 
     return stacked, placement
-
-
-def _interleaved_dtype(blocks: Sequence[Block]) -> Optional[DtypeObj]:
-    """
-    Find the common dtype for `blocks`.
-
-    Parameters
-    ----------
-    blocks : List[Block]
-
-    Returns
-    -------
-    dtype : np.dtype, ExtensionDtype, or None
-        None is returned when `blocks` is empty.
-    """
-    if not len(blocks):
-        return None
-
-    return find_common_type([b.dtype for b in blocks])
 
 
 def _consolidate(blocks: Tuple[Block, ...]) -> List[Block]:
@@ -1977,7 +2004,11 @@ def _merge_blocks(
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
 
         if isinstance(blocks[0].dtype, np.dtype):
-            new_values = np.vstack([b.values for b in blocks])
+            # error: List comprehension has incompatible type List[Union[ndarray,
+            # ExtensionArray]]; expected List[Union[complex, generic,
+            # Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], SupportsArray]]
+            new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
         else:
             # Unexpected keyword argument "axis" for "_concat_same_type"
             #  of "ExtensionArray"
