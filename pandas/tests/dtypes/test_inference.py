@@ -616,9 +616,9 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        np_array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
-        result = lib.maybe_convert_objects(np_array, convert_datetime=True)
-        tm.assert_numpy_array_equal(result, np_array)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_datetime=True)
+        tm.assert_numpy_array_equal(result, arr)
 
 
 class TestTypeInference:
