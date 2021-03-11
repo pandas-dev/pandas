@@ -1001,8 +1001,8 @@ class TestDataFrameConstructors:
         expected = DataFrame(np.zeros((5, 2), dtype=int), columns=["date", "price"])
         tm.assert_frame_equal(result, expected)
 
-        # check that the alternative suggested in the deprecation warning
-        #  behaves as expected
+        # GH#40363 check that the alternative suggested in the deprecation
+        #  warning behaves as expected
         alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
         tm.assert_frame_equal(result, alt)
 
