@@ -98,7 +98,7 @@ class TestSeriesNLargestNSmallest:
     )
     def test_nlargest_error(self, r):
         dt = r.dtype
-        msg = f"Cannot use method 'n(larg|small)est' with dtype {dt}"
+        msg = f"Cannot use method 'n(largest|smallest)' with dtype {dt}"
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):

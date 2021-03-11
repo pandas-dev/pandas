@@ -1072,7 +1072,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(result, expected)
 
         # assigning with loc/iloc attempts to set the values inplace, which
-        #  in this case is succesful
+        #  in this case is successful
         result.loc[result.index, "A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float).astype(object)
         tm.assert_frame_equal(result, expected)

@@ -663,13 +663,13 @@ def test_frame_select_complex(setup_path):
 
 def test_frame_select_complex2(setup_path):
 
-    with ensure_clean_path(["parms.hdf", "hist.hdf"]) as paths:
+    with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
 
         pp, hh = paths
 
         # use non-trivial selection criteria
-        parms = DataFrame({"A": [1, 1, 2, 2, 3]})
-        parms.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
+        params = DataFrame({"A": [1, 1, 2, 2, 3]})
+        params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
 
         selection = read_hdf(pp, "df", where="A=[2,3]")
         hist = DataFrame(
