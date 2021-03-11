@@ -6,18 +6,12 @@ authors
 2) Use only functions exposed here (or in core.internals)
 
 """
-from typing import (
-    Optional,
-    cast,
-)
+from typing import Optional
 
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-)
+from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -50,7 +44,6 @@ def make_block(
     """
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-    dtype = cast(Optional[DtypeObj], dtype)
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
