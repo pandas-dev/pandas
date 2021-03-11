@@ -281,7 +281,7 @@ def test_append_frame_column_oriented(setup_path):
 
         # column oriented
         df = tm.makeTimeDataFrame()
-        df.index = df.index._with_freq(None)  # freq doesnt round-trip
+        df.index = df.index._with_freq(None)  # freq doesn't round-trip
 
         _maybe_remove(store, "df1")
         store.append("df1", df.iloc[:, :2], axes=["columns"])
@@ -331,7 +331,7 @@ def test_append_with_different_block_ordering(setup_path):
             store.append("df", df)
 
     # test a different ordering but with more fields (like invalid
-    # combinate)
+    # combinations)
     with ensure_clean_store(setup_path) as store:
 
         df = DataFrame(np.random.randn(10, 2), columns=list("AB"), dtype="float64")

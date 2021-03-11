@@ -169,7 +169,9 @@ class _Unstacker:
         self.full_shape = ngroups, stride
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
-        mask = np.zeros(np.prod(self.full_shape), dtype=bool)
+        # error: Argument 1 to "zeros" has incompatible type "number"; expected
+        # "Union[int, Sequence[int]]"
+        mask = np.zeros(np.prod(self.full_shape), dtype=bool)  # type: ignore[arg-type]
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
@@ -440,7 +442,7 @@ def unstack(obj, level, fill_value=None):
             obj.index, level=level, constructor=obj._constructor_expanddim
         )
         return unstacker.get_result(
-            obj.values, value_columns=None, fill_value=fill_value
+            obj._values, value_columns=None, fill_value=fill_value
         )
 
 
@@ -600,6 +602,33 @@ def stack_multiple(frame, level, dropna=True):
     return result
 
 
+def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
+    """Creates a MultiIndex from the first N-1 levels of this MultiIndex."""
+    if len(columns.levels) <= 2:
+        return columns.levels[0]._rename(name=columns.names[0])
+
+    levs = [
+        [lev[c] if c >= 0 else None for c in codes]
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+    ]
+
+    # Remove duplicate tuples in the MultiIndex.
+    tuples = zip(*levs)
+    unique_tuples = (key for key, _ in itertools.groupby(tuples))
+    new_levs = zip(*unique_tuples)
+
+    # The dtype of each level must be explicitly set to avoid inferring the wrong type.
+    # See GH-36991.
+    return MultiIndex.from_arrays(
+        [
+            # Not all indices can accept None values.
+            Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
+            for new_lev, lev in zip(new_levs, columns.levels)
+        ],
+        names=columns.names[:-1],
+    )
+
+
 def _stack_multi_columns(frame, level_num=-1, dropna=True):
     def _convert_level_number(level_num, columns):
         """
@@ -634,20 +663,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         level_to_sort = _convert_level_number(0, this.columns)
         this = this.sort_index(level=level_to_sort, axis=1)
 
-    # tuple list excluding level for grouping columns
-    if len(frame.columns.levels) > 2:
-        levs = []
-        for lev, level_codes in zip(this.columns.levels[:-1], this.columns.codes[:-1]):
-            if -1 in level_codes:
-                lev = np.append(lev, None)
-            levs.append(np.take(lev, level_codes))
-        tuples = list(zip(*levs))
-        unique_groups = [key for key, _ in itertools.groupby(tuples)]
-        new_names = this.columns.names[:-1]
-        new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
-    else:
-        new_columns = this.columns.levels[0]._rename(name=this.columns.names[0])
-        unique_groups = new_columns
+    new_columns = _stack_multi_column_index(this.columns)
 
     # time to ravel the values
     new_data = {}
@@ -658,7 +674,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     level_vals_used = np.take(level_vals_nan, level_codes)
     levsize = len(level_codes)
     drop_cols = []
-    for key in unique_groups:
+    for key in new_columns:
         try:
             loc = this.columns.get_loc(key)
         except KeyError:
@@ -938,7 +954,9 @@ def _get_dummies_1d(
 
     if dtype is None:
         dtype = np.uint8
-    dtype = np.dtype(dtype)
+    # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
+    # dtype[Any], Type[object]]"; expected "Type[Any]"
+    dtype = np.dtype(dtype)  # type: ignore[arg-type]
 
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
