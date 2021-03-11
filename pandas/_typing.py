@@ -58,12 +58,15 @@ if TYPE_CHECKING:
     from pandas.core.internals import (
         ArrayManager,
         BlockManager,
+        SingleArrayManager,
+        SingleBlockManager,
     )
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+    from pandas.tseries.offsets import DateOffset
 else:
     # typing.final does not exist until py38
     final = lambda x: x
@@ -110,6 +113,7 @@ Shape = Tuple[int, ...]
 Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
+Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
 
 # dtypes
@@ -182,3 +186,4 @@ ColspaceArgType = Union[
 
 # internals
 Manager = Union["ArrayManager", "BlockManager"]
+SingleManager = Union["SingleArrayManager", "SingleBlockManager"]

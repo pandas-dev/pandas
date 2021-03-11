@@ -739,7 +739,7 @@ def test_parse_dates_string(all_parsers):
 """
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col="date", parse_dates=["date"])
-    # freq doesnt round-trip
+    # freq doesn't round-trip
     index = DatetimeIndex(
         list(date_range("1/1/2009", periods=3)), name="date", freq=None
     )
@@ -1526,7 +1526,7 @@ def test_parse_timezone(all_parsers):
 
     dti = DatetimeIndex(
         list(
-            pd.date_range(
+            date_range(
                 start="2018-01-04 09:01:00",
                 end="2018-01-04 09:05:00",
                 freq="1min",

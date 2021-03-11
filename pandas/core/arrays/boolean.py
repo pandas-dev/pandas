@@ -76,7 +76,8 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
-    # mypy: https://github.com/python/mypy/issues/4125
+    # https://github.com/python/mypy/issues/4125
+    # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
     def type(self) -> Type:  # type: ignore[override]
         return np.bool_
@@ -405,14 +406,18 @@ class BooleanArray(BaseMaskedArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy)
+            # error: Incompatible return value type (got "ExtensionArray", expected
+            # "ndarray")
+            return super().astype(dtype, copy)  # type: ignore[return-value]
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
             if self._hasna:
                 raise ValueError("cannot convert float NaN to bool")
             else:
-                return self._data.astype(dtype, copy=copy)
+                # error: Incompatible return value type (got "ndarray", expected
+                # "ExtensionArray")
+                return self._data.astype(dtype, copy=copy)  # type: ignore[return-value]
 
         # for integer, error if there are missing values
         if is_integer_dtype(dtype) and self._hasna:
@@ -424,7 +429,12 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return self.to_numpy(  # type: ignore[return-value]
+            dtype=dtype, na_value=na_value, copy=False
+        )
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -612,7 +622,9 @@ class BooleanArray(BaseMaskedArray):
         elif op.__name__ in {"xor", "rxor"}:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        return BooleanArray(result, mask)
+        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
+        # expected "ndarray"
+        return BooleanArray(result, mask)  # type: ignore[arg-type]
 
     def _cmp_method(self, other, op):
         from pandas.arrays import (

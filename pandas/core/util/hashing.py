@@ -1,12 +1,27 @@
 """
 data hash pandas / numpy objects
 """
+from __future__ import annotations
+
 import itertools
-from typing import Optional
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+    Iterable,
+    Iterator,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 
-import pandas._libs.hashing as hashing
+from pandas._libs.hashing import hash_object_array
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeriesUnion,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -20,16 +35,29 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+if TYPE_CHECKING:
+    from pandas import (
+        Categorical,
+        Index,
+        MultiIndex,
+        Series,
+    )
+
+
 # 16 byte long hashing key
 _default_hash_key = "0123456789123456"
 
 
-def combine_hash_arrays(arrays, num_items: int):
+def combine_hash_arrays(arrays: Iterator[np.ndarray], num_items: int) -> np.ndarray:
     """
     Parameters
     ----------
-    arrays : generator
+    arrays : Iterator[np.ndarray]
     num_items : int
+
+    Returns
+    -------
+    np.ndarray[int64]
 
     Should be the same as CPython's tupleobject.c
     """
@@ -53,17 +81,18 @@ def combine_hash_arrays(arrays, num_items: int):
 
 
 def hash_pandas_object(
-    obj,
+    obj: Union[Index, FrameOrSeriesUnion],
     index: bool = True,
     encoding: str = "utf8",
     hash_key: Optional[str] = _default_hash_key,
     categorize: bool = True,
-):
+) -> Series:
     """
     Return a data hash of the Index/Series/DataFrame.
 
     Parameters
     ----------
+    obj : Index, Series, or DataFrame
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -87,10 +116,14 @@ def hash_pandas_object(
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCIndex):
-        h = hash_array(obj._values, encoding, hash_key, categorize).astype(
-            "uint64", copy=False
-        )
-        h = Series(h, index=obj, dtype="uint64", copy=False)
+        # error: Value of type variable "ArrayLike" of "hash_array" cannot be
+        # "Union[ExtensionArray, ndarray]"
+        h = hash_array(  # type: ignore[type-var]
+            obj._values, encoding, hash_key, categorize
+        ).astype("uint64", copy=False)
+        # error: Incompatible types in assignment (expression has type "Series",
+        # variable has type "ndarray")
+        h = Series(h, index=obj, dtype="uint64", copy=False)  # type: ignore[assignment]
 
     elif isinstance(obj, ABCSeries):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
@@ -110,7 +143,11 @@ def hash_pandas_object(
             arrays = itertools.chain([h], index_iter)
             h = combine_hash_arrays(arrays, 2)
 
-        h = Series(h, index=obj.index, dtype="uint64", copy=False)
+        # error: Incompatible types in assignment (expression has type "Series",
+        # variable has type "ndarray")
+        h = Series(  # type: ignore[assignment]
+            h, index=obj.index, dtype="uint64", copy=False
+        )
 
     elif isinstance(obj, ABCDataFrame):
         hashes = (hash_array(series._values) for _, series in obj.items())
@@ -133,19 +170,28 @@ def hash_pandas_object(
             hashes = (x for x in _hashes)
         h = combine_hash_arrays(hashes, num_items)
 
-        h = Series(h, index=obj.index, dtype="uint64", copy=False)
+        # error: Incompatible types in assignment (expression has type "Series",
+        # variable has type "ndarray")
+        h = Series(  # type: ignore[assignment]
+            h, index=obj.index, dtype="uint64", copy=False
+        )
     else:
         raise TypeError(f"Unexpected type for hashing {type(obj)}")
-    return h
+    # error: Incompatible return value type (got "ndarray", expected "Series")
+    return h  # type: ignore[return-value]
 
 
-def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
+def hash_tuples(
+    vals: Union[MultiIndex, Iterable[Tuple[Hashable, ...]]],
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+) -> np.ndarray:
     """
-    Hash an MultiIndex / list-of-tuples efficiently
+    Hash an MultiIndex / listlike-of-tuples efficiently.
 
     Parameters
     ----------
-    vals : MultiIndex, list-of-tuples, or single tuple
+    vals : MultiIndex or listlike-of-tuples
     encoding : str, default 'utf8'
     hash_key : str, default _default_hash_key
 
@@ -153,11 +199,7 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     -------
     ndarray of hashed values array
     """
-    is_tuple = False
-    if isinstance(vals, tuple):
-        vals = [vals]
-        is_tuple = True
-    elif not is_list_like(vals):
+    if not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
 
     from pandas import (
@@ -166,33 +208,33 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     )
 
     if not isinstance(vals, ABCMultiIndex):
-        vals = MultiIndex.from_tuples(vals)
+        mi = MultiIndex.from_tuples(vals)
+    else:
+        mi = vals
 
     # create a list-of-Categoricals
-    vals = [
-        Categorical(vals.codes[level], vals.levels[level], ordered=False, fastpath=True)
-        for level in range(vals.nlevels)
+    cat_vals = [
+        Categorical(mi.codes[level], mi.levels[level], ordered=False, fastpath=True)
+        for level in range(mi.nlevels)
     ]
 
     # hash the list-of-ndarrays
     hashes = (
-        _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in vals
+        _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in cat_vals
     )
-    h = combine_hash_arrays(hashes, len(vals))
-    if is_tuple:
-        h = h[0]
+    h = combine_hash_arrays(hashes, len(cat_vals))
 
     return h
 
 
-def _hash_categorical(c, encoding: str, hash_key: str):
+def _hash_categorical(cat: Categorical, encoding: str, hash_key: str) -> np.ndarray:
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
     to the hashes
 
     Parameters
     ----------
-    c : Categorical
+    cat : Categorical
     encoding : str
     hash_key : str
 
@@ -201,7 +243,7 @@ def _hash_categorical(c, encoding: str, hash_key: str):
     ndarray of hashed values array, same size as len(c)
     """
     # Convert ExtensionArrays to ndarrays
-    values = np.asarray(c.categories._values)
+    values = np.asarray(cat.categories._values)
     hashed = hash_array(values, encoding, hash_key, categorize=False)
 
     # we have uint64, as we don't directly support missing values
@@ -211,9 +253,9 @@ def _hash_categorical(c, encoding: str, hash_key: str):
     #
     # TODO: GH 15362
 
-    mask = c.isna()
+    mask = cat.isna()
     if len(hashed):
-        result = hashed.take(c.codes)
+        result = hashed.take(cat.codes)
     else:
         result = np.zeros(len(mask), dtype="uint64")
 
@@ -224,17 +266,17 @@ def _hash_categorical(c, encoding: str, hash_key: str):
 
 
 def hash_array(
-    vals,
+    vals: ArrayLike,
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
     categorize: bool = True,
-):
+) -> np.ndarray:
     """
     Given a 1d array, return an array of deterministic integers.
 
     Parameters
     ----------
-    vals : ndarray, Categorical
+    vals : ndarray or ExtensionArray
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
@@ -255,10 +297,33 @@ def hash_array(
     # hash values. (This check is above the complex check so that we don't ask
     # numpy if categorical is a subdtype of complex, as it will choke).
     if is_categorical_dtype(dtype):
-        return _hash_categorical(vals, encoding, hash_key)
+        # error: Incompatible types in assignment (expression has type "Categorical",
+        # variable has type "ndarray")
+        vals = cast("Categorical", vals)  # type: ignore[assignment]
+        # error: Argument 1 to "_hash_categorical" has incompatible type "ndarray";
+        # expected "Categorical"
+        return _hash_categorical(vals, encoding, hash_key)  # type: ignore[arg-type]
     elif is_extension_array_dtype(dtype):
-        vals, _ = vals._values_for_factorize()
-        dtype = vals.dtype
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        # error: "ndarray" has no attribute "_values_for_factorize"
+        vals, _ = vals._values_for_factorize()  # type: ignore[assignment,attr-defined]
+
+    # error: Argument 1 to "_hash_ndarray" has incompatible type "ExtensionArray";
+    # expected "ndarray"
+    return _hash_ndarray(vals, encoding, hash_key, categorize)  # type: ignore[arg-type]
+
+
+def _hash_ndarray(
+    vals: np.ndarray,
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+    categorize: bool = True,
+) -> np.ndarray:
+    """
+    See hash_array.__doc__.
+    """
+    dtype = vals.dtype
 
     # we'll be working with everything as 64-bit values, so handle this
     # 128-bit value early
@@ -289,10 +354,10 @@ def hash_array(
             return _hash_categorical(cat, encoding, hash_key)
 
         try:
-            vals = hashing.hash_object_array(vals, hash_key, encoding)
+            vals = hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            vals = hashing.hash_object_array(
+            vals = hash_object_array(
                 vals.astype(str).astype(object), hash_key, encoding
             )
 

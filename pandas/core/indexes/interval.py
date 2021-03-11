@@ -822,9 +822,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         if not isinstance(dtype, IntervalDtype):
             return False
-        if self.closed != dtype.closed:
-            return False
-        common_subtype = find_common_type([self.dtype.subtype, dtype.subtype])
+        common_subtype = find_common_type([self.dtype, dtype])
         return not is_object_dtype(common_subtype)
 
     # --------------------------------------------------------------------
@@ -1036,9 +1034,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    def _validate_fill_value(self, value):
-        return self._data._validate_setitem_value(value)
-
     @property
     def _is_all_dates(self) -> bool:
         """
@@ -1232,8 +1227,16 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+            # error: Incompatible types in assignment (expression has type
+            # "DatetimeIndex", variable has type "ndarray")
+            breaks = date_range(  # type: ignore[assignment]
+                start=start, end=end, periods=periods, freq=freq
+            )
         else:
-            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
+            # error: Incompatible types in assignment (expression has type
+            # "TimedeltaIndex", variable has type "ndarray")
+            breaks = timedelta_range(  # type: ignore[assignment]
+                start=start, end=end, periods=periods, freq=freq
+            )
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

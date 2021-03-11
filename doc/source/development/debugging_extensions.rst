@@ -61,7 +61,7 @@ Now go ahead and execute your script:
 
    run <the_script>.py
 
-Code execution will halt at the breakpoint defined or at the occurance of any segfault. LLDB's `GDB to LLDB command map <https://lldb.llvm.org/use/map.html>`_ provides a listing of debugger command that you can execute using either debugger.
+Code execution will halt at the breakpoint defined or at the occurrence of any segfault. LLDB's `GDB to LLDB command map <https://lldb.llvm.org/use/map.html>`_ provides a listing of debugger command that you can execute using either debugger.
 
 Another option to execute the entire test suite under lldb would be to run the following:
 

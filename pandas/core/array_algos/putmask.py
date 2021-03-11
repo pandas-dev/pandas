@@ -81,7 +81,7 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
 
     # n should be the length of the mask or a scalar here
     if not is_list_like(new):
-        new = np.repeat(new, len(mask))
+        new = np.broadcast_to(new, mask.shape)
 
     # see if we are only masking values that if putted
     # will work in the current dtype
@@ -120,7 +120,11 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
         return _putmask_preserve(values, new, mask)
 
     dtype = find_common_type([values.dtype, new.dtype])
-    values = values.astype(dtype)
+    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
+    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+    # List[Any], _DTypeDict, Tuple[Any, Any]]]"
+    values = values.astype(dtype)  # type: ignore[arg-type]
 
     return _putmask_preserve(values, new, mask)
 
@@ -187,10 +191,16 @@ def extract_bool_array(mask: ArrayLike) -> np.ndarray:
         # We could have BooleanArray, Sparse[bool], ...
         #  Except for BooleanArray, this is equivalent to just
         #  np.asarray(mask, dtype=bool)
-        mask = mask.to_numpy(dtype=bool, na_value=False)
 
-    mask = np.asarray(mask, dtype=bool)
-    return mask
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        mask = mask.to_numpy(dtype=bool, na_value=False)  # type: ignore[assignment]
+
+    # error: Incompatible types in assignment (expression has type "ndarray", variable
+    # has type "ExtensionArray")
+    mask = np.asarray(mask, dtype=bool)  # type: ignore[assignment]
+    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
+    return mask  # type: ignore[return-value]
 
 
 def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):

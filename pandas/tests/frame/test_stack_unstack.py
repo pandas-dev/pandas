@@ -5,6 +5,8 @@ import itertools
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -60,12 +62,13 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_not_consolidated(self):
+    def test_unstack_not_consolidated(self, using_array_manager):
         # Gh#34708
         df = DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
         df2 = df[["x"]]
         df2["y"] = df["y"]
-        assert len(df2._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df2._mgr.blocks) == 2
 
         res = df2.unstack()
         expected = df.unstack()
@@ -747,7 +750,8 @@ class TestDataFrameReshape:
         expected = df.unstack(["i3"]).unstack(["i2"])
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_nan_index(self):  # GH7466
+    def test_unstack_nan_index1(self):
+        # GH7466
         def cast(val):
             val_str = "" if val != val else val
             return f"{val_str:1}"
@@ -833,6 +837,7 @@ class TestDataFrameReshape:
                 for col in ["4th", "5th"]:
                     verify(udf[col])
 
+    def test_unstack_nan_index2(self):
         # GH7403
         df = DataFrame({"A": list("aaaabbbb"), "B": range(8), "C": range(8)})
         df.iloc[3, 1] = np.NaN
@@ -875,6 +880,7 @@ class TestDataFrameReshape:
         right = DataFrame(vals, columns=cols, index=idx)
         tm.assert_frame_equal(left, right)
 
+    def test_unstack_nan_index3(self, using_array_manager):
         # GH7401
         df = DataFrame(
             {
@@ -896,8 +902,13 @@ class TestDataFrameReshape:
         )
 
         right = DataFrame(vals, columns=cols, index=idx)
+        if using_array_manager:
+            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
+            cols = right.columns[[1, 2, 3, 5]]
+            right[cols] = right[cols].astype("int64")
         tm.assert_frame_equal(left, right)
 
+    def test_unstack_nan_index4(self):
         # GH4862
         vals = [
             ["Hg", np.nan, np.nan, 680585148],
@@ -938,6 +949,8 @@ class TestDataFrameReshape:
         left = df.loc[17264:].copy().set_index(["s_id", "dosage", "agent"])
         tm.assert_frame_equal(left.unstack(), right)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) MultiIndex bug
+    def test_unstack_nan_index5(self):
         # GH9497 - multiple unstack with nulls
         df = DataFrame(
             {
@@ -1049,6 +1062,27 @@ class TestDataFrameReshape:
         # it's tested elsewhere.
         midx = MultiIndex.from_product([df.index, cidx])
         expected = Series([10, 11, 12], index=midx)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [False, True])
+    @pytest.mark.parametrize(
+        "labels,data",
+        [
+            (list("xyz"), [10, 11, 12, 13, 14, 15]),
+            (list("zyx"), [14, 15, 12, 13, 10, 11]),
+        ],
+    )
+    def test_stack_multi_preserve_categorical_dtype(self, ordered, labels, data):
+        # GH-36991
+        cidx = pd.CategoricalIndex(labels, categories=sorted(labels), ordered=ordered)
+        cidx2 = pd.CategoricalIndex(["u", "v"], ordered=ordered)
+        midx = MultiIndex.from_product([cidx, cidx2])
+        df = DataFrame([sorted(data)], columns=midx)
+        result = df.stack([0, 1])
+
+        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
+        expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
 
         tm.assert_series_equal(result, expected)
 
@@ -1428,9 +1462,9 @@ Sat,Dinner,No,139.63,45
 Sat,Dinner,Yes,120.77,42
 Sun,Dinner,No,180.57,57
 Sun,Dinner,Yes,66.82,19
-Thur,Dinner,No,3.0,1
-Thur,Lunch,No,117.32,44
-Thur,Lunch,Yes,51.51,17"""
+Thu,Dinner,No,3.0,1
+Thu,Lunch,No,117.32,44
+Thu,Lunch,Yes,51.51,17"""
 
         df = pd.read_csv(StringIO(data)).set_index(["day", "time", "smoker"])
 
@@ -1456,7 +1490,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unstack_bug(self):
         df = DataFrame(
             {
-                "state": ["naive", "naive", "naive", "activ", "activ", "activ"],
+                "state": ["naive", "naive", "naive", "active", "active", "active"],
                 "exp": ["a", "b", "b", "b", "a", "a"],
                 "barcode": [1, 2, 3, 4, 1, 3],
                 "v": ["hi", "hi", "bye", "bye", "bye", "peace"],
@@ -1887,7 +1921,7 @@ Thur,Lunch,Yes,51.51,17"""
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
-    def test_unstack_with_missing_int_cast_to_float(self):
+    def test_unstack_with_missing_int_cast_to_float(self, using_array_manager):
         # https://github.com/pandas-dev/pandas/issues/37115
         df = DataFrame(
             {
@@ -1899,7 +1933,8 @@ Thur,Lunch,Yes,51.51,17"""
 
         # add another int column to get 2 blocks
         df["is_"] = 1
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
 
         result = df.unstack("b")
         result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
@@ -1912,6 +1947,10 @@ Thur,Lunch,Yes,51.51,17"""
                 names=[None, "b"],
             ),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
+            expected[("v", "cb")] = expected[("v", "cb")].astype("int64")
+            expected[("is_", "cb")] = expected[("is_", "cb")].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_with_level_has_nan(self):
