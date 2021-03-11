@@ -665,7 +665,7 @@ class Index(IndexOpsMixin, PandasObject):
         values : the values to create the new Index, optional
         name : Label, defaults to self.name
         """
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         return self._simple_new(values, name=name)
 
@@ -673,7 +673,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         fastpath to make a shallow copy, i.e. new object with same data.
         """
-        result = self._simple_new(self._values, name=self.name)
+        result = self._simple_new(self._values, name=self._name)
 
         result._cache = self._cache
         return result
@@ -4623,7 +4623,7 @@ class Index(IndexOpsMixin, PandasObject):
             # pessimization of basic indexing.
             result = getitem(key)
             # Going through simple_new for performance.
-            return type(self)._simple_new(result, name=self.name)
+            return type(self)._simple_new(result, name=self._name)
 
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
@@ -4639,7 +4639,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return result
             # NB: Using _constructor._simple_new would break if MultiIndex
             #  didn't override __getitem__
-            return self._constructor._simple_new(result, name=self.name)
+            return self._constructor._simple_new(result, name=self._name)
         else:
             return result
 
