@@ -209,20 +209,12 @@ class Styler:
         """
         return self.render()
 
-    def _init_tooltips(self):
-        """
-        Checks parameters compatible with tooltips and creates instance if necessary
-        """
-        if not self.cell_ids:
-            # tooltips not optimised for individual cell check. requires reasonable
-            # redesign and more extensive code for a feature that might be rarely used.
-            raise NotImplementedError(
-                "Tooltips can only render with 'cell_ids' is True."
-            )
-        if self.tooltips is None:
-            self.tooltips = _Tooltips()
-
-    def set_tooltips(self, ttips: DataFrame) -> Styler:
+    def set_tooltips(
+        self,
+        ttips: DataFrame,
+        props: Optional[CSSProperties] = None,
+        css_class: Optional[str] = None,
+    ) -> Styler:
         """
         Add string based tooltips that will appear in the `Styler` HTML result. These
         tooltips are applicable only to`<td>` elements.
@@ -236,6 +228,13 @@ class Styler:
             by identical column and index values that must exist on the underlying
             `Styler` data. None, NaN values, and empty strings will be ignored and
             not affect the rendered HTML.
+        props : list-like or str, optional
+            List of (attr, value) tuples or a valid CSS string. If ``None`` adopts
+            the internal default values described in notes.
+        css_class : str, optional
+            Name of the tooltip class used in CSS, should conform to HTML standards.
+            Only useful if integrating tooltips with external CSS. If ``None`` uses the
+            internal default value 'pd-t'.
 
         Returns
         -------
@@ -245,51 +244,7 @@ class Styler:
         -----
         Tooltips are created by adding `<span class="pd-t"></span>` to each data cell
         and then manipulating the table level CSS to attach pseudo hover and pseudo
-        after selectors to produce the required the results. For styling control
-        see `:meth:Styler.set_tooltips_class`.
-        Tooltips are not designed to be efficient, and can add large amounts of
-        additional HTML for larger tables, since they also require that `cell_ids`
-        is forced to `True`.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(data=[[0, 1], [2, 3]])
-        >>> ttips = pd.DataFrame(
-        ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
-        ... )
-        >>> s = df.style.set_tooltips(ttips).render()
-        """
-        self._init_tooltips()
-        assert self.tooltips is not None  # mypy requiremen
-        self.tooltips.tt_data = ttips
-        return self
-
-    def set_tooltips_class(
-        self,
-        name: Optional[str] = None,
-        properties: Optional[CSSProperties] = None,
-    ) -> Styler:
-        """
-        Manually configure the name and/or properties of the class for
-        creating tooltips on hover.
-
-        .. versionadded:: 1.3.0
-
-        Parameters
-        ----------
-        name : str, default None
-            Name of the tooltip class used in CSS, should conform to HTML standards.
-        properties : list-like or str, default None
-            List of (attr, value) tuples or a valid CSS string; see example.
-
-        Returns
-        -------
-        self : Styler
-
-        Notes
-        -----
-        If arguments are `None` will not make any changes to the underlying ``Tooltips``
-        existing values.
+        after selectors to produce the required the results.
 
         The default properties for the tooltip CSS class are:
 
@@ -300,26 +255,47 @@ class Styler:
         - color: white
         - transform: translate(-20px, -20px)
 
-        The property ('visibility', 'hidden') is a key prerequisite to the hover
+        The property 'visibility: hidden;' is a key prerequisite to the hover
         functionality, and should always be included in any manual properties
-        specification.
+        specification, using the ``props`` argument.
+
+        Tooltips are not designed to be efficient, and can add large amounts of
+        additional HTML for larger tables, since they also require that ``cell_ids``
+        is forced to `True`.
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 4))
-        >>> df.style.set_tooltips_class(name='tt-add', properties=[
+        Basic application
+
+        >>> df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        >>> ttips = pd.DataFrame(
+        ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
+        ... )
+        >>> s = df.style.set_tooltips(ttips).render()
+
+        Optionally controlling the tooltip visual display
+
+        >>> df.style.set_tooltips(ttips, css_class='tt-add', props=[
         ...     ('visibility', 'hidden'),
         ...     ('position', 'absolute'),
         ...     ('z-index', 1)])
-        >>> df.style.set_tooltips_class(name='tt-add',
-        ...     properties='visibility:hidden; position:absolute; z-index:1;')
+        >>> df.style.set_tooltips(ttips, css_class='tt-add',
+        ...     props='visibility:hidden; position:absolute; z-index:1;')
         """
-        self._init_tooltips()
-        assert self.tooltips is not None  # mypy requirement
-        if properties:
-            self.tooltips.class_properties = properties
-        if name:
-            self.tooltips.class_name = name
+        if not self.cell_ids:
+            # tooltips not optimised for individual cell check. requires reasonable
+            # redesign and more extensive code for a feature that might be rarely used.
+            raise NotImplementedError(
+                "Tooltips can only render with 'cell_ids' is True."
+            )
+        if self.tooltips is None:  # create a default instance if necessary
+            self.tooltips = _Tooltips()
+        self.tooltips.tt_data = ttips
+        if props:
+            self.tooltips.class_properties = props
+        if css_class:
+            self.tooltips.class_name = css_class
+
         return self
 
     @doc(
@@ -879,10 +855,10 @@ class Styler:
 
         (application method, *args, **kwargs)
         """
+        self.ctx.clear()
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
-        self._todo = []
         return r
 
     def _apply(
@@ -1732,7 +1708,11 @@ class Styler:
 
         if props is None:
             props = f"background-color: {null_color};"
-        return self.apply(f, axis=None, subset=subset, props=props)
+        # error: Argument 1 to "apply" of "Styler" has incompatible type
+        # "Callable[[DataFrame, str], ndarray]"; expected "Callable[..., Styler]"
+        return self.apply(
+            f, axis=None, subset=subset, props=props  # type: ignore[arg-type]
+        )
 
     def highlight_max(
         self,
@@ -1775,7 +1755,11 @@ class Styler:
 
         if props is None:
             props = f"background-color: {color};"
-        return self.apply(f, axis=axis, subset=subset, props=props)
+        # error: Argument 1 to "apply" of "Styler" has incompatible type
+        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
+        return self.apply(
+            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+        )
 
     def highlight_min(
         self,
@@ -1818,7 +1802,11 @@ class Styler:
 
         if props is None:
             props = f"background-color: {color};"
-        return self.apply(f, axis=axis, subset=subset, props=props)
+        # error: Argument 1 to "apply" of "Styler" has incompatible type
+        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
+        return self.apply(
+            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+        )
 
     @classmethod
     def from_custom_template(cls, searchpath, name):

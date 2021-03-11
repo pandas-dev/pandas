@@ -228,9 +228,16 @@ def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
-        return values._values
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
+        return values._values  # type: ignore[return-value]
 
-    if isinstance(values, list) and dtype in [np.object_, object]:
+    # error: Non-overlapping container check (element type: "Union[str, dtype[Any],
+    # None]", container item type: "type")
+    if isinstance(values, list) and dtype in [  # type: ignore[comparison-overlap]
+        np.object_,
+        object,
+    ]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
@@ -493,7 +500,12 @@ def convert_to_list_like(
     inputs are returned unmodified whereas others are converted to list.
     """
     if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        # np.ndarray resolving as Any gives a false positive
+        # error: Incompatible return value type (got "Union[Any, List[Any], Index,
+        # Series, ExtensionArray]", expected "Union[List[Any], ExtensionArray]")
+        # error: Incompatible return value type (got "Union[Any, List[Any], Index,
+        # Series, ExtensionArray]", expected "Union[List[Any], Index]")
+        # error: Incompatible return value type (got "Union[Any, List[Any], Index,
+        # Series, ExtensionArray]", expected "Union[List[Any], Series]")
         return values  # type: ignore[return-value]
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)

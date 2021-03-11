@@ -81,10 +81,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.arrays import (
-    Categorical,
-    ExtensionArray,
-)
+from pandas.core.arrays import Categorical
 from pandas.core.base import (
     DataError,
     SpecificationError,
@@ -347,7 +344,13 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        output = self._wrap_aggregated_output(results, index=None)
+        # Argument 1 to "_wrap_aggregated_output" of "SeriesGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[DataFrame,
+        #  Series]]";
+        # expected "Mapping[OutputKey, Union[Series, ndarray]]"
+        output = self._wrap_aggregated_output(
+            results, index=None  # type: ignore[arg-type]
+        )
         return self.obj._constructor_expanddim(output, columns=columns)
 
     # TODO: index should not be Optional - see GH 35490
@@ -762,13 +765,28 @@ class SeriesGroupBy(GroupBy[Series]):
 
             # lab is a Categorical with categories an IntervalIndex
             lab = cut(Series(val), bins, include_lowest=True)
-            lev = lab.cat.categories
-            lab = lev.take(lab.cat.codes, allow_fill=True, fill_value=lev._na_value)
+            # error: "ndarray" has no attribute "cat"
+            lev = lab.cat.categories  # type: ignore[attr-defined]
+            # error: No overload variant of "take" of "_ArrayOrScalarCommon" matches
+            # argument types "Any", "bool", "Union[Any, float]"
+            lab = lev.take(  # type: ignore[call-overload]
+                # error: "ndarray" has no attribute "cat"
+                lab.cat.codes,  # type: ignore[attr-defined]
+                allow_fill=True,
+                # error: Item "ndarray" of "Union[ndarray, Index]" has no attribute
+                # "_na_value"
+                fill_value=lev._na_value,  # type: ignore[union-attr]
+            )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):
             # TODO: should we do this inside II?
-            sorter = np.lexsort((lab.left, lab.right, ids))
+
+            # error: "ndarray" has no attribute "left"
+            # error: "ndarray" has no attribute "right"
+            sorter = np.lexsort(
+                (lab.left, lab.right, ids)  # type: ignore[attr-defined]
+            )
         else:
             sorter = np.lexsort((lab, ids))
 
@@ -794,7 +812,11 @@ class SeriesGroupBy(GroupBy[Series]):
         # multi-index components
         codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        # error: List item 0 has incompatible type "Union[ndarray, Any]";
+        # expected "Index"
+        levels = [ping.group_index for ping in self.grouper.groupings] + [
+            lev  # type: ignore[list-item]
+        ]
         names = self.grouper.names + [self._selection_name]
 
         if dropna:
@@ -1023,9 +1045,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = GroupByApply(
-                        self, [func], args=(), kwargs={"_axis": self.axis}
-                    ).agg()
+                    result = GroupByApply(self, [func], args=(), kwargs={}).agg()
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
@@ -1125,8 +1145,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             obj: FrameOrSeriesUnion
 
             # call our grouper again with only this block
-            if isinstance(values, ExtensionArray) or values.ndim == 1:
-                # TODO(EA2D): special case not needed with 2D EAs
+            if values.ndim == 1:
                 obj = Series(values)
             else:
                 # TODO special case not needed with ArrayManager
@@ -1155,11 +1174,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # We've split an object block! Everything we've assumed
                 # about a single block input returning a single block output
                 # is a lie. See eg GH-39329
-                return mgr.as_array()
+
+                # error: Incompatible return value type (got "ndarray", expected
+                # "ExtensionArray")
+                return mgr.as_array()  # type: ignore[return-value]
             else:
                 # We are a single block from a BlockManager
                 # or one array from SingleArrayManager
-                return arrays[0]
+
+                # error: Incompatible return value type (got "Union[ndarray,
+                # ExtensionArray, ArrayLike]", expected "ExtensionArray")
+                # error: Incompatible return value type (got "Union[ndarray,
+                # ExtensionArray, ArrayLike]", expected
+                # "ndarray")
+                return arrays[0]  # type: ignore[return-value]
 
         def array_func(values: ArrayLike) -> ArrayLike:
 
@@ -1178,7 +1206,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                result = py_fallback(values)
+                # error: Incompatible types in assignment (expression has type
+                # "ExtensionArray", variable has type "ndarray")
+                result = py_fallback(values)  # type: ignore[assignment]
 
             return cast_agg_result(result, values, how)
 
