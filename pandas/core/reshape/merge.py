@@ -2064,8 +2064,13 @@ def _factorize_keys(
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk = cast("DatetimeArray", lk)._ndarray
-        rk = cast("DatetimeArray", rk)._ndarray
+
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        lk = cast("DatetimeArray", lk)._ndarray  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        rk = cast("DatetimeArray", rk)._ndarray  # type: ignore[assignment]
 
     elif (
         is_categorical_dtype(lk.dtype)
@@ -2075,14 +2080,27 @@ def _factorize_keys(
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
         # Cast rk to encoding so we can compare codes with lk
-        rk = lk._encode_with_my_categories(rk)
 
-        lk = ensure_int64(lk.codes)
-        rk = ensure_int64(rk.codes)
+        # error: <nothing> has no attribute "_encode_with_my_categories"
+        rk = lk._encode_with_my_categories(rk)  # type: ignore[attr-defined]
+
+        # error: <nothing> has no attribute "codes"
+        lk = ensure_int64(lk.codes)  # type: ignore[attr-defined]
+        # error: "ndarray" has no attribute "codes"
+        rk = ensure_int64(rk.codes)  # type: ignore[attr-defined]
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
-        lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
+        # "_values_for_factorize"
+        lk, _ = lk._values_for_factorize()  # type: ignore[union-attr,assignment]
+
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "ExtensionArray")
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
+        # "_values_for_factorize"
+        rk, _ = rk._values_for_factorize()  # type: ignore[union-attr,assignment]
 
     if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
