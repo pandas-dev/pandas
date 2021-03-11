@@ -284,7 +284,7 @@ class TestDataFrameSetItem:
         df["dates"] = vals
         assert (df["dates"].values == ex_vals).all()
 
-    def test_setitem_dt64tz(self, timezone_frame, using_array_manager):
+    def test_setitem_dt64tz(self, timezone_frame):
 
         df = timezone_frame
         idx = df["B"].rename("foo")
@@ -298,18 +298,14 @@ class TestDataFrameSetItem:
         tm.assert_series_equal(df["D"], Series(idx, name="D"))
         del df["D"]
 
-        if using_array_manager:
-            # TODO(ArrayManager) rewrite test for ArrayManager
-            return
-
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
-        b1 = df._mgr.blocks[1]
-        b2 = df._mgr.blocks[2]
-        tm.assert_extension_array_equal(b1.values, b2.values)
-        b1base = b1.values._data.base
-        b2base = b2.values._data.base
-        assert b1base is None or (id(b1base) != id(b2base))
+        v1 = df._mgr.arrays[1]
+        v2 = df._mgr.arrays[2]
+        tm.assert_extension_array_equal(v1, v2)
+        v1base = v1._data.base
+        v2base = v2._data.base
+        assert v1base is None or (id(v1base) != id(v2base))
 
         # with nan
         df2 = df.copy()
