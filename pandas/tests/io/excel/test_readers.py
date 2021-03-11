@@ -79,7 +79,7 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
 
 def _transfer_marks(engine, read_ext):
     """
-    engine gives us a pytest.param objec with some marks, read_ext is just
+    engine gives us a pytest.param object with some marks, read_ext is just
     a string.  We need to generate a new pytest.param inheriting the marks.
     """
     values = engine.values + (read_ext,)
