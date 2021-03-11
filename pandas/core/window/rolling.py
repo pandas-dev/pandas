@@ -316,11 +316,17 @@ class BaseWindow(SelectionMixin):
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
-        inf = np.isinf(values)
+
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "Optional[ndarray]"; expected "Union[bool, int, float, complex,
+        # _SupportsArray, Sequence[Any]]"
+        inf = np.isinf(values)  # type: ignore[arg-type]
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        return values
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return values  # type: ignore[return-value]
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame):
         # if we have an 'on' column we want to put it back into
@@ -418,7 +424,11 @@ class BaseWindow(SelectionMixin):
             return getattr(res_values, "T", res_values)
 
         def hfunc2d(values: ArrayLike) -> ArrayLike:
-            values = self._prep_values(values)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ExtensionArray")
+            # error: Argument 1 to "_prep_values" of "BaseWindow" has incompatible type
+            # "ExtensionArray"; expected "Optional[ndarray]"
+            values = self._prep_values(values)  # type: ignore[assignment,arg-type]
             return homogeneous_func(values)
 
         if isinstance(mgr, ArrayManager) and self.axis == 1:
