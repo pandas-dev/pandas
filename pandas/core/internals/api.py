@@ -39,7 +39,11 @@ def make_block(
     - Block.make_block_same_class
     - Block.__init__
     """
-    values, dtype = extract_pandas_array(values, dtype, ndim)
+    # error: Argument 2 to "extract_pandas_array" has incompatible type
+    # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+    # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
+    # ExtensionDtype, None]"
+    values, dtype = extract_pandas_array(values, dtype, ndim)  # type: ignore[arg-type]
 
     if klass is None:
         dtype = dtype or values.dtype
