@@ -570,7 +570,12 @@ def read_json(
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
     if dtype is None and orient != "table":
-        dtype = True
+        # error: Incompatible types in assignment (expression has type "bool", variable
+        # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object], Dict[Optional[Hashable],
+        # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]], None]")
+        dtype = True  # type: ignore[assignment]
     if convert_axes is None and orient != "table":
         convert_axes = True
 
@@ -914,7 +919,12 @@ class Parser:
                     return data, False
                 return data.fillna(np.nan), True
 
-            elif self.dtype is True:
+            # error: Non-overlapping identity check (left operand type:
+            # "Union[ExtensionDtype, str, dtype[Any], Type[object],
+            # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]]]", right operand type: "Literal[True]")
+            elif self.dtype is True:  # type: ignore[comparison-overlap]
                 pass
             else:
                 # dtype to force
@@ -923,7 +933,10 @@ class Parser:
                 )
                 if dtype is not None:
                     try:
-                        dtype = np.dtype(dtype)
+                        # error: Argument 1 to "dtype" has incompatible type
+                        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]";
+                        # expected "Type[Any]"
+                        dtype = np.dtype(dtype)  # type: ignore[arg-type]
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False
