@@ -401,7 +401,7 @@ class Styler:
             engine=engine,
         )
 
-    def _translate(self, latex: bool = False):
+    def _translate(self):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
@@ -595,22 +595,23 @@ class Styler:
         if self.tooltips:
             d = self.tooltips._translate(self.data, self.uuid, d)
 
-        if latex:
-            # post processing of d for latex template:
-            # - remove hidden columns
-            # - place cellstyles in individual cell dicts that are not index cells
-            d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
-            d["body"] = [
-                [
-                    {**col, "cellstyle": []}
-                    if col["type"] == "th"
-                    else {**col, "cellstyle": ctx[r, c - n_rlvls]}
-                    for c, col in enumerate(row)
-                    if col["is_visible"]
-                ]
-                for r, row in enumerate(d["body"])
-            ]
+        return d
 
+    def _translate_latex(self, d: Dict) -> Dict:
+        # post processing of d for latex template:
+        # - remove hidden columns
+        # - place cellstyles in individual cell dicts that are not index cells
+        d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+        d["body"] = [
+            [
+                {**col, "cellstyle": []}
+                if col["type"] == "th"
+                else {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
+                for c, col in enumerate(row)
+                if col["is_visible"]
+            ]
+            for r, row in enumerate(d["body"])
+        ]
         return d
 
     def format(
@@ -845,13 +846,16 @@ class Styler:
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate(latex=latex)
-        d.update(kwargs)
+        d = self._translate()
+        template = self.template
         if latex:
-            self.template2.globals["parse_table"] = _parse_latex_table_styles
-            self.template2.globals["parse_cell"] = _parse_latex_cell_styles
-            return self.template2.render(**d)
-        return self.template.render(**d)
+            d = self._translate_latex(d)
+            template = self.template2
+            template.globals["parse_table"] = _parse_latex_table_styles
+            template.globals["parse_cell"] = _parse_latex_cell_styles
+
+        d.update(kwargs)
+        return template.render(**d)
 
     def _update_ctx(self, attrs: DataFrame) -> None:
         """
@@ -2336,5 +2340,8 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
 
 def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
     for style in styles[::-1]:  # in reverse for most recently applied style
-        display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
+        if style[1] == "-wrap-":
+            display_value = f"{{\\{style[0]} {display_value}}}"
+        else:
+            display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
     return display_value
