@@ -797,8 +797,6 @@ class ArrayManager(DataManager):
 
         return type(self)(arrays, new_axes, verify_integrity=False)
 
-    getitem_mgr = get_slice
-
     def fast_xs(self, loc: int) -> ArrayLike:
         """
         Return the array corresponding to `frame.iloc[loc]`.
@@ -1242,6 +1240,11 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
 
         new_array = self.array[slobj]
         new_index = self.index[slobj]
+        return type(self)([new_array], [new_index])
+
+    def getitem_mgr(self, indexer) -> SingleArrayManager:
+        new_array = self.array[indexer]
+        new_index = self.index[indexer]
         return type(self)([new_array], [new_index])
 
     def apply(self, func, **kwargs):
