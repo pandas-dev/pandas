@@ -16,6 +16,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -452,6 +453,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return arr_cls(self, dtype=dtype)
         else:
             return np.asarray(self, dtype=dtype)
+
+    @overload
+    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
+        ...
+
+    @overload
+    def view(self, dtype: Optional[Dtype] = ...) -> ArrayLike:
+        ...
 
     def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period
@@ -1774,11 +1783,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             freq = to_offset(self.inferred_freq)
 
         arr = self.view()
-        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-        # attribute "_freq"
-        # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
-        # "_freq"
-        arr._freq = freq  # type: ignore[union-attr]
+        arr._freq = freq
         return arr
 
     # --------------------------------------------------------------
