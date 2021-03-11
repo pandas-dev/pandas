@@ -299,6 +299,19 @@ class Styler:
 
         return self
 
+    def to_latex(self, rules=False):
+        if rules:
+            self.set_table_styles(
+                [
+                    {"selector": "toprule", "props": ":toprule"},
+                    {"selector": "midrule", "props": ":midrule"},
+                    {"selector": "bottomrule", "props": ":bottomrule"},
+                ],
+                overwrite=False,
+            )
+
+        return self.render(latex=True)
+
     @doc(
         NDFrame.to_excel,
         klass="Styler",
