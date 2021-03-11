@@ -64,7 +64,6 @@ from pandas.core.base import (
     SelectionMixin,
 )
 import pandas.core.common as common
-from pandas.core.construction import extract_array
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -301,11 +300,8 @@ class BaseWindow(SelectionMixin):
             result = obj.iloc[slice(s, e)]
             yield result
 
-    def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
+    def _prep_values(self, values: ArrayLike) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
-        if values is None:
-            values = extract_array(self._selected_obj, extract_numpy=True)
-
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
                 f"ops for {type(self).__name__} for this "
@@ -320,11 +316,17 @@ class BaseWindow(SelectionMixin):
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
-        inf = np.isinf(values)
+
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "Optional[ndarray]"; expected "Union[bool, int, float, complex,
+        # _SupportsArray, Sequence[Any]]"
+        inf = np.isinf(values)  # type: ignore[arg-type]
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        return values
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return values  # type: ignore[return-value]
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame):
         # if we have an 'on' column we want to put it back into
@@ -357,6 +359,16 @@ class BaseWindow(SelectionMixin):
         if needs_i8_conversion(self._on.dtype):
             return self._on.asi8
         return None
+
+    def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
+        """Validate and finalize result."""
+        if out.shape[1] == 0 and obj.shape[1] > 0:
+            raise DataError("No numeric types to aggregate")
+        elif out.shape[1] == 0:
+            return obj.astype("float64")
+
+        self._insert_on_column(out, obj)
+        return out
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -412,7 +424,11 @@ class BaseWindow(SelectionMixin):
             return getattr(res_values, "T", res_values)
 
         def hfunc2d(values: ArrayLike) -> ArrayLike:
-            values = self._prep_values(values)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "ExtensionArray")
+            # error: Argument 1 to "_prep_values" of "BaseWindow" has incompatible type
+            # "ExtensionArray"; expected "Optional[ndarray]"
+            values = self._prep_values(values)  # type: ignore[assignment,arg-type]
             return homogeneous_func(values)
 
         if isinstance(mgr, ArrayManager) and self.axis == 1:
@@ -421,13 +437,7 @@ class BaseWindow(SelectionMixin):
             new_mgr = mgr.apply(hfunc, ignore_failures=True)
         out = obj._constructor(new_mgr)
 
-        if out.shape[1] == 0 and obj.shape[1] > 0:
-            raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
-            return obj.astype("float64")
-
-        self._insert_on_column(out, obj)
-        return out
+        return self._resolve_output(out, obj)
 
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
@@ -444,13 +454,7 @@ class BaseWindow(SelectionMixin):
         result = result.T if self.axis == 1 else result
         out = obj._constructor(result, index=obj.index, columns=obj.columns)
 
-        if out.shape[1] == 0 and obj.shape[1] > 0:
-            raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
-            return obj.astype("float64")
-
-        self._insert_on_column(out, obj)
-        return out
+        return self._resolve_output(out, obj)
 
     def _apply_pairwise(
         self,
@@ -2203,7 +2207,6 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
         index_array = self._index_array
-        window = self.window
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
@@ -2216,7 +2219,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             window = self._win_freq_i8
         else:
             rolling_indexer = FixedWindowIndexer
-            index_array = None
+            window = self.window
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,

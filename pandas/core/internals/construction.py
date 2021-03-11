@@ -128,6 +128,9 @@ def arrays_to_mgr(
     if typ == "block":
         return create_block_manager_from_arrays(arrays, arr_names, axes)
     elif typ == "array":
+        if len(columns) != len(arrays):
+            assert len(arrays) == 0
+            arrays = [np.array([], dtype=object) for _ in range(len(columns))]
         return ArrayManager(arrays, [index, columns])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
@@ -159,10 +162,17 @@ def rec_array_to_mgr(
     if isinstance(data, np.ma.MaskedArray):
         new_arrays = fill_masked_arrays(data, arr_columns)
     else:
-        new_arrays = arrays
+        # error: Incompatible types in assignment (expression has type
+        # "List[ExtensionArray]", variable has type "List[ndarray]")
+        new_arrays = arrays  # type: ignore[assignment]
 
     # create the manager
-    arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)
+
+    # error: Argument 1 to "reorder_arrays" has incompatible type "List[ndarray]";
+    # expected "List[ExtensionArray]"
+    arrays, arr_columns = reorder_arrays(
+        new_arrays, arr_columns, columns  # type: ignore[arg-type]
+    )
     if columns is None:
         columns = arr_columns
 
@@ -354,12 +364,22 @@ def dict_to_mgr(
         if missing.any() and not is_integer_dtype(dtype):
             if dtype is None or (
                 not is_extension_array_dtype(dtype)
-                and np.issubdtype(dtype, np.flexible)
+                # error: Argument 1 to "issubdtype" has incompatible type
+                # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None,
+                # type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
+                # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
+                # Any]]"
+                and np.issubdtype(dtype, np.flexible)  # type: ignore[arg-type]
             ):
                 # GH#1783
-                nan_dtype = np.dtype(object)
+
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                nan_dtype = np.dtype(object)  # type: ignore[type-var]
             else:
-                nan_dtype = dtype
+                # error: Incompatible types in assignment (expression has type
+                # "Union[dtype, ExtensionDtype]", variable has type "dtype")
+                nan_dtype = dtype  # type: ignore[assignment]
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
 
@@ -554,7 +574,9 @@ def extract_index(data) -> Index:
             else:
                 index = ibase.default_index(lengths[0])
 
-    return ensure_index(index)
+    # error: Value of type variable "AnyArrayLike" of "ensure_index" cannot be
+    # "Optional[Index]"
+    return ensure_index(index)  # type: ignore[type-var]
 
 
 def reorder_arrays(
@@ -657,7 +679,9 @@ def to_arrays(
 
     if not len(data):
         if isinstance(data, np.ndarray):
-            columns = data.dtype.names
+            # error: Incompatible types in assignment (expression has type
+            # "Optional[Tuple[str, ...]]", variable has type "Optional[Index]")
+            columns = data.dtype.names  # type: ignore[assignment]
             if columns is not None:
                 # i.e. numpy structured array
                 arrays = [data[name] for name in columns]
@@ -686,8 +710,17 @@ def to_arrays(
         data = [tuple(x) for x in data]
         content = _list_to_arrays(data)
 
-    content, columns = _finalize_columns_and_data(content, columns, dtype)
-    return content, columns
+    # error: Incompatible types in assignment (expression has type "List[ndarray]",
+    # variable has type "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
+    # Any]]]")
+    content, columns = _finalize_columns_and_data(  # type: ignore[assignment]
+        content, columns, dtype
+    )
+    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
+    # "Tuple[List[ExtensionArray], Index]")
+    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
+    # "Tuple[List[ndarray], Index]")
+    return content, columns  # type: ignore[return-value]
 
 
 def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:
@@ -728,7 +761,11 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_nd(values, indexer))
 
-    content = np.vstack(aligned_values)
+    # error: Argument 1 to "vstack" has incompatible type "List[ExtensionArray]";
+    # expected "Sequence[Union[Union[int, float, complex, str, bytes, generic],
+    # Sequence[Union[int, float, complex, str, bytes, generic]],
+    # Sequence[Sequence[Any]], _SupportsArray]]"
+    content = np.vstack(aligned_values)  # type: ignore[arg-type]
 
     return content, columns
 
@@ -778,17 +815,34 @@ def _finalize_columns_and_data(
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
-    content = list(content.T)
+    # error: Incompatible types in assignment (expression has type "List[Any]", variable
+    # has type "ndarray")
+    content = list(content.T)  # type: ignore[assignment]
 
     try:
-        columns = _validate_or_indexify_columns(content, columns)
+        # error: Argument 1 to "_validate_or_indexify_columns" has incompatible type
+        # "ndarray"; expected "List[Any]"
+        columns = _validate_or_indexify_columns(
+            content, columns  # type: ignore[arg-type]
+        )
     except AssertionError as err:
         # GH#26429 do not raise user-facing AssertionError
         raise ValueError(err) from err
 
     if len(content) and content[0].dtype == np.object_:
-        content = _convert_object_array(content, dtype=dtype)
-    return content, columns
+        # error: Incompatible types in assignment (expression has type
+        # "List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]]",
+        # variable has type "ndarray")
+        # error: Argument 1 to "_convert_object_array" has incompatible type "ndarray";
+        # expected "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
+        # Any]]]"
+        content = _convert_object_array(  # type: ignore[assignment]
+            content, dtype=dtype  # type: ignore[arg-type]
+        )
+    # error: Incompatible return value type (got "Tuple[ndarray, Union[Index,
+    # List[Union[str, int]]]]", expected "Tuple[List[ndarray], Union[Index,
+    # List[Union[str, int]]]]")
+    return content, columns  # type: ignore[return-value]
 
 
 def _validate_or_indexify_columns(

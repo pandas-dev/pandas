@@ -131,6 +131,17 @@ class Dim2CompatTests(BaseExtensionTests):
         with pytest.raises(ValueError):
             left._concat_same_type([left, right], axis=2)
 
+    @pytest.mark.parametrize("method", ["backfill", "pad"])
+    def test_fillna_2d_method(self, data_missing, method):
+        arr = data_missing.repeat(2).reshape(2, 2)
+        assert arr[0].isna().all()
+        assert not arr[1].isna().any()
+
+        result = arr.fillna(method=method)
+
+        expected = data_missing.fillna(method=method).repeat(2).reshape(2, 2)
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis_none(self, data, method, request):
         if not hasattr(data, method):

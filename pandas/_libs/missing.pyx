@@ -390,7 +390,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
     return method
 
 
-def _create_unary_propagating_op(name):
+def _create_unary_propagating_op(name: str):
     def method(self):
         return NA
 
