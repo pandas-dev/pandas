@@ -42,7 +42,11 @@ def quantile_compat(values: ArrayLike, qs, interpolation: str, axis: int) -> Arr
         mask = isna(values)
         result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
     else:
-        result = quantile_ea_compat(values, qs, interpolation, axis)
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "ndarray")
+        result = quantile_ea_compat(  # type: ignore[assignment]
+            values, qs, interpolation, axis
+        )
     return result
 
 

@@ -152,7 +152,9 @@ class _Unstacker:
         indexer, _ = self._indexer_and_to_sort
 
         sorted_values = algos.take_nd(values, indexer, axis=0)
-        return sorted_values
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
+        return sorted_values  # type: ignore[return-value]
 
     def _make_selectors(self):
         new_levels = self.new_index_levels

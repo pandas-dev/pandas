@@ -391,8 +391,11 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                # error: "ExtensionArray" has no attribute "any"
-                return self.isna().any()  # type: ignore[attr-defined]
+                # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has
+                # no attribute "any"
+                # error: Incompatible return value type (got "Union[Any, bool_]",
+                # expected "bool")
+                return self.isna().any()  # type: ignore[union-attr, return-value]
             else:
                 return False
         else:
@@ -648,8 +651,9 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: "ExtensionArray" has no attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[attr-defined]
+        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
+        # attribute "any"
+        if not skipna and self.isna().any():  # type: ignore[union-attr]
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -673,8 +677,9 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: "ExtensionArray" has no attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[attr-defined]
+        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
+        # attribute "any"
+        if not skipna and self.isna().any():  # type: ignore[union-attr]
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -714,8 +719,9 @@ class ExtensionArray:
             value, mask, len(self)  # type: ignore[arg-type]
         )
 
-        # error: "ExtensionArray" has no attribute "any"
-        if mask.any():  # type: ignore[attr-defined]
+        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
+        # attribute "any"
+        if mask.any():  # type: ignore[union-attr]
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values, _ = func(self.astype(object), limit=limit, mask=mask)
@@ -1156,9 +1162,7 @@ class ExtensionArray:
         #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
-        # error: Incompatible return value type (got "Union[ExtensionArray, Any]",
-        # expected "ndarray")
-        return self[:]  # type: ignore[return-value]
+        return self[:]
 
     # ------------------------------------------------------------------------
     # Printing

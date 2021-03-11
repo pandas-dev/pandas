@@ -2753,7 +2753,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = result.reshape(-1)
 
             if result_is_index:
-                result = algorithms.take_nd(values, result)
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+                result = algorithms.take_nd(values, result)  # type: ignore[assignment]
 
             if post_processing:
                 result = post_processing(result, inferences)

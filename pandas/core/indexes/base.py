@@ -2993,11 +2993,7 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            # error: Value of type variable "ArrayLike" of "take_nd" cannot be
-            # "Union[ExtensionArray, ndarray]"
-            other_diff = algos.take_nd(
-                rvals, missing, allow_fill=False  # type: ignore[type-var]
-            )
+            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
             result = concat_compat((lvals, other_diff))
         else:
             # error: Incompatible types in assignment (expression has type
@@ -4211,13 +4207,17 @@ class Index(IndexOpsMixin, PandasObject):
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
                 mask = new_lev_codes != -1
-                if not mask.all():
+                # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray, Any]"
+                # has no attribute "all"
+                if not mask.all():  # type: ignore[union-attr]
                     new_codes = [lab[mask] for lab in new_codes]
                     left_indexer = left_indexer[mask]
 
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
-                    ngroups = 1 + new_lev_codes.max()
+                    # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]"
+                    # has no attribute "max"
+                    ngroups = 1 + new_lev_codes.max()  # type: ignore[union-attr]
                     left_indexer, counts = libalgos.groupsort_indexer(
                         new_lev_codes, ngroups
                     )
@@ -4228,7 +4228,9 @@ class Index(IndexOpsMixin, PandasObject):
 
                 else:  # sort the leaves
                     mask = new_lev_codes != -1
-                    mask_all = mask.all()
+                    # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray,
+                    # Any]" has no attribute "all"
+                    mask_all = mask.all()  # type: ignore[union-attr]
                     if not mask_all:
                         new_codes = [lab[mask] for lab in new_codes]
 
@@ -4238,7 +4240,11 @@ class Index(IndexOpsMixin, PandasObject):
                     # left_indexers are w.r.t masked frame.
                     # reverse to original frame!
                     if not mask_all:
-                        left_indexer = mask.nonzero()[0][left_indexer]
+                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
+                        # ndarray, Any]" has no attribute "nonzero"
+                        left_indexer = mask.nonzero()[0][  # type: ignore[union-attr]
+                            left_indexer
+                        ]
 
             join_index = MultiIndex(
                 levels=new_levels,
@@ -4389,11 +4395,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ExtensionArray")
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return self._data  # type: ignore[return-value]
+        return self._data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -4714,9 +4716,7 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        mask, noop = validate_putmask(self._values, mask)  # type: ignore[type-var]
+        mask, noop = validate_putmask(self._values, mask)
         if noop:
             return self.copy()
 
@@ -5600,9 +5600,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        # error: Value of type variable "AnyArrayLike" of "isin" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        return algos.isin(self._values, values)  # type: ignore[type-var]
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
@@ -6023,11 +6021,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                # error: Value of type variable "ArrayLike" of "comparison_op" cannot be
-                # "Union[ExtensionArray, ndarray]"
-                result = ops.comparison_op(
-                    self._values, other, op  # type: ignore[type-var]
-                )
+                result = ops.comparison_op(self._values, other, op)
 
         return result
 

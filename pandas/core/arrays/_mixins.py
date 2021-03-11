@@ -291,8 +291,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             value, mask, len(self)  # type: ignore[arg-type]
         )
 
-        # error: "ExtensionArray" has no attribute "any"
-        if mask.any():  # type: ignore[attr-defined]
+        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
+        # attribute "any"
+        if mask.any():  # type: ignore[union-attr]
             if method is not None:
                 # TODO: check value is None
                 # (for now) when self.ndim == 2, we assume axis=0
