@@ -299,8 +299,27 @@ class Styler:
 
         return self
 
-    def to_latex(self, rules=False):
-        if rules:
+    def to_latex(
+        self,
+        column_format: Optional[str] = None,
+        position: Optional[str] = None,
+        hrules: bool = False,
+        label: Optional[str] = None,
+        caption: Optional[str] = None,
+    ):
+        if column_format:
+            self.set_table_styles(
+                [{"selector": "column_format", "props": f":{column_format}"}],
+                overwrite=False,
+            )
+
+        if position:
+            self.set_table_styles(
+                [{"selector": "position", "props": f":{position}"}],
+                overwrite=False,
+            )
+
+        if hrules:
             self.set_table_styles(
                 [
                     {"selector": "toprule", "props": ":toprule"},
@@ -309,6 +328,17 @@ class Styler:
                 ],
                 overwrite=False,
             )
+
+        if label:
+            label = label.split(":")
+            label = f":{label[0]}" if len(label) == 1 else f"{label[0]}:{label[1]}"
+            self.set_table_styles(
+                [{"selector": "label", "props": f"{label}"}],
+                overwrite=False,
+            )
+
+        if caption:
+            self.set_caption(caption)
 
         return self.render(latex=True)
 

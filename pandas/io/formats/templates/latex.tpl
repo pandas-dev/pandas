@@ -16,8 +16,15 @@
 \label{% raw %}{{% endraw %}{{label}}{% raw %}}{% endraw %}
 
 {% endif %}
-\begin{tabular}{% raw %}{{% endraw %}{% for c in head[0] %}{% if c.is_visible != False %}l{% endif %}{% endfor %}{% raw %}}{% endraw %}
+\begin{tabular}
+{%- set column_format = parse_table(table_styles, 'column_format') %}
+{%- if column_format is not none %}
+{% raw %}{{% endraw %}{{column_format}}{% raw %}}{% endraw %}
 
+{% else %}
+{% raw %}{{% endraw %}{% for c in head[0] %}{% if c.is_visible != False %}l{% endif %}{% endfor %}{% raw %}}{% endraw %}
+
+{% endif %}
 {% set toprule = parse_table(table_styles, 'toprule') %}
 {% if toprule is not none %}
 \{{toprule}}
