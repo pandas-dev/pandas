@@ -8,9 +8,8 @@ pytest.importorskip("jinja2")
 
 class TestStylerHighlight:
     def setup_method(self, method):
-        np.random.seed(24)
-        self.s = DataFrame({"A": np.random.permutation(range(6))})
-        self.df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
+        self.s = DataFrame({"A": [4, 5, 1, 0, 3, 2]})
+        self.df = DataFrame({"A": [0, 1], "B": [-0.609, -1.228]})
 
     def test_highlight_null(self):
         df = DataFrame({"A": [0, np.nan]})
