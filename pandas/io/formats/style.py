@@ -359,7 +359,7 @@ class Styler:
             engine=engine,
         )
 
-    def _translate(self):
+    def _translate(self, latex: bool = False):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
@@ -552,6 +552,11 @@ class Styler:
         }
         if self.tooltips:
             d = self.tooltips._translate(self.data, self.uuid, d)
+
+        if latex:
+            # post processing of d for latex template
+            d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+            d["body"] = [[col for col in row if col["is_visible"]] for row in d["body"]]
 
         return d
 
@@ -787,7 +792,7 @@ class Styler:
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate()
+        d = self._translate(latex=latex)
         d.update(kwargs)
         if latex:
             self.template2.globals["parse"] = _parse_latex_table_styles
