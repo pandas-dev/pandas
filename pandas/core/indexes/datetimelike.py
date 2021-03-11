@@ -5,11 +5,9 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     List,
     Optional,
     Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -44,7 +42,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_period_dtype,
-    is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
 
@@ -119,7 +116,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    _data_cls: Union[Type[DatetimeArray], Type[TimedeltaArray], Type[PeriodArray]]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
@@ -132,25 +128,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     )
     _hasnans = hasnans  # for index / array -agnostic code
 
-    @classmethod
-    def _simple_new(
-        cls,
-        values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
-        name: Optional[Hashable] = None,
-    ):
-        assert isinstance(values, cls._data_cls), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        result._name = name
-        result._cache = {}
-
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._ndarray
-
-        result._reset_identity()
-        return result
-
     @property
     def _is_all_dates(self) -> bool:
         return True
@@ -159,7 +136,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # Abstract data attributes
 
     @property
-    def values(self) -> np.ndarray:
+    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
+    # in supertype "Index"
+    def values(self) -> np.ndarray:  # type: ignore[override]
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._ndarray
 
@@ -219,12 +198,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
-            res = self.get_loc(key)
+            self.get_loc(key)
         except (KeyError, TypeError, ValueError):
             return False
-        return bool(
-            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
-        )
+        return True
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -553,8 +530,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
         arr = self._data.view()
-        arr._freq = self.freq
-        result = arr._time_shift(periods, freq=freq)
+        # error: "ExtensionArray" has no attribute "_freq"
+        arr._freq = self.freq  # type: ignore[attr-defined]
+        # error: "ExtensionArray" has no attribute "_time_shift"
+        result = arr._time_shift(periods, freq=freq)  # type: ignore[attr-defined]
         return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------
@@ -797,7 +776,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            right_chunk = right._values[:loc]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[:loc]  # type: ignore[misc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -813,7 +793,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            right_chunk = right._values[loc:]
+            # error: Slice index must be an integer or None
+            right_chunk = right._values[loc:]  # type: ignore[misc]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq

@@ -539,7 +539,10 @@ class BaseGrouper:
             )
             if how in ["rank"]:
                 # preserve float64 dtype
-                return res_values
+
+                # error: Incompatible return value type (got "ndarray", expected
+                # "Tuple[ndarray, Optional[List[str]]]")
+                return res_values  # type: ignore[return-value]
 
             res_values = res_values.astype("i8", copy=False)
             result = type(orig_values)(res_values, dtype=orig_values.dtype)
@@ -553,9 +556,13 @@ class BaseGrouper:
             )
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             if is_extension_array_dtype(dtype):
-                cls = dtype.construct_array_type()
+                # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+                # attribute "construct_array_type"
+                cls = dtype.construct_array_type()  # type: ignore[union-attr]
                 return cls._from_sequence(res_values, dtype=dtype)
-            return res_values
+            # error: Incompatible return value type (got "ndarray", expected
+            # "Tuple[ndarray, Optional[List[str]]]")
+            return res_values  # type: ignore[return-value]
 
         elif is_float_dtype(values.dtype):
             # FloatingArray
@@ -592,7 +599,9 @@ class BaseGrouper:
         self._disallow_invalid_ops(values, how)
 
         if is_extension_array_dtype(values.dtype):
-            return self._ea_wrap_cython_operation(
+            # error: Incompatible return value type (got "Tuple[ndarray,
+            # Optional[List[str]]]", expected "ndarray")
+            return self._ea_wrap_cython_operation(  # type: ignore[return-value]
                 kind, values, how, axis, min_count, **kwargs
             )
 
@@ -652,7 +661,7 @@ class BaseGrouper:
             result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
             result = maybe_fill(
-                np.empty_like(values, dtype=out_dtype), fill_value=np.nan
+                np.empty(values.shape, dtype=out_dtype), fill_value=np.nan
             )
 
             # TODO: min_count
@@ -680,7 +689,9 @@ class BaseGrouper:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cython_cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            result = maybe_downcast_to_dtype(result, dtype)
+            # error: Argument 2 to "maybe_downcast_to_dtype" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype]"; expected "Union[str, dtype[Any]]"
+            result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[arg-type]
 
         return result
 
