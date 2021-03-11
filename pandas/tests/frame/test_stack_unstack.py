@@ -1462,9 +1462,9 @@ Sat,Dinner,No,139.63,45
 Sat,Dinner,Yes,120.77,42
 Sun,Dinner,No,180.57,57
 Sun,Dinner,Yes,66.82,19
-Thur,Dinner,No,3.0,1
-Thur,Lunch,No,117.32,44
-Thur,Lunch,Yes,51.51,17"""
+Thu,Dinner,No,3.0,1
+Thu,Lunch,No,117.32,44
+Thu,Lunch,Yes,51.51,17"""
 
         df = pd.read_csv(StringIO(data)).set_index(["day", "time", "smoker"])
 
@@ -1490,7 +1490,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unstack_bug(self):
         df = DataFrame(
             {
-                "state": ["naive", "naive", "naive", "activ", "activ", "activ"],
+                "state": ["naive", "naive", "naive", "active", "active", "active"],
                 "exp": ["a", "b", "b", "b", "a", "a"],
                 "barcode": [1, 2, 3, 4, 1, 3],
                 "v": ["hi", "hi", "bye", "bye", "bye", "peace"],
