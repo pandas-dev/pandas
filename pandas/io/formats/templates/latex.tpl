@@ -12,11 +12,11 @@
 \caption{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %}
 
 {% endif %}
-{% set label = parse_table(table_styles, 'label') %}
-{% if label is not none %}
-\label{% raw %}{{% endraw %}{{label}}{% raw %}}{% endraw %}
-
+{% for style in table_styles %}
+{% if style['selector'] not in ['position', 'float', 'caption', 'toprule', 'midrule', 'bottomrule', 'column_format'] %}
+\{{style['selector']}}{{parse_table(table_styles, style['selector'])}}
 {% endif %}
+{% endfor %}
 {% endif %}
 \begin{tabular}
 {%- set column_format = parse_table(table_styles, 'column_format') %}

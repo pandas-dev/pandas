@@ -335,10 +335,8 @@ class Styler:
             )
 
         if label:
-            label = label.split(":")
-            label = f":{label[0]}" if len(label) == 1 else f"{label[0]}:{label[1]}"
             self.set_table_styles(
-                [{"selector": "label", "props": f"{label}"}],
+                [{"selector": "label", "props": f":{{{label.replace(':', '§')}}}"}],
                 overwrite=False,
             )
 
@@ -2331,10 +2329,7 @@ def _non_reducing_slice(slice_):
 def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]:
     for style in styles[::-1]:  # in reverse for most recently applied style
         if style["selector"] == selector:
-            if style["props"][0][0]:
-                return f"{style['props'][0][0]}:{style['props'][0][1]}"
-            else:
-                return style["props"][0][1]
+            return style["props"][0][1].replace("§", ":")
     return None
 
 
