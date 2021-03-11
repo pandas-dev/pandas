@@ -30,6 +30,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
+    FilePathOrBuffer,
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
@@ -46,6 +47,8 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
+
+from pandas.io.formats.format import save_to_buffer
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
@@ -301,11 +304,13 @@ class Styler:
 
     def to_latex(
         self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
         column_format: Optional[str] = None,
         position: Optional[str] = None,
         hrules: bool = False,
         label: Optional[str] = None,
         caption: Optional[str] = None,
+        encoding: Optional[str] = None,
     ):
         if column_format:
             self.set_table_styles(
@@ -340,7 +345,8 @@ class Styler:
         if caption:
             self.set_caption(caption)
 
-        return self.render(latex=True)
+        latex = self.render(latex=True)
+        return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @doc(
         NDFrame.to_excel,
