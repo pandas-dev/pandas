@@ -560,7 +560,7 @@ class Styler:
             d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
             d["body"] = [
                 [
-                    {**col, "cellstyle": None}
+                    {**col, "cellstyle": []}
                     if col["type"] == "th"
                     else {**col, "cellstyle": ctx[r, c - n_rlvls]}
                     for c, col in enumerate(row)
@@ -2292,20 +2292,7 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
     return None
 
 
-LATEX_SUPPORTED_CELLSTYLE_ATTRS = {
-    "textcolor": lambda color, disp: f"\\textcolor{color}{{{disp}}}",
-    "cellcolor": lambda color, disp: f"\\cellcolor{color} {disp}",
-}
-
-
 def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
-    if styles is None:
-        return display_value
-    else:
-        ret = display_value
-        for attr, func in LATEX_SUPPORTED_CELLSTYLE_ATTRS.items():
-            for style in styles[::-1]:  # in reverse for most recently applied style
-                if style[0] == attr:
-                    ret = func(style[1], ret)
-                    break
-        return ret
+    for style in styles[::-1]:  # in reverse for most recently applied style
+        display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
+    return display_value
