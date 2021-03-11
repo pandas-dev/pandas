@@ -165,7 +165,10 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
-            return arr.to_numpy(dtype="float64", na_value=np.nan)
+            # error: "ndarray" has no attribute "to_numpy"
+            return arr.to_numpy(  # type: ignore[attr-defined]
+                dtype="float64", na_value=np.nan
+            )
         return arr.astype("float64", copy=copy)
 
 
@@ -1718,7 +1721,10 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
     """
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
-        return dtype
+
+        # error: Incompatible return value type (got "Type[generic]", expected
+        # "Union[dtype[Any], ExtensionDtype]")
+        return dtype  # type: ignore[return-value]
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
@@ -1726,7 +1732,9 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
-        return dtype.type
+        # error: Incompatible return value type (got "Union[Type[generic], Type[Any]]",
+        # expected "Union[dtype[Any], ExtensionDtype]")
+        return dtype.type  # type: ignore[return-value]
 
     try:
         dtype = pandas_dtype(dtype)
@@ -1740,7 +1748,9 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:
-            return DatetimeTZDtype.type
+            # error: Incompatible return value type (got "Type[Any]", expected
+            # "Union[dtype[Any], ExtensionDtype]")
+            return DatetimeTZDtype.type  # type: ignore[return-value]
         elif dtype in ["period"]:
             raise NotImplementedError
 
@@ -1837,7 +1847,9 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
-        return result
+        # error: Incompatible return value type (got "Type[ExtensionDtype]",
+        # expected "Union[dtype, ExtensionDtype]")
+        return result  # type: ignore[return-value]
 
     # try a numpy dtype
     # raise a consistent TypeError if failed

@@ -75,7 +75,7 @@ class TestFancy:
 
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
-            msgs.append(r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]")
+            msgs.append(r"Wrong number of dimensions. values.ndim > ndim \[3 > 1\]")
         if frame_or_series is Series or indexer_sli is tm.iloc:
             msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
         if indexer_sli is tm.loc or (

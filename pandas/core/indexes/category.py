@@ -178,6 +178,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     """
 
     _typ = "categoricalindex"
+    _data_cls = Categorical
 
     @property
     def _can_hold_strings(self):
@@ -192,12 +193,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _engine_type(self):
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
+
+        # error: Invalid index type "Type[generic]" for "Dict[Type[signedinteger[Any]],
+        # Any]"; expected type "Type[signedinteger[Any]]"
         return {
             np.int8: libindex.Int8Engine,
             np.int16: libindex.Int16Engine,
             np.int32: libindex.Int32Engine,
             np.int64: libindex.Int64Engine,
-        }[self.codes.dtype.type]
+        }[
+            self.codes.dtype.type  # type: ignore[index]
+        ]
 
     _attributes = ["name"]
 
@@ -224,18 +230,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         )
 
         return cls._simple_new(data, name=name)
-
-    @classmethod
-    def _simple_new(cls, values: Categorical, name: Optional[Hashable] = None):
-        assert isinstance(values, Categorical), type(values)
-        result = object.__new__(cls)
-
-        result._data = values
-        result._name = name
-        result._cache = {}
-
-        result._reset_identity()
-        return result
 
     # --------------------------------------------------------------------
 
@@ -495,7 +489,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
-        return self._get_indexer_non_unique(target._values)[0]
+        # error: Value of type variable "ArrayLike" of "_get_indexer_non_unique" of
+        # "CategoricalIndex" cannot be "Union[ExtensionArray, ndarray]"
+        return self._get_indexer_non_unique(target._values)[0]  # type: ignore[type-var]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
