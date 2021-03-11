@@ -3,6 +3,7 @@ from io import (
     StringIO,
 )
 import os
+import sys
 from typing import Union
 from urllib.error import HTTPError
 
@@ -253,6 +254,10 @@ def test_parser_consistency_file(datapath):
 @tm.network
 @pytest.mark.slow
 @td.skip_if_no("lxml")
+@pytest.mark.skipif(
+    sys.version_info < (3, 8),
+    reason=("etree alpha ordered attributes <= py3.7"),
+)
 def test_parser_consistency_url(datapath):
     url = (
         "https://data.cityofchicago.org/api/views/"
