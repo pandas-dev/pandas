@@ -234,7 +234,7 @@ class TestMethods(base.BaseMethodsTests):
         assert data_for_sorting.argmax() == 0
         assert data_for_sorting.argmin() == 2
 
-        # with repeated values -> first occurence
+        # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
         assert data.argmax() == 1
         assert data.argmin() == 0

@@ -2277,7 +2277,7 @@ class TestSeriesFormatting:
             )
             assert repr(s) == expected
 
-        # Emable Unicode option -----------------------------------------
+        # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
 
             # unicode index

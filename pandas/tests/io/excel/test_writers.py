@@ -436,7 +436,7 @@ class TestExcelWriter:
     def test_ts_frame(self, tsframe, path):
         df = tsframe
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
@@ -515,7 +515,7 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, tsframe, path):
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 

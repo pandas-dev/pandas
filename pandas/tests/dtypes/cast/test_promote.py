@@ -103,7 +103,7 @@ def _assert_match(result_fill_value, expected_fill_value):
 
     if hasattr(result_fill_value, "dtype"):
         # Compare types in a way that is robust to platform-specific
-        #  idiosyncracies where e.g. sometimes we get "ulonglong" as an alias
+        #  idiosyncrasies where e.g. sometimes we get "ulonglong" as an alias
         #  for "uint64" or "intc" as an alias for "int32"
         assert result_fill_value.dtype.kind == expected_fill_value.dtype.kind
         assert result_fill_value.dtype.itemsize == expected_fill_value.dtype.itemsize

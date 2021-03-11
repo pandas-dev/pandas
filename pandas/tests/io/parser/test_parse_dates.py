@@ -739,7 +739,7 @@ def test_parse_dates_string(all_parsers):
 """
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col="date", parse_dates=["date"])
-    # freq doesnt round-trip
+    # freq doesn't round-trip
     index = DatetimeIndex(
         list(date_range("1/1/2009", periods=3)), name="date", freq=None
     )

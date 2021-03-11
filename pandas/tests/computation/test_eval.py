@@ -1144,11 +1144,11 @@ class TestAlignment:
             if not is_python_engine:
                 assert len(w) == 1
                 msg = str(w[0].message)
-                loged = np.log10(s.size - df.shape[1])
+                logged = np.log10(s.size - df.shape[1])
                 expected = (
                     f"Alignment difference on axis 1 is larger "
                     f"than an order of magnitude on term 'df', "
-                    f"by more than {loged:.4g}; performance may suffer"
+                    f"by more than {logged:.4g}; performance may suffer"
                 )
                 assert msg == expected
 
@@ -1404,25 +1404,25 @@ class TestOperationsNumExprPandas:
 
         expected["c"] = expected["a"] + expected["b"]
         expected["d"] = expected["c"] + expected["b"]
-        ans = df.eval(
+        answer = df.eval(
             """
         c = a + b
         d = c + b""",
             inplace=True,
         )
         tm.assert_frame_equal(expected, df)
-        assert ans is None
+        assert answer is None
 
         expected["a"] = expected["a"] - 1
         expected["e"] = expected["a"] + 2
-        ans = df.eval(
+        answer = df.eval(
             """
         a = a - 1
         e = a + 2""",
             inplace=True,
         )
         tm.assert_frame_equal(expected, df)
-        assert ans is None
+        assert answer is None
 
         # multi-line not valid if not all assignments
         msg = "Multi-line expressions are only valid if all expressions contain"
@@ -1467,7 +1467,7 @@ class TestOperationsNumExprPandas:
         local_var = 7
         expected["c"] = expected["a"] * local_var
         expected["d"] = expected["c"] + local_var
-        ans = df.eval(
+        answer = df.eval(
             """
         c = a * @local_var
         d = c + @local_var
@@ -1475,7 +1475,7 @@ class TestOperationsNumExprPandas:
             inplace=True,
         )
         tm.assert_frame_equal(expected, df)
-        assert ans is None
+        assert answer is None
 
     def test_multi_line_expression_callable_local_variable(self):
         # 26426
@@ -1487,7 +1487,7 @@ class TestOperationsNumExprPandas:
         expected = df.copy()
         expected["c"] = expected["a"] * local_func(1, 7)
         expected["d"] = expected["c"] + local_func(1, 7)
-        ans = df.eval(
+        answer = df.eval(
             """
         c = a * @local_func(1, 7)
         d = c + @local_func(1, 7)
@@ -1495,7 +1495,7 @@ class TestOperationsNumExprPandas:
             inplace=True,
         )
         tm.assert_frame_equal(expected, df)
-        assert ans is None
+        assert answer is None
 
     def test_multi_line_expression_callable_local_variable_with_kwargs(self):
         # 26426
@@ -1507,7 +1507,7 @@ class TestOperationsNumExprPandas:
         expected = df.copy()
         expected["c"] = expected["a"] * local_func(b=7, a=1)
         expected["d"] = expected["c"] + local_func(b=7, a=1)
-        ans = df.eval(
+        answer = df.eval(
             """
         c = a * @local_func(b=7, a=1)
         d = c + @local_func(b=7, a=1)
@@ -1515,7 +1515,7 @@ class TestOperationsNumExprPandas:
             inplace=True,
         )
         tm.assert_frame_equal(expected, df)
-        assert ans is None
+        assert answer is None
 
     def test_assignment_in_query(self):
         # GH 8664

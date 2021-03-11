@@ -238,7 +238,7 @@ class Dim2CompatTests(BaseExtensionTests):
             else:
                 raise AssertionError("Both reductions should raise or neither")
 
-        # not necesarrily type/dtype-preserving, so weaker assertions
+        # not necessarily type/dtype-preserving, so weaker assertions
         assert result.shape == (1,)
         expected_scalar = getattr(data, method)()
         if pd.isna(result[0]):

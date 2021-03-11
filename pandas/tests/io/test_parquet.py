@@ -438,7 +438,7 @@ class TestBasic(Base):
         for index in indexes:
             df.index = index
             if isinstance(index, pd.DatetimeIndex):
-                df.index = df.index._with_freq(None)  # freq doesnt round-trip
+                df.index = df.index._with_freq(None)  # freq doesn't round-trip
             check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
@@ -578,7 +578,7 @@ class TestParquetPyArrow(Base):
 
         # additional supported types for pyarrow
         dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
-        dti = dti._with_freq(None)  # freq doesnt round-trip
+        dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
 
@@ -919,7 +919,7 @@ class TestParquetFastParquet(Base):
         df = df_full
 
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
-        dti = dti._with_freq(None)  # freq doesnt round-trip
+        dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
