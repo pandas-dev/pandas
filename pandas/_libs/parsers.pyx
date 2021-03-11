@@ -36,6 +36,7 @@ from cpython.ref cimport (
 from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
+    PyUnicode_DecodeUTF8,
 )
 
 
@@ -321,7 +322,6 @@ cdef class TextReader:
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
         uint64_t parser_start
         list clocks
-        char *c_encoding
         const char *encoding_errors
         kh_str_starts_t *false_set
         kh_str_starts_t *true_set
@@ -381,7 +381,6 @@ cdef class TextReader:
                   encoding_errors=b"strict"):
 
         # set encoding for native Python and C library
-        self.c_encoding = NULL
         if isinstance(encoding_errors, str):
             encoding_errors = encoding_errors.encode("utf-8")
         Py_INCREF(encoding_errors)
@@ -638,7 +637,6 @@ cdef class TextReader:
             char *word
             object name, old_name
             uint64_t hr, data_line = 0
-            StringPath path = _string_path(self.c_encoding)
             list header = []
             set unnamed_cols = set()
 
@@ -678,8 +676,8 @@ cdef class TextReader:
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
-                    name = PyUnicode_Decode(word, strlen(word),
-                                            self.c_encoding, self.encoding_errors)
+                    name = PyUnicode_DecodeUTF8(word, strlen(word),
+                                                self.encoding_errors)
 
                     # We use this later when collecting placeholder names.
                     old_name = name
@@ -987,8 +985,7 @@ cdef class TextReader:
                                    f"for column {name} - only the converter will "
                                    f"be used"), ParserWarning,
                                   stacklevel=5)
-                results[i] = _apply_converter(conv, self.parser, i, start, end,
-                                              self.c_encoding)
+                results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
             # Collect the list of NaN values associated with the column.
@@ -1102,8 +1099,7 @@ cdef class TextReader:
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
-                self.parser, i, start, end, na_filter,
-                na_hashset, self.c_encoding)
+                self.parser, i, start, end, na_filter, na_hashset)
 
             # Method accepts list of strings, not encoded ones.
             true_values = [x.decode() for x in self.true_values]
@@ -1199,14 +1195,8 @@ cdef class TextReader:
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
                          bint na_filter, kh_str_starts_t *na_hashset):
 
-        cdef StringPath path = _string_path(self.c_encoding)
-
-        if path == UTF8:
-            return _string_box_utf8(self.parser, i, start, end, na_filter,
-                                    na_hashset, self.encoding_errors)
-        elif path == ENCODED:
-            return _string_box_decode(self.parser, i, start, end,
-                                      na_filter, na_hashset, self.c_encoding)
+        return _string_box_utf8(self.parser, i, start, end, na_filter,
+                                na_hashset, self.encoding_errors)
 
     def _get_converter(self, i, name):
         if self.converters is None:
@@ -1336,18 +1326,6 @@ def _maybe_upcast(arr):
     return arr
 
 
-cdef enum StringPath:
-    UTF8
-    ENCODED
-
-
-# factored out logic to pick string converter
-cdef inline StringPath _string_path(char *encoding):
-    if encoding != NULL and encoding != b"utf-8":
-        return ENCODED
-    return UTF8
-
-
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
 
@@ -1406,68 +1384,10 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     return result, na_count
 
 
-cdef _string_box_decode(parser_t *parser, int64_t col,
-                        int64_t line_start, int64_t line_end,
-                        bint na_filter, kh_str_starts_t *na_hashset,
-                        char *encoding):
-    cdef:
-        int na_count = 0
-        Py_ssize_t i, size, lines
-        coliter_t it
-        const char *word = NULL
-        ndarray[object] result
-
-        int ret = 0
-        kh_strbox_t *table
-
-        char *errors = "strict"
-
-        object pyval
-
-        object NA = na_values[np.object_]
-        khiter_t k
-
-    table = kh_init_strbox()
-    lines = line_end - line_start
-    result = np.empty(lines, dtype=np.object_)
-    coliter_setup(&it, parser, col, line_start)
-
-    for i in range(lines):
-        COLITER_NEXT(it, word)
-
-        if na_filter:
-            if kh_get_str_starts_item(na_hashset, word):
-            # in the hash table
-                na_count += 1
-                result[i] = NA
-                continue
-
-        k = kh_get_strbox(table, word)
-
-        # in the hash table
-        if k != table.n_buckets:
-            # this increments the refcount, but need to test
-            pyval = <object>table.vals[k]
-        else:
-            # box it. new ref?
-            size = strlen(word)
-            pyval = PyUnicode_Decode(word, size, encoding, errors)
-
-            k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *>pyval
-
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
-
-    return result, na_count
-
-
 @cython.boundscheck(False)
 cdef _categorical_convert(parser_t *parser, int64_t col,
                           int64_t line_start, int64_t line_end,
-                          bint na_filter, kh_str_starts_t *na_hashset,
-                          char *encoding):
+                          bint na_filter, kh_str_starts_t *na_hashset):
     "Convert column data into codes, categories"
     cdef:
         int na_count = 0
@@ -1480,7 +1400,6 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         int64_t current_category = 0
 
         char *errors = "strict"
-        StringPath path = _string_path(encoding)
 
         int ret = 0
         kh_str_t *table
@@ -1516,16 +1435,9 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
     # parse and box categories to python strings
     result = np.empty(table.n_occupied, dtype=np.object_)
-    if path == ENCODED:
-        for k in range(table.n_buckets):
-            if kh_exist_str(table, k):
-                size = strlen(table.keys[k])
-                result[table.vals[k]] = PyUnicode_Decode(
-                    table.keys[k], size, encoding, errors)
-    elif path == UTF8:
-        for k in range(table.n_buckets):
-            if kh_exist_str(table, k):
-                result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
+    for k in range(table.n_buckets):
+        if kh_exist_str(table, k):
+            result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
 
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count
@@ -2064,13 +1976,11 @@ for k in list(na_values):
 
 
 cdef _apply_converter(object f, parser_t *parser, int64_t col,
-                      int64_t line_start, int64_t line_end,
-                      char* c_encoding):
+                      int64_t line_start, int64_t line_end):
     cdef:
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
-        char *errors = "strict"
         ndarray[object] result
         object val
 
@@ -2079,17 +1989,10 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 
     coliter_setup(&it, parser, col, line_start)
 
-    if c_encoding == NULL or c_encoding == b'utf-8':
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-            val = PyUnicode_FromString(word)
-            result[i] = f(val)
-    else:
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-            val = PyUnicode_Decode(word, strlen(word),
-                                   c_encoding, errors)
-            result[i] = f(val)
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+        val = PyUnicode_FromString(word)
+        result[i] = f(val)
 
     return lib.maybe_convert_objects(result)
 

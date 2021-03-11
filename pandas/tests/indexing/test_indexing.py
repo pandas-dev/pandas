@@ -79,7 +79,7 @@ class TestFancy:
 
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
-            msgs.append(r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]")
+            msgs.append(r"Wrong number of dimensions. values.ndim > ndim \[3 > 1\]")
             if using_array_manager:
                 msgs.append("Passed array should be 1-dimensional")
         if frame_or_series is Series or indexer_sli is tm.iloc:
