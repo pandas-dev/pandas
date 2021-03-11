@@ -2209,6 +2209,8 @@ def maybe_coerce_values(values) -> ArrayLike:
     values : np.ndarray or ExtensionArray
     """
 
+    # Note: the only test that needs extract_array here is one where we
+    #  pass PandasDtype to Series.astype, then need to extract PandasArray here.
     values = extract_array(values, extract_numpy=True)
 
     if isinstance(values, np.ndarray):
