@@ -554,9 +554,20 @@ class Styler:
             d = self.tooltips._translate(self.data, self.uuid, d)
 
         if latex:
-            # post processing of d for latex template
+            # post processing of d for latex template:
+            # - remove hidden columns
+            # - place cellstyles in individual cell dicts that are not index cells
             d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
-            d["body"] = [[col for col in row if col["is_visible"]] for row in d["body"]]
+            d["body"] = [
+                [
+                    {**col, "cellstyle": None}
+                    if col["type"] == "th"
+                    else {**col, "cellstyle": ctx[r, c - n_rlvls]}
+                    for c, col in enumerate(row)
+                    if col["is_visible"]
+                ]
+                for r, row in enumerate(d["body"])
+            ]
 
         return d
 
@@ -795,7 +806,8 @@ class Styler:
         d = self._translate(latex=latex)
         d.update(kwargs)
         if latex:
-            self.template2.globals["parse"] = _parse_latex_table_styles
+            self.template2.globals["parse_table"] = _parse_latex_table_styles
+            self.template2.globals["parse_cell"] = _parse_latex_cell_styles
             return self.template2.render(**d)
         return self.template.render(**d)
 
@@ -2278,3 +2290,22 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
             else:
                 return style["props"][0][1]
     return None
+
+
+LATEX_SUPPORTED_CELLSTYLE_ATTRS = {
+    "color": lambda color, disp: f"\\textcolor{color}{{{disp}}}",
+    "background-color": lambda color, disp: fr"\cellcolor{color} {disp}",
+}
+
+
+def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
+    if styles is None:
+        return display_value
+    else:
+        ret = display_value
+        for attr, func in LATEX_SUPPORTED_CELLSTYLE_ATTRS.items():
+            for style in styles[::-1]:  # in reverse for most recently applied style
+                if style[0] == attr:
+                    ret = func(style[1], ret)
+                break
+        return ret
