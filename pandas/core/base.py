@@ -735,9 +735,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-            # attribute "any"
-            if not skipna and delegate.isna().any():  # type: ignore[union-attr]
+            if not skipna and delegate.isna().any():
                 return -1
             else:
                 return delegate.argmax()
@@ -799,9 +797,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-            # attribute "any"
-            if not skipna and delegate.isna().any():  # type: ignore[union-attr]
+            if not skipna and delegate.isna().any():
                 return -1
             else:
                 return delegate.argmin()

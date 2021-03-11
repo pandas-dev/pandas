@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -70,6 +71,16 @@ from pandas.core.sorting import (
     nargminmax,
     nargsort,
 )
+
+if TYPE_CHECKING:
+
+    class ExtensionArraySupportsAnyAll("ExtensionArray"):
+        def any(self, *, skipna: bool = True):
+            pass
+
+        def all(self, *, skipna: bool = True):
+            pass
+
 
 _extension_array_shared_docs: Dict[str, str] = {}
 
@@ -546,7 +557,7 @@ class ExtensionArray:
 
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> ArrayLike:
+    def isna(self) -> Union[np.ndarray, ExtensionArraySupportsAnyAll]:
         """
         A 1-D array indicating if each value is missing.
 
@@ -651,9 +662,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-        # attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[union-attr]
+        if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -677,9 +686,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-        # attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[union-attr]
+        if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -719,9 +726,7 @@ class ExtensionArray:
             value, mask, len(self)  # type: ignore[arg-type]
         )
 
-        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-        # attribute "any"
-        if mask.any():  # type: ignore[union-attr]
+        if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values, _ = func(self.astype(object), limit=limit, mask=mask)
