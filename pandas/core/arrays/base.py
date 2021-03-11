@@ -75,10 +75,10 @@ from pandas.core.sorting import (
 if TYPE_CHECKING:
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
-        def any(self, *, skipna: bool = True):
+        def any(self, *, skipna: bool = True) -> bool:
             pass
 
-        def all(self, *, skipna: bool = True):
+        def all(self, *, skipna: bool = True) -> bool:
             pass
 
 
@@ -391,7 +391,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item) -> Union[bool, np.bool_]:
         """
         Return for `item in self`.
         """
@@ -402,11 +402,7 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has
-                # no attribute "any"
-                # error: Incompatible return value type (got "Union[Any, bool_]",
-                # expected "bool")
-                return self.isna().any()  # type: ignore[union-attr, return-value]
+                return self.isna().any()
             else:
                 return False
         else:
