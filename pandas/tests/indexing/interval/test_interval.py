@@ -124,7 +124,7 @@ class TestIntervalIndexInsideMultiIndex:
                 pd.Index(
                     ["RID1", "RID1", "RID2", "RID2", "RID1", "RID1", "RID2", "RID2"]
                 ),
-                pd.IntervalIndex.from_arrays(
+                IntervalIndex.from_arrays(
                     [0, 1, 10, 11, 0, 1, 10, 11], [1, 2, 11, 12, 1, 2, 11, 12]
                 ),
             ]

@@ -177,7 +177,7 @@ class TestToIterable:
 
 
 @pytest.mark.parametrize(
-    "array, expected_type, dtype",
+    "arr, expected_type, dtype",
     [
         (np.array([0, 1], dtype=np.int64), np.ndarray, "int64"),
         (np.array(["a", "b"]), np.ndarray, "object"),
@@ -216,9 +216,9 @@ class TestToIterable:
         ),
     ],
 )
-def test_values_consistent(array, expected_type, dtype):
-    l_values = Series(array)._values
-    r_values = pd.Index(array)._values
+def test_values_consistent(arr, expected_type, dtype):
+    l_values = Series(arr)._values
+    r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
 
@@ -245,7 +245,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
 
 
 @pytest.mark.parametrize(
-    "array, attr",
+    "arr, attr",
     [
         (pd.Categorical(["a", "b"]), "_codes"),
         (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
@@ -265,17 +265,17 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-def test_array(array, attr, index_or_series):
+def test_array(arr, attr, index_or_series):
     box = index_or_series
-    if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip(f"No index type for {array.dtype}")
-    result = box(array, copy=False).array
+    if arr.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
+        pytest.skip(f"No index type for {arr.dtype}")
+    result = box(arr, copy=False).array
 
     if attr:
-        array = getattr(array, attr)
+        arr = getattr(arr, attr)
         result = getattr(result, attr)
 
-    assert result is array
+    assert result is arr
 
 
 def test_array_multiindex_raises():
@@ -286,7 +286,7 @@ def test_array_multiindex_raises():
 
 
 @pytest.mark.parametrize(
-    "array, expected",
+    "arr, expected",
     [
         (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64)),
         (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object)),
@@ -337,14 +337,14 @@ def test_array_multiindex_raises():
         ),
     ],
 )
-def test_to_numpy(array, expected, index_or_series_or_array, request):
+def test_to_numpy(arr, expected, index_or_series_or_array, request):
     box = index_or_series_or_array
-    thing = box(array)
+    thing = box(arr)
 
-    if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip(f"No index type for {array.dtype}")
+    if arr.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
+        pytest.skip(f"No index type for {arr.dtype}")
 
-    if array.dtype.name == "int64" and box is pd.array:
+    if arr.dtype.name == "int64" and box is pd.array:
         mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
         request.node.add_marker(mark)
 
