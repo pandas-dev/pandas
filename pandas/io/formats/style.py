@@ -2293,8 +2293,8 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
 
 
 LATEX_SUPPORTED_CELLSTYLE_ATTRS = {
-    "color": lambda color, disp: f"\\textcolor{color}{{{disp}}}",
-    "background-color": lambda color, disp: fr"\cellcolor{color} {disp}",
+    "textcolor": lambda color, disp: f"\\textcolor{color}{{{disp}}}",
+    "cellcolor": lambda color, disp: f"\\cellcolor{color} {disp}",
 }
 
 
@@ -2307,5 +2307,5 @@ def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
             for style in styles[::-1]:  # in reverse for most recently applied style
                 if style[0] == attr:
                     ret = func(style[1], ret)
-                break
+                    break
         return ret
