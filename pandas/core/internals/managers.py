@@ -246,7 +246,7 @@ class BlockManager(DataManager):
     __bool__ = __nonzero__
 
     def _normalize_axis(self, axis: int) -> int:
-        # switch axis
+        # switch axis to follow BlockManager logic
         if self.ndim == 2:
             axis = 1 if axis == 0 else 0
         return axis
