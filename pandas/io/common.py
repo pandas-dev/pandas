@@ -776,6 +776,11 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         self.archive_name = archive_name
         self.multiple_write_buffer: Optional[Union[StringIO, BytesIO]] = None
 
+        if archive_name is None and isinstance(file, (os.PathLike, str)):
+            archive_name = os.path.basename(file)
+            if archive_name.endswith(".zip"):
+                self.archive_name = archive_name[:-4]
+
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
 
