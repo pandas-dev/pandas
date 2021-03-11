@@ -499,7 +499,7 @@ class Block(PandasObject):
         for i, ref_loc in enumerate(self.mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
-            nb = self.make_block(vals, [ref_loc])
+            nb = self.make_block(vals, BlockPlacement(ref_loc))
             new_blocks.append(nb)
         return new_blocks
 
@@ -2374,10 +2374,15 @@ def extract_pandas_array(
     """
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
-        values = values.to_numpy()
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
+        values = values.to_numpy()  # type: ignore[assignment]
         if ndim and ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs
-            values = np.atleast_2d(values)
+
+            # error: No overload variant of "atleast_2d" matches argument type
+            # "PandasArray"
+            values = np.atleast_2d(values)  # type: ignore[call-overload]
 
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
