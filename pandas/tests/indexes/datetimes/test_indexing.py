@@ -679,18 +679,18 @@ class TestMaybeCastSliceBound:
         # GH#14354
         empty_idx = date_range(freq="1H", periods=0, end="2015")
 
-        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right", "loc")
+        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right")
         exp = Timestamp("2015-01-02 23:59:59.999999999")
         assert right == exp
 
-        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left", "loc")
+        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left")
         exp = Timestamp("2015-01-02 00:00:00")
         assert left == exp
 
     def test_maybe_cast_slice_duplicate_monotonic(self):
         # https://github.com/pandas-dev/pandas/issues/16515
         idx = DatetimeIndex(["2017", "2017"])
-        result = idx._maybe_cast_slice_bound("2017-01-01", "left", "loc")
+        result = idx._maybe_cast_slice_bound("2017-01-01", "left")
         expected = Timestamp("2017-01-01")
         assert result == expected
 

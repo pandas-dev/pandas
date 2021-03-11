@@ -5685,7 +5685,7 @@ class Index(IndexOpsMixin, PandasObject):
         if key is not None and not is_integer(key):
             raise self._invalid_indexer(form, key)
 
-    def _maybe_cast_slice_bound(self, label, side: str_t, kind):
+    def _maybe_cast_slice_bound(self, label, side: str_t):
         """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
@@ -5695,7 +5695,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
@@ -5705,7 +5704,6 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None]
 
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
@@ -5760,7 +5758,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # For datetime indices label may be a string that has to be converted
         # to datetime boundary according to its resolution.
-        label = self._maybe_cast_slice_bound(label, side, kind)
+        label = self._maybe_cast_slice_bound(label, side)
 
         # we need to look up the label
         try:

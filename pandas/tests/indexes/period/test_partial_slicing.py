@@ -110,7 +110,7 @@ class TestPeriodIndex:
 
         # Check the lower-level calls are raising where expected.
         with pytest.raises(TypeError, match=msg):
-            idx._maybe_cast_slice_bound("foo", "left", "loc")
+            idx._maybe_cast_slice_bound("foo", "left")
         with pytest.raises(TypeError, match=msg):
             idx.get_slice_bound("foo", "left", "loc")
 
