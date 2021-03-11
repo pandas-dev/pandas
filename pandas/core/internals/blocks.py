@@ -160,13 +160,14 @@ class Block(PandasObject):
         Parameters
         ----------
         values : np.ndarray or ExtensionArray
+            We assume maybe_coerce_values has already been called.
         placement : BlockPlacement (or castable)
         ndim : int
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
         """
         self.ndim = ndim
         self.mgr_locs = placement
-        self.values = maybe_coerce_values(values)
+        self.values = values
 
     @property
     def _holder(self):
@@ -265,6 +266,8 @@ class Block(PandasObject):
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
+        # TODO: perf by not going through new_block
+        # We assume maybe_coerce_values has already been called
         return new_block(values, placement=placement, ndim=self.ndim)
 
     @final
@@ -272,6 +275,8 @@ class Block(PandasObject):
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
+        # TODO: perf by not going through new_block
+        # We assume maybe_coerce_values has already been called
         return type(self)(values, placement=placement, ndim=self.ndim)
 
     @final
@@ -403,6 +408,7 @@ class Block(PandasObject):
             return nbs
 
         if not isinstance(result, Block):
+            result = maybe_coerce_values(result)
             result = self.make_block(result)
 
         return [result]
@@ -614,6 +620,7 @@ class Block(PandasObject):
             values, dtype, copy=copy, errors=errors  # type: ignore[type-var]
         )
 
+        new_values = maybe_coerce_values(new_values)
         newb = self.make_block(new_values)
         if newb.shape != self.shape:
             raise TypeError(
@@ -672,6 +679,7 @@ class Block(PandasObject):
             values = np.array(values, dtype="object")
 
         values[mask] = na_rep
+        values = values.astype(object, copy=False)
         return self.make_block(values)
 
     # block actions #
@@ -1858,6 +1866,7 @@ class FloatBlock(NumericBlock):
                 values = np.array(values, dtype="object")
 
             values[mask] = na_rep
+            values = values.astype(object, copy=False)
             return self.make_block(values)
 
         from pandas.io.formats.format import FloatArrayFormatter
@@ -1871,6 +1880,7 @@ class FloatBlock(NumericBlock):
             fixed_width=False,
         )
         res = formatter.get_result_as_array()
+        res = res.astype(object, copy=False)
         return self.make_block(res)
 
 
@@ -1924,6 +1934,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
+        res_values = maybe_coerce_values(res_values)
         nb = self.make_block_same_class(res_values)
         return [nb]
 
@@ -1951,12 +1962,14 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         values = self.array_values().reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
+        new_values = maybe_coerce_values(new_values)
         return [self.make_block(new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values().reshape(self.shape)
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
+        new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(new_values)]
 
     def fillna(
@@ -1972,6 +1985,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         values = self.array_values()
         values = values if inplace else values.copy()
         new_values = values.fillna(value=value, limit=limit)
+        new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(values=new_values)]
 
 
@@ -1997,6 +2011,7 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
         arr = self.array_values()
 
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
+        result = result.astype(object, copy=False)
         return self.make_block(result)
 
 
@@ -2267,6 +2282,7 @@ def new_block(values, placement, *, ndim: int, klass=None) -> Block:
     if klass is None:
         klass = get_block_type(values, values.dtype)
 
+    values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
 
 

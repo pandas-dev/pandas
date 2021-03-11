@@ -72,6 +72,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
 )
 from pandas.core.internals.ops import (
@@ -1057,6 +1058,7 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
+        values = maybe_coerce_values(values)
         nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
