@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Collection,
     Hashable,
     Iterable,
     List,
@@ -98,6 +99,7 @@ from pandas.io.formats.printing import (
 if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
+        DataFrame,
         Series,
     )
 
@@ -323,7 +325,7 @@ class MultiIndex(Index):
         if len(levels) == 0:
             raise ValueError("Must pass non-zero number of levels/codes")
 
-        result = object.__new__(MultiIndex)
+        result = object.__new__(cls)
         result._cache = {}
 
         # we've already validated levels and codes, so shortcut here
@@ -503,7 +505,7 @@ class MultiIndex(Index):
     @names_compat
     def from_tuples(
         cls,
-        tuples,
+        tuples: Iterable[Tuple[Hashable, ...]],
         sortorder: Optional[int] = None,
         names: Optional[Sequence[Hashable]] = None,
     ) -> MultiIndex:
@@ -546,6 +548,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         elif is_iterator(tuples):
             tuples = list(tuples)
+        tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
 
         arrays: List[Sequence[Hashable]]
         if len(tuples) == 0:
@@ -560,7 +563,8 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = zip(*tuples)
+            arrs = zip(*tuples)
+            arrays = cast(List[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
@@ -626,7 +630,7 @@ class MultiIndex(Index):
         return cls(levels, codes, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_frame(cls, df, sortorder=None, names=None) -> MultiIndex:
+    def from_frame(cls, df: DataFrame, sortorder=None, names=None) -> MultiIndex:
         """
         Make a MultiIndex from a DataFrame.
 
@@ -707,14 +711,18 @@ class MultiIndex(Index):
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
                 vals = vals.astype(object)
-            vals = np.array(vals, copy=False)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Index")
+            vals = np.array(vals, copy=False)  # type: ignore[assignment]
             values.append(vals)
 
         arr = lib.fast_zip(values)
         return arr
 
     @property
-    def values(self) -> np.ndarray:
+    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
+    # in supertype "Index"
+    def values(self) -> np.ndarray:  # type: ignore[override]
         return self._values
 
     @property
@@ -762,7 +770,7 @@ class MultiIndex(Index):
     # Levels Methods
 
     @cache_readonly
-    def levels(self):
+    def levels(self) -> FrozenList:
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
@@ -1293,7 +1301,7 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_data(self, name=None):
+    def _format_data(self, name=None) -> str:
         """
         Return the formatted data as a unicode string
         """
@@ -1419,10 +1427,10 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Names Methods
 
-    def _get_names(self):
+    def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, level=None, validate=True):
+    def _set_names(self, names, level=None, validate: bool = True):
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1433,7 +1441,7 @@ class MultiIndex(Index):
         level : int, level name, or sequence of int/level names (default None)
             If the index is a MultiIndex (hierarchical), level(s) to set (None
             for all levels).  Otherwise level must be None
-        validate : boolean, default True
+        validate : bool, default True
             validate that the names match level lengths
 
         Raises
@@ -1712,7 +1720,7 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def to_frame(self, index=True, name=None):
+    def to_frame(self, index=True, name=None) -> DataFrame:
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
@@ -2097,6 +2105,24 @@ class MultiIndex(Index):
                 verify_integrity=False,
             )
 
+    def _getitem_slice(self: MultiIndex, slobj: slice) -> MultiIndex:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        sortorder = None
+        if slobj.step is None or slobj.step > 0:
+            sortorder = self.sortorder
+
+        new_codes = [level_codes[slobj] for level_codes in self.codes]
+
+        return type(self)(
+            levels=self.levels,
+            codes=new_codes,
+            names=self._names,
+            sortorder=sortorder,
+            verify_integrity=False,
+        )
+
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self: MultiIndex, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
@@ -2109,8 +2135,8 @@ class MultiIndex(Index):
 
         na_value = -1
 
+        taken = [lab.take(indices) for lab in self.codes]
         if allow_fill:
-            taken = [lab.take(indices) for lab in self.codes]
             mask = indices == -1
             if mask.any():
                 masked = []
@@ -2119,8 +2145,6 @@ class MultiIndex(Index):
                     label_values[mask] = na_value
                     masked.append(np.asarray(label_values))
                 taken = masked
-        else:
-            taken = [lab.take(indices) for lab in self.codes]
 
         return MultiIndex(
             levels=self.levels, codes=taken, names=self.names, verify_integrity=False
@@ -2198,7 +2222,11 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                codes = com.index_labels_to_array(codes, dtype=object)
+                # error: Argument "dtype" to "index_labels_to_array" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
+                codes = com.index_labels_to_array(
+                    codes, dtype=object  # type: ignore[arg-type]
+                )
             except ValueError:
                 pass
 
@@ -2644,7 +2672,9 @@ class MultiIndex(Index):
 
         return key
 
-    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
+    def _get_indexer(
+        self, target: Index, method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
 
         # empty indexer
         if not len(target):
@@ -3140,10 +3170,14 @@ class MultiIndex(Index):
                 indexer = codes.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)
-                m = np.asarray(m)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
+                m = np.asarray(m)  # type: ignore[assignment]
 
             else:
-                m = np.zeros(len(codes), dtype=bool)
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "Series")
+                m = np.zeros(len(codes), dtype=bool)  # type: ignore[assignment]
                 m[np.in1d(codes, r, assume_unique=Index(codes).is_unique)] = True
 
             return m
@@ -3521,7 +3555,7 @@ class MultiIndex(Index):
 
         return True
 
-    def equal_levels(self, other) -> bool:
+    def equal_levels(self, other: MultiIndex) -> bool:
         """
         Return True if the levels of both MultiIndex objects are the same
 
@@ -3537,7 +3571,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Set Methods
 
-    def _union(self, other, sort):
+    def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
 
         # We could get here with CategoricalIndex other
@@ -3579,7 +3613,7 @@ class MultiIndex(Index):
                 names.append(None)
         return names
 
-    def _intersection(self, other, sort=False):
+    def _intersection(self, other, sort=False) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
 
         lvals = self._values
