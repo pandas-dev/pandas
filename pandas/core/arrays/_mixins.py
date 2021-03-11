@@ -271,7 +271,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def fillna(
         self: NDArrayBackedExtensionArrayT, value=None, method=None, limit=None
     ) -> NDArrayBackedExtensionArrayT:
-        value, method = validate_fillna_kwargs(value, method)
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
 
         mask = self.isna()
         value = missing.check_value_size(value, mask, len(self))
@@ -291,6 +293,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 new_values = self.copy()
                 new_values[mask] = value
         else:
+            # We validate the fill_value even if there is nothing to fill
+            if value is not None:
+                self._validate_setitem_value(value)
+
             new_values = self.copy()
         return new_values
 
