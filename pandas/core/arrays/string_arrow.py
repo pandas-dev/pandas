@@ -355,7 +355,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                     "boolean arrays are valid indices."
                 )
         elif isinstance(item, tuple):
-            # possibly unpack arr[:, n] to arr[n]
+            # possibly unpack arr[..., n] to arr[n]
             if len(item) == 1:
                 item = item[0]
             elif len(item) == 2:
