@@ -1021,7 +1021,7 @@ class ArrayManager(DataManager):
 
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
         """
@@ -1034,12 +1034,7 @@ class ArrayManager(DataManager):
         )
 
         n = self.shape_proper[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
