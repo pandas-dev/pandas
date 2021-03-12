@@ -478,8 +478,7 @@ class ArrayManager(DataManager):
                 arr = arr._data  # type: ignore[attr-defined]
 
             if self.ndim == 2:
-                if isinstance(arr, np.ndarray):
-                    arr = np.atleast_2d(arr)
+                arr = ensure_block_shape(arr, 2)
                 block = new_block(arr, placement=slice(0, 1, 1), ndim=2)
             else:
                 block = new_block(arr, placement=slice(0, len(self), 1), ndim=1)
