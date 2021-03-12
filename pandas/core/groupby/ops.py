@@ -692,9 +692,7 @@ class BaseGrouper:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cython_cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            # error: Argument 2 to "maybe_downcast_to_dtype" has incompatible type
-            # "Union[dtype[Any], ExtensionDtype]"; expected "Union[str, dtype[Any]]"
-            result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[arg-type]
+            result = maybe_downcast_to_dtype(result, dtype)
 
         return result
 
