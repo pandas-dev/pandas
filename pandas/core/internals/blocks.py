@@ -432,9 +432,7 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         mask = isna(self.values)
-        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        mask, noop = validate_putmask(self.values, mask)  # type: ignore[type-var]
+        mask, noop = validate_putmask(self.values, mask)
 
         if limit is not None:
             limit = libalgos.validate_limit(None, limit=limit)
@@ -577,9 +575,7 @@ class Block(PandasObject):
             if dtypes is None:
                 dtypes = "infer"
 
-            # error: Value of type variable "ArrayLike" of "maybe_downcast_to_dtype"
-            # cannot be "Union[ndarray, ExtensionArray]"
-            nv = maybe_downcast_to_dtype(values, dtypes)  # type: ignore[type-var]
+            nv = maybe_downcast_to_dtype(values, dtypes)
             return [self.make_block(nv)]
 
         # ndim > 1
@@ -623,11 +619,7 @@ class Block(PandasObject):
         if values.dtype.kind in ["m", "M"]:
             values = self.array_values()
 
-        # error: Value of type variable "ArrayLike" of "astype_array_safe" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        new_values = astype_array_safe(
-            values, dtype, copy=copy, errors=errors  # type: ignore[type-var]
-        )
+        new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
         newb = self.make_block(new_values)
         if newb.shape != self.shape:
@@ -724,9 +716,7 @@ class Block(PandasObject):
 
         values = self.values
 
-        # error: Value of type variable "ArrayLike" of "mask_missing" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        mask = missing.mask_missing(values, to_replace)  # type: ignore[type-var]
+        mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
@@ -753,9 +743,7 @@ class Block(PandasObject):
             )
 
         blk = self if inplace else self.copy()
-        # error: Value of type variable "ArrayLike" of "putmask_inplace" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        putmask_inplace(blk.values, mask, value)  # type: ignore[type-var]
+        putmask_inplace(blk.values, mask, value)
         blocks = blk.convert(numeric=False, copy=False)
         return blocks
 
@@ -796,9 +784,7 @@ class Block(PandasObject):
         rx = re.compile(to_replace)
 
         new_values = self.values if inplace else self.values.copy()
-        # error: Value of type variable "ArrayLike" of "replace_regex" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        replace_regex(new_values, rx, value, mask)  # type: ignore[type-var]
+        replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
         return [block]
@@ -835,26 +821,17 @@ class Block(PandasObject):
             # in order to avoid repeating the same computations
             mask = ~isna(self.values)
             masks = [
-                # error: Value of type variable "ArrayLike" of "compare_or_regex_search"
-                # cannot be "Union[ndarray, ExtensionArray]"
-                compare_or_regex_search(  # type: ignore[type-var]
-                    self.values, s[0], regex=regex, mask=mask
-                )
+                compare_or_regex_search(self.values, s[0], regex=regex, mask=mask)
                 for s in pairs
             ]
         else:
             # GH#38086 faster if we know we dont need to check for regex
+            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
 
-            # error: Value of type variable "ArrayLike" of "mask_missing" cannot be
-            # "Union[ndarray, ExtensionArray]"
-            masks = [
-                missing.mask_missing(self.values, s[0])  # type: ignore[type-var]
-                for s in pairs
-            ]
-
-        # error: Value of type variable "ArrayLike" of "extract_bool_array" cannot be
-        # "Union[ndarray, ExtensionArray, bool]"
-        masks = [extract_bool_array(x) for x in masks]  # type: ignore[type-var]
+        # error: Argument 1 to "extract_bool_array" has incompatible type
+        # "Union[ExtensionArray, ndarray, bool]"; expected "Union[ExtensionArray,
+        # ndarray]"
+        masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
@@ -912,9 +889,7 @@ class Block(PandasObject):
                 nb = self.coerce_to_target_dtype(value)
                 if nb is self and not inplace:
                     nb = nb.copy()
-                # error: Value of type variable "ArrayLike" of "putmask_inplace" cannot
-                # be "Union[ndarray, ExtensionArray]"
-                putmask_inplace(nb.values, mask, value)  # type: ignore[type-var]
+                putmask_inplace(nb.values, mask, value)
                 return [nb]
             else:
                 regex = should_use_regex(regex, to_replace)
@@ -987,9 +962,7 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        # error: Value of type variable "ArrayLike" of "is_exact_shape_match" cannot be
-        # "Union[Any, ndarray, ExtensionArray]"
-        exact_match = is_exact_shape_match(values, arr_value)  # type: ignore[type-var]
+        exact_match = is_exact_shape_match(values, arr_value)
 
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
@@ -1057,9 +1030,7 @@ class Block(PandasObject):
         List[Block]
         """
         orig_mask = mask
-        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        mask, noop = validate_putmask(self.values.T, mask)  # type: ignore[type-var]
+        mask, noop = validate_putmask(self.values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
         # if we are passed a scalar None, convert it here
@@ -1284,9 +1255,7 @@ class Block(PandasObject):
         else:
             allow_fill = True
 
-        # error: Value of type variable "ArrayLike" of "take_nd" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        new_values = algos.take_nd(  # type: ignore[type-var]
+        new_values = algos.take_nd(
             values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
         )
 
@@ -1350,9 +1319,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        icond, noop = validate_putmask(values, ~cond)  # type: ignore[type-var]
+        icond, noop = validate_putmask(values, ~cond)
 
         if is_valid_na_for_dtype(other, self.dtype) and not self.is_object:
             other = self.fill_value
@@ -1463,11 +1430,7 @@ class Block(PandasObject):
         assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
-        # error: Value of type variable "ArrayLike" of "quantile_compat" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        result = quantile_compat(  # type: ignore[type-var]
-            self.values, qs, interpolation, axis
-        )
+        result = quantile_compat(self.values, qs, interpolation, axis)
 
         return new_block(result, placement=self.mgr_locs, ndim=2)
 
@@ -2353,15 +2316,10 @@ def extract_pandas_array(
     """
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
-        values = values.to_numpy()  # type: ignore[assignment]
+        values = values.to_numpy()
         if ndim and ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs
-
-            # error: No overload variant of "atleast_2d" matches argument type
-            # "PandasArray"
-            values = np.atleast_2d(values)  # type: ignore[call-overload]
+            values = np.atleast_2d(values)
 
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
@@ -2397,8 +2355,5 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "ExtensionArray")
-            values = np.asarray(values).reshape(1, -1)  # type: ignore[assignment]
+            values = np.asarray(values).reshape(1, -1)
     return values
