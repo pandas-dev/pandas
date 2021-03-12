@@ -106,8 +106,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
         # See GH#5284, GH#5035, GH#19448 for historical reference
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], yrav[mask])
+            result[mask] = op(xrav[mask], yrav[mask])
 
     else:
         if not is_scalar(y):
@@ -126,8 +125,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
             mask = np.where(y == 1, False, mask)
 
         if mask.any():
-            with np.errstate(all="ignore"):
-                result[mask] = op(xrav[mask], y)
+            result[mask] = op(xrav[mask], y)
 
     result = maybe_upcast_putmask(result, ~mask)
     result = result.reshape(x.shape)  # 2D compat
@@ -179,6 +177,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
+
     Parameters
     ----------
     left : np.ndarray or ExtensionArray
@@ -204,8 +205,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
         res_values = op(lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = _na_arithmetic_op(lvalues, rvalues, op)
+        res_values = _na_arithmetic_op(lvalues, rvalues, op)
 
     return res_values
 
@@ -213,6 +213,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
+
+    Note: the caller is responsible for ensuring that numpy warnings are
+    suppressed (with np.errstate(all="ignore")) if needed.
 
     Parameters
     ----------
@@ -265,8 +268,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         with warnings.catch_warnings():
             # suppress warnings from numpy about element-wise comparison
             warnings.simplefilter("ignore", DeprecationWarning)
-            with np.errstate(all="ignore"):
-                res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+            res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 

@@ -433,7 +433,8 @@ def flex_arith_method_FRAME(op):
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            new_data = self._combine_frame(other, na_op, fill_value)
+            with np.errstate(all="ignore"):
+                new_data = self._combine_frame(other, na_op, fill_value)
 
         elif isinstance(other, ABCSeries):
             new_data = self._dispatch_frame_op(other, op, axis=axis)
