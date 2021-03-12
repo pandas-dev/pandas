@@ -95,6 +95,10 @@ def take_nd(
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
 
+    if arr.ndim == 1 and axis == 0 and out is None and indexer is not None:
+        indexer = ensure_int64(indexer, copy=False)
+        return take_1d(arr, indexer, allow_fill=allow_fill, fill_value=fill_value)
+
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
         # includes for EA to catch DatetimeArray, TimedeltaArray
