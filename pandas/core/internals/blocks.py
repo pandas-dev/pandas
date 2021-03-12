@@ -276,7 +276,7 @@ class Block(PandasObject):
         not specified
         """
         if placement is None:
-            placement = self.mgr_locs
+            placement = self._mgr_locs
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
@@ -286,7 +286,7 @@ class Block(PandasObject):
     def make_block_same_class(self, values, placement=None) -> Block:
         """ Wrap given values in a block of same type as self. """
         if placement is None:
-            placement = self.mgr_locs
+            placement = self._mgr_locs
         return type(self)(values, placement=placement, ndim=self.ndim)
 
     @final
@@ -330,7 +330,7 @@ class Block(PandasObject):
         """
         if new_mgr_locs is None:
             axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
-            new_mgr_locs = self.mgr_locs[axis0_slicer]
+            new_mgr_locs = self._mgr_locs[axis0_slicer]
         elif not isinstance(new_mgr_locs, BlockPlacement):
             new_mgr_locs = BlockPlacement(new_mgr_locs)
 
@@ -370,7 +370,7 @@ class Block(PandasObject):
         Delete given loc(-s) from block in-place.
         """
         self.values = np.delete(self.values, loc, 0)
-        self.mgr_locs = self.mgr_locs.delete(loc)
+        self.mgr_locs = self._mgr_locs.delete(loc)
 
     @final
     def apply(self, func, **kwargs) -> List[Block]:
@@ -411,7 +411,7 @@ class Block(PandasObject):
             # TODO(EA2D): unnecessary with 2D EAs
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
-            for i, loc in enumerate(self.mgr_locs):
+            for i, loc in enumerate(self._mgr_locs):
                 vals = result[i]
                 block = self.make_block(values=vals, placement=loc)
                 nbs.append(block)
@@ -473,7 +473,7 @@ class Block(PandasObject):
         assert self.ndim == 2
 
         new_blocks = []
-        for i, ref_loc in enumerate(self.mgr_locs):
+        for i, ref_loc in enumerate(self._mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
             nb = self.make_block(vals, BlockPlacement(ref_loc))
@@ -523,12 +523,12 @@ class Block(PandasObject):
                 nv = f(mask, new_values, None)
             else:
                 nv = new_values if inplace else new_values.copy()
-            block = make_a_block(nv, self.mgr_locs)
+            block = make_a_block(nv, self._mgr_locs)
             return [block]
 
         # ndim > 1
         new_blocks = []
-        for i, ref_loc in enumerate(self.mgr_locs):
+        for i, ref_loc in enumerate(self._mgr_locs):
             m = mask[i]
             v = new_values[i]
 
@@ -1263,7 +1263,7 @@ class Block(PandasObject):
         #  this assertion
         assert not (axis == 0 and new_mgr_locs is None)
         if new_mgr_locs is None:
-            new_mgr_locs = self.mgr_locs
+            new_mgr_locs = self._mgr_locs
 
         if not is_dtype_equal(new_values.dtype, self.dtype):
             return self.make_block(new_values, new_mgr_locs)
@@ -1371,7 +1371,7 @@ class Block(PandasObject):
                 result = cast(np.ndarray, result)  # EABlock overrides where
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
-                nb = self.make_block(r.T, placement=self.mgr_locs[m])
+                nb = self.make_block(r.T, placement=self._mgr_locs[m])
                 result_blocks.append(nb)
 
         return result_blocks
@@ -1432,7 +1432,7 @@ class Block(PandasObject):
 
         result = quantile_compat(self.values, qs, interpolation, axis)
 
-        return new_block(result, placement=self.mgr_locs, ndim=2)
+        return new_block(result, placement=self._mgr_locs, ndim=2)
 
 
 class ExtensionBlock(Block):
@@ -1458,7 +1458,7 @@ class ExtensionBlock(Block):
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
             return (len(self.values),)
-        return len(self.mgr_locs), len(self.values)
+        return len(self._mgr_locs), len(self.values)
 
     def iget(self, col):
 
@@ -1626,7 +1626,7 @@ class ExtensionBlock(Block):
         #  this assertion
         assert not (self.ndim == 1 and new_mgr_locs is None)
         if new_mgr_locs is None:
-            new_mgr_locs = self.mgr_locs
+            new_mgr_locs = self._mgr_locs
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
@@ -1662,7 +1662,7 @@ class ExtensionBlock(Block):
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
             # TODO(EA2D): won't be necessary with 2D EAs
-            new_locs = self.mgr_locs[first]
+            new_locs = self._mgr_locs[first]
             if len(new_locs):
                 # effectively slice(None)
                 slicer = slicer[1]
@@ -1773,9 +1773,10 @@ class ExtensionBlock(Block):
         # TODO: in all tests we have mask.all(); can we rely on that?
 
         blocks = [
+            # TODO: could cast to object depending on fill_value?
             self.make_block_same_class(
                 self.values.take(indices, allow_fill=True, fill_value=fill_value),
-                [place],
+                BlockPlacement(place),
             )
             for indices, place in zip(new_values.T, new_placement)
         ]
