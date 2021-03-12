@@ -2275,7 +2275,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             inference: Optional[np.dtype] = None
             if is_integer_dtype(vals.dtype):
                 if isinstance(vals, ExtensionArray):
-                    out = vals.to_numpy(dtype=float, na_value=np.nan)
+                    out = vals.to_numpy(dtype=np.dtype(float), na_value=np.nan)
                 else:
                     out = vals
                 inference = np.dtype(np.int64)
