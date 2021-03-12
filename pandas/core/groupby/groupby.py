@@ -2275,18 +2275,22 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             inference: Optional[np.dtype] = None
             if is_integer_dtype(vals.dtype):
                 if isinstance(vals, ExtensionArray):
-                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
+                    out = vals.to_numpy(dtype=float, na_value=np.nan)
+                else:
+                    out = vals
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
-                vals = vals.to_numpy(dtype=float, na_value=np.nan)
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
                 inference = np.dtype("datetime64[ns]")
-                vals = np.asarray(vals).astype(float)
+                out = np.asarray(vals).astype(float)
             elif is_timedelta64_dtype(vals.dtype):
                 inference = np.dtype("timedelta64[ns]")
-                vals = np.asarray(vals).astype(float)
+                out = np.asarray(vals).astype(float)
+            else:
+                out = np.asarray(out)
 
-            return vals, inference
+            return out, inference
 
         def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:
             if inference:
