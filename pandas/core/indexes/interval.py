@@ -802,8 +802,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    def _maybe_cast_slice_bound(self, label, side: str):
-        return getattr(self, side)._maybe_cast_slice_bound(label, side)
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
+        return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr):

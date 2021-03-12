@@ -192,7 +192,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key, method, tolerance)
 
-    def _maybe_cast_slice_bound(self, label, side: str):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         """
         If label is a string, cast it to timedelta according to resolution.
 
@@ -200,11 +200,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
         label : object
         """
+        assert kind in ["loc", "getitem", None]
+
         if isinstance(label, str):
             parsed = Timedelta(label)
             lbound = parsed.round(parsed.resolution_string)

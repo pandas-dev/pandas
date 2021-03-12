@@ -725,7 +725,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = key.tz_convert(self.tz)
         return key
 
-    def _maybe_cast_slice_bound(self, label, side: str):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         """
         If label is a string, cast it to datetime according to resolution.
 
@@ -733,6 +733,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
@@ -742,6 +743,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -----
         Value of `side` parameter should be validated in caller.
         """
+        assert kind in ["loc", "getitem", None]
 
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
@@ -822,12 +824,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = np.array(True)
         deprecation_mask = np.array(True)
         if start is not None:
-            start_casted = self._maybe_cast_slice_bound(start, "left")
+            start_casted = self._maybe_cast_slice_bound(start, "left", kind)
             mask = start_casted <= self
             deprecation_mask = start_casted == self
 
         if end is not None:
-            end_casted = self._maybe_cast_slice_bound(end, "right")
+            end_casted = self._maybe_cast_slice_bound(end, "right", kind)
             mask = (self <= end_casted) & mask
             deprecation_mask = (end_casted == self) | deprecation_mask
 

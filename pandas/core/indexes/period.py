@@ -530,7 +530,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         except KeyError as err:
             raise KeyError(orig_key) from err
 
-    def _maybe_cast_slice_bound(self, label, side: str):
+    def _maybe_cast_slice_bound(self, label, side: str, kind: str):
         """
         If label is a string or a datetime, cast it to Period.ordinal according
         to resolution.
@@ -539,6 +539,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         ----------
         label : object
         side : {'left', 'right'}
+        kind : {'loc', 'getitem'}
 
         Returns
         -------
@@ -547,7 +548,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Notes
         -----
         Value of `side` parameter should be validated in caller.
+
         """
+        assert kind in ["loc", "getitem"]
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
