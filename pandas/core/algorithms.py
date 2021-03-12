@@ -157,7 +157,10 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
             with catch_warnings():
                 simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
-            return values, np.dtype("float64")
+            # error: Incompatible return value type (got "Tuple[ExtensionArray,
+            # dtype[floating[_64Bit]]]", expected "Tuple[ndarray, Union[dtype[Any],
+            # ExtensionDtype]]")
+            return values, np.dtype("float64")  # type: ignore[return-value]
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
@@ -182,7 +185,10 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
                 # TODO(EA2D): special case not needed with 2D EAs
                 asi8 = values.view("i8")
                 dtype = values.dtype
-                return asi8, dtype
+                # error: Incompatible return value type (got "Tuple[Any,
+                # Union[dtype, ExtensionDtype, None]]", expected
+                # "Tuple[ndarray, Union[dtype, ExtensionDtype]]")
+                return asi8, dtype  # type: ignore[return-value]
 
             from pandas import DatetimeIndex
 
@@ -199,7 +205,10 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
         # until our algos support int* directly (not all do)
         values = ensure_int64(values)
 
-        return values, dtype
+        # error: Incompatible return value type (got "Tuple[ExtensionArray,
+        # Union[dtype[Any], ExtensionDtype]]", expected "Tuple[ndarray,
+        # Union[dtype[Any], ExtensionDtype]]")
+        return values, dtype  # type: ignore[return-value]
 
     # we have failed, return object
     values = np.asarray(values, dtype=object)
@@ -227,24 +236,40 @@ def _reconstruct_data(
         return values
 
     if is_extension_array_dtype(dtype):
-        cls = dtype.construct_array_type()
+        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+        # attribute "construct_array_type"
+        cls = dtype.construct_array_type()  # type: ignore[union-attr]
         if isinstance(values, cls) and values.dtype == dtype:
             return values
 
         values = cls._from_sequence(values)
     elif is_bool_dtype(dtype):
-        values = values.astype(dtype, copy=False)
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+        # incompatible type "Union[dtype, ExtensionDtype]"; expected
+        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
+        values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
 
         # we only support object dtypes bool Index
         if isinstance(original, ABCIndex):
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
-            dtype = "datetime64[ns]"
+            # error: Incompatible types in assignment (expression has type
+            # "str", variable has type "Union[dtype, ExtensionDtype]")
+            dtype = "datetime64[ns]"  # type: ignore[assignment]
         elif is_timedelta64_dtype(dtype):
-            dtype = "timedelta64[ns]"
+            # error: Incompatible types in assignment (expression has type
+            # "str", variable has type "Union[dtype, ExtensionDtype]")
+            dtype = "timedelta64[ns]"  # type: ignore[assignment]
 
-        values = values.astype(dtype, copy=False)
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+        # incompatible type "Union[dtype, ExtensionDtype]"; expected
+        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
+        values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
 
     return values
 
@@ -303,7 +328,9 @@ def _get_values_for_rank(values: ArrayLike):
 def get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
-    ndtype = _check_object_for_strings(values)
+    # error: Argument 1 to "_check_object_for_strings" has incompatible type
+    # "ExtensionArray"; expected "ndarray"
+    ndtype = _check_object_for_strings(values)  # type: ignore[arg-type]
     htable = _hashtables.get(ndtype, _hashtables["object"])
 
     return htable, values
@@ -470,7 +497,9 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_extension_array_dtype(comps.dtype):
-        return comps.isin(values)
+        # error: Incompatible return value type (got "Series", expected "ndarray")
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute "isin"
+        return comps.isin(values)  # type: ignore[return-value,union-attr]
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -501,7 +530,19 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             f = np.in1d
 
     else:
-        common = np.find_common_type([values.dtype, comps.dtype], [])
+        # error: List item 0 has incompatible type "Union[Any, dtype[Any],
+        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+        # Any]]"
+        # error: List item 1 has incompatible type "Union[Any, ExtensionDtype]";
+        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
+        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
+        # error: List item 1 has incompatible type "Union[dtype[Any], ExtensionDtype]";
+        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
+        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
+        common = np.find_common_type(
+            [values.dtype, comps.dtype], []  # type: ignore[list-item]
+        )
         values = values.astype(common, copy=False)
         comps = comps.astype(common, copy=False)
         name = common.name
@@ -1188,7 +1229,9 @@ def quantile(x, q, interpolation_method="fraction"):
     else:
         q = np.asarray(q, np.float64)
         result = [_get_score(x) for x in q]
-        result = np.array(result, dtype=np.float64)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "List[Any]")
+        result = np.array(result, dtype=np.float64)  # type: ignore[assignment]
         return result
 
 
@@ -1591,10 +1634,10 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     Parameters
     ----------
-    arr : ndarray
+    arr : ndarray or ExtensionArray
     n : int
         number of periods
-    axis : int
+    axis : {0, 1}
         axis to shift on
     stacklevel : int
         The stacklevel for the lost dtype warning.
@@ -1608,7 +1651,8 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     na = np.nan
     dtype = arr.dtype
 
-    if dtype.kind == "b":
+    is_bool = is_bool_dtype(dtype)
+    if is_bool:
         op = operator.xor
     else:
         op = operator.sub
@@ -1634,17 +1678,15 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
             dtype = arr.dtype
 
     is_timedelta = False
-    is_bool = False
     if needs_i8_conversion(arr.dtype):
         dtype = np.int64
         arr = arr.view("i8")
         na = iNaT
         is_timedelta = True
 
-    elif is_bool_dtype(dtype):
+    elif is_bool:
         # We have to cast in order to be able to hold np.nan
         dtype = np.object_
-        is_bool = True
 
     elif is_integer_dtype(dtype):
         # We have to cast in order to be able to hold np.nan
@@ -1665,45 +1707,26 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
 
-    na_indexer = [slice(None)] * arr.ndim
+    na_indexer = [slice(None)] * 2
     na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
     out_arr[tuple(na_indexer)] = na
 
-    if arr.ndim == 2 and arr.dtype.name in _diff_special:
+    if arr.dtype.name in _diff_special:
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
         algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
-        _res_indexer = [slice(None)] * arr.ndim
+        _res_indexer = [slice(None)] * 2
         _res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
         res_indexer = tuple(_res_indexer)
 
-        _lag_indexer = [slice(None)] * arr.ndim
+        _lag_indexer = [slice(None)] * 2
         _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
         lag_indexer = tuple(_lag_indexer)
 
-        # need to make sure that we account for na for datelike/timedelta
-        # we don't actually want to subtract these i8 numbers
-        if is_timedelta:
-            res = arr[res_indexer]
-            lag = arr[lag_indexer]
-
-            mask = (arr[res_indexer] == na) | (arr[lag_indexer] == na)
-            if mask.any():
-                res = res.copy()
-                res[mask] = 0
-                lag = lag.copy()
-                lag[mask] = 0
-
-            result = res - lag
-            result[mask] = na
-            out_arr[res_indexer] = result
-        elif is_bool:
-            out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
-        else:
-            out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
+        out_arr[res_indexer] = op(arr[res_indexer], arr[lag_indexer])
 
     if is_timedelta:
         out_arr = out_arr.view("timedelta64[ns]")
@@ -1776,7 +1799,11 @@ def safe_sort(
     if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
-        values = np.asarray(values, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type "Union[dtype[Any],
+        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"
+        values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
 

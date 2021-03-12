@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.base import registry as ea_registry
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -298,12 +300,12 @@ class TestDataFrameSetItem:
 
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
-        b1 = df._mgr.blocks[1]
-        b2 = df._mgr.blocks[2]
-        tm.assert_extension_array_equal(b1.values, b2.values)
-        b1base = b1.values._data.base
-        b2base = b2.values._data.base
-        assert b1base is None or (id(b1base) != id(b2base))
+        v1 = df._mgr.arrays[1]
+        v2 = df._mgr.arrays[2]
+        tm.assert_extension_array_equal(v1, v2)
+        v1base = v1._data.base
+        v2base = v2._data.base
+        assert v1base is None or (id(v1base) != id(v2base))
 
         # with nan
         df2 = df.copy()
@@ -370,7 +372,7 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self):
+    def test_setitem_frame_duplicate_columns(self, using_array_manager):
         # GH#15695
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
@@ -385,9 +387,20 @@ class TestDataFrameSetItem:
             ],
             dtype="object",
         )
-        expected[2] = expected[2].astype(np.int64)
-        expected[5] = expected[5].astype(np.int64)
-        expected.columns = cols
+
+        if using_array_manager:
+            # setitem replaces column so changes dtype
+
+            expected.columns = cols
+            expected["C"] = expected["C"].astype("int64")
+            # TODO(ArrayManager) .loc still overwrites
+            expected["B"] = expected["B"].astype("int64")
+        else:
+            # set these with unique columns to be extra-unambiguous
+            expected[2] = expected[2].astype(np.int64)
+            expected[5] = expected[5].astype(np.int64)
+            expected.columns = cols
+
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_frame_duplicate_columns_size_mismatch(self):
@@ -437,7 +450,7 @@ class TestDataFrameSetItem:
         assert isinstance(ser.cat.categories, IntervalIndex)
 
         # B & D end up as Categoricals
-        # the remainer are converted to in-line objects
+        # the remainder are converted to in-line objects
         # containing an IntervalIndex.values
         df["B"] = ser
         df["C"] = np.array(ser)
@@ -450,13 +463,13 @@ class TestDataFrameSetItem:
         assert is_categorical_dtype(df["D"].dtype)
         assert is_interval_dtype(df["D"].cat.categories)
 
-        # Thes goes through the Series constructor and so get inferred back
+        # These go through the Series constructor and so get inferred back
         #  to IntervalDtype
         assert is_interval_dtype(df["C"])
         assert is_interval_dtype(df["E"])
 
         # But the Series constructor doesn't do inference on Series objects,
-        #  so setting df["F"] doesnt get cast back to IntervalDtype
+        #  so setting df["F"] doesn't get cast back to IntervalDtype
         assert is_object_dtype(df["F"])
 
         # they compare equal as Index
@@ -645,6 +658,8 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
+    # TODO(ArrayManager) update parent (_maybe_update_cacher)
+    @td.skip_array_manager_not_yet_implemented
     def test_setitem_listlike_views(self):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
@@ -716,7 +731,7 @@ class TestDataFrameSetItemWithExpansion:
 
         result1 = df["D"]
         result2 = df["E"]
-        tm.assert_categorical_equal(result1._mgr._block.values, cat)
+        tm.assert_categorical_equal(result1._mgr.array, cat)
 
         # sorting
         ser.name = "E"
@@ -784,6 +799,7 @@ class TestDataFrameSetItemCallable:
 
 
 class TestDataFrameSetItemBooleanMask:
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     @pytest.mark.parametrize(
         "mask_type",
         [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
