@@ -296,6 +296,8 @@ def ndarray_to_mgr(
     )
     values = values.T
 
+    _check_values_indices_shape_match(values, index, columns)
+
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
@@ -317,13 +319,35 @@ def ndarray_to_mgr(
         else:
             datelike_vals = maybe_infer_to_datetimelike(values)
             datelike_vals = maybe_squeeze_dt64tz(datelike_vals)
-            block_values = [datelike_vals]
+            nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
+            block_values = [nb]
     else:
-        # error: List item 0 has incompatible type "Union[ExtensionArray, ndarray]";
-        # expected "Block"
-        block_values = [maybe_squeeze_dt64tz(values)]  # type: ignore[list-item]
+        new_values = maybe_squeeze_dt64tz(values)
+        nb = new_block(new_values, placement=slice(len(columns)), ndim=2)
+        block_values = [nb]
+
+    if len(columns) == 0:
+        block_values = []
 
     return create_block_manager_from_blocks(block_values, [columns, index])
+
+
+def _check_values_indices_shape_match(
+    values: np.ndarray, index: Index, columns: Index
+) -> None:
+    """
+    Check that the shape implied by our axes matches the actual shape of the
+    data.
+    """
+    if values.shape[0] != len(columns):
+        # Could let this raise in Block constructor, but we get a more
+        #  helpful exception message this way.
+        if values.shape[1] == 0:
+            raise ValueError("Empty data passed with indices specified.")
+
+        passed = values.T.shape
+        implied = (len(index), len(columns))
+        raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 def maybe_squeeze_dt64tz(dta: ArrayLike) -> ArrayLike:
