@@ -245,9 +245,9 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    # error: Value of type variable "ArrayLike" of "_box_as_indexlike" cannot
-    # be "Series"
-    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[type-var]
+    # error: Argument 1 to "_box_as_indexlike" has incompatible type "Series"; expected
+    # "Union[ExtensionArray, ndarray]"
+    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[arg-type]
 
 
 def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
@@ -1081,9 +1081,9 @@ def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.nda
 
     # string with NaN-like
     try:
-        # error: Value of type variable "AnyArrayLike" of "isin" cannot be
-        # "Iterable[Any]"
-        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[type-var]
+        # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
+        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[arg-type]
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass
