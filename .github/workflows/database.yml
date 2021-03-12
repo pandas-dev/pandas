@@ -101,7 +101,6 @@ jobs:
     env:
       ENV_FILE: ci/deps/actions-37-cov.yaml
       PANDAS_TESTING_MODE: deprecate
-      COVERAGE: true
 
     services:
       mysql:

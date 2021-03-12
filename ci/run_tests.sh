@@ -9,10 +9,10 @@ if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-if [ "$COVERAGE" ]; then
-    COVERAGE_FNAME="/tmp/test_coverage.xml"
-    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
-fi
+# Always calculate and upload coverage, as coverage reports are merged by Codecov
+# https://docs.codecov.io/docs/merging-reports
+COVERAGE_FNAME="/tmp/test_coverage.xml"
+COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
 
 # If no X server is found, we use xvfb to emulate it
 if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
@@ -31,7 +31,7 @@ fi
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
-if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
+if [[ $? == 0 ]]; then
     echo "uploading coverage"
     echo "bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME"
           bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
