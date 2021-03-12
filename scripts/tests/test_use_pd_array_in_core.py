@@ -12,7 +12,7 @@ PATH = "t.py"
 @pytest.mark.parametrize("content", [BAD_FILE_0, BAD_FILE_1])
 def test_inconsistent_usage(content, capsys):
     result_msg = (
-        r"t.py:2:0: Don't use pd.array in core, import array as pd_array instead\n"
+        "t.py:2:0: Don't use pd.array in core, import array as pd_array instead\n"
     )
     with pytest.raises(SystemExit):
         use_pd_array(content, PATH)

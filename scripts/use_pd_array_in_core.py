@@ -60,7 +60,6 @@ def use_pd_array(content: str, path: str) -> None:
     tree = ast.parse(content)
     visitor = Visitor(path)
     visitor.visit(tree)
-    return
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
