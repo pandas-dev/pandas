@@ -43,7 +43,7 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.construction import pd_array as array
+from pandas.core.construction import array
 from pandas.core.flags import Flags
 from pandas.core.groupby import (
     Grouper,

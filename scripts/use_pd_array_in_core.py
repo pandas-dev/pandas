@@ -1,8 +1,7 @@
 """
-Check files use pd_array from pandas.core.construction rather than pd.array.
+Check that pandas/core imports pandas.array as pd_array.
 
-This is only run within pandas/core and makes it easier to grep for usage of
-pandas array.
+This makes it easier to grep for usage of pandas array.
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
@@ -20,8 +19,7 @@ from typing import (
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "
-    "Don't use pd.array in core, instead use "
-    "'from pandas.core.construction import pd_array'\n"
+    "Don't use pd.array in core, import array as pd_array instead\n"
 )
 
 
@@ -35,7 +33,7 @@ class Visitor(ast.NodeVisitor):
         if (
             node.module is not None
             and node.module.startswith("pandas")
-            and any(i.name == "array" for i in node.names)
+            and any(i.name == "array" and i.asname != "pd_array" for i in node.names)
         ):
             msg = ERROR_MESSAGE.format(
                 path=self.path, lineno=node.lineno, col_offset=node.col_offset

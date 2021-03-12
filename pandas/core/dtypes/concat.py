@@ -25,8 +25,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import (
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
-    pd_array,
 )
 
 

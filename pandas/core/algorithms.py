@@ -84,9 +84,9 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
-    pd_array,
 )
 from pandas.core.indexers import validate_indices
 

@@ -107,8 +107,8 @@ from pandas.core.arrays._mixins import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
+    array as pd_array,
     extract_array,
-    pd_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
