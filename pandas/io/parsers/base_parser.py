@@ -724,7 +724,7 @@ class ParserBase:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
-                values = astype_nansafe(values, np.string_)
+                values = astype_nansafe(values, np.dtype(str))
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
