@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numbers
 from typing import (
+    Any,
     Optional,
     Tuple,
     Union,
@@ -346,14 +347,12 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
+        **kwargs: Any,
     ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 

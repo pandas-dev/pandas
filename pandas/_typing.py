@@ -76,11 +76,17 @@ else:
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
-
+AnySequenceLike = Union[
+    "ExtensionArray",
+    "Index",
+    "Series",
+    Sequence[Any],
+    np.ndarray,
+]
 # scalars
 
 PythonScalar = Union[str, int, float, bool]
-DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
+DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 

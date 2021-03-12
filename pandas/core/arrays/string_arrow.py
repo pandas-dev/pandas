@@ -18,7 +18,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._typing import (
-    Dtype,
+    DtypeArg,
     NpDtype,
 )
 from pandas.util._decorators import doc
@@ -221,7 +221,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise ImportError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, dtype: Optional[DtypeArg] = None, copy=False):
         cls._chk_pyarrow_available()
         # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
         scalars = lib.ensure_string_array(scalars, copy=False)
@@ -229,7 +229,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, dtype: Optional[DtypeArg] = None, copy=False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -248,14 +248,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
+        **kwargs: Any,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.

@@ -5,6 +5,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    overload,
 )
 import warnings
 
@@ -16,6 +17,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    Dtype,
     DtypeObj,
 )
 from pandas.compat.numpy import function as nv
@@ -277,7 +279,15 @@ class FloatingArray(NumericArray):
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: Type[str], copy: bool = True) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 

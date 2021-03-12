@@ -4622,11 +4622,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = getitem(key)
         if not is_scalar(result):
-            # error: Argument 1 to "ndim" has incompatible type "Union[ExtensionArray,
-            # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
-            # Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], _SupportsArray]"
-            if np.ndim(result) > 1:  # type: ignore[arg-type]
+            if np.ndim(result) > 1:
                 deprecate_ndim_indexing(result)
                 return result
             # NB: Using _constructor._simple_new would break if MultiIndex

@@ -20,9 +20,10 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
-    Dtype,
+    ArrayLike,
     DtypeObj,
     IndexLabel,
+    NpDtype,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -507,7 +508,7 @@ class IndexOpsMixin(OpsMixin):
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
@@ -607,22 +608,14 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if is_extension_array_dtype(self.dtype):
-            # error: Too many arguments for "to_numpy" of "ExtensionArray"
-            return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs
-            )
+            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
-        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(self._values, dtype=dtype)  # type: ignore[arg-type]
+        result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
             result = result.copy()
@@ -1073,7 +1066,7 @@ class IndexOpsMixin(OpsMixin):
         values = self._values
 
         if not isinstance(values, np.ndarray):
-            result = values.unique()
+            result: ArrayLike = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:

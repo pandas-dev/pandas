@@ -15,6 +15,7 @@ from typing import (
     Callable,
     Dict,
     Iterator,
+    List,
     Literal,
     Optional,
     Sequence,
@@ -32,6 +33,7 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    NpDtype,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -301,11 +303,11 @@ class ExtensionArray:
         ...
 
     @overload
-    def __getitem__(self, item: Union[slice, np.ndarray]) -> ExtensionArray:
+    def __getitem__(self, item: Union[slice, np.ndarray, List[Any]]) -> ExtensionArray:
         ...
 
     def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
+        self, item: Union[int, slice, np.ndarray, List[Any]]
     ) -> Union[ExtensionArray, Any]:
         """
         Select a subset of self.
@@ -441,9 +443,10 @@ class ExtensionArray:
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value: Optional[Any] = lib.no_default,
+        **kwargs: Any,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
@@ -470,12 +473,7 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
-        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(self, dtype=dtype)  # type: ignore[arg-type]
+        result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
@@ -527,8 +525,15 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+    @overload
+    def astype(self, dtype: Type[str], copy: bool = True) -> np.ndarray:
+        ...
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> np.ndarray:
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array with 'dtype'.
 
@@ -562,7 +567,7 @@ class ExtensionArray:
         ):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        return np.array(self, dtype=cast(NpDtype, dtype), copy=copy)
 
     def isna(self) -> Union[np.ndarray, ExtensionArraySupportsAnyAll]:
         """
@@ -829,9 +834,9 @@ class ExtensionArray:
 
     def searchsorted(
         self,
-        value: ArrayLike,
+        value: Sequence[Any],
         side: Literal["left", "right"] = "left",
-        sorter: Optional[ArrayLike] = None,
+        sorter: Optional[Sequence[Any]] = None,
     ) -> np.ndarray:
         """
         Find indices where elements should be inserted to maintain order.
@@ -877,7 +882,7 @@ class ExtensionArray:
         # 1. Values outside the range of the `data_for_sorting` fixture
         # 2. Values between the values in the `data_for_sorting` fixture
         # 3. Missing values.
-        arr = self.astype(object)
+        arr = cast(np.ndarray, self.astype(object))
         return arr.searchsorted(value, side=side, sorter=sorter)
 
     def equals(self, other: object) -> bool:
@@ -914,7 +919,7 @@ class ExtensionArray:
             equal_na = self.isna() & other.isna()  # type: ignore[operator]
             return bool((equal_values | equal_na).all())
 
-    def isin(self, values: Union[ExtensionArray, Sequence[Any]]) -> np.ndarray:
+    def isin(self, values: Sequence[Any]) -> np.ndarray:
         """
         Pointwise comparison for set containment in the given values.
 
@@ -928,7 +933,7 @@ class ExtensionArray:
         -------
         np.ndarray[bool]
         """
-        return isin(np.asarray(self), values)
+        return isin(self.astype(object), values)
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
@@ -952,7 +957,7 @@ class ExtensionArray:
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`.
         """
-        return self.astype(object), np.nan
+        return cast(np.ndarray, self.astype(object)), np.nan
 
     def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
         """

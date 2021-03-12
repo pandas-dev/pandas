@@ -30,7 +30,9 @@ from pandas._libs import (
 )
 from pandas._typing import (
     AnyArrayLike,
+    AnySequenceLike,
     ArrayLike,
+    Dtype,
     DtypeObj,
     FrameOrSeriesUnion,
 )
@@ -216,7 +218,7 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
 
 
 def _reconstruct_data(
-    values: ArrayLike, dtype: DtypeObj, original: AnyArrayLike
+    values: ArrayLike, dtype: Dtype, original: AnyArrayLike
 ) -> ArrayLike:
     """
     reverse of _ensure_data
@@ -244,11 +246,12 @@ def _reconstruct_data(
 
         values = cls._from_sequence(values)
     elif is_bool_dtype(dtype):
-        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-        # incompatible type "Union[dtype, ExtensionDtype]"; expected
-        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-        # Tuple[Any, Any]]"
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible
+        # type "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"; expected
+        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+        # Tuple[Any, Any]]]"
         values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
 
         # we only support object dtypes bool Index
@@ -256,19 +259,15 @@ def _reconstruct_data(
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
-            # error: Incompatible types in assignment (expression has type
-            # "str", variable has type "Union[dtype, ExtensionDtype]")
-            dtype = "datetime64[ns]"  # type: ignore[assignment]
+            dtype = "datetime64[ns]"
         elif is_timedelta64_dtype(dtype):
-            # error: Incompatible types in assignment (expression has type
-            # "str", variable has type "Union[dtype, ExtensionDtype]")
-            dtype = "timedelta64[ns]"  # type: ignore[assignment]
-
-        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-        # incompatible type "Union[dtype, ExtensionDtype]"; expected
-        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-        # Tuple[Any, Any]]"
+            dtype = "timedelta64[ns]"
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible
+        # type "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]"; expected
+        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+        # Tuple[Any, Any]]]"
         values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
 
     return values
@@ -461,7 +460,7 @@ def unique(values):
 unique1d = unique
 
 
-def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
+def isin(comps: AnySequenceLike, values: AnySequenceLike) -> np.ndarray:
     """
     Compute the isin boolean array.
 
@@ -497,9 +496,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_extension_array_dtype(comps.dtype):
-        # error: Incompatible return value type (got "Series", expected "ndarray")
-        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute "isin"
-        return comps.isin(values)  # type: ignore[return-value,union-attr]
+        #  error: Argument 1 to "isin" of "ExtensionArray" has incompatible type
+        # "Union[Any, ExtensionArray, ndarray]"; expected "Sequence[Any]"
+        # error: Item "ndarray" of "Union[Any, ExtensionArray, ndarray]" has no
+        # attribute "isin"
+        return comps.isin(values)  # type: ignore[arg-type, union-attr]
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin

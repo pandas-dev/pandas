@@ -3,12 +3,14 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    List,
     Optional,
     Sequence,
     Tuple,
     Type,
     TypeVar,
     Union,
+    overload,
 )
 
 import numpy as np
@@ -138,7 +140,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     def __getitem__(
-        self, item: Union[int, slice, np.ndarray]
+        self, item: Union[int, slice, np.ndarray, List[Any]]
     ) -> Union[BaseMaskedArray, Any]:
         if is_integer(item):
             if self._mask[item]:
@@ -212,14 +214,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
+        **kwargs: Any,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -304,6 +304,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             data = self._data.astype(dtype, copy=copy)
         return data
+
+    @overload
+    def astype(self, dtype: Type[str], copy: bool = True) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+        ...
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)

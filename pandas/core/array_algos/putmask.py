@@ -191,7 +191,7 @@ def extract_bool_array(mask: ArrayLike) -> np.ndarray:
         # We could have BooleanArray, Sparse[bool], ...
         #  Except for BooleanArray, this is equivalent to just
         #  np.asarray(mask, dtype=bool)
-        mask = mask.to_numpy(dtype=bool, na_value=False)
+        mask = mask.to_numpy(dtype=np.dtype(bool), na_value=False)
 
     mask = np.asarray(mask, dtype=bool)
     return mask

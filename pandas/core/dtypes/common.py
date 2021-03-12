@@ -3,9 +3,11 @@ Common type operations.
 """
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Union,
+    cast,
 )
 import warnings
 
@@ -57,6 +59,9 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_scalar,
     is_sequence,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.base import ExtensionArray
 
 POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
@@ -128,7 +133,7 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
+def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> ArrayLike:
     """
     Ensure that an dtype array of some integer dtype
     has an int64 dtype if possible.
@@ -155,19 +160,21 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
     will remain unchanged.
     """
     # TODO: GH27506 potential bug with ExtensionArrays
+    def call_right_astype(arr: ArrayLike, inttype: str) -> ArrayLike:
+        if isinstance(arr, np.ndarray):
+            return arr.astype(inttype, copy=copy, casting="safe")
+        else:
+            return arr.astype(inttype, copy=copy)
+
     try:
-        # error: Unexpected keyword argument "casting" for "astype"
-        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore[call-arg]
+        return call_right_astype(arr, "int64")
     except TypeError:
         pass
     try:
-        # error: Unexpected keyword argument "casting" for "astype"
-        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
+        return call_right_astype(arr, "uint64")
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
-            # pandas/core/dtypes/common.py:168: error: Item "ndarray" of
-            # "Union[ExtensionArray, ndarray]" has no attribute "to_numpy"  [union-attr]
-            return arr.to_numpy(  # type: ignore[union-attr]
+            return cast("ExtensionArray", arr).to_numpy(
                 dtype="float64", na_value=np.nan
             )
         return arr.astype("float64", copy=copy)
@@ -1848,9 +1855,7 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
-        # error: Incompatible return value type (got "Type[ExtensionDtype]",
-        # expected "Union[dtype, ExtensionDtype]")
-        return result  # type: ignore[return-value]
+        return result
 
     # try a numpy dtype
     # raise a consistent TypeError if failed

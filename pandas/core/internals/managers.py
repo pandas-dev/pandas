@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -14,6 +15,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -27,6 +29,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     DtypeObj,
+    NpDtype,
     Shape,
 )
 from pandas.errors import PerformanceWarning
@@ -78,6 +81,9 @@ from pandas.core.internals.ops import (
     blockwise_all,
     operate_blockwise,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.base import ExtensionArray
 
 # TODO: flexible with index=None and/or items=None
 
@@ -845,7 +851,7 @@ class BlockManager(DataManager):
     def as_array(
         self,
         transpose: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -890,12 +896,7 @@ class BlockManager(DataManager):
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                    # Type[object]]"; expected "Union[dtype[Any], None, type,
-                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
+                    arr = arr.astype(dtype, copy=False)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -928,25 +929,15 @@ class BlockManager(DataManager):
         elif is_dtype_equal(dtype, str):
             dtype = "object"
 
-        # error: Argument "dtype" to "empty" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]]"
-        result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
-
+        result = np.empty(self.shape, dtype=cast(NpDtype, dtype))
         itemmask = np.zeros(self.shape[0])
 
         for blk in self.blocks:
             rl = blk.mgr_locs
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-
-                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
-                # attribute "to_numpy"
-                arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype, na_value=na_value
-                )
+                blk_values = cast("ExtensionArray", blk.values)
+                arr = blk_values.to_numpy(dtype=cast(NpDtype, dtype), na_value=na_value)
             else:
                 # error: Argument 1 to "get_values" of "Block" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
