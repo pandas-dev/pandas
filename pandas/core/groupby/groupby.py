@@ -46,6 +46,7 @@ from pandas._libs import (
 )
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
+    ArrayLike,
     F,
     FrameOrSeries,
     FrameOrSeriesUnion,
@@ -2265,7 +2266,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas import concat
 
-        def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
+        def pre_processor(vals: ArrayLike) -> Tuple[np.ndarray, Optional[np.dtype]]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"

@@ -534,16 +534,16 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
-        res = arg.astype(f"datetime64[{unit}]")
+        arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
-        res, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-        result = Index(res, name=name)
+        result = Index(arr, name=name)
     else:
-        result = DatetimeIndex(res, name=name)
+        result = DatetimeIndex(arr, name=name)
 
     if not isinstance(result, DatetimeIndex):
         return result

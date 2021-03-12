@@ -170,7 +170,7 @@ class _Unstacker:
 
         comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.lift
-        self.full_shape = ngroups, int(stride)  # int() for mypy
+        self.full_shape = ngroups, stride
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
         # error: Argument 1 to "zeros" has incompatible type "number"; expected
