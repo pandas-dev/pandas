@@ -2327,6 +2327,18 @@ def _non_reducing_slice(slice_):
 
 
 def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]:
+    """
+    Find the relevant first `props` `value` from a list of `(attribute,value)` tuples
+    within `table_styles` identified by a given selector.
+
+    For example: table_styles =[
+        {'selector': 'foo', 'props': [('attr','value')],
+        {'selector': 'bar', 'props': [('attr', 'overwritten')]},
+        {'selector': 'bar', 'props': [('attr', 'baz'), ('attr2', 'ignored')]}
+    ]
+
+    Then for selector='bar', the return value is 'baz'.
+    """
     for style in styles[::-1]:  # in reverse for most recently applied style
         if style["selector"] == selector:
             return style["props"][0][1].replace("§", ":")
@@ -2334,9 +2346,30 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
 
 
 def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
+    r"""
+    Build a recursive latex chain of commands based on CSS list values, nested around
+    `display_value`.
+
+    If a CSS style is given as ('<command>', '<options>') this is translated to
+    '\<command><options>{display_value}', and this value is treated as the
+    display value for the next iteration.
+
+    The most recent style forms the inner component, for example:
+    `styles=[('emph', ''), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
+    \emph{\cellcolor[rgb]{0,1,1}{display_value}}
+
+    Sometimes latex commands have to be wrapped with curly braces:
+    Instead of `\<command>{<text}` the necessary format is `{\<command> text}`
+    In this case if the keyphrase '-wrap-' is detected in <options> it will return
+    correctly, for example:
+    `styles=[('Huge', '-wrap-'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
+    {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
+    """
     for style in styles[::-1]:  # in reverse for most recently applied style
-        if style[1] == "-wrap-":
-            display_value = f"{{\\{style[0]} {display_value}}}"
+        if "-wrap-" in style[1]:
+            display_value = (
+                f"{{\\{style[0]}{style[1].replace('-wrap-','')} {display_value}}}"
+            )
         else:
             display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
     return display_value
