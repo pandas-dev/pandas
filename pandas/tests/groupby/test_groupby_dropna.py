@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import ARM64
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -262,6 +264,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
 @pytest.mark.parametrize(
     "datetime1, datetime2",
     [

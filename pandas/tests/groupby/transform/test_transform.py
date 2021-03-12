@@ -4,6 +4,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.compat import ARM64
+
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_timedelta64_dtype,
@@ -631,6 +633,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
     tm.assert_series_equal(expected, result)
 
 
+@pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
 @pytest.mark.parametrize(
     "op, args, targop",
     [

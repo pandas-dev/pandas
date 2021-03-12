@@ -20,6 +20,8 @@ from hypothesis.extra.pytz import timezones as pytz_timezones
 import pytest
 import pytz
 
+from pandas.compat import ARM64
+
 import pandas as pd
 from pandas import Timestamp
 
@@ -91,6 +93,7 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
+@pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)

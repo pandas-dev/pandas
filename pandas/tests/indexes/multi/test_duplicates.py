@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import hashtable
+from pandas.compat import ARM64
 
 from pandas import (
     DatetimeIndex,
@@ -244,6 +245,7 @@ def test_duplicated(idx_dup, keep, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
 def test_duplicated_large(keep):
     # GH 9125
     n, k = 200, 5000

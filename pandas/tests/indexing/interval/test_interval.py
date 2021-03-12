@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import ARM64
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -71,6 +73,7 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=r"^\[-1\]$"):
             indexer_sl(ser)[[-1, 3]]
 
+    @pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
     def test_loc_getitem_large_series(self):
         ser = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))

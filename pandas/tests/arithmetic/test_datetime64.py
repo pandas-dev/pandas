@@ -19,7 +19,10 @@ import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
-from pandas.compat import np_datetime64_compat
+from pandas.compat import (
+    ARM64,
+    np_datetime64_compat,
+)
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -806,6 +809,7 @@ class TestDatetime64Arithmetic:
     # -------------------------------------------------------------
     # Addition/Subtraction of timedelta-like
 
+    @pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
     def test_dt64arr_add_timedeltalike_scalar(
         self, tz_naive_fixture, two_hours, box_with_array
     ):

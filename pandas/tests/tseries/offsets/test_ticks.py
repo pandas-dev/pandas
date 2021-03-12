@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
+from pandas.compat import ARM64
 
 from pandas import (
     Timedelta,
@@ -82,6 +83,7 @@ def test_tick_add_sub(cls, n, m):
     assert left - right == expected
 
 
+@pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
 @pytest.mark.parametrize("cls", tick_classes)
 @settings(deadline=None)
 @example(n=2, m=3)

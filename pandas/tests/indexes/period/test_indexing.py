@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import period as libperiod
+from pandas.compat import ARM64
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
@@ -182,6 +183,7 @@ class TestGetItem:
         exp = ts.iloc[[1]]
         tm.assert_series_equal(ts[[Period("2012-01-02", freq="D")]], exp)
 
+    @pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
     def test_getitem_seconds(self):
         # GH#6716
         didx = date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)

@@ -5,6 +5,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.compat import ARM64
+
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -67,6 +69,7 @@ class TestSorting:
             assert left[k] == v
         assert len(left) == len(right)
 
+    @pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
     def test_int64_overflow_moar(self):
 
         # GH9096

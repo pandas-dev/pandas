@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import ARM64
+
 import pandas as pd
 from pandas import (
     Index,
@@ -41,6 +43,7 @@ def test_intersection_base(idx, sort, klass):
         first.intersection([1, 2, 3], sort=sort)
 
 
+@pytest.mark.skipif(ARM64, reason="timeout on ARM64 GH 36719")
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
 def test_union_base(idx, sort, klass):
     first = idx[::-1]
