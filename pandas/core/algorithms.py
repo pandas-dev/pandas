@@ -1680,8 +1680,8 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     is_timedelta = False
     is_bool = False
     if needs_i8_conversion(arr.dtype):
-        dtype = np.int64
-        arr = arr.view("i8")
+        dtype = np.dtype("timedelta64[ns]")
+        arr = getattr(arr, "_data", arr)
         na = iNaT
         is_timedelta = True
 
@@ -1713,10 +1713,11 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
     out_arr[tuple(na_indexer)] = na
 
-    if arr.ndim == 2 and arr.dtype.name in _diff_special:
+    if arr.dtype.name in _diff_special or is_timedelta:
+        assert isinstance(arr, np.ndarray), type(arr)
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
-        algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
+        algos_numba.diff_2d(arr, out_arr, n, axis)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
@@ -1728,29 +1729,10 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
         _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
         lag_indexer = tuple(_lag_indexer)
 
-        # need to make sure that we account for na for datelike/timedelta
-        # we don't actually want to subtract these i8 numbers
-        if is_timedelta:
-            res = arr[res_indexer]
-            lag = arr[lag_indexer]
-
-            mask = (arr[res_indexer] == na) | (arr[lag_indexer] == na)
-            if mask.any():
-                res = res.copy()
-                res[mask] = 0
-                lag = lag.copy()
-                lag[mask] = 0
-
-            result = res - lag
-            result[mask] = na
-            out_arr[res_indexer] = result
-        elif is_bool:
+        if is_bool:
             out_arr[res_indexer] = arr[res_indexer] ^ arr[lag_indexer]
         else:
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
-
-    if is_timedelta:
-        out_arr = out_arr.view("timedelta64[ns]")
 
     if orig_ndim == 1:
         out_arr = out_arr[:, 0]
