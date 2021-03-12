@@ -16,6 +16,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -378,7 +379,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     return self._get_getitem_freq(new_key)
         return freq
 
-    def __setitem__(
+    # error: Argument 1 of "__setitem__" is incompatible with supertype
+    # "ExtensionArray"; supertype defines the argument type as "Union[int,
+    # ndarray]"
+    def __setitem__(  # type: ignore[override]
         self,
         key: Union[int, Sequence[int], Sequence[bool], slice],
         value: Union[NaTType, Any, Sequence[Any]],
@@ -450,6 +454,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
+    @overload
+    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
+        ...
+
+    @overload
+    def view(self, dtype: Optional[Dtype] = ...) -> ArrayLike:
+        ...
+
     def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period
         #  dtypes here. Everything else we pass through to the underlying
@@ -474,7 +486,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             from pandas.core.arrays import TimedeltaArray
 
             return TimedeltaArray(self.asi8, dtype=dtype)
-        return self._ndarray.view(dtype=dtype)
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
+        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
+        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        return self._ndarray.view(dtype=dtype)  # type: ignore[return-value,arg-type]
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
@@ -864,7 +882,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         return if I have any nans; enables various perf speedups
         """
-        return bool(self._isnan.any())
+        # error: Incompatible return value type (got "bool", expected "ndarray")
+        return bool(self._isnan.any())  # type: ignore[return-value]
 
     def _maybe_mask_results(
         self, result: np.ndarray, fill_value=iNaT, convert=None
@@ -1208,7 +1227,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         res_values = op(self.astype("O"), np.asarray(other))
         result = pd_array(res_values.ravel())
-        result = extract_array(result, extract_numpy=True).reshape(self.shape)
+        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
+        # "reshape"
+        result = extract_array(
+            result, extract_numpy=True
+        ).reshape(  # type: ignore[union-attr]
+            self.shape
+        )
         return result
 
     def _time_shift(self, periods, freq=None):
