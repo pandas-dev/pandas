@@ -503,16 +503,9 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        # error: Value of type variable "ArrayLike" of "ensure_block_shape" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        arrs = [ensure_block_shape(x, 2) for x in self.arrays]  # type: ignore[type-var]
+        arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
-        # error: Value of type variable "ArrayLike" of "quantile_compat" cannot be
-        # "object"
-        new_arrs = [
-            quantile_compat(x, qs, interpolation, axis=axis)  # type: ignore[type-var]
-            for x in arrs
-        ]
+        new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
         for i, arr in enumerate(new_arrs):
             if arr.ndim == 2:
                 assert arr.shape[0] == 1, arr.shape
@@ -793,11 +786,9 @@ class ArrayManager(DataManager):
             arrays = self.arrays[slobj]
 
         new_axes = list(self._axes)
-        new_axes[axis] = new_axes[axis][slobj]
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
         return type(self)(arrays, new_axes, verify_integrity=False)
-
-    getitem_mgr = get_slice
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """
@@ -836,11 +827,7 @@ class ArrayManager(DataManager):
         """
         Return the data for column i as the values (ndarray or ExtensionArray).
         """
-        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
-        # expected "ExtensionArray")
-        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
-        # expected "ndarray")
-        return self.arrays[i]  # type: ignore[return-value]
+        return self.arrays[i]
 
     def idelete(self, indexer):
         """
@@ -1019,9 +1006,7 @@ class ArrayManager(DataManager):
         else:
             validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                # error: Value of type variable "ArrayLike" of "take_1d" cannot be
-                # "Union[ndarray, ExtensionArray]"  [type-var]
-                take_1d(  # type: ignore[type-var]
+                take_1d(
                     arr,
                     indexer,
                     allow_fill=True,
@@ -1080,9 +1065,7 @@ class ArrayManager(DataManager):
         assuming shape and indexes have already been checked.
         """
         for left, right in zip(self.arrays, other.arrays):
-            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
-            # "Union[Any, ndarray, ExtensionArray]"
-            if not array_equals(left, right):  # type: ignore[type-var]
+            if not array_equals(left, right):
                 return False
         else:
             return True
@@ -1109,9 +1092,7 @@ class ArrayManager(DataManager):
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                # error: Value of type variable "ArrayLike" of "take_1d" cannot be
-                # "Union[ndarray, ExtensionArray]"  [type-var]
-                new_arr = take_1d(  # type: ignore[type-var]
+                new_arr = take_1d(
                     arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
                 )
                 new_arrays.append(new_arr)
@@ -1235,7 +1216,12 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
             raise IndexError("Requested axis not found in manager")
 
         new_array = self.array[slobj]
-        new_index = self.index[slobj]
+        new_index = self.index._getitem_slice(slobj)
+        return type(self)([new_array], [new_index], verify_integrity=False)
+
+    def getitem_mgr(self, indexer) -> SingleArrayManager:
+        new_array = self.array[indexer]
+        new_index = self.index[indexer]
         return type(self)([new_array], [new_index])
 
     def apply(self, func, **kwargs):
