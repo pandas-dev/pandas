@@ -86,7 +86,7 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: Test results
-        path: junit/test-results.xml
+        path: test-data.xml
       if: failure()
 
     - name: Print skipped tests
@@ -101,6 +101,7 @@ jobs:
     env:
       ENV_FILE: ci/deps/actions-37-cov.yaml
       PANDAS_TESTING_MODE: deprecate
+      COVERAGE: true
 
     services:
       mysql:
@@ -164,7 +165,7 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: Test results
-        path: junit/test-results.xml
+        path: test-data.xml
       if: failure()
 
     - name: Print skipped tests
@@ -173,7 +174,7 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
-        files: junit/test-results.xml
+        files: /tmp/test_coverage.xml
         flags: unittests
         name: codecov-pandas
         fail_ci_if_error: true

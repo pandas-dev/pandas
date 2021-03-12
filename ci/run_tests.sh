@@ -9,9 +9,10 @@ if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-# Always calculate and upload coverage, as coverage reports are merged by Codecov
-# https://docs.codecov.io/docs/merging-reports
-COVERAGE="--cov=pandas --junitxml=junit/test-results.xml --cov-report=xml --cov-report=html"
+if [ "$COVERAGE" ]; then
+    COVERAGE_FNAME="/tmp/test_coverage.xml"
+    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
+fi
 
 # If no X server is found, we use xvfb to emulate it
 if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
@@ -19,7 +20,7 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict-markers --durations=30 $COVERAGE pandas"
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     # GH#37455 windows py38 build appears to be running out of memory
@@ -29,3 +30,9 @@ fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
+
+if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
+    echo "uploading coverage"
+    echo "bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME"
+          bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
+fi
