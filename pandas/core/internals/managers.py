@@ -314,11 +314,7 @@ class BlockManager(DataManager):
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[ExtensionArray]
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[ndarray]
-        return [blk.values for blk in self.blocks]  # type: ignore[misc]
+        return [blk.values for blk in self.blocks]
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -1022,9 +1018,7 @@ class BlockManager(DataManager):
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return result  # type: ignore[return-value]
+        return result
 
     def consolidate(self) -> BlockManager:
         """
@@ -1535,9 +1529,7 @@ class BlockManager(DataManager):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
-            # "Union[ndarray, ExtensionArray]"
-            return array_equals(left, right)  # type: ignore[type-var]
+            return array_equals(left, right)
 
         return blockwise_all(self, other, array_equals)
 

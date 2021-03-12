@@ -411,12 +411,12 @@ doc:degrees="180" doc:sides="3.0"/>
 
 def test_attrs_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(attr_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(attr_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_attrs_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for attr_cols")):
-        geom_df.to_xml(attr_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(attr_cols='"shape", "degree", "sides"', parser=parser)
 
 
 # ELEM_COLS
@@ -453,12 +453,12 @@ def test_elems_cols_nan_output(datapath, parser):
 
 def test_elems_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(elem_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(elem_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_elems_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for elem_cols")):
-        geom_df.to_xml(elem_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(elem_cols='"shape", "degree", "sides"', parser=parser)
 
 
 def test_elems_and_attrs_cols(datapath, parser):
