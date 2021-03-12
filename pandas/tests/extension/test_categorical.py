@@ -300,7 +300,8 @@ class TestParsing(base.BaseParsingTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     def test_repr_2d(self, data):
-        # Categorical __repr__ doesnt include "Caegorical", so we need to special-case
+        # Categorical __repr__ doesn't include "Categorical", so we need
+        #  to special-case
         res = repr(data.reshape(1, -1))
         assert res.count("\nCategories") == 1
 
