@@ -648,14 +648,14 @@ z
         "df,csv_name",
         [
             (
-                    DataFrame({"a": [1, 2, 3, 4, 5], "b": [4, 5, 6, 7, 8]}),
-                    "test_to_csv_zipped_content_name.csv",
+                DataFrame({"a": [1, 2, 3, 4, 5], "b": [4, 5, 6, 7, 8]}),
+                "test_to_csv_zipped_content_name.csv",
             )
         ],
     )
     def test_to_csv_content_name_in_zipped_file(self, df, csv_name):
-        from zipfile import ZipFile
         from pathlib import Path
+        from zipfile import ZipFile
 
         suffix_zip_name = csv_name + ".zip"
         with tm.ensure_clean(suffix_zip_name) as pth:
@@ -668,7 +668,8 @@ z
             expected = pp.stem
             zf.close()
             assert result == expected
-            
+
+
 def test_to_csv_iterative_compression_name(compression):
     # GH 38714
     df = tm.makeDataFrame()
