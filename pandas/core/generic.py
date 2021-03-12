@@ -11014,7 +11014,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ) -> ExponentialMovingWindow:
         axis = self._get_axis_number(axis)
-        return ExponentialMovingWindow(
+        # error: Value of type variable "FrameOrSeries" of "ExponentialMovingWindow"
+        # cannot be "object"
+        return ExponentialMovingWindow(  # type: ignore[type-var]
             self,
             com=com,
             span=span,
