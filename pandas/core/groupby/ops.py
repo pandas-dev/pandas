@@ -602,7 +602,7 @@ class BaseGrouper:
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
-        self._disallow_invalid_ops(values, how, is_numeric)
+        self._disallow_invalid_ops(dtype, how, is_numeric)
 
         if is_extension_array_dtype(dtype):
             # error: Incompatible return value type (got "Tuple[ndarray,
