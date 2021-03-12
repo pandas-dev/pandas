@@ -406,18 +406,14 @@ class BooleanArray(BaseMaskedArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            # error: Incompatible return value type (got "ExtensionArray", expected
-            # "ndarray")
-            return super().astype(dtype, copy)  # type: ignore[return-value]
+            return super().astype(dtype, copy)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
             if self._hasna:
                 raise ValueError("cannot convert float NaN to bool")
             else:
-                # error: Incompatible return value type (got "ndarray", expected
-                # "ExtensionArray")
-                return self._data.astype(dtype, copy=copy)  # type: ignore[return-value]
+                return self._data.astype(dtype, copy=copy)
 
         # for integer, error if there are missing values
         if is_integer_dtype(dtype) and self._hasna:
@@ -429,12 +425,7 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return self.to_numpy(  # type: ignore[return-value]
-            dtype=dtype, na_value=na_value, copy=False
-        )
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
