@@ -8,6 +8,7 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Any,
     Dict,
     Optional,
     Tuple,
@@ -1649,7 +1650,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     """
 
     n = int(n)
-    na = np.nan
+    na: Any = np.nan
     dtype = arr.dtype
 
     if dtype.kind == "b":
@@ -1682,7 +1683,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     if needs_i8_conversion(arr.dtype):
         dtype = np.dtype("timedelta64[ns]")
         arr = getattr(arr, "_data", arr)
-        na = iNaT
+        na = None
         is_timedelta = True
 
     elif is_bool_dtype(dtype):
