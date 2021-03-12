@@ -149,7 +149,7 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
     # TODO(ArrayManager)
-    # df.loc[0] = Series(1, index=range(4)) case creats float columns
+    # df.loc[0] = Series(1, index=range(4)) case creates float columns
     # instead of object dtype
     @td.skip_array_manager_not_yet_implemented
     def test_partial_setting_mixed_dtype(self):
