@@ -108,6 +108,8 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import Series
     from pandas.core.arrays import (
         DatetimeArray,
@@ -1205,14 +1207,10 @@ def astype_nansafe(
         flags = arr.flags
         flat = arr.ravel("K")
         result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        order = "F" if flags.f_contiguous else "C"
+        order: Literal["C", "F"] = "F" if flags.f_contiguous else "C"
         # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
         # attribute "reshape"
-        # error: No overload variant of "reshape" of "_ArrayOrScalarCommon" matches
-        # argument types "Tuple[int, ...]", "str"
-        return result.reshape(  # type: ignore[union-attr,call-overload]
-            arr.shape, order=order
-        )
+        return result.reshape(arr.shape, order=order)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)
