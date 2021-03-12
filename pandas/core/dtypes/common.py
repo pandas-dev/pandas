@@ -160,24 +160,18 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> ArrayLike:
     will remain unchanged.
     """
     # TODO: GH27506 potential bug with ExtensionArrays
-    def call_right_astype(arr: ArrayLike, inttype: str) -> ArrayLike:
-        if isinstance(arr, np.ndarray):
-            return arr.astype(inttype, copy=copy, casting="safe")
-        else:
-            return arr.astype(inttype, copy=copy)
-
-    try:
-        return call_right_astype(arr, "int64")
-    except TypeError:
-        pass
-    try:
-        return call_right_astype(arr, "uint64")
-    except TypeError:
-        if is_extension_array_dtype(arr.dtype):
-            return cast("ExtensionArray", arr).to_numpy(
-                dtype="float64", na_value=np.nan
-            )
-        return arr.astype("float64", copy=copy)
+    if is_extension_array_dtype(arr.dtype):
+        return cast("ExtensionArray", arr).to_numpy(dtype="float64", na_value=np.nan)
+    else:
+        assert isinstance(arr, np.ndarray)  # For typing
+        try:
+            return arr.astype("int64", copy=copy, casting="safe")
+        except TypeError:
+            pass
+        try:
+            return arr.astype("uint64", copy=copy, casting="safe")
+        except TypeError:
+            return arr.astype("float64", copy=copy)
 
 
 def ensure_python_int(value: Union[int, np.integer]) -> int:
