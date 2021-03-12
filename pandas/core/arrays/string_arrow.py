@@ -434,9 +434,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._data.nbytes
 
-    # error: Return type "ndarray" of "isna" incompatible with return type "ArrayLike"
-    # in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         """
         Boolean NumPy array indicating if each value is missing.
 

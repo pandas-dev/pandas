@@ -51,12 +51,8 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
         # dtype exactly, but converts this to Sparse[dtype] -> first manually
         # convert to dense array
-
-        # error: Incompatible types in assignment (expression has type
-        # "SparseArray", variable has type "ndarray")
-        arr = cast(SparseArray, arr)  # type: ignore[assignment]
-        # error: "ndarray" has no attribute "to_dense"
-        return arr.to_dense().astype(dtype, copy=False)  # type: ignore[attr-defined]
+        arr = cast(SparseArray, arr)
+        return arr.to_dense().astype(dtype, copy=False)
 
     if (
         isinstance(arr, np.ndarray)
