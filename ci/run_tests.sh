@@ -11,7 +11,7 @@ fi
 
 # Always calculate and upload coverage, as coverage reports are merged by Codecov
 # https://docs.codecov.io/docs/merging-reports
-COVERAGE="--cov=pandas.io.formats.info --junitxml=junit/test-results.xml --cov-report=xml --cov-report=html"
+COVERAGE="--cov=pandas --junitxml=junit/test-results.xml --cov-report=xml --cov-report=html"
 
 # If no X server is found, we use xvfb to emulate it
 if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
@@ -19,7 +19,7 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict-markers --durations=30 $COVERAGE pandas/tests/io/formats/test_info.py"
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict-markers --durations=30 $COVERAGE pandas"
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     # GH#37455 windows py38 build appears to be running out of memory

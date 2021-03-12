@@ -86,7 +86,7 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: Test results
-        path: test-data.xml
+        path: junit/test-results.xml
       if: failure()
 
     - name: Print skipped tests
@@ -164,7 +164,7 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: Test results
-        path: test-data.xml
+        path: junit/test-results.xml
       if: failure()
 
     - name: Print skipped tests
@@ -173,7 +173,7 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
-        files: coverage.xml
+        files: junit/test-results.xml
         flags: unittests
         name: codecov-pandas
         fail_ci_if_error: true
