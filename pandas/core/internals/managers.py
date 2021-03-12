@@ -1293,7 +1293,7 @@ class BlockManager(DataManager):
     def reindex_indexer(
         self: T,
         new_axis: Index,
-        indexer: Optional[np.ndarray],  # TODO: np.ndarray[np.int64]
+        indexer,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
