@@ -817,6 +817,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __getitem__(self, key):
 
         if isinstance(key, tuple):
+            if len(key) and key[0] is Ellipsis:
+                key = key[1:]
             if len(key) > 1:
                 raise IndexError("too many indices for array.")
             key = key[0]
