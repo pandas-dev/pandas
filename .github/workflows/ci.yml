@@ -178,6 +178,7 @@ jobs:
         pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column
 
         pytest pandas/tests/api/
+        pytest pandas/tests/arrays/
         pytest pandas/tests/base/
         pytest pandas/tests/computation/
         pytest pandas/tests/config/

@@ -685,7 +685,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.size
         4
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @final
     @property
@@ -771,11 +772,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
         return self._constructor(
+            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
+            # "Union[ArrayManager, BlockManager]"
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
             # None, None]"; expected "bool" [arg-type]
             # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
             # None, None]"; expected "Optional[Mapping[Optional[Hashable], Any]]"
-            new_values,
+            new_values,  # type: ignore[arg-type]
             *new_axes,  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
 
@@ -2004,14 +2007,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # ptp also requires the item_from_zerodim
             return result
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d).__finalize__(
+        # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
+        # expected "BlockManager"
+        return self._constructor(result, **d).__finalize__(  # type: ignore[arg-type]
             self, method="__array_wrap__"
         )
 
     def __array_ufunc__(
         self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
     ):
-        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
+        # error: Argument 2 to "array_ufunc" has incompatible type "Callable[..., Any]";
+        # expected "ufunc"
+        return arraylike.array_ufunc(
+            self, ufunc, method, *inputs, **kwargs  # type: ignore[arg-type]
+        )
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
@@ -7008,7 +7017,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     f"`limit_direction` must be 'backward' for method `{method}`"
                 )
 
-        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype(object)):
+        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
+        if obj.ndim == 2 and np.all(
+            obj.dtypes == np.dtype(object)  # type: ignore[type-var]
+        ):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -8386,7 +8398,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         start_date = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side="right")
-        return self.iloc[start:]
+        # error: Slice index must be an integer or None
+        return self.iloc[start:]  # type: ignore[misc]
 
     @final
     def rank(
@@ -8494,8 +8507,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 na_option=na_option,
                 pct=pct,
             )
-            ranks = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks.__finalize__(self, method="rank")
+            # error: Incompatible types in assignment (expression has type
+            # "FrameOrSeries", variable has type "ndarray")
+            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
+            # "Union[ArrayManager, BlockManager]"
+            ranks = self._constructor(  # type: ignore[assignment]
+                ranks, **data._construct_axes_dict()  # type: ignore[arg-type]
+            )
+            # error: "ndarray" has no attribute "__finalize__"
+            return ranks.__finalize__(self, method="rank")  # type: ignore[attr-defined]
 
         # if numeric_only is None, and we can't get anything, we try with
         # numeric_only=True
@@ -8977,7 +8997,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                other = self._constructor(other, **self._construct_axes_dict())
+                # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
+                # expected "BlockManager"
+                other = self._constructor(
+                    other, **self._construct_axes_dict()  # type: ignore[arg-type]
+                )
 
         if axis is None:
             axis = 0
@@ -9904,7 +9928,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        return np.abs(self)
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "FrameOrSeries"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        return np.abs(self)  # type: ignore[arg-type]
 
     @final
     def describe(
@@ -10620,8 +10648,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.any = any  # type: ignore[assignment]
+        setattr(cls, "any", any)
 
         @doc(
             _bool_doc,
@@ -10636,12 +10663,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
-        # error: Cannot assign to a method
-
-        # error: Incompatible types in assignment (expression has type
-        # "Callable[[Iterable[object]], bool]", variable has type "Callable[[NDFrame,
-        # Any, Any, Any, Any, KwArg(Any)], Any]")
-        cls.all = all  # type: ignore[assignment]
+        setattr(cls, "all", all)
 
         # error: Argument 1 to "doc" has incompatible type "Optional[str]"; expected
         # "Union[str, Callable[..., Any]]"
@@ -10658,8 +10680,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mad(self, axis=None, skipna=None, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
-        # error: Cannot assign to a method
-        cls.mad = mad  # type: ignore[assignment]
+        setattr(cls, "mad", mad)
 
         @doc(
             _num_ddof_doc,
@@ -10681,8 +10702,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.sem(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.sem = sem  # type: ignore[assignment]
+        setattr(cls, "sem", sem)
 
         @doc(
             _num_ddof_doc,
@@ -10703,8 +10723,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.var(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.var = var  # type: ignore[assignment]
+        setattr(cls, "var", var)
 
         @doc(
             _num_ddof_doc,
@@ -10726,8 +10745,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.std(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.std = std  # type: ignore[assignment]
+        setattr(cls, "std", std)
 
         @doc(
             _cnum_doc,
@@ -10741,8 +10759,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummin(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cummin = cummin  # type: ignore[assignment]
+        setattr(cls, "cummin", cummin)
 
         @doc(
             _cnum_doc,
@@ -10756,8 +10773,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummax(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cummax = cummax  # type: ignore[assignment]
+        setattr(cls, "cummax", cummax)
 
         @doc(
             _cnum_doc,
@@ -10771,8 +10787,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumsum(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cumsum = cumsum  # type: ignore[assignment]
+        setattr(cls, "cumsum", cumsum)
 
         @doc(
             _cnum_doc,
@@ -10786,8 +10801,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumprod(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.cumprod = cumprod  # type: ignore[assignment]
+        setattr(cls, "cumprod", cumprod)
 
         @doc(
             _num_doc,
@@ -10813,8 +10827,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        # error: Cannot assign to a method
-        cls.sum = sum  # type: ignore[assignment]
+        setattr(cls, "sum", sum)
 
         @doc(
             _num_doc,
@@ -10839,8 +10852,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        # error: Cannot assign to a method
-        cls.prod = prod  # type: ignore[assignment]
+        setattr(cls, "prod", prod)
         cls.product = prod
 
         @doc(
@@ -10856,8 +10868,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.mean = mean  # type: ignore[assignment]
+        setattr(cls, "mean", mean)
 
         @doc(
             _num_doc,
@@ -10872,8 +10883,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.skew = skew  # type: ignore[assignment]
+        setattr(cls, "skew", skew)
 
         @doc(
             _num_doc,
@@ -10891,8 +10901,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.kurt = kurt  # type: ignore[assignment]
+        setattr(cls, "kurt", kurt)
         cls.kurtosis = kurt
 
         @doc(
@@ -10910,8 +10919,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.median = median  # type: ignore[assignment]
+        setattr(cls, "median", median)
 
         @doc(
             _num_doc,
@@ -10928,8 +10936,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.max = max  # type: ignore[assignment]
+        setattr(cls, "max", max)
 
         @doc(
             _num_doc,
@@ -10946,8 +10953,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
 
-        # error: Cannot assign to a method
-        cls.min = min  # type: ignore[assignment]
+        setattr(cls, "min", min)
 
     @final
     @doc(Rolling)
@@ -11027,7 +11033,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ) -> ExponentialMovingWindow:
         axis = self._get_axis_number(axis)
-        return ExponentialMovingWindow(
+        # error: Value of type variable "FrameOrSeries" of "ExponentialMovingWindow"
+        # cannot be "object"
+        return ExponentialMovingWindow(  # type: ignore[type-var]
             self,
             com=com,
             span=span,
