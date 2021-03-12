@@ -41,9 +41,11 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning"),
+    # TODO(ArrayManager) fastparquet / pyarrow rely on BlockManager internals
+    td.skip_array_manager_not_yet_implemented,
+]
 
 
 # setup engines & skips

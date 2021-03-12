@@ -1172,6 +1172,7 @@ def test_style_to_string():
     assert out_xml == out_str
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
 @td.skip_if_no("lxml")
 def test_style_to_json():
     xsl = """\

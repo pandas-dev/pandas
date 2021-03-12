@@ -44,7 +44,16 @@ def gcs_buffer(monkeypatch):
 
 
 @td.skip_if_no("gcsfs")
-@pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
+@pytest.mark.parametrize(
+    "format",
+    [
+        "csv",
+        pytest.param("json", marks=td.skip_array_manager_not_yet_implemented),
+        "parquet",
+        "excel",
+        "markdown",
+    ],
+)
 def test_to_read_gcs(gcs_buffer, format):
     """
     Test that many to/read functions support GCS.

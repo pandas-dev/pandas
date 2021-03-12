@@ -307,6 +307,7 @@ bar2,12,13,14,15
 
             assert result == expected
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) IO HDF5
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -431,7 +432,10 @@ def test_is_fsspec_url():
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
-@pytest.mark.parametrize("format", ["csv", "json"])
+@pytest.mark.parametrize(
+    "format",
+    ["csv", pytest.param("json", marks=td.skip_array_manager_not_yet_implemented)],
+)
 def test_codecs_encoding(encoding, format):
     # GH39247
     expected = tm.makeDataFrame()
