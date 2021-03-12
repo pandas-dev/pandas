@@ -283,7 +283,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def __getitem__(
-        self, item: Union[int, slice, np.ndarray, Ellipsis]
+        self, item: Union[int, slice, np.ndarray]
     ) -> Union[ExtensionArray, Any]:
         """
         Select a subset of self.
