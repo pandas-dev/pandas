@@ -1223,12 +1223,25 @@ def interval_range(
         breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
-            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
+
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+            breaks = maybe_downcast_numeric(  # type: ignore[assignment]
+                breaks, np.dtype("int64")
+            )
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+            # error: Incompatible types in assignment (expression has type
+            # "DatetimeIndex", variable has type "ndarray")
+            breaks = date_range(  # type: ignore[assignment]
+                start=start, end=end, periods=periods, freq=freq
+            )
         else:
-            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
+            # error: Incompatible types in assignment (expression has type
+            # "TimedeltaIndex", variable has type "ndarray")
+            breaks = timedelta_range(  # type: ignore[assignment]
+                start=start, end=end, periods=periods, freq=freq
+            )
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

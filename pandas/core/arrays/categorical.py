@@ -413,7 +413,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if null_mask.any():
                     # We remove null values here, then below will re-insert
                     #  them, grep "full_codes"
-                    arr = [values[idx] for idx in np.where(~null_mask)[0]]
+
+                    # error: Incompatible types in assignment (expression has type
+                    # "List[Any]", variable has type "ExtensionArray")
+                    arr = [  # type: ignore[assignment]
+                        values[idx] for idx in np.where(~null_mask)[0]
+                    ]
                     arr = sanitize_array(arr, None)
                 values = arr
 
@@ -441,7 +446,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            old_codes = extract_array(values)._codes
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "_codes"
+            old_codes = extract_array(values)._codes  # type: ignore[union-attr]
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories, copy=copy
             )
@@ -505,13 +512,32 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
-            result = np.array(self, dtype=dtype, copy=copy)
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Categorical")
+            result = np.array(  # type: ignore[assignment]
+                self,
+                # error: Argument "dtype" to "array" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
+                # Type[int], Type[complex], Type[bool], Type[object]]"; expected
+                # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
+                # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+                # Tuple[Any, Any]]]"
+                dtype=dtype,  # type: ignore[arg-type]
+                copy=copy,
+            )
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
             try:
                 new_cats = np.asarray(self.categories)
-                new_cats = new_cats.astype(dtype=dtype, copy=copy)
+                # error: Argument "dtype" to "astype" of "_ArrayOrScalarCommon" has
+                # incompatible type "Union[ExtensionDtype, dtype[Any]]"; expected
+                # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
+                # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+                # Tuple[Any, Any]]]"
+                new_cats = new_cats.astype(
+                    dtype=dtype, copy=copy  # type: ignore[arg-type]
+                )
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
@@ -519,7 +545,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            result = take_nd(new_cats, libalgos.ensure_platform_int(self._codes))
+            # error: Incompatible types in assignment (expression has type "ndarray",
+            # variable has type "Categorical")
+            result = take_nd(  # type: ignore[assignment]
+                new_cats, libalgos.ensure_platform_int(self._codes)
+            )
 
         return result
 
@@ -1312,7 +1342,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = self._unbox_scalar(value)
         else:
             locs = [self.categories.get_loc(x) for x in value]
-            codes = np.array(locs, dtype=self.codes.dtype)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "int")
+            codes = np.array(locs, dtype=self.codes.dtype)  # type: ignore[assignment]
         return codes
 
     def _validate_fill_value(self, fill_value):
@@ -2117,7 +2149,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if dropna:
             good = self._codes != -1
             codes = self._codes[good]
-        codes = sorted(htable.mode_int64(ensure_int64(codes), dropna))
+        # error: Incompatible types in assignment (expression has type "List[Any]",
+        # variable has type "ndarray")
+        codes = sorted(  # type: ignore[assignment]
+            htable.mode_int64(ensure_int64(codes), dropna)
+        )
         codes = coerce_indexer_dtype(codes, self.dtype.categories)
         return self._from_backing_data(codes)
 
@@ -2419,7 +2455,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import PandasArray
 
-        return PandasArray(self.astype(str))._str_get_dummies(sep)
+        # error: Argument 1 to "PandasArray" has incompatible type
+        # "ExtensionArray"; expected "Union[ndarray, PandasArray]"
+        return PandasArray(self.astype(str))._str_get_dummies(  # type: ignore[arg-type]
+            sep
+        )
 
 
 # The Series.cat accessor
@@ -2624,7 +2664,9 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     # Only hit here when we've already coerced to object dtypee.
 
     hash_klass, vals = get_data_algo(values)
-    _, cats = get_data_algo(categories)
+    # pandas/core/arrays/categorical.py:2661: error: Argument 1 to "get_data_algo" has
+    # incompatible type "Index"; expected "Union[ExtensionArray, ndarray]"  [arg-type]
+    _, cats = get_data_algo(categories)  # type: ignore[arg-type]
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)

@@ -193,12 +193,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _engine_type(self):
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
+
+        # error: Invalid index type "Type[generic]" for "Dict[Type[signedinteger[Any]],
+        # Any]"; expected type "Type[signedinteger[Any]]"
         return {
             np.int8: libindex.Int8Engine,
             np.int16: libindex.Int16Engine,
             np.int32: libindex.Int32Engine,
             np.int64: libindex.Int64Engine,
-        }[self.codes.dtype.type]
+        }[
+            self.codes.dtype.type  # type: ignore[index]
+        ]
 
     _attributes = ["name"]
 

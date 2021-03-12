@@ -353,7 +353,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
-                if len(data.dtype):
+                # error: Argument 1 to "len" has incompatible type "dtype"; expected
+                # "Sized"
+                if len(data.dtype):  # type: ignore[arg-type]
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
                     raise ValueError(
@@ -402,7 +404,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                data = sanitize_array(data, index, dtype, copy)
+                # error: Argument 3 to "sanitize_array" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+                # "Union[dtype[Any], ExtensionDtype, None]"
+                data = sanitize_array(
+                    data, index, dtype, copy  # type: ignore[arg-type]
+                )
 
                 manager = get_option("mode.data_manager")
                 if manager == "block":
@@ -454,7 +461,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # TODO: passing np.float64 to not break anything yet. See GH-17261
         s = create_series_with_explicit_dtype(
-            values, index=keys, dtype=dtype, dtype_if_empty=np.float64
+            # error: Argument "index" to "create_series_with_explicit_dtype" has
+            # incompatible type "Tuple[Any, ...]"; expected "Union[ExtensionArray,
+            # ndarray, Index, None]"
+            values,
+            index=keys,  # type: ignore[arg-type]
+            dtype=dtype,
+            dtype_if_empty=np.float64,
         )
 
         # Now we just make sure the order is respected, if any
@@ -1053,7 +1066,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with_engine(self, key, value):
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
-        validate_numeric_casting(self.dtype, value)
+        # error: Argument 1 to "validate_numeric_casting" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "dtype"
+        validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
         self._values[loc] = value
 
     def _set_with(self, key, value):
@@ -2005,7 +2020,9 @@ Name: Max Speed, dtype: float64
         else:
             return result
 
-    def duplicated(self, keep="first") -> Series:
+    # error: Return type "Series" of "duplicated" incompatible with return type
+    # "ndarray" in supertype "IndexOpsMixin"
+    def duplicated(self, keep="first") -> Series:  # type: ignore[override]
         """
         Indicate duplicate Series values.
 
@@ -2988,7 +3005,15 @@ Keep all original rows and also all original values
             # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = maybe_cast_to_extension_array(type(self._values), new_values)
+
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "List[Any]")
+            new_values = maybe_cast_to_extension_array(  # type: ignore[assignment]
+                # error: Argument 2 to "maybe_cast_to_extension_array" has incompatible
+                # type "List[Any]"; expected "Union[ExtensionArray, ndarray]"
+                type(self._values),
+                new_values,  # type: ignore[arg-type]
+            )
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> Series:
