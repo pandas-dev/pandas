@@ -1,0 +1,78 @@
+name: Posix
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches:
+      - master
+      - 1.2.x
+
+jobs:
+  py37:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      matrix:
+        env-file: [
+          ci/deps/azure-37-minimum_versions.yaml,
+          ci/deps/azure-37.yaml,
+          ci/deps/azure-37-locale_slow.yaml,
+          ci/deps/azure-37-slow.yaml,
+          ci/deps/azure-38.yaml,
+          ci/deps/azure-38-slow.yaml,
+          ci/deps/azure-38-locale.yaml,
+          ci/deps/azure-38-numpydev.yaml,
+          ci/deps/azure-39.yaml
+        ]
+      fail-fast: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Cache conda
+      uses: actions/cache@v1
+      env:
+        CACHE_NUMBER: 0
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+          hashFiles('${{ os.matrix.env-file }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ os.matrix.env-file }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
+
+    - name: Test
+      run: ci/run_tests.sh
+      if: always()
+
+    - name: Build Version
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+
+    - name: Publish test results
+      uses: actions/upload-artifact@master
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        files: /tmp/test_coverage.xml
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: true
