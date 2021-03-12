@@ -2672,7 +2672,7 @@ class MultiIndex(Index):
 
     def _get_indexer(
         self, target: Index, method=None, limit=None, tolerance=None
-    ) -> np.ndarray:
+    ) -> np.ndarray[np.intp]:
 
         # empty indexer
         if not len(target):

@@ -3,6 +3,7 @@ from typing import (
     Hashable,
     List,
     Optional,
+    Tuple,
 )
 import warnings
 
@@ -484,7 +485,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     def _get_indexer(
         self, target: Index, method=None, limit=None, tolerance=None
-    ) -> np.ndarray:
+    ) -> np.ndarray[np.intp]:
 
         if self.equals(target):
             return np.arange(len(self), dtype="intp")
@@ -492,11 +493,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._get_indexer_non_unique(target._values)[0]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
+    def get_indexer_non_unique(
+        self, target
+    ) -> Tuple[np.ndarray[np.intp], np.ndarray[np.intp]]:
         target = ibase.ensure_index(target)
         return self._get_indexer_non_unique(target._values)
 
-    def _get_indexer_non_unique(self, values: ArrayLike):
+    def _get_indexer_non_unique(
+        self, values: ArrayLike
+    ) -> Tuple[np.ndarray[np.intp], np.ndarray[np.intp]]:
         """
         get_indexer_non_unique but after unrapping the target Index object.
         """
@@ -515,7 +520,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             codes = self.categories.get_indexer(values)
 
         indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @doc(Index._convert_list_indexer)
     def _convert_list_indexer(self, keyarr):

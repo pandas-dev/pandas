@@ -3396,7 +3396,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def get_indexer(
         self, target, method=None, limit=None, tolerance=None
-    ) -> np.ndarray:
+    ) -> np.ndarray[np.intp]:
 
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
@@ -3421,7 +3421,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_indexer(
         self, target: Index, method=None, limit=None, tolerance=None
-    ) -> np.ndarray:
+    ) -> np.ndarray[np.intp]:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
 
@@ -5383,6 +5383,18 @@ class Index(IndexOpsMixin, PandasObject):
             return self.get_indexer(target, **kwargs)
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[True] = ...
+    ) -> np.ndarray[np.intp]:
+        ...
+
+    @overload
+    def _get_indexer_non_comparable(
+        self, target: Index, method, unique: Literal[False] = ...
+    ) -> Tuple[np.ndarray[np.intp], np.ndarray[np.intp]]:
+        ...
 
     @final
     def _get_indexer_non_comparable(self, target: Index, method, unique: bool = True):
