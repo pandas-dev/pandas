@@ -24,8 +24,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna_compat
 
-from pandas.core.arrays import ExtensionArray
-
 
 def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
     """
@@ -187,7 +185,7 @@ def extract_bool_array(mask: ArrayLike) -> np.ndarray:
     """
     If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
     """
-    if isinstance(mask, ExtensionArray):
+    if not isinstance(mask, np.ndarray):
         # We could have BooleanArray, Sparse[bool], ...
         #  Except for BooleanArray, this is equivalent to just
         #  np.asarray(mask, dtype=bool)
