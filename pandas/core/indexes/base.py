@@ -3876,7 +3876,14 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+    def join(
+        self,
+        other,
+        how: str_t = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
+    ):
         """
         Compute join_index and indexers to conform data
         structures to the new index.
