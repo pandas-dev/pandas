@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from typing import (
+    TYPE_CHECKING,
     List,
     Optional,
     Union,
@@ -43,6 +44,9 @@ from pandas.core.sorting import (
     get_group_index,
     get_group_index_sorter,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray
 
 
 class _Unstacker:
@@ -166,7 +170,7 @@ class _Unstacker:
 
         comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.lift
-        self.full_shape = ngroups, stride
+        self.full_shape = ngroups, int(stride)  # int() for mypy
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
         # error: Argument 1 to "zeros" has incompatible type "number"; expected
@@ -942,11 +946,11 @@ def _get_dummies_1d(
     data,
     prefix,
     prefix_sep="_",
-    dummy_na=False,
-    sparse=False,
-    drop_first=False,
+    dummy_na: bool = False,
+    sparse: bool = False,
+    drop_first: bool = False,
     dtype: Optional[Dtype] = None,
-):
+) -> DataFrame:
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
@@ -1045,7 +1049,9 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
-def _reorder_for_extension_array_stack(arr, n_rows: int, n_columns: int):
+def _reorder_for_extension_array_stack(
+    arr: ExtensionArray, n_rows: int, n_columns: int
+) -> ExtensionArray:
     """
     Re-orders the values when stacking multiple extension-arrays.
 

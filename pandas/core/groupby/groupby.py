@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -85,6 +84,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
+    ExtensionArray,
 )
 from pandas.core.base import (
     DataError,
@@ -2271,28 +2271,18 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference = None
+            inference: Optional[np.dtype] = None
             if is_integer_dtype(vals.dtype):
-                if is_extension_array_dtype(vals.dtype):
-                    # error: "ndarray" has no attribute "to_numpy"
-                    vals = vals.to_numpy(  # type: ignore[attr-defined]
-                        dtype=float, na_value=np.nan
-                    )
-                inference = np.int64
-            elif is_bool_dtype(vals.dtype) and is_extension_array_dtype(vals.dtype):
-                # error: "ndarray" has no attribute "to_numpy"
-                vals = vals.to_numpy(  # type: ignore[attr-defined]
-                    dtype=float, na_value=np.nan
-                )
+                if isinstance(vals, ExtensionArray):
+                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
+                inference = np.dtype(np.int64)
+            elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
+                vals = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
-                # error: Incompatible types in assignment (expression has type
-                # "str", variable has type "Optional[Type[int64]]")
-                inference = "datetime64[ns]"  # type: ignore[assignment]
+                inference = np.dtype("datetime64[ns]")
                 vals = np.asarray(vals).astype(float)
             elif is_timedelta64_dtype(vals.dtype):
-                # error: Incompatible types in assignment (expression has type "str",
-                # variable has type "Optional[Type[signedinteger[Any]]]")
-                inference = "timedelta64[ns]"  # type: ignore[assignment]
+                inference = np.dtype("timedelta64[ns]")
                 vals = np.asarray(vals).astype(float)
 
             return vals, inference
