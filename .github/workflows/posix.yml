@@ -45,6 +45,11 @@ jobs:
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
           hashFiles('${{ matrix.env-file }}') }}
 
+    - name: Install extra
+      run:
+        sudo apt-get update
+        sudo apt-get install -y libc6-dev-i386 $EXTRA_APT
+
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev

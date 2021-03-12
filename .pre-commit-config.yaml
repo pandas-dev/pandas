@@ -54,8 +54,8 @@ repos:
     rev: v0.1.7
     hooks:
     -   id: no-string-hints
--   repo: https://github.com/asottile/pyupgrade
-    rev: v2.10.0
+-   repo: https://github.com/MarcoGorelli/pyupgrade
+    rev: d2377ca4226ff8a3f1ad5324373671694322b9ff
     hooks:
     -   id: pyupgrade
         args: [--py37-plus, --keep-runtime-typing]

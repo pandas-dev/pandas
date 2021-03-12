@@ -833,7 +833,7 @@ class Block(PandasObject):
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(pairs):
-            new_rb: List["Block"] = []
+            new_rb: List[Block] = []
             for blk in rb:
                 m = masks[i]
                 convert = i == src_len  # only convert once at the end
