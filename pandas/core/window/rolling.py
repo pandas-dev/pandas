@@ -1354,7 +1354,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -1392,7 +1392,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -2137,7 +2137,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -2262,7 +2262,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
+        other: Optional[FrameOrSeriesUnion] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
