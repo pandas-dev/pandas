@@ -2288,7 +2288,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 inference = np.dtype("timedelta64[ns]")
                 out = np.asarray(vals).astype(float)
             else:
-                out = np.asarray(out)
+                out = np.asarray(vals)
 
             return out, inference
 
