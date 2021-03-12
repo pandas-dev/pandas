@@ -603,7 +603,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-        # with mixed dataframe
+    def test_loc_setitem_frame_with_reindex_mixed(self):
+        # same test as above, but with mixed dataframe
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
