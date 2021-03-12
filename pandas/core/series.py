@@ -4220,7 +4220,13 @@ Keep all original rows and also all original values
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
 
-    def _reindex_indexer(self, new_index, indexer, copy):
+    def _reindex_indexer(
+        self,
+        new_index: Optional[Index],
+        indexer: Optional[np.ndarray[np.intp]],
+        copy: bool,
+    ) -> Series:
+        # Note: new_index is None iff indexer is None
         if indexer is None:
             if copy:
                 return self.copy()
@@ -4231,7 +4237,7 @@ Keep all original rows and also all original values
         )
         return self._constructor(new_values, index=new_index)
 
-    def _needs_reindex_multi(self, axes, method, level):
+    def _needs_reindex_multi(self, axes, method, level) -> bool:
         """
         Check if we do need a multi reindex; this is for compat with
         higher dims.
