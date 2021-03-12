@@ -16,6 +16,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -453,43 +454,38 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
+    @overload
+    def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
+        ...
+
+    @overload
+    def view(self, dtype: Optional[Dtype] = ...) -> ArrayLike:
+        ...
+
     def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period
         #  dtypes here. Everything else we pass through to the underlying
         #  ndarray.
         if dtype is None or dtype is self.dtype:
-            # error: Incompatible return value type (got "DatetimeLikeArrayMixin",
-            # expected "ndarray")
-            return type(self)(  # type: ignore[return-value]
-                self._ndarray, dtype=self.dtype
-            )
+            return type(self)(self._ndarray, dtype=self.dtype)
 
         if isinstance(dtype, type):
             # we sometimes pass non-dtype objects, e.g np.ndarray;
             #  pass those through to the underlying ndarray
-
-            # error: Incompatible return value type (got "ndarray", expected
-            # "ExtensionArray")
-            return self._ndarray.view(dtype)  # type: ignore[return-value]
+            return self._ndarray.view(dtype)
 
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
             cls = dtype.construct_array_type()
-            # error: Incompatible return value type (got "Union[PeriodArray,
-            # DatetimeArray]", expected "ndarray")
-            return cls(self.asi8, dtype=dtype)  # type: ignore[return-value]
+            return cls(self.asi8, dtype=dtype)
         elif dtype == "M8[ns]":
             from pandas.core.arrays import DatetimeArray
 
-            # error: Incompatible return value type (got "DatetimeArray", expected
-            # "ndarray")
-            return DatetimeArray(self.asi8, dtype=dtype)  # type: ignore[return-value]
+            return DatetimeArray(self.asi8, dtype=dtype)
         elif dtype == "m8[ns]":
             from pandas.core.arrays import TimedeltaArray
 
-            # error: Incompatible return value type (got "TimedeltaArray", expected
-            # "ndarray")
-            return TimedeltaArray(self.asi8, dtype=dtype)  # type: ignore[return-value]
+            return TimedeltaArray(self.asi8, dtype=dtype)
         # error: Incompatible return value type (got "ndarray", expected
         # "ExtensionArray")
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
@@ -871,9 +867,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # Null Handling
 
-    # error: Return type "ndarray" of "isna" incompatible with return type "ArrayLike"
-    # in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
@@ -1789,8 +1783,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             freq = to_offset(self.inferred_freq)
 
         arr = self.view()
-        # error: "ExtensionArray" has no attribute "_freq"
-        arr._freq = freq  # type: ignore[attr-defined]
+        arr._freq = freq
         return arr
 
     # --------------------------------------------------------------

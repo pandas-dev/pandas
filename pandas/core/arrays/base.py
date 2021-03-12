@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -70,6 +71,16 @@ from pandas.core.sorting import (
     nargminmax,
     nargsort,
 )
+
+if TYPE_CHECKING:
+
+    class ExtensionArraySupportsAnyAll("ExtensionArray"):
+        def any(self, *, skipna: bool = True) -> bool:
+            pass
+
+        def all(self, *, skipna: bool = True) -> bool:
+            pass
+
 
 _extension_array_shared_docs: Dict[str, str] = {}
 
@@ -380,7 +391,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item) -> Union[bool, np.bool_]:
         """
         Return for `item in self`.
         """
@@ -391,8 +402,7 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                # error: "ExtensionArray" has no attribute "any"
-                return self.isna().any()  # type: ignore[attr-defined]
+                return self.isna().any()
             else:
                 return False
         else:
@@ -543,7 +553,7 @@ class ExtensionArray:
 
         return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> ArrayLike:
+    def isna(self) -> Union[np.ndarray, ExtensionArraySupportsAnyAll]:
         """
         A 1-D array indicating if each value is missing.
 
@@ -648,8 +658,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: "ExtensionArray" has no attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[attr-defined]
+        if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -673,8 +682,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        # error: "ExtensionArray" has no attribute "any"
-        if not skipna and self.isna().any():  # type: ignore[attr-defined]
+        if not skipna and self.isna().any():
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -714,8 +722,7 @@ class ExtensionArray:
             value, mask, len(self)  # type: ignore[arg-type]
         )
 
-        # error: "ExtensionArray" has no attribute "any"
-        if mask.any():  # type: ignore[attr-defined]
+        if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values, _ = func(self.astype(object), limit=limit, mask=mask)
@@ -1156,9 +1163,7 @@ class ExtensionArray:
         #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
-        # error: Incompatible return value type (got "Union[ExtensionArray, Any]",
-        # expected "ndarray")
-        return self[:]  # type: ignore[return-value]
+        return self[:]
 
     # ------------------------------------------------------------------------
     # Printing

@@ -116,11 +116,9 @@ def hash_pandas_object(
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCIndex):
-        # error: Value of type variable "ArrayLike" of "hash_array" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        h = hash_array(  # type: ignore[type-var]
-            obj._values, encoding, hash_key, categorize
-        ).astype("uint64", copy=False)
+        h = hash_array(obj._values, encoding, hash_key, categorize).astype(
+            "uint64", copy=False
+        )
         # error: Incompatible types in assignment (expression has type "Series",
         # variable has type "ndarray")
         h = Series(h, index=obj, dtype="uint64", copy=False)  # type: ignore[assignment]
@@ -297,17 +295,13 @@ def hash_array(
     # hash values. (This check is above the complex check so that we don't ask
     # numpy if categorical is a subdtype of complex, as it will choke).
     if is_categorical_dtype(dtype):
-        # error: Incompatible types in assignment (expression has type "Categorical",
-        # variable has type "ndarray")
-        vals = cast("Categorical", vals)  # type: ignore[assignment]
-        # error: Argument 1 to "_hash_categorical" has incompatible type "ndarray";
-        # expected "Categorical"
-        return _hash_categorical(vals, encoding, hash_key)  # type: ignore[arg-type]
+        vals = cast("Categorical", vals)
+        return _hash_categorical(vals, encoding, hash_key)
     elif is_extension_array_dtype(dtype):
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
-        # error: "ndarray" has no attribute "_values_for_factorize"
-        vals, _ = vals._values_for_factorize()  # type: ignore[assignment,attr-defined]
+        # pandas/core/util/hashing.py:301: error: Item "ndarray" of
+        # "Union[ExtensionArray, ndarray]" has no attribute "_values_for_factorize"
+        # [union-attr]
+        vals, _ = vals._values_for_factorize()  # type: ignore[union-attr]
 
     # error: Argument 1 to "_hash_ndarray" has incompatible type "ExtensionArray";
     # expected "ndarray"

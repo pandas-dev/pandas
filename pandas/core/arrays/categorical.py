@@ -550,8 +550,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 new_cats, libalgos.ensure_platform_int(self._codes)
             )
 
-        # error: Incompatible return value type (got "Categorical", expected "ndarray")
-        return result  # type: ignore[return-value]
+        return result
 
     @cache_readonly
     def itemsize(self) -> int:
@@ -2659,8 +2658,9 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     # Only hit here when we've already coerced to object dtypee.
 
     hash_klass, vals = get_data_algo(values)
-    # error: Value of type variable "ArrayLike" of "get_data_algo" cannot be "Index"
-    _, cats = get_data_algo(categories)  # type: ignore[type-var]
+    # pandas/core/arrays/categorical.py:2661: error: Argument 1 to "get_data_algo" has
+    # incompatible type "Index"; expected "Union[ExtensionArray, ndarray]"  [arg-type]
+    _, cats = get_data_algo(categories)  # type: ignore[arg-type]
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)

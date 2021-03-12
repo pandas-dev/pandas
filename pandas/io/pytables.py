@@ -2362,8 +2362,9 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: "ExtensionDtype" has no attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[attr-defined]
+        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, dtype[Any]]" has no
+        # attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[union-attr]
 
         shape = values.shape
         if values.ndim == 1:
@@ -4845,9 +4846,9 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     assert isinstance(name, str)
 
     index_name = index.name
-    # error: Value of type variable "ArrayLike" of "_get_data_and_dtype_name"
-    # cannot be "Index"
-    converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[type-var]
+    # error: Argument 1 to "_get_data_and_dtype_name" has incompatible type "Index";
+    # expected "Union[ExtensionArray, ndarray]"
+    converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[arg-type]
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
@@ -5169,26 +5170,20 @@ def _get_data_and_dtype_name(data: ArrayLike):
     Convert the passed data into a storable form and a dtype string.
     """
     if isinstance(data, Categorical):
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "ExtensionArray")
-        data = data.codes  # type: ignore[assignment]
+        data = data.codes
 
     # For datetime64tz we need to drop the TZ in tests TODO: why?
     dtype_name = data.dtype.name.split("[")[0]
 
     if data.dtype.kind in ["m", "M"]:
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
-        data = np.asarray(data.view("i8"))  # type: ignore[assignment]
+        data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?
 
     elif isinstance(data, PeriodIndex):
         data = data.asi8
 
-    # error: Incompatible types in assignment (expression has type "ndarray", variable
-    # has type "ExtensionArray")
-    data = np.asarray(data)  # type: ignore[assignment]
+    data = np.asarray(data)
     return data, dtype_name
 
 

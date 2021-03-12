@@ -164,13 +164,9 @@ def _isna(obj, inf_as_na: bool = False):
     elif isinstance(obj, type):
         return False
     elif isinstance(obj, (np.ndarray, ABCExtensionArray)):
-        # error: Value of type variable "ArrayLike" of "_isna_array" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        return _isna_array(obj, inf_as_na=inf_as_na)  # type: ignore[type-var]
+        return _isna_array(obj, inf_as_na=inf_as_na)
     elif isinstance(obj, (ABCSeries, ABCIndex)):
-        # error: Value of type variable "ArrayLike" of "_isna_array" cannot be
-        # "Union[Any, ExtensionArray, ndarray]"
-        result = _isna_array(obj._values, inf_as_na=inf_as_na)  # type: ignore[type-var]
+        result = _isna_array(obj._values, inf_as_na=inf_as_na)
         # box
         if isinstance(obj, ABCSeries):
             result = obj._constructor(
@@ -238,13 +234,15 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
 
     if is_extension_array_dtype(dtype):
         if inf_as_na and is_categorical_dtype(dtype):
-            # error: "ndarray" has no attribute "to_numpy"
+            # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
+            # "to_numpy"
             result = libmissing.isnaobj_old(
-                values.to_numpy()  # type: ignore[attr-defined]
+                values.to_numpy()  # type: ignore[union-attr]
             )
         else:
-            # error: "ndarray" has no attribute "isna"
-            result = values.isna()  # type: ignore[attr-defined]
+            # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
+            # "isna"
+            result = values.isna()  # type: ignore[union-attr]
     elif is_string_dtype(dtype):
         # error: Argument 1 to "_isna_string_dtype" has incompatible type
         # "ExtensionArray"; expected "ndarray"

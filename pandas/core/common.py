@@ -500,13 +500,7 @@ def convert_to_list_like(
     inputs are returned unmodified whereas others are converted to list.
     """
     if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        # error: Incompatible return value type (got "Union[Any, List[Any], Index,
-        # Series, ExtensionArray]", expected "Union[List[Any], ExtensionArray]")
-        # error: Incompatible return value type (got "Union[Any, List[Any], Index,
-        # Series, ExtensionArray]", expected "Union[List[Any], Index]")
-        # error: Incompatible return value type (got "Union[Any, List[Any], Index,
-        # Series, ExtensionArray]", expected "Union[List[Any], Series]")
-        return values  # type: ignore[return-value]
+        return values
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)
 

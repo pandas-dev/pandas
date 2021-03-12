@@ -131,12 +131,7 @@ def _get_same_shape_values(
         # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
         rvals = rvals[0, :]  # type: ignore[index]
 
-    # error: Incompatible return value type (got "Tuple[Union[ndarray, ExtensionArray],
-    # Union[ndarray, ExtensionArray]]", expected "Tuple[ExtensionArray,
-    # ExtensionArray]")
-    # error: Incompatible return value type (got "Tuple[Union[ndarray, ExtensionArray],
-    # Union[ndarray, ExtensionArray]]", expected "Tuple[ndarray, ndarray]")
-    return lvals, rvals  # type: ignore[return-value]
+    return lvals, rvals
 
 
 def blockwise_all(left: BlockManager, right: BlockManager, op) -> bool:

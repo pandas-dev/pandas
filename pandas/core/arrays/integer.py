@@ -369,9 +369,7 @@ class IntegerArray(NumericArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            # error: Incompatible return value type (got "ExtensionArray", expected
-            # "ndarray")
-            return super().astype(dtype, copy=copy)  # type: ignore[return-value]
+            return super().astype(dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):
@@ -384,11 +382,7 @@ class IntegerArray(NumericArray):
         else:
             na_value = lib.no_default
 
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return self.to_numpy(  # type: ignore[return-value]
-            dtype=dtype, na_value=na_value, copy=False
-        )
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """

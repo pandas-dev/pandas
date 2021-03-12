@@ -720,9 +720,7 @@ class MultiIndex(Index):
         return arr
 
     @property
-    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
-    # in supertype "Index"
-    def values(self) -> np.ndarray:  # type: ignore[override]
+    def values(self) -> np.ndarray:
         return self._values
 
     @property

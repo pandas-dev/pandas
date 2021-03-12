@@ -1561,7 +1561,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
         formatter = self.formatter
         if formatter is None:
-            formatter = values._formatter(boxed=True)
+            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
+            # no attribute "_formatter"
+            formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo

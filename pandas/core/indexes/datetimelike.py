@@ -136,9 +136,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # Abstract data attributes
 
     @property
-    # error: Return type "ndarray" of "values" incompatible with return type "ArrayLike"
-    # in supertype "Index"
-    def values(self) -> np.ndarray:  # type: ignore[override]
+    def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._ndarray
 
@@ -530,10 +528,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
         arr = self._data.view()
-        # error: "ExtensionArray" has no attribute "_freq"
-        arr._freq = self.freq  # type: ignore[attr-defined]
-        # error: "ExtensionArray" has no attribute "_time_shift"
-        result = arr._time_shift(periods, freq=freq)  # type: ignore[attr-defined]
+        arr._freq = self.freq
+        result = arr._time_shift(periods, freq=freq)
         return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------

@@ -460,11 +460,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Input is now list-like, so rely on "standard" construction:
 
         # TODO: passing np.float64 to not break anything yet. See GH-17261
-
-        # error: Value of type variable "ArrayLike" of
-        # "create_series_with_explicit_dtype" cannot be "Tuple[Any, ...]"
-        s = create_series_with_explicit_dtype(  # type: ignore[type-var]
-            values, index=keys, dtype=dtype, dtype_if_empty=np.float64
+        s = create_series_with_explicit_dtype(
+            # error: Argument "index" to "create_series_with_explicit_dtype" has
+            # incompatible type "Tuple[Any, ...]"; expected "Union[ExtensionArray,
+            # ndarray, Index, None]"
+            values,
+            index=keys,  # type: ignore[arg-type]
+            dtype=dtype,
+            dtype_if_empty=np.float64,
         )
 
         # Now we just make sure the order is respected, if any
@@ -3003,10 +3006,13 @@ Keep all original rows and also all original values
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
 
-            # error: Value of type variable "ArrayLike" of
-            # "maybe_cast_to_extension_array" cannot be "List[Any]"
-            new_values = maybe_cast_to_extension_array(
-                type(self._values), new_values  # type: ignore[type-var]
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "List[Any]")
+            new_values = maybe_cast_to_extension_array(  # type: ignore[assignment]
+                # error: Argument 2 to "maybe_cast_to_extension_array" has incompatible
+                # type "List[Any]"; expected "Union[ExtensionArray, ndarray]"
+                type(self._values),
+                new_values,  # type: ignore[arg-type]
             )
         return self._constructor(new_values, index=new_index, name=new_name)
 

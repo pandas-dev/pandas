@@ -165,8 +165,9 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
-            # error: "ndarray" has no attribute "to_numpy"
-            return arr.to_numpy(  # type: ignore[attr-defined]
+            # pandas/core/dtypes/common.py:168: error: Item "ndarray" of
+            # "Union[ExtensionArray, ndarray]" has no attribute "to_numpy"  [union-attr]
+            return arr.to_numpy(  # type: ignore[union-attr]
                 dtype="float64", na_value=np.nan
             )
         return arr.astype("float64", copy=copy)

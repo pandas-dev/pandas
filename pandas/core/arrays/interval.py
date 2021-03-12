@@ -911,9 +911,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
-    # error: Return type "ndarray" of "isna" incompatible with return type
-    # "ArrayLike" in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         return isna(self._left)
 
     def shift(
@@ -1573,9 +1571,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_dtype_equal(self.dtype, values.dtype):
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
-
-                # error: "ArrayLike" has no attribute "view"
-                left = self._combined.view("complex128")  # type:ignore[attr-defined]
+                left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)
 
@@ -1618,10 +1614,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
-
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return np.array([], dtype=np.int64)  # type: ignore[return-value]
+        return np.array([], dtype=np.int64)
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
         # This will raise later, but we avoid passing to maybe_convert_platform
         return values
@@ -1633,5 +1626,4 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
-    return maybe_convert_platform(values)  # type: ignore[return-value]
+    return maybe_convert_platform(values)

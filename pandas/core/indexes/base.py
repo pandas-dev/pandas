@@ -2993,11 +2993,7 @@ class Index(IndexOpsMixin, PandasObject):
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
         if len(missing) > 0:
-            # error: Value of type variable "ArrayLike" of "take_nd" cannot be
-            # "Union[ExtensionArray, ndarray]"
-            other_diff = algos.take_nd(
-                rvals, missing, allow_fill=False  # type: ignore[type-var]
-            )
+            other_diff = algos.take_nd(rvals, missing, allow_fill=False)
             result = concat_compat((lvals, other_diff))
         else:
             # error: Incompatible types in assignment (expression has type
@@ -4389,11 +4385,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ExtensionArray")
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return self._data  # type: ignore[return-value]
+        return self._data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -4714,9 +4706,7 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        # error: Value of type variable "ArrayLike" of "validate_putmask" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        mask, noop = validate_putmask(self._values, mask)  # type: ignore[type-var]
+        mask, noop = validate_putmask(self._values, mask)
         if noop:
             return self.copy()
 
@@ -5600,9 +5590,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        # error: Value of type variable "AnyArrayLike" of "isin" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        return algos.isin(self._values, values)  # type: ignore[type-var]
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
@@ -6023,11 +6011,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                # error: Value of type variable "ArrayLike" of "comparison_op" cannot be
-                # "Union[ExtensionArray, ndarray]"
-                result = ops.comparison_op(
-                    self._values, other, op  # type: ignore[type-var]
-                )
+                result = ops.comparison_op(self._values, other, op)
 
         return result
 
