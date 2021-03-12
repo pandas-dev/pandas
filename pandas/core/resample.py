@@ -24,7 +24,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
-    FrameOrSeries,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -1743,10 +1742,7 @@ class TimeGrouper(Grouper):
         return binner, bins, labels
 
 
-# TODO: type indexer as ndarray[np.intp] once dtypes can be annotated
-def _take_new_index(
-    obj: FrameOrSeries, indexer: np.ndarray, new_index, axis: int = 0
-) -> FrameOrSeries:
+def _take_new_index(obj, indexer, new_index, axis=0):
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
