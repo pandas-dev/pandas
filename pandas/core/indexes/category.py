@@ -489,9 +489,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
-        # error: Value of type variable "ArrayLike" of "_get_indexer_non_unique" of
-        # "CategoricalIndex" cannot be "Union[ExtensionArray, ndarray]"
-        return self._get_indexer_non_unique(target._values)[0]  # type: ignore[type-var]
+        return self._get_indexer_non_unique(target._values)[0]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):

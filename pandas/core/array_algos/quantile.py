@@ -40,10 +40,9 @@ def quantile_compat(values: ArrayLike, qs, interpolation: str, axis: int) -> Arr
     if isinstance(values, np.ndarray):
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
-        result = quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
+        return quantile_with_mask(values, mask, fill_value, qs, interpolation, axis)
     else:
-        result = quantile_ea_compat(values, qs, interpolation, axis)
-    return result
+        return quantile_ea_compat(values, qs, interpolation, axis)
 
 
 def quantile_with_mask(
