@@ -515,7 +515,7 @@ class TestToDatetime:
         assert actual == datetime(2008, 1, 15)
 
     def test_to_datetime_unparseable_ignore(self):
-        # unparseable
+        # unparsable
         s = "Month 1, 1999"
         assert to_datetime(s, errors="ignore") == s
 
@@ -2469,7 +2469,7 @@ def test_empty_string_datetime_coerce__format():
     with pytest.raises(ValueError, match="does not match format"):
         result = to_datetime(td, format=format, errors="raise")
 
-    # don't raise an expection in case no format is given
+    # don't raise an exception in case no format is given
     result = to_datetime(td, errors="raise")
     tm.assert_series_equal(result, expected)
 
