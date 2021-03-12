@@ -6,6 +6,7 @@ from typing import (
     List,
     Optional,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -1033,6 +1034,8 @@ def _get_dummies_1d(
             sparse_series.append(Series(data=sarr, index=index, name=col))
 
         out = concat(sparse_series, axis=1, copy=False)
+        # TODO: overload concat with Literal for axis
+        out = cast(DataFrame, out)
         return out
 
     else:
