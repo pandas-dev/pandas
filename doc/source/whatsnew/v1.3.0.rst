@@ -623,7 +623,7 @@ Reshaping
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
 - Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
 - Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
--
+- Bug in :meth:`DataFrame.stack` not preserving ``CategoricalDtype`` in a ``MultiIndex`` (:issue:`36991`)
 
 Sparse
 ^^^^^^
@@ -645,7 +645,7 @@ Other
 - Bug in :func:`pandas.api.types.infer_dtype` not recognizing Series, Index or array with a period dtype (:issue:`23553`)
 - Bug in :func:`pandas.api.types.infer_dtype` raising an error for general :class:`.ExtensionArray` objects. It will now return ``"unknown-array"`` instead of raising (:issue:`37367`)
 - Bug in constructing a :class:`Series` from a list and a :class:`PandasDtype` (:issue:`39357`)
-- Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`)
+- Bug in :class:`Styler` which caused CSS to duplicate on multiple renders. (:issue:`39395`, :issue:`40334`)
 - ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
 - Bug in :meth:`Series.where` with numeric dtype and ``other = None`` not casting to ``nan`` (:issue:`39761`)
 - :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
