@@ -3655,6 +3655,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self._consolidate_inplace()
 
+        indices = extract_array(indices, extract_numpy=True)
         new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
