@@ -21,6 +21,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -165,6 +166,8 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -3876,7 +3879,36 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+    @overload
+    def join(
+        self,
+        other: Index,
+        how: str = "left",
+        level=None,
+        return_indexers: Literal[True] = ...,
+        sort: bool = False,
+    ) -> Tuple[Index, Optional[np.ndarray[np.intp]], Optional[np.ndarray[np.intp]]]:
+        ...
+
+    @overload
+    def join(
+        self,
+        other: Index,
+        how: str = "left",
+        level=None,
+        return_indexers: Literal[False] = ...,
+        sort: bool = False,
+    ) -> Index:
+        ...
+
+    def join(
+        self,
+        other: Index,
+        how: str = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
+    ):
         """
         Compute join_index and indexers to conform data
         structures to the new index.
@@ -3918,7 +3950,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(other) == 0 and how in ("left", "outer"):
             join_index = self._view()
             if return_indexers:
-                rindexer = np.repeat(-1, len(join_index))
+                rindexer = -1 * np.ones(len(join_index), dtype=np.intp)
                 return join_index, None, rindexer
             else:
                 return join_index
@@ -3926,7 +3958,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) == 0 and how in ("right", "outer"):
             join_index = other._view()
             if return_indexers:
-                lindexer = np.repeat(-1, len(join_index))
+                lindexer = -1 * np.ones(len(join_index), dtype=np.intp)
                 return join_index, lindexer, None
             else:
                 return join_index
@@ -4001,18 +4033,34 @@ class Index(IndexOpsMixin, PandasObject):
                 lindexer = None  # type: ignore[assignment]
             else:
                 lindexer = self.get_indexer(join_index)
+                lindexer = ensure_platform_int(lindexer)
             if join_index is other:
                 # error: Incompatible types in assignment (expression has type "None",
                 # variable has type "ndarray")
                 rindexer = None  # type: ignore[assignment]
             else:
                 rindexer = other.get_indexer(join_index)
+                rindexer = ensure_platform_int(rindexer)
             return join_index, lindexer, rindexer
         else:
             return join_index
 
+    @overload
+    def _join_multi(
+        self, other: Index, how: str = "left", return_indexers: Literal[True] = ...
+    ) -> Tuple[
+        MultiIndex, Optional[np.ndarray[np.intp]], Optional[np.ndarray[np.intp]]
+    ]:
+        ...
+
+    @overload
+    def _join_multi(
+        self, other: Index, how: str = "left", return_indexers: Literal[False] = ...
+    ) -> MultiIndex:
+        ...
+
     @final
-    def _join_multi(self, other, how, return_indexers=True):
+    def _join_multi(self, other: Index, how: str, return_indexers: bool = True):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4090,8 +4138,22 @@ class Index(IndexOpsMixin, PandasObject):
             return result[0], result[2], result[1]
         return result
 
+    @overload
+    def _join_non_unique(
+        self, other: Index, how: str = "left", return_indexers: Literal[True] = ...
+    ) -> Tuple[Index, Optional[np.ndarray[np.intp]], Optional[np.ndarray[np.intp]]]:
+        ...
+
+    @overload
+    def _join_non_unique(
+        self, other: Index, how: str = "left", return_indexers: Literal[False] = ...
+    ) -> Index:
+        ...
+
     @final
-    def _join_non_unique(self, other, how="left", return_indexers=False):
+    def _join_non_unique(
+        self, other: Index, how: str = "left", return_indexers: bool = False
+    ):
         from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
@@ -4122,9 +4184,38 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @overload
+    def _join_level(
+        self,
+        other: Index,
+        level,
+        how: str = "left",
+        return_indexers: bool = False,
+        keep_order: bool = True,
+    ) -> Tuple[
+        MultiIndex, Optional[np.ndarray[np.intp]], Optional[np.ndarray[np.intp]]
+    ]:
+        ...
+
+    @overload
+    def _join_level(
+        self,
+        other: Index,
+        level,
+        how: str = "left",
+        return_indexers: bool = False,
+        keep_order: bool = True,
+    ) -> MultiIndex:
+        ...
+
     @final
     def _join_level(
-        self, other, level, how="left", return_indexers=False, keep_order=True
+        self,
+        other: Index,
+        level,
+        how: str = "left",
+        return_indexers: bool = False,
+        keep_order: bool = True,
     ):
         """
         The join method *only* affects the level of the resulting
@@ -4264,8 +4355,20 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @overload
+    def _join_monotonic(
+        self, other, how: str = "left", return_indexers: Literal[True] = ...
+    ) -> Tuple[Index, Optional[np.ndarray[np.intp]], Optional[np.ndarray[np.intp]]]:
+        ...
+
+    @overload
+    def _join_monotonic(
+        self, other, how: str = "left", return_indexers: Literal[False] = ...
+    ) -> Index:
+        ...
+
     @final
-    def _join_monotonic(self, other, how="left", return_indexers=False):
+    def _join_monotonic(self, other, how: str = "left", return_indexers: bool = False):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
 
