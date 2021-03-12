@@ -922,10 +922,10 @@ class Styler:
 
         (application method, *args, **kwargs)
         """
+        self.ctx.clear()
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
-        self._todo = []
         return r
 
     def _apply(
@@ -1775,7 +1775,11 @@ class Styler:
 
         if props is None:
             props = f"background-color: {null_color};"
-        return self.apply(f, axis=None, subset=subset, props=props)
+        # error: Argument 1 to "apply" of "Styler" has incompatible type
+        # "Callable[[DataFrame, str], ndarray]"; expected "Callable[..., Styler]"
+        return self.apply(
+            f, axis=None, subset=subset, props=props  # type: ignore[arg-type]
+        )
 
     def highlight_max(
         self,
@@ -1818,7 +1822,11 @@ class Styler:
 
         if props is None:
             props = f"background-color: {color};"
-        return self.apply(f, axis=axis, subset=subset, props=props)
+        # error: Argument 1 to "apply" of "Styler" has incompatible type
+        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
+        return self.apply(
+            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+        )
 
     def highlight_min(
         self,
@@ -1861,7 +1869,11 @@ class Styler:
 
         if props is None:
             props = f"background-color: {color};"
-        return self.apply(f, axis=axis, subset=subset, props=props)
+        # error: Argument 1 to "apply" of "Styler" has incompatible type
+        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
+        return self.apply(
+            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+        )
 
     @classmethod
     def from_custom_template(cls, searchpath, name):

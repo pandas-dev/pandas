@@ -617,7 +617,12 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        result = np.asarray(self._values, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
+        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        result = np.asarray(self._values, dtype=dtype)  # type: ignore[arg-type]
         # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
             result = result.copy()
@@ -735,7 +740,11 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmax()
         else:
-            return nanops.nanargmax(delegate, skipna=skipna)
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return nanops.nanargmax(  # type: ignore[return-value]
+                delegate, skipna=skipna
+            )
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -793,7 +802,11 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmin()
         else:
-            return nanops.nanargmin(delegate, skipna=skipna)
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return nanops.nanargmin(  # type: ignore[return-value]
+                delegate, skipna=skipna
+            )
 
     def tolist(self):
         """
