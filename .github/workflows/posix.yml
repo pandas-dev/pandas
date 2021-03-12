@@ -9,7 +9,7 @@ on:
       - 1.2.x
 
 jobs:
-  py37:
+  pytest:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,6 +28,8 @@ jobs:
           ci/deps/azure-39.yaml
         ]
       fail-fast: true
+    env:
+      COVERAGE: true
 
     steps:
     - name: Checkout
