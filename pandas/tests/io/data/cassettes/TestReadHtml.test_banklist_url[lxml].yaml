@@ -1,0 +1,151 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - www.fdic.gov
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://www.fdic.gov/bank/individual/failed/banklist.html
+  response:
+    body:
+      string: "<html>\r\n<head><title>301 Moved Permanently</title></head>\r\n<body>\r\n<center><h1>301
+        Moved Permanently</h1></center>\r\n<hr><center>openresty</center>\r\n</body>\r\n</html>\r\n"
+    headers:
+      Age:
+      - '15623'
+      Connection:
+      - close
+      Content-Length:
+      - '166'
+      Content-Type:
+      - text/html
+      Date:
+      - Fri, 12 Mar 2021 16:55:35 GMT
+      Location:
+      - http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/banklist.html
+      Strict-Transport-Security:
+      - max-age=31536000
+      Via:
+      - 1.1 4db6285f05eea501ed4657d6127ec5f9.cloudfront.net (CloudFront)
+      X-Amz-Cf-Id:
+      - zWu8HDQFpCm6WBDpmpUSNUIVZYibcw75QU67xx_WM8N7KmvQANTJhg==
+      X-Amz-Cf-Pop:
+      - LAX50-C2
+      X-Cache:
+      - Hit from cloudfront
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+      X-Vcap-Request-Id:
+      - b40f583b-dd27-4749-7533-204177a59572
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 301
+      message: Moved Permanently
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - www.fdic.gov
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/banklist.html
+  response:
+    body:
+      string: "<html>\r\n<head><title>301 Moved Permanently</title></head>\r\n<body
+        bgcolor=\"white\">\r\n<center><h1>301 Moved Permanently</h1></center>\r\n<hr><center>CloudFront</center>\r\n</body>\r\n</html>\r\n"
+    headers:
+      Connection:
+      - close
+      Content-Length:
+      - '183'
+      Content-Type:
+      - text/html
+      Date:
+      - Fri, 12 Mar 2021 21:15:58 GMT
+      Location:
+      - https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/banklist.html
+      Server:
+      - CloudFront
+      Via:
+      - 1.1 c806365ba43eabe769161a7b339ff969.cloudfront.net (CloudFront)
+      X-Amz-Cf-Id:
+      - e5j_m2yZ60arwUoOFgV1arHcIV1lMC1TdxnTLpsjEiz8-k0dFxR5-g==
+      X-Amz-Cf-Pop:
+      - LAX50-C2
+      X-Cache:
+      - Redirect from cloudfront
+    status:
+      code: 301
+      message: Moved Permanently
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - www.fdic.gov
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/banklist.html
+  response:
+    body:
+      string: <meta http-equiv="refresh" content="0;URL='/resources/resolutions/bank-failures/failed-bank-list/'"
+        />
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Age:
+      - '20'
+      Cache-Control:
+      - max-age=30
+      Connection:
+      - close
+      Content-Length:
+      - '102'
+      Content-Security-Policy:
+      - require-sri-for script
+      Content-Type:
+      - text/html
+      Date:
+      - Fri, 12 Mar 2021 21:15:38 GMT
+      Expires:
+      - Fri, 12 Mar 2021 21:16:08 GMT
+      Strict-Transport-Security:
+      - max-age=31536000
+      Vary:
+      - Accept-Encoding,Accept-Encoding
+      Via:
+      - 1.1 c806365ba43eabe769161a7b339ff969.cloudfront.net (CloudFront)
+      X-Amz-Cf-Id:
+      - B63DDXf332BY9PelG1iy6YAnHpUXoDuij5b8OR1cn91uef3RhQ3tFw==
+      X-Amz-Cf-Pop:
+      - LAX50-C2
+      X-Amz-Version-Id:
+      - 2UZpGXatq6UoDZjOyCtzMrjuyRaxMmXo
+      X-Cache:
+      - Hit from cloudfront
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - ALLOW
+      X-Ua-Compatible:
+      - IE=Edge,chrome=1
+      X-Vcap-Request-Id:
+      - 66563381-f541-4af7-754d-631b54cec70d
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -61,6 +61,7 @@ dependencies:
   - pytest-xdist>=1.21
   - pytest-asyncio
   - pytest-instafail
+  - pytest-vcr
 
   # downstream tests
   - seaborn

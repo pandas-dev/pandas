@@ -1,0 +1,119 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - raw.github.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/parser/data/salaries.csv
+  response:
+    body:
+      string: ''
+    headers:
+      Accept-Ranges:
+      - bytes
+      Age:
+      - '1'
+      Connection:
+      - close
+      Content-Length:
+      - '0'
+      Date:
+      - Fri, 12 Mar 2021 21:13:43 GMT
+      Location:
+      - https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/io/parser/data/salaries.csv
+      Vary:
+      - Accept-Encoding
+      Via:
+      - 1.1 varnish
+      X-Cache:
+      - HIT
+      X-Cache-Hits:
+      - '1'
+      X-Fastly-Request-ID:
+      - 544bd0db839af743258a254265ad93b73e6f78c2
+      X-Served-By:
+      - cache-pao17442-PAO
+    status:
+      code: 301
+      message: Moved Permanently
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - raw.githubusercontent.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/io/parser/data/salaries.csv
+  response:
+    body:
+      string: "S\tX\tE\tM\n13876 \t1 \t1 \t1\n11608 \t1 \t3 \t0\n18701 \t1 \t3 \t1\n11283
+        \t1 \t2 \t0\n11767 \t1 \t3 \t0\n20872 \t2 \t2 \t1\n11772 \t2 \t2 \t0\n10535
+        \t2 \t1 \t0\n12195 \t2 \t3 \t0\n12313 \t3 \t2 \t0\n14975 \t3 \t1 \t1\n21371
+        \t3 \t2 \t1\n19800 \t3 \t3 \t1\n11417 \t4 \t1 \t0\n20263 \t4 \t3 \t1\n13231
+        \t4 \t3 \t0\n12884 \t4 \t2 \t0\n13245 \t5 \t2 \t0\n13677 \t5 \t3 \t0\n15965
+        \t5 \t1 \t1\n12336 \t6 \t1 \t0\n21352 \t6 \t3 \t1\n13839 \t6 \t2 \t0\n22884
+        \t6 \t2 \t1\n16978 \t7 \t1 \t1\n14803 \t8 \t2 \t0\n17404 \t8 \t1 \t1\n22184
+        \t8 \t3 \t1\n13548 \t8 \t1 \t0\n14467 \t10 \t1 \t0\n15942 \t10 \t2 \t0\n23174
+        \t10 \t3 \t1\n23780 \t10 \t2 \t1\n25410 \t11 \t2 \t1\n14861 \t11 \t1 \t0\n16882
+        \t12 \t2 \t0\n24170 \t12 \t3 \t1\n15990 \t13 \t1 \t0\n26330 \t13 \t2 \t1\n17949
+        \t14 \t2 \t0\n25685 \t15 \t3 \t1\n27837 \t16 \t2 \t1\n18838 \t16 \t2 \t0\n17483
+        \t16 \t1 \t0\n19207 \t17 \t2 \t0\n19346 \t20 \t1 \t0\n"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - max-age=300
+      Connection:
+      - close
+      Content-Length:
+      - '715'
+      Content-Security-Policy:
+      - default-src 'none'; style-src 'unsafe-inline'; sandbox
+      Content-Type:
+      - text/plain; charset=utf-8
+      Date:
+      - Fri, 12 Mar 2021 21:13:44 GMT
+      ETag:
+      - '"040ad4cd4b5cefc3e0fe83b3abb066d87e0888f409501ec6c868713cd17962bb"'
+      Expires:
+      - Fri, 12 Mar 2021 21:18:44 GMT
+      Source-Age:
+      - '1'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Vary:
+      - Authorization,Accept-Encoding
+      Via:
+      - 1.1 varnish
+      X-Cache:
+      - HIT
+      X-Cache-Hits:
+      - '1'
+      X-Content-Type-Options:
+      - nosniff
+      X-Fastly-Request-ID:
+      - 413f47cf1a014e1120a6150ec653d6e71d48eca6
+      X-Frame-Options:
+      - deny
+      X-GitHub-Request-Id:
+      - C37A:8BBB:4C39C:A282F:604BC05E
+      X-Served-By:
+      - cache-pao17465-PAO
+      X-Timer:
+      - S1615583624.126583,VS0,VE1
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

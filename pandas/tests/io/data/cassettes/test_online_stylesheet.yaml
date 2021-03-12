@@ -1,0 +1,161 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - www.w3schools.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://www.w3schools.com/xml/cdcatalog_with_xsl.xml
+  response:
+    body:
+      string: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<?xml-stylesheet type=\"text/xsl\"
+        href=\"cdcatalog.xsl\"?>\r\n<catalog>\r\n  <cd>\r\n    <title>Empire Burlesque</title>\r\n
+        \   <artist>Bob Dylan</artist>\r\n    <country>USA</country>\r\n    <company>Columbia</company>\r\n
+        \   <price>10.90</price>\r\n    <year>1985</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Hide your heart</title>\r\n    <artist>Bonnie Tyler</artist>\r\n
+        \   <country>UK</country>\r\n    <company>CBS Records</company>\r\n    <price>9.90</price>\r\n
+        \   <year>1988</year>\r\n  </cd>\r\n  <cd>\r\n    <title>Greatest Hits</title>\r\n
+        \   <artist>Dolly Parton</artist>\r\n    <country>USA</country>\r\n    <company>RCA</company>\r\n
+        \   <price>9.90</price>\r\n    <year>1982</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Still got the blues</title>\r\n    <artist>Gary Moore</artist>\r\n
+        \   <country>UK</country>\r\n    <company>Virgin records</company>\r\n    <price>10.20</price>\r\n
+        \   <year>1990</year>\r\n  </cd>\r\n  <cd>\r\n    <title>Eros</title>\r\n
+        \   <artist>Eros Ramazzotti</artist>\r\n    <country>EU</country>\r\n    <company>BMG</company>\r\n
+        \   <price>9.90</price>\r\n    <year>1997</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>One night only</title>\r\n    <artist>Bee Gees</artist>\r\n    <country>UK</country>\r\n
+        \   <company>Polydor</company>\r\n    <price>10.90</price>\r\n    <year>1998</year>\r\n
+        \ </cd>\r\n  <cd>\r\n    <title>Sylvias Mother</title>\r\n    <artist>Dr.Hook</artist>\r\n
+        \   <country>UK</country>\r\n    <company>CBS</company>\r\n    <price>8.10</price>\r\n
+        \   <year>1973</year>\r\n  </cd>\r\n  <cd>\r\n    <title>Maggie May</title>\r\n
+        \   <artist>Rod Stewart</artist>\r\n    <country>UK</country>\r\n    <company>Pickwick</company>\r\n
+        \   <price>8.50</price>\r\n    <year>1990</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Romanza</title>\r\n    <artist>Andrea Bocelli</artist>\r\n    <country>EU</country>\r\n
+        \   <company>Polydor</company>\r\n    <price>10.80</price>\r\n    <year>1996</year>\r\n
+        \ </cd>\r\n  <cd>\r\n    <title>When a man loves a woman</title>\r\n    <artist>Percy
+        Sledge</artist>\r\n    <country>USA</country>\r\n    <company>Atlantic</company>\r\n
+        \   <price>8.70</price>\r\n    <year>1987</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Black angel</title>\r\n    <artist>Savage Rose</artist>\r\n    <country>EU</country>\r\n
+        \   <company>Mega</company>\r\n    <price>10.90</price>\r\n    <year>1995</year>\r\n
+        \ </cd>\r\n  <cd>\r\n    <title>1999 Grammy Nominees</title>\r\n    <artist>Many</artist>\r\n
+        \   <country>USA</country>\r\n    <company>Grammy</company>\r\n    <price>10.20</price>\r\n
+        \   <year>1999</year>\r\n  </cd>\r\n  <cd>\r\n    <title>For the good times</title>\r\n
+        \   <artist>Kenny Rogers</artist>\r\n    <country>UK</country>\r\n    <company>Mucik
+        Master</company>\r\n    <price>8.70</price>\r\n    <year>1995</year>\r\n  </cd>\r\n
+        \ <cd>\r\n    <title>Big Willie style</title>\r\n    <artist>Will Smith</artist>\r\n
+        \   <country>USA</country>\r\n    <company>Columbia</company>\r\n    <price>9.90</price>\r\n
+        \   <year>1997</year>\r\n  </cd>\r\n  <cd>\r\n    <title>Tupelo Honey</title>\r\n
+        \   <artist>Van Morrison</artist>\r\n    <country>UK</country>\r\n    <company>Polydor</company>\r\n
+        \   <price>8.20</price>\r\n    <year>1971</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Soulsville</title>\r\n    <artist>Jorn Hoel</artist>\r\n    <country>Norway</country>\r\n
+        \   <company>WEA</company>\r\n    <price>7.90</price>\r\n    <year>1996</year>\r\n
+        \ </cd>\r\n  <cd>\r\n    <title>The very best of</title>\r\n    <artist>Cat
+        Stevens</artist>\r\n    <country>UK</country>\r\n    <company>Island</company>\r\n
+        \   <price>8.90</price>\r\n    <year>1990</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Stop</title>\r\n    <artist>Sam Brown</artist>\r\n    <country>UK</country>\r\n
+        \   <company>A and M</company>\r\n    <price>8.90</price>\r\n    <year>1988</year>\r\n
+        \ </cd>\r\n  <cd>\r\n    <title>Bridge of Spies</title>\r\n    <artist>T`Pau</artist>\r\n
+        \   <country>UK</country>\r\n    <company>Siren</company>\r\n    <price>7.90</price>\r\n
+        \   <year>1987</year>\r\n  </cd>\r\n  <cd>\r\n    <title>Private Dancer</title>\r\n
+        \   <artist>Tina Turner</artist>\r\n    <country>UK</country>\r\n    <company>Capitol</company>\r\n
+        \   <price>8.90</price>\r\n    <year>1983</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Midt om natten</title>\r\n    <artist>Kim Larsen</artist>\r\n    <country>EU</country>\r\n
+        \   <company>Medley</company>\r\n    <price>7.80</price>\r\n    <year>1983</year>\r\n
+        \ </cd>\r\n  <cd>\r\n    <title>Pavarotti Gala Concert</title>\r\n    <artist>Luciano
+        Pavarotti</artist>\r\n    <country>UK</country>\r\n    <company>DECCA</company>\r\n
+        \   <price>9.90</price>\r\n    <year>1991</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>The dock of the bay</title>\r\n    <artist>Otis Redding</artist>\r\n
+        \   <country>USA</country>\r\n    <COMPANY>Stax Records</COMPANY>\r\n    <PRICE>7.90</PRICE>\r\n
+        \   <YEAR>1968</YEAR>\r\n  </cd>\r\n  <cd>\r\n    <title>Picture book</title>\r\n
+        \   <artist>Simply Red</artist>\r\n    <country>EU</country>\r\n    <company>Elektra</company>\r\n
+        \   <price>7.20</price>\r\n    <year>1985</year>\r\n  </cd>\r\n  <cd>\r\n
+        \   <title>Red</title>\r\n    <artist>The Communards</artist>\r\n    <country>UK</country>\r\n
+        \   <company>London</company>\r\n    <price>7.80</price>\r\n    <year>1987</year>\r\n
+        \ </cd>\r\n  <cd>\r\n    <title>Unchain my heart</title>\r\n    <artist>Joe
+        Cocker</artist>\r\n    <country>USA</country>\r\n    <company>EMI</company>\r\n
+        \   <price>8.20</price>\r\n    <year>1987</year>\r\n  </cd>\r\n</catalog>\r\n"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Age:
+      - '7710'
+      Cache-Control:
+      - public,max-age=14400,public
+      Connection:
+      - close
+      Content-Length:
+      - '5134'
+      Content-Type:
+      - text/xml
+      Date:
+      - Fri, 12 Mar 2021 21:13:31 GMT
+      Etag:
+      - '"7d36f80c986d21:0"'
+      Last-Modified:
+      - Tue, 14 Feb 2017 13:51:54 GMT
+      Server:
+      - ECS (sjc/16C6)
+      X-Cache:
+      - HIT
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Powered-By:
+      - ASP.NET
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - www.w3schools.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://www.w3schools.com/xml/cdcatalog.xsl
+  response:
+    body:
+      string: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<xsl:stylesheet version=\"1.0\"
+        xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\r\n<xsl:template match=\"/\">\r\n<html>
+        \r\n<body>\r\n  <h2>My CD Collection</h2>\r\n  <table border=\"1\">\r\n    <tr
+        bgcolor=\"#9acd32\">\r\n      <th style=\"text-align:left\">Title</th>\r\n
+        \     <th style=\"text-align:left\">Artist</th>\r\n    </tr>\r\n    <xsl:for-each
+        select=\"catalog/cd\">\r\n    <tr>\r\n      <td><xsl:value-of select=\"title\"/></td>\r\n
+        \     <td><xsl:value-of select=\"artist\"/></td>\r\n    </tr>\r\n    </xsl:for-each>\r\n
+        \ </table>\r\n</body>\r\n</html>\r\n</xsl:template>\r\n</xsl:stylesheet>"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Age:
+      - '8661'
+      Cache-Control:
+      - public,max-age=14400,public
+      Connection:
+      - close
+      Content-Length:
+      - '588'
+      Content-Type:
+      - text/xml
+      Date:
+      - Fri, 12 Mar 2021 21:13:32 GMT
+      Etag:
+      - '"958abc24413ed21:0"'
+      Last-Modified:
+      - Mon, 14 Nov 2016 06:34:25 GMT
+      Server:
+      - ECS (sjc/4E57)
+      X-Cache:
+      - HIT
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Powered-By:
+      - ASP.NET
+    status:
+      code: 200
+      message: OK
+version: 1

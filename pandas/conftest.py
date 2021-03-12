@@ -66,6 +66,8 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+here = os.path.dirname(__file__)
+
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -185,6 +187,14 @@ def add_imports(doctest_namespace):
     """
     doctest_namespace["np"] = np
     doctest_namespace["pd"] = pd
+
+
+@pytest.fixture(autouse=True, scope="module")
+def vcr_cassette_dir(request):
+    """
+    Directory for pytest-vcr to store recorded HTTP interactions.
+    """
+    return os.path.join(here, "tests", "io", "data", "cassettes")
 
 
 # ----------------------------------------------------------------

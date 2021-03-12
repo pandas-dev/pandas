@@ -1,0 +1,56 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - www.w3schools.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://www.w3schools.com/xml/books.xml
+  response:
+    body:
+      string: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<bookstore>\r\n\r\n<book
+        category=\"cooking\">\r\n  <title lang=\"en\">Everyday Italian</title>\r\n
+        \ <author>Giada De Laurentiis</author>\r\n  <year>2005</year>\r\n  <price>30.00</price>\r\n</book>\r\n\r\n<book
+        category=\"children\">\r\n  <title lang=\"en\">Harry Potter</title>\r\n  <author>J
+        K. Rowling</author>\r\n  <year>2005</year>\r\n  <price>29.99</price>\r\n</book>\r\n\r\n<book
+        category=\"web\">\r\n  <title lang=\"en\">XQuery Kick Start</title>\r\n  <author>James
+        McGovern</author>\r\n  <author>Per Bothner</author>\r\n  <author>Kurt Cagle</author>\r\n
+        \ <author>James Linn</author>\r\n  <author>Vaidyanathan Nagarajan</author>\r\n
+        \ <year>2003</year>\r\n  <price>49.99</price>\r\n</book>\r\n\r\n<book category=\"web\"
+        cover=\"paperback\">\r\n  <title lang=\"en\">Learning XML</title>\r\n  <author>Erik
+        T. Ray</author>\r\n  <year>2003</year>\r\n  <price>39.95</price>\r\n</book>\r\n\r\n</bookstore>"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Age:
+      - '8186'
+      Cache-Control:
+      - public,max-age=14400,public
+      Connection:
+      - close
+      Content-Length:
+      - '860'
+      Content-Type:
+      - text/xml
+      Date:
+      - Fri, 12 Mar 2021 21:13:31 GMT
+      Etag:
+      - '"f5fa18a35c25d21:0"'
+      Last-Modified:
+      - Thu, 13 Oct 2016 14:18:15 GMT
+      Server:
+      - ECS (sjc/4E36)
+      X-Cache:
+      - HIT
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Powered-By:
+      - ASP.NET
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -1,0 +1,674 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - raw.githubusercontent.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/io/data/html/spam.html
+  response:
+    body:
+      string: "\n<!DOCTYPE html>\n<!--[if lt IE 7 ]> <html lang=\"en\" class=\"no-js
+        ie6\"> <![endif]-->\n<!--[if IE 7 ]>    <html lang=\"en\" class=\"no-js ie7\">
+        <![endif]-->\n<!--[if IE 8 ]>    <html lang=\"en\" class=\"no-js ie8\"> <![endif]-->\n<!--[if
+        IE 9 ]>    <html lang=\"en\" class=\"no-js ie9\"> <![endif]-->\n<!--[if (gt
+        IE 9)|!(IE)]><!--> <html lang=\"en\" class=\"no-js\"><!--<![endif]-->\n\n\n<html>\n
+        \   <head>\n\n        <title>Show Foods</title>\n        <link rel=\"shortcut
+        icon\" href=\"/ndb/static/images/favicon.ico\" type=\"image/x-icon\" />\n\n\n\n\n\n\n
+        \        <link rel='stylesheet' type='text/css' href='/ndb/plugins/richui-0.8/css/autocomplete.css'
+        />\n<script type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/yahoo-dom-event/yahoo-dom-event.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/connection/connection-min.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/datasource/datasource-min.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/animation/animation-min.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/autocomplete/autocomplete-min.js'></script>\n\n<link
+        rel=\"stylesheet\" href=\"/ndb/static/css/main.css\" />\n\n      \t<script
+        type=\"text/JavaScript\">\n\t\t var _gaq = _gaq || [];\n\t\t // NAL\n\t\t
+        \ _gaq.push(['_setAccount', 'UA-28627214-1']);\n\t\t  _gaq.push(['_setDomainName',
+        'nal.usda.gov']);\n\t\t  _gaq.push(['_setAllowLinker', true]);\n\t\t  _gaq.push(['_trackPageview']);\n\t\t
+        //\n\t\t// _gaq.push(['_setAccount', 'UA-3876418-1']);\n\t\t//  _gaq.push(['_trackPageview']);\n\t\t
+        \ // for NDB\n\t\t  _gaq.push(['_setAccount', 'UA-36442725-1']);\n\t\t  _gaq.push(['_trackPageview']);\n\t\t\t//
+        USDA servers\n\t\t  _gaq.push(['_setAccount', 'UA-466807-3']);\n\t\t  _gaq.push(['_setDomainName',
+        'usda.gov']);\n\t\t  _gaq.push(['_setAllowLinker', true]);\n\t\t  _gaq.push(['_trackPageview']);\n\t\t
+        \ //\n\t\t  _gaq.push(['a._setAccount', 'UA-27627304-18']);\n\t\t  _gaq.push(['a._setDomainName',
+        'usda.gov']);\n\t\t  _gaq.push(['a._setAllowLinker', true]);\n\t\t  _gaq.push(['a._trackPageview']);\n\t\t\t//\n\t\t
+        \ _gaq.push(['b._setAccount', 'UA-27627304-1']);\n\t\t  _gaq.push(['b._setDomainName',
+        'usda.gov']);\n\t\t  _gaq.push(['b._setAllowLinker', true]);\n\t\t  _gaq.push(['b._trackPageview']);\n\n\t\t
+        \ (function() {\n\t\t    var ga = document.createElement('script'); ga.type
+        =\n\t\t'text/javascript'; ga.async = true;\n\t\t    ga.src = ('https:' ==
+        document.location.protocol ? 'https://ssl' :\n\t\t'http://www') + '.google-analytics.com/ga.js';\n\t\t
+        \   var s = document.getElementsByTagName('script')[0];\n\t\ts.parentNode.insertBefore(ga,
+        s);\n\t\t  })();\n\t</script>\n\n\n\n        <meta http-equiv=\"Content-Type\"
+        content=\"text/html; charset=UTF-8\"/>\n        <meta name=\"layout\" content=\"main\"/>\n\n\n\n\n\n\n\n
+        \         <script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/yahoo-dom-event/yahoo-dom-event.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/element/element-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/animation/animation-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/connection/connection-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/dragdrop/dragdrop-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/bundle-bundle_yui-container_head.js\"
+        type=\"text/javascript\" ></script>\n<link href=\"/ndb/static/bundle-bundle_yui-container_head.css\"
+        type=\"text/css\" rel=\"stylesheet\" media=\"screen, projection\" />\n<link
+        href=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/fonts/fonts-min.css\" type=\"text/css\"
+        rel=\"stylesheet\" media=\"screen, projection\" />\n<script src=\"/ndb/static/plugins/grails-ui-1.2.3/js/grailsui/grailsui.js\"
+        type=\"text/javascript\" ></script>\n<link href=\"/ndb/static/plugins/jquery-ui-1.8.24/jquery-ui/themes/ui-lightness/jquery-ui-1.8.24.custom.css\"
+        type=\"text/css\" rel=\"stylesheet\" media=\"screen, projection\" />\n<script
+        src=\"/ndb/static/plugins/jquery-1.8.0/js/jquery/jquery-1.8.0.min.js\" type=\"text/javascript\"
+        ></script>\n<script src=\"/ndb/static/plugins/jquery-ui-1.8.24/jquery-ui/js/jquery-ui-1.8.24.custom.min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/bundle-bundle_yui-menu_head.js\"
+        type=\"text/javascript\" ></script>\n<link href=\"/ndb/static/bundle-bundle_yui-menu_head.css\"
+        type=\"text/css\" rel=\"stylesheet\" media=\"screen, projection\" />\n<script
+        src=\"/ndb/static/bundle-bundle_yui-button_head.js\" type=\"text/javascript\"
+        ></script>\n<link href=\"/ndb/static/bundle-bundle_yui-button_head.css\" type=\"text/css\"
+        rel=\"stylesheet\" media=\"screen, projection\" />\n\n    </head>\n   <body
+        class=\"yui-skin-sam\">\n   <div class=\"section clearfix\" >\n    \t<div
+        id=\"name-and-slogan\" style=\"padding-left:15px;\" >\n         <a href=\"http://www.ars.usda.gov\"><img
+        id=\"masthead-map\" usemap=\"#masthead-map\" src=\"/ndb/static/images/masthead.jpg\"
+        alt=\"National Nutrient Database\" border=\"0\" /></a>\n         <map id=\"masthead-map\"
+        name=\"masthead-map\">\n<area shape=\"rect\" coords=\"4,2,54,52\" href=\"http://www.usda.gov\"
+        alt=\"\" title=\"USDA Website\"    />\n<area shape=\"rect\" coords=\"66,1,128,49\"
+        href=\"http://www.ars.usda.gov\" alt=\"\" title=\"Agricultural Research Service
+        Website\"    />\n<area shape=\"rect\" coords=\"127,0,336,50\" href=\"http://www.nal.usda.gov\"
+        alt=\"\" title=\"National Agricultural Library Website\"    />\n<area shape=\"rect\"
+        coords=\"470,2,679,52\" href=\"http://www.ars.usda.gov/main/site_main.htm?modecode=12-35-45-00\"
+        alt=\"\" title=\"Nutrient Data Laboratory Website\"    />\n<area shape=\"rect\"
+        coords=\"702,6,742,47\" href=\"http://fnic.nal.usda.gov\" alt=\"\" title=\"Food
+        and Nutrition Information Center Website\"    />\n</map>\n\n\n    </div>\n\n\n\n
+        \       </div>\n        \t<div id='site-slogan'  align='left'>\n\t\t\t\tNational
+        Nutrient Database for Standard Reference<br>Release 25\n\t\t\t</div>\n\t\t\t<div
+        class=\"bodywrapper\">\n\n\t\t <div class=\"nav\">\n          <span class=\"menuButton\">
+        <a href=\"http://www.ars.usda.gov/main/site_main.htm?modecode=12-35-45-00\"
+        class=\"home\" title=\"Go the NDL home page\">NDL Home</a></span>\n        <span
+        class=\"menuButton\"><a href=\"/ndb/search/list\" class=\"list\" name=\"menu-advanced\"
+        title=\"Browse the foods list\">Foods List</a></span>\n        <span class=\"menuButton\"><a
+        href=\"/ndb/beef/show\" class=\"calc\" title=\"Use the ground beef calculator\">Ground
+        Beef Calculator</a></span>\n        <span class=\"menuButton\"><a href=\"http://www.ars.usda.gov/SP2UserFiles/Place/12354500/Data/SR25/sr25_doc.pdf\"
+        class=\"docs\" title=\"View and download release documentation\" target=\"_help\">SR25
+        Documentation</a></span>\n        <span class=\"menuButton\"><a href=\"/ndb/help/index\"
+        class=\"help\" target=\"_help\" title=\"Read help on how to use the website\">Help</a></span>\n
+        \      </div>\n\n\n\n\n\n     <div id=\"view-name\">Basic Report</div>\n\n
+        \       <div class=\"body\">\n            <h1>Nutrient data for 07908, Luncheon
+        meat, pork with ham, minced, canned, includes SPAM (Hormel)\n\n\n              </h1>\n
+        \            <div class=\"menuButton\" >\n            <a href=\"/ndb/search/list?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Abridged&amp;new=\"
+        name=\"search\" class=\"previous\" title=\"Return to results list\">Return
+        to Search Results</a><script type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip(\"myTooltip\",
+        { context:\"null\" } );</script>\n\n\n\n            \t<a href=\"/ndb/foods/show/1732?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Full&amp;new=\"
+        name=\"full\" title=\"View Full Report\">Full Report (All Nutrients)</a><script
+        type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip(\"myTooltip\",
+        { context:\"null\" } );</script>\n\n\n            \t <a href=\"/ndb/foods/show/1732?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Stats&amp;new=\"
+        name=\"stats\" title=\"View Statistics Report\">Statistics Report</a><script
+        type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip(\"myTooltip\",
+        { context:\"null\" } );</script>\n\n            </div>\n\n\n            <div
+        class=\"dialog\">\n\n\n        <div class=\"null\">\n            <div id=\"measuresHelpDialog\">\n
+        \               <div class=\"hd\">Modifying household measures</div>\n                <div
+        class=\"bd\">\n\n                \t<div id=\"helpDiv\"></div>\n\n                </div>\n
+        \           </div>\n        </div>\n        <script>\n            function
+        init_dlg_measuresHelpDialog() {\n                // Instantiate the Dialog\n
+        \               GRAILSUI.measuresHelpDialog = new YAHOO.widget.Dialog(\"measuresHelpDialog\",\n
+        \               { 'width': '600px',\n'class': 'helpDialog',\n'draggable':
+        true,\n'modal': false,\n'fixedcenter': true,\n'visible': false,\n'params':
+        [],\n'constraintoviewport': true,\n'buttons': [{'text': 'OK',\nhandler: function()
+        {this.cancel();},\n'isDefault': true}] });\n                GRAILSUI.measuresHelpDialog.render(document.body);\n\n\n
+        \           }\n            YAHOO.util.Event.onDOMReady(init_dlg_measuresHelpDialog);\n
+        \       </script>\n\n\n               <!--  NUTRIENT DATA TABLE -->\n               <form
+        action=\"/ndb/foods/show/1732\" method=\"get\" >\n               <input type=\"hidden\"
+        name=\"fg\" value=\"\" id=\"fg\" />\n               <input type=\"hidden\"
+        name=\"man\" value=\"\" id=\"man\" />\n               <input type=\"hidden\"
+        name=\"lfacet\" value=\"\" id=\"lfacet\" />\n               <input type=\"hidden\"
+        name=\"count\" value=\"\" id=\"count\" />\n               <input type=\"hidden\"
+        name=\"max\" value=\"25\" id=\"max\" />\n               <input type=\"hidden\"
+        name=\"qlookup\" value=\"spam\" id=\"qlookup\" />\n               <input type=\"hidden\"
+        name=\"offset\" value=\"\" id=\"offset\" />\n               <input type=\"hidden\"
+        name=\"sort\" value=\"\" id=\"sort\" />\n               <input type=\"hidden\"
+        name=\"format\" value=\"Abridged\" id=\"format\" />\n\n\n              \t\t<div
+        class=\"nutlist\">\n\n\n              \t<p style=\"font-style:italic;font-size:.8em\">Nutrient
+        values and weights are for edible portion</p>\n\n\n\t<table>\n                <thead>\n\n
+        \               <tr><td colspan=\"6\" style=\"vertical-align:middle;text-align:center;height:2em;\"
+        class=\"buttons\"><input type=\"submit\" name=\"_action_show\" value=\"Apply
+        Changes\" class=\"calc\" title=\"Click to recalculate measures\" id=\"1732\"
+        /><a href=\"/ndb/help/contextHelp/measures\" onclick=\"jQuery.ajax({type:'POST',
+        url:'/ndb/help/contextHelp/measures',success:function(data,textStatus){jQuery('#helpDiv').html(data);},error:function(XMLHttpRequest,textStatus,errorThrown){},complete:function(XMLHttpRequest,textStatus){GRAILSUI.measuresHelpDialog.show();}});return
+        false;\" controller=\"help\" action=\"contextHelp\" id=\"measures\"><img title=\"Click
+        for more information on calculating household measures\" src=\"/ndb/static/images/skin/help.png\"
+        alt=\"Help\" border=\"0\" style=\"vertical-align:middle\"/></a></span></td></tr>\n
+        \               <th style=\"vertical-align:middle\">Nutrient</th>\n\t\t\t\t<th
+        style=\"vertical-align:middle\" >Unit</th>\n                <th style=\"vertical-align:middle\"><input
+        type=\"text\" name=\"Qv\" style=\"width:30px;text-align:right;border-style:inset;height:15px\"
+        maxlength=\"5\" value=\"1\" id=\"Qv\" /><br/>Value per 100.0g</th>\n\n\n\n\n
+        \ <th style=\"width:130px;line-height:1.2em;text-align:center\">\n  \t<input
+        type=\"text\" name=\"Q3483\" style=\"width:30px;text-align:right;border-style:inset;height:15px\"
+        maxlength=\"5\" value=\"2.0\" id=\"Q3483\" />\n  \t<br>\n\n  \toz 1 NLEA serving\n
+        \ \t<br>56g\n  \t<!--\n  \t-->\n  \t</th>\n\n                </thead>\n                <tbody>\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Proximates</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Water\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">51.70</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">28.95</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Energy\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">kcal</td>\n\t
+        \               \t<td style=\"text-align:right;\">315</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">176</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Protein\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">13.40</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">7.50</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Total lipid
+        (fat)\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">26.60</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">14.90</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Carbohydrate,
+        by difference\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">4.60</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">2.58</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Fiber, total
+        dietary\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Sugars, total\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.00</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.00</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Minerals</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Calcium, Ca\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Iron, Fe\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.64</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.36</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Magnesium,
+        Mg\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">14</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">8</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Phosphorus,
+        P\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">151</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">85</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Potassium,
+        K\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">409</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">229</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Sodium, Na\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">1411</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">790</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Zinc, Zn\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">1.59</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.89</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Vitamins</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin C,
+        total ascorbic acid\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">mg</td>\n\t                \t<td style=\"text-align:right;\">0.0</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">0.0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Thiamin\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.317</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.178</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Riboflavin\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.176</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.099</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Niacin\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">3.530</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">1.977</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin B-6\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.218</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.122</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Folate, DFE\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">3</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">2</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin B-12\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.45</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.25</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Vitamin A,
+        RAE\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin A,
+        IU\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">IU</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Vitamin E
+        (alpha-tocopherol)\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">mg</td>\n\t                \t<td style=\"text-align:right;\">0.42</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">0.24</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin D (D2
+        + D3)\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.6</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.3</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Vitamin D\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">IU</td>\n\t
+        \               \t<td style=\"text-align:right;\">26</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">15</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin K (phylloquinone)\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.0</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Lipids</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Fatty acids,
+        total saturated\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">g</td>\n\t                \t<td style=\"text-align:right;\">9.987</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">5.593</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Fatty acids,
+        total monounsaturated\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">g</td>\n\t                \t<td style=\"text-align:right;\">13.505</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">7.563</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Fatty acids,
+        total polyunsaturated\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">g</td>\n\t                \t<td style=\"text-align:right;\">2.019</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">1.131</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Cholesterol\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">71</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">40</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Other</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Caffeine\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               </tbody>\n                </table>\n\n                </div>\n
+        \              </form>\n\n\n\n\n\n            </div>\n\n        </div>\n\n
+        \       <script src=\"/ndb/static/js/application.js\" type=\"text/javascript\"
+        ></script>\n\n\n        </div>\n        <div class=\"footer\">\n        National
+        Nutrient Database for Standard Reference<br>Release 25\n\t\t\t&nbsp;&nbsp;Software
+        v.1.2.2\n\t\t</div>\n    </body>\n</html>"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - max-age=300
+      Connection:
+      - close
+      Content-Length:
+      - '22261'
+      Content-Security-Policy:
+      - default-src 'none'; style-src 'unsafe-inline'; sandbox
+      Content-Type:
+      - text/plain; charset=utf-8
+      Date:
+      - Fri, 12 Mar 2021 21:13:44 GMT
+      ETag:
+      - '"6a694948eb755b3cd16aed6fd1f2477072c011a7e8bb19bb799277028977a676"'
+      Expires:
+      - Fri, 12 Mar 2021 21:18:44 GMT
+      Source-Age:
+      - '0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Vary:
+      - Authorization,Accept-Encoding
+      Via:
+      - 1.1 varnish
+      X-Cache:
+      - HIT
+      X-Cache-Hits:
+      - '1'
+      X-Content-Type-Options:
+      - nosniff
+      X-Fastly-Request-ID:
+      - 4d78c9b5f536cd74ccaf891f4ba8727314b7e999
+      X-Frame-Options:
+      - deny
+      X-GitHub-Request-Id:
+      - 7DC0:8BBC:79BE2:D99C2:604BC060
+      X-Served-By:
+      - cache-pao17460-PAO
+      X-Timer:
+      - S1615583625.532586,VS0,VE154
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - raw.githubusercontent.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/io/data/html/spam.html
+  response:
+    body:
+      string: "\n<!DOCTYPE html>\n<!--[if lt IE 7 ]> <html lang=\"en\" class=\"no-js
+        ie6\"> <![endif]-->\n<!--[if IE 7 ]>    <html lang=\"en\" class=\"no-js ie7\">
+        <![endif]-->\n<!--[if IE 8 ]>    <html lang=\"en\" class=\"no-js ie8\"> <![endif]-->\n<!--[if
+        IE 9 ]>    <html lang=\"en\" class=\"no-js ie9\"> <![endif]-->\n<!--[if (gt
+        IE 9)|!(IE)]><!--> <html lang=\"en\" class=\"no-js\"><!--<![endif]-->\n\n\n<html>\n
+        \   <head>\n\n        <title>Show Foods</title>\n        <link rel=\"shortcut
+        icon\" href=\"/ndb/static/images/favicon.ico\" type=\"image/x-icon\" />\n\n\n\n\n\n\n
+        \        <link rel='stylesheet' type='text/css' href='/ndb/plugins/richui-0.8/css/autocomplete.css'
+        />\n<script type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/yahoo-dom-event/yahoo-dom-event.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/connection/connection-min.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/datasource/datasource-min.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/animation/animation-min.js'></script>\n<script
+        type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/autocomplete/autocomplete-min.js'></script>\n\n<link
+        rel=\"stylesheet\" href=\"/ndb/static/css/main.css\" />\n\n      \t<script
+        type=\"text/JavaScript\">\n\t\t var _gaq = _gaq || [];\n\t\t // NAL\n\t\t
+        \ _gaq.push(['_setAccount', 'UA-28627214-1']);\n\t\t  _gaq.push(['_setDomainName',
+        'nal.usda.gov']);\n\t\t  _gaq.push(['_setAllowLinker', true]);\n\t\t  _gaq.push(['_trackPageview']);\n\t\t
+        //\n\t\t// _gaq.push(['_setAccount', 'UA-3876418-1']);\n\t\t//  _gaq.push(['_trackPageview']);\n\t\t
+        \ // for NDB\n\t\t  _gaq.push(['_setAccount', 'UA-36442725-1']);\n\t\t  _gaq.push(['_trackPageview']);\n\t\t\t//
+        USDA servers\n\t\t  _gaq.push(['_setAccount', 'UA-466807-3']);\n\t\t  _gaq.push(['_setDomainName',
+        'usda.gov']);\n\t\t  _gaq.push(['_setAllowLinker', true]);\n\t\t  _gaq.push(['_trackPageview']);\n\t\t
+        \ //\n\t\t  _gaq.push(['a._setAccount', 'UA-27627304-18']);\n\t\t  _gaq.push(['a._setDomainName',
+        'usda.gov']);\n\t\t  _gaq.push(['a._setAllowLinker', true]);\n\t\t  _gaq.push(['a._trackPageview']);\n\t\t\t//\n\t\t
+        \ _gaq.push(['b._setAccount', 'UA-27627304-1']);\n\t\t  _gaq.push(['b._setDomainName',
+        'usda.gov']);\n\t\t  _gaq.push(['b._setAllowLinker', true]);\n\t\t  _gaq.push(['b._trackPageview']);\n\n\t\t
+        \ (function() {\n\t\t    var ga = document.createElement('script'); ga.type
+        =\n\t\t'text/javascript'; ga.async = true;\n\t\t    ga.src = ('https:' ==
+        document.location.protocol ? 'https://ssl' :\n\t\t'http://www') + '.google-analytics.com/ga.js';\n\t\t
+        \   var s = document.getElementsByTagName('script')[0];\n\t\ts.parentNode.insertBefore(ga,
+        s);\n\t\t  })();\n\t</script>\n\n\n\n        <meta http-equiv=\"Content-Type\"
+        content=\"text/html; charset=UTF-8\"/>\n        <meta name=\"layout\" content=\"main\"/>\n\n\n\n\n\n\n\n
+        \         <script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/yahoo-dom-event/yahoo-dom-event.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/element/element-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/animation/animation-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/connection/connection-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/dragdrop/dragdrop-min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/bundle-bundle_yui-container_head.js\"
+        type=\"text/javascript\" ></script>\n<link href=\"/ndb/static/bundle-bundle_yui-container_head.css\"
+        type=\"text/css\" rel=\"stylesheet\" media=\"screen, projection\" />\n<link
+        href=\"/ndb/static/plugins/yui-2.8.2.1/js/yui/fonts/fonts-min.css\" type=\"text/css\"
+        rel=\"stylesheet\" media=\"screen, projection\" />\n<script src=\"/ndb/static/plugins/grails-ui-1.2.3/js/grailsui/grailsui.js\"
+        type=\"text/javascript\" ></script>\n<link href=\"/ndb/static/plugins/jquery-ui-1.8.24/jquery-ui/themes/ui-lightness/jquery-ui-1.8.24.custom.css\"
+        type=\"text/css\" rel=\"stylesheet\" media=\"screen, projection\" />\n<script
+        src=\"/ndb/static/plugins/jquery-1.8.0/js/jquery/jquery-1.8.0.min.js\" type=\"text/javascript\"
+        ></script>\n<script src=\"/ndb/static/plugins/jquery-ui-1.8.24/jquery-ui/js/jquery-ui-1.8.24.custom.min.js\"
+        type=\"text/javascript\" ></script>\n<script src=\"/ndb/static/bundle-bundle_yui-menu_head.js\"
+        type=\"text/javascript\" ></script>\n<link href=\"/ndb/static/bundle-bundle_yui-menu_head.css\"
+        type=\"text/css\" rel=\"stylesheet\" media=\"screen, projection\" />\n<script
+        src=\"/ndb/static/bundle-bundle_yui-button_head.js\" type=\"text/javascript\"
+        ></script>\n<link href=\"/ndb/static/bundle-bundle_yui-button_head.css\" type=\"text/css\"
+        rel=\"stylesheet\" media=\"screen, projection\" />\n\n    </head>\n   <body
+        class=\"yui-skin-sam\">\n   <div class=\"section clearfix\" >\n    \t<div
+        id=\"name-and-slogan\" style=\"padding-left:15px;\" >\n         <a href=\"http://www.ars.usda.gov\"><img
+        id=\"masthead-map\" usemap=\"#masthead-map\" src=\"/ndb/static/images/masthead.jpg\"
+        alt=\"National Nutrient Database\" border=\"0\" /></a>\n         <map id=\"masthead-map\"
+        name=\"masthead-map\">\n<area shape=\"rect\" coords=\"4,2,54,52\" href=\"http://www.usda.gov\"
+        alt=\"\" title=\"USDA Website\"    />\n<area shape=\"rect\" coords=\"66,1,128,49\"
+        href=\"http://www.ars.usda.gov\" alt=\"\" title=\"Agricultural Research Service
+        Website\"    />\n<area shape=\"rect\" coords=\"127,0,336,50\" href=\"http://www.nal.usda.gov\"
+        alt=\"\" title=\"National Agricultural Library Website\"    />\n<area shape=\"rect\"
+        coords=\"470,2,679,52\" href=\"http://www.ars.usda.gov/main/site_main.htm?modecode=12-35-45-00\"
+        alt=\"\" title=\"Nutrient Data Laboratory Website\"    />\n<area shape=\"rect\"
+        coords=\"702,6,742,47\" href=\"http://fnic.nal.usda.gov\" alt=\"\" title=\"Food
+        and Nutrition Information Center Website\"    />\n</map>\n\n\n    </div>\n\n\n\n
+        \       </div>\n        \t<div id='site-slogan'  align='left'>\n\t\t\t\tNational
+        Nutrient Database for Standard Reference<br>Release 25\n\t\t\t</div>\n\t\t\t<div
+        class=\"bodywrapper\">\n\n\t\t <div class=\"nav\">\n          <span class=\"menuButton\">
+        <a href=\"http://www.ars.usda.gov/main/site_main.htm?modecode=12-35-45-00\"
+        class=\"home\" title=\"Go the NDL home page\">NDL Home</a></span>\n        <span
+        class=\"menuButton\"><a href=\"/ndb/search/list\" class=\"list\" name=\"menu-advanced\"
+        title=\"Browse the foods list\">Foods List</a></span>\n        <span class=\"menuButton\"><a
+        href=\"/ndb/beef/show\" class=\"calc\" title=\"Use the ground beef calculator\">Ground
+        Beef Calculator</a></span>\n        <span class=\"menuButton\"><a href=\"http://www.ars.usda.gov/SP2UserFiles/Place/12354500/Data/SR25/sr25_doc.pdf\"
+        class=\"docs\" title=\"View and download release documentation\" target=\"_help\">SR25
+        Documentation</a></span>\n        <span class=\"menuButton\"><a href=\"/ndb/help/index\"
+        class=\"help\" target=\"_help\" title=\"Read help on how to use the website\">Help</a></span>\n
+        \      </div>\n\n\n\n\n\n     <div id=\"view-name\">Basic Report</div>\n\n
+        \       <div class=\"body\">\n            <h1>Nutrient data for 07908, Luncheon
+        meat, pork with ham, minced, canned, includes SPAM (Hormel)\n\n\n              </h1>\n
+        \            <div class=\"menuButton\" >\n            <a href=\"/ndb/search/list?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Abridged&amp;new=\"
+        name=\"search\" class=\"previous\" title=\"Return to results list\">Return
+        to Search Results</a><script type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip(\"myTooltip\",
+        { context:\"null\" } );</script>\n\n\n\n            \t<a href=\"/ndb/foods/show/1732?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Full&amp;new=\"
+        name=\"full\" title=\"View Full Report\">Full Report (All Nutrients)</a><script
+        type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip(\"myTooltip\",
+        { context:\"null\" } );</script>\n\n\n            \t <a href=\"/ndb/foods/show/1732?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Stats&amp;new=\"
+        name=\"stats\" title=\"View Statistics Report\">Statistics Report</a><script
+        type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip(\"myTooltip\",
+        { context:\"null\" } );</script>\n\n            </div>\n\n\n            <div
+        class=\"dialog\">\n\n\n        <div class=\"null\">\n            <div id=\"measuresHelpDialog\">\n
+        \               <div class=\"hd\">Modifying household measures</div>\n                <div
+        class=\"bd\">\n\n                \t<div id=\"helpDiv\"></div>\n\n                </div>\n
+        \           </div>\n        </div>\n        <script>\n            function
+        init_dlg_measuresHelpDialog() {\n                // Instantiate the Dialog\n
+        \               GRAILSUI.measuresHelpDialog = new YAHOO.widget.Dialog(\"measuresHelpDialog\",\n
+        \               { 'width': '600px',\n'class': 'helpDialog',\n'draggable':
+        true,\n'modal': false,\n'fixedcenter': true,\n'visible': false,\n'params':
+        [],\n'constraintoviewport': true,\n'buttons': [{'text': 'OK',\nhandler: function()
+        {this.cancel();},\n'isDefault': true}] });\n                GRAILSUI.measuresHelpDialog.render(document.body);\n\n\n
+        \           }\n            YAHOO.util.Event.onDOMReady(init_dlg_measuresHelpDialog);\n
+        \       </script>\n\n\n               <!--  NUTRIENT DATA TABLE -->\n               <form
+        action=\"/ndb/foods/show/1732\" method=\"get\" >\n               <input type=\"hidden\"
+        name=\"fg\" value=\"\" id=\"fg\" />\n               <input type=\"hidden\"
+        name=\"man\" value=\"\" id=\"man\" />\n               <input type=\"hidden\"
+        name=\"lfacet\" value=\"\" id=\"lfacet\" />\n               <input type=\"hidden\"
+        name=\"count\" value=\"\" id=\"count\" />\n               <input type=\"hidden\"
+        name=\"max\" value=\"25\" id=\"max\" />\n               <input type=\"hidden\"
+        name=\"qlookup\" value=\"spam\" id=\"qlookup\" />\n               <input type=\"hidden\"
+        name=\"offset\" value=\"\" id=\"offset\" />\n               <input type=\"hidden\"
+        name=\"sort\" value=\"\" id=\"sort\" />\n               <input type=\"hidden\"
+        name=\"format\" value=\"Abridged\" id=\"format\" />\n\n\n              \t\t<div
+        class=\"nutlist\">\n\n\n              \t<p style=\"font-style:italic;font-size:.8em\">Nutrient
+        values and weights are for edible portion</p>\n\n\n\t<table>\n                <thead>\n\n
+        \               <tr><td colspan=\"6\" style=\"vertical-align:middle;text-align:center;height:2em;\"
+        class=\"buttons\"><input type=\"submit\" name=\"_action_show\" value=\"Apply
+        Changes\" class=\"calc\" title=\"Click to recalculate measures\" id=\"1732\"
+        /><a href=\"/ndb/help/contextHelp/measures\" onclick=\"jQuery.ajax({type:'POST',
+        url:'/ndb/help/contextHelp/measures',success:function(data,textStatus){jQuery('#helpDiv').html(data);},error:function(XMLHttpRequest,textStatus,errorThrown){},complete:function(XMLHttpRequest,textStatus){GRAILSUI.measuresHelpDialog.show();}});return
+        false;\" controller=\"help\" action=\"contextHelp\" id=\"measures\"><img title=\"Click
+        for more information on calculating household measures\" src=\"/ndb/static/images/skin/help.png\"
+        alt=\"Help\" border=\"0\" style=\"vertical-align:middle\"/></a></span></td></tr>\n
+        \               <th style=\"vertical-align:middle\">Nutrient</th>\n\t\t\t\t<th
+        style=\"vertical-align:middle\" >Unit</th>\n                <th style=\"vertical-align:middle\"><input
+        type=\"text\" name=\"Qv\" style=\"width:30px;text-align:right;border-style:inset;height:15px\"
+        maxlength=\"5\" value=\"1\" id=\"Qv\" /><br/>Value per 100.0g</th>\n\n\n\n\n
+        \ <th style=\"width:130px;line-height:1.2em;text-align:center\">\n  \t<input
+        type=\"text\" name=\"Q3483\" style=\"width:30px;text-align:right;border-style:inset;height:15px\"
+        maxlength=\"5\" value=\"2.0\" id=\"Q3483\" />\n  \t<br>\n\n  \toz 1 NLEA serving\n
+        \ \t<br>56g\n  \t<!--\n  \t-->\n  \t</th>\n\n                </thead>\n                <tbody>\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Proximates</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Water\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">51.70</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">28.95</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Energy\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">kcal</td>\n\t
+        \               \t<td style=\"text-align:right;\">315</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">176</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Protein\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">13.40</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">7.50</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Total lipid
+        (fat)\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">26.60</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">14.90</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Carbohydrate,
+        by difference\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">4.60</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">2.58</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Fiber, total
+        dietary\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Sugars, total\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.00</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.00</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Minerals</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Calcium, Ca\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Iron, Fe\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.64</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.36</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Magnesium,
+        Mg\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">14</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">8</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Phosphorus,
+        P\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">151</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">85</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Potassium,
+        K\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">409</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">229</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Sodium, Na\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">1411</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">790</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Zinc, Zn\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">1.59</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.89</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Vitamins</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin C,
+        total ascorbic acid\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">mg</td>\n\t                \t<td style=\"text-align:right;\">0.0</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">0.0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Thiamin\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.317</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.178</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Riboflavin\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.176</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.099</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Niacin\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">3.530</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">1.977</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin B-6\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.218</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.122</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Folate, DFE\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">3</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">2</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin B-12\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.45</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.25</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Vitamin A,
+        RAE\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin A,
+        IU\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">IU</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Vitamin E
+        (alpha-tocopherol)\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">mg</td>\n\t                \t<td style=\"text-align:right;\">0.42</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">0.24</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin D (D2
+        + D3)\n\n\n\t                \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.6</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.3</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Vitamin D\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">IU</td>\n\t
+        \               \t<td style=\"text-align:right;\">26</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">15</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Vitamin K (phylloquinone)\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">\xB5g</td>\n\t
+        \               \t<td style=\"text-align:right;\">0.0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0.0</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Lipids</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Fatty acids,
+        total saturated\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">g</td>\n\t                \t<td style=\"text-align:right;\">9.987</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">5.593</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Fatty acids,
+        total monounsaturated\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">g</td>\n\t                \t<td style=\"text-align:right;\">13.505</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">7.563</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Fatty acids,
+        total polyunsaturated\n\n\n\t                \t</td>\n\n\t                \t<td
+        style=\"text-align:center;\">g</td>\n\t                \t<td style=\"text-align:right;\">2.019</td>\n\n\n\t
+        \               \t\t<td style=\"text-align:right;\">1.131</td>\n\n\n\t                \t</tr>\n\n\n\t
+        \               \t<tr class=\"even\">\n\t                \t<td >Cholesterol\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">71</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">40</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               <tr class=\"even\" >\n                <td style=\"font-weight:bold\"
+        colspan=\"6\" bgcolor=\"#dddddd\" >Other</td>\n                </tr>\n\n\n\t
+        \               \t<tr class=\"odd\">\n\t                \t<td >Caffeine\n\n\n\t
+        \               \t</td>\n\n\t                \t<td style=\"text-align:center;\">mg</td>\n\t
+        \               \t<td style=\"text-align:right;\">0</td>\n\n\n\t                \t\t<td
+        style=\"text-align:right;\">0</td>\n\n\n\t                \t</tr>\n\n\n\n
+        \               </tbody>\n                </table>\n\n                </div>\n
+        \              </form>\n\n\n\n\n\n            </div>\n\n        </div>\n\n
+        \       <script src=\"/ndb/static/js/application.js\" type=\"text/javascript\"
+        ></script>\n\n\n        </div>\n        <div class=\"footer\">\n        National
+        Nutrient Database for Standard Reference<br>Release 25\n\t\t\t&nbsp;&nbsp;Software
+        v.1.2.2\n\t\t</div>\n    </body>\n</html>"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - max-age=300
+      Connection:
+      - close
+      Content-Length:
+      - '22261'
+      Content-Security-Policy:
+      - default-src 'none'; style-src 'unsafe-inline'; sandbox
+      Content-Type:
+      - text/plain; charset=utf-8
+      Date:
+      - Fri, 12 Mar 2021 21:13:44 GMT
+      ETag:
+      - '"6a694948eb755b3cd16aed6fd1f2477072c011a7e8bb19bb799277028977a676"'
+      Expires:
+      - Fri, 12 Mar 2021 21:18:44 GMT
+      Source-Age:
+      - '0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Vary:
+      - Authorization,Accept-Encoding
+      Via:
+      - 1.1 varnish
+      X-Cache:
+      - HIT
+      X-Cache-Hits:
+      - '1'
+      X-Content-Type-Options:
+      - nosniff
+      X-Fastly-Request-ID:
+      - 88d5608085b9413c28511321ee0511e7de4b0fe4
+      X-Frame-Options:
+      - deny
+      X-GitHub-Request-Id:
+      - 7DC0:8BBC:79BE2:D99C2:604BC060
+      X-Served-By:
+      - cache-pao17447-PAO
+      X-Timer:
+      - S1615583625.806694,VS0,VE1
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

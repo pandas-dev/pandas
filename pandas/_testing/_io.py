@@ -195,6 +195,7 @@ def network(
 
     Errors not related to networking will always be raised.
     """
+    import pytest
     from pytest import skip
 
     if error_classes is None:
@@ -202,6 +203,7 @@ def network(
 
     t.network = True
 
+    @pytest.mark.vcr()  # cache network calls
     @wraps(t)
     def wrapper(*args, **kwargs):
         if (

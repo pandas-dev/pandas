@@ -1,0 +1,106 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - api.github.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5
+  response:
+    body:
+      string: '[{"url":"https://api.github.com/repos/pandas-dev/pandas/issues/40407","repository_url":"https://api.github.com/repos/pandas-dev/pandas","labels_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40407/labels{/name}","comments_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40407/comments","events_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40407/events","html_url":"https://github.com/pandas-dev/pandas/pull/40407","id":830406616,"node_id":"MDExOlB1bGxSZXF1ZXN0NTkxOTIyMzI4","number":40407,"title":"DOC:
+        remove pin for pydata-sphinx-theme + update for latest release","user":{"login":"jorisvandenbossche","id":1020496,"node_id":"MDQ6VXNlcjEwMjA0OTY=","avatar_url":"https://avatars.githubusercontent.com/u/1020496?v=4","gravatar_id":"","url":"https://api.github.com/users/jorisvandenbossche","html_url":"https://github.com/jorisvandenbossche","followers_url":"https://api.github.com/users/jorisvandenbossche/followers","following_url":"https://api.github.com/users/jorisvandenbossche/following{/other_user}","gists_url":"https://api.github.com/users/jorisvandenbossche/gists{/gist_id}","starred_url":"https://api.github.com/users/jorisvandenbossche/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/jorisvandenbossche/subscriptions","organizations_url":"https://api.github.com/users/jorisvandenbossche/orgs","repos_url":"https://api.github.com/users/jorisvandenbossche/repos","events_url":"https://api.github.com/users/jorisvandenbossche/events{/privacy}","received_events_url":"https://api.github.com/users/jorisvandenbossche/received_events","type":"User","site_admin":false},"labels":[{"id":134699,"node_id":"MDU6TGFiZWwxMzQ2OTk=","url":"https://api.github.com/repos/pandas-dev/pandas/labels/Docs","name":"Docs","color":"3465A4","default":false,"description":null}],"state":"open","locked":false,"assignee":null,"assignees":[],"milestone":null,"comments":0,"created_at":"2021-03-12T20:00:01Z","updated_at":"2021-03-12T20:00:09Z","closed_at":null,"author_association":"MEMBER","active_lock_reason":null,"pull_request":{"url":"https://api.github.com/repos/pandas-dev/pandas/pulls/40407","html_url":"https://github.com/pandas-dev/pandas/pull/40407","diff_url":"https://github.com/pandas-dev/pandas/pull/40407.diff","patch_url":"https://github.com/pandas-dev/pandas/pull/40407.patch"},"body":"No
+        longer pinning since the bug with the mobile dropdown has been fixed + update
+        the variable for changes in the last release.\r\n","performed_via_github_app":null},{"url":"https://api.github.com/repos/pandas-dev/pandas/issues/40406","repository_url":"https://api.github.com/repos/pandas-dev/pandas","labels_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40406/labels{/name}","comments_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40406/comments","events_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40406/events","html_url":"https://github.com/pandas-dev/pandas/pull/40406","id":830372765,"node_id":"MDExOlB1bGxSZXF1ZXN0NTkxODk0MDIw","number":40406,"title":"CLN:
+        unreachable code in algos.diff","user":{"login":"simonjayhawkins","id":13159005,"node_id":"MDQ6VXNlcjEzMTU5MDA1","avatar_url":"https://avatars.githubusercontent.com/u/13159005?v=4","gravatar_id":"","url":"https://api.github.com/users/simonjayhawkins","html_url":"https://github.com/simonjayhawkins","followers_url":"https://api.github.com/users/simonjayhawkins/followers","following_url":"https://api.github.com/users/simonjayhawkins/following{/other_user}","gists_url":"https://api.github.com/users/simonjayhawkins/gists{/gist_id}","starred_url":"https://api.github.com/users/simonjayhawkins/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/simonjayhawkins/subscriptions","organizations_url":"https://api.github.com/users/simonjayhawkins/orgs","repos_url":"https://api.github.com/users/simonjayhawkins/repos","events_url":"https://api.github.com/users/simonjayhawkins/events{/privacy}","received_events_url":"https://api.github.com/users/simonjayhawkins/received_events","type":"User","site_admin":false},"labels":[{"id":57296398,"node_id":"MDU6TGFiZWw1NzI5NjM5OA==","url":"https://api.github.com/repos/pandas-dev/pandas/labels/Algos","name":"Algos","color":"eb6420","default":false,"description":"Non-arithmetic
+        algos: value_counts, factorize, sorting, isin, clip, shift, diff"},{"id":211029535,"node_id":"MDU6TGFiZWwyMTEwMjk1MzU=","url":"https://api.github.com/repos/pandas-dev/pandas/labels/Clean","name":"Clean","color":"207de5","default":false,"description":null}],"state":"open","locked":false,"assignee":null,"assignees":[],"milestone":null,"comments":1,"created_at":"2021-03-12T19:05:06Z","updated_at":"2021-03-12T19:34:28Z","closed_at":null,"author_association":"MEMBER","active_lock_reason":null,"pull_request":{"url":"https://api.github.com/repos/pandas-dev/pandas/pulls/40406","html_url":"https://github.com/pandas-dev/pandas/pull/40406","diff_url":"https://github.com/pandas-dev/pandas/pull/40406.diff","patch_url":"https://github.com/pandas-dev/pandas/pull/40406.patch"},"body":"it
+        looks like some code is unreachable following #37140 (assuming 1d or 2d only)
+        cc @jbrockmendel ","performed_via_github_app":null},{"url":"https://api.github.com/repos/pandas-dev/pandas/issues/40405","repository_url":"https://api.github.com/repos/pandas-dev/pandas","labels_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40405/labels{/name}","comments_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40405/comments","events_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40405/events","html_url":"https://github.com/pandas-dev/pandas/pull/40405","id":830353750,"node_id":"MDExOlB1bGxSZXF1ZXN0NTkxODc4MDY1","number":40405,"title":"Use
+        take_1d in take_nd","user":{"login":"jorisvandenbossche","id":1020496,"node_id":"MDQ6VXNlcjEwMjA0OTY=","avatar_url":"https://avatars.githubusercontent.com/u/1020496?v=4","gravatar_id":"","url":"https://api.github.com/users/jorisvandenbossche","html_url":"https://github.com/jorisvandenbossche","followers_url":"https://api.github.com/users/jorisvandenbossche/followers","following_url":"https://api.github.com/users/jorisvandenbossche/following{/other_user}","gists_url":"https://api.github.com/users/jorisvandenbossche/gists{/gist_id}","starred_url":"https://api.github.com/users/jorisvandenbossche/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/jorisvandenbossche/subscriptions","organizations_url":"https://api.github.com/users/jorisvandenbossche/orgs","repos_url":"https://api.github.com/users/jorisvandenbossche/repos","events_url":"https://api.github.com/users/jorisvandenbossche/events{/privacy}","received_events_url":"https://api.github.com/users/jorisvandenbossche/received_events","type":"User","site_admin":false},"labels":[],"state":"open","locked":false,"assignee":null,"assignees":[],"milestone":null,"comments":0,"created_at":"2021-03-12T18:31:39Z","updated_at":"2021-03-12T18:31:39Z","closed_at":null,"author_association":"MEMBER","active_lock_reason":null,"pull_request":{"url":"https://api.github.com/repos/pandas-dev/pandas/pulls/40405","html_url":"https://github.com/pandas-dev/pandas/pull/40405","diff_url":"https://github.com/pandas-dev/pandas/pull/40405.diff","patch_url":"https://github.com/pandas-dev/pandas/pull/40405.patch"},"body":"xref
+        https://github.com/pandas-dev/pandas/pull/40300#issuecomment-797637165","performed_via_github_app":null},{"url":"https://api.github.com/repos/pandas-dev/pandas/issues/40404","repository_url":"https://api.github.com/repos/pandas-dev/pandas","labels_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40404/labels{/name}","comments_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40404/comments","events_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40404/events","html_url":"https://github.com/pandas-dev/pandas/issues/40404","id":830351557,"node_id":"MDU6SXNzdWU4MzAzNTE1NTc=","number":40404,"title":"BUG:
+        AttributeError: ''PandasArray'' object has no attribute ''_str_len''","user":{"login":"wellingtonf-souza","id":52857488,"node_id":"MDQ6VXNlcjUyODU3NDg4","avatar_url":"https://avatars.githubusercontent.com/u/52857488?v=4","gravatar_id":"","url":"https://api.github.com/users/wellingtonf-souza","html_url":"https://github.com/wellingtonf-souza","followers_url":"https://api.github.com/users/wellingtonf-souza/followers","following_url":"https://api.github.com/users/wellingtonf-souza/following{/other_user}","gists_url":"https://api.github.com/users/wellingtonf-souza/gists{/gist_id}","starred_url":"https://api.github.com/users/wellingtonf-souza/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/wellingtonf-souza/subscriptions","organizations_url":"https://api.github.com/users/wellingtonf-souza/orgs","repos_url":"https://api.github.com/users/wellingtonf-souza/repos","events_url":"https://api.github.com/users/wellingtonf-souza/events{/privacy}","received_events_url":"https://api.github.com/users/wellingtonf-souza/received_events","type":"User","site_admin":false},"labels":[{"id":2365504893,"node_id":"MDU6TGFiZWwyMzY1NTA0ODkz","url":"https://api.github.com/repos/pandas-dev/pandas/labels/Closing%20Candidate","name":"Closing
+        Candidate","color":"be21f2","default":false,"description":"May be closeable,
+        needs more eyeballs"},{"id":307649777,"node_id":"MDU6TGFiZWwzMDc2NDk3Nzc=","url":"https://api.github.com/repos/pandas-dev/pandas/labels/Needs%20Info","name":"Needs
+        Info","color":"207de5","default":false,"description":"Clarification about
+        behavior needed to assess issue"}],"state":"open","locked":false,"assignee":null,"assignees":[],"milestone":null,"comments":1,"created_at":"2021-03-12T18:26:52Z","updated_at":"2021-03-12T18:55:08Z","closed_at":null,"author_association":"NONE","active_lock_reason":null,"body":"I
+        am having the following error.\r\n\r\nPython 3.7.4 (default, Aug 9 2019, 18:34:13)
+        [MSC v.1915 64 bit (AMD64)] :: Anaconda, Inc. on win32\r\nType \"help\", \"copyright\",
+        \"credits\" or \"license\" for more information.\r\n\r\nimport pandas as pd\r\npd.version\r\n\r\n''1.1.5''\r\n\r\nd
+        = {''col1'': [1, 2], ''col2'': [3, 4]}\r\ndf = pd.DataFrame(data=d)\r\ndf\r\n\r\nTraceback
+        (most recent call last):\r\nFile \"\", line 1, in\r\nFile \"C:\\Users\\wellington.souza\\AppData\\Local\\Continuum\\anaconda3\\lib\\site-packages\\pandas\\core\\frame.py\",
+        line 751, in repr\r\nshow_dimensions=show_dimensions,\r\nFile \"C:\\Users\\wellington.souza\\AppData\\Local\\Continuum\\anaconda3\\lib\\site-packages\\pandas\\core\\frame.py\",
+        line 883, in to_string\r\nreturn formatter.to_string(buf=buf, encoding=encoding)\r\nFile
+        \"C:\\Users\\wellington.souza\\AppData\\Local\\Continuum\\anaconda3\\lib\\site-packages\\pandas\\io\\formats\\format.py\",
+        line 921, in to_string\r\nreturn self.get_result(buf=buf, encoding=encoding)\r\nFile
+        \"C:\\Users\\wellington.souza\\AppData\\Local\\Continuum\\anaconda3\\lib\\site-packages\\pandas\\io\\formats\\format.py\",
+        line 520, in get_result\r\nself.write_result(buf=f)\r\nFile \"C:\\Users\\wellington.souza\\AppData\\Local\\Continuum\\anaconda3\\lib\\site-packages\\pandas\\io\\formats\\format.py\",
+        line 844, in write_result\r\nmax_len = Series(lines).str.len().max()\r\nFile
+        \"C:\\Users\\wellington.souza\\AppData\\Local\\Continuum\\anaconda3\\lib\\site-packages\\pandas\\core\\strings\\accessor.py\",
+        line 2579, in len\r\nresult = self._data.array._str_len()\r\nAttributeError:
+        ''PandasArray'' object has no attribute ''_str_len''","performed_via_github_app":null},{"url":"https://api.github.com/repos/pandas-dev/pandas/issues/40403","repository_url":"https://api.github.com/repos/pandas-dev/pandas","labels_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40403/labels{/name}","comments_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40403/comments","events_url":"https://api.github.com/repos/pandas-dev/pandas/issues/40403/events","html_url":"https://github.com/pandas-dev/pandas/pull/40403","id":830323053,"node_id":"MDExOlB1bGxSZXF1ZXN0NTkxODUyNzQw","number":40403,"title":"REF:
+        consistent arguments for create_block_manager_from_blocks","user":{"login":"jbrockmendel","id":8078968,"node_id":"MDQ6VXNlcjgwNzg5Njg=","avatar_url":"https://avatars.githubusercontent.com/u/8078968?v=4","gravatar_id":"","url":"https://api.github.com/users/jbrockmendel","html_url":"https://github.com/jbrockmendel","followers_url":"https://api.github.com/users/jbrockmendel/followers","following_url":"https://api.github.com/users/jbrockmendel/following{/other_user}","gists_url":"https://api.github.com/users/jbrockmendel/gists{/gist_id}","starred_url":"https://api.github.com/users/jbrockmendel/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/jbrockmendel/subscriptions","organizations_url":"https://api.github.com/users/jbrockmendel/orgs","repos_url":"https://api.github.com/users/jbrockmendel/repos","events_url":"https://api.github.com/users/jbrockmendel/events{/privacy}","received_events_url":"https://api.github.com/users/jbrockmendel/received_events","type":"User","site_admin":false},"labels":[],"state":"open","locked":false,"assignee":null,"assignees":[],"milestone":null,"comments":0,"created_at":"2021-03-12T17:37:45Z","updated_at":"2021-03-12T17:37:45Z","closed_at":null,"author_association":"MEMBER","active_lock_reason":null,"pull_request":{"url":"https://api.github.com/repos/pandas-dev/pandas/pulls/40403","html_url":"https://github.com/pandas-dev/pandas/pull/40403","diff_url":"https://github.com/pandas-dev/pandas/pull/40403.diff","patch_url":"https://github.com/pandas-dev/pandas/pull/40403.patch"},"body":"-
+        [ ] closes #xxxx\r\n- [ ] tests added / passed\r\n- [ ] Ensure all linting
+        tests pass, see [here](https://pandas.pydata.org/pandas-docs/dev/development/contributing.html#code-standards)
+        for how to run them\r\n- [ ] whatsnew entry\r\n\r\nWe do expose create_block_manager_from_blocks
+        in core.internals, so could put the old version in internals.api and continue
+        exposing that.  Not sure if any downstream libraries are actually using it.","performed_via_github_app":null}]'
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Access-Control-Expose-Headers:
+      - ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Used, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+        X-Poll-Interval, X-GitHub-Media-Type, Deprecation, Sunset
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Content-Length:
+      - '14092'
+      Content-Security-Policy:
+      - default-src 'none'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Fri, 12 Mar 2021 21:13:47 GMT
+      ETag:
+      - W/"b054d73692429e135c030c588d8567e12f7905bf58cd5b3c8606357f25dfd616"
+      Link:
+      - <https://api.github.com/repositories/858127/issues?per_page=5&page=2>; rel="next",
+        <https://api.github.com/repositories/858127/issues?per_page=5&page=743>; rel="last"
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Server:
+      - GitHub.com
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      Vary:
+      - Accept, Accept-Encoding, Accept, X-Requested-With
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - deny
+      X-GitHub-Media-Type:
+      - github.v3; format=json
+      X-GitHub-Request-Id:
+      - EE84:1E27:37D685:3BED5A:604BD98C
+      X-RateLimit-Limit:
+      - '60'
+      X-RateLimit-Remaining:
+      - '56'
+      X-RateLimit-Reset:
+      - '1615585739'
+      X-RateLimit-Used:
+      - '4'
+      X-XSS-Protection:
+      - 1; mode=block
+      connection:
+      - close
+    status:
+      code: 200
+      message: OK
+version: 1

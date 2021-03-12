@@ -1,0 +1,78 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - raw.githubusercontent.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/io/data/feather/feather-0_3_1.feather
+  response:
+    body:
+      string: !!binary |
+        RkVBMQAAAAABAAAAAAAAAAABAAAAAAAAAAAAAAEAAAACAAAAAAAAAGFiAAAAAAAAAAChMLx8lRQA
+        AERej4YFFQAAAAAAAPA/AAAAAAAAAEABAAAAAAAAAAIAAAAAAAAAFAAAAAAADgAUAAAADAAEAAgA
+        AAAOAAAAEAAAAAIAAAACAAAAAAAAAAUAAAC8AQAAEAEAAKQAAABcAAAABAAAAGb+//8UAAAAKAAA
+        AAQAAAAAAAAAAAAAAAMAAABpbnQAEAAkAAcAAAAIABAAAAAYABAAAAAAAAAEUAAAAAAAAAACAAAA
+        AAAAABAAAAAAAAAAAAAAALr+//8UAAAAHAAAAAQAAAAAAAAAAAAAAAUAAABmbG9hdAAAAED///8A
+        AAAKQAAAAAAAAAACAAAAAAAAABAAAAAAAAAApv///wAAAAIYAAAALAAAACAAAAAEAAAAAAAAAAAA
+        AAACAAAAZHQAAAgACAAHAAAACAAAAAAAAANo////AAAABDAAAAAAAAAAAgAAAAAAAAAQAAAAAAAA
+        AAAADgAYAAgADAAHABAAFAAOAAAAAAAAARgAAABsAAAAIAAAAAQAAAAAAAAAAAAAAAMAAABjYXQA
+        CAAIAAQAAAAIAAAAFAAAABAAIAAHAAAACAAQAAAAGAAQAAAAAAAACxgAAAAAAAAAAgAAAAAAAAAY
+        AAAAAAAAABAAIgAHAAAACAAQAAAAGAAQAAAAAAAAARAAAAAAAAAAAgAAAAAAAAAIAAAAAAAAAAAA
+        DgAQAAQACAAAAAAADAAOAAAAFAAAACwAAAAEAAAAAAAAAAAAAAAEAAAAYm9vbAAAAAAQABwAAAAA
+        AAQADAAAABQAEAAAAAgAAAAAAAAAAgAAAAAAAAAIAAAAAAAAADgCAABGRUEx
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - max-age=300
+      Connection:
+      - close
+      Content-Length:
+      - '672'
+      Content-Security-Policy:
+      - default-src 'none'; style-src 'unsafe-inline'; sandbox
+      Content-Type:
+      - application/octet-stream
+      Date:
+      - Fri, 12 Mar 2021 21:13:44 GMT
+      ETag:
+      - '"432f24ffb630a116c455982e5f346f5d40e6f0921e10735df13ffb77def09b46"'
+      Expires:
+      - Fri, 12 Mar 2021 21:18:44 GMT
+      Source-Age:
+      - '0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Vary:
+      - Authorization,Accept-Encoding
+      Via:
+      - 1.1 varnish
+      X-Cache:
+      - HIT
+      X-Cache-Hits:
+      - '1'
+      X-Content-Type-Options:
+      - nosniff
+      X-Fastly-Request-ID:
+      - 4161003c49816e6ed754245711e8d978d8efb9c9
+      X-Frame-Options:
+      - deny
+      X-GitHub-Request-Id:
+      - 1F06:4830:F2A5:59221:604BC060
+      X-Served-By:
+      - cache-pao17455-PAO
+      X-Timer:
+      - S1615583624.256408,VS0,VE149
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -1,0 +1,169 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - docs.python.org
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://docs.python.org/2/
+  response:
+    body:
+      string: "\n<!DOCTYPE html>\n\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n
+        \ <head>\n    <meta charset=\"utf-8\" /><title>Python 2.7.18 documentation</title>\n
+        \   <link rel=\"stylesheet\" href=\"_static/classic.css\" type=\"text/css\"
+        />\n    <link rel=\"stylesheet\" href=\"_static/pygments.css\" type=\"text/css\"
+        />\n    \n    <script type=\"text/javascript\" id=\"documentation_options\"
+        data-url_root=\"./\" src=\"_static/documentation_options.js\"></script>\n
+        \   <script type=\"text/javascript\" src=\"_static/jquery.js\"></script>\n
+        \   <script type=\"text/javascript\" src=\"_static/underscore.js\"></script>\n
+        \   <script type=\"text/javascript\" src=\"_static/doctools.js\"></script>\n
+        \   <script type=\"text/javascript\" src=\"_static/language_data.js\"></script>\n
+        \   \n    <script type=\"text/javascript\" src=\"_static/sidebar.js\"></script>\n
+        \   \n    <link rel=\"search\" type=\"application/opensearchdescription+xml\"\n
+        \         title=\"Search within Python 2.7.18 documentation\"\n          href=\"_static/opensearch.xml\"/>\n
+        \   <link rel=\"author\" title=\"About these documents\" href=\"about.html\"
+        />\n    <link rel=\"index\" title=\"Index\" href=\"genindex.html\" />\n    <link
+        rel=\"search\" title=\"Search\" href=\"search.html\" />\n    <link rel=\"copyright\"
+        title=\"Copyright\" href=\"copyright.html\" />\n    <link rel=\"shortcut icon\"
+        type=\"image/png\" href=\"_static/py.png\" />\n    <link rel=\"canonical\"
+        href=\"https://docs.python.org/2/index.html\" />\n    <script type=\"text/javascript\"
+        src=\"_static/copybutton.js\"></script>\n    \n \n    \n\n  </head><body>\n<div
+        id=\"outdated-warning\" style=\"padding: .5em; text-align: center; background-color:
+        #FFBABA; color: #6A0E0E;\">\n    This document is for an old version of Python
+        that is <a href=\"https://devguide.python.org/devcycle/#end-of-life-branches\">no
+        longer supported</a>.\n    You should upgrade and read the \n    <a href=\"https://docs.python.org/3/index.html\">
+        Python documentation for the current stable release</a>.\n</div>\n  \n    <div
+        class=\"related\" role=\"navigation\" aria-label=\"related navigation\">\n
+        \     <h3>Navigation</h3>\n      <ul>\n        <li class=\"right\" style=\"margin-right:
+        10px\">\n          <a href=\"genindex.html\" title=\"General Index\"\n             accesskey=\"I\">index</a></li>\n
+        \       <li class=\"right\" >\n          <a href=\"py-modindex.html\" title=\"Python
+        Module Index\"\n             >modules</a> |</li>\n        <li><img src=\"_static/py.png\"
+        alt=\"\"\n                 style=\"vertical-align: middle; margin-top: -1px\"/></li>\n
+        \       <li><a href=\"https://www.python.org/\">Python</a> &#187;</li>\n        <li>\n
+        \         <a href=\"#\">Python 2.7.18 documentation</a> &#187;\n        </li>\n
+        \n      </ul>\n    </div>    \n\n    <div class=\"document\">\n      <div
+        class=\"documentwrapper\">\n        <div class=\"bodywrapper\">\n          <div
+        class=\"body\" role=\"main\">\n            \n  <h1>Python 2.7.18 documentation</h1>\n
+        \ <p>\n  Welcome! This is the documentation for Python 2.7.18.\n  </p>\n  <p><strong>Parts
+        of the documentation:</strong></p>\n  <table class=\"contentstable\" align=\"center\"><tr>\n
+        \   <td width=\"50%\">\n      <p class=\"biglink\"><a class=\"biglink\" href=\"whatsnew/2.7.html\">What's
+        new in Python 2.7?</a><br/>\n         <span class=\"linkdescr\">or <a href=\"whatsnew/index.html\">all
+        \"What's new\" documents</a> since 2.0</span></p>\n      <p class=\"biglink\"><a
+        class=\"biglink\" href=\"tutorial/index.html\">Tutorial</a><br/>\n         <span
+        class=\"linkdescr\">start here</span></p>\n      <p class=\"biglink\"><a class=\"biglink\"
+        href=\"library/index.html\">Library Reference</a><br/>\n         <span class=\"linkdescr\">keep
+        this under your pillow</span></p>\n      <p class=\"biglink\"><a class=\"biglink\"
+        href=\"reference/index.html\">Language Reference</a><br/>\n         <span
+        class=\"linkdescr\">describes syntax and language elements</span></p>\n      <p
+        class=\"biglink\"><a class=\"biglink\" href=\"using/index.html\">Python Setup
+        and Usage</a><br/>\n         <span class=\"linkdescr\">how to use Python on
+        different platforms</span></p>\n      <p class=\"biglink\"><a class=\"biglink\"
+        href=\"howto/index.html\">Python HOWTOs</a><br/>\n         <span class=\"linkdescr\">in-depth
+        documents on specific topics</span></p>\n    </td><td width=\"50%\">\n      <p
+        class=\"biglink\"><a class=\"biglink\" href=\"installing/index.html\">Installing
+        Python Modules</a><br/>\n         <span class=\"linkdescr\">installing from
+        the Python Package Index &amp; other sources</span></p>\n      <p class=\"biglink\"><a
+        class=\"biglink\" href=\"distributing/index.html\">Distributing Python Modules</a><br/>\n
+        \        <span class=\"linkdescr\">publishing modules for installation by
+        others</span></p>\n      <p class=\"biglink\"><a class=\"biglink\" href=\"extending/index.html\">Extending
+        and Embedding</a><br/>\n         <span class=\"linkdescr\">tutorial for C/C++
+        programmers</span></p>\n      <p class=\"biglink\"><a class=\"biglink\" href=\"c-api/index.html\">Python/C
+        API</a><br/>\n         <span class=\"linkdescr\">reference for C/C++ programmers</span></p>\n
+        \     <p class=\"biglink\"><a class=\"biglink\" href=\"faq/index.html\">FAQs</a><br/>\n
+        \        <span class=\"linkdescr\">frequently asked questions (with answers!)</span></p>\n
+        \   </td></tr>\n  </table>\n\n  <p><strong>Indices and tables:</strong></p>\n
+        \ <table class=\"contentstable\" align=\"center\"><tr>\n    <td width=\"50%\">\n
+        \     <p class=\"biglink\"><a class=\"biglink\" href=\"py-modindex.html\">Global
+        Module Index</a><br/>\n         <span class=\"linkdescr\">quick access to
+        all modules</span></p>\n      <p class=\"biglink\"><a class=\"biglink\" href=\"genindex.html\">General
+        Index</a><br/>\n         <span class=\"linkdescr\">all functions, classes,
+        terms</span></p>\n      <p class=\"biglink\"><a class=\"biglink\" href=\"glossary.html\">Glossary</a><br/>\n
+        \        <span class=\"linkdescr\">the most important terms explained</span></p>\n
+        \   </td><td width=\"50%\">\n      <p class=\"biglink\"><a class=\"biglink\"
+        href=\"search.html\">Search page</a><br/>\n         <span class=\"linkdescr\">search
+        this documentation</span></p>\n      <p class=\"biglink\"><a class=\"biglink\"
+        href=\"contents.html\">Complete Table of Contents</a><br/>\n         <span
+        class=\"linkdescr\">lists all sections and subsections</span></p>\n    </td></tr>\n
+        \ </table>\n\n  <p><strong>Meta information:</strong></p>\n  <table class=\"contentstable\"
+        align=\"center\"><tr>\n    <td width=\"50%\">\n      <p class=\"biglink\"><a
+        class=\"biglink\" href=\"bugs.html\">Reporting bugs</a></p>\n      <p class=\"biglink\"><a
+        class=\"biglink\" href=\"about.html\">About the documentation</a></p>\n    </td><td
+        width=\"50%\">\n      <p class=\"biglink\"><a class=\"biglink\" href=\"license.html\">History
+        and License of Python</a></p>\n      <p class=\"biglink\"><a class=\"biglink\"
+        href=\"copyright.html\">Copyright</a></p>\n    </td></tr>\n  </table>\n\n
+        \         </div>\n        </div>\n      </div>\n      <div class=\"sphinxsidebar\"
+        role=\"navigation\" aria-label=\"main navigation\">\n        <div class=\"sphinxsidebarwrapper\"><h3>Download</h3>\n<p><a
+        href=\"download.html\">Download these documents</a></p>\n<h3>Docs by version</h3>\n<ul>\n
+        \ <li><a href=\"https://docs.python.org/3.10/\">Python 3.10 (in development)</a></li>\n<li><a
+        href=\"https://docs.python.org/3.9/\">Python 3.9 (pre-release)</a></li>\n<li><a
+        href=\"https://docs.python.org/3.8/\">Python 3.8 (stable)</a></li>\n<li><a
+        href=\"https://docs.python.org/3.7/\">Python 3.7 (stable)</a></li>\n<li><a
+        href=\"https://docs.python.org/3.6/\">Python 3.6 (security-fixes)</a></li>\n<li><a
+        href=\"https://docs.python.org/3.5/\">Python 3.5 (security-fixes)</a></li>\n<li><a
+        href=\"https://docs.python.org/2.7/\">Python 2.7 (EOL)</a></li>\n  <li><a
+        href=\"https://www.python.org/doc/versions/\">All versions</a></li>\n</ul>\n\n<h3>Other
+        resources</h3>\n<ul>\n  \n  <li><a href=\"https://www.python.org/dev/peps/\">PEP
+        Index</a></li>\n  <li><a href=\"https://wiki.python.org/moin/BeginnersGuide\">Beginner's
+        Guide</a></li>\n  <li><a href=\"https://wiki.python.org/moin/PythonBooks\">Book
+        List</a></li>\n  <li><a href=\"https://www.python.org/doc/av/\">Audio/Visual
+        Talks</a></li>\n  <li><a href=\"https://devguide.python.org/\">Python Developer\u2019s
+        Guide</a></li>\n</ul>\n        </div>\n      </div>\n      <div class=\"clearer\"></div>\n
+        \   </div>  \n    <div class=\"related\" role=\"navigation\" aria-label=\"related
+        navigation\">\n      <h3>Navigation</h3>\n      <ul>\n        <li class=\"right\"
+        style=\"margin-right: 10px\">\n          <a href=\"genindex.html\" title=\"General
+        Index\"\n             >index</a></li>\n        <li class=\"right\" >\n          <a
+        href=\"py-modindex.html\" title=\"Python Module Index\"\n             >modules</a>
+        |</li>\n        <li><img src=\"_static/py.png\" alt=\"\"\n                 style=\"vertical-align:
+        middle; margin-top: -1px\"/></li>\n        <li><a href=\"https://www.python.org/\">Python</a>
+        &#187;</li>\n        <li>\n          <a href=\"#\">Python 2.7.18 documentation</a>
+        &#187;\n        </li>\n \n      </ul>\n    </div>  \n    <div class=\"footer\">\n
+        \   &copy; <a href=\"copyright.html\">Copyright</a> 1990-2020, Python Software
+        Foundation.\n    <br />\n    The Python Software Foundation is a non-profit
+        corporation.\n    <a href=\"https://www.python.org/psf/donations/\">Please
+        donate.</a>\n    <br />\n    Last updated on Jun 19, 2020.\n    <a href=\"bugs.html\">Found
+        a bug</a>?\n    <br />\n    Created using <a href=\"http://sphinx.pocoo.org/\">Sphinx</a>
+        2.3.1.\n    </div>\n\n    <script type=\"text/javascript\" src=\"_static/switchers.js\"></script>\n
+        \ </body>\n</html>"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Age:
+      - '133559'
+      Connection:
+      - close
+      Content-Length:
+      - '9165'
+      Content-Type:
+      - text/html
+      Date:
+      - Fri, 12 Mar 2021 21:13:45 GMT
+      ETag:
+      - '"5eecbec8-23cd"'
+      Last-Modified:
+      - Fri, 19 Jun 2020 13:34:00 GMT
+      Server:
+      - nginx
+      Strict-Transport-Security:
+      - max-age=315360000; includeSubDomains; preload
+      Vary:
+      - Accept-Encoding
+      Via:
+      - 1.1 varnish, 1.1 varnish
+      X-Cache:
+      - HIT, HIT
+      X-Cache-Hits:
+      - 1, 1
+      X-Clacks-Overhead:
+      - GNU Terry Pratchett
+      X-Served-By:
+      - cache-lga21931-LGA, cache-sjc10078-SJC
+      X-Timer:
+      - S1615583626.735942,VS0,VE1
+    status:
+      code: 200
+      message: OK
+version: 1

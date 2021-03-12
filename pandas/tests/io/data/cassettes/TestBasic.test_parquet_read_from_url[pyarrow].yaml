@@ -1,0 +1,104 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - raw.githubusercontent.com
+      User-Agent:
+      - Python-urllib/3.9
+    method: GET
+    uri: https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/io/data/parquet/simple.parquet
+  response:
+    body:
+      string: !!binary |
+        UEFSMRUEFTAVLkwVBhUEEgAAGAQBAAkBPAIAAAAAAAAAAwAAAAAAAAAVABUUFRgsFQYVBBUGFQYc
+        GAgDAAAAAAAAABgIAQAAAAAAAAAWACgIAwAAAAAAAAAYCAEAAAAAAAAAAAAACiQCAAAABgECAyQA
+        JuQBHBUEGTUEAAYZGAFBFQIWBhbaARbcASZSJggcGAgDAAAAAAAAABgIAQAAAAAAAAAWACgIAwAA
+        AAAAAAAYCAEAAAAAAAAAABksFQQVBBUCABUAFQQVAgAAABUEFQ4VEkwVAhUEEgAABxgDAAAAZm9v
+        FQAVEhUWLBUGFQQVBhUGHDYAKANmb28YA2ZvbwAAAAkgAgAAAAYBAQYAJpwEHBUMGTUEAAYZGAFC
+        FQIWBhZ6FoIBJsgDJpoDHDYAKANmb28YA2ZvbwAZLBUEFQQVAgAVABUEFQIAAAAVAhk8NQAYBnNj
+        aGVtYRUEABUEJQIYAUEAFQwlAhgBQiUATBwAAAAWBhkcGSwm5AEcFQQZNQQABhkYAUEVAhYGFtoB
+        FtwBJlImCBwYCAMAAAAAAAAAGAgBAAAAAAAAABYAKAgDAAAAAAAAABgIAQAAAAAAAAAAGSwVBBUE
+        FQIAFQAVBBUCAAAAJpwEHBUMGTUEAAYZGAFCFQIWBhZ6FoIBJsgDJpoDHDYAKANmb28YA2ZvbwAZ
+        LBUEFQQVAgAVABUEFQIAAAAW3gIWBibkARbeAhQAABksGAZwYW5kYXMYjAR7ImluZGV4X2NvbHVt
+        bnMiOiBbeyJraW5kIjogInJhbmdlIiwgIm5hbWUiOiBudWxsLCAic3RhcnQiOiAwLCAic3RvcCI6
+        IDMsICJzdGVwIjogMX1dLCAiY29sdW1uX2luZGV4ZXMiOiBbeyJuYW1lIjogbnVsbCwgImZpZWxk
+        X25hbWUiOiBudWxsLCAicGFuZGFzX3R5cGUiOiAidW5pY29kZSIsICJudW1weV90eXBlIjogIm9i
+        amVjdCIsICJtZXRhZGF0YSI6IHsiZW5jb2RpbmciOiAiVVRGLTgifX1dLCAiY29sdW1ucyI6IFt7
+        Im5hbWUiOiAiQSIsICJmaWVsZF9uYW1lIjogIkEiLCAicGFuZGFzX3R5cGUiOiAiaW50NjQiLCAi
+        bnVtcHlfdHlwZSI6ICJpbnQ2NCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAiQiIsICJm
+        aWVsZF9uYW1lIjogIkIiLCAicGFuZGFzX3R5cGUiOiAidW5pY29kZSIsICJudW1weV90eXBlIjog
+        Im9iamVjdCIsICJtZXRhZGF0YSI6IG51bGx9XSwgImNyZWF0b3IiOiB7ImxpYnJhcnkiOiAicHlh
+        cnJvdyIsICJ2ZXJzaW9uIjogIjAuMTcuMSJ9LCAicGFuZGFzX3ZlcnNpb24iOiAiMS4wLjMifQAY
+        DEFSUk9XOnNjaGVtYRjsBy8vLy8vK2dDQUFBUUFBQUFBQUFLQUE0QUJnQUZBQWdBQ2dBQUFBQUJB
+        d0FRQUFBQUFBQUtBQXdBQUFBRUFBZ0FDZ0FBQUVRQ0FBQUVBQUFBQVFBQUFBd0FBQUFJQUF3QUJB
+        QUlBQWdBQUFBSUFBQUFFQUFBQUFZQUFBQndZVzVrWVhNQUFBd0NBQUI3SW1sdVpHVjRYMk52YkhW
+        dGJuTWlPaUJiZXlKcmFXNWtJam9nSW5KaGJtZGxJaXdnSW01aGJXVWlPaUJ1ZFd4c0xDQWljM1Jo
+        Y25RaU9pQXdMQ0FpYzNSdmNDSTZJRE1zSUNKemRHVndJam9nTVgxZExDQWlZMjlzZFcxdVgybHVa
+        R1Y0WlhNaU9pQmJleUp1WVcxbElqb2diblZzYkN3Z0ltWnBaV3hrWDI1aGJXVWlPaUJ1ZFd4c0xD
+        QWljR0Z1WkdGelgzUjVjR1VpT2lBaWRXNXBZMjlrWlNJc0lDSnVkVzF3ZVY5MGVYQmxJam9nSW05
+        aWFtVmpkQ0lzSUNKdFpYUmhaR0YwWVNJNklIc2laVzVqYjJScGJtY2lPaUFpVlZSR0xUZ2lmWDFk
+        TENBaVkyOXNkVzF1Y3lJNklGdDdJbTVoYldVaU9pQWlRU0lzSUNKbWFXVnNaRjl1WVcxbElqb2dJ
+        a0VpTENBaWNHRnVaR0Z6WDNSNWNHVWlPaUFpYVc1ME5qUWlMQ0FpYm5WdGNIbGZkSGx3WlNJNklD
+        SnBiblEyTkNJc0lDSnRaWFJoWkdGMFlTSTZJRzUxYkd4OUxDQjdJbTVoYldVaU9pQWlRaUlzSUNK
+        bWFXVnNaRjl1WVcxbElqb2dJa0lpTENBaWNHRnVaR0Z6WDNSNWNHVWlPaUFpZFc1cFkyOWtaU0lz
+        SUNKdWRXMXdlVjkwZVhCbElqb2dJbTlpYW1WamRDSXNJQ0p0WlhSaFpHRjBZU0k2SUc1MWJHeDlY
+        U3dnSW1OeVpXRjBiM0lpT2lCN0lteHBZbkpoY25raU9pQWljSGxoY25KdmR5SXNJQ0oyWlhKemFX
+        OXVJam9nSWpBdU1UY3VNU0o5TENBaWNHRnVaR0Z6WDNabGNuTnBiMjRpT2lBaU1TNHdMak1pZlFB
+        QUFBQUNBQUFBUUFBQUFBUUFBQURZLy8vL0FBQUJCUmdBQUFBUUFBQUFCQUFBQUFBQUFBQUVBQVFB
+        QkFBQUFBRUFBQUJDQUFBQUVBQVVBQWdBQmdBSEFBd0FBQUFRQUJBQUFBQUFBQUVDSkFBQUFCUUFB
+        QUFFQUFBQUFBQUFBQWdBREFBSUFBY0FDQUFBQUFBQUFBRkFBQUFBQVFBQUFFRUFBQUE9ABgicGFy
+        cXVldC1jcHAgdmVyc2lvbiAxLjUuMS1TTkFQU0hPVBksHAAAHAAAABkHAABQQVIx
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - max-age=300
+      Connection:
+      - close
+      Content-Length:
+      - '2157'
+      Content-Security-Policy:
+      - default-src 'none'; style-src 'unsafe-inline'; sandbox
+      Content-Type:
+      - application/octet-stream
+      Date:
+      - Fri, 12 Mar 2021 21:13:46 GMT
+      ETag:
+      - '"f2b9a1af3c81ea6f4a0b2f8d1da9eb164f0237b6970175695bc2f6ad2492b688"'
+      Expires:
+      - Fri, 12 Mar 2021 21:18:46 GMT
+      Source-Age:
+      - '0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Vary:
+      - Authorization,Accept-Encoding
+      Via:
+      - 1.1 varnish
+      X-Cache:
+      - HIT
+      X-Cache-Hits:
+      - '1'
+      X-Content-Type-Options:
+      - nosniff
+      X-Fastly-Request-ID:
+      - 0a819b4a1b6ed0e90b091e5077ab76d042492068
+      X-Frame-Options:
+      - deny
+      X-GitHub-Request-Id:
+      - 9FBA:8151:7F629:E0F73:604BC060
+      X-Served-By:
+      - cache-pao17439-PAO
+      X-Timer:
+      - S1615583626.873221,VS0,VE156
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

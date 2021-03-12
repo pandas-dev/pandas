@@ -10,6 +10,7 @@ dependencies:
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
+  - pytest-vcr
 
   # pandas dependencies
   - beautifulsoup4
