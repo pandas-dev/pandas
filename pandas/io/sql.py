@@ -898,7 +898,9 @@ class SQLTable(PandasObject):
                 mask = isna(d)
                 d[mask] = None
 
-            data_list[i] = d
+            # error: No overload variant of "__setitem__" of "list" matches
+            # argument types "int", "ndarray"
+            data_list[i] = d  # type: ignore[call-overload]
 
         return column_names, data_list
 
@@ -1545,7 +1547,13 @@ class SQLDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                dtype = {col_name: dtype for col_name in frame}
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)
 
@@ -2022,7 +2030,13 @@ class SQLiteDatabase(PandasSQL):
         """
         if dtype:
             if not is_dict_like(dtype):
-                dtype = {col_name: dtype for col_name in frame}
+                # error: Value expression in dictionary comprehension has incompatible
+                # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+                # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+                # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+                # Type[object]]]]"; expected type "Union[ExtensionDtype, str,
+                # dtype[Any], Type[object]]"
+                dtype = {col_name: dtype for col_name in frame}  # type: ignore[misc]
             else:
                 dtype = cast(dict, dtype)
 
