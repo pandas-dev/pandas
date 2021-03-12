@@ -556,7 +556,7 @@ def infer_fill_value(val):
     return np.nan
 
 
-def maybe_fill(arr: np.ndarray):
+def maybe_fill(arr: np.ndarray) -> np.ndarray:
     """
     Fill numpy.ndarray with NaN, unless we have a integer or boolean dtype.
     """
