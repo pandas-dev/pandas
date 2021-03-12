@@ -27,7 +27,7 @@ def main(filename):
 if __name__ == "__main__":
     print("SKIPPED TESTS:")
     i = 1
-    for test_data in main("test-data.xml"):
+    for test_data in main("junit/test-results.xml"):
         if test_data is None:
             print("-" * 80)
         else:
