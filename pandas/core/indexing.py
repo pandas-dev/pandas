@@ -56,6 +56,7 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import Index
+from pandas.core.internals import ArrayManager
 
 if TYPE_CHECKING:
     from pandas import (
@@ -1909,6 +1910,10 @@ class _iLocIndexer(_LocationIndexer):
 
     def _setitem_iat_loc(self, loc: int, pi, value):
         # TODO: likely a BM method?
+        if isinstance(self.obj._mgr, ArrayManager):
+            # TODO: implement this correctly for ArrayManager
+            return self._setitem_single_column(loc, value, pi)
+
         mgr = self.obj._mgr
         blkno = mgr.blknos[loc]
         blkloc = mgr.blklocs[loc]
