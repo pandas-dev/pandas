@@ -10,7 +10,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -94,7 +98,14 @@ class Expanding(RollingAndExpandingMixin):
 
     _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(self, obj, min_periods=1, center=None, axis=0, method="single"):
+    def __init__(
+        self,
+        obj: FrameOrSeries,
+        min_periods: int = 1,
+        center=None,
+        axis: Axis = 0,
+        method: str = "single",
+    ):
         super().__init__(
             obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
         )
@@ -200,7 +211,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="sum",
         agg_method="sum",
     )
-    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def sum(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("sum", args, kwargs)
         return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -220,7 +237,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="maximum",
         agg_method="max",
     )
-    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def max(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("max", args, kwargs)
         return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -240,7 +263,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="minimum",
         agg_method="min",
     )
-    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def min(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("min", args, kwargs)
         return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -260,7 +289,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="mean",
         agg_method="mean",
     )
-    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def mean(
+        self,
+        *args,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("mean", args, kwargs)
         return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -279,7 +314,12 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="median",
         agg_method="median",
     )
-    def median(self, engine=None, engine_kwargs=None, **kwargs):
+    def median(
+        self,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        **kwargs,
+    ):
         return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
@@ -508,8 +548,8 @@ class Expanding(RollingAndExpandingMixin):
     )
     def quantile(
         self,
-        quantile,
-        interpolation="linear",
+        quantile: float,
+        interpolation: str = "linear",
         **kwargs,
     ):
         return super().quantile(
@@ -549,7 +589,7 @@ class Expanding(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
@@ -614,7 +654,7 @@ class Expanding(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        other: Optional[Union[np.ndarray, FrameOrSeriesUnion]] = None,
         pairwise: Optional[bool] = None,
         ddof: int = 1,
         **kwargs,
