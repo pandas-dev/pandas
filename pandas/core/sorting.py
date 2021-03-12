@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 _INT64_MAX = np.iinfo(np.int64).max
 
 
-# error: Function "numpy.array" is not valid as a type
 def get_indexer_indexer(
     target: Index,
     level: Union[str, int, List[str], List[int]],
@@ -52,7 +51,7 @@ def get_indexer_indexer(
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:  # type: ignore[valid-type]
+) -> Optional[np.ndarray]:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.

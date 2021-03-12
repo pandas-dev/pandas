@@ -827,7 +827,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _join_precedence = 10
 
     def join(
-        self, other, how: str = "left", level=None, return_indexers=False, sort=False
+        self,
+        other,
+        how: str = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
     ):
         """
         See Index.join
