@@ -30,6 +30,7 @@ jobs:
       fail-fast: true
     env:
       COVERAGE: true
+      PYTEST_WORKERS: "auto"
 
     steps:
     - name: Checkout
