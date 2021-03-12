@@ -931,7 +931,9 @@ class TestIndexing:
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for ax in range(mgr.ndim):
-            assert_reindex_indexer_is_ok(mgr, ax, Index([]), [], fill_value)
+            assert_reindex_indexer_is_ok(
+                mgr, ax, Index([]), np.array([], dtype=np.intp), fill_value
+            )
             assert_reindex_indexer_is_ok(
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax]), fill_value
             )
@@ -949,22 +951,26 @@ class TestIndexing:
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
+                mgr, ax, Index(["foo", "bar", "baz"]), np.array([0, 0, 0]), fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value
+                mgr, ax, Index(["foo", "bar", "baz"]), np.array([-1, 0, -1]), fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr,
                 ax,
                 Index(["foo", mgr.axes[ax][0], "baz"]),
-                [-1, -1, -1],
+                np.array([-1, -1, -1]),
                 fill_value,
             )
 
             if mgr.shape[ax] >= 3:
                 assert_reindex_indexer_is_ok(
-                    mgr, ax, Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value
+                    mgr,
+                    ax,
+                    Index(["foo", "bar", "baz"]),
+                    np.array([0, 1, 2]),
+                    fill_value,
                 )
 
 
