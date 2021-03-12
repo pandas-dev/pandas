@@ -345,7 +345,9 @@ class Block(PandasObject):
 
         Assumes self.ndim == 2
         """
-        new_values = self.values[..., slicer]
+        # error: Invalid index type "Tuple[ellipsis, slice]" for
+        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        new_values = self.values[..., slicer]  # type: ignore[index]
         return type(self)._simple_new(new_values, self._mgr_locs, ndim=self.ndim)
 
     @final
