@@ -542,6 +542,7 @@ z
     def test_to_csv_zip_arguments(self, compression, archive_name):
         # GH 26023
         from zipfile import ZipFile
+        from pathlib import Path
 
         df = DataFrame({"ABC": [1]})
         with tm.ensure_clean("to_csv_archive_name.zip") as path:
@@ -549,7 +550,11 @@ z
                 path, compression={"method": compression, "archive_name": archive_name}
             )
             with ZipFile(path) as zp:
-                expected_arcname = path if archive_name is None else archive_name
+                if archive_name is None:
+                    pth=Path(path)
+                    expected_arcname = pth.stem
+                else:
+                    expected_arcname = archive_name
                 expected_arcname = os.path.basename(expected_arcname)
                 assert len(zp.filelist) == 1
                 archived_file = os.path.basename(zp.filelist[0].filename)
