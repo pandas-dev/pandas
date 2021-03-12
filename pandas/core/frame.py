@@ -679,9 +679,10 @@ class DataFrame(NDFrame, OpsMixin):
                     data = dataclasses_to_dicts(data)
                 if treat_as_nested(data):
                     if columns is not None:
-                        # error: Value of type variable "AnyArrayLike" of "ensure_index"
-                        # cannot be "Collection[Any]"
-                        columns = ensure_index(columns)  # type: ignore[type-var]
+                        # error: Argument 1 to "ensure_index" has incompatible type
+                        # "Collection[Any]"; expected "Union[Union[Union[ExtensionArray,
+                        # ndarray], Index, Series], Sequence[Any]]"
+                        columns = ensure_index(columns)  # type: ignore[arg-type]
                     arrays, columns, index = nested_data_to_arrays(
                         # error: Argument 3 to "nested_data_to_arrays" has incompatible
                         # type "Optional[Collection[Any]]"; expected "Optional[Index]"
@@ -1371,11 +1372,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dot(self, other: Union[DataFrame, Index, ArrayLike]) -> DataFrame:
         ...
 
-    # error: Overloaded function implementation cannot satisfy signature 2 due to
-    # inconsistencies in how they use type variables
-    def dot(  # type: ignore[misc]
-        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
-    ) -> FrameOrSeriesUnion:
+    def dot(self, other: Union[AnyArrayLike, FrameOrSeriesUnion]) -> FrameOrSeriesUnion:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -3430,9 +3427,7 @@ class DataFrame(NDFrame, OpsMixin):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
-        # error: Incompatible return value type (got "ExtensionArray", expected
-        # "ndarray")
-        return self._mgr.iget_values(i)  # type: ignore[return-value]
+        return self._mgr.iget_values(i)
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
@@ -3440,9 +3435,7 @@ class DataFrame(NDFrame, OpsMixin):
         This returns the values as stored in the Block (ndarray or ExtensionArray).
         """
         for i in range(len(self.columns)):
-            # error: Incompatible types in "yield" (actual type
-            # "ExtensionArray", expected type "ndarray")
-            yield self._get_column_array(i)  # type: ignore[misc]
+            yield self._get_column_array(i)
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
@@ -6511,6 +6504,57 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"Grade": ["A", "B", "A", "C"]},
+        ...     index=[
+        ...         ["Final exam", "Final exam", "Coursework", "Coursework"],
+        ...         ["History", "Geography", "History", "Geography"],
+        ...         ["January", "February", "March", "April"],
+        ...     ],
+        ... )
+        >>> df
+                                            Grade
+        Final exam  History     January      A
+                    Geography   February     B
+        Coursework  History     March        A
+                    Geography   April        C
+
+        In the following example, we will swap the levels of the indices.
+        Here, we will swap the levels column-wise, but levels can be swapped row-wise
+        in a similar manner. Note that column-wise is the default behaviour.
+        By not supplying any arguments for i and j, we swap the last and second to
+        last indices.
+
+        >>> df.swaplevel()
+                                            Grade
+        Final exam  January     History         A
+                    February    Geography       B
+        Coursework  March       History         A
+                    April       Geography       C
+
+        By supplying one argument, we can choose which index to swap the last
+        index with. We can for example swap the first index with the last one as
+        follows.
+
+        >>> df.swaplevel(0)
+                                            Grade
+        January     History     Final exam      A
+        February    Geography   Final exam      B
+        March       History     Coursework      A
+        April       Geography   Coursework      C
+
+        We can also define explicitly which indices we want to swap by supplying values
+        for both i and j. Here, we for example swap the first and second indices.
+
+        >>> df.swaplevel(0, 1)
+                                            Grade
+        History     Final exam  January         A
+        Geography   Final exam  February        B
+        History     Coursework  March           A
+        Geography   Coursework  April           C
         """
         result = self.copy()
 
@@ -10212,9 +10256,7 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        # error: Incompatible return value type (got "Union[ndarray, Any]", expected
-        # "ExtensionArray")
-        return value._values.copy()  # type: ignore[return-value]
+        return value._values.copy()
 
     # GH#4107
     try:

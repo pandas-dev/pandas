@@ -331,7 +331,9 @@ def ndarray_to_mgr(
             block_values = [ensure_block_shape(x, 2) for x in block_values]
 
     else:
-        block_values = [values]
+        # error: List item 0 has incompatible type "Union[ExtensionArray, ndarray]";
+        # expected "Block"
+        block_values = [values]  # type: ignore[list-item]
 
     return create_block_manager_from_blocks(block_values, [columns, index])
 
@@ -584,9 +586,10 @@ def extract_index(data) -> Index:
             else:
                 index = ibase.default_index(lengths[0])
 
-    # error: Value of type variable "AnyArrayLike" of "ensure_index" cannot be
-    # "Optional[Index]"
-    return ensure_index(index)  # type: ignore[type-var]
+    # error: Argument 1 to "ensure_index" has incompatible type "Optional[Index]";
+    # expected "Union[Union[Union[ExtensionArray, ndarray], Index, Series],
+    # Sequence[Any]]"
+    return ensure_index(index)  # type: ignore[arg-type]
 
 
 def reorder_arrays(

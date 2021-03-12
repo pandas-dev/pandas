@@ -305,9 +305,7 @@ class FloatingArray(NumericArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            # error: Incompatible return value type (got "ExtensionArray", expected
-            # "ndarray")
-            return super().astype(dtype, copy=copy)  # type: ignore[return-value]
+            return super().astype(dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):
@@ -323,9 +321,7 @@ class FloatingArray(NumericArray):
         # error: Argument 2 to "to_numpy" of "BaseMaskedArray" has incompatible
         # type "**Dict[str, float]"; expected "bool"
         data = self.to_numpy(dtype=dtype, **kwargs)  # type: ignore[arg-type]
-        # error: Incompatible return value type (got "ExtensionArray", expected
-        # "ndarray")
-        return astype_nansafe(data, dtype, copy=False)  # type: ignore[return-value]
+        return astype_nansafe(data, dtype, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._data

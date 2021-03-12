@@ -835,8 +835,8 @@ class TestIndexing:
             elif mgr.ndim == 1 and axis == 0:
                 sliced = mgr.getitem_mgr(slobj)
             else:
-                # BlockManager doesnt support non-slice, SingleBlockManager
-                #  doesnt support axis > 0
+                # BlockManager doesn't support non-slice, SingleBlockManager
+                #  doesn't support axis > 0
                 return
 
             mat_slobj = (slice(None),) * axis + (slobj,)

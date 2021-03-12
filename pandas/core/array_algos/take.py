@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Optional,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -27,6 +28,31 @@ from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+    from pandas.core.arrays.base import ExtensionArray
+
+
+@overload
+def take_nd(
+    arr: np.ndarray,
+    indexer,
+    axis: int = ...,
+    out: Optional[np.ndarray] = ...,
+    fill_value=...,
+    allow_fill: bool = ...,
+) -> np.ndarray:
+    ...
+
+
+@overload
+def take_nd(
+    arr: ExtensionArray,
+    indexer,
+    axis: int = ...,
+    out: Optional[np.ndarray] = ...,
+    fill_value=...,
+    allow_fill: bool = ...,
+) -> ArrayLike:
+    ...
 
 
 def take_nd(

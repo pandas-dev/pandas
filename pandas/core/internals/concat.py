@@ -346,11 +346,7 @@ class JoinUnit:
 
                 if is_datetime64tz_dtype(empty_dtype):
                     i8values = np.full(self.shape, fill_value.value)
-                    # error: Incompatible return value type (got "DatetimeArray",
-                    # expected "ndarray")
-                    return DatetimeArray(  # type: ignore[return-value]
-                        i8values, dtype=empty_dtype
-                    )
+                    return DatetimeArray(i8values, dtype=empty_dtype)
 
                 elif is_extension_array_dtype(blk_dtype):
                     pass
@@ -454,8 +450,7 @@ def _concatenate_join_units(
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
-    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
-    return concat_values  # type: ignore[return-value]
+    return concat_values
 
 
 def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
