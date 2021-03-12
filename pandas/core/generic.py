@@ -6322,7 +6322,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 )
                 for col_name, col in self.items()
             ]
-            return concat(results, axis=1, copy=False)
+            if len(results) > 0:
+                return concat(results, axis=1, copy=False)
+            else:
+                return self
 
     # ----------------------------------------------------------------------
     # Filling NA's
