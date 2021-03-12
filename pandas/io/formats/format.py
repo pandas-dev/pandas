@@ -61,8 +61,6 @@ from pandas._typing import (
     IndexLabel,
     StorageOptions,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -98,7 +96,6 @@ from pandas.core.indexes.api import (
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import (
@@ -944,7 +941,6 @@ class DataFrameRenderer:
 
     Called in pandas.core.frame.DataFrame:
         - to_html
-        - to_xml
         - to_string
 
     Parameters
@@ -1036,135 +1032,6 @@ class DataFrameRenderer:
         )
         string = html_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
-
-    @doc(storage_options=_shared_docs["storage_options"])
-    def to_xml(
-        self,
-        path_or_buffer: Optional[FilePathOrBuffer] = None,
-        index: Optional[bool] = True,
-        root_name: Optional[str] = "data",
-        row_name: Optional[str] = "row",
-        na_rep: Optional[str] = None,
-        attr_cols: Optional[Union[str, List[str]]] = None,
-        elem_cols: Optional[Union[str, List[str]]] = None,
-        namespaces: Optional[Dict[Optional[str], str]] = None,
-        prefix: Optional[str] = None,
-        encoding: str = "utf-8",
-        xml_declaration: Optional[bool] = True,
-        pretty_print: Optional[bool] = True,
-        parser: Optional[str] = "lxml",
-        stylesheet: Optional[FilePathOrBuffer] = None,
-        compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
-    ) -> Optional[str]:
-        """
-        Render a DataFrame to an XML document.
-
-        .. versionadded:: 1.3.0
-
-        Parameters
-        ----------
-        path_or_buffer : str, path object or file-like object, optional
-            File to write output to. If None, the output is returned as a
-            string.
-        index : bool, default True
-            Whether to include index in XML document.
-        root_name : str, default 'data'
-            The name of root element in XML document.
-        row_name : str, default 'row'
-            The name of row element in XML document.
-        na_rep : str, optional
-            Missing data representation.
-        attr_cols : list-like, optional
-            List of columns to write as attributes in row element.
-            Hierarchical columns will be flattened with underscore
-            delimiting the different levels.
-        elem_cols : list-like, optional
-            List of columns to write as children in row element. By default,
-            all columns output as children of row element. Hierarchical
-            columns will be flattened with underscore delimiting the
-            different levels.
-        namespaces : dict, optional
-            All namespaces to be defined in root element. Keys of dict
-            should be prefix names and values of dict corresponding URIs.
-            Default namespaces should be given empty string key. For
-            example, ::
-
-                namespaces = {{'': 'https://example.com'}}
-
-        prefix : str, optional
-            Namespace prefix to be used for every element and/or attribute
-            in document. This should be one of the keys in ``namespaces``
-            dict.
-        encoding : str, default 'utf-8'
-            Encoding of the resulting document.
-        xml_declaration : str, optional
-            Whether to include the XML declaration at start of document.
-        pretty_print : bool, default True
-            Whether output should be pretty printed with indentation and
-            line breaks.
-        parser : {{'lxml','etree'}}, default "lxml"
-            Parser module to use for building of tree. Only 'lxml' and
-            'etree' are supported. With 'lxml', the ability to use XSLT
-            stylesheet is supported.
-        stylesheet : str, path object or file-like object, optional
-            A URL, file-like object, or a raw string containing an XSLT
-            script used to transform the raw XML output. Script should use
-            layout of elements and attributes from original output. This
-            argument requires ``lxml`` to be installed. Only XSLT 1.0
-            scripts and not later versions is currently supported.
-        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-            For on-the-fly decompression of on-disk data. If 'infer', then use
-            gzip, bz2, zip or xz if path_or_buffer is a string ending in
-            '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-            otherwise. If using 'zip', the ZIP file must contain only one data
-            file to be read in. Set to None for no decompression.
-        {storage_options}
-        """
-
-        from pandas.io.formats.xml import (
-            EtreeXMLFormatter,
-            LxmlXMLFormatter,
-        )
-
-        lxml = import_optional_dependency("lxml.etree", errors="ignore")
-
-        TreeBuilder: Union[Type[EtreeXMLFormatter], Type[LxmlXMLFormatter]]
-
-        if parser == "lxml":
-            if lxml is not None:
-                TreeBuilder = LxmlXMLFormatter
-            else:
-                raise ImportError(
-                    "lxml not found, please install or use the etree parser."
-                )
-
-        elif parser == "etree":
-            TreeBuilder = EtreeXMLFormatter
-
-        else:
-            raise ValueError("Values for parser can only be lxml or etree.")
-
-        xml_formatter = TreeBuilder(
-            self.fmt,
-            path_or_buffer=path_or_buffer,
-            index=index,
-            root_name=root_name,
-            row_name=row_name,
-            na_rep=na_rep,
-            attr_cols=attr_cols,
-            elem_cols=elem_cols,
-            namespaces=namespaces,
-            prefix=prefix,
-            encoding=encoding,
-            xml_declaration=xml_declaration,
-            pretty_print=pretty_print,
-            stylesheet=stylesheet,
-            compression=compression,
-            storage_options=storage_options,
-        )
-
-        return xml_formatter.write_output()
 
     def to_string(
         self,
@@ -1694,11 +1561,16 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
         formatter = self.formatter
         if formatter is None:
-            formatter = values._formatter(boxed=True)
+            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
+            # no attribute "_formatter"
+            formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
-            array = values._internal_get_values()
+
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "_internal_get_values"
+            array = values._internal_get_values()  # type: ignore[union-attr]
         else:
             array = np.asarray(values)
 
@@ -1765,10 +1637,25 @@ def format_percentiles(
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = np.isclose(percentiles.astype(int), percentiles)
+
+    # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int, float]],
+    # List[float], List[Union[str, float]]]" has no attribute "astype"
+    # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]], List[float],
+    # List[Union[str, float]]]" has no attribute "astype"
+    # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int, float]],
+    # List[float], List[Union[str, float]]]" has no attribute "astype"
+    int_idx = np.isclose(
+        percentiles.astype(int), percentiles  # type: ignore[union-attr]
+    )
 
     if np.all(int_idx):
-        out = percentiles.astype(int).astype(str)
+        # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int,
+        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
+        # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]],
+        # List[float], List[Union[str, float]]]" has no attribute "astype"
+        # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int,
+        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
+        out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1781,8 +1668,19 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
-    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
+    # error: No overload variant of "__getitem__" of "list" matches argument type
+    # "Union[bool_, ndarray]"
+    out[int_idx] = (
+        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
+    )
+
+    # error: Item "float" of "Union[Any, float, str]" has no attribute "round"
+    # error: Item "str" of "Union[Any, float, str]" has no attribute "round"
+    # error: Invalid index type "Union[bool_, Any]" for "Union[ndarray, List[Union[int,
+    # float]], List[float], List[Union[str, float]]]"; expected type "int"
+    out[~int_idx] = (
+        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[union-attr,index]
+    )
     return [i + "%" for i in out]
 
 
@@ -1905,7 +1803,11 @@ def get_format_timedelta64(
 
     one_day_nanos = 86400 * 10 ** 9
     even_days = (
-        np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
+        # error: Unsupported operand types for % ("ExtensionArray" and "int")
+        np.logical_and(
+            consider_values, values_int % one_day_nanos != 0  # type: ignore[operator]
+        ).sum()
+        == 0
     )
 
     if even_days:

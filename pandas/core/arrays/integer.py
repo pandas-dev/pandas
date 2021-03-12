@@ -101,7 +101,17 @@ class _IntegerDtype(NumericDtype):
         ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
+            # error: List comprehension has incompatible type List[Union[Any,
+            # dtype, ExtensionDtype]]; expected List[Union[dtype, None, type,
+            # _SupportsDtype, str, Tuple[Any, Union[int, Sequence[int]]],
+            # List[Any], _DtypeDict, Tuple[Any, Any]]]
+            [
+                t.numpy_dtype  # type: ignore[misc]
+                if isinstance(t, BaseMaskedDtype)
+                else t
+                for t in dtypes
+            ],
+            [],
         )
         if np.issubdtype(np_dtype, np.integer):
             return INT_STR_TO_DTYPE[str(np_dtype)]
@@ -366,7 +376,9 @@ class IntegerArray(NumericArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             na_value = np.nan
         elif is_datetime64_dtype(dtype):
-            na_value = np.datetime64("NaT")
+            # error: Incompatible types in assignment (expression has type
+            # "datetime64", variable has type "float")
+            na_value = np.datetime64("NaT")  # type: ignore[assignment]
         else:
             na_value = lib.no_default
 

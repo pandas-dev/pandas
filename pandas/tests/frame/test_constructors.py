@@ -1195,7 +1195,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_sequence_like(self):
         # GH 3783
-        # collections.Squence like
+        # collections.Sequence like
 
         class DummyContainer(abc.Sequence):
             def __init__(self, lst):
@@ -1216,14 +1216,14 @@ class TestDataFrameConstructors:
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
-        import array
+        from array import array as stdlib_array
 
-        result = DataFrame({"A": array.array("i", range(10))})
+        result = DataFrame({"A": stdlib_array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
         expected = DataFrame([list(range(10)), list(range(10))])
-        result = DataFrame([array.array("i", range(10)), array.array("i", range(10))])
+        result = DataFrame([stdlib_array("i", range(10)), stdlib_array("i", range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_range(self):
@@ -1426,9 +1426,9 @@ class TestDataFrameConstructors:
 
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
-        datas = [Point(0, 3), Point(1, 3)]
+        data = [Point(0, 3), Point(1, 3)]
         expected = DataFrame({"x": [0, 1], "y": [3, 3]})
-        result = DataFrame(datas)
+        result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dataclasses_with_varying_types(self):
@@ -1439,12 +1439,12 @@ class TestDataFrameConstructors:
         Point = make_dataclass("Point", [("x", int), ("y", int)])
         HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
 
-        datas = [Point(0, 3), HLine(1, 3, 3)]
+        data = [Point(0, 3), HLine(1, 3, 3)]
 
         expected = DataFrame(
             {"x": [0, np.nan], "y": [3, 3], "x0": [np.nan, 1], "x1": [np.nan, 3]}
         )
-        result = DataFrame(datas)
+        result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dataclasses_error_thrown(self):
@@ -1912,7 +1912,7 @@ class TestDataFrameConstructors:
         expected = Series([np.dtype("int64")] * 5)
         tm.assert_series_equal(result, expected)
 
-        # overflow issue? (we always expecte int64 upcasting here)
+        # overflow issue? (we always expected int64 upcasting here)
         df = DataFrame({"a": [2 ** 31, 2 ** 31 + 1]})
         assert df.dtypes.iloc[0] == np.dtype("int64")
 

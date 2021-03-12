@@ -641,7 +641,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
-        if np.ndim(left) > 1:
+        # error: Argument 1 to "ndim" has incompatible type "Union[ndarray,
+        # ExtensionArray]"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        if np.ndim(left) > 1:  # type: ignore[arg-type]
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -1567,9 +1571,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_dtype_equal(self.dtype, values.dtype):
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
-
-                # error: "ArrayLike" has no attribute "view"
-                left = self._combined.view("complex128")  # type:ignore[attr-defined]
+                left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)
 

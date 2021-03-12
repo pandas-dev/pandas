@@ -84,13 +84,13 @@ class TestStyler:
             self.styler.set_table_attributes('class="foo" data-bar')
             self.styler.hidden_index = not self.styler.hidden_index
             self.styler.hide_columns("A")
-            classes = pd.DataFrame(
+            classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
                 index=self.df.index,
                 columns=self.df.columns,
             )
             self.styler.set_td_classes(classes)
-            ttips = pd.DataFrame(
+            ttips = DataFrame(
                 data=[["Favorite", ""], [np.nan, "my"]],
                 columns=self.df.columns,
                 index=self.df.index,
@@ -179,11 +179,10 @@ class TestStyler:
         assert len(s.cell_context) > 0
 
         s = s._compute()
-        # ctx and _todo items affected when a render takes place
+        # ctx item affected when a render takes place. _todo is maintained
         assert len(s.ctx) > 0
-        assert len(s._todo) == 0  # _todo is emptied after compute.
+        assert len(s._todo) > 0
 
-        s._todo = [1]
         s.clear()
         # ctx, _todo, tooltips and cell_context items all revert to null state.
         assert len(s.ctx) == 0
@@ -605,15 +604,17 @@ class TestStyler:
         # GH 21527 28358
         df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
 
-        ctx = df.style.set_na_rep("NA")._translate()
+        with tm.assert_produces_warning(FutureWarning):
+            ctx = df.style.set_na_rep("NA")._translate()
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "NA"
 
-        ctx = (
-            df.style.set_na_rep("NA")
-            .format(None, na_rep="-", subset=["B"])
-            ._translate()
-        )
+        with tm.assert_produces_warning(FutureWarning):
+            ctx = (
+                df.style.set_na_rep("NA")
+                .format(None, na_rep="-", subset=["B"])
+                ._translate()
+            )
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "-"
 
@@ -626,7 +627,8 @@ class TestStyler:
             }
         )
 
-        ctx = df.style.set_na_rep("NA")._translate()
+        with tm.assert_produces_warning(FutureWarning):
+            ctx = df.style.set_na_rep("NA")._translate()
         assert ctx["body"][0][1]["display_value"] == "NA"
         assert ctx["body"][0][2]["display_value"] == "NA"
         assert ctx["body"][1][1]["display_value"] == "NA"
@@ -638,12 +640,12 @@ class TestStyler:
         assert ctx["body"][1][1]["display_value"] == "-"
         assert ctx["body"][1][2]["display_value"] == "-"
 
-    def test_format_with_bad_na_rep(self):
-        # GH 21527 28358
-        df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
-        msg = "Expected a string, got -1 instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(None, na_rep=-1)
+    def test_format_clear(self):
+        assert (0, 0) not in self.styler._display_funcs  # using default
+        self.styler.format("{:.2f")
+        assert (0, 0) in self.styler._display_funcs  # formatter is specified
+        self.styler.format()
+        assert (0, 0) not in self.styler._display_funcs  # formatter cleared to default
 
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
@@ -734,13 +736,11 @@ class TestStyler:
         assert 'class="foo" data-bar' in result
 
     def test_precision(self):
-        with pd.option_context("display.precision", 10):
-            s = Styler(self.df)
-        assert s.precision == 10
         s = Styler(self.df, precision=2)
         assert s.precision == 2
 
-        s2 = s.set_precision(4)
+        with tm.assert_produces_warning(FutureWarning):
+            s2 = s.set_precision(4)
         assert s is s2
         assert s.precision == 4
 
@@ -766,7 +766,7 @@ class TestStyler:
         f = lambda x: "color: red" if x > 0 else "color: blue"
         g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
         style1 = self.styler
-        style1.applymap(f).applymap(g, z="b").highlight_max()
+        style1.applymap(f).applymap(g, z="b").highlight_max()._compute()  # = render
         result = style1.export()
         style2 = self.df.style
         style2.use(result)
@@ -783,44 +783,35 @@ class TestStyler:
         )
         assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
 
-    def test_display_format_raises(self):
-        df = DataFrame(np.random.randn(2, 2))
-        msg = "Expected a template string or callable, got 5 instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(5)
+    @pytest.mark.parametrize("formatter", [5, True, [2.0]])
+    def test_format_raises(self, formatter):
+        with pytest.raises(TypeError, match="expected str or callable"):
+            self.df.style.format(formatter)
 
-        msg = "Expected a template string or callable, got True instead"
-        with pytest.raises(TypeError, match=msg):
-            df.style.format(True)
-
-    def test_display_set_precision(self):
+    def test_format_with_precision(self):
         # Issue #13257
         df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
         s = Styler(df)
 
-        ctx = s.set_precision(1)._translate()
-
-        assert s.precision == 1
+        ctx = s.format(precision=1)._translate()
         assert ctx["body"][0][1]["display_value"] == "1.0"
         assert ctx["body"][0][2]["display_value"] == "2.0"
         assert ctx["body"][1][1]["display_value"] == "3.2"
         assert ctx["body"][1][2]["display_value"] == "4.6"
 
-        ctx = s.set_precision(2)._translate()
-        assert s.precision == 2
+        ctx = s.format(precision=2)._translate()
         assert ctx["body"][0][1]["display_value"] == "1.00"
         assert ctx["body"][0][2]["display_value"] == "2.01"
         assert ctx["body"][1][1]["display_value"] == "3.21"
         assert ctx["body"][1][2]["display_value"] == "4.57"
 
-        ctx = s.set_precision(3)._translate()
-        assert s.precision == 3
+        ctx = s.format(precision=3)._translate()
         assert ctx["body"][0][1]["display_value"] == "1.000"
         assert ctx["body"][0][2]["display_value"] == "2.009"
         assert ctx["body"][1][1]["display_value"] == "3.212"
         assert ctx["body"][1][2]["display_value"] == "4.566"
 
-    def test_display_subset(self):
+    def test_format_subset(self):
         df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
         ctx = df.style.format(
             {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
@@ -851,7 +842,7 @@ class TestStyler:
         assert ctx["body"][0][2]["display_value"] == "0.123400"
         assert ctx["body"][1][2]["display_value"] == raw_11
 
-    def test_display_dict(self):
+    def test_format_dict(self):
         df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
         ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
         assert ctx["body"][0][1]["display_value"] == "0.1"
