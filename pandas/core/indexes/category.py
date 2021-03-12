@@ -387,7 +387,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         #  of result, not self.
         return type(self)._simple_new(result, name=self.name)
 
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+    def reindex(
+        self, target, method=None, level=None, limit=None, tolerance=None
+    ) -> Tuple[Index, Optional[np.ndarray[np.intp]]]:
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -395,7 +397,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         -------
         new_index : pd.Index
             Resulting index
-        indexer : np.ndarray or None
+        indexer : np.ndarray[np.intp] or None
             Indices of output values in original index
 
         """
