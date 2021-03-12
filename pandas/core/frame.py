@@ -3784,7 +3784,7 @@ class DataFrame(NDFrame, OpsMixin):
     # Unsorted
 
     def query(self, expr: str, inplace: bool = False, **kwargs):
-        """
+        r"""
         Query the columns of a DataFrame with a boolean expression.
 
         Parameters
@@ -3799,8 +3799,8 @@ class DataFrame(NDFrame, OpsMixin):
             You can refer to column names that are not valid Python variable names
             by surrounding them in backticks. Thus, column names containing spaces
             or punctuations (besides underscores) or starting with digits must be
-            surrounded by backticks. (For example, a column named "Area (cm^2) would
-            be referenced as `Area (cm^2)`). Column names which are Python keywords
+            surrounded by backticks. (For example, a column named "Area (cm^2)" would
+            be referenced as \`Area (cm^2)\`). Column names which are Python keywords
             (like "list", "for", "import", etc) cannot be used.
 
             For example, if one of your columns is called ``a a`` and you want
