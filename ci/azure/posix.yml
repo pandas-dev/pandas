@@ -40,7 +40,7 @@ jobs:
       condition: succeededOrFailed()
       inputs:
         failTaskOnFailedTests: true
-        testResultsFiles: 'junit/test-results.xml'
+        testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
 
@@ -48,10 +48,3 @@ jobs:
         source activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
-
-    - task: PublishCodeCoverageResults@1
-      displayName: ‘Publish Cobertura Coverage Report’
-      inputs:
-        codeCoverageTool: Cobertura
-        summaryFileLocation: ‘$(System.DefaultWorkingDirectory)/**/coverage.xml’
-        reportDirectory: ‘$(System.DefaultWorkingDirectory)/**/htmlcov’

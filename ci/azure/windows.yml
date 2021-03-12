@@ -47,7 +47,7 @@ jobs:
       condition: succeededOrFailed()
       inputs:
         failTaskOnFailedTests: true
-        testResultsFiles: 'junit/test-results.xml'
+        testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
 
