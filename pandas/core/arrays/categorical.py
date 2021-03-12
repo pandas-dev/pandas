@@ -104,7 +104,6 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -1776,13 +1775,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if method is not None:
             # pad / bfill
-
-            # TODO: dispatch when self.categories is EA-dtype
-            values = np.asarray(self).reshape(-1, len(self))
-            values = interpolate_2d(values, method, 0, None).astype(
-                self.categories.dtype
-            )[0]
-            codes = _get_codes_for_values(values, self.categories)
+            return NDArrayBackedExtensionArray.fillna(
+                self, None, method=method, limit=limit
+            )
 
         else:
             # We copy even if there is nothing to fill
@@ -2603,6 +2598,11 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
+
+    if values.ndim > 1:
+        flat = values.ravel()
+        codes = _get_codes_for_values(flat, categories)
+        return codes.reshape(values.shape)
 
     if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of

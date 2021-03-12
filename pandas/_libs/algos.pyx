@@ -629,7 +629,7 @@ def pad_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
+def pad_2d_inplace(algos_t[:, :] values, uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         algos_t val
@@ -648,10 +648,11 @@ def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
-                if fill_count >= lim:
+                if fill_count >= lim or i == 0:
                     continue
                 fill_count += 1
                 values[j, i] = val
+                mask[j, i] = False
             else:
                 fill_count = 0
                 val = values[j, i]
@@ -776,7 +777,7 @@ def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace(algos_t[:, :] values,
-                        const uint8_t[:, :] mask,
+                        uint8_t[:, :] mask,
                         limit=None):
     cdef:
         Py_ssize_t i, j, N, K
@@ -800,6 +801,7 @@ def backfill_2d_inplace(algos_t[:, :] values,
                     continue
                 fill_count += 1
                 values[j, i] = val
+                mask[j, i] = False
             else:
                 fill_count = 0
                 val = values[j, i]
