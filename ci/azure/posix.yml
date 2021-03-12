@@ -109,6 +109,6 @@ jobs:
     - task: PublishCodeCoverageResults@1
       displayName: ‘Publish Cobertura Coverage Report’
       inputs:
-      codeCoverageTool: Cobertura
-      summaryFileLocation: ‘$(System.DefaultWorkingDirectory)/**/coverage.xml’
-      reportDirectory: ‘$(System.DefaultWorkingDirectory)/**/htmlcov’
+        codeCoverageTool: Cobertura
+        summaryFileLocation: ‘$(System.DefaultWorkingDirectory)/**/coverage.xml’
+        reportDirectory: ‘$(System.DefaultWorkingDirectory)/**/htmlcov’
