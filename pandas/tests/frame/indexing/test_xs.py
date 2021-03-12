@@ -109,14 +109,22 @@ class TestXS:
         result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self):
+    def test_xs_view(self, using_array_manager):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
         dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
 
-        dm.xs(2)[:] = 10
-        assert (dm.xs(2) == 10).all()
+        if using_array_manager:
+            # INFO(ArrayManager) with ArrayManager getting a row as a view is
+            # not possible
+            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                dm.xs(2)[:] = 20
+            assert not (dm.xs(2) == 20).any()
+        else:
+            dm.xs(2)[:] = 20
+            assert (dm.xs(2) == 20).all()
 
 
 class TestXSWithMultiIndex:
@@ -327,10 +335,26 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self):
+    def test_xs_droplevel_false_view(self, using_array_manager):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
-        df.values[0, 0] = 2
-        expected = DataFrame({"a": [2]})
+        # check that result still views the same data as df
+        assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
+        # modifying original df also modifies result when having a single block
+        df.iloc[0, 0] = 2
+        if not using_array_manager:
+            expected = DataFrame({"a": [2]})
+        else:
+            # TODO(ArrayManager) iloc does not update the array inplace using
+            # "split" path
+            expected = DataFrame({"a": [1]})
+        tm.assert_frame_equal(result, expected)
+
+        # with mixed dataframe, modifying the parent doesn't modify result
+        # TODO the "split" path behaves differently here as with single block
+        df = DataFrame([[1, 2.5, "a"]], columns=Index(["a", "b", "c"]))
+        result = df.xs("a", axis=1, drop_level=False)
+        df.iloc[0, 0] = 2
+        expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)

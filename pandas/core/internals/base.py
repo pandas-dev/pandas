@@ -126,6 +126,13 @@ class DataManager(PandasObject):
 class SingleDataManager(DataManager):
     ndim = 1
 
+    @property
+    def array(self):
+        """
+        Quick access to the backing array of the Block or SingleArrayManager.
+        """
+        return self.arrays[0]  # type: ignore[attr-defined]
+
 
 def interleaved_dtype(dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
     """
