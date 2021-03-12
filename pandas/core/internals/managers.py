@@ -314,11 +314,7 @@ class BlockManager(DataManager):
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[ExtensionArray]
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[ndarray]
-        return [blk.values for blk in self.blocks]  # type: ignore[misc]
+        return [blk.values for blk in self.blocks]
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -1022,9 +1018,7 @@ class BlockManager(DataManager):
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return result  # type: ignore[return-value]
+        return result
 
     def consolidate(self) -> BlockManager:
         """
@@ -1497,10 +1491,21 @@ class BlockManager(DataManager):
         block_values.fill(fill_value)
         return new_block(block_values, placement=placement, ndim=block_values.ndim)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
+
+        indexer : np.ndarray or slice
+        axis : int, default 1
+        verify : bool, default True
+            Check that all entries are between 0 and len(self) - 1, inclusive.
+            Pass verify=False if this check has been done by the caller.
+
+        Returns
+        -------
+        BlockManager
         """
+        # We have 6 tests that get here with a slice
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)
@@ -1508,12 +1513,7 @@ class BlockManager(DataManager):
         )
 
         n = self.shape[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1535,9 +1535,7 @@ class BlockManager(DataManager):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
-            # "Union[ndarray, ExtensionArray]"
-            return array_equals(left, right)  # type: ignore[type-var]
+            return array_equals(left, right)
 
         return blockwise_all(self, other, array_equals)
 

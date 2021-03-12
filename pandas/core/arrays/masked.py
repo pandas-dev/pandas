@@ -310,12 +310,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if is_dtype_equal(dtype, self.dtype):
             if copy:
-                # error: Incompatible return value type (got "BaseMaskedArray", expected
-                # "ndarray")
-                return self.copy()  # type: ignore[return-value]
-            # error: Incompatible return value type (got "BaseMaskedArray", expected
-            # "ndarray")
-            return self  # type: ignore[return-value]
+                return self.copy()
+            return self
 
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
@@ -325,9 +321,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
             cls = dtype.construct_array_type()
-            # error: Incompatible return value type (got "BaseMaskedArray", expected
-            # "ndarray")
-            return cls(data, mask, copy=False)  # type: ignore[return-value]
+            return cls(data, mask, copy=False)
 
         if isinstance(dtype, ExtensionDtype):
             eacls = dtype.construct_array_type()
@@ -361,9 +355,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # error: Incompatible return value type (got "bool_", expected "bool")
         return self._mask.any()  # type: ignore[return-value]
 
-    # error: Return type "ndarray" of "isna" incompatible with return type
-    # "ArrayLike" in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         return self._mask
 
     @property

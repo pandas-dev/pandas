@@ -306,17 +306,7 @@ def array(
         # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 
-    # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
-    # "Union[Sequence[object], ExtensionArray]"
-    # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
-    # "Union[Sequence[object], Index]"
-    # error: Incompatible types in assignment (expression has type "ExtensionArray",
-    # variable has type "Union[Sequence[object], Index]")
-    # error: Incompatible types in assignment (expression has type "ExtensionArray",
-    # variable has type "Union[Sequence[object], Series]")
-    # error: Incompatible types in assignment (expression has type "ExtensionArray",
-    # variable has type "Union[Sequence[object], ndarray]")
-    data = extract_array(data, extract_numpy=True)  # type: ignore[type-var,assignment]
+    data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
@@ -513,10 +503,7 @@ def sanitize_array(
                 #  we can get non-numpy integer-dtypes here
                 subarr = _try_cast(data, dtype, copy, True)
             except ValueError:
-                # raised if `not (data.astype(dtype) == data).all()`
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "ExtensionArray")
-                subarr = np.array(data, copy=copy)  # type: ignore[assignment]
+                subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
@@ -529,9 +516,7 @@ def sanitize_array(
             subarr = subarr.astype(dtype, copy=copy)
         elif copy:
             subarr = subarr.copy()
-        # error: Incompatible return value type (got "ExtensionArray", expected
-        # "ndarray")
-        return subarr  # type: ignore[return-value]
+        return subarr
 
     elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
         # TODO: deque, array.array
@@ -568,11 +553,9 @@ def sanitize_array(
     subarr = _sanitize_ndim(subarr, data, dtype, index)
 
     if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
         # error: Argument 1 to "_sanitize_str_dtypes" has incompatible type
         # "ExtensionArray"; expected "ndarray"
-        subarr = _sanitize_str_dtypes(  # type: ignore[assignment]
+        subarr = _sanitize_str_dtypes(
             subarr, data, dtype, copy  # type: ignore[arg-type]
         )
 
@@ -583,8 +566,7 @@ def sanitize_array(
                 subarr = array(subarr)
                 subarr = extract_array(subarr, extract_numpy=True)
 
-    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
-    return subarr  # type: ignore[return-value]
+    return subarr
 
 
 def _sanitize_ndim(
@@ -606,24 +588,16 @@ def _sanitize_ndim(
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "ExtensionArray")
             # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
             # "Type[object]"; expected "Union[str, dtype[Any], None]"
-            result = com.asarray_tuplesafe(  # type: ignore[assignment]
-                data, dtype=object  # type: ignore[arg-type]
-            )
+            result = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "ExtensionArray")
             # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
             # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
             # dtype[Any], None]"
-            result = com.asarray_tuplesafe(  # type: ignore[assignment]
-                data, dtype=dtype  # type: ignore[arg-type]
-            )
+            result = com.asarray_tuplesafe(data, dtype=dtype)  # type: ignore[arg-type]
     return result
 
 
@@ -719,9 +693,7 @@ def _try_cast(
         and not copy
         and dtype is None
     ):
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return arr  # type: ignore[return-value]
+        return arr
 
     if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
         # create an extension array from its dtype
