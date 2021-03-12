@@ -202,7 +202,7 @@ class ArrayManager(DataManager):
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
-        if self.ndim == 1:
+        if self.ndim == 2:
             output += f"\nColumns: {self._axes[1]}"
         output += f"\n{len(self.arrays)} arrays:"
         for arr in self.arrays:
@@ -1224,11 +1224,6 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
         new_array = self.array[slobj]
         new_index = self.index._getitem_slice(slobj)
         return type(self)([new_array], [new_index], verify_integrity=False)
-
-    def getitem_mgr(self, indexer) -> SingleArrayManager:
-        new_array = self.array[indexer]
-        new_index = self.index[indexer]
-        return type(self)([new_array], [new_index])
 
     def getitem_mgr(self, indexer) -> SingleArrayManager:
         new_array = self.array[indexer]
