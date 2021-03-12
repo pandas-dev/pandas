@@ -735,8 +735,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # error: "ExtensionArray" has no attribute "any"
-            if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
+            if not skipna and delegate.isna().any():
                 return -1
             else:
                 return delegate.argmax()
@@ -798,8 +797,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # error: "ExtensionArray" has no attribute "any"
-            if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
+            if not skipna and delegate.isna().any():
                 return -1
             else:
                 return delegate.argmin()
@@ -1333,6 +1331,4 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
-        # error: Value of type variable "ArrayLike" of "duplicated" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        return duplicated(self._values, keep=keep)  # type: ignore[type-var]
+        return duplicated(self._values, keep=keep)

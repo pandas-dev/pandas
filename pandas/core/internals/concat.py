@@ -344,11 +344,7 @@ class JoinUnit:
                 if is_datetime64tz_dtype(empty_dtype):
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
-                    # error: Incompatible return value type (got "DatetimeArray",
-                    # expected "ndarray")
-                    return DatetimeArray(  # type: ignore[return-value]
-                        i8values, dtype=empty_dtype
-                    )
+                    return DatetimeArray(i8values, dtype=empty_dtype)
                 elif is_extension_array_dtype(blk_dtype):
                     pass
                 elif is_extension_array_dtype(empty_dtype):
@@ -439,21 +435,14 @@ def _concatenate_join_units(
     elif any(isinstance(t, ExtensionArray) for t in to_concat):
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-
-        # error: Invalid index type "Tuple[int, slice]" for "ExtensionArray"; expected
-        # type "Union[int, slice, ndarray]"
-        to_concat = [
-            t if isinstance(t, ExtensionArray) else t[0, :]  # type: ignore[index]
-            for t in to_concat
-        ]
+        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
-    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
-    return concat_values  # type: ignore[return-value]
+    return concat_values
 
 
 def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
