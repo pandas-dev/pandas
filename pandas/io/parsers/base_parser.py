@@ -724,10 +724,7 @@ class ParserBase:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
-
-                # error: Argument 2 to "astype_nansafe" has incompatible type
-                # "Type[str]"; expected "Union[dtype[Any], ExtensionDtype]"
-                values = astype_nansafe(values, str)  # type: ignore[arg-type]
+                values = astype_nansafe(values, np.string_)
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(

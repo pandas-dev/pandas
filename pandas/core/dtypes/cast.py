@@ -25,6 +25,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -1162,6 +1163,20 @@ def astype_td64_unit_conversion(
     mask = isna(values)
     np.putmask(result, mask, np.nan)
     return result
+
+
+@overload
+def astype_nansafe(
+    arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...
+) -> np.ndarray:
+    ...
+
+
+@overload
+def astype_nansafe(
+    arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...
+) -> ExtensionArray:
+    ...
 
 
 def astype_nansafe(

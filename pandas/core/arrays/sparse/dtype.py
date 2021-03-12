@@ -9,6 +9,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    cast,
 )
 import warnings
 
@@ -342,11 +343,9 @@ class SparseDtype(ExtensionDtype):
             if is_extension_array_dtype(dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-            # attribute "item"
-            fill_value = astype_nansafe(  # type: ignore[union-attr]
-                np.array(self.fill_value), dtype
-            ).item()
+            dtype = cast(np.dtype, dtype)
+
+            fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
             dtype = cls(dtype, fill_value=fill_value)
 
         return dtype
