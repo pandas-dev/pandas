@@ -42,13 +42,13 @@ jobs:
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('${{ os.matrix.env-file }}') }}
+          hashFiles('${{ matrix.env-file }}') }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev
         channel-priority: strict
-        environment-file: ${{ os.matrix.env-file }}
+        environment-file: ${{ matrix.env-file }}
         use-only-tar-bz2: true
 
     - name: Build Pandas
