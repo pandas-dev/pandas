@@ -3879,7 +3879,7 @@ class Index(IndexOpsMixin, PandasObject):
     def join(
         self,
         other,
-        how: str = "left",
+        how: str_t = "left",
         level=None,
         return_indexers: bool = False,
         sort: bool = False,
