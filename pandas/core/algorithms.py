@@ -32,7 +32,6 @@ from pandas._typing import (
     AnyArrayLike,
     AnySequenceLike,
     ArrayLike,
-    Dtype,
     DtypeObj,
     FrameOrSeriesUnion,
 )
@@ -218,7 +217,7 @@ def _ensure_data(values: ArrayLike) -> Tuple[np.ndarray, DtypeObj]:
 
 
 def _reconstruct_data(
-    values: ArrayLike, dtype: Dtype, original: AnyArrayLike
+    values: ArrayLike, dtype: DtypeObj, original: AnyArrayLike
 ) -> ArrayLike:
     """
     reverse of _ensure_data
