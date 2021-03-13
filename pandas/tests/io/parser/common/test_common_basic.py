@@ -758,13 +758,13 @@ def test_encoding_surrogatepass(all_parsers):
 def test_deprecated_bad_lines_warns(all_parsers, csv1):
     # GH 15122
     parser = all_parsers
-    with pytest.warns(
+    with tm.assert_produces_warning(
         FutureWarning,
         match="The error_bad_lines argument has been deprecated "
         "and will be removed in a future version.\n\n",
     ):
         parser.read_csv(csv1, error_bad_lines=False)
-    with pytest.warns(
+    with tm.assert_produces_warning(
         FutureWarning,
         match="The warn_bad_lines argument has been deprecated "
         "and will be removed in a future version.\n\n",

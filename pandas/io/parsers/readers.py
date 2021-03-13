@@ -949,7 +949,7 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     "removed in a future version.\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=2)
+                warnings.warn(msg, FutureWarning, stacklevel=6)
             else:
                 result[arg] = parser_default
 
