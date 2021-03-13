@@ -823,7 +823,16 @@ class TestIndexing:
                     slobj = np.concatenate(
                         [slobj, np.zeros(len(ax) - len(slobj), dtype=bool)]
                     )
-            sliced = mgr.get_slice(slobj, axis=axis)
+
+            if isinstance(slobj, slice):
+                sliced = mgr.get_slice(slobj, axis=axis)
+            elif mgr.ndim == 1 and axis == 0:
+                sliced = mgr.getitem_mgr(slobj)
+            else:
+                # BlockManager doesn't support non-slice, SingleBlockManager
+                #  doesn't support axis > 0
+                return
+
             mat_slobj = (slice(None),) * axis + (slobj,)
             tm.assert_numpy_array_equal(
                 mat[mat_slobj], sliced.as_array(), check_dtype=False
@@ -1318,17 +1327,19 @@ def test_make_block_no_pandas_array(block_maker):
     assert result.dtype.kind in ["i", "u"]
     assert result.is_extension is False
 
-    # PandasArray, PandasDtype
-    result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
-    assert result.dtype.kind in ["i", "u"]
-    assert result.is_extension is False
+    if block_maker is make_block:
+        # PandasArray, PandasDtype
+        result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
+        assert result.dtype.kind in ["i", "u"]
+        assert result.is_extension is False
 
-    # ndarray, PandasDtype
-    result = block_maker(
-        arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
-    )
-    assert result.dtype.kind in ["i", "u"]
-    assert result.is_extension is False
+        # new_block no longer taked dtype keyword
+        # ndarray, PandasDtype
+        result = block_maker(
+            arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
+        )
+        assert result.dtype.kind in ["i", "u"]
+        assert result.is_extension is False
 
 
 def test_single_block_manager_fastpath_deprecated():

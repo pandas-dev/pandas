@@ -73,6 +73,7 @@ from pandas import (
 )
 from pandas.core import groupby
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -1847,10 +1848,12 @@ class _AsOfMerge(_OrderedMerge):
 
         def flip(xs) -> np.ndarray:
             """ unlike np.transpose, this returns an array of tuples """
+            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
+            # no attribute "_values_for_argsort"
             xs = [
                 x
                 if not is_extension_array_dtype(x)
-                else extract_array(x)._values_for_argsort()
+                else extract_array(x)._values_for_argsort()  # type: ignore[union-attr]
                 for x in xs
             ]
             labels = list(string.ascii_lowercase[: len(xs)])
@@ -2075,14 +2078,22 @@ def _factorize_keys(
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
         # Cast rk to encoding so we can compare codes with lk
+
         rk = lk._encode_with_my_categories(rk)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk.codes)
 
-    elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
+    elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "ExtensionArray")
         lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
+
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "ExtensionArray")
+        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
+        # "_values_for_factorize"
+        rk, _ = rk._values_for_factorize()  # type: ignore[union-attr,assignment]
 
     if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
