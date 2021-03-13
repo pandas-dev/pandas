@@ -1015,17 +1015,18 @@ class Block(PandasObject):
         -----
         Assumes self is 2D and that indexer is a 2-tuple.
         """
-        if lib.is_scalar(value) and not self.is_extension:
+        if lib.is_scalar(value) and isinstance(self.dtype, np.dtype):
             # Convert timedelta/datetime to timedelta64/datetime64
             value = convert_scalar_for_putitemlike(value, self.dtype)
 
         pi = indexer[0]
-        if self.is_extension:
-            # TODO(EA2D): not needed with 2D EAs
-            self.values[pi] = value
-        else:
+        values = self.values
+        if isinstance(values, np.ndarray):
             blkloc = indexer[1]
-            self.values[blkloc, pi] = value
+            values[blkloc, pi] = value
+        else:
+            # TODO(EA2D): special case not needed with 2D EAs
+            values[pi] = value
 
     def putmask(self, mask, new) -> List[Block]:
         """
