@@ -8,6 +8,10 @@ on:
       - master
       - 1.2.x
 
+env:
+  PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+
 jobs:
   pytest:
     runs-on: ubuntu-latest
@@ -24,7 +28,6 @@ jobs:
       fail-fast: true
     env:
       COVERAGE: true
-      PYTEST_WORKERS: "auto"
       ENV_FILE: ${{ matrix.env-file[0] }}
       PATTERN: ${{ matrix.env-file[1] }}
       EXTRA_APT: ${{ matrix.env-file[2] }}
@@ -76,7 +79,6 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
-        files: /tmp/test_coverage.xml
         flags: unittests
         name: codecov-pandas
         fail_ci_if_error: true

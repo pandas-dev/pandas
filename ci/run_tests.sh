@@ -10,8 +10,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
 fi
 
 if [ "$COVERAGE" ]; then
-    COVERAGE_FNAME="/tmp/test_coverage.xml"
-    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
+    COVERAGE="-s --cov=pandas --cov-report=xml"
 fi
 
 # If no X server is found, we use xvfb to emulate it
