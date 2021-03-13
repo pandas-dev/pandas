@@ -426,11 +426,6 @@ def test_to_numpy_kwargs_raises():
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 
-    # extension
-    s = Series([1, 2, 3], dtype="Int64")
-    with pytest.raises(TypeError, match=msg):
-        s.to_numpy(foo=True)
-
 
 @pytest.mark.parametrize(
     "data",

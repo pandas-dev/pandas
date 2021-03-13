@@ -2280,7 +2280,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     out = vals
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
+                out = vals.to_numpy(dtype=np.dtype(float), na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
                 inference = np.dtype("datetime64[ns]")
                 out = np.asarray(vals).astype(float)
