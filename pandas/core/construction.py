@@ -662,8 +662,8 @@ def try_cast_integer_dtype(
                 # error: Argument 1 to "construct_1d_ndarray_preserving_na"
                 # has incompatible type "Union[List[Any], ndarray]";
                 # expected "Sequence[Any]"
-                return construct_1d_ndarray_preserving_na(  # type: ignore[arg-type]
-                    arr, dtype, copy=copy
+                return construct_1d_ndarray_preserving_na(
+                    arr, dtype, copy=copy  # type: ignore[arg-type]
                 )
         raise
 
