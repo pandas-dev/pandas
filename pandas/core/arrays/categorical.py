@@ -15,7 +15,6 @@ from typing import (
     TypeVar,
     Union,
     cast,
-    overload,
 )
 from warnings import warn
 
@@ -482,14 +481,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         return Categorical(scalars, dtype=dtype, copy=copy)
-
-    @overload
-    def astype(self, dtype: Type[str], copy: bool = True) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
-        ...
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
@@ -2453,7 +2444,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import PandasArray
 
-        return PandasArray(self.astype(str))._str_get_dummies(sep)
+        # error: Argument 1 to "PandasArray" has incompatible type
+        # "ExtensionArray"; expected "Union[ndarray, PandasArray]"
+        return PandasArray(self.astype(str))._str_get_dummies(  # type: ignore[arg-type]
+            sep
+        )
 
 
 # The Series.cat accessor

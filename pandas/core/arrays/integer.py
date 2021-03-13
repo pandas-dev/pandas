@@ -6,7 +6,6 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    overload,
 )
 import warnings
 
@@ -342,14 +341,6 @@ class IntegerArray(NumericArray):
 
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
-
-    @overload
-    def astype(self, dtype: Type[str], copy: bool = True) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
-        ...
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """

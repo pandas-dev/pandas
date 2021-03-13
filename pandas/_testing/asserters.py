@@ -382,13 +382,9 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     if check_exact and check_categorical:
         if not left.equals(right):
-            #  error: Value of type variable "_Number" of "sum" cannot be
-            # "Union[ExtensionArray, ndarray, Any]"
-            thesum = np.sum(
-                (left._values != right._values).astype(int)
-            )  # type: ignore[type-var]
-            # error: Unsupported operand types for * ("ExtensionArray" and "float")
-            diff = thesum * 100.0 / len(left)  # type: ignore[operator]
+            diff = (
+                np.sum((left._values != right._values).astype(int)) * 100.0 / len(left)
+            )
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:

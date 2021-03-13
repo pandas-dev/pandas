@@ -525,15 +525,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
-    @overload
-    def astype(self, dtype: Type[str], copy: bool = True) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: Dtype, copy: bool = True):
         """
         Cast to a NumPy array with 'dtype'.
 
@@ -933,7 +925,9 @@ class ExtensionArray:
         -------
         np.ndarray[bool]
         """
-        return isin(self.astype(object), values)
+        # error: Argument 2 to "isin" has incompatible type "Sequence[Any]"; expected
+        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+        return isin(self.astype(object), values)  # type: ignore[arg-type]
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """

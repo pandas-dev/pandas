@@ -8,7 +8,6 @@ from typing import (
     Tuple,
     Type,
     Union,
-    overload,
 )
 import warnings
 
@@ -380,14 +379,6 @@ class BooleanArray(BaseMaskedArray):
 
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
-
-    @overload
-    def astype(self, dtype: Type[str], copy: bool = True) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
-        ...
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """

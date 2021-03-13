@@ -239,9 +239,7 @@ class Block(PandasObject):
         this is often overridden to handle to_dense like operations
         """
         if dtype == _dtype_obj:
-            # error: Incompatible return value type (got "Union[ndarray,
-            # ExtensionArray]", expected "ndarray")
-            return self.values.astype(_dtype_obj)  # type: ignore[return-value]
+            return self.values.astype(_dtype_obj)
         # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
         # expected "ndarray")
         return self.values  # type: ignore[return-value]

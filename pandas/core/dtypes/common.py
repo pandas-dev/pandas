@@ -3,11 +3,9 @@ Common type operations.
 """
 
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Union,
-    cast,
 )
 import warnings
 
@@ -59,9 +57,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_scalar,
     is_sequence,
 )
-
-if TYPE_CHECKING:
-    from pandas.core.arrays.base import ExtensionArray
 
 POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
@@ -160,18 +155,22 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> ArrayLike:
     will remain unchanged.
     """
     # TODO: GH27506 potential bug with ExtensionArrays
-    if is_extension_array_dtype(arr.dtype):
-        return cast("ExtensionArray", arr).to_numpy(dtype="float64", na_value=np.nan)
-    else:
-        assert isinstance(arr, np.ndarray)  # For typing
-        try:
-            return arr.astype("int64", copy=copy, casting="safe")
-        except TypeError:
-            pass
-        try:
-            return arr.astype("uint64", copy=copy, casting="safe")
-        except TypeError:
-            return arr.astype("float64", copy=copy)
+    try:
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore[call-arg]
+    except TypeError:
+        pass
+    try:
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
+    except TypeError:
+        if is_extension_array_dtype(arr.dtype):
+            # pandas/core/dtypes/common.py:168: error: Item "ndarray" of
+            # "Union[ExtensionArray, ndarray]" has no attribute "to_numpy"  [union-attr]
+            return arr.to_numpy(  # type: ignore[union-attr]
+                dtype="float64", na_value=np.nan
+            )
+        return arr.astype("float64", copy=copy)
 
 
 def ensure_python_int(value: Union[int, np.integer]) -> int:

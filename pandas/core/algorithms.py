@@ -30,7 +30,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     AnyArrayLike,
-    AnySequenceLike,
     ArrayLike,
     DtypeObj,
     FrameOrSeriesUnion,
@@ -447,7 +446,7 @@ def unique(values):
 unique1d = unique
 
 
-def isin(comps: AnySequenceLike, values: AnySequenceLike) -> np.ndarray:
+def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     """
     Compute the isin boolean array.
 
