@@ -2111,7 +2111,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -2149,7 +2149,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
