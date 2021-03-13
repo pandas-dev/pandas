@@ -557,8 +557,11 @@ class ExtensionArray:
             dtype, (ArrowStringDtype, StringDtype)
         ):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
-
-        return np.array(self, dtype=cast(NpDtype, dtype), copy=copy)
+        # error: Argument "dtype" to "array" has incompatible type
+        # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
+        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
+        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        return np.array(self, dtype=dtype, copy=copy)  # type: ignore[arg-type]
 
     def isna(self) -> Union[np.ndarray, ExtensionArraySupportsAnyAll]:
         """
@@ -873,6 +876,7 @@ class ExtensionArray:
         # 1. Values outside the range of the `data_for_sorting` fixture
         # 2. Values between the values in the `data_for_sorting` fixture
         # 3. Missing values.
+        # TODO: overload astype so that cast is unnecessary
         arr = cast(np.ndarray, self.astype(object))
         return arr.searchsorted(value, side=side, sorter=sorter)
 
