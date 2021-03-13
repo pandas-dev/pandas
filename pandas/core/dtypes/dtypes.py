@@ -605,6 +605,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         from pandas.core.arrays.sparse import SparseDtype
+
         # check if we have all categorical dtype with identical categories
         if all(isinstance(x, CategoricalDtype) for x in dtypes):
             first = dtypes[0]
@@ -620,22 +621,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return self
         elif any(non_init_cats):
             return None
-
-        # case for compatible dtypes with categories.dtype
-        non_identical_cat_dtype = [
-            isinstance(x, CategoricalDtype) and x != self for x in dtypes
-        ]
-        if not any(non_identical_cat_dtype):
-            non_cat_dtypes = [
-                x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
-            ]
-            non_cat_dtypes_compat = [
-                not isinstance(x, ExtensionDtype)
-                and np.can_cast(x, self.categories.dtype)
-                for x in non_cat_dtypes
-            ]
-            if all(non_cat_dtypes_compat) and self.categories is not None and len(self.categories) > 0:
-                return self
 
         # categorical is aware of Sparse -> extract sparse subdtypes
         dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]

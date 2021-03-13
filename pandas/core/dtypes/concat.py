@@ -129,13 +129,17 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+    first_ea = isinstance(to_concat[0], ExtensionArray)
+    arr_index_expansion = (
+        first_ea and len(to_concat) == 2 and to_concat[1].shape[0] == 1
+    )
 
     if any_ea:
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
         if not single_dtype:
             target_dtype = find_common_type(
-                [x.dtype for x in to_concat], downcast_cat_dtype=False
+                [x.dtype for x in to_concat], promote_categorical=arr_index_expansion
             )
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 

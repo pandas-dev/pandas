@@ -88,6 +88,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
@@ -1850,7 +1851,7 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
 
 
 def find_common_type(
-    types: List[DtypeObj], downcast_cat_dtype: Optional[bool] = True
+    types: List[DtypeObj], promote_categorical: Optional[bool] = False
 ) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
@@ -1858,6 +1859,7 @@ def find_common_type(
     Parameters
     ----------
     types : list of dtypes
+    promote_categorical : find if possible, a categorical dtype that fits all the dtypes
 
     Returns
     -------
@@ -1878,9 +1880,23 @@ def find_common_type(
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    # downcast categorical to the dtype of their categories
-    if downcast_cat_dtype and not all(is_categorical_dtype(t) for t in types):
-        types = [t.categories.dtype if is_categorical_dtype(t) else t for t in types]
+    # special case for categorical
+    if promote_categorical:
+        if any(is_categorical_dtype(t) for t in types):
+            cat_dtypes = []
+            for t in types:
+                if isinstance(t, CategoricalDtype) and t.categories is not None:
+                    if any(~isna(t.categories.values)):
+                        cat_values_dtype = t.categories.values.dtype
+                        if all(
+                            is_categorical_dtype(x) or np.can_cast(x, cat_values_dtype)
+                            for x in types
+                        ):
+                            cat_dtypes.append(t)
+            if len(cat_dtypes) > 0:
+                dtype_ref = cat_dtypes[0]
+                if all(is_dtype_equal(dtype, dtype_ref) for dtype in cat_dtypes[1:]):
+                    return dtype_ref
 
     # get unique types (dict.fromkeys is used as order-preserving set())
     types = list(dict.fromkeys(types).keys())
