@@ -84,13 +84,13 @@ class TestStyler:
             self.styler.set_table_attributes('class="foo" data-bar')
             self.styler.hidden_index = not self.styler.hidden_index
             self.styler.hide_columns("A")
-            classes = pd.DataFrame(
+            classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
                 index=self.df.index,
                 columns=self.df.columns,
             )
             self.styler.set_td_classes(classes)
-            ttips = pd.DataFrame(
+            ttips = DataFrame(
                 data=[["Favorite", ""], [np.nan, "my"]],
                 columns=self.df.columns,
                 index=self.df.index,
@@ -179,11 +179,10 @@ class TestStyler:
         assert len(s.cell_context) > 0
 
         s = s._compute()
-        # ctx and _todo items affected when a render takes place
+        # ctx item affected when a render takes place. _todo is maintained
         assert len(s.ctx) > 0
-        assert len(s._todo) == 0  # _todo is emptied after compute.
+        assert len(s._todo) > 0
 
-        s._todo = [1]
         s.clear()
         # ctx, _todo, tooltips and cell_context items all revert to null state.
         assert len(s.ctx) == 0
@@ -767,7 +766,7 @@ class TestStyler:
         f = lambda x: "color: red" if x > 0 else "color: blue"
         g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
         style1 = self.styler
-        style1.applymap(f).applymap(g, z="b").highlight_max()
+        style1.applymap(f).applymap(g, z="b").highlight_max()._compute()  # = render
         result = style1.export()
         style2 = self.df.style
         style2.use(result)

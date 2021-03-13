@@ -10,16 +10,17 @@ from typing import Optional
 
 import numpy as np
 
+from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
-from pandas.core.dtypes.dtypes import PandasDtype
-from pandas.core.dtypes.generic import ABCPandasArray
 
 from pandas.core.arrays import DatetimeArray
 from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
+    check_ndim,
+    extract_pandas_array,
     get_block_type,
 )
 
@@ -38,24 +39,39 @@ def make_block(
     - Block.make_block_same_class
     - Block.__init__
     """
-    if isinstance(values, ABCPandasArray):
-        # Ensure that we don't allow PandasArray / PandasDtype in internals.
-        # For now, blocks should be backed by ndarrays when possible.
-        values = values.to_numpy()
-        if ndim and ndim > 1:
-            # TODO(EA2D): special case not needed with 2D EAs
-            values = np.atleast_2d(values)
-
-    if isinstance(dtype, PandasDtype):
-        dtype = dtype.numpy_dtype
+    # error: Argument 2 to "extract_pandas_array" has incompatible type
+    # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+    # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
+    # ExtensionDtype, None]"
+    values, dtype = extract_pandas_array(values, dtype, ndim)  # type: ignore[arg-type]
 
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
 
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
-        # TODO: This is no longer hit internally; does it need to be retained
-        #  for e.g. pyarrow?
+        # pyarrow calls get here
         values = DatetimeArray._simple_new(values, dtype=dtype)
 
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
+
+    ndim = _maybe_infer_ndim(values, placement, ndim)
+    check_ndim(values, placement, ndim)
     return klass(values, ndim=ndim, placement=placement)
+
+
+def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: Optional[int]) -> int:
+    """
+    If `ndim` is not provided, infer it from placment and values.
+    """
+    if ndim is None:
+        # GH#38134 Block constructor now assumes ndim is not None
+        if not isinstance(values.dtype, np.dtype):
+            if len(placement) != 1:
+                ndim = 1
+            else:
+                ndim = 2
+        else:
+            ndim = values.ndim
+    return ndim

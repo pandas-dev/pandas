@@ -180,7 +180,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     type: Type[CategoricalDtypeType] = CategoricalDtypeType
     kind: str_type = "O"
     str = "|O08"
-    base = np.dtype("O")
+    # error: Incompatible types in assignment (expression has type "dtype",
+    # base class "PandasExtensionDtype" defined the type as "None")
+    base = np.dtype("O")  # type: ignore[assignment]
     _metadata = ("categories", "ordered")
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
@@ -467,8 +469,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
             )
         else:
-            cat_array = [cat_array]
-        hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+            # error: Incompatible types in assignment (expression has type
+            # "List[ndarray]", variable has type "ndarray")
+            cat_array = [cat_array]  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "int")
+        hashed = combine_hash_arrays(  # type: ignore[assignment]
+            iter(cat_array), num_items=len(cat_array)
+        )
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
@@ -687,7 +695,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     kind: str_type = "M"
     str = "|M8[ns]"
     num = 101
-    base = np.dtype("M8[ns]")
+    # error: Incompatible types in assignment (expression has type "dtype",
+    # base class "PandasExtensionDtype" defined the type as "None")
+    base = np.dtype("M8[ns]")  # type: ignore[assignment]
     na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
@@ -853,7 +863,9 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     type: Type[Period] = Period
     kind: str_type = "O"
     str = "|O08"
-    base = np.dtype("O")
+    # error: Incompatible types in assignment (expression has type "dtype",
+    # base class "PandasExtensionDtype" defined the type as "None")
+    base = np.dtype("O")  # type: ignore[assignment]
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
@@ -1053,7 +1065,9 @@ class IntervalDtype(PandasExtensionDtype):
     name = "interval"
     kind: str_type = "O"
     str = "|O08"
-    base = np.dtype("O")
+    # error: Incompatible types in assignment (expression has type "dtype",
+    # base class "PandasExtensionDtype" defined the type as "None")
+    base = np.dtype("O")  # type: ignore[assignment]
     num = 103
     _metadata = (
         "subtype",

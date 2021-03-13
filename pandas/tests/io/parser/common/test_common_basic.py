@@ -6,6 +6,7 @@ from datetime import datetime
 from inspect import signature
 from io import StringIO
 import os
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -355,7 +356,7 @@ def test_escapechar(all_parsers):
     # https://stackoverflow.com/questions/13824840/feature-request-for-
     # pandas-read-csv
     data = '''SEARCH_TERM,ACTUAL_URL
-"bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
+"bra tv board","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
 
@@ -734,3 +735,21 @@ def test_dict_keys_as_names(all_parsers):
     result = parser.read_csv(StringIO(data), names=keys)
     expected = DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_encoding_surrogatepass(all_parsers):
+    # GH39017
+    parser = all_parsers
+    content = b"\xed\xbd\xbf"
+    decoded = content.decode("utf-8", errors="surrogatepass")
+    expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
+    expected.index.name = decoded * 2
+
+    with tm.ensure_clean() as path:
+        Path(path).write_bytes(
+            content * 2 + b"," + content + b"\n" + content * 2 + b"," + content
+        )
+        df = parser.read_csv(path, encoding_errors="surrogatepass", index_col=0)
+        tm.assert_frame_equal(df, expected)
+        with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
+            parser.read_csv(path)

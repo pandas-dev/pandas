@@ -80,7 +80,11 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
         # numpy's astype cannot handle ExtensionDtypes
         return pd_array(arr, dtype=dtype, copy=False)
-    return arr.astype(dtype, copy=False)
+    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
+    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+    # List[Any], _DTypeDict, Tuple[Any, Any]]]"
+    return arr.astype(dtype, copy=False)  # type: ignore[arg-type]
 
 
 def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):

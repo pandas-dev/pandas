@@ -148,7 +148,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         return Timedelta(x, unit="ns")
 
     @property
-    def dtype(self) -> np.dtype:
+    # error: Return type "dtype" of "dtype" incompatible with return type
+    # "ExtensionDtype" in supertype "ExtensionArray"
+    def dtype(self) -> np.dtype:  # type: ignore[override]
         """
         The dtype for the TimedeltaArray.
 
@@ -666,7 +668,11 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         elif is_object_dtype(other.dtype):
-            result = [self[n] // other[n] for n in range(len(self))]
+            # error: Incompatible types in assignment (expression has type
+            # "List[Any]", variable has type "ndarray")
+            result = [  # type: ignore[assignment]
+                self[n] // other[n] for n in range(len(self))
+            ]
             result = np.array(result)
             if lib.infer_dtype(result, skipna=False) == "timedelta":
                 result, _ = sequence_to_td64ns(result)
@@ -720,7 +726,11 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         elif is_object_dtype(other.dtype):
-            result = [other[n] // self[n] for n in range(len(self))]
+            # error: Incompatible types in assignment (expression has type
+            # "List[Any]", variable has type "ndarray")
+            result = [  # type: ignore[assignment]
+                other[n] // self[n] for n in range(len(self))
+            ]
             result = np.array(result)
             return result
 
