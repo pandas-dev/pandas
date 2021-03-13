@@ -312,11 +312,17 @@ class Styler:
         caption: Optional[str] = None,
         encoding: Optional[str] = None,
     ):
-        if column_format:
-            self.set_table_styles(
-                [{"selector": "column_format", "props": f":{column_format}"}],
-                overwrite=False,
-            )
+        if column_format is None:  # set float, complex, int cols to 'r', index to 'l'
+            numeric_cols = list(self.data.select_dtypes(include=[np.number]).columns)
+            numeric_cols = self.columns.get_indexer_for(numeric_cols)
+            column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
+            for ci, _ in enumerate(self.data.columns):
+                if ci not in self.hidden_columns:
+                    column_format += "r" if ci in numeric_cols else "l"
+        self.set_table_styles(
+            [{"selector": "column_format", "props": f":{column_format}"}],
+            overwrite=False,
+        )
 
         if position:
             self.set_table_styles(
@@ -344,7 +350,9 @@ class Styler:
             self.set_caption(caption)
 
         wrappers = ["position", "label", "caption"]
-        if not any(d["selector"] in wrappers for d in self.table_styles):
+        if self.table_styles is not None and not any(
+            d["selector"] in wrappers for d in self.table_styles
+        ):
             table_wrapping = False
         else:
             table_wrapping = True
