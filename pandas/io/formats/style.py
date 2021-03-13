@@ -877,6 +877,7 @@ class Styler:
             template = self.template2
             template.globals["parse_table"] = _parse_latex_table_styles
             template.globals["parse_cell"] = _parse_latex_cell_styles
+            template.globals["parse_col_head"] = _parse_latex_header_colspan
 
         d.update(kwargs)
         return template.render(**d)
@@ -2399,3 +2400,20 @@ def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
         else:
             display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
     return display_value
+
+
+def _parse_latex_header_colspan(cell: Dict) -> str:
+    """
+    examines a header cell dict and if it detects a 'colspan' attribute will reformat
+    the latex display value
+
+    For example: if cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    The latex output will be '& & text' instead of 'text'
+    """
+    colspan = 1
+    if "attributes" in cell:
+        attrs = cell["attributes"]
+        if 'colspan="' in attrs:
+            colspan = attrs[attrs.find('colspan="') + 9 :]
+            colspan = int(colspan[: colspan.find('"')])
+    return "& " * (colspan - 1) + str(cell["display_value"])

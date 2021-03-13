@@ -32,7 +32,9 @@
 {% if toprule is not none %}
 \{{toprule}}
 {% endif %}
-{% for item in head[0] %}{%- if not loop.first %} & {% endif %}{{item.display_value}}{% endfor %} \\
+{% for row in head %}
+{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_col_head(c)}}{% endfor %} \\
+{% endfor %}
 {% set midrule = parse_table(table_styles, 'midrule') %}
 {% if midrule is not none %}
 \{{midrule}}
