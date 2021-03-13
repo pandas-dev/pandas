@@ -17,15 +17,17 @@ jobs:
     strategy:
       matrix:
         env-file: [
-          [ci/deps/azure-37-minimum_versions.yaml, "not slow and not network and not clipboard"],
-          [ci/deps/azure-37.yaml, "not slow and not network and not clipboard"],
-          [ci/deps/azure-37-locale_slow.yaml, "slow"]
+          [ci/deps/azure-37-minimum_versions.yaml, "not slow and not network and not clipboard", ""],
+          [ci/deps/azure-37.yaml, "not slow and not network and not clipboard", ""],
+          [ci/deps/azure-37-locale_slow.yaml, "slow", "language-pack-it xsel"]
         ]
       fail-fast: true
     env:
       COVERAGE: true
       PYTEST_WORKERS: "auto"
+      ENV_FILE: ${{ matrix.env-file[0] }}
       PATTERN: ${{ matrix.env-file[1] }}
+      EXTRA_APT: ${{ matrix.env-file[2] }}
 
 
     steps:
@@ -39,13 +41,16 @@ jobs:
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('${{ matrix.env-file[0] }}') }}
+          hashFiles('${{ env.ENV_FILE }}') }}
+
+    - name: Extra installs
+      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 ${{ env.EXTRA_APT }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev
         channel-priority: flexible
-        environment-file: ${{ matrix.env-file[0] }}
+        environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
     - name: Build Pandas
