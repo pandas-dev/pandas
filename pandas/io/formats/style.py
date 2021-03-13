@@ -2410,15 +2410,15 @@ def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
 
     Sometimes latex commands have to be wrapped with curly braces:
     Instead of `\<command>{<text}` the necessary format is `{\<command> text}`
-    In this case if the keyphrase '-wrap-' is detected in <options> it will return
+    In this case if the keyphrase '--wrap' is detected in <options> it will return
     correctly, for example:
-    `styles=[('Huge', '-wrap-'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
+    `styles=[('Huge', '--wrap'), ('cellcolor', '[rgb]{0,1,1}')]` will yield:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
     for style in styles[::-1]:  # in reverse for most recently applied style
-        if "-wrap-" in style[1]:
+        if "--wrap" in style[1]:
             display_value = (
-                f"{{\\{style[0]}{style[1].replace('-wrap-','')} {display_value}}}"
+                f"{{\\{style[0]}{style[1].replace('--wrap','')} {display_value}}}"
             )
         else:
             display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"

@@ -9,7 +9,9 @@ from pandas import (
 
 from pandas.io.formats.style import (
     _parse_latex_cell_styles,
+    _parse_latex_header_span,
     _parse_latex_table_styles,
+    _parse_latex_table_wrapping,
 )
 
 pytest.importorskip("jinja2")
@@ -19,30 +21,6 @@ class TestStylerLatex:
     def setup_method(self, method):
         self.df = DataFrame({"A": [0, 1], "B": [-0.61, -1.22], "C": ["ab", "cd"]})
         self.s = self.df.style.format(precision=2)
-
-    def test_parse_latex_table_styles(self):
-        s = self.df.style.set_table_styles(
-            [
-                {"selector": "foo", "props": [("attr", "value")]},
-                {"selector": "bar", "props": [("attr", "overwritten")]},
-                {"selector": "bar", "props": [("attr", "baz"), ("attr2", "ignored")]},
-                {"selector": "label", "props": [("", "{fig§item}")]},
-            ]
-        )
-        assert _parse_latex_table_styles(s.table_styles, "bar") == "baz"
-
-        # test '§' replaced by ':' [for CSS compatibility]
-        assert _parse_latex_table_styles(s.table_styles, "label") == "{fig:item}"
-
-    def test_parse_latex_cell_styles_basic(self):
-        cell_style = [("emph", ""), ("cellcolor", "[rgb]{0,1,1}")]
-        expected = "\\emph{\\cellcolor[rgb]{0,1,1}{text}}"
-        assert _parse_latex_cell_styles(cell_style, "text") == expected
-
-    def test_parse_latex_cell_styles_braces_wrap(self):
-        cell_style = [("emph", "-wrap-"), ("cellcolor", "-wrap-[rgb]{0,1,1}")]
-        expected = "{\\emph {\\cellcolor[rgb]{0,1,1} text}}"
-        assert _parse_latex_cell_styles(cell_style, "text") == expected
 
     def test_minimal_latex_tabular(self):
         expected = dedent(
@@ -144,7 +122,7 @@ class TestStylerLatex:
         assert expected in self.s.to_latex()
 
     def test_cell_styling(self):
-        self.s.highlight_max(props="emph:;Huge:-wrap-;")
+        self.s.highlight_max(props="emph:;Huge:--wrap;")
         expected = dedent(
             """\
             \\begin{tabular}{lrrl}
@@ -230,7 +208,7 @@ class TestStylerLatex:
         )
         s.highlight_max(axis=0, props="textbf:;cellcolor:[rgb]{1,1,0.6}")
         s.highlight_max(
-            axis=None, props="Huge:-wrap-;", subset=[("Z", "a"), ("Z", "b")]
+            axis=None, props="Huge:--wrap;", subset=[("Z", "a"), ("Z", "b")]
         )
 
         expected = (
@@ -256,3 +234,58 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 """
         )
         assert expected == s.format(precision=2).render(latex=True)
+
+    def test_parse_latex_table_styles(self):
+        s = self.df.style.set_table_styles(
+            [
+                {"selector": "foo", "props": [("attr", "value")]},
+                {"selector": "bar", "props": [("attr", "overwritten")]},
+                {"selector": "bar", "props": [("attr", "baz"), ("attr2", "ignored")]},
+                {"selector": "label", "props": [("", "{fig§item}")]},
+            ]
+        )
+        assert _parse_latex_table_styles(s.table_styles, "bar") == "baz"
+
+        # test '§' replaced by ':' [for CSS compatibility]
+        assert _parse_latex_table_styles(s.table_styles, "label") == "{fig:item}"
+
+    def test_parse_latex_cell_styles_basic(self):
+        cell_style = [("emph", ""), ("cellcolor", "[rgb]{0,1,1}")]
+        expected = "\\emph{\\cellcolor[rgb]{0,1,1}{text}}"
+        assert _parse_latex_cell_styles(cell_style, "text") == expected
+
+    def test_parse_latex_cell_styles_braces_wrap(self):
+        cell_style = [("emph", "--wrap"), ("cellcolor", "[rgb]{0,1,1}--wrap")]
+        expected = "{\\emph {\\cellcolor[rgb]{0,1,1} text}}"
+        assert _parse_latex_cell_styles(cell_style, "text") == expected
+
+    def test_parse_latex_header_span(self):
+        cell = {"attributes": 'colspan="3"', "display_value": "text"}
+        expected = "\\multicolumn{3}{r}{text}"
+        assert _parse_latex_header_span(cell) == expected
+
+        cell = {"attributes": 'rowspan="5"', "display_value": "text"}
+        expected = "\\multirow{5}{*}{text}"
+        assert _parse_latex_header_span(cell) == expected
+
+        cell = {"display_value": "text"}
+        assert _parse_latex_header_span(cell) == "text"
+
+    def test_parse_latex_table_wrapping(self):
+        self.s.set_table_styles(
+            [
+                {"selector": "toprule", "props": ":value"},
+                {"selector": "bottomrule", "props": ":value"},
+                {"selector": "midrule", "props": ":value"},
+                {"selector": "column_format", "props": ":value"},
+            ]
+        )
+        assert _parse_latex_table_wrapping(self.s.table_styles, self.s.caption) is False
+        assert _parse_latex_table_wrapping(self.s.table_styles, "some caption") is True
+        self.s.set_table_styles(
+            [
+                {"selector": "not-ignored", "props": ":value"},
+            ],
+            overwrite=False,
+        )
+        assert _parse_latex_table_wrapping(self.s.table_styles, None) is True
