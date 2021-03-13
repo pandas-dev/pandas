@@ -643,11 +643,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing
             dta = self.view("M8[ns]")
-            # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
-            # "fillna"
-            result = dta.fillna(  # type: ignore[union-attr]
-                value=value, method=method, limit=limit
-            )
+            result = dta.fillna(value=value, method=method, limit=limit)
             return result.view(self.dtype)
         return super().fillna(value=value, method=method, limit=limit)
 

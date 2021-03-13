@@ -123,6 +123,8 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -456,6 +458,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @overload
     def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
+        ...
+
+    @overload
+    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray:
+        ...
+
+    @overload
+    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray:
         ...
 
     @overload
