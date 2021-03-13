@@ -42,10 +42,6 @@ from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    is_extension_array_dtype,
-)
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCIndex,
@@ -633,9 +629,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if not any(non_identical_cat_dtype):
             non_cat_dtypes_compat = [
                 isinstance(x, CategoricalDtype)
-                or is_dtype_equal(x, self.categories.dtype)
+                or x == self.categories.dtype
                 or (
-                    not is_extension_array_dtype(x)
+                    not isinstance(x, ExtensionDtype)
                     and np.can_cast(x, self.categories.dtype)
                 )
                 for x in dtypes
