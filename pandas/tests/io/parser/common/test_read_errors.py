@@ -142,7 +142,13 @@ def test_unexpected_keyword_parameter_exception(all_parsers):
 
 @pytest.mark.parametrize(
     "kwargs",
-    [{"error_bad_lines": False, "warn_bad_lines": False}, {"on_bad_lines": "skip"}],
+    [
+        pytest.param(
+            {"error_bad_lines": False, "warn_bad_lines": False},
+            marks=pytest.mark.filterwarnings("ignore"),
+        ),
+        {"on_bad_lines": "skip"},
+    ],
 )
 def test_suppress_error_output(all_parsers, capsys, kwargs):
     # see gh-15925
@@ -157,18 +163,18 @@ def test_suppress_error_output(all_parsers, capsys, kwargs):
     assert captured.err == ""
 
 
+@pytest.mark.filterwarnings("ignore")
 @pytest.mark.parametrize(
     "kwargs",
-    [{}, {"error_bad_lines": True}],  # Default is True.  # Explicitly pass in.
+    [
+        {},
+        {"error_bad_lines": True},
+        {"on_bad_lines": "error"},
+    ],  # Default is True.  # Explicitly pass in.
 )
 @pytest.mark.parametrize(
     "warn_kwargs",
-    [
-        {},
-        {"warn_bad_lines": True},
-        {"warn_bad_lines": False},
-        {"on_bad_lines": "error"},
-    ],
+    [{}, {"warn_bad_lines": True}, pytest.param({"warn_bad_lines": False})],
 )
 def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
     # see gh-15925
@@ -183,7 +189,13 @@ def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
 
 @pytest.mark.parametrize(
     "kwargs",
-    [{"error_bad_lines": False, "warn_bad_lines": True}, {"on_bad_lines": "warn"}],
+    [
+        pytest.param(
+            {"error_bad_lines": False, "warn_bad_lines": True},
+            marks=pytest.mark.filterwarnings("ignore"),
+        ),
+        {"on_bad_lines": "warn"},
+    ],
 )
 def test_warn_bad_lines(all_parsers, capsys, kwargs):
     # see gh-15925
@@ -191,7 +203,7 @@ def test_warn_bad_lines(all_parsers, capsys, kwargs):
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    result = parser.read_csv(StringIO(data), error_bad_lines=False, warn_bad_lines=True)
+    result = parser.read_csv(StringIO(data), **kwargs)
     tm.assert_frame_equal(result, expected)
 
     captured = capsys.readouterr()
