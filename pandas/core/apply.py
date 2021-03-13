@@ -227,8 +227,11 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(AggFuncTypeBase, func)
         try:
             result = self.transform_str_or_callable(func)
-        except Exception:
-            raise ValueError("Transform function failed")
+        except Exception as err:
+            if isinstance(err, TypeError):
+                raise err
+            else:
+                raise ValueError("Transform function failed")
 
         # Functions that transform may return empty Series/DataFrame
         # when the dtype is not appropriate
@@ -265,6 +268,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         results: Dict[Hashable, FrameOrSeriesUnion] = {}
         failed_names = []
+        all_type_errors = True
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             try:
@@ -276,10 +280,12 @@ class Apply(metaclass=abc.ABCMeta):
                 }:
                     raise err
                 elif not isinstance(err, TypeError):
+                    all_type_errors = False
                     failed_names.append(name)
         # combine results
         if not results:
-            raise ValueError("Transform function failed")
+            klass = TypeError if all_type_errors else ValueError
+            raise klass("Transform function failed")
         if len(failed_names) > 0:
             warnings.warn(
                 f"{failed_names} did not transform successfully and did not raise "
