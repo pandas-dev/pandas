@@ -620,6 +620,49 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
+    def insert(self, loc: int, item):
+        """
+        Make new Index inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        new_index : Index
+
+        Raises
+        ------
+        ValueError if the item is not valid for this dtype.
+        """
+        from pandas.core.dtypes.cast import (
+            find_common_type,
+            infer_dtype_from,
+        )
+        arr = self._data
+        try:
+            code = arr._validate_scalar(item)
+        except (ValueError, TypeError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
+            dtype, _ = infer_dtype_from(item, pandas_dtype=True)
+            dtype = find_common_type([self.dtype.categories.dtype, dtype])
+            return self.astype(dtype).insert(loc, item)
+        else:
+            new_vals = np.concatenate(
+                (
+                    arr._ndarray[:loc],
+                    np.asarray([code], dtype=arr._ndarray.dtype),
+                    arr._ndarray[loc:],
+                )
+            )
+            new_arr = arr._from_backing_data(new_vals)
+            return type(self)._simple_new(new_arr, name=self.name)
+
     def _concat(self, to_concat: List[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
