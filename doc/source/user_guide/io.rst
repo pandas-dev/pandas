@@ -362,7 +362,7 @@ warn_bad_lines : boolean, default ``True``
      The ``on_bad_lines`` parameter takes precedence over this parameter
      when specified and should be used instead to specify behavior upon
      encountering a bad line instead.
-on_bad_lines : {{``None``, 'error', 'warn', 'skip'}}, default ``None``
+on_bad_lines : {{None, 'error', 'warn', 'skip'}}, default ``None``
     Specifies what to do upon encountering a bad line (a line with too many fields).
     The default value of None will defer to ``error_bad_lines`` and ``warn_bad_lines``.
     Specifying 'error' will cause an exception to be raised. Otherwise, the "bad lines"
