@@ -15,13 +15,6 @@ jobs:
           PATTERN: "not slow and not network"
 
   steps:
-    - script: |
-        if [ "$(uname)" == "Linux" ]; then
-          sudo apt-get update
-          sudo apt-get install -y libc6-dev-i386 $EXTRA_APT
-        fi
-      displayName: 'Install extra packages'
-
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Set conda path'
 
