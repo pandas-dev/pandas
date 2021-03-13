@@ -929,6 +929,8 @@ class BlockManager(DataManager):
         elif is_dtype_equal(dtype, str):
             dtype = "object"
 
+        # At this point, we know that dtype is a valid numpy type, so we do a cast
+        # to make the typing check pass.
         result = np.empty(self.shape, dtype=cast(NpDtype, dtype))
         itemmask = np.zeros(self.shape[0])
 

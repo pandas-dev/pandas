@@ -128,7 +128,7 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> ArrayLike:
+def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
     """
     Ensure that an dtype array of some integer dtype
     has an int64 dtype if possible.
