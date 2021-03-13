@@ -1,4 +1,4 @@
-{% if table_wrapping %}
+{% if parse_wrap(table_styles, caption) %}
 \begin{table}
 {%- set position = parse_table(table_styles, 'position') %}
 {%- if position is not none %}
@@ -49,6 +49,6 @@
 \{{bottomrule}}
 {% endif %}
 \end{tabular}
-{% if table_wrapping %}
+{% if parse_wrap(table_styles, caption) %}
 \end{table}
 {% endif %}

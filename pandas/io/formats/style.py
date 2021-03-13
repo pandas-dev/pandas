@@ -160,7 +160,7 @@ class Styler:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template = env.get_template("html.tpl")
-    template2 = env.get_template("latex.tpl")
+    template_latex = env.get_template("latex.tpl")
 
     def __init__(
         self,
@@ -364,18 +364,7 @@ class Styler:
         if caption:
             self.set_caption(caption)
 
-        IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
-        # {tabular} is wrapped inside {table} if table_styles selectors exist that are
-        # not any of the ignored wrappers.
-        if (
-            self.table_styles is not None
-            and any(d["selector"] not in IGNORED_WRAPPERS for d in self.table_styles)
-        ) or self.caption:
-            table_wrapping = True
-        else:
-            table_wrapping = False
-
-        latex = self.render(latex=True, table_wrapping=table_wrapping)
+        latex = self.render(latex=True)
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @doc(
@@ -895,8 +884,8 @@ class Styler:
         template = self.template
         if latex:
             d = self._translate_latex(d)
-            d.update({"table_wrapping": True})
-            template = self.template2
+            template = self.template_latex
+            template.globals["parse_wrap"] = _parse_latex_table_wrapping
             template.globals["parse_table"] = _parse_latex_table_styles
             template.globals["parse_cell"] = _parse_latex_cell_styles
             template.globals["parse_header"] = _parse_latex_header_span
@@ -2373,6 +2362,18 @@ def _non_reducing_slice(slice_):
     else:
         slice_ = [part if pred(part) else [part] for part in slice_]
     return tuple(slice_)
+
+
+def _parse_latex_table_wrapping(styles: CSSStyles, caption: Optional[str]) -> bool:
+    IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
+    # {tabular} is wrapped inside {table} if table_styles selectors exist that are
+    # not any of the ignored wrappers.
+    if (
+        styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in styles)
+    ) or caption:
+        return True
+    return False
 
 
 def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]:

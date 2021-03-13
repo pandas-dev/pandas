@@ -220,6 +220,7 @@ class TestStylerLatex:
             [
                 {"selector": "label", "props": ":{fig§item}"},
                 {"selector": "position", "props": ":h!"},
+                {"selector": "float", "props": ":centering"},
                 {"selector": "column_format", "props": ":rlrlr"},
                 {"selector": "toprule", "props": ":toprule"},
                 {"selector": "midrule", "props": ":midrule"},
@@ -235,6 +236,7 @@ class TestStylerLatex:
         expected = (
             """\
 \\begin{table}[h!]
+\\centering
 \\caption{mycap}
 \\label{fig:item}
 \\rowcolors{3}{pink}{}
