@@ -88,7 +88,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
@@ -1790,33 +1789,6 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
         raise ValueError("no types given")
 
     first = types[0]
-
-    # We will first try to find a common categorical dtype
-    # if promote_categorical is set to True. This is used
-    # to preserve the categorical dtype (since categorical
-    # values can consist of multiple dtypes).
-    if any(is_categorical_dtype(t) for t in types):
-        cat_dtypes = []
-        for t in types:
-            if isinstance(t, CategoricalDtype):
-                if any(~isna(t.categories.values)):
-                    cat_values_dtype = t.categories.values.dtype
-                    if all(
-                        (
-                            is_categorical_dtype(x)
-                            or (
-                                is_numeric_dtype(cat_values_dtype)
-                                and is_numeric_dtype(x)
-                            )
-                            or np.can_cast(x, cat_values_dtype)
-                        )
-                        for x in types
-                    ):
-                        cat_dtypes.append(t)
-        if len(cat_dtypes) > 0:
-            dtype_ref = cat_dtypes[0]
-            if all(is_dtype_equal(dtype, dtype_ref) for dtype in cat_dtypes[1:]):
-                return dtype_ref
 
     # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
     # => object
