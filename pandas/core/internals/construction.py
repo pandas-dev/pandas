@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -249,7 +250,7 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    if is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
+    if is_extension_array_dtype(values) or isinstance(dtype, ExtensionDtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -365,19 +366,10 @@ def dict_to_mgr(
         # no obvious "empty" int column
         if missing.any() and not is_integer_dtype(dtype):
             if dtype is None or (
-                not is_extension_array_dtype(dtype)
-                # error: Argument 1 to "issubdtype" has incompatible type
-                # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None,
-                # type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
-                # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
-                # Any]]"
-                and np.issubdtype(dtype, np.flexible)  # type: ignore[arg-type]
+                isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.flexible)
             ):
                 # GH#1783
-
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
-                nan_dtype = np.dtype(object)  # type: ignore[type-var]
+                nan_dtype = np.dtype("object")
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "Union[dtype, ExtensionDtype]", variable has type "dtype")
@@ -682,13 +674,11 @@ def to_arrays(
 
     if not len(data):
         if isinstance(data, np.ndarray):
-            # error: Incompatible types in assignment (expression has type
-            # "Optional[Tuple[str, ...]]", variable has type "Optional[Index]")
-            columns = data.dtype.names  # type: ignore[assignment]
-            if columns is not None:
+            if data.dtype.names is not None:
                 # i.e. numpy structured array
+                columns = ensure_index(data.dtype.names)
                 arrays = [data[name] for name in columns]
-                return arrays, ensure_index(columns)
+                return arrays, columns
         return [], ensure_index([])
 
     elif isinstance(data[0], Categorical):

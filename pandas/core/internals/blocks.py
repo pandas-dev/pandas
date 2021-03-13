@@ -118,9 +118,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
-
-# error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-_dtype_obj = np.dtype(object)  # type: ignore[type-var]
+_dtype_obj = np.dtype("object")
 
 
 class Block(PandasObject):
@@ -1598,14 +1596,9 @@ class ExtensionBlock(Block):
         values = self.values
         mask = isna(values)
 
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
-        values = np.asarray(values.astype(object))  # type: ignore[assignment]
-        values[mask] = na_rep
-
-        # TODO(EA2D): reshape not needed with 2D EAs
-        # we are expected to return a 2-d ndarray
-        return self.make_block(values)
+        new_values = np.asarray(values.astype(object))
+        new_values[mask] = na_rep
+        return self.make_block(new_values)
 
     def take_nd(
         self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
