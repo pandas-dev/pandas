@@ -2648,7 +2648,9 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     # Only hit here when we've already coerced to object dtypee.
 
     hash_klass, vals = get_data_algo(values)
-    _, cats = get_data_algo(categories._values)
+    # pandas/core/arrays/categorical.py:2661: error: Argument 1 to "get_data_algo" has
+    # incompatible type "Index"; expected "Union[ExtensionArray, ndarray]"  [arg-type]
+    _, cats = get_data_algo(categories)  # type: ignore[arg-type]
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)
