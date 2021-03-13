@@ -254,8 +254,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return value
 
     def __getitem__(
-        self: NDArrayBackedExtensionArrayT,
-        key: Union[int, slice, np.ndarray],
+        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
     ) -> Union[NDArrayBackedExtensionArrayT, Any]:
         if lib.is_integer(key):
             # fast-path
