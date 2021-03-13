@@ -237,38 +237,26 @@ def _reconstruct_data(
         # Catch DatetimeArray/TimedeltaArray
         return values
 
-    if is_extension_array_dtype(dtype):
-        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-        # attribute "construct_array_type"
-        cls = dtype.construct_array_type()  # type: ignore[union-attr]
+    if not isinstance(dtype, np.dtype):
+        # i.e. ExtensionDtype
+        cls = dtype.construct_array_type()
         if isinstance(values, cls) and values.dtype == dtype:
             return values
 
         values = cls._from_sequence(values)
     elif is_bool_dtype(dtype):
-        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible
-        # type "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"; expected
-        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
-        # Tuple[Any, Any]]]"
-        values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
+        values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
         if isinstance(original, ABCIndex):
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
-            dtype = "datetime64[ns]"
+            dtype = np.dtype("datetime64[ns]")
         elif is_timedelta64_dtype(dtype):
-            dtype = "timedelta64[ns]"
-        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible
-        # type "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object]]"; expected
-        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
-        # Tuple[Any, Any]]]"
-        values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
+            dtype = np.dtype("timedelta64[ns]")
+
+        values = values.astype(dtype, copy=False)
 
     return values
 
@@ -773,7 +761,8 @@ def factorize(
             uniques = Index(uniques)
         return codes, uniques
 
-    if is_extension_array_dtype(values.dtype):
+    if not isinstance(values.dtype, np.dtype):
+        # i.e. ExtensionDtype
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
@@ -1663,7 +1652,8 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
         arr = arr.to_numpy()
         dtype = arr.dtype
 
-    if is_extension_array_dtype(dtype):
+    if not isinstance(dtype, np.dtype):
+        # i.e ExtensionDtype
         if hasattr(arr, f"__{op.__name__}__"):
             if axis != 0:
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")

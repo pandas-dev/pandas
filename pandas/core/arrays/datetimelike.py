@@ -877,12 +877,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self.asi8 == iNaT
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self) -> np.ndarray:
+    def _hasnans(self) -> bool:
         """
         return if I have any nans; enables various perf speedups
         """
-        # error: Incompatible return value type (got "bool", expected "ndarray")
-        return bool(self._isnan.any())  # type: ignore[return-value]
+        return bool(self._isnan.any())
 
     def _maybe_mask_results(
         self, result: np.ndarray, fill_value=iNaT, convert=None
