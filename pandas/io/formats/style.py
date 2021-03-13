@@ -634,18 +634,6 @@ class Styler:
             row_body_headers = [] if self.hidden_index else row_body_headers
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
-
-        # d["body"] = [
-        #     [
-        #         {**col, "cellstyle": []}
-        #         if col["type"] == "th"
-        #         else {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
-        #         for c, col in enumerate(row)
-        #         if col["is_visible"]
-        #     ]
-        #     for r, row in enumerate(d["body"])
-        # ]
-
         return d
 
     def format(
