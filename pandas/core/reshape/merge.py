@@ -73,6 +73,7 @@ from pandas import (
 )
 from pandas.core import groupby
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -2083,12 +2084,10 @@ def _factorize_keys(
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk.codes)
 
-    elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
+    elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
         # error: Incompatible types in assignment (expression has type "ndarray",
         # variable has type "ExtensionArray")
-        # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
-        # "_values_for_factorize"
-        lk, _ = lk._values_for_factorize()  # type: ignore[union-attr,assignment]
+        lk, _ = lk._values_for_factorize()
 
         # error: Incompatible types in assignment (expression has type
         # "ndarray", variable has type "ExtensionArray")

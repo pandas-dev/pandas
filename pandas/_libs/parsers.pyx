@@ -337,7 +337,7 @@ cdef class TextReader:
         object skiprows
         object dtype
         object usecols
-        list dtype_cast_order
+        list dtype_cast_order  # list[np.dtype]
         set unnamed_cols
         set noconvert
 
