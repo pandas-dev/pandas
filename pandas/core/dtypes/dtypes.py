@@ -623,8 +623,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return None
 
         # case for compatible dtypes with categories.dtype
-        from pandas.core.dtypes.common import is_dtype_equal, is_extension_array_dtype
-
+        from pandas.core.dtypes.common import (
+            is_dtype_equal, 
+            is_extension_array_dtype
+        )
+        
         non_identical_cat_dtype = [
             isinstance(x, CategoricalDtype) and x != self for x in dtypes
         ]
