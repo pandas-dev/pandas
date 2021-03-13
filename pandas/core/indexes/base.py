@@ -3885,7 +3885,7 @@ class Index(IndexOpsMixin, PandasObject):
     def join(
         self,
         other: Index,
-        how: str = "left",
+        how: str_t = "left",
         level=None,
         return_indexers: Literal[True] = ...,
         sort: bool = False,
@@ -3896,7 +3896,7 @@ class Index(IndexOpsMixin, PandasObject):
     def join(
         self,
         other: Index,
-        how: str = "left",
+        how: str_t = "left",
         level=None,
         return_indexers: Literal[False] = ...,
         sort: bool = False,
@@ -3906,7 +3906,7 @@ class Index(IndexOpsMixin, PandasObject):
     def join(
         self,
         other: Index,
-        how: str = "left",
+        how: str_t = "left",
         level=None,
         return_indexers: bool = False,
         sort: bool = False,

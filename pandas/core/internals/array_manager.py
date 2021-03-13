@@ -202,7 +202,7 @@ class ArrayManager(DataManager):
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
-        if self.ndim == 1:
+        if self.ndim == 2:
             output += f"\nColumns: {self._axes[1]}"
         output += f"\n{len(self.arrays)} arrays:"
         for arr in self.arrays:
@@ -786,11 +786,9 @@ class ArrayManager(DataManager):
             arrays = self.arrays[slobj]
 
         new_axes = list(self._axes)
-        new_axes[axis] = new_axes[axis][slobj]
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
         return type(self)(arrays, new_axes, verify_integrity=False)
-
-    getitem_mgr = get_slice
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """
@@ -863,7 +861,7 @@ class ArrayManager(DataManager):
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
                 assert value.shape[1] == 1
-                value = value[0, :]
+                value = value[:, 0]
 
             # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
             # but we should avoid that and pass directly the proper array
@@ -1023,7 +1021,7 @@ class ArrayManager(DataManager):
 
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
         """
@@ -1036,12 +1034,7 @@ class ArrayManager(DataManager):
         )
 
         n = self.shape_proper[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
@@ -1145,7 +1138,13 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def _verify_integrity(self) -> None:
         (n_rows,) = self.shape
         assert len(self.arrays) == 1
-        assert len(self.arrays[0]) == n_rows
+        arr = self.arrays[0]
+        assert len(arr) == n_rows
+        if not arr.ndim == 1:
+            raise ValueError(
+                "Passed array should be 1-dimensional, got array with "
+                f"{arr.ndim} dimensions instead."
+            )
 
     @staticmethod
     def _normalize_axis(axis):
@@ -1169,10 +1168,6 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     @property
     def index(self) -> Index:
         return self._axes[0]
-
-    @property
-    def array(self):
-        return self.arrays[0]
 
     @property
     def dtype(self):
@@ -1218,7 +1213,12 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
             raise IndexError("Requested axis not found in manager")
 
         new_array = self.array[slobj]
-        new_index = self.index[slobj]
+        new_index = self.index._getitem_slice(slobj)
+        return type(self)([new_array], [new_index], verify_integrity=False)
+
+    def getitem_mgr(self, indexer) -> SingleArrayManager:
+        new_array = self.array[indexer]
+        new_index = self.index[indexer]
         return type(self)([new_array], [new_index])
 
     def apply(self, func, **kwargs):
