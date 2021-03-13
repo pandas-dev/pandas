@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numbers
 from typing import (
-    Any,
     Optional,
     Tuple,
     Union,
@@ -352,7 +351,6 @@ class PandasArray(
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
-        **kwargs: Any,
     ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 

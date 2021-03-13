@@ -218,7 +218,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
-        **kwargs: Any,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
