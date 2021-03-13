@@ -134,7 +134,9 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
         if not single_dtype:
-            target_dtype = find_common_type([x.dtype for x in to_concat])
+            target_dtype = find_common_type(
+                [x.dtype for x in to_concat], downcast_cat_dtype=False
+            )
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
         if isinstance(to_concat[0], ExtensionArray):

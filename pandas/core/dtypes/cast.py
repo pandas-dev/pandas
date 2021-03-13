@@ -1849,7 +1849,9 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-def find_common_type(types: List[DtypeObj]) -> DtypeObj:
+def find_common_type(
+    types: List[DtypeObj], downcast_cat_dtype: Optional[bool] = True
+) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
@@ -1875,6 +1877,10 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     # => object
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
+
+    # downcast categorical to the dtype of their categories
+    if downcast_cat_dtype and not all(is_categorical_dtype(t) for t in types):
+        types = [t.categories.dtype if is_categorical_dtype(t) else t for t in types]
 
     # get unique types (dict.fromkeys is used as order-preserving set())
     types = list(dict.fromkeys(types).keys())
