@@ -206,3 +206,51 @@ class TestStylerLatex:
             """
         )
         assert expected == self.df.style.format(precision=2).to_latex()
+
+    def test_comprehensive(self):
+        # test as many low level features simultaneously as possible
+        cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+        ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+        self.df.loc[2, :] = [2, -2.22, "de"]
+        self.df = self.df.astype({"A": int})
+        self.df.index, self.df.columns = ridx, cidx
+        s = self.df.style
+        s.set_caption("mycap")
+        s.set_table_styles(
+            [
+                {"selector": "label", "props": ":{fig§item}"},
+                {"selector": "position", "props": ":h!"},
+                {"selector": "column_format", "props": ":rlrlr"},
+                {"selector": "toprule", "props": ":toprule"},
+                {"selector": "midrule", "props": ":midrule"},
+                {"selector": "bottomrule", "props": ":bottomrule"},
+                {"selector": "rowcolors", "props": ":{3}{pink}{}"},  # custom command
+            ]
+        )
+        s.highlight_max(axis=0, props="textbf:;cellcolor:[rgb]{1,1,0.6}")
+        s.highlight_max(
+            axis=None, props="Huge:-wrap-;", subset=[("Z", "a"), ("Z", "b")]
+        )
+
+        expected = (
+            """\
+\\begin{table}[h!]
+\\caption{mycap}
+\\label{fig:item}
+\\rowcolors{3}{pink}{}
+\\begin{tabular}{rlrlr}
+\\toprule
+ &  & \\multicolumn{2}{r}{Z} & Y \\\\
+ &  & a & b & c \\\\
+\\midrule
+\\multirow{2}{*}{A} & a & 0 & \\textbf{\\cellcolor[rgb]{1,1,0.6}{-0.61}} & ab \\\\
+ & b & 1 & -1.22 & cd \\\\
+B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
+            """\
+\\textbf{\\cellcolor[rgb]{1,1,0.6}{de}} \\\\
+\\bottomrule
+\\end{tabular}
+\\end{table}
+"""
+        )
+        assert expected == s.format(precision=2).render(latex=True)

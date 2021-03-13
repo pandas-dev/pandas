@@ -895,6 +895,7 @@ class Styler:
         template = self.template
         if latex:
             d = self._translate_latex(d)
+            d.update({"table_wrapping": True})
             template = self.template2
             template.globals["parse_table"] = _parse_latex_table_styles
             template.globals["parse_cell"] = _parse_latex_cell_styles
