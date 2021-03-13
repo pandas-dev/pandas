@@ -2,7 +2,10 @@ from textwrap import dedent
 
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 
 from pandas.io.formats.style import (
     _parse_latex_cell_styles,
@@ -23,13 +26,13 @@ class TestStylerLatex:
                 {"selector": "foo", "props": [("attr", "value")]},
                 {"selector": "bar", "props": [("attr", "overwritten")]},
                 {"selector": "bar", "props": [("attr", "baz"), ("attr2", "ignored")]},
-                {"selector": "label", "props": [("", "fig§item")]},
+                {"selector": "label", "props": [("", "{fig§item}")]},
             ]
         )
         assert _parse_latex_table_styles(s.table_styles, "bar") == "baz"
 
         # test '§' replaced by ':' [for CSS compatibility]
-        assert _parse_latex_table_styles(s.table_styles, "label") == "fig:item"
+        assert _parse_latex_table_styles(s.table_styles, "label") == "{fig:item}"
 
     def test_parse_latex_cell_styles_basic(self):
         cell_style = [("emph", ""), ("cellcolor", "[rgb]{0,1,1}")]
@@ -37,8 +40,8 @@ class TestStylerLatex:
         assert _parse_latex_cell_styles(cell_style, "text") == expected
 
     def test_parse_latex_cell_styles_braces_wrap(self):
-        cell_style = [("Huge", "-wrap-"), ("cellcolor", "-wrap-[rgb]{0,1,1}")]
-        expected = "{\\Huge {\\cellcolor[rgb]{0,1,1} text}}"
+        cell_style = [("emph", "-wrap-"), ("cellcolor", "-wrap-[rgb]{0,1,1}")]
+        expected = "{\\emph {\\cellcolor[rgb]{0,1,1} text}}"
         assert _parse_latex_cell_styles(cell_style, "text") == expected
 
     def test_minimal_latex_tabular(self):
@@ -152,3 +155,54 @@ class TestStylerLatex:
             """
         )
         assert expected == self.s.to_latex()
+
+    def test_multiindex_columns(self):
+        cidx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+        self.df.columns = cidx
+        expected = dedent(
+            """\
+            \\begin{tabular}{lrrl}
+             & \\multicolumn{2}{r}{A} & B \\\\
+             & a & b & c \\\\
+            0 & 0 & -0.61 & ab \\\\
+            1 & 1 & -1.22 & cd \\\\
+            \\end{tabular}
+            """
+        )
+        assert expected == self.df.style.format(precision=2).to_latex()
+
+    def test_multiindex_row(self):
+        ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+        self.df.loc[2, :] = [2, -2.22, "de"]
+        self.df = self.df.astype({"A": int})
+        self.df.index = ridx
+        expected = dedent(
+            """\
+            \\begin{tabular}{llrrl}
+             &  & A & B & C \\\\
+            \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+             & b & 1 & -1.22 & cd \\\\
+            B & c & 2 & -2.22 & de \\\\
+            \\end{tabular}
+            """
+        )
+        assert expected == self.df.style.format(precision=2).to_latex()
+
+    def test_multiindex_row_and_col(self):
+        cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+        ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+        self.df.loc[2, :] = [2, -2.22, "de"]
+        self.df = self.df.astype({"A": int})
+        self.df.index, self.df.columns = ridx, cidx
+        expected = dedent(
+            """\
+            \\begin{tabular}{llrrl}
+             &  & \\multicolumn{2}{r}{Z} & Y \\\\
+             &  & a & b & c \\\\
+            \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+             & b & 1 & -1.22 & cd \\\\
+            B & c & 2 & -2.22 & de \\\\
+            \\end{tabular}
+            """
+        )
+        assert expected == self.df.style.format(precision=2).to_latex()
