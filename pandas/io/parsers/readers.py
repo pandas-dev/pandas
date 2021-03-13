@@ -325,9 +325,29 @@ error_bad_lines : bool, default True
     default cause an exception to be raised, and no DataFrame will be returned.
     If False, then these "bad lines" will be dropped from the DataFrame that is
     returned.
+
+    .. deprecated:: 1.3
+       The ``on_bad_lines`` parameter takes precedence over this parameter
+       when specified and should be used instead to specify behavior upon
+       encountering a bad line instead.
 warn_bad_lines : bool, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
+
+    .. deprecated:: 1.3
+       The ``on_bad_lines`` parameter takes precedence over this parameter
+       when specified and should be used instead to specify behavior upon
+       encountering a bad line instead.
+on_bad_lines : {{None, 'error', 'warn', 'skip'}}, default None
+    Specifies what to do upon encountering a bad line (a line with too many fields).
+    The default value of None will defer to ``error_bad_lines`` and ``warn_bad_lines``.
+    Specifying 'error' will cause an exception to be raised. Otherwise, the "bad lines"
+    will be dropped from the DataFrame, with a warning raised if 'warn' is specified.
+    This parameter takes precedence over parameters ``error_bad_lines`` and
+    ``warn_bad_lines`` if specified.
+
+    .. versionadded:: 1.3
+
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
     used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
@@ -382,6 +402,7 @@ _c_parser_defaults = {
     "memory_map": False,
     "error_bad_lines": True,
     "warn_bad_lines": True,
+    "on_bad_lines": None,
     "float_precision": None,
 }
 
@@ -390,8 +411,8 @@ _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
-_deprecated_defaults: Dict[str, Any] = {}
-_deprecated_args: Set[str] = set()
+_deprecated_defaults: Dict[str, Any] = {"error_bad_lines": True, "warn_bad_lines": True}
+_deprecated_args: Set[str] = {"error_bad_lines", "warn_bad_lines"}
 
 
 def validate_integer(name, val, min_val=0):
@@ -533,6 +554,8 @@ def read_csv(
     # Error Handling
     error_bad_lines=True,
     warn_bad_lines=True,
+    # TODO: disallow and change None to 'error' in on_bad_lines in 2.0
+    on_bad_lines=None,
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
@@ -613,6 +636,8 @@ def read_table(
     # Error Handling
     error_bad_lines=True,
     warn_bad_lines=True,
+    # TODO: disallow and change None to 'error' in on_bad_lines in 2.0
+    on_bad_lines=None,
     encoding_errors: Optional[str] = "strict",
     # Internal
     delim_whitespace=False,

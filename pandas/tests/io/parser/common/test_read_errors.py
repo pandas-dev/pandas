@@ -140,15 +140,17 @@ def test_unexpected_keyword_parameter_exception(all_parsers):
         parser.read_table("foo.tsv", foo=1)
 
 
-def test_suppress_error_output(all_parsers, capsys):
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"error_bad_lines": False, "warn_bad_lines": False}, {"on_bad_lines": "skip"}],
+)
+def test_suppress_error_output(all_parsers, capsys, kwargs):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    result = parser.read_csv(
-        StringIO(data), error_bad_lines=False, warn_bad_lines=False
-    )
+    result = parser.read_csv(StringIO(data), **kwargs)
     tm.assert_frame_equal(result, expected)
 
     captured = capsys.readouterr()
@@ -160,7 +162,13 @@ def test_suppress_error_output(all_parsers, capsys):
     [{}, {"error_bad_lines": True}],  # Default is True.  # Explicitly pass in.
 )
 @pytest.mark.parametrize(
-    "warn_kwargs", [{}, {"warn_bad_lines": True}, {"warn_bad_lines": False}]
+    "warn_kwargs",
+    [
+        {},
+        {"warn_bad_lines": True},
+        {"warn_bad_lines": False},
+        {"on_bad_lines": "error"},
+    ],
 )
 def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
     # see gh-15925
@@ -173,7 +181,11 @@ def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
         parser.read_csv(StringIO(data), **kwargs)
 
 
-def test_warn_bad_lines(all_parsers, capsys):
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"error_bad_lines": False, "warn_bad_lines": True}, {"on_bad_lines": "warn"}],
+)
+def test_warn_bad_lines(all_parsers, capsys, kwargs):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
@@ -234,3 +246,10 @@ def test_open_file(all_parsers):
             with pytest.raises(csv.Error, match="Could not determine delimiter"):
                 parser.read_csv(file, sep=None, encoding_errors="replace")
             assert len(record) == 0, record[0].message
+
+
+def test_invalid_on_bad_line(all_parsers):
+    parser = all_parsers
+    data = "a\n1\n1,2,3\n4\n5,6,7"
+    with pytest.raises(ValueError, match="Argument abc is invalid for on_bad_lines"):
+        parser.read_csv(StringIO(data), on_bad_lines="abc")

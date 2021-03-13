@@ -155,9 +155,6 @@ class CParserWrapper(ParserBase):
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
 
-    def set_error_bad_lines(self, status):
-        self._reader.set_error_bad_lines(int(status))
-
     def read(self, nrows=None):
         try:
             data = self._reader.read(nrows)

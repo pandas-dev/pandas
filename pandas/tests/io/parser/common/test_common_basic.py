@@ -753,3 +753,20 @@ def test_encoding_surrogatepass(all_parsers):
         tm.assert_frame_equal(df, expected)
         with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
             parser.read_csv(path)
+
+
+def test_deprecated_bad_lines_warns(all_parsers, csv1):
+    # GH 15122
+    parser = all_parsers
+    with pytest.warns(
+        FutureWarning,
+        match="The error_bad_lines argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+    ):
+        parser.read_csv(csv1, error_bad_lines=False)
+    with pytest.warns(
+        FutureWarning,
+        match="The warn_bad_lines argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+    ):
+        parser.read_csv(csv1, warn_bad_lines=False)

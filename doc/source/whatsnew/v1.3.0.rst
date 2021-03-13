@@ -369,6 +369,7 @@ Deprecations
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
 - Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`)
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like; will raise if any function fails on a column in a future version (:issue:`40211`)
+- Deprecated arguments ``error_bad_lines`` and ``warn_bad_lines`` in :func:`read_csv` in favor of ``on_bad_lines`` (:issue:`15122`)
 
 .. ---------------------------------------------------------------------------
 

@@ -84,6 +84,12 @@ typedef enum {
     QUOTE_NONE
 } QuoteStyle;
 
+typedef enum {
+    ERROR,
+    WARN,
+    SKIP
+} BadLineHandleMethod;
+
 typedef void *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                              int *status, const char *encoding_errors);
 typedef int (*io_cleanup)(void *src);
@@ -136,8 +142,7 @@ typedef struct parser_t {
     int usecols;  // Boolean: 1: usecols provided, 0: none provided
 
     int expected_fields;
-    int error_bad_lines;
-    int warn_bad_lines;
+    BadLineHandleMethod on_bad_lines;
 
     // floating point options
     char decimal;

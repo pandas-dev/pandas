@@ -149,6 +149,11 @@ cdef extern from "parser/tokenizer.h":
 
     enum: ERROR_OVERFLOW
 
+    ctypedef enum BadLineHandleMethod:
+        ERROR,
+        WARN,
+        SKIP
+
     ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                   int *status, const char *encoding_errors)
     ctypedef int (*io_cleanup)(void *src)
@@ -201,8 +206,7 @@ cdef extern from "parser/tokenizer.h":
         int usecols
 
         int expected_fields
-        int error_bad_lines
-        int warn_bad_lines
+        BadLineHandleMethod on_bad_lines
 
         # floating point options
         char decimal
@@ -364,6 +368,7 @@ cdef class TextReader:
                   usecols=None,
                   bint error_bad_lines=True,
                   bint warn_bad_lines=True,
+                  on_bad_lines = None,
                   bint na_filter=True,
                   na_values=None,
                   na_fvalues=None,
@@ -448,8 +453,23 @@ cdef class TextReader:
             self.parser.commentchar = ord(comment)
 
         # error handling of bad lines
-        self.parser.error_bad_lines = int(error_bad_lines)
-        self.parser.warn_bad_lines = int(warn_bad_lines)
+        if on_bad_lines is not None:
+            if on_bad_lines == "error":
+                self.parser.on_bad_lines = ERROR
+            elif on_bad_lines == "warn":
+                self.parser.on_bad_lines = WARN
+            elif on_bad_lines == "skip":
+                self.parser.on_bad_lines = SKIP
+            else:
+                raise ValueError(f"Argument {on_bad_lines} is invalid for "
+                                 "on_bad_lines")
+        else:
+            if error_bad_lines:
+                self.parser.on_bad_lines = ERROR
+            elif warn_bad_lines:
+                self.parser.on_bad_lines = WARN
+            else:
+                self.parser.on_bad_lines = SKIP
 
         self.skiprows = skiprows
         if skiprows is not None:
@@ -466,8 +486,7 @@ cdef class TextReader:
 
         # XXX
         if skipfooter > 0:
-            self.parser.error_bad_lines = 0
-            self.parser.warn_bad_lines = 0
+            self.parser.on_bad_lines = SKIP
 
         self.delimiter = delimiter
         self.delim_whitespace = delim_whitespace
@@ -581,9 +600,6 @@ cdef class TextReader:
         if self.false_set:
             kh_destroy_str_starts(self.false_set)
             self.false_set = NULL
-
-    def set_error_bad_lines(self, int status):
-        self.parser.error_bad_lines = status
 
     def _set_quoting(self, quote_char, quoting):
         if not isinstance(quoting, int):

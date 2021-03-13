@@ -349,9 +349,28 @@ error_bad_lines : boolean, default ``True``
   returned. If ``False``, then these "bad lines" will dropped from the
   ``DataFrame`` that is returned. See :ref:`bad lines <io.bad_lines>`
   below.
+
+  .. deprecated:: 1.3
+     The ``on_bad_lines`` parameter takes precedence over this parameter
+     when specified and should be used instead to specify behavior upon
+     encountering a bad line instead.
 warn_bad_lines : boolean, default ``True``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
+
+  .. deprecated:: 1.3
+     The ``on_bad_lines`` parameter takes precedence over this parameter
+     when specified and should be used instead to specify behavior upon
+     encountering a bad line instead.
+on_bad_lines : {{``None``, 'error', 'warn', 'skip'}}, default ``None``
+    Specifies what to do upon encountering a bad line (a line with too many fields).
+    The default value of None will defer to ``error_bad_lines`` and ``warn_bad_lines``.
+    Specifying 'error' will cause an exception to be raised. Otherwise, the "bad lines"
+    will be dropped from the DataFrame, with a warning raised if 'warn' is specified.
+    This parameter takes precedence over parameters ``error_bad_lines`` and ``warn_bad_lines``
+    if specified.
+
+    .. versionadded:: 1.3
 
 .. _io.dtypes:
 
@@ -1244,7 +1263,7 @@ You can elect to skip bad lines:
 
 .. code-block:: ipython
 
-    In [29]: pd.read_csv(StringIO(data), error_bad_lines=False)
+    In [29]: pd.read_csv(StringIO(data), on_bad_lines="warn")
     Skipping line 3: expected 3 fields, saw 4
 
     Out[29]:
