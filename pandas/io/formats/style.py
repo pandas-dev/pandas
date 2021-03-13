@@ -312,6 +312,80 @@ class Styler:
         caption: Optional[str] = None,
         encoding: Optional[str] = None,
     ):
+        """
+        Output Styler to a file, buffer or string in LaTeX format.
+
+        .. versionadded:: TODO
+
+        Parameters
+        ----------
+        buf: TODO
+        column_format : str, optional
+            The LaTeX column specification placed in location:
+            `\begin{tabular}{<column_format>}`.
+            Defaults to 'l' for index and non-numeric data columns, otherwise 'r'.
+        position : str, optional
+            The LaTeX positional argument for tables, placed in location:
+            `\begin{table}[<position>]`.
+        hrules : bool, default False
+            Whether to add `\toprule`, `\\midrule` and `\bottomrule` from the
+            {booktabs} LaTeX package.
+        label : str, optional
+            The LaTeX label placed in location: `\\label{<label>}`.
+            This is used with `\ref{<label>}` in the main .tex file.
+        caption : str, optional
+            The LaTeX table caption placed in location: `\\caption{<caption>}`.
+        encoding: TODO
+
+        Returns
+        -------
+        TODO
+
+        Notes
+        -----
+        LaTeX styling can only be rendered if the accompanying styling functions have
+        been constructed with appropriate LaTeX commands. `Styler` was designed and
+        is typically used to generate HTML with a CSS Styling language. All styling
+        functionality is built around the concept of a CSS `('attribute', 'value')`
+        pair.
+
+        In order to incorporate LaTeX into Styler one needs to understand that the
+        usual CSS `('attribute', 'value')` pair must be replaced by a LaTeX
+        `('command', 'options')` approach and each cell will be styled individually
+        using a nested LaTeX command approach.
+
+        For example the following code will highlight and bold a cell in HTML-CSS:
+
+        >>> df = pd.DataFrame([[1,2], [3,4]])
+        >>> s = df.style.highlight_max(axis=None,
+        ...                            props='background-color:red; font-weight:bold;')
+        >>> s.render()
+
+        The equivalent using LaTeX commands is the following:
+
+        >>> s = df.style.highlight_max(axis=None,
+        ...                            props='cellcolor:{red}; textbf: ;')
+        >>> s.render(latex=True)
+
+        Internally these LaTeX `('command', 'options')` pairs are translated to the
+        `display_value` with the structure: `\\<command><options>{<display_value>}`.
+        Where there are multiple commands the latter is nested, so that the above
+        example highlighed cell is rendered as: `\\cellcolor{red}{\textbf{4}}`.
+
+        Occasionally this nesting does not suit the applied command. For example the
+        commands for font-sizing, e.g. `Large` or `Huge` need a different type of
+        structure. You can adapt for this by adding `--wrap` to the `options`.
+        For example:
+
+        `props='Huge: ;'` will render a faulty cell as `\\Huge{<display_value>}`
+
+        but,
+
+        `props='Huge: --wrap;'` will render a working cell as
+        `{\\Huge <display_value>}`.
+
+        TODO: document table styles.
+        """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
             if self.table_styles is not None
