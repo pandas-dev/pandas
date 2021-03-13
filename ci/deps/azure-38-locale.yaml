@@ -11,7 +11,6 @@ dependencies:
   - pytest-asyncio>=0.12.0
   - hypothesis>=3.58.0
   - pytest-azurepipelines
-  - pytest-vcr
 
   # pandas dependencies
   - beautifulsoup4
@@ -40,3 +39,4 @@ dependencies:
   - pip
   - pip:
     - pyxlsb
+    - pytest-vcr

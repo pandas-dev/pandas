@@ -61,7 +61,6 @@ dependencies:
   - pytest-xdist>=1.21
   - pytest-asyncio
   - pytest-instafail
-  - pytest-vcr
 
   # downstream tests
   - seaborn
@@ -116,3 +115,4 @@ dependencies:
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@2488b7defbd3d753dd5fcfc890fc4a7e79d25103
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+    - pytest-vcr
