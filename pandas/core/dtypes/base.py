@@ -389,7 +389,7 @@ def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"
     """
-    _registry.register(cls)
+    registry.register(cls)
     return cls
 
 
@@ -451,4 +451,4 @@ class Registry:
         return None
 
 
-_registry = Registry()
+registry = Registry()

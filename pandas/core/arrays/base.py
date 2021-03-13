@@ -23,7 +23,6 @@ from typing import (
     TypeVar,
     Union,
     cast,
-    overload,
 )
 
 import numpy as np
@@ -297,14 +296,6 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
-
-    @overload
-    def __getitem__(self, item: int) -> Any:
-        ...
-
-    @overload
-    def __getitem__(self, item: Union[slice, np.ndarray, List[Any]]) -> ExtensionArray:
-        ...
 
     def __getitem__(
         self, item: Union[int, slice, np.ndarray, List[Any]]
@@ -758,8 +749,11 @@ class ExtensionArray:
         -------
         valid : ExtensionArray
         """
-        # error: Unsupported operand type for ~ ("ExtensionArray")
-        return self[~self.isna()]  # type: ignore[operator]
+        # error: Incompatible return value type (got "Union[ExtensionArray, Any]",
+        # expected "ExtensionArrayT")
+        # error: Unsupported operand type for ~ ("Union[ndarray,
+        # ExtensionArraySupportsAnyAll]")
+        return self[~self.isna()]  # type: ignore[return-value, operator]
 
     def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """

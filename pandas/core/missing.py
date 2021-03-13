@@ -310,7 +310,11 @@ def interpolate_1d(
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
-        indexer = np.argsort(inds[valid])
+        # error: Argument 1 to "argsort" has incompatible type "Union[ExtensionArray,
+        # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
+        # Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        indexer = np.argsort(inds[valid])  # type: ignore[arg-type]
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )
