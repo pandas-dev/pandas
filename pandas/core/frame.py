@@ -584,25 +584,17 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
-            # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-            # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-            # "Union[dtype[Any], ExtensionDtype, None]"
-            mgr = dict_to_mgr(
-                data, index, columns, dtype=dtype, typ=manager  # type: ignore[arg-type]
-            )
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                # error: Argument 4 to "rec_array_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = rec_array_to_mgr(
                     data,
                     index,
                     columns,
-                    dtype,  # type: ignore[arg-type]
+                    dtype,
                     copy,
                     typ=manager,
                 )
@@ -611,13 +603,10 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 data = sanitize_masked_array(data)
                 mgr = ndarray_to_mgr(
-                    # error: Argument "dtype" to "ndarray_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     data,
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     copy=copy,
                     typ=manager,
                 )
@@ -626,14 +615,11 @@ class DataFrame(NDFrame, OpsMixin):
             if data.dtype.names:
                 # i.e. numpy structured array
 
-                # error: Argument 4 to "rec_array_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = rec_array_to_mgr(
                     data,
                     index,
                     columns,
-                    dtype,  # type: ignore[arg-type]
+                    dtype,
                     copy,
                     typ=manager,
                 )
@@ -642,24 +628,18 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
-                    # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     {data.name: data},  # type: ignore[union-attr]
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     typ=manager,
                 )
             else:
                 mgr = ndarray_to_mgr(
-                    # error: Argument "dtype" to "ndarray_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     data,
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     copy=copy,
                     typ=manager,
                 )
@@ -680,46 +660,34 @@ class DataFrame(NDFrame, OpsMixin):
                     arrays, columns, index = nested_data_to_arrays(
                         # error: Argument 3 to "nested_data_to_arrays" has incompatible
                         # type "Optional[Collection[Any]]"; expected "Optional[Index]"
-                        # error: Argument 4 to "nested_data_to_arrays" has incompatible
-                        # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                        # None]"; expected "Union[dtype[Any], ExtensionDtype, None]"
                         data,
                         columns,
                         index,  # type: ignore[arg-type]
-                        dtype,  # type: ignore[arg-type]
+                        dtype,
                     )
                     mgr = arrays_to_mgr(
-                        # error: Argument "dtype" to "arrays_to_mgr" has incompatible
-                        # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                        # None]"; expected "Union[dtype[Any], ExtensionDtype, None]"
                         arrays,
                         columns,
                         index,
                         columns,
-                        dtype=dtype,  # type: ignore[arg-type]
+                        dtype=dtype,
                         typ=manager,
                     )
                 else:
                     mgr = ndarray_to_mgr(
-                        # error: Argument "dtype" to "ndarray_to_mgr" has incompatible
-                        # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                        # None]"; expected "Union[dtype[Any], ExtensionDtype, None]"
                         data,
                         index,
                         columns,
-                        dtype=dtype,  # type: ignore[arg-type]
+                        dtype=dtype,
                         copy=copy,
                         typ=manager,
                     )
             else:
-                # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = dict_to_mgr(
                     {},
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     typ=manager,
                 )
         # For data is scalar
@@ -735,12 +703,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # TODO(EA2D): special case not needed with 2D EAs
 
                 values = [
-                    # error: Argument 3 to "construct_1d_arraylike_from_scalar"
-                    # has incompatible type "Union[ExtensionDtype, str, dtype,
-                    # Type[object]]"; expected "Union[dtype, ExtensionDtype]"
-                    construct_1d_arraylike_from_scalar(
-                        data, len(index), dtype  # type: ignore[arg-type]
-                    )
+                    construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
                 mgr = arrays_to_mgr(

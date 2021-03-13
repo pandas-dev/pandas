@@ -404,12 +404,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                # error: Argument 3 to "sanitize_array" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                data = sanitize_array(
-                    data, index, dtype, copy  # type: ignore[arg-type]
-                )
+                data = sanitize_array(data, index, dtype, copy)
 
                 manager = get_option("mode.data_manager")
                 if manager == "block":
