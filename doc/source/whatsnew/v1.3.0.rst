@@ -625,7 +625,7 @@ Other
 - Bug in :class:`Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`pandas.util.show_versions` where console JSON output was not proper JSON (:issue:`39701`)
-- Bug in :meth:`generic.convert_dtypes` when called on an empty DataFrame (:issue:`40393`)
+- Bug in :meth:`DataFrame.convert_dtypes` when called on an empty DataFrame (:issue:`40393`)
 
 
 .. ---------------------------------------------------------------------------

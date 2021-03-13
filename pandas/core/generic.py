@@ -6325,7 +6325,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if len(results) > 0:
                 return concat(results, axis=1, copy=False)
             else:
-                return self
+                return self.copy()
 
     # ----------------------------------------------------------------------
     # Filling NA's
