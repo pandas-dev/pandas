@@ -1052,7 +1052,7 @@ class ExtensionArray:
     def repeat(
         self,
         repeats: Union[int, Sequence[int]],
-        axis: Literal[None] = None,
+        axis: Literal[None, 0] = None,
     ) -> ExtensionArray:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
