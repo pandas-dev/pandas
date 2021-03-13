@@ -1722,7 +1722,7 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
             return
 
-        if is_integer(info_idx):
+        if is_integer(info_idx) and not isinstance(self.obj._mgr, ArrayManager):
             if is_integer(pi):
                 # We need to watch out for case where we are treating a listlike
                 #  as a scalar, e.g. test_setitem_iloc_scalar_single for JSONArray
