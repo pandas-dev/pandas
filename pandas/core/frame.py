@@ -144,7 +144,11 @@ from pandas.core.aggregation import (
 )
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     extract_array,
@@ -215,10 +219,6 @@ if TYPE_CHECKING:
         TimestampConvertibleTypes,
     )
 
-    from pandas.core.arrays import (
-        DatetimeArray,
-        TimedeltaArray,
-    )
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.resample import Resampler
 
