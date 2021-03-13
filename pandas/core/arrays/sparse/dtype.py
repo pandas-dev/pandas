@@ -9,7 +9,6 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    cast,
 )
 import warnings
 
@@ -28,7 +27,6 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -340,10 +338,8 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
 
         if not isinstance(dtype, cls):
-            if is_extension_array_dtype(dtype):
+            if not isinstance(dtype, np.dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
-
-            dtype = cast(np.dtype, dtype)
 
             fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
             dtype = cls(dtype, fill_value=fill_value)
