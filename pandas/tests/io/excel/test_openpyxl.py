@@ -126,7 +126,7 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
 
     with tm.ensure_clean(ext) as f:
         df1.to_excel(f, engine="openpyxl", sheet_name="foo", index=False)
-        with pd.ExcelWriter(
+        with ExcelWriter(
             f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
         ) as writer:
             df2.to_excel(writer, sheet_name="foo", index=False)
@@ -164,7 +164,7 @@ def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=re.escape(msg)):
             df.to_excel(f, "foo", engine="openpyxl")
-            with pd.ExcelWriter(
+            with ExcelWriter(
                 f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
             ) as writer:
                 df.to_excel(writer, sheet_name="foo")
