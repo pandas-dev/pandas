@@ -400,9 +400,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
-                if dtype is not None:
-                    return data.astype(dtype, copy=copy)
-                return data.copy() if copy else data
+                data = data._values
 
             if dtype is not None:
                 # we need to avoid having numpy coerce
