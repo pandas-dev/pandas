@@ -658,7 +658,13 @@ def try_cast_integer_dtype(
             if not raise_cast_failure:
                 # Just do it anyway, i.e. DataFrame(floats, dtype="int64")
                 #  is equivalent to DataFrame(floats).astype("int64")
-                return construct_1d_ndarray_preserving_na(arr, dtype, copy=copy)
+
+                # error: Argument 1 to "construct_1d_ndarray_preserving_na"
+                # has incompatible type "Union[List[Any], ndarray]";
+                # expected "Sequence[Any]"
+                return construct_1d_ndarray_preserving_na(  # type: ignore[arg-type]
+                    arr, dtype, copy=copy
+                )
         raise
 
 
@@ -711,6 +717,7 @@ def _try_cast(
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
         if is_integer_dtype(dtype):
+            dtype = cast(np.dtype, dtype)
             return try_cast_integer_dtype(arr, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)

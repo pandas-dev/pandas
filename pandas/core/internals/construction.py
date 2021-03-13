@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -250,7 +251,7 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    if is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
+    if is_extension_array_dtype(values) or isinstance(dtype, ExtensionDtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
