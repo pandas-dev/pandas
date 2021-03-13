@@ -387,14 +387,16 @@ class TestDataFrameSetItem:
             ],
             dtype="object",
         )
+
         if using_array_manager:
-            expected.columns = cols
             # setitem replaces column so changes dtype
+
+            expected.columns = cols
             expected["C"] = expected["C"].astype("int64")
             # TODO(ArrayManager) .loc still overwrites
             expected["B"] = expected["B"].astype("int64")
         else:
-            # do this setting with unique columns to be on the safe side
+            # set these with unique columns to be extra-unambiguous
             expected[2] = expected[2].astype(np.int64)
             expected[5] = expected[5].astype(np.int64)
             expected.columns = cols
@@ -924,10 +926,15 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_frame_equal(df_view, df_copy)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(reason="Setitem with same dtype still changing inplace")
     @pytest.mark.parametrize("value", [1, np.array([[1], [1]]), [[1], [1]]])
-    def test_setitem_same_dtype_not_inplace(self, value):
+    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
         # GH#39510
+        if not using_array_manager:
+            mark = pytest.mark.xfail(
+                reason="Setitem with same dtype still changing inplace"
+            )
+            request.node.add_marker(mark)
+
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)
         df_copy = df.copy()
