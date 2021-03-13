@@ -253,7 +253,6 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
-        **kwargs: Any,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.

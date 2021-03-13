@@ -5,7 +5,6 @@ import numbers
 import random
 import sys
 from typing import (
-    Any,
     Type,
     Union,
 )
@@ -104,10 +103,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=no_default, **kwargs: Any
+        self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
     ) -> np.ndarray:
         result = np.asarray(self, dtype=dtype)
-        decimals = kwargs.get("decimals", None)
         if decimals is not None:
             result = np.asarray([round(x, decimals) for x in result])
         return result

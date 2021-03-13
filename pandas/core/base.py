@@ -608,7 +608,10 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if is_extension_array_dtype(self.dtype):
-            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+            # error: Too many arguments for "to_numpy" of "ExtensionArray"
+            return self.array.to_numpy(  # type: ignore[call-arg]
+                dtype, copy=copy, na_value=na_value, **kwargs
+            )
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(

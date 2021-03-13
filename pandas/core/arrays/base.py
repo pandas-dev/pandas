@@ -446,7 +446,6 @@ class ExtensionArray:
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value: Optional[Any] = lib.no_default,
-        **kwargs: Any,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
