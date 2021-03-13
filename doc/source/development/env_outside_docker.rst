@@ -82,7 +82,7 @@ installed (or you wish to install a newer version) you can install a compiler
     # for Red Had/RHEL/CentOS/Fedora
     yum groupinstall "Development Tools"
 
-For other Linux distributions, consult your favourite search engine for
+For other Linux distributions, consult your favorite search engine for
 compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on `Gitter <https://gitter.im/pydata/pandas/>`_.
