@@ -1468,7 +1468,9 @@ class ExtensionBlock(Block):
             elif isinstance(col, slice):
                 if col != slice(None):
                     raise NotImplementedError(col)
-                return self.values[[loc]]
+                # error: Invalid index type "List[Any]" for "ExtensionArray"; expected
+                # type "Union[int, slice, ndarray]"
+                return self.values[[loc]]  # type: ignore[index]
             return self.values[loc]
         else:
             if col != 0:

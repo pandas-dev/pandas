@@ -15,7 +15,6 @@ from typing import (
     Callable,
     Dict,
     Iterator,
-    List,
     Optional,
     Sequence,
     Tuple,
@@ -298,7 +297,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def __getitem__(
-        self, item: Union[int, slice, np.ndarray, List[Any]]
+        self, item: Union[int, slice, np.ndarray]
     ) -> Union[ExtensionArray, Any]:
         """
         Select a subset of self.

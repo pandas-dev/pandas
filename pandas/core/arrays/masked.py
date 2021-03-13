@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
     Optional,
     Sequence,
     Tuple,
@@ -139,7 +138,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     def __getitem__(
-        self, item: Union[int, slice, np.ndarray, List[Any]]
+        self, item: Union[int, slice, np.ndarray]
     ) -> Union[BaseMaskedArray, Any]:
         if is_integer(item):
             if self._mask[item]:

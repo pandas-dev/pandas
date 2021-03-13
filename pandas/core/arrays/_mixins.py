@@ -3,7 +3,6 @@ from __future__ import annotations
 from functools import wraps
 from typing import (
     Any,
-    List,
     Optional,
     Sequence,
     Type,
@@ -256,7 +255,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
-        key: Union[int, slice, np.ndarray, List[Any]],
+        key: Union[int, slice, np.ndarray],
     ) -> Union[NDArrayBackedExtensionArrayT, Any]:
         if lib.is_integer(key):
             # fast-path

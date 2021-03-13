@@ -9,7 +9,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    List,
     Optional,
     Sequence,
     Tuple,
@@ -342,7 +341,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._ndarray
 
     def __getitem__(
-        self, key: Union[int, slice, np.ndarray, List[Any]]
+        self, key: Union[int, slice, np.ndarray]
     ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can
