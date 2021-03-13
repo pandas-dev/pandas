@@ -194,10 +194,6 @@ def test_transform_partial_failure_typeerror(op):
     result = df.transform({"A": op, "B": op})
     tm.assert_equal(result, expected)
 
-    expected = df[["B"]].transform({"B": [op]})
-    result = df.transform({"A": [op], "B": [op]})
-    tm.assert_equal(result, expected)
-
 
 def test_transform_partial_failure_valueerror():
     # GH 40211
