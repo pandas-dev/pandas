@@ -496,7 +496,7 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
         header=None,
         delimiter="\\s+",
         skiprows=0,
-        error_bad_lines=False,
+        on_bad_lines="warn",
     )
     captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
