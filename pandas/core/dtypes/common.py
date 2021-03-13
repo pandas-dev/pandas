@@ -1499,7 +1499,7 @@ def is_extension_type(arr) -> bool:
     return False
 
 
-def is_1d_only_ea_obj(obj) -> bool:
+def is_1d_only_ea_obj(obj: Any) -> bool:
     """
     ExtensionArray that does not support 2D, or more specifically that does
     not use HybridBlock.

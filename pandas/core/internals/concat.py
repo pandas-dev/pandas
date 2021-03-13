@@ -7,6 +7,7 @@ from typing import (
     Dict,
     List,
     Sequence,
+    cast,
 )
 
 import numpy as np
@@ -33,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna_all,
@@ -334,9 +336,7 @@ class JoinUnit:
             if self.is_valid_na_for(empty_dtype):
                 blk_dtype = getattr(self.block, "dtype", None)
 
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
-                if blk_dtype == np.dtype(object):  # type: ignore[type-var]
+                if blk_dtype == np.dtype("object"):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -352,9 +352,8 @@ class JoinUnit:
                     pass
 
                 elif is_1d_only_ea_dtype(empty_dtype):
-                    # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
-                    # has no attribute "construct_array_type"
-                    cls = empty_dtype.construct_array_type()  # type: ignore[union-attr]
+                    empty_dtype = cast(ExtensionDtype, empty_dtype)
+                    cls = empty_dtype.construct_array_type()
 
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
@@ -366,15 +365,9 @@ class JoinUnit:
                 else:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
+                    empty_dtype = cast(np.dtype, empty_dtype)
 
-                    # error: Argument "dtype" to "empty" has incompatible type
-                    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any],
-                    # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-                    # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-                    # Any]]]"
-                    missing_arr = np.empty(
-                        self.shape, dtype=empty_dtype  # type: ignore[arg-type]
-                    )
+                    missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
 
@@ -443,7 +436,13 @@ def _concatenate_join_units(
         # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-        to_concat = [t if is_1d_only_ea_obj(t) else t[0, :] for t in to_concat]
+
+        # error: Invalid index type "Tuple[int, slice]" for
+        #  "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
+        to_concat = [
+            t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[index]
+            for t in to_concat
+        ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
         concat_values = ensure_block_shape(concat_values, 2)
 
@@ -457,10 +456,8 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     Find the NA value to go with this dtype.
     """
-    if is_extension_array_dtype(dtype):
-        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-        # attribute "na_value"
-        return dtype.na_value  # type: ignore[union-attr]
+    if isinstance(dtype, ExtensionDtype):
+        return dtype.na_value
     elif dtype.kind in ["m", "M"]:
         return dtype.type("NaT")
     elif dtype.kind in ["f", "c"]:

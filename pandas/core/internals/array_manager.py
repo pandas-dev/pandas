@@ -489,7 +489,12 @@ class ArrayManager(DataManager):
             arr = applied.values
             if self.ndim == 2 and arr.ndim == 2:
                 # 2D for np.ndarray or DatetimeArray/TimedeltaArray
-                arr = arr[0, :]
+
+                # error: Invalid index type "Tuple[int, slice]" for
+                # "Union[ndarray, ExtensionArray]"; expected type
+                # "Union[int, slice, ndarray]"
+                arr = arr[0, :]  # type: ignore[index]
+
             result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)

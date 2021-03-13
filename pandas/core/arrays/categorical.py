@@ -66,7 +66,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -504,7 +507,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = self._set_dtype(dtype)
 
         # TODO: consolidate with ndarray case?
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             result = pd_array(self, dtype=dtype, copy=copy)
 
         elif is_integer_dtype(dtype) and self.isna().any():
@@ -515,13 +518,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # variable has type "Categorical")
             result = np.array(  # type: ignore[assignment]
                 self,
-                # error: Argument "dtype" to "array" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
-                # Type[int], Type[complex], Type[bool], Type[object]]"; expected
-                # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
-                # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
-                # Tuple[Any, Any]]]"
-                dtype=dtype,  # type: ignore[arg-type]
+                dtype=dtype,
                 copy=copy,
             )
 
@@ -529,14 +526,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH8628 (PERF): astype category codes instead of astyping array
             try:
                 new_cats = np.asarray(self.categories)
-                # error: Argument "dtype" to "astype" of "_ArrayOrScalarCommon" has
-                # incompatible type "Union[ExtensionDtype, dtype[Any]]"; expected
-                # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
-                # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
-                # Tuple[Any, Any]]]"
-                new_cats = new_cats.astype(
-                    dtype=dtype, copy=copy  # type: ignore[arg-type]
-                )
+                new_cats = new_cats.astype(dtype=dtype, copy=copy)
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
