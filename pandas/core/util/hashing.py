@@ -25,7 +25,6 @@ from pandas._typing import (
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_extension_array_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.generic import (
@@ -297,11 +296,9 @@ def hash_array(
     if is_categorical_dtype(dtype):
         vals = cast("Categorical", vals)
         return _hash_categorical(vals, encoding, hash_key)
-    elif is_extension_array_dtype(dtype):
-        # pandas/core/util/hashing.py:301: error: Item "ndarray" of
-        # "Union[ExtensionArray, ndarray]" has no attribute "_values_for_factorize"
-        # [union-attr]
-        vals, _ = vals._values_for_factorize()  # type: ignore[union-attr]
+    elif not isinstance(dtype, np.dtype):
+        # i.e ExtensionDtype
+        vals, _ = vals._values_for_factorize()
 
     # error: Argument 1 to "_hash_ndarray" has incompatible type "ExtensionArray";
     # expected "ndarray"
