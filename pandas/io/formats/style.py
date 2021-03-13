@@ -623,19 +623,40 @@ class Styler:
 
     def _translate_latex(self, d: Dict) -> Dict:
         # post processing of d for latex template:
-        # - remove hidden columns
-        # - place cellstyles in individual cell dicts that are not index cells
+        # - remove hidden columns from the non-index part of the table
+        # - place cellstyles in individual td cells
+        # - reinsert missing index th in row if part of multiindex for multirow
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
-        d["body"] = [
-            [
-                {**col, "cellstyle": []}
-                if col["type"] == "th"
-                else {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
+        body = []
+        for r, row in enumerate(d["body"]):
+            row_body_cells = [  # replicate the td cells, give them cellstyle
+                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
                 for c, col in enumerate(row)
-                if col["is_visible"]
+                if (col["is_visible"] and col["type"] == "td")
             ]
-            for r, row in enumerate(d["body"])
-        ]
+            row_body_headers = [  # if a th element is not visible due to multiindex
+                {  # then reinsert it for latex structuring
+                    **col,
+                    "display_value": col["display_value"] if col["is_visible"] else "",
+                }
+                for col in row
+                if col["type"] == "th"
+            ]
+            row_body_headers = [] if self.hidden_index else row_body_headers
+            body.append(row_body_headers + row_body_cells)
+        d["body"] = body
+
+        # d["body"] = [
+        #     [
+        #         {**col, "cellstyle": []}
+        #         if col["type"] == "th"
+        #         else {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
+        #         for c, col in enumerate(row)
+        #         if col["is_visible"]
+        #     ]
+        #     for r, row in enumerate(d["body"])
+        # ]
+
         return d
 
     def format(
@@ -877,7 +898,7 @@ class Styler:
             template = self.template2
             template.globals["parse_table"] = _parse_latex_table_styles
             template.globals["parse_cell"] = _parse_latex_cell_styles
-            template.globals["parse_col_head"] = _parse_latex_header_colspan
+            template.globals["parse_header"] = _parse_latex_header_span
 
         d.update(kwargs)
         return template.render(**d)
@@ -2402,18 +2423,25 @@ def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
     return display_value
 
 
-def _parse_latex_header_colspan(cell: Dict) -> str:
-    """
-    examines a header cell dict and if it detects a 'colspan' attribute will reformat
+def _parse_latex_header_span(cell: Dict) -> str:
+    r"""
+    examines a header cell dict and if it detects a 'colspan' attribute or a 'rowspan'
+    attribute (which do not occur simultaneously) will reformat
     the latex display value
 
     For example: if cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
-    The latex output will be '& & text' instead of 'text'
+    The latex output will be '\multicol{3}{*}{text}' instead of 'text'
+
+    Notes: needs latex packages {multirow} and {multicol}
     """
-    colspan = 1
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]
             colspan = int(colspan[: colspan.find('"')])
-    return "& " * (colspan - 1) + str(cell["display_value"])
+            return f"\\multicolumn{{{colspan}}}{{r}}{{{cell['display_value']}}}"
+        elif 'rowspan="' in attrs:
+            rowspan = attrs[attrs.find('rowspan="') + 9 :]
+            rowspan = int(rowspan[: rowspan.find('"')])
+            return f"\\multirow{{{rowspan}}}{{*}}{{{cell['display_value']}}}"
+    return cell["display_value"]
