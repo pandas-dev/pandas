@@ -104,6 +104,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -1018,7 +1019,7 @@ cdef class TextReader:
 
             # don't try to upcast EAs
             try_upcast = upcast_na and na_count > 0
-            if try_upcast and isinstance(col_dtype, np.dtype):
+            if try_upcast and not is_extension_array_dtype(col_dtype):
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
@@ -1034,7 +1035,6 @@ cdef class TextReader:
                                 object name, bint na_filter,
                                 kh_str_starts_t *na_hashset,
                                 object na_flist, object col_dtype):
-        # Note: col_dtype is DtypeObj
 
         if col_dtype is not None:
             col_res, na_count = self._convert_with_dtype(
@@ -1095,8 +1095,6 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
                              object na_flist):
-        # Note: dtype is a DtypeObj
-
         if is_categorical_dtype(dtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
@@ -1110,8 +1108,7 @@ cdef class TextReader:
                 cats, codes, dtype, true_values=true_values)
             return cat, na_count
 
-        elif not isinstance(dtype, np.dtype):
-            # i.e ExtensionDtype
+        elif is_extension_array_dtype(dtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
 
@@ -1929,7 +1926,7 @@ def _concatenate_chunks(list chunks):
             result[name] = union_categoricals(arrs,
                                               sort_categories=sort_categories)
         else:
-            if not isinstance(dtype, np.dtype):
+            if is_extension_array_dtype(dtype):
                 array_type = dtype.construct_array_type()
                 result[name] = array_type._concat_same_type(arrs)
             else:
