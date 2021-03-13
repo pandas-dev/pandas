@@ -381,7 +381,7 @@ class Styler:
 
         but,
 
-        `props='Huge: --wrap;'` will render a working cell as
+        `props='Huge: --wrap;'` will render a working cell, wrapped with braces, as
         `{\\Huge <display_value>}`.
 
         TODO: document table styles.
