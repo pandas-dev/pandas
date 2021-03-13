@@ -123,6 +123,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -699,7 +700,7 @@ class DataFrame(NDFrame, OpsMixin):
                 dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
 
             # For data is a scalar extension dtype
-            if is_extension_array_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
                 # TODO(EA2D): special case not needed with 2D EAs
 
                 values = [
@@ -713,13 +714,10 @@ class DataFrame(NDFrame, OpsMixin):
                 # error: Incompatible types in assignment (expression has type
                 # "ndarray", variable has type "List[ExtensionArray]")
                 values = construct_2d_arraylike_from_scalar(  # type: ignore[assignment]
-                    # error: Argument 4 to "construct_2d_arraylike_from_scalar" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                    # Type[object]]"; expected "dtype[Any]"
                     data,
                     len(index),
                     len(columns),
-                    dtype,  # type: ignore[arg-type]
+                    dtype,
                     copy,
                 )
 
