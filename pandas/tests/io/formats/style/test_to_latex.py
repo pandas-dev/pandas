@@ -15,6 +15,7 @@ pytest.importorskip("jinja2")
 class TestStylerLatex:
     def setup_method(self, method):
         self.df = DataFrame({"A": [0, 1], "B": [-0.61, -1.22], "C": ["ab", "cd"]})
+        self.s = self.df.style.format(precision=2)
 
     def test_parse_latex_table_styles(self):
         s = self.df.style.set_table_styles(
@@ -41,7 +42,6 @@ class TestStylerLatex:
         assert _parse_latex_cell_styles(cell_style, "text") == expected
 
     def test_minimal_latex_tabular(self):
-        s = self.df.style.format(precision=2)
         expected = dedent(
             """\
             \\begin{tabular}{lrrl}
@@ -51,10 +51,9 @@ class TestStylerLatex:
             \\end{tabular}
             """
         )
-        assert s.to_latex() == expected
+        assert self.s.to_latex() == expected
 
-    def test_latex_tabular_hrules(self):
-        s = self.df.style.format(precision=2)
+    def test_tabular_hrules(self):
         expected = dedent(
             """\
             \\begin{tabular}{lrrl}
@@ -67,11 +66,10 @@ class TestStylerLatex:
             \\end{tabular}
             """
         )
-        assert s.to_latex(hrules=True) == expected
+        assert self.s.to_latex(hrules=True) == expected
 
-    def test_latex_tabular_custom_hrules(self):
-        s = self.df.style.format(precision=2)
-        s.set_table_styles(
+    def test_tabular_custom_hrules(self):
+        self.s.set_table_styles(
             [
                 {"selector": "toprule", "props": ":hline"},
                 {"selector": "bottomrule", "props": ":otherline"},
@@ -88,4 +86,69 @@ class TestStylerLatex:
             \\end{tabular}
             """
         )
-        assert s.to_latex() == expected
+        assert self.s.to_latex() == expected
+
+    def test_column_format(self):
+        # default setting is already tested in `test_latex_minimal_tabular`
+        self.s.set_table_styles([{"selector": "column_format", "props": ":cccc"}])
+
+        assert "\\begin{tabular}{rrrr}" in self.s.to_latex(column_format="rrrr")
+        self.s.set_table_styles([{"selector": "column_format", "props": ":rrrr"}])
+        assert "\\begin{tabular}{rrrr}" in self.s.to_latex()
+
+    def test_position(self):
+        assert "\\begin{table}[h!]" in self.s.to_latex(position="h!")
+        assert "\\end{table}" in self.s.to_latex(position="h!")
+        self.s.set_table_styles([{"selector": "position", "props": ":h!"}])
+        assert "\\begin{table}[h!]" in self.s.to_latex()
+        assert "\\end{table}" in self.s.to_latex()
+
+    def test_label(self):
+        assert "\\label{text}" in self.s.to_latex(label="text")
+        self.s.set_table_styles([{"selector": "label", "props": ":{text}"}])
+        assert "\\label{text}" in self.s.to_latex()
+
+    @pytest.mark.parametrize("label", [(None, ""), ("text", "\\label{text}")])
+    @pytest.mark.parametrize("position", [(None, ""), ("h!", "{table}[h!]")])
+    @pytest.mark.parametrize("caption", [(None, ""), ("text", "\\caption{text}")])
+    @pytest.mark.parametrize("column_format", [(None, ""), ("rcrl", "{tabular}{rcrl}")])
+    def test_kwargs_combinations(self, label, position, caption, column_format):
+        result = self.s.to_latex(
+            label=label[0],
+            position=position[0],
+            caption=caption[0],
+            column_format=column_format[0],
+        )
+        assert label[1] in result
+        assert position[1] in result
+        assert caption[1] in result
+        assert column_format[1] in result
+
+    def test_custom_table_styles(self):
+        self.s.set_table_styles(
+            [
+                {"selector": "mycommand", "props": ":{myoptions}"},
+                {"selector": "mycommand2", "props": ":{myoptions2}"},
+            ]
+        )
+        expected = dedent(
+            """\
+            \\begin{table}
+            \\mycommand{myoptions}
+            \\mycommand2{myoptions2}
+            """
+        )
+        assert expected in self.s.to_latex()
+
+    def test_cell_styling(self):
+        self.s.highlight_max(props="emph:;Huge:-wrap-;")
+        expected = dedent(
+            """\
+            \\begin{tabular}{lrrl}
+             & A & B & C \\\\
+            0 & 0 & \\emph{{\\Huge -0.61}} & ab \\\\
+            1 & \\emph{{\\Huge 1}} & -1.22 & \\emph{{\\Huge cd}} \\\\
+            \\end{tabular}
+            """
+        )
+        assert expected == self.s.to_latex()

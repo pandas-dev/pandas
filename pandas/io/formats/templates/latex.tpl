@@ -3,7 +3,8 @@
 {%- set position = parse_table(table_styles, 'position') %}
 {%- if position is not none %}
 [{{position}}]
-{% endif %}
+{%- endif %}
+
 {% set float = parse_table(table_styles, 'float') %}
 {% if float is not none%}
 \{{float}}
