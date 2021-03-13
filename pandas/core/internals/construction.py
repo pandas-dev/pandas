@@ -76,6 +76,7 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (
+    Block,
     ensure_block_shape,
     new_block,
 )
@@ -307,6 +308,9 @@ def ndarray_to_mgr(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
     values = values.T
+
+    # TODO: GH#40403 standardize what types we have here
+    block_values: Union[List[Block], List[ArrayLike]]
 
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's

@@ -911,6 +911,9 @@ class DataFrame(NDFrame, OpsMixin):
         if arr.ndim == 1:
             # non-2D ExtensionArray
             return self._values
+
+        # more generally, whatever we allow in NDArrayBackedExtensionBlock
+        arr = cast(Union[DatetimeArray, TimedeltaArray], arr)
         return arr.T
 
     # ----------------------------------------------------------------------
@@ -3344,13 +3347,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
-            new_values = self._values_compat.T
+            new_vals = self._values_compat.T
             if copy:
-                new_values = new_values.copy()
+                new_vals = new_vals.copy()
 
-            result = self._constructor(
-                new_values, index=self.columns, columns=self.index
-            )
+            result = self._constructor(new_vals, index=self.columns, columns=self.index)
 
         elif (
             self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])

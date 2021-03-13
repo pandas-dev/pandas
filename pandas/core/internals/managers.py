@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -52,6 +53,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
@@ -2008,11 +2010,9 @@ def _merge_blocks(
             # Sequence[Sequence[Any]], SupportsArray]]
             new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
         else:
-            # Unexpected keyword argument "axis" for "_concat_same_type"
-            #  of "ExtensionArray"
-            new_values = blocks[0].values._concat_same_type(
-                [b.values for b in blocks], axis=0  # type:ignore[call-arg]
-            )
+            bvals = [blk.values for blk in blocks]
+            bvals = cast(List[NDArrayBackedExtensionArray], bvals)
+            new_values = bvals[0]._concat_same_type(bvals, axis=0)
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]
