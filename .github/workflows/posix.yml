@@ -31,7 +31,7 @@ jobs:
           [ci/deps/actions-38-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
           [ci/deps/actions-39.yaml, "not slow and not network and not clipboard", "", "", "", "", ""]
         ]
-      fail-fast: true
+      fail-fast: false
     env:
       COVERAGE: true
       ENV_FILE: ${{ matrix.settings[0] }}
