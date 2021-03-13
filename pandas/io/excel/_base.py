@@ -598,6 +598,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     skiprows=skiprows,
                     nrows=nrows,
                     na_values=na_values,
+                    skip_blank_lines=False,  # GH 39808
                     parse_dates=parse_dates,
                     date_parser=date_parser,
                     thousands=thousands,
