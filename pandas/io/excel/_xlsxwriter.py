@@ -180,6 +180,8 @@ class XlsxWriter(ExcelWriter):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
 
+        engine_kwargs = engine_kwargs or {}
+
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")
 
