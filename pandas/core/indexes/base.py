@@ -191,7 +191,7 @@ _index_shared_docs = {}
 str_t = str
 
 
-_o_dtype = np.dtype(object)
+_o_dtype = np.dtype("object")
 
 
 _Identity = NewType("_Identity", object)
@@ -404,14 +404,19 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
-                data = _maybe_cast_with_dtype(data, dtype, copy)
+
+                # error: Argument 1 to "_maybe_cast_with_dtype" has incompatible type
+                # "Union[ndarray, Index, Series]"; expected "ndarray"
+                data = _maybe_cast_with_dtype(
+                    data, dtype, copy  # type: ignore[arg-type]
+                )
                 dtype = data.dtype
 
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
             else:
-                arr = com.asarray_tuplesafe(data, dtype=object)
+                arr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
 
                 if dtype is None:
                     arr = _maybe_cast_data_without_dtype(arr)
@@ -445,7 +450,8 @@ class Index(IndexOpsMixin, PandasObject):
                         data, names=name or kwargs.get("names")
                     )
             # other iterable of some kind
-            subarr = com.asarray_tuplesafe(data, dtype=object)
+
+            subarr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     @classmethod
@@ -2889,10 +2895,10 @@ class Index(IndexOpsMixin, PandasObject):
                 # <T>   | <T>    -> T
                 # <T>   | <U>    -> object
                 if not (is_integer_dtype(self.dtype) and is_integer_dtype(other.dtype)):
-                    dtype = "float64"
+                    dtype = np.dtype("float64")
                 else:
                     # one is int64 other is uint64
-                    dtype = object
+                    dtype = np.dtype("object")
 
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
@@ -2941,7 +2947,11 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # Both are unique and monotonic, so can use outer join
             try:
-                return self._outer_indexer(lvals, rvals)[0]
+                # error: Argument 1 to "_outer_indexer" of "Index" has incompatible type
+                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                # error: Argument 2 to "_outer_indexer" of "Index" has incompatible type
+                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                return self._outer_indexer(lvals, rvals)[0]  # type: ignore[arg-type]
             except (TypeError, IncompatibleFrequency):
                 # incomparable objects
                 value_list = list(lvals)
@@ -2953,7 +2963,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique and not self.is_unique:
             # self and other both have duplicates
-            result = algos.union_with_duplicates(lvals, rvals)
+
+            # error: Argument 1 to "union_with_duplicates" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            # error: Argument 2 to "union_with_duplicates" has incompatible type
+            # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            result = algos.union_with_duplicates(lvals, rvals)  # type: ignore[arg-type]
             return _maybe_try_sort(result, sort)
 
         # Either other or self is not unique
@@ -2968,7 +2983,9 @@ class Index(IndexOpsMixin, PandasObject):
             other_diff = algos.take_nd(rvals, missing, allow_fill=False)
             result = concat_compat((lvals, other_diff))
         else:
-            result = lvals
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+            result = lvals  # type: ignore[assignment]
 
         if not self.is_monotonic or not other.is_monotonic:
             result = _maybe_try_sort(result, sort)
@@ -3058,7 +3075,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(lvals, rvals)[0]
+                # error: Argument 1 to "_inner_indexer" of "Index" has incompatible type
+                # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+                result = self._inner_indexer(lvals, rvals)[0]  # type: ignore[arg-type]
             except TypeError:
                 pass
             else:
@@ -3844,7 +3863,14 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+    def join(
+        self,
+        other,
+        how: str_t = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
+    ):
         """
         Compute join_index and indexers to conform data
         structures to the new index.
@@ -3866,6 +3892,9 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
         self_is_mi = isinstance(self, ABCMultiIndex)
         other_is_mi = isinstance(other, ABCMultiIndex)
+
+        lindexer: Optional[np.ndarray]
+        rindexer: Optional[np.ndarray]
 
         # try to figure out the join level
         # GH3662
@@ -4071,11 +4100,11 @@ class Index(IndexOpsMixin, PandasObject):
         left_idx = ensure_platform_int(left_idx)
         right_idx = ensure_platform_int(right_idx)
 
-        join_index = np.asarray(lvalues.take(left_idx))
+        join_array = np.asarray(lvalues.take(left_idx))
         mask = left_idx == -1
-        np.putmask(join_index, mask, rvalues.take(right_idx))
+        np.putmask(join_array, mask, rvalues.take(right_idx))
 
-        join_index = self._wrap_joined_index(join_index, other)
+        join_index = self._wrap_joined_index(join_array, other)
 
         if return_indexers:
             return join_index, left_idx, right_idx
@@ -4239,6 +4268,9 @@ class Index(IndexOpsMixin, PandasObject):
         sv = self._get_engine_target()
         ov = other._get_engine_target()
 
+        ridx: Optional[np.ndarray]
+        lidx: Optional[np.ndarray]
+
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
             if how == "left":
@@ -4250,21 +4282,22 @@ class Index(IndexOpsMixin, PandasObject):
                 lidx = self._left_indexer_unique(ov, sv)
                 ridx = None
             elif how == "inner":
-                join_index, lidx, ridx = self._inner_indexer(sv, ov)
-                join_index = self._wrap_joined_index(join_index, other)
+                join_array, lidx, ridx = self._inner_indexer(sv, ov)
+                join_index = self._wrap_joined_index(join_array, other)
             elif how == "outer":
-                join_index, lidx, ridx = self._outer_indexer(sv, ov)
-                join_index = self._wrap_joined_index(join_index, other)
+                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+                join_index = self._wrap_joined_index(join_array, other)
         else:
             if how == "left":
-                join_index, lidx, ridx = self._left_indexer(sv, ov)
+                join_array, lidx, ridx = self._left_indexer(sv, ov)
             elif how == "right":
-                join_index, ridx, lidx = self._left_indexer(ov, sv)
+                join_array, ridx, lidx = self._left_indexer(ov, sv)
             elif how == "inner":
-                join_index, lidx, ridx = self._inner_indexer(sv, ov)
+                join_array, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == "outer":
-                join_index, lidx, ridx = self._outer_indexer(sv, ov)
-            join_index = self._wrap_joined_index(join_index, other)
+                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+
+            join_index = self._wrap_joined_index(join_array, other)
 
         if return_indexers:
             lidx = None if lidx is None else ensure_platform_int(lidx)
@@ -4349,7 +4382,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Get the ndarray that we can pass to the IndexEngine constructor.
         """
-        return self._values
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray]", expected "ndarray")
+        return self._values  # type: ignore[return-value]
 
     @doc(IndexOpsMixin.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
@@ -4542,7 +4577,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = getitem(key)
         if not is_scalar(result):
-            if np.ndim(result) > 1:
+            # error: Argument 1 to "ndim" has incompatible type "Union[ExtensionArray,
+            # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
+            # Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], _SupportsArray]"
+            if np.ndim(result) > 1:  # type: ignore[arg-type]
                 deprecate_ndim_indexing(result)
                 return result
             # NB: Using _constructor._simple_new would break if MultiIndex
@@ -4609,7 +4648,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = concat_compat(to_concat_vals)
         return Index(result, name=name)
 
-    def putmask(self, mask, value):
+    def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.
 
@@ -4638,7 +4677,11 @@ class Index(IndexOpsMixin, PandasObject):
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        converted = setitem_datetimelike_compat(values, mask.sum(), converted)
+        # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
+        converted = setitem_datetimelike_compat(
+            values, mask.sum(), converted  # type: ignore[arg-type]
+        )
         np.putmask(values, mask, converted)
 
         return type(self)._simple_new(values, name=self.name)
@@ -5996,7 +6039,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_any(args, kwargs)
         self._maybe_disable_logical_methods("any")
-        return np.any(self.values)
+        # error: Argument 1 to "any" has incompatible type "ArrayLike"; expected
+        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
+        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # _SupportsArray]"
+        return np.any(self.values)  # type: ignore[arg-type]
 
     def all(self, *args, **kwargs):
         """
@@ -6053,7 +6100,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_all(args, kwargs)
         self._maybe_disable_logical_methods("all")
-        return np.all(self.values)
+        # error: Argument 1 to "all" has incompatible type "ArrayLike"; expected
+        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
+        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # _SupportsArray]"
+        return np.all(self.values)  # type: ignore[arg-type]
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t):
@@ -6340,7 +6391,11 @@ def _maybe_cast_data_without_dtype(subarr):
 
     if inferred == "integer":
         try:
-            data = _try_convert_to_int_array(subarr, False, None)
+            # error: Argument 3 to "_try_convert_to_int_array" has incompatible type
+            # "None"; expected "dtype[Any]"
+            data = _try_convert_to_int_array(
+                subarr, False, None  # type: ignore[arg-type]
+            )
             return data
         except ValueError:
             pass
@@ -6374,8 +6429,8 @@ def _maybe_cast_data_without_dtype(subarr):
                 pass
 
         elif inferred.startswith("timedelta"):
-            data = TimedeltaArray._from_sequence(subarr, copy=False)
-            return data
+            tda = TimedeltaArray._from_sequence(subarr, copy=False)
+            return tda
         elif inferred == "period":
             try:
                 data = PeriodArray._from_sequence(subarr)

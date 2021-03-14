@@ -212,7 +212,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
@@ -281,7 +284,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            dtype = object
+            # error: Incompatible types in assignment (expression has type
+            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
+            dtype = object  # type: ignore[assignment]
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -346,7 +351,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Note: this is expensive right now! The hope is that we can
         # make this faster by having an optional mask, but not have to change
         # source code using it..
-        return self._mask.any()
+
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return self._mask.any()  # type: ignore[return-value]
 
     def isna(self) -> np.ndarray:
         return self._mask
@@ -394,7 +401,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
-    def isin(self, values) -> BooleanArray:
+    # error: Return type "BooleanArray" of "isin" incompatible with return type
+    # "ndarray" in supertype "ExtensionArray"
+    def isin(self, values) -> BooleanArray:  # type: ignore[override]
 
         from pandas.core.arrays import BooleanArray
 
@@ -404,7 +413,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result += self._mask
             else:
                 result *= np.invert(self._mask)
-        mask = np.zeros_like(self, dtype=bool)
+        # error: No overload variant of "zeros_like" matches argument types
+        # "BaseMaskedArray", "Type[bool]"
+        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
         return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
@@ -422,8 +433,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
-        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
-        return codes, uniques
+        # error: Incompatible types in assignment (expression has type
+        # "BaseMaskedArray", variable has type "ndarray")
+        uniques = type(self)(  # type: ignore[assignment]
+            uniques, np.zeros(len(uniques), dtype=bool)
+        )
+        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
+        # expected "Tuple[ndarray, ExtensionArray]")
+        return codes, uniques  # type: ignore[return-value]
 
     def value_counts(self, dropna: bool = True) -> Series:
         """

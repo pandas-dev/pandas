@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import itertools
 from typing import (
+    TYPE_CHECKING,
     List,
     Optional,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -43,6 +45,9 @@ from pandas.core.sorting import (
     get_group_index,
     get_group_index_sorter,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray
 
 
 class _Unstacker:
@@ -169,7 +174,9 @@ class _Unstacker:
         self.full_shape = ngroups, stride
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
-        mask = np.zeros(np.prod(self.full_shape), dtype=bool)
+        # error: Argument 1 to "zeros" has incompatible type "number"; expected
+        # "Union[int, Sequence[int]]"
+        mask = np.zeros(np.prod(self.full_shape), dtype=bool)  # type: ignore[arg-type]
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
@@ -940,11 +947,11 @@ def _get_dummies_1d(
     data,
     prefix,
     prefix_sep="_",
-    dummy_na=False,
-    sparse=False,
-    drop_first=False,
+    dummy_na: bool = False,
+    sparse: bool = False,
+    drop_first: bool = False,
     dtype: Optional[Dtype] = None,
-):
+) -> DataFrame:
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
@@ -952,7 +959,9 @@ def _get_dummies_1d(
 
     if dtype is None:
         dtype = np.uint8
-    dtype = np.dtype(dtype)
+    # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
+    # dtype[Any], Type[object]]"; expected "Type[Any]"
+    dtype = np.dtype(dtype)  # type: ignore[arg-type]
 
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
@@ -1025,6 +1034,8 @@ def _get_dummies_1d(
             sparse_series.append(Series(data=sarr, index=index, name=col))
 
         out = concat(sparse_series, axis=1, copy=False)
+        # TODO: overload concat with Literal for axis
+        out = cast(DataFrame, out)
         return out
 
     else:
@@ -1041,7 +1052,9 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
-def _reorder_for_extension_array_stack(arr, n_rows: int, n_columns: int):
+def _reorder_for_extension_array_stack(
+    arr: ExtensionArray, n_rows: int, n_columns: int
+) -> ExtensionArray:
     """
     Re-orders the values when stacking multiple extension-arrays.
 
