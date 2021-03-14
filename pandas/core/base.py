@@ -24,6 +24,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NpDtype,
+    Shape,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -390,7 +391,7 @@ class IndexOpsMixin(OpsMixin):
     )
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """
@@ -512,7 +513,7 @@ class IndexOpsMixin(OpsMixin):
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
-    ):
+    ) -> np.ndarray:
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -848,7 +849,7 @@ class IndexOpsMixin(OpsMixin):
             return map(self._values.item, range(self._values.size))
 
     @cache_readonly
-    def hasnans(self):
+    def hasnans(self) -> bool:
         """
         Return if I have any nans; enables various perf speedups.
         """

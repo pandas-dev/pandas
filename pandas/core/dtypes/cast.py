@@ -689,15 +689,14 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                 if fv.tz is None:
                     return dtype, fv.asm8
 
-        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-        return np.dtype(object), fill_value  # type: ignore[type-var]
+        return np.dtype("object"), fill_value
 
     elif issubclass(dtype.type, np.timedelta64):
         inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
         if inferred == dtype:
             return dtype, fv
-        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-        return np.dtype(object), fill_value  # type: ignore[type-var]
+
+        return np.dtype("object"), fill_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
