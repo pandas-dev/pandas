@@ -1653,8 +1653,8 @@ class TestToDatetimeMisc:
 
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_unhashable_input(self, cache):
-        series = Series([['a']] * 100)
-        result = to_datetime(series, errors='ignore', cache=cache)
+        series = Series([["a"]] * 100)
+        result = to_datetime(series, errors="ignore", cache=cache)
         tm.assert_series_equal(series, result)
 
     def test_to_datetime_other_datetime64_units(self):
