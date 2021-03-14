@@ -2136,7 +2136,7 @@ def _default_formatter(x: Any, precision: int) -> Any:
     ----------
     x : Any
         Input variable to be formatted
-    precision : Int, optional
+    precision : Int
         Floating point precision used if ``x`` is float or complex.
 
     Returns
