@@ -843,7 +843,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def length(self):
         return Index(self._data.length, copy=False)
 
-    def putmask(self, mask, value):
+    def putmask(self, mask, value) -> Index:
         mask, noop = validate_putmask(self._data, mask)
         if noop:
             return self.copy()
