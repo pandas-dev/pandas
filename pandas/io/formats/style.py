@@ -1909,7 +1909,7 @@ class Styler:
         """
 
         def f(
-            data: DataFrame,
+            data: FrameOrSeries,
             props: str,
             left: Optional[Union[Scalar, Sequence]] = None,
             right: Optional[Union[Scalar, Sequence]] = None,
@@ -1949,19 +1949,19 @@ class Styler:
             g_left = (
                 ops[0](data, left)
                 if left is not None
-                else np.full_like(data, True, dtype=bool)
+                else np.full(data.shape, True, dtype=bool)
             )
             l_right = (
                 ops[1](data, right)
                 if right is not None
-                else np.full_like(data, True, dtype=bool)
+                else np.full(data.shape, True, dtype=bool)
             )
             return np.where(g_left & l_right, props, "")
 
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            f,
+            f,  # type: ignore[arg-type]
             axis=axis,
             subset=subset,
             props=props,
