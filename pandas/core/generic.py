@@ -24,6 +24,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 import weakref
@@ -162,6 +163,8 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.frame import DataFrame
@@ -681,6 +684,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _obj_with_exclusions(self: FrameOrSeries) -> FrameOrSeries:
         """ internal compat with SelectionMixin """
         return self
+
+    @overload
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> FrameOrSeries:
+        ...
+
+    @overload
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]
+    ) -> None:
+        ...
+
+    @overload
+    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self: FrameOrSeries, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[FrameOrSeries]:
+        ...
 
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         """
