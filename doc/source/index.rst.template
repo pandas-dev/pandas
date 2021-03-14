@@ -20,7 +20,7 @@ pandas documentation
 `Mailing List <https://groups.google.com/g/pydata>`__
 
 :mod:`pandas` is an open source, BSD-licensed library providing high-performance,
-easy-to-use data structures, data manipulation and data analysis tools for the `Python <https://www.python.org/>`__
+easy-to-use data structures and data manipulation and analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
 .. raw:: html
