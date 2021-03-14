@@ -633,25 +633,18 @@ class FrameApply(Apply):
         obj = self.obj
         axis = self.axis
 
-        try:
-            if axis == 1:
-                result = FrameRowApply(
-                    obj.T,
-                    self.orig_f,
-                    self.raw,
-                    self.result_type,
-                    self.args,
-                    self.kwargs,
-                ).agg()
-                result = result.T if result is not None else result
-            else:
-                result = super().agg()
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
+        if axis == 1:
+            result = FrameRowApply(
+                obj.T,
+                self.orig_f,
+                self.raw,
+                self.result_type,
+                self.args,
+                self.kwargs,
+            ).agg()
+            result = result.T if result is not None else result
+        else:
+            result = super().agg()
 
         if result is None:
             result = obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
