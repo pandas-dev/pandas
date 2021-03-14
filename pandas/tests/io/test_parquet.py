@@ -916,7 +916,11 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.3.2")
+    from pandas.compat._optional import VERSIONS
+
+    fp_min_ver = VERSIONS.get("fastparquet")
+
+    @td.skip_if_no("fastparquet", min_version=fp_min_ver)
     def test_basic(self, fp, df_full):
         df = df_full
 
