@@ -66,7 +66,6 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
-    maybe_cast_to_integer_array,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -144,6 +143,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
@@ -398,18 +398,17 @@ class Index(IndexOpsMixin, PandasObject):
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
+            if isinstance(data, ABCMultiIndex):
+                data = data._values
+
             if dtype is not None:
                 # we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
+                data = sanitize_array(data, None, dtype=dtype, copy=copy)
 
-                # error: Argument 1 to "_maybe_cast_with_dtype" has incompatible type
-                # "Union[ndarray, Index, Series]"; expected "ndarray"
-                data = _maybe_cast_with_dtype(
-                    data, dtype, copy  # type: ignore[arg-type]
-                )
                 dtype = data.dtype
 
             if data.dtype.kind in ["i", "u", "f"]:
@@ -6312,56 +6311,6 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
         raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name
-
-
-def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
-    """
-    If a dtype is passed, cast to the closest matching dtype that is supported
-    by Index.
-
-    Parameters
-    ----------
-    data : np.ndarray
-    dtype : np.dtype
-    copy : bool
-
-    Returns
-    -------
-    np.ndarray
-    """
-    # we need to avoid having numpy coerce
-    # things that look like ints/floats to ints unless
-    # they are actually ints, e.g. '0' and 0.0
-    # should not be coerced
-    # GH 11836
-    if is_integer_dtype(dtype):
-        inferred = lib.infer_dtype(data, skipna=False)
-        if inferred == "integer":
-            data = maybe_cast_to_integer_array(data, dtype, copy=copy)
-        elif inferred in ["floating", "mixed-integer-float"]:
-            if isna(data).any():
-                raise ValueError("cannot convert float NaN to integer")
-
-            if inferred == "mixed-integer-float":
-                data = maybe_cast_to_integer_array(data, dtype)
-
-            # If we are actually all equal to integers,
-            # then coerce to integer.
-            try:
-                data = _try_convert_to_int_array(data, copy, dtype)
-            except ValueError:
-                data = np.array(data, dtype=np.float64, copy=copy)
-
-        elif inferred != "string":
-            data = data.astype(dtype)
-    elif is_float_dtype(dtype):
-        inferred = lib.infer_dtype(data, skipna=False)
-        if inferred != "string":
-            data = data.astype(dtype)
-    else:
-        data = np.array(data, dtype=dtype, copy=copy)
-
-    return data
 
 
 def _maybe_cast_data_without_dtype(subarr):
