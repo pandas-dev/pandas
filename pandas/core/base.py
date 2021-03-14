@@ -1068,7 +1068,7 @@ class IndexOpsMixin(OpsMixin):
     def unique(self):
         values = self._values
 
-        if not isinstance(values, np.ndarray):
+        if isinstance(values, ExtensionArray):
             result: ArrayLike = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
