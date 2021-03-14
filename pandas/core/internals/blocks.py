@@ -158,28 +158,14 @@ class Block(PandasObject):
         Parameters
         ----------
         values : np.ndarray or ExtensionArray
+            We assume maybe_coerce_values has already been called.
         placement : BlockPlacement (or castable)
         ndim : int
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
         """
         self.ndim = ndim
         self.mgr_locs = placement
-        self.values = self._maybe_coerce_values(values)
-
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Ensure we have correctly-typed values.
-
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-
-        Returns
-        -------
-        np.ndarray or ExtensionArray
-        """
-        return values
+        self.values = values
 
     @property
     def _holder(self):
@@ -278,6 +264,8 @@ class Block(PandasObject):
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
+        # TODO: perf by not going through new_block
+        # We assume maybe_coerce_values has already been called
         return new_block(values, placement=placement, ndim=self.ndim)
 
     @final
@@ -285,6 +273,8 @@ class Block(PandasObject):
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
+        # TODO: perf by not going through new_block
+        # We assume maybe_coerce_values has already been called
         return type(self)(values, placement=placement, ndim=self.ndim)
 
     @final
@@ -416,6 +406,7 @@ class Block(PandasObject):
             return nbs
 
         if not isinstance(result, Block):
+            result = maybe_coerce_values(result)
             result = self.make_block(result)
 
         return [result]
@@ -619,6 +610,7 @@ class Block(PandasObject):
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
+        new_values = maybe_coerce_values(new_values)
         newb = self.make_block(new_values)
         if newb.shape != self.shape:
             raise TypeError(
@@ -677,6 +669,7 @@ class Block(PandasObject):
             values = np.array(values, dtype="object")
 
         values[mask] = na_rep
+        values = values.astype(object, copy=False)
         return self.make_block(values)
 
     # block actions #
@@ -1501,24 +1494,6 @@ class ExtensionBlock(Block):
         new_values[mask] = new
         return [self.make_block(values=new_values)]
 
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Unbox to an extension array.
-
-        This will unbox an ExtensionArray stored in an Index or Series.
-        ExtensionArrays pass through. No dtype coercion is done.
-
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-
-        Returns
-        -------
-        ExtensionArray
-        """
-        return extract_array(values)
-
     @property
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
@@ -1847,6 +1822,7 @@ class FloatBlock(NumericBlock):
                 values = np.array(values, dtype="object")
 
             values[mask] = na_rep
+            values = values.astype(object, copy=False)
             return self.make_block(values)
 
         from pandas.io.formats.format import FloatArrayFormatter
@@ -1860,6 +1836,7 @@ class FloatBlock(NumericBlock):
             fixed_width=False,
         )
         res = formatter.get_result_as_array()
+        res = res.astype(object, copy=False)
         return self.make_block(res)
 
 
@@ -1913,6 +1890,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
+        res_values = maybe_coerce_values(res_values)
         nb = self.make_block_same_class(res_values)
         return [nb]
 
@@ -1940,12 +1918,14 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         values = self.array_values().reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
+        new_values = maybe_coerce_values(new_values)
         return [self.make_block(new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values().reshape(self.shape)
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
+        new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(new_values)]
 
     def fillna(
@@ -1961,6 +1941,7 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         values = self.array_values()
         values = values if inplace else values.copy()
         new_values = values.fillna(value=value, limit=limit)
+        new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(values=new_values)]
 
 
@@ -1969,30 +1950,6 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
 
     is_numeric = False
     _can_hold_na = True
-
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        """
-        Input validation for values passed to __init__. Ensure that
-        we have nanosecond datetime64/timedelta64, coercing if necessary.
-
-        Parameters
-        ----------
-        values : np.ndarray or ExtensionArray
-            Must be convertible to datetime64/timedelta64
-
-        Returns
-        -------
-        values : ndarray[datetime64ns/timedelta64ns]
-        """
-        values = extract_array(values, extract_numpy=True)
-        if isinstance(values, np.ndarray):
-            values = sanitize_to_nanoseconds(values)
-        elif isinstance(values.dtype, np.dtype):
-            # i.e. not datetime64tz
-            values = values._data
-
-        return values
 
     def array_values(self):
         return ensure_wrapped_if_datetimelike(self.values)
@@ -2010,6 +1967,7 @@ class DatetimeLikeBlockMixin(NDArrayBackedExtensionBlock):
         arr = self.array_values()
 
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
+        result = result.astype(object, copy=False)
         return self.make_block(result)
 
 
@@ -2066,12 +2024,6 @@ class ObjectBlock(Block):
     __slots__ = ()
     is_object = True
     _can_hold_na = True
-
-    @classmethod
-    def _maybe_coerce_values(cls, values):
-        if issubclass(values.dtype.type, str):
-            values = np.array(values, dtype=object)
-        return values
 
     @property
     def is_bool(self):
@@ -2198,6 +2150,38 @@ class CategoricalBlock(ExtensionBlock):
 # Constructor Helpers
 
 
+def maybe_coerce_values(values) -> ArrayLike:
+    """
+    Input validation for values passed to __init__. Ensure that
+    any datetime64/timedelta64 dtypes are in nanoseconds.  Ensure
+    that we do not have string dtypes.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    values : np.ndarray or ExtensionArray
+    """
+
+    # Note: the only test that needs extract_array here is one where we
+    #  pass PandasDtype to Series.astype, then need to extract PandasArray here.
+    values = extract_array(values, extract_numpy=True)
+
+    if isinstance(values, np.ndarray):
+        values = sanitize_to_nanoseconds(values)
+
+        if issubclass(values.dtype.type, str):
+            values = np.array(values, dtype=object)
+
+    elif isinstance(values.dtype, np.dtype):
+        # i.e. not datetime64tz, extract DTA/TDA -> ndarray
+        values = values._data
+
+    return values
+
+
 def get_block_type(values, dtype: Optional[Dtype] = None):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
@@ -2256,6 +2240,7 @@ def new_block(values, placement, *, ndim: int, klass=None) -> Block:
     if klass is None:
         klass = get_block_type(values, values.dtype)
 
+    values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
 
 

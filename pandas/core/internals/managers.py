@@ -72,6 +72,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
 )
 from pandas.core.internals.ops import (
@@ -1051,6 +1052,7 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
+        values = maybe_coerce_values(values)
         nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
@@ -1648,6 +1650,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         if array.ndim > blk.values.ndim:
             # This will be caught by Series._get_values
             raise ValueError("dimension-expanding indexing not allowed")
+
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         return type(self)(block, self.index[indexer])
 
