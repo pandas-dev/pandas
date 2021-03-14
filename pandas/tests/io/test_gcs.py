@@ -4,7 +4,14 @@ import os
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range, read_csv, read_excel, read_json, read_parquet
+from pandas import (
+    DataFrame,
+    date_range,
+    read_csv,
+    read_excel,
+    read_json,
+    read_parquet,
+)
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
@@ -12,7 +19,10 @@ from pandas.util import _test_decorators as td
 @pytest.fixture
 def gcs_buffer(monkeypatch):
     """Emulate GCS using a binary buffer."""
-    from fsspec import AbstractFileSystem, registry
+    from fsspec import (
+        AbstractFileSystem,
+        registry,
+    )
 
     registry.target.clear()  # remove state
 
@@ -34,7 +44,16 @@ def gcs_buffer(monkeypatch):
 
 
 @td.skip_if_no("gcsfs")
-@pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
+@pytest.mark.parametrize(
+    "format",
+    [
+        "csv",
+        pytest.param("json", marks=td.skip_array_manager_not_yet_implemented),
+        "parquet",
+        "excel",
+        "markdown",
+    ],
+)
 def test_to_read_gcs(gcs_buffer, format):
     """
     Test that many to/read functions support GCS.
@@ -114,7 +133,15 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     compression["method"] = "infer"
     path_gcs += f".{compression_only}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
-    assert gcs_buffer.getvalue() == buffer.getvalue()
+
+    res = gcs_buffer.getvalue()
+    expected = buffer.getvalue()
+    # We would like to assert these are equal, but the 11th byte is a last-modified
+    #  timestamp, which in some builds is off-by-one, so we check around that
+    #  See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
+    assert res[:10] == expected[:10]
+    assert res[11:] == expected[11:]
+
     read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
     tm.assert_frame_equal(df, read_df)
 
@@ -123,7 +150,10 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
 @td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    from fsspec import AbstractFileSystem, registry
+    from fsspec import (
+        AbstractFileSystem,
+        registry,
+    )
 
     registry.target.clear()  # remove state
     df1 = DataFrame(

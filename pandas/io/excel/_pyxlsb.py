@@ -1,6 +1,10 @@
 from typing import List
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import BaseExcelReader
@@ -47,9 +51,11 @@ class PyxlsbReader(BaseExcelReader):
         return self.book.sheets
 
     def get_sheet_by_name(self, name: str):
+        self.raise_if_bad_sheet_by_name(name)
         return self.book.get_sheet(name)
 
     def get_sheet_by_index(self, index: int):
+        self.raise_if_bad_sheet_by_index(index)
         # pyxlsb sheets are indexed from 1 onwards
         # There's a fix for this in the source, but the pypi package doesn't have it
         return self.book.get_sheet(index + 1)

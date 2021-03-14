@@ -1,11 +1,22 @@
-from collections import Counter
+from __future__ import annotations
+
+import collections
 from datetime import datetime
+from decimal import Decimal
 from functools import wraps
 import operator
 import os
 import re
 import string
-from typing import Callable, ContextManager, List, Type
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    ContextManager,
+    Counter,
+    Iterable,
+    List,
+    Type,
+)
 import warnings
 
 import numpy as np
@@ -78,6 +89,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
+from pandas._testing.compat import get_dtype  # noqa:F401
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
@@ -88,7 +100,18 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
+
+if TYPE_CHECKING:
+    from pandas import (
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 _N = 30
 _K = 4
@@ -108,9 +131,9 @@ STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
 
-BOOL_DTYPES = [bool, "bool"]
-BYTES_DTYPES = [bytes, "bytes"]
-OBJECT_DTYPES = [object, "object"]
+BOOL_DTYPES: List[Dtype] = [bool, "bool"]
+BYTES_DTYPES: List[Dtype] = [bytes, "bytes"]
+OBJECT_DTYPES: List[Dtype] = [object, "object"]
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 ALL_NUMPY_DTYPES = (
@@ -124,7 +147,7 @@ ALL_NUMPY_DTYPES = (
     + BYTES_DTYPES
 )
 
-NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
+NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -136,24 +159,16 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        # pandas\_testing.py:119: error: Argument 2 to "simplefilter" has
-        # incompatible type "Tuple[Type[DeprecationWarning],
-        # Type[ResourceWarning]]"; expected "Type[Warning]"
-        warnings.simplefilter(
-            "always", _testing_mode_warnings  # type: ignore[arg-type]
-        )
+        for category in _testing_mode_warnings:
+            warnings.simplefilter("always", category)
 
 
 def reset_testing_mode():
     # reset the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        # pandas\_testing.py:126: error: Argument 2 to "simplefilter" has
-        # incompatible type "Tuple[Type[DeprecationWarning],
-        # Type[ResourceWarning]]"; expected "Type[Warning]"
-        warnings.simplefilter(
-            "ignore", _testing_mode_warnings  # type: ignore[arg-type]
-        )
+        for category in _testing_mode_warnings:
+            warnings.simplefilter("ignore", category)
 
 
 set_testing_mode()
@@ -201,8 +216,10 @@ def box_expected(expected, box_cls, transpose=True):
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
-            #  vectors of the same length.
+            #  vectors of the same length. But convert to two rows to avoid
+            #  single-row special cases in datetime arithmetic
             expected = expected.T
+            expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)
@@ -289,17 +306,17 @@ def makeFloatIndex(k=10, name=None):
     return Index(values * (10 ** np.random.randint(0, 9)), name=name)
 
 
-def makeDateIndex(k=10, freq="B", name=None, **kwargs):
+def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
+def makeTimedeltaIndex(k: int = 10, freq="D", name=None, **kwargs) -> TimedeltaIndex:
     return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
 
 
-def makePeriodIndex(k=10, name=None, **kwargs):
+def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
     return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
@@ -402,7 +419,7 @@ def index_subclass_makers_generator():
     yield from make_index_funcs
 
 
-def all_timeseries_index_generator(k=10):
+def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
     """
     Generator which can be iterated over to get instances of all the classes
     which represent time-series.
@@ -411,10 +428,13 @@ def all_timeseries_index_generator(k=10):
     ----------
     k: length of each of the index instances
     """
-    make_index_funcs = [makeDateIndex, makePeriodIndex, makeTimedeltaIndex]
+    make_index_funcs: List[Callable[..., Index]] = [
+        makeDateIndex,
+        makePeriodIndex,
+        makeTimedeltaIndex,
+    ]
     for make_index_func in make_index_funcs:
-        # pandas\_testing.py:1986: error: Cannot call function of unknown type
-        yield make_index_func(k=k)  # type: ignore[operator]
+        yield make_index_func(k=k)
 
 
 # make series
@@ -468,7 +488,7 @@ def makeTimeDataFrame(nper=None, freq="B"):
     return DataFrame(data)
 
 
-def makeDataFrame():
+def makeDataFrame() -> DataFrame:
     data = getSeriesData()
     return DataFrame(data)
 
@@ -540,7 +560,7 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = {
+    idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
         "s": makeStringIndex,
@@ -548,10 +568,10 @@ def makeCustomIndex(
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
-    }.get(idx_type)
+    }
+    idx_func = idx_func_dict.get(idx_type)
     if idx_func:
-        # pandas\_testing.py:2120: error: Cannot call function of unknown type
-        idx = idx_func(nentries)  # type: ignore[operator]
+        idx = idx_func(nentries)
         # but we need to fill in the name
         if names:
             idx.name = names[0]
@@ -568,7 +588,7 @@ def makeCustomIndex(
 
     assert all(x > 0 for x in ndupe_l)
 
-    tuples = []
+    list_of_lists = []
     for i in range(nlevels):
 
         def keyfunc(x):
@@ -579,16 +599,18 @@ def makeCustomIndex(
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
-        # pandas\_testing.py:2148: error: Need type annotation for 'cnt'
-        cnt = Counter()  # type: ignore[var-annotated]
+
+        # Deprecated since version 3.9: collections.Counter now supports []. See PEP 585
+        # and Generic Alias Type.
+        cnt: Counter[str] = collections.Counter()
         for j in range(div_factor):
             label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
         # cute Counter trick
         result = sorted(cnt.elements(), key=keyfunc)[:nentries]
-        tuples.append(result)
+        list_of_lists.append(result)
 
-    tuples = list(zip(*tuples))
+    tuples = list(zip(*list_of_lists))
 
     # convert tuples to index
     if nentries == 1:
@@ -669,7 +691,7 @@ def makeCustomDataframe(
     # 4-level multindex on rows with names provided, 2-level multindex
     # on columns with default labels and default names.
     >> a=makeCustomDataframe(5,3,r_idx_nlevels=4,
-                             r_idx_names=["FEE","FI","FO","FAM"],
+                             r_idx_names=["FEE","FIH","FOH","FUM"],
                              c_idx_nlevels=2)
 
     >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
@@ -738,14 +760,7 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
 
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
-    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
-    # values for keyword argument "density"  [misc]
-
-    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
-    # values for keyword argument "random_state"  [misc]
-    i, j = _create_missing_idx(  # type: ignore[misc]
-        *df.shape, density=density, random_state=random_state
-    )
+    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
     df.values[i, j] = np.nan
     return df
 
@@ -974,3 +989,11 @@ def loc(x):
 
 def iloc(x):
     return x.iloc
+
+
+def at(x):
+    return x.at
+
+
+def iat(x):
+    return x.iat

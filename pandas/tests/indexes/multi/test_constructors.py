@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 
 import numpy as np
@@ -9,7 +12,12 @@ from pandas._libs.tslib import Timestamp
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -100,7 +108,7 @@ def test_constructor_mismatched_codes_levels(idx):
 def test_na_levels():
     # GH26408
     # test if codes are re-assigned value -1 for levels
-    # with mising values (NaN, NaT, None)
+    # with missing values (NaN, NaT, None)
     result = MultiIndex(
         levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]]
     )
@@ -189,37 +197,24 @@ def test_from_arrays_tuples(idx):
     tm.assert_index_equal(result, idx)
 
 
-def test_from_arrays_index_series_datetimetz():
-    idx1 = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
-    idx2 = date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo")
-    result = MultiIndex.from_arrays([idx1, idx2])
-    tm.assert_index_equal(result.get_level_values(0), idx1)
-    tm.assert_index_equal(result.get_level_values(1), idx2)
-
-    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
-    tm.assert_index_equal(result2.get_level_values(0), idx1)
-    tm.assert_index_equal(result2.get_level_values(1), idx2)
-
-    tm.assert_index_equal(result, result2)
-
-
-def test_from_arrays_index_series_timedelta():
-    idx1 = pd.timedelta_range("1 days", freq="D", periods=3)
-    idx2 = pd.timedelta_range("2 hours", freq="H", periods=3)
-    result = MultiIndex.from_arrays([idx1, idx2])
-    tm.assert_index_equal(result.get_level_values(0), idx1)
-    tm.assert_index_equal(result.get_level_values(1), idx2)
-
-    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
-    tm.assert_index_equal(result2.get_level_values(0), idx1)
-    tm.assert_index_equal(result2.get_level_values(1), idx2)
-
-    tm.assert_index_equal(result, result2)
-
-
-def test_from_arrays_index_series_period():
-    idx1 = pd.period_range("2011-01-01", freq="D", periods=3)
-    idx2 = pd.period_range("2015-01-01", freq="H", periods=3)
+@pytest.mark.parametrize(
+    ("idx1", "idx2"),
+    [
+        (
+            pd.period_range("2011-01-01", freq="D", periods=3),
+            pd.period_range("2015-01-01", freq="H", periods=3),
+        ),
+        (
+            date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
+            date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo"),
+        ),
+        (
+            pd.timedelta_range("1 days", freq="D", periods=3),
+            pd.timedelta_range("2 hours", freq="H", periods=3),
+        ),
+    ],
+)
+def test_from_arrays_index_series_period_datetimetz_and_timedelta(idx1, idx2):
     result = MultiIndex.from_arrays([idx1, idx2])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)

@@ -237,6 +237,17 @@ def test_reindex_categorical():
     tm.assert_series_equal(result, expected)
 
 
+def test_reindex_astype_order_consistency():
+    # GH#17444
+    ser = Series([1, 2, 3], index=[2, 0, 1])
+    new_index = [0, 1, 2]
+    temp_dtype = "category"
+    new_dtype = str
+    result = ser.reindex(new_index).astype(temp_dtype).astype(new_dtype)
+    expected = ser.astype(temp_dtype).reindex(new_index).astype(new_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_reindex_fill_value():
     # -----------------------------------------------------------
     # floats
@@ -293,7 +304,10 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
     idx = date_range("20131101", tz="America/Chicago", periods=7)
     newidx = date_range("20131103", periods=10, freq="H")
     s = Series(range(7), index=idx)
-    msg = "Cannot compare tz-naive and tz-aware timestamps"
+    msg = (
+        r"Cannot compare dtypes datetime64\[ns, America/Chicago\] "
+        r"and datetime64\[ns\]"
+    )
     with pytest.raises(TypeError, match=msg):
         s.reindex(newidx, method="ffill")
 

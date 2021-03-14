@@ -319,3 +319,23 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     result = window.agg({"low": ["mean", "max"], "high": ["mean", "min"]})
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_is_datetimelike_deprecated():
+    s = Series(range(1)).rolling(1)
+    with tm.assert_produces_warning(FutureWarning):
+        assert not s.is_datetimelike
+
+
+@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
+def test_dont_modify_attributes_after_methods(
+    arithmetic_win_operators, closed, center, min_periods
+):
+    # GH 39554
+    roll_obj = Series(range(1)).rolling(
+        1, center=center, closed=closed, min_periods=min_periods
+    )
+    expected = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
+    getattr(roll_obj, arithmetic_win_operators)()
+    result = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
+    assert result == expected
