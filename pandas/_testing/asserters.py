@@ -976,8 +976,8 @@ def assert_series_equal(
         left_values = left._values
         right_values = right._values
         # Only check exact if dtype is numeric
-        if is_extension_array_dtype(left_values) and is_extension_array_dtype(
-            right_values
+        if isinstance(left_values, ExtensionArray) and isinstance(
+            right_values, ExtensionArray
         ):
             assert_extension_array_equal(
                 left_values,
