@@ -5,8 +5,6 @@ import re
 
 import numpy as np
 
-from pandas._libs.lib import is_list_like
-
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
@@ -55,8 +53,8 @@ def np_array_datetime64_compat(arr, dtype="M8[ns]"):
     tz-changes in 1.11 that make '2015-01-01 09:00:00Z' show a deprecation
     warning, when need to pass '2015-01-01 09:00:00'
     """
-
-    if is_list_like(arr):
+    # is_list_like; can't import as it would be circular
+    if hasattr(arr, "__iter__") and not isinstance(arr, (str, bytes)):
         arr = [_tz_replacer(s) for s in arr]
     else:
         arr = _tz_replacer(arr)
