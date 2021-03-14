@@ -3,7 +3,10 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Dict, Optional
+from typing import (
+    Dict,
+    Optional,
+)
 import warnings
 
 from pandas._libs.lib import no_default
