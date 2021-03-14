@@ -1707,15 +1707,10 @@ def maybe_cast_to_datetime(
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
 
-                            # error: Item "ndarray" of "Union[ndarray, DatetimeArray]"
-                            # has no attribute "tz"
-                            if dta.tz is not None:  # type: ignore[union-attr]
+                            if dta.tz is not None:
                                 # equiv: dta.view(dtype)
                                 # Note: NOT equivalent to dta.astype(dtype)
-
-                                # error: Item "ndarray" of "Union[ndarray,
-                                # DatetimeArray]" has no attribute "tz_localize"
-                                dta = dta.tz_localize(None)  # type: ignore[union-attr]
+                                dta = dta.tz_localize(None)
                             value = dta
                         elif is_datetime64tz:
                             dtype = cast(DatetimeTZDtype, dtype)
@@ -1725,38 +1720,19 @@ def maybe_cast_to_datetime(
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
                             dta = sequence_to_datetimes(value, allow_object=False)
-                            # error: Item "ndarray" of "Union[ndarray, DatetimeArray]"
-                            # has no attribute "tz"
-                            if dta.tz is not None:  # type: ignore[union-attr]
-                                # error: Argument 1 to "astype" of
-                                # "_ArrayOrScalarCommon" has incompatible type
-                                # "Union[dtype[Any], ExtensionDtype, None]"; expected
-                                # "Union[dtype[Any], None, type, _SupportsDType, str,
-                                # Union[Tuple[Any, int], Tuple[Any, Union[int,
-                                # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-                                # Any]]]"
-                                value = dta.astype(
-                                    dtype, copy=False  # type: ignore[arg-type]
-                                )
+                            if dta.tz is not None:
+                                value = dta.astype(dtype, copy=False)
                             elif is_dt_string:
                                 # Strings here are naive, so directly localize
                                 # equiv: dta.astype(dtype)  # though deprecated
 
-                                # error: Item "ndarray" of "Union[ndarray,
-                                # DatetimeArray]" has no attribute "tz_localize"
-                                value = dta.tz_localize(  # type: ignore[union-attr]
-                                    dtype.tz
-                                )
+                                value = dta.tz_localize(dtype.tz)
                             else:
                                 # Numeric values are UTC at this point,
                                 # so localize and convert
                                 # equiv: Series(dta).astype(dtype) # though deprecated
 
-                                # error: Item "ndarray" of "Union[ndarray,
-                                # DatetimeArray]" has no attribute "tz_localize"
-                                value = dta.tz_localize(  # type: ignore[union-attr]
-                                    "UTC"
-                                ).tz_convert(dtype.tz)
+                                value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                         elif is_timedelta64:
                             # if successful, we get a ndarray[td64ns]
                             value, _ = sequence_to_td64ns(value)
@@ -1974,10 +1950,8 @@ def construct_1d_arraylike_from_scalar(
         except OutOfBoundsDatetime:
             dtype = np.dtype(object)
 
-    if is_extension_array_dtype(dtype):
-        # error: Item "dtype" of "Union[dtype, ExtensionDtype]" has no
-        # attribute "construct_array_type"
-        cls = dtype.construct_array_type()  # type: ignore[union-attr]
+    if isinstance(dtype, ExtensionDtype):
+        cls = dtype.construct_array_type()
         subarr = cls._from_sequence([value] * length, dtype=dtype)
 
     else:
@@ -1994,11 +1968,7 @@ def construct_1d_arraylike_from_scalar(
         elif dtype.kind in ["M", "m"]:
             value = maybe_unbox_datetimelike(value, dtype)
 
-        # error: Argument "dtype" to "empty" has incompatible type
-        # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
-        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
-        subarr = np.empty(length, dtype=dtype)  # type: ignore[arg-type]
+        subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
 
     return subarr
