@@ -75,7 +75,7 @@ class TestFancy:
 
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
-            msgs.append(r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]")
+            msgs.append(r"Wrong number of dimensions. values.ndim > ndim \[3 > 1\]")
         if frame_or_series is Series or indexer_sli is tm.iloc:
             msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
         if indexer_sli is tm.loc or (
@@ -620,6 +620,7 @@ class TestMisc:
         expected = DataFrame({"a": [1, 1, 3], "b": [1, 1, 5]}, index=df.index)
         tm.assert_frame_equal(expected, df)
 
+    def test_loc_setitem_fullindex_views(self):
         df = DataFrame({"a": [1, 2, 3], "b": [3, 4, 5]}, index=[1.0, 2.0, 3.0])
         df2 = df.copy()
         df.loc[df.index] = df.loc[df.index]

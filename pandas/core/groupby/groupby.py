@@ -46,6 +46,7 @@ from pandas._libs import (
 )
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
+    ArrayLike,
     F,
     FrameOrSeries,
     FrameOrSeriesUnion,
@@ -68,7 +69,6 @@ from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -85,6 +85,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
+    ExtensionArray,
 )
 from pandas.core.base import (
     DataError,
@@ -153,11 +154,23 @@ _apply_docs = {
     transform : Apply function column-by-column to the GroupBy object.
     Series.apply : Apply a function to a Series.
     DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+    Notes
+    -----
+    In the current implementation `apply` calls `func` twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if `func` has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
-                           'B': [1,2,3],
-                           'C': [4,6, 5]})
+    ...                    'B': [1,2,3],
+    ...                    'C': [4,6, 5]})
     >>> g = df.groupby('A')
 
     Notice that ``g`` has two groups, ``a`` and ``b``.
@@ -192,8 +205,7 @@ _apply_docs = {
     A
     a    5
     b    2
-    dtype: int64
-    """,
+    dtype: int64""",
     "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = s.groupby(s.index)
@@ -206,9 +218,9 @@ _apply_docs = {
     each group together into a new Series:
 
     >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
-    0    0.0
-    1    0.5
-    2    4.0
+    a    0.0
+    a    0.5
+    b    4.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
@@ -219,20 +231,7 @@ _apply_docs = {
     >>> g.apply(lambda x: x.max() - x.min())
     a    1
     b    0
-    dtype: int64
-
-    Notes
-    -----
-    In the current implementation `apply` calls `func` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if `func` has
-    side-effects, as they will take effect twice for the first
-    group.
-
-    Examples
-    --------
-    {examples}
-    """,
+    dtype: int64""",
 }
 
 _groupby_agg_method_template = """
@@ -330,7 +329,7 @@ f : function
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
-    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+    * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
@@ -1133,7 +1132,12 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         if not output:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
+        # expected "Mapping[OutputKey, ndarray]"
+        return self._wrap_aggregated_output(
+            output, index=self.grouper.result_index  # type: ignore[arg-type]
+        )
 
     @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
@@ -2262,27 +2266,31 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas import concat
 
-        def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:
+        def pre_processor(vals: ArrayLike) -> Tuple[np.ndarray, Optional[np.dtype]]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference = None
+            inference: Optional[np.dtype] = None
             if is_integer_dtype(vals.dtype):
-                if is_extension_array_dtype(vals.dtype):
-                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
-                inference = np.int64
-            elif is_bool_dtype(vals.dtype) and is_extension_array_dtype(vals.dtype):
-                vals = vals.to_numpy(dtype=float, na_value=np.nan)
+                if isinstance(vals, ExtensionArray):
+                    out = vals.to_numpy(dtype=float, na_value=np.nan)
+                else:
+                    out = vals
+                inference = np.dtype(np.int64)
+            elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
-                inference = "datetime64[ns]"
-                vals = np.asarray(vals).astype(float)
+                inference = np.dtype("datetime64[ns]")
+                out = np.asarray(vals).astype(float)
             elif is_timedelta64_dtype(vals.dtype):
-                inference = "timedelta64[ns]"
-                vals = np.asarray(vals).astype(float)
+                inference = np.dtype("timedelta64[ns]")
+                out = np.asarray(vals).astype(float)
+            else:
+                out = np.asarray(vals)
 
-            return vals, inference
+            return out, inference
 
         def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:
             if inference:

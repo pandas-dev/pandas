@@ -119,6 +119,7 @@ class TestFromRecords:
         tm.assert_series_equal(result["C"], df["C"])
         tm.assert_series_equal(result["E1"], df["E1"].astype("float64"))
 
+    def test_from_records_sequencelike_empty(self):
         # empty case
         result = DataFrame.from_records([], columns=["foo", "bar", "baz"])
         assert len(result) == 0
@@ -185,7 +186,12 @@ class TestFromRecords:
         tm.assert_index_equal(df1.index, Index(df.C))
 
         # should fail
-        msg = r"Shape of passed values is \(10, 3\), indices imply \(1, 3\)"
+        msg = "|".join(
+            [
+                r"Shape of passed values is \(10, 3\), indices imply \(1, 3\)",
+                "Passed arrays should have the same length as the rows Index: 10 vs 1",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(df, index=[2])
         with pytest.raises(KeyError, match=r"^2$"):
@@ -260,7 +266,12 @@ class TestFromRecords:
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
+        msg = "|".join(
+            [
+                r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)",
+                "Passed arrays should have the same length as the rows Index: 2 vs 1",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(arr, index=index[:-1])
 

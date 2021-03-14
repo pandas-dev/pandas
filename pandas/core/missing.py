@@ -75,7 +75,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
-    values_to_mask = np.array(values_to_mask, dtype=dtype)
+    # error: Argument "dtype" to "array" has incompatible type "Union[dtype[Any],
+    # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+    # _DTypeDict, Tuple[Any, Any]]]"
+    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
@@ -305,7 +309,12 @@ def interpolate_1d(
 
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
-        indexer = np.argsort(inds[valid])
+
+        # error: Argument 1 to "argsort" has incompatible type "Union[ExtensionArray,
+        # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
+        # Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        indexer = np.argsort(inds[valid])  # type: ignore[arg-type]
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )
@@ -646,8 +655,6 @@ def interpolate_2d(
             values,
         )
 
-    orig_values = values
-
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
@@ -660,23 +667,19 @@ def interpolate_2d(
     method = clean_fill_method(method)
     tvalues = transf(values)
     if method == "pad":
-        result = _pad_2d(tvalues, limit=limit)
+        result, _ = _pad_2d(tvalues, limit=limit)
     else:
-        result = _backfill_2d(tvalues, limit=limit)
+        result, _ = _backfill_2d(tvalues, limit=limit)
 
     result = transf(result)
     # reshape back
     if ndim == 1:
         result = result[0]
 
-    if orig_values.dtype.kind in ["m", "M"]:
-        # convert float back to datetime64/timedelta64
-        result = result.view(orig_values.dtype)
-
     return result
 
 
-def _fillna_prep(values, mask=None):
+def _fillna_prep(values, mask: Optional[np.ndarray] = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
@@ -698,8 +701,8 @@ def _datetimelike_compat(func: F) -> F:
                 # This needs to occur before casting to int64
                 mask = isna(values)
 
-            result = func(values.view("i8"), limit=limit, mask=mask)
-            return result.view(values.dtype)
+            result, mask = func(values.view("i8"), limit=limit, mask=mask)
+            return result.view(values.dtype), mask
 
         return func(values, limit=limit, mask=mask)
 
@@ -707,17 +710,25 @@ def _datetimelike_compat(func: F) -> F:
 
 
 @_datetimelike_compat
-def _pad_1d(values, limit=None, mask=None):
+def _pad_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
-def _backfill_1d(values, limit=None, mask=None):
+def _backfill_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
@@ -729,7 +740,7 @@ def _pad_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
@@ -741,15 +752,17 @@ def _backfill_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
-def get_fill_func(method):
+def get_fill_func(method, ndim: int = 1):
     method = clean_fill_method(method)
-    return _fill_methods[method]
+    if ndim == 1:
+        return _fill_methods[method]
+    return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
 def clean_reindex_fill_method(method):
@@ -835,4 +848,7 @@ def _rolling_window(a: np.ndarray, window: int):
     # https://stackoverflow.com/a/6811241
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
-    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+    # error: Module has no attribute "stride_tricks"
+    return np.lib.stride_tricks.as_strided(  # type: ignore[attr-defined]
+        a, shape=shape, strides=strides
+    )

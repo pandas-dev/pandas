@@ -501,6 +501,84 @@ def test_intersection_duplicates_all_indexes(index):
     assert idx.intersection(idx_non_unique).is_unique
 
 
+@pytest.mark.parametrize(
+    "cls",
+    [
+        Int64Index,
+        Float64Index,
+        DatetimeIndex,
+        CategoricalIndex,
+        lambda x: CategoricalIndex(x, categories=set(x)),
+        TimedeltaIndex,
+        lambda x: Index(x, dtype=object),
+        UInt64Index,
+    ],
+)
+def test_union_duplicate_index_subsets_of_each_other(cls):
+    # GH#31326
+    a = cls([1, 2, 2, 3])
+    b = cls([3, 3, 4])
+    expected = cls([1, 2, 2, 3, 3, 4])
+    if isinstance(a, CategoricalIndex):
+        expected = Index([1, 2, 2, 3, 3, 4])
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+    result = a.union(b, sort=False)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        Int64Index,
+        Float64Index,
+        DatetimeIndex,
+        CategoricalIndex,
+        TimedeltaIndex,
+        lambda x: Index(x, dtype=object),
+    ],
+)
+def test_union_with_duplicate_index_and_non_monotonic(cls):
+    # GH#36289
+    a = cls([1, 0, 0])
+    b = cls([0, 1])
+    expected = cls([0, 0, 1])
+
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_duplicate_index_different_dtypes():
+    # GH#36289
+    a = Index([1, 2, 2, 3])
+    b = Index(["1", "0", "0"])
+    expected = Index([1, 2, 2, 3, "1", "0", "0"])
+    result = a.union(b, sort=False)
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_same_value_duplicated_in_both():
+    # GH#36289
+    a = Index([0, 0, 1])
+    b = Index([0, 0, 1, 2])
+    result = a.union(b)
+    expected = Index([0, 0, 1, 2])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dup", [1, np.nan])
+def test_union_nan_in_both(dup):
+    # GH#36289
+    a = Index([np.nan, 1, 2, 2])
+    b = Index([np.nan, dup, 1, 2])
+    result = a.union(b, sort=False)
+    expected = Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
 class TestSetOpsUnsorted:
     # These may eventually belong in a dtype-specific test_setops, or
     #  parametrized over a more general fixture

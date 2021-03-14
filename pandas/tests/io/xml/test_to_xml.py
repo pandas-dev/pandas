@@ -411,12 +411,12 @@ doc:degrees="180" doc:sides="3.0"/>
 
 def test_attrs_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(attr_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(attr_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_attrs_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for attr_cols")):
-        geom_df.to_xml(attr_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(attr_cols='"shape", "degree", "sides"', parser=parser)
 
 
 # ELEM_COLS
@@ -453,12 +453,12 @@ def test_elems_cols_nan_output(datapath, parser):
 
 def test_elems_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(elem_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(elem_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_elems_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for elem_cols")):
-        geom_df.to_xml(elem_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(elem_cols='"shape", "degree", "sides"', parser=parser)
 
 
 def test_elems_and_attrs_cols(datapath, parser):
@@ -867,8 +867,7 @@ def test_xml_declaration_pretty_print():
     assert output == expected
 
 
-@td.skip_if_no("lxml")
-def test_no_pretty_print_with_decl():
+def test_no_pretty_print_with_decl(parser):
     expected = (
         "<?xml version='1.0' encoding='utf-8'?>\n"
         "<data><row><index>0</index><shape>square</shape>"
@@ -879,7 +878,7 @@ def test_no_pretty_print_with_decl():
         "</row></data>"
     )
 
-    output = geom_df.to_xml(pretty_print=False, parser="lxml")
+    output = geom_df.to_xml(pretty_print=False, parser=parser)
     output = equalize_decl(output)
 
     # etree adds space for closed tags
@@ -889,8 +888,7 @@ def test_no_pretty_print_with_decl():
     assert output == expected
 
 
-@td.skip_if_no("lxml")
-def test_no_pretty_print_no_decl():
+def test_no_pretty_print_no_decl(parser):
     expected = (
         "<data><row><index>0</index><shape>square</shape>"
         "<degrees>360</degrees><sides>4.0</sides></row><row>"
@@ -900,7 +898,11 @@ def test_no_pretty_print_no_decl():
         "</row></data>"
     )
 
-    output = geom_df.to_xml(xml_declaration=False, pretty_print=False)
+    output = geom_df.to_xml(xml_declaration=False, pretty_print=False, parser=parser)
+
+    # etree adds space for closed tags
+    if output is not None:
+        output = output.replace(" />", "/>")
 
     assert output == expected
 
@@ -1170,6 +1172,7 @@ def test_style_to_string():
     assert out_xml == out_str
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
 @td.skip_if_no("lxml")
 def test_style_to_json():
     xsl = """\
