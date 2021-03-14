@@ -408,21 +408,15 @@ def maybe_cast_result(
     assert not is_scalar(result)
 
     if (
-        is_extension_array_dtype(dtype)
+        isinstance(dtype, ExtensionDtype)
         and not is_categorical_dtype(dtype)
         and dtype.kind != "M"
     ):
         # We have to special case categorical so as not to upcast
         # things like counts back to categorical
 
-        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-        # attribute "construct_array_type"
-        cls = dtype.construct_array_type()  # type: ignore[union-attr]
-        # error: Argument "dtype" to "maybe_cast_to_extension_array" has incompatible
-        # type "Union[dtype[Any], ExtensionDtype]"; expected "Optional[ExtensionDtype]"
-        result = maybe_cast_to_extension_array(
-            cls, result, dtype=dtype  # type: ignore[arg-type]
-        )
+        cls = dtype.construct_array_type()
+        result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
 
     elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
         # error: Argument 2 to "maybe_downcast_to_dtype" has incompatible type
@@ -549,15 +543,21 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray) -> np.ndarray:
         new_dtype = ensure_dtype_can_hold_na(result.dtype)
 
         if new_dtype != result.dtype:
-            # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible
-            # type "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any],
-            # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-            result = result.astype(new_dtype, copy=True)  # type: ignore[arg-type]
+            result = result.astype(new_dtype, copy=True)
 
         np.place(result, mask, np.nan)
 
     return result
+
+
+@overload
+def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype:
+    ...
+
+
+@overload
+def ensure_dtype_can_hold_na(dtype: ExtensionDtype) -> ExtensionDtype:
+    ...
 
 
 def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
@@ -636,9 +636,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
 
     kinds = ["i", "u", "f", "c", "m", "M"]
     if is_valid_na_for_dtype(fill_value, dtype) and dtype.kind in kinds:
-        # error: Incompatible types in assignment (expression has type
-        # "Union[dtype[Any], ExtensionDtype]", variable has type "dtype[Any]")
-        dtype = ensure_dtype_can_hold_na(dtype)  # type: ignore[assignment]
+        dtype = ensure_dtype_can_hold_na(dtype)
         fv = na_value_for_dtype(dtype)
         return dtype, fv
 
@@ -1765,14 +1763,12 @@ def maybe_cast_to_datetime(
         elif value.dtype == object:
             value = maybe_infer_to_datetimelike(value)
 
-    elif not isinstance(value, ABCExtensionArray):
+    elif isinstance(value, list):
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
         # conversion
 
-        # error: Argument 1 to "maybe_infer_to_datetimelike" has incompatible type
-        # "Union[ExtensionArray, List[Any]]"; expected "Union[ndarray, List[Any]]"
-        value = maybe_infer_to_datetimelike(value)  # type: ignore[arg-type]
+        value = maybe_infer_to_datetimelike(value)
 
     return value
 
