@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_string_like_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -239,13 +240,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
-        # error: Argument 1 to "_isna_string_dtype" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
-        # error: Argument 2 to "_isna_string_dtype" has incompatible type
-        # "ExtensionDtype"; expected "dtype[Any]"
-        result = _isna_string_dtype(
-            values, dtype, inf_as_na=inf_as_na  # type: ignore[arg-type]
-        )
+        result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view("i8") == iNaT
@@ -258,10 +253,9 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     return result
 
 
-def _isna_string_dtype(
-    values: np.ndarray, dtype: np.dtype, inf_as_na: bool
-) -> np.ndarray:
+def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
     # Working around NumPy ticket 1542
+    dtype = values.dtype
     shape = values.shape
 
     if is_string_like_dtype(dtype):
@@ -579,10 +573,8 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     numpy.datetime64('NaT')
     """
 
-    if is_extension_array_dtype(dtype):
-        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-        # attribute "na_value"
-        return dtype.na_value  # type: ignore[union-attr]
+    if isinstance(dtype, ExtensionDtype):
+        return dtype.na_value
     elif needs_i8_conversion(dtype):
         return dtype.type("NaT", "ns")
     elif is_float_dtype(dtype):
