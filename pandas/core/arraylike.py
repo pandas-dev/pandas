@@ -5,10 +5,7 @@ Methods that can be shared by many array-like classes or subclasses:
     ExtensionArray
 """
 import operator
-from typing import (
-    Any,
-    Callable,
-)
+from typing import Any
 import warnings
 
 import numpy as np
@@ -172,7 +169,7 @@ def _is_aligned(frame, other):
         return frame.columns.equals(other.index)
 
 
-def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+def _maybe_fallback(ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
     """
     In the future DataFrame, inputs to ufuncs will be aligned before applying
     the ufunc, but for now we ignore the index but raise a warning if behaviour
