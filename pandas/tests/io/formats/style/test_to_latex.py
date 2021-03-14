@@ -7,14 +7,14 @@ from pandas import (
     MultiIndex,
 )
 
+pytest.importorskip("jinja2")
+
 from pandas.io.formats.style import (
     _parse_latex_cell_styles,
     _parse_latex_header_span,
     _parse_latex_table_styles,
     _parse_latex_table_wrapping,
 )
-
-pytest.importorskip("jinja2")
 
 
 class TestStylerLatex:
