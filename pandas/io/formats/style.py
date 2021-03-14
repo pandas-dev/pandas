@@ -652,6 +652,17 @@ class Styler:
                 0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
+
+        Using a formatter with HTML ``escape``.
+
+        >>> df = pd.DataFrame([['<div></div>', '"A&B"']])
+        >>> s = df.style.format('<a href="a.com/{0}">{0}</a>', escape=True)
+        >>> s.render()
+        ...
+        <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
+        <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
+        ...
+
         """
         if all(
             (
