@@ -2331,7 +2331,10 @@ class TestDataFrameConstructors:
         df.iloc[0, 0] = 0
         df.iloc[0, 1] = 0
         if not copy:
-            # setitem on non-EA values preserves views
+            # Check that the underlying data behind df["c"] is still `c`
+            #  after setting with iloc.  Since we don't know which entry in
+            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
+            #  one of these arrays is `c`.  GH#38939
             assert sum(x is c for x in df._mgr.arrays) == 1
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
