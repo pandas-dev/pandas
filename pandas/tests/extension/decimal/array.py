@@ -110,7 +110,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             result = np.asarray([round(x, decimals) for x in result])
         return result
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         #
         if not all(
             isinstance(t, self._HANDLED_TYPES + (DecimalArray,)) for t in inputs

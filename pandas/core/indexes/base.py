@@ -4648,7 +4648,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = concat_compat(to_concat_vals)
         return Index(result, name=name)
 
-    def putmask(self, mask, value):
+    def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.
 

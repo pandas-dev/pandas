@@ -331,7 +331,7 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":

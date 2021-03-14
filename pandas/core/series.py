@@ -267,7 +267,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     )
 
     # Override cache_readonly bc Series is mutable
-    hasnans = property(
+    # error: Incompatible types in assignment (expression has type "property",
+    # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
+    hasnans = property(  # type: ignore[assignment]
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
     __hash__ = generic.NDFrame.__hash__
@@ -404,12 +406,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif copy:
                     data = data.copy()
             else:
-                # error: Argument 3 to "sanitize_array" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                data = sanitize_array(
-                    data, index, dtype, copy  # type: ignore[arg-type]
-                )
+                data = sanitize_array(data, index, dtype, copy)
 
                 manager = get_option("mode.data_manager")
                 if manager == "block":
@@ -4231,7 +4228,7 @@ Keep all original rows and also all original values
         )
         return self._constructor(new_values, index=new_index)
 
-    def _needs_reindex_multi(self, axes, method, level):
+    def _needs_reindex_multi(self, axes, method, level) -> bool:
         """
         Check if we do need a multi reindex; this is for compat with
         higher dims.

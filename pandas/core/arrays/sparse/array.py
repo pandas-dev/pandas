@@ -1396,7 +1396,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         out = kwargs.get("out", ())
 
         for x in inputs + out:

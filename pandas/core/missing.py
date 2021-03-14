@@ -679,7 +679,7 @@ def interpolate_2d(
     return result
 
 
-def _fillna_prep(values, mask=None):
+def _fillna_prep(values, mask: Optional[np.ndarray] = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
@@ -717,9 +717,7 @@ def _pad_1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
-    # error: Incompatible return value type (got "Tuple[ndarray, Optional[ndarray]]",
-    # expected "Tuple[ndarray, ndarray]")
-    return values, mask  # type: ignore[return-value]
+    return values, mask
 
 
 @_datetimelike_compat
@@ -730,9 +728,7 @@ def _backfill_1d(
 ) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
-    # error: Incompatible return value type (got "Tuple[ndarray, Optional[ndarray]]",
-    # expected "Tuple[ndarray, ndarray]")
-    return values, mask  # type: ignore[return-value]
+    return values, mask
 
 
 @_datetimelike_compat
