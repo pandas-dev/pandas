@@ -1392,6 +1392,7 @@ class TestExcelWriterEngineTests:
         ],
     )
     def test_kwargs_deprecated(self, ext):
+        # GH 40430
         msg = re.escape("Use of **kwargs is deprecated")
         with tm.assert_produces_warning(FutureWarning, match=msg):
             with tm.ensure_clean(ext) as path:
