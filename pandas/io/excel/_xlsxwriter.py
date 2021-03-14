@@ -1,6 +1,8 @@
 from typing import (
+    Any,
     Dict,
     List,
+    Optional,
     Tuple,
 )
 
@@ -175,7 +177,7 @@ class XlsxWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        engine_kwargs: Dict = None,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook

@@ -3,6 +3,7 @@ from __future__ import annotations
 import mmap
 from typing import (
     TYPE_CHECKING,
+    Any,
     Dict,
     List,
     Optional,
@@ -39,7 +40,7 @@ class OpenpyxlWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        engine_kwargs: Dict = None,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook

@@ -1,6 +1,8 @@
 from typing import (
     TYPE_CHECKING,
+    Any,
     Dict,
+    Optional,
 )
 
 import pandas._libs.json as json
@@ -26,7 +28,7 @@ class XlwtWriter(ExcelWriter):
         encoding=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        engine_kwargs: Dict = None,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Use the xlwt module as the Excel writer.
         import xlwt

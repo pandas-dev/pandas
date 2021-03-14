@@ -30,7 +30,7 @@ class ODSWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        engine_kwargs: Dict = None,
+        engine_kwargs: Optional[Dict[str, Any]] = None,
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
 
