@@ -1,11 +1,26 @@
+from __future__ import annotations
+
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+)
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -17,12 +32,17 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow
@@ -56,7 +76,8 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
-    # mypy: https://github.com/python/mypy/issues/4125
+    # https://github.com/python/mypy/issues/4125
+    # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
     def type(self) -> Type:  # type: ignore[override]
         return np.bool_
@@ -70,7 +91,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> Type["BooleanArray"]:
+    def construct_array_type(cls) -> Type[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -92,8 +113,8 @@ class BooleanDtype(BaseMaskedDtype):
         return True
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "BooleanArray":
+        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+    ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
@@ -257,6 +278,8 @@ class BooleanArray(BaseMaskedArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
+    _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
+    _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
@@ -274,7 +297,7 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "BooleanArray":
+    ) -> BooleanArray:
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -282,14 +305,23 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "BooleanArray":
+        cls,
+        strings: List[str],
+        *,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        true_values: Optional[List[str]] = None,
+        false_values: Optional[List[str]] = None,
+    ) -> BooleanArray:
+        true_values_union = cls._TRUE_VALUES.union(true_values or [])
+        false_values_union = cls._FALSE_VALUES.union(false_values or [])
+
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true", "1", "1.0"]:
+            elif s in true_values_union:
                 return True
-            elif s in ["False", "FALSE", "false", "0", "0.0"]:
+            elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
@@ -299,7 +331,7 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -581,10 +613,15 @@ class BooleanArray(BaseMaskedArray):
         elif op.__name__ in {"xor", "rxor"}:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        return BooleanArray(result, mask)
+        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
+        # expected "ndarray"
+        return BooleanArray(result, mask)  # type: ignore[arg-type]
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import FloatingArray, IntegerArray
+        from pandas.arrays import (
+            FloatingArray,
+            IntegerArray,
+        )
 
         if isinstance(other, (IntegerArray, FloatingArray)):
             return NotImplemented

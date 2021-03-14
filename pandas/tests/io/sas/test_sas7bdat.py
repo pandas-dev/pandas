@@ -7,7 +7,10 @@ import dateutil.parser
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError, PerformanceWarning
+from pandas.errors import (
+    EmptyDataError,
+    PerformanceWarning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -191,10 +194,13 @@ def test_compact_numerical_values(datapath):
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
-def test_many_columns(datapath):
+def test_many_columns(datapath, using_array_manager):
     # Test for looking for column information in more places (PR #22628)
     fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
-    with tm.assert_produces_warning(PerformanceWarning):
+    expected_warning = None
+    if not using_array_manager:
+        expected_warning = PerformanceWarning
+    with tm.assert_produces_warning(expected_warning):
         # Many DataFrame.insert calls
         df = pd.read_sas(fname, encoding="latin-1")
 
@@ -315,3 +321,22 @@ def test_max_sas_date_iterator(datapath):
     ]
     for result, expected in zip(results, expected):
         tm.assert_frame_equal(result, expected)
+
+
+def test_null_date(datapath):
+    fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
+    df = pd.read_sas(fname, encoding="utf-8")
+
+    expected = pd.DataFrame(
+        {
+            "datecol": [
+                datetime(9999, 12, 29),
+                pd.NaT,
+            ],
+            "datetimecol": [
+                datetime(9999, 12, 29, 23, 59, 59, 998993),
+                pd.NaT,
+            ],
+        },
+    )
+    tm.assert_frame_equal(df, expected)

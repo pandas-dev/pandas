@@ -3,7 +3,12 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    NaT,
+    PeriodIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
@@ -112,6 +117,30 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
+def test_resample_nat_index_series(request, freq, series, resample_method):
+    # GH39227
+
+    if freq == "M":
+        request.node.add_marker(pytest.mark.xfail(reason="Don't know why this fails"))
+
+    s = series.copy()
+    s.index = PeriodIndex([NaT] * len(s), freq=freq)
+    result = getattr(s.resample(freq), resample_method)()
+
+    if resample_method == "ohlc":
+        expected = DataFrame(
+            [], index=s.index[:0].copy(), columns=["open", "high", "low", "close"]
+        )
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+    else:
+        expected = s[:0].copy()
+        tm.assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_index_equal(result.index, expected.index)
+    assert result.index.freq == expected.index.freq
+
+
+@all_ts
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
 @pytest.mark.parametrize("resample_method", ["count", "size"])
 def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
     # GH28427
@@ -189,7 +218,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         getattr(empty_series_dti.resample("d"), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
-        # (ex: doing mean with dtype of np.object)
+        # (ex: doing mean with dtype of np.object_)
         pass
 
 

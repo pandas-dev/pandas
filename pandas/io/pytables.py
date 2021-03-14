@@ -2,9 +2,14 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
+from __future__ import annotations
+
 from contextlib import suppress
 import copy
-from datetime import date, tzinfo
+from datetime import (
+    date,
+    tzinfo,
+)
 import itertools
 import os
 import re
@@ -14,27 +19,34 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
 import numpy as np
 
-from pandas._config import config, get_option
+from pandas._config import (
+    config,
+    get_option,
+)
 
-from pandas._libs import lib, writers as libwriters
+from pandas._libs import (
+    lib,
+    writers as libwriters,
+)
 from pandas._libs.tslibs import timezones
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Label,
     Shape,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -68,17 +80,32 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    PeriodArray,
+)
 import pandas.core.common as com
-from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.computation.pytables import (
+    PyTablesExpr,
+    maybe_expression,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
+from pandas.core.internals import BlockManager
 
 from pandas.io.common import stringify_path
-from pandas.io.formats.printing import adjoin, pprint_thing
+from pandas.io.formats.printing import (
+    adjoin,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from tables import Col, File, Node
+    from tables import (
+        Col,
+        File,
+        Node,
+    )
 
     from pandas.core.internals import Block
 
@@ -321,19 +348,15 @@ def read_hdf(
 
     Parameters
     ----------
-    path_or_buf : str, path object, pandas.HDFStore or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be: ``file://localhost/path/to/table.h5``.
+    path_or_buf : str, path object, pandas.HDFStore
+        Any valid string path is acceptable. Only supports the local file system,
+        remote URLs and file-like objects are not supported.
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
         Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
 
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
@@ -451,7 +474,7 @@ def read_hdf(
         raise
 
 
-def _is_metadata_of(group: "Node", parent_group: "Node") -> bool:
+def _is_metadata_of(group: Node, parent_group: Node) -> bool:
     """Check if a given group is a metadata group for a given parent_group."""
     if group._v_depth <= parent_group._v_depth:
         return False
@@ -531,7 +554,7 @@ class HDFStore:
     >>> store.close()   # only now, data is written to disk
     """
 
-    _handle: Optional["File"]
+    _handle: Optional[File]
     _mode: str
     _complevel: int
     _fletcher32: bool
@@ -1473,7 +1496,7 @@ class HDFStore:
 
             yield (g._v_pathname.rstrip("/"), groups, leaves)
 
-    def get_node(self, key: str) -> Optional["Node"]:
+    def get_node(self, key: str) -> Optional[Node]:
         """ return the node with the key or None if it does not exist """
         self._check_if_open()
         if not key.startswith("/"):
@@ -1489,7 +1512,7 @@ class HDFStore:
         assert isinstance(node, _table_mod.Node), type(node)
         return node
 
-    def get_storer(self, key: str) -> Union["GenericFixed", "Table"]:
+    def get_storer(self, key: str) -> Union[GenericFixed, Table]:
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
@@ -1623,9 +1646,9 @@ class HDFStore:
         value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
-    ) -> Union["GenericFixed", "Table"]:
+    ) -> Union[GenericFixed, Table]:
         """ return a suitable class to operate """
-        cls: Union[Type["GenericFixed"], Type["Table"]]
+        cls: Union[Type[GenericFixed], Type[Table]]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
@@ -1770,12 +1793,12 @@ class HDFStore:
         if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
-    def _read_group(self, group: "Node"):
+    def _read_group(self, group: Node):
         s = self._create_storer(group)
         s.infer_axes()
         return s.read()
 
-    def _identify_group(self, key: str, append: bool) -> "Node":
+    def _identify_group(self, key: str, append: bool) -> Node:
         """Identify HDF5 group based on key, delete/create group if needed."""
         group = self.get_node(key)
 
@@ -1793,7 +1816,7 @@ class HDFStore:
 
         return group
 
-    def _create_nodes_and_group(self, key: str) -> "Node":
+    def _create_nodes_and_group(self, key: str) -> Node:
         """Create nodes from key and return group name."""
         # assertion for mypy
         assert self._handle is not None
@@ -1837,12 +1860,12 @@ class TableIterator:
 
     chunksize: Optional[int]
     store: HDFStore
-    s: Union["GenericFixed", "Table"]
+    s: Union[GenericFixed, Table]
 
     def __init__(
         self,
         store: HDFStore,
-        s: Union["GenericFixed", "Table"],
+        s: Union[GenericFixed, Table],
         func,
         where,
         nrows,
@@ -2069,7 +2092,9 @@ class IndexCol:
                 kwargs["freq"] = None
             new_pd_index = factory(values, **kwargs)
 
-        new_pd_index = _set_tz(new_pd_index, self.tz)
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ndarray, DatetimeIndex]", variable has type "Index")
+        new_pd_index = _set_tz(new_pd_index, self.tz)  # type: ignore[assignment]
         return new_pd_index, new_pd_index
 
     def take_data(self):
@@ -2113,7 +2138,7 @@ class IndexCol:
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler: "AppendableTable", append: bool):
+    def validate_and_set(self, handler: AppendableTable, append: bool):
         self.table = handler.table
         self.validate_col()
         self.validate_attr(append)
@@ -2190,7 +2215,7 @@ class IndexCol:
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
-    def validate_metadata(self, handler: "AppendableTable"):
+    def validate_metadata(self, handler: AppendableTable):
         """ validate that kind=category does not change the categories """
         if self.meta == "category":
             new_metadata = self.metadata
@@ -2205,7 +2230,7 @@ class IndexCol:
                     "different categories to the existing"
                 )
 
-    def write_metadata(self, handler: "AppendableTable"):
+    def write_metadata(self, handler: AppendableTable):
         """ set the meta data """
         if self.metadata is not None:
             handler.write_metadata(self.cname, self.metadata)
@@ -2231,7 +2256,9 @@ class GenericIndexCol(IndexCol):
         """
         assert isinstance(values, np.ndarray), type(values)
 
-        values = Int64Index(np.arange(len(values)))
+        # error: Incompatible types in assignment (expression has type
+        # "Int64Index", variable has type "ndarray")
+        values = Int64Index(np.arange(len(values)))  # type: ignore[assignment]
         return values, values
 
     def set_attr(self):
@@ -2330,13 +2357,14 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: ArrayLike) -> "Col":
+    def _get_atom(cls, values: ArrayLike) -> Col:
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: "ExtensionDtype" has no attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[attr-defined]
+        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, dtype[Any]]" has no
+        # attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[union-attr]
 
         shape = values.shape
         if values.ndim == 1:
@@ -2365,7 +2393,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     @classmethod
-    def get_atom_coltype(cls, kind: str) -> Type["Col"]:
+    def get_atom_coltype(cls, kind: str) -> Type[Col]:
         """ return the PyTables column class for this column """
         if kind.startswith("uint"):
             k4 = kind[4:]
@@ -2380,7 +2408,7 @@ class DataCol(IndexCol):
         return getattr(_tables(), col_name)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
     @classmethod
@@ -2537,7 +2565,7 @@ class DataIndexableCol(DataCol):
         return _tables().StringCol(itemsize=itemsize)
 
     @classmethod
-    def get_atom_data(cls, shape, kind: str) -> "Col":
+    def get_atom_data(cls, shape, kind: str) -> Col:
         return cls.get_atom_coltype(kind=kind)()
 
     @classmethod
@@ -2574,14 +2602,14 @@ class Fixed:
     ndim: int
     encoding: str
     parent: HDFStore
-    group: "Node"
+    group: Node
     errors: str
     is_table = False
 
     def __init__(
         self,
         parent: HDFStore,
-        group: "Node",
+        group: Node,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ):
@@ -2935,7 +2963,7 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names: List[Label] = []
+        names: List[Hashable] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
@@ -2952,7 +2980,7 @@ class GenericFixed(Fixed):
         )
 
     def read_index_node(
-        self, node: "Node", start: Optional[int] = None, stop: Optional[int] = None
+        self, node: Node, start: Optional[int] = None, stop: Optional[int] = None
     ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
@@ -3064,10 +3092,17 @@ class GenericFixed(Fixed):
         elif is_datetime64tz_dtype(value.dtype):
             # store as UTC
             # with a zone
-            self._handle.create_array(self.group, key, value.asi8)
+
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "asi8"
+            self._handle.create_array(
+                self.group, key, value.asi8  # type: ignore[union-attr]
+            )
 
             node = getattr(self.group, key)
-            node._v_attrs.tz = _get_tz(value.tz)
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
+            # attribute "tz"
+            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
@@ -3084,7 +3119,7 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
-    name: Label
+    name: Hashable
 
     @property
     def shape(self):
@@ -3235,7 +3270,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels: Union[int, List[Label]] = 1
+    levels: Union[int, List[Hashable]] = 1
     is_table = True
 
     index_axes: List[IndexCol]
@@ -3248,7 +3283,7 @@ class Table(Fixed):
     def __init__(
         self,
         parent: HDFStore,
-        group: "Node",
+        group: Node,
         encoding=None,
         errors: str = "strict",
         index_axes=None,
@@ -3333,7 +3368,7 @@ class Table(Fixed):
 
     def validate_multiindex(
         self, obj: FrameOrSeriesUnion
-    ) -> Tuple[DataFrame, List[Label]]:
+    ) -> Tuple[DataFrame, List[Hashable]]:
         """
         validate that we can store the multi-index; reset and return the
         new object
@@ -3353,7 +3388,10 @@ class Table(Fixed):
     @property
     def nrows_expected(self) -> int:
         """ based on our axes, compute the expected nrows """
-        return np.prod([i.cvalues.shape[0] for i in self.index_axes])
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(  # type: ignore[return-value]
+            [i.cvalues.shape[0] for i in self.index_axes]
+        )
 
     @property
     def is_exists(self) -> bool:
@@ -3412,8 +3450,8 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
-        # and "List[Tuple[str, None]]")
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
+        # "List[Tuple[str, None]]")
         return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
@@ -3439,8 +3477,12 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
-        values = Series(values)
-        self.parent.put(
+        # error: Incompatible types in assignment (expression has type
+        # "Series", variable has type "ndarray")
+        values = Series(values)  # type: ignore[assignment]
+        # error: Value of type variable "FrameOrSeries" of "put" of "HDFStore"
+        # cannot be "ndarray"
+        self.parent.put(  # type: ignore[type-var]
             self._get_metadata_path(key),
             values,
             format="table",
@@ -3476,7 +3518,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
-        self.levels: List[Label] = getattr(self.attrs, "levels", None) or []
+        self.levels: List[Hashable] = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -3877,7 +3919,7 @@ class Table(Fixed):
 
         # add my values
         vaxes = []
-        for i, (b, b_items) in enumerate(zip(blocks, blk_items)):
+        for i, (blk, b_items) in enumerate(zip(blocks, blk_items)):
 
             # shape of the data column are the indexable axes
             klass = DataCol
@@ -3909,12 +3951,13 @@ class Table(Fixed):
             new_name = name or f"values_block_{i}"
             data_converted = _maybe_convert_for_string_atom(
                 new_name,
-                b,
+                blk,
                 existing_col=existing_col,
                 min_itemsize=min_itemsize,
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
+                columns=b_items,
             )
             adj_name = _maybe_adjust_name(new_name, self.version)
 
@@ -3988,19 +4031,25 @@ class Table(Fixed):
         def get_blk_items(mgr):
             return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
-        blocks: List["Block"] = list(frame._mgr.blocks)
-        blk_items: List[Index] = get_blk_items(frame._mgr)
+        mgr = frame._mgr
+        mgr = cast(BlockManager, mgr)
+        blocks: List[Block] = list(mgr.blocks)
+        blk_items: List[Index] = get_blk_items(mgr)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
 
-            blocks = list(mgr.blocks)
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
+            # attribute "blocks"
+            blocks = list(mgr.blocks)  # type: ignore[union-attr]
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
-                blocks.extend(mgr.blocks)
+                # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has
+                # no attribute "blocks"
+                blocks.extend(mgr.blocks)  # type: ignore[union-attr]
                 blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
@@ -4028,7 +4077,7 @@ class Table(Fixed):
 
         return blocks, blk_items
 
-    def process_axes(self, obj, selection: "Selection", columns=None):
+    def process_axes(self, obj, selection: Selection, columns=None):
         """ process axes filters """
         # make a copy to avoid side effects
         if columns is not None:
@@ -4621,7 +4670,7 @@ class GenericTable(AppendableFrameTable):
     table_type = "generic_table"
     ndim = 2
     obj_type = DataFrame
-    levels: List[Label]
+    levels: List[Hashable]
 
     @property
     def pandas_type(self) -> str:
@@ -4788,14 +4837,18 @@ def _set_tz(
     elif coerce:
         values = np.asarray(values, dtype="M8[ns]")
 
-    return values
+    # error: Incompatible return value type (got "Union[ndarray, Index]",
+    # expected "Union[ndarray, DatetimeIndex]")
+    return values  # type: ignore[return-value]
 
 
 def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:
     assert isinstance(name, str)
 
     index_name = index.name
-    converted, dtype_name = _get_data_and_dtype_name(index)
+    # error: Argument 1 to "_get_data_and_dtype_name" has incompatible type "Index";
+    # expected "Union[ExtensionArray, ndarray]"
+    converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[arg-type]
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
@@ -4878,13 +4931,22 @@ def _unconvert_index(
 
 
 def _maybe_convert_for_string_atom(
-    name: str, block: "Block", existing_col, min_itemsize, nan_rep, encoding, errors
+    name: str,
+    block: Block,
+    existing_col,
+    min_itemsize,
+    nan_rep,
+    encoding,
+    errors,
+    columns: List[str],
 ):
-    if not block.is_object:
-        return block.values
+    bvalues = block.values
 
-    dtype_name = block.dtype.name
-    inferred_type = lib.infer_dtype(block.values, skipna=False)
+    if bvalues.dtype != object:
+        return bvalues
+
+    dtype_name = bvalues.dtype.name
+    inferred_type = lib.infer_dtype(bvalues, skipna=False)
 
     if inferred_type == "date":
         raise TypeError("[date] is not implemented as a table column")
@@ -4896,9 +4958,9 @@ def _maybe_convert_for_string_atom(
         )
 
     elif not (inferred_type == "string" or dtype_name == "object"):
-        return block.values
+        return bvalues
 
-    blocks: List["Block"] = block.fillna(nan_rep, downcast=False)
+    blocks: List[Block] = block.fillna(nan_rep, downcast=False)
     # Note: because block is always object dtype, fillna goes
     #  through a path such that the result is always a 1-element list
     assert len(blocks) == 1
@@ -4912,19 +4974,27 @@ def _maybe_convert_for_string_atom(
 
         # we cannot serialize this data, so report an exception on a column
         # by column basis
-        for i in range(len(block.shape[0])):
+
+        # expected behaviour:
+        # search block for a non-string object column by column
+        for i in range(data.shape[0]):
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
-                iloc = block.mgr_locs.indexer[i]
+                error_column_label = columns[i] if len(columns) > i else f"No.{i}"
                 raise TypeError(
-                    f"Cannot serialize the column [{iloc}] because\n"
-                    f"its data contents are [{inferred_type}] object dtype"
+                    f"Cannot serialize the column [{error_column_label}]\n"
+                    f"because its data contents are not [string] but "
+                    f"[{inferred_type}] object dtype"
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
-    data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
-    assert data_converted.shape == block.shape, (data_converted.shape, block.shape)
+
+    # error: Argument 1 to "_convert_string_array" has incompatible type "Union[ndarray,
+    # ExtensionArray]"; expected "ndarray"
+    data_converted = _convert_string_array(
+        data, encoding, errors  # type: ignore[arg-type]
+    ).reshape(data.shape)
     itemsize = data_converted.itemsize
 
     # specified min_itemsize?

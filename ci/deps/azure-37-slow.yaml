@@ -36,3 +36,4 @@ dependencies:
   - xlwt
   - moto
   - flask
+  - numba

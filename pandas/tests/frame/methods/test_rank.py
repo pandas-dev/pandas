@@ -1,13 +1,22 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas._libs.algos import Infinity, NegInfinity
+from pandas._libs.algos import (
+    Infinity,
+    NegInfinity,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -238,6 +247,7 @@ class TestRank:
                     expected = DataFrame(sprank, columns=cols).astype("float64")
                     tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     def test_rank_descending(self, method, dtype):
 

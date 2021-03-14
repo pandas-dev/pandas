@@ -68,9 +68,18 @@ class ApplyDictReturn:
 
 
 class Apply:
-    def setup_cache(self):
-        N = 10 ** 4
-        labels = np.random.randint(0, 2000, size=N)
+
+    param_names = ["factor"]
+    params = [4, 5]
+
+    def setup(self, factor):
+        N = 10 ** factor
+        # two cases:
+        # - small groups: small data (N**4) + many labels (2000) -> average group
+        #   size of 5 (-> larger overhead of slicing method)
+        # - larger groups: larger data (N**5) + fewer labels (20) -> average group
+        #   size of 5000
+        labels = np.random.randint(0, 2000 if factor == 4 else 20, size=N)
         labels2 = np.random.randint(0, 3, size=N)
         df = DataFrame(
             {
@@ -80,13 +89,13 @@ class Apply:
                 "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
             }
         )
-        return df
+        self.df = df
 
-    def time_scalar_function_multi_col(self, df):
-        df.groupby(["key", "key2"]).apply(lambda x: 1)
+    def time_scalar_function_multi_col(self, factor):
+        self.df.groupby(["key", "key2"]).apply(lambda x: 1)
 
-    def time_scalar_function_single_col(self, df):
-        df.groupby("key").apply(lambda x: 1)
+    def time_scalar_function_single_col(self, factor):
+        self.df.groupby("key").apply(lambda x: 1)
 
     @staticmethod
     def df_copy_function(g):
@@ -94,11 +103,11 @@ class Apply:
         g.name
         return g.copy()
 
-    def time_copy_function_multi_col(self, df):
-        df.groupby(["key", "key2"]).apply(self.df_copy_function)
+    def time_copy_function_multi_col(self, factor):
+        self.df.groupby(["key", "key2"]).apply(self.df_copy_function)
 
-    def time_copy_overhead_single_col(self, df):
-        df.groupby("key").apply(self.df_copy_function)
+    def time_copy_overhead_single_col(self, factor):
+        self.df.groupby("key").apply(self.df_copy_function)
 
 
 class Groups:
@@ -461,6 +470,29 @@ class GroupByMethods:
         self.as_field_method()
 
 
+class GroupByCythonAgg:
+    """
+    Benchmarks specifically targetting our cython aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    param_names = ["dtype", "method"]
+    params = [
+        ["float64"],
+        ["sum", "prod", "min", "max", "mean", "median", "var", "first", "last"],
+    ]
+
+    def setup(self, dtype, method):
+        N = 1_000_000
+        df = DataFrame(np.random.randn(N, 10), columns=list("abcdefghij"))
+        df["key"] = np.random.randint(0, 100, size=N)
+        self.df = df
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method)
+
+
 class RankWithTies:
     # GH 21237
     param_names = ["dtype", "tie_method"]
@@ -627,7 +659,7 @@ class TransformBools:
     def setup(self):
         N = 120000
         transition_points = np.sort(np.random.choice(np.arange(N), 1400))
-        transitions = np.zeros(N, dtype=np.bool)
+        transitions = np.zeros(N, dtype=np.bool_)
         transitions[transition_points] = True
         self.g = transitions.cumsum()
         self.df = DataFrame({"signal": np.random.rand(N)})
