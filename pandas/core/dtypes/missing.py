@@ -232,17 +232,12 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     """
     dtype = values.dtype
 
-    if is_extension_array_dtype(dtype):
+    if not isinstance(values, np.ndarray):
+        # i.e. ExtensionArray
         if inf_as_na and is_categorical_dtype(dtype):
-            # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
-            # "to_numpy"
-            result = libmissing.isnaobj_old(
-                values.to_numpy()  # type: ignore[union-attr]
-            )
+            result = libmissing.isnaobj_old(values.to_numpy())
         else:
-            # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
-            # "isna"
-            result = values.isna()  # type: ignore[union-attr]
+            result = values.isna()
     elif is_string_dtype(dtype):
         # error: Argument 1 to "_isna_string_dtype" has incompatible type
         # "ExtensionArray"; expected "ndarray"
@@ -256,17 +251,9 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         result = values.view("i8") == iNaT
     else:
         if inf_as_na:
-            # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-            # "ExtensionArray"; expected "Union[Union[int, float, complex, str, bytes,
-            # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], _SupportsArray]"
-            result = ~np.isfinite(values)  # type: ignore[arg-type]
+            result = ~np.isfinite(values)
         else:
-            # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-            # "ExtensionArray"; expected "Union[Union[int, float, complex, str, bytes,
-            # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], _SupportsArray]"
-            result = np.isnan(values)  # type: ignore[arg-type]
+            result = np.isnan(values)
 
     return result
 
