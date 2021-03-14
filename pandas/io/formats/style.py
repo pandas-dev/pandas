@@ -312,28 +312,28 @@ class Styler:
         caption: Optional[str] = None,
         encoding: Optional[str] = None,
     ):
-        """
-        Output Styler to a file, buffer or string in LaTeX format.
+        r"""
+        Write Styler to a file, buffer or string in LaTeX format.
 
         .. versionadded:: TODO
 
         Parameters
         ----------
         buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If `None`, the output is returned as a string.
+            Buffer to write to. If ``None``, the output is returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
-            `\begin{tabular}{<column_format>}`.
-            Defaults to 'l' for index and non-numeric data columns, otherwise 'r'.
+            `\\begin{tabular}{<column_format>}`. Defaults to 'l' for index and
+            non-numeric data columns, otherwise 'r'.
         position : str, optional
             The LaTeX positional argument for tables, placed in location:
-            `\begin{table}[<position>]`.
+            `\\begin{table}[<position>]`.
         hrules : bool, default False
-            Whether to add `\toprule`, `\\midrule` and `\bottomrule` from the
+            Whether to add `\\toprule`, `\\midrule` and `\\bottomrule` from the
             {booktabs} LaTeX package.
         label : str, optional
             The LaTeX label placed in location: `\\label{<label>}`.
-            This is used with `\ref{<label>}` in the main .tex file.
+            This is used with `\\ref{<label>}` in the main .tex file.
         caption : str, optional
             The LaTeX table caption placed in location: `\\caption{<caption>}`.
         encoding : str, default "utf-8"
@@ -346,8 +346,8 @@ class Styler:
 
         Notes
         -----
-        Cell Styles
-        ^^^^^^^^^^^
+        **Cell Styles**
+
         LaTeX styling can only be rendered if the accompanying styling functions have
         been constructed with appropriate LaTeX commands. `Styler` was designed and
         is typically used to generate HTML with a CSS Styling language. All styling
@@ -373,31 +373,57 @@ class Styler:
         >>> s.render(latex=True)
 
         Internally these LaTeX `('command', 'options')` pairs are translated to the
-        `display_value` with the structure: `\\<command><options>{<display_value>}`.
-        Where there are multiple commands the latter is nested, so that the above
-        example highlighed cell is rendered as: `\\cellcolor{red}{\textbf{4}}`.
+        `display_value` with the structure: '`\\<command><options>{<display_value>}`'.
+        Where there are multiple commands the latter is nested recursively, so that
+        the above example highlighed cell is rendered as:
+        '`\\cellcolor{red}{\\textbf{4}}`'.
 
         Occasionally this nesting does not suit the applied command. For example the
         commands for font-sizing, e.g. `Large` or `Huge` need a different type of
         structure. You can adapt for this by adding `--wrap` to the `options`.
-        For example:
-
-        `props='Huge: ;'` will render a faulty cell as `\\Huge{<display_value>}`
-
-        but,
-
-        `props='Huge: --wrap;'` will render a working cell, wrapped with braces, as
-        `{\\Huge <display_value>}`.
+        For example: `props='Huge: ;'` will render a faulty cell as
+        '`\\Huge{<display_value>}`'. But, `props='Huge: --wrap;'` will render a
+        working cell, wrapped with braces, as '`{\\Huge <display_value>}`'.
 
         As with CSS, ordering of styles matters and the most recent style applied (if
         two have the same CSS-hierarchy) will be rendered. The same is true for LaTeX,
         where the innermost nested command will dominate, so:
         `props='cellcolor:{red};cellcolor:{green};` will result in a green rendered cell
-        with the LaTeX string: `\\cellcolor{red}{\\cellcolor{green}{<display_value}}`.
+        with the LaTeX string: '`\\cellcolor{red}{\\cellcolor{green}{<display_value}}`'.
 
-        Table Styles
-        ^^^^^^^^^^^^
-        Some info here.
+        **Table Styles**
+
+        Internally Styler uses its ``table_styles`` to parse some of the options here.
+        All options except for ``caption`` are added in the following way:
+
+        >>> s.set_table_styles([{'selector': 'command', 'props': ':options;'}],
+        ...                    overwrite=False)
+
+        If setting a ``column_format`` for example this is internally recorded as:
+
+        >>> s.set_table_styles([{'selector': 'column_format', 'props': ':rcll;'}],
+        ...                    overwrite=False])
+
+        Since ``labels`` often include ':' but this is used as a CSS separator, there
+        is a character replacement, substituting ':' for '§', so a label of 'fig:item1'
+        is recorded as:
+
+        >>> s.set_table_styles([{'selector': 'label', 'props': ':{fig§item1};'}],
+        ...                    overwrite=False])
+
+        Any custom commands you add here are added above the '`\\begin{tabular}`' entry,
+        such as odd and even row coloring can be included with:
+
+        >>> s.set_table_styles([{'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}],
+        ...                    overwrite=False])
+
+        **Latex Packages**
+
+        It is recommended to include the LaTeX packages:
+
+         - {booktabs} for horizontal rules (`hrules`).
+         - [table]{xcolor} for cell color and font colors.
+         - {multicol} and {multirow} for MultiIndex display.
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
