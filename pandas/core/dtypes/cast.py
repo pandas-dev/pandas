@@ -407,21 +407,16 @@ def maybe_cast_result(
 
     assert not is_scalar(result)
 
-    if (
-        isinstance(dtype, ExtensionDtype)
-        and not is_categorical_dtype(dtype)
-        and dtype.kind != "M"
-    ):
-        # We have to special case categorical so as not to upcast
-        # things like counts back to categorical
+    if isinstance(dtype, ExtensionDtype):
+        if not is_categorical_dtype(dtype) and dtype.kind != "M":
+            # We have to special case categorical so as not to upcast
+            # things like counts back to categorical
 
-        cls = dtype.construct_array_type()
-        result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+            cls = dtype.construct_array_type()
+            result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
 
-    elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
-        # error: Argument 2 to "maybe_downcast_to_dtype" has incompatible type
-        # "Union[dtype[Any], ExtensionDtype]"; expected "Union[str, dtype[Any]]"
-        result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[arg-type]
+    elif (numeric_only and is_numeric_dtype(dtype)) or not numeric_only:
+        result = maybe_downcast_to_dtype(result, dtype)
 
     return result
 
