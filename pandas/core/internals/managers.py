@@ -800,22 +800,12 @@ class BlockManager(DataManager):
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
-            slicer = (slice(None), slobj)
-            new_blocks = [blk.getitem_block(slicer) for blk in self.blocks]
+            new_blocks = [blk.getitem_block_index(slobj) for blk in self.blocks]
         else:
             raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
-
-        return type(self)._simple_new(tuple(new_blocks), new_axes)
-
-    def get_slice_index(self, slobj: slice) -> BlockManager:
-        # get_slice specialized to axis = 1 and ndim == 2
-        new_blocks = [blk.getitem_block_index(slobj) for blk in self.blocks]
-
-        axes = self.axes
-        new_axes = [axes[0], axes[1]._getitem_slice(slobj)]
 
         return type(self)._simple_new(tuple(new_blocks), new_axes)
 

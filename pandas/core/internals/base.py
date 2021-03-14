@@ -122,15 +122,6 @@ class DataManager(PandasObject):
     def isna(self: T, func) -> T:
         return self.apply("apply", func=func)
 
-    def get_slice(self: T, slobj: slice, axis: int = 0) -> T:
-        raise AbstractMethodError(self)
-
-    def get_slice_index(self: T, slobj: slice) -> T:
-        """
-        get_slice specialized to axis=self.ndim-1
-        """
-        return self.get_slice(slobj, axis=self.ndim - 1)
-
 
 class SingleDataManager(DataManager):
     ndim = 1
