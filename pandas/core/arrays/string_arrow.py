@@ -6,6 +6,7 @@ from typing import (
     Any,
     Optional,
     Sequence,
+    Tuple,
     Type,
     Union,
 )
@@ -20,6 +21,7 @@ from pandas._typing import (
     Dtype,
     NpDtype,
 )
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -33,13 +35,13 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
 )
-from pandas.core.missing import get_fill_func
 
 try:
     import pyarrow as pa
@@ -246,7 +248,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
@@ -273,9 +278,22 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return len(self._data)
 
-    @classmethod
-    def _from_factorized(cls, values, original):
-        return cls._from_sequence(values)
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+        encoded = self._data.dictionary_encode()
+        indices = pa.chunked_array(
+            [c.indices for c in encoded.chunks], type=encoded.type.index_type
+        ).to_pandas()
+        if indices.dtype.kind == "f":
+            indices[np.isnan(indices)] = na_sentinel
+        indices = indices.astype(np.int64, copy=False)
+
+        if encoded.num_chunks:
+            uniques = type(self)(encoded.chunk(0).dictionary)
+        else:
+            uniques = type(self)(pa.array([], type=encoded.type.value_type))
+
+        return indices.values, uniques
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> ArrowStringArray:
@@ -326,7 +344,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                return self.take(item)
+                # error: Argument 1 to "take" of "ArrowStringArray" has incompatible
+                # type "ndarray"; expected "Sequence[int]"
+                return self.take(item)  # type: ignore[arg-type]
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
             else:
@@ -380,19 +400,18 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f"expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
-                func = get_fill_func(method)
-                new_values = func(self.to_numpy(object), limit=limit, mask=mask)
+                func = missing.get_fill_func(method)
+                # error: Argument 1 to "to_numpy" of "ArrowStringArray" has incompatible
+                # type "Type[object]"; expected "Union[str, dtype[Any], None]"
+                new_values, _ = func(
+                    self.to_numpy(object),  # type: ignore[arg-type]
+                    limit=limit,
+                    mask=mask,
+                )
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value
@@ -490,7 +509,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
             # Slice data and insert in-between
             new_data = [
-                *self._data[0:key].chunks,
+                # error: Slice index must be an integer or None
+                *self._data[0:key].chunks,  # type: ignore[misc]
                 pa.array([value], type=pa.string()),
                 *self._data[(key + 1) :].chunks,
             ]
@@ -581,7 +601,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if not is_array_like(indices):
             indices_array = np.asanyarray(indices)
         else:
-            indices_array = indices
+            # error: Incompatible types in assignment (expression has type
+            # "Sequence[int]", variable has type "ndarray")
+            indices_array = indices  # type: ignore[assignment]
 
         if len(self._data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")

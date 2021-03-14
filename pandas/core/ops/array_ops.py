@@ -88,7 +88,11 @@ def _masked_arith_op(x: np.ndarray, y, op):
     assert isinstance(x, np.ndarray), type(x)
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        result = np.empty(x.size, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        result = np.empty(x.size, dtype=dtype)  # type: ignore[arg-type]
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)

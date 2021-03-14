@@ -76,7 +76,8 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
-    # mypy: https://github.com/python/mypy/issues/4125
+    # https://github.com/python/mypy/issues/4125
+    # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
     def type(self) -> Type:  # type: ignore[override]
         return np.bool_
@@ -330,7 +331,7 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -612,7 +613,9 @@ class BooleanArray(BaseMaskedArray):
         elif op.__name__ in {"xor", "rxor"}:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        return BooleanArray(result, mask)
+        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
+        # expected "ndarray"
+        return BooleanArray(result, mask)  # type: ignore[arg-type]
 
     def _cmp_method(self, other, op):
         from pandas.arrays import (
