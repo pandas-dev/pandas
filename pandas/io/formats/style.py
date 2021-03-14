@@ -957,7 +957,7 @@ class Styler:
         Returns
         -------
         rendered : str
-            The rendered HTML (or LaTeX)
+            The rendered HTML (or LaTeX).
 
         See Also
         --------
