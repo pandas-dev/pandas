@@ -198,7 +198,11 @@ class Styler:
         self.tooltips: Optional[_Tooltips] = None
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=None))
+        ] = defaultdict(
+            lambda: partial(
+                _default_formatter, precision=get_option("display.precision")
+            )
+        )
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
         self.format(formatter=None, precision=precision, na_rep=na_rep)
@@ -2127,7 +2131,7 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
+def _default_formatter(x: Any, precision: int) -> Any:
     """
     Format the display of a value
 
@@ -2143,8 +2147,6 @@ def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
     value : Any
         Matches input type, or string if input is float or complex.
     """
-    if precision is None:
-        precision = get_option("display.precision")
     if isinstance(x, (float, complex)):
         return f"{x:.{precision}f}"
     return x
@@ -2165,6 +2167,7 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         formatter_func = formatter
     elif formatter is None:
+        precision = get_option("display.precision") if precision is None else precision
         formatter_func = partial(_default_formatter, precision=precision)
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
