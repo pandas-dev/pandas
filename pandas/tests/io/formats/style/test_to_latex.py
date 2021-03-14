@@ -25,14 +25,15 @@ class TestStylerLatex:
     def test_minimal_latex_tabular(self):
         expected = dedent(
             """\
-            \\begin{tabular}{lrrl}
+            \\begin{tabular}{llll}
              & A & B & C \\\\
             0 & 0 & -0.61 & ab \\\\
             1 & 1 & -1.22 & cd \\\\
             \\end{tabular}
             """
         )
-        assert self.s.to_latex() == expected
+        assert self.s.render(latex=True) == expected
+        assert self.s.to_latex() == expected.replace("llll", "lrrl")
 
     def test_tabular_hrules(self):
         expected = dedent(
@@ -139,7 +140,7 @@ class TestStylerLatex:
         self.df.columns = cidx
         expected = dedent(
             """\
-            \\begin{tabular}{lrrl}
+            \\begin{tabular}{llll}
              & \\multicolumn{2}{r}{A} & B \\\\
              & a & b & c \\\\
             0 & 0 & -0.61 & ab \\\\
@@ -147,7 +148,9 @@ class TestStylerLatex:
             \\end{tabular}
             """
         )
-        assert expected == self.df.style.format(precision=2).to_latex()
+        s = self.df.style.format(precision=2)
+        assert expected == s.render(latex=True)
+        assert expected.replace("llll", "lrrl") == s.to_latex()
 
     def test_multiindex_row(self):
         ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
@@ -156,7 +159,7 @@ class TestStylerLatex:
         self.df.index = ridx
         expected = dedent(
             """\
-            \\begin{tabular}{llrrl}
+            \\begin{tabular}{lllll}
              &  & A & B & C \\\\
             \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
              & b & 1 & -1.22 & cd \\\\
@@ -164,7 +167,9 @@ class TestStylerLatex:
             \\end{tabular}
             """
         )
-        assert expected == self.df.style.format(precision=2).to_latex()
+        s = self.df.style.format(precision=2)
+        assert expected == s.render(latex=True)
+        assert expected.replace("lllll", "llrrl") == s.to_latex()
 
     def test_multiindex_row_and_col(self):
         cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
@@ -174,7 +179,7 @@ class TestStylerLatex:
         self.df.index, self.df.columns = ridx, cidx
         expected = dedent(
             """\
-            \\begin{tabular}{llrrl}
+            \\begin{tabular}{lllll}
              &  & \\multicolumn{2}{r}{Z} & Y \\\\
              &  & a & b & c \\\\
             \\multirow{2}{*}{A} & a & 0 & -0.61 & ab \\\\
@@ -183,7 +188,9 @@ class TestStylerLatex:
             \\end{tabular}
             """
         )
-        assert expected == self.df.style.format(precision=2).to_latex()
+        s = self.df.style.format(precision=2)
+        assert expected == s.render(latex=True)
+        assert expected.replace("lllll", "llrrl") == s.to_latex()
 
     def test_comprehensive(self):
         # test as many low level features simultaneously as possible
