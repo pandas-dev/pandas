@@ -24,6 +24,7 @@ Styler properties
 
    Styler.env
    Styler.template
+   Styler.template_latex
    Styler.loader
 
 Style application
@@ -65,3 +66,4 @@ Style export and import
    Styler.export
    Styler.use
    Styler.to_excel
+   Styler.to_latex

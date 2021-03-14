@@ -319,7 +319,8 @@ class Styler:
 
         Parameters
         ----------
-        buf: TODO
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If `None`, the output is returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
             `\begin{tabular}{<column_format>}`.
@@ -335,14 +336,18 @@ class Styler:
             This is used with `\ref{<label>}` in the main .tex file.
         caption : str, optional
             The LaTeX table caption placed in location: `\\caption{<caption>}`.
-        encoding: TODO
+        encoding : str, default "utf-8"
+            Character encoding setting.
 
         Returns
         -------
-        TODO
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
 
         Notes
         -----
+        Cell Styles
+        ^^^^^^^^^^^
         LaTeX styling can only be rendered if the accompanying styling functions have
         been constructed with appropriate LaTeX commands. `Styler` was designed and
         is typically used to generate HTML with a CSS Styling language. All styling
@@ -390,7 +395,9 @@ class Styler:
         `props='cellcolor:{red};cellcolor:{green};` will result in a green rendered cell
         with the LaTeX string: `\\cellcolor{red}{\\cellcolor{green}{<display_value}}`.
 
-        TODO: document table styles.
+        Table Styles
+        ^^^^^^^^^^^^
+        Some info here.
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
