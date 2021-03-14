@@ -352,7 +352,7 @@ class Styler:
         In order to incorporate LaTeX into Styler one needs to understand that the
         usual CSS `('attribute', 'value')` pair must be replaced by a LaTeX
         `('command', 'options')` approach and each cell will be styled individually
-        using a nested LaTeX command approach.
+        using nested LaTeX commands with their accompanied options.
 
         For example the following code will highlight and bold a cell in HTML-CSS:
 
@@ -383,6 +383,12 @@ class Styler:
 
         `props='Huge: --wrap;'` will render a working cell, wrapped with braces, as
         `{\\Huge <display_value>}`.
+
+        As with CSS, ordering of styles matters and the most recent style applied (if
+        two have the same CSS-hierarchy) will be rendered. The same is true for LaTeX,
+        where the innermost nested command will dominate, so:
+        `props='cellcolor:{red};cellcolor:{green};` will result in a green rendered cell
+        with the LaTeX string: `\\cellcolor{red}{\\cellcolor{green}{<display_value}}`.
 
         TODO: document table styles.
         """
