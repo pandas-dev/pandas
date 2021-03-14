@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import functools
-from typing import Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    overload,
+)
 
 import numpy as np
 
@@ -19,6 +23,33 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.base import ExtensionArray
+
+
+@overload
+def take_nd(
+    arr: np.ndarray,
+    indexer,
+    axis: int = ...,
+    out: Optional[np.ndarray] = ...,
+    fill_value=...,
+    allow_fill: bool = ...,
+) -> np.ndarray:
+    ...
+
+
+@overload
+def take_nd(
+    arr: ExtensionArray,
+    indexer,
+    axis: int = ...,
+    out: Optional[np.ndarray] = ...,
+    fill_value=...,
+    allow_fill: bool = ...,
+) -> ArrayLike:
+    ...
 
 
 def take_nd(
@@ -140,7 +171,14 @@ def take_1d(
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+
+        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
+        # "ndarray"; expected "Sequence[int]"
+        return arr.take(
+            indexer,  # type: ignore[arg-type]
+            fill_value=fill_value,
+            allow_fill=allow_fill,
+        )
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, 0, None, fill_value, allow_fill
@@ -174,7 +212,9 @@ def take_2d_multi(
 
     row_idx = ensure_int64(row_idx)
     col_idx = ensure_int64(col_idx)
-    indexer = row_idx, col_idx
+    # error: Incompatible types in assignment (expression has type "Tuple[Any, Any]",
+    # variable has type "ndarray")
+    indexer = row_idx, col_idx  # type: ignore[assignment]
     mask_info = None
 
     # check for promotion based on types only (do this first because
@@ -485,8 +525,13 @@ def _take_preprocess_indexer_and_fill_value(
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 mask = indexer == -1
-                needs_masking = mask.any()
-                mask_info = mask, needs_masking
+                # error: Item "bool" of "Union[Any, bool]" has no attribute "any"
+                # [union-attr]
+                needs_masking = mask.any()  # type: ignore[union-attr]
+                # error: Incompatible types in assignment (expression has type
+                # "Tuple[Union[Any, bool], Any]", variable has type
+                # "Optional[Tuple[None, bool]]")
+                mask_info = mask, needs_masking  # type: ignore[assignment]
                 if needs_masking:
                     if out is not None and out.dtype != dtype:
                         raise TypeError("Incompatible type for fill_value")

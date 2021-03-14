@@ -4,7 +4,10 @@ import decimal
 import numbers
 import random
 import sys
-from typing import Type
+from typing import (
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -107,7 +110,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             result = np.asarray([round(x, decimals) for x in result])
         return result
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         #
         if not all(
             isinstance(t, self._HANDLED_TYPES + (DecimalArray,)) for t in inputs
@@ -173,7 +176,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._data)
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item) -> Union[bool, np.bool_]:
         if not isinstance(item, decimal.Decimal):
             return False
         elif item.is_nan():

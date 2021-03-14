@@ -155,35 +155,33 @@ jobs:
       run: |
         source activate pandas-dev
 
-        pytest pandas/tests/frame/methods
-        pytest pandas/tests/frame/test_constructors.py
-        pytest pandas/tests/frame/test_*
-        pytest pandas/tests/frame/test_reductions.py
+        pytest pandas/tests/frame/
         pytest pandas/tests/reductions/
         pytest pandas/tests/generic/test_generic.py
         pytest pandas/tests/arithmetic/
         pytest pandas/tests/groupby/
         pytest pandas/tests/resample/
         pytest pandas/tests/reshape/merge
-
-        pytest pandas/tests/series/methods
-        pytest pandas/tests/series/test_*
+        pytest pandas/tests/series/
 
         # indexing subset (temporary since other tests don't pass yet)
-        pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean
-        pytest pandas/tests/frame/indexing/test_where.py
-        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_multi_index
-        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_listlike_indexer_duplicate_columns
         pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups
         pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column
 
         pytest pandas/tests/api/
+        pytest pandas/tests/arrays/
         pytest pandas/tests/base/
         pytest pandas/tests/computation/
         pytest pandas/tests/config/
         pytest pandas/tests/dtypes/
         pytest pandas/tests/generic/
         pytest pandas/tests/indexes/
+        pytest pandas/tests/io/test_* -m "not slow and not clipboard"
+        pytest pandas/tests/io/excel/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/formats/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/parser/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/sas/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/xml/ -m "not slow and not clipboard"
         pytest pandas/tests/libs/
         pytest pandas/tests/plotting/
         pytest pandas/tests/scalar/
