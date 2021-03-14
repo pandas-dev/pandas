@@ -475,8 +475,10 @@ class DataFrame(NDFrame, OpsMixin):
         RangeIndex (0, 1, 2, ..., n) if no column labels are provided.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-    copy : bool, default False
-        Copy data from inputs. Only affects DataFrame / 2d ndarray input.
+    copy : bool or None, default None
+        Copy data from inputs.
+        For dict data, passing None behaves like copy=True.  For all other
+        data types, passing None behaves like copy=False.
 
     See Also
     --------
