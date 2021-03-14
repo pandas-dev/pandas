@@ -44,6 +44,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     DtypeArg,
+    DtypeObj,
     FilePathOrBuffer,
     FrameOrSeries,
     IndexKeyFunc,
@@ -411,7 +412,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _validate_dtype(cls, dtype):
+    def _validate_dtype(cls, dtype) -> Optional[DtypeObj]:
         """ validate the passed dtype """
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -1995,13 +1996,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
     def __array_ufunc__(
-        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
+        self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any
     ):
-        # error: Argument 2 to "array_ufunc" has incompatible type "Callable[..., Any]";
-        # expected "ufunc"
-        return arraylike.array_ufunc(
-            self, ufunc, method, *inputs, **kwargs  # type: ignore[arg-type]
-        )
+        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
@@ -4900,7 +4897,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return obj
 
-    @final
     def _needs_reindex_multi(self, axes, method, level) -> bool_t:
         """Check if we do need a multi reindex."""
         return (
@@ -6998,10 +6994,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     f"`limit_direction` must be 'backward' for method `{method}`"
                 )
 
-        # error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-        if obj.ndim == 2 and np.all(
-            obj.dtypes == np.dtype(object)  # type: ignore[type-var]
-        ):
+        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype("object")):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -8488,15 +8481,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 na_option=na_option,
                 pct=pct,
             )
-            # error: Incompatible types in assignment (expression has type
-            # "FrameOrSeries", variable has type "ndarray")
             # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
             # "Union[ArrayManager, BlockManager]"
-            ranks = self._constructor(  # type: ignore[assignment]
+            ranks_obj = self._constructor(
                 ranks, **data._construct_axes_dict()  # type: ignore[arg-type]
             )
-            # error: "ndarray" has no attribute "__finalize__"
-            return ranks.__finalize__(self, method="rank")  # type: ignore[attr-defined]
+            return ranks_obj.__finalize__(self, method="rank")
 
         # if numeric_only is None, and we can't get anything, we try with
         # numeric_only=True
