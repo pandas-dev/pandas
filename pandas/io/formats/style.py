@@ -2479,8 +2479,8 @@ def _non_reducing_slice(slice_):
 
 def _parse_latex_table_wrapping(styles: CSSStyles, caption: Optional[str]) -> bool:
     """
-    Discovers whether \begin{tabular}..\\end{tabular} should be wrapped within
-    \begin{table}..\\end{table}
+    Discovers whether \\begin{tabular}..\\end{tabular} should be wrapped within
+    \\begin{table}..\\end{table}
 
     Parses the `table_styles` and detects any selectors which must be included outside
     of {tabular}, i.e. indicating that wrapping must occur, and therefore return True.
