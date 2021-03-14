@@ -2478,9 +2478,15 @@ def _non_reducing_slice(slice_):
 
 
 def _parse_latex_table_wrapping(styles: CSSStyles, caption: Optional[str]) -> bool:
+    """
+    Discovers whether \begin{tabular}..\\end{tabular} should be wrapped within
+    \begin{table}..\\end{table}
+
+    Parses the `table_styles` and detects any selectors which must be included outside
+    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True.
+    """
     IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
-    # {tabular} is wrapped inside {table} if table_styles selectors exist that are
-    # not any of the ignored wrappers.
+    # ignored selectors are included with {tabular} so do not need wrapping
     if (
         styles is not None
         and any(d["selector"] not in IGNORED_WRAPPERS for d in styles)
