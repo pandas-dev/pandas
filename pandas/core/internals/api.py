@@ -13,7 +13,10 @@ import numpy as np
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    pandas_dtype,
+)
 
 from pandas.core.arrays import DatetimeArray
 from pandas.core.internals.blocks import (
@@ -39,11 +42,10 @@ def make_block(
     - Block.make_block_same_class
     - Block.__init__
     """
-    # error: Argument 2 to "extract_pandas_array" has incompatible type
-    # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-    # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
-    # ExtensionDtype, None]"
-    values, dtype = extract_pandas_array(values, dtype, ndim)  # type: ignore[arg-type]
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+
+    values, dtype = extract_pandas_array(values, dtype, ndim)
 
     if klass is None:
         dtype = dtype or values.dtype
