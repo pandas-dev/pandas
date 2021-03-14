@@ -679,7 +679,11 @@ def _pad_1d(values, limit=None, mask=None):
     return values, mask
 
 
-def _backfill_1d(values, limit=None, mask=None):
+def _backfill_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     _, new_mask = _pad_1d(values[::-1], limit, mask[::-1] if mask is not None else None)
     return values, (mask if mask is not None else new_mask)
 
