@@ -175,7 +175,7 @@ class XlsxWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs: Dict = None,
     ):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
@@ -190,7 +190,7 @@ class XlsxWriter(ExcelWriter):
             datetime_format=datetime_format,
             mode=mode,
             storage_options=storage_options,
-            **engine_kwargs,
+            engine_kwargs=engine_kwargs,
         )
 
         self.book = Workbook(self.handles.handle, **engine_kwargs)

@@ -6,6 +6,7 @@ from datetime import (
 from functools import partial
 from io import BytesIO
 import os
+import re
 
 import numpy as np
 import pytest
@@ -1381,6 +1382,24 @@ class TestExcelWriterEngineTests:
                 check_called(lambda: df.to_excel(filepath))
             with tm.ensure_clean("something.xls") as filepath:
                 check_called(lambda: df.to_excel(filepath, engine="dummy"))
+
+    @pytest.mark.parametrize(
+        "ext",
+        [
+            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
+            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
+            pytest.param(".ods", marks=td.skip_if_no("odf")),
+        ],
+    )
+    def test_kwargs_deprecated(self, ext):
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with tm.ensure_clean(ext) as path:
+                try:
+                    with ExcelWriter(path, kwarg=1):
+                        pass
+                except TypeError:
+                    pass
 
 
 @td.skip_if_no("xlrd")
