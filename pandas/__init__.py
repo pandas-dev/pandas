@@ -167,6 +167,7 @@ from pandas.io.api import (
     read_feather,
     read_gbq,
     read_html,
+    read_xml,
     read_json,
     read_stata,
     read_sas,
@@ -180,7 +181,7 @@ import pandas.testing
 import pandas.arrays
 
 # use the closest tagged version if possible
-from ._version import get_versions
+from pandas._version import get_versions
 
 v = get_versions()
 __version__ = v.get("closest-tag", v["version"])

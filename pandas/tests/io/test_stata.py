@@ -12,13 +12,14 @@ import zipfile
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.frame import DataFrame, Series
+from pandas.core.frame import (
+    DataFrame,
+    Series,
+)
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -28,11 +29,9 @@ from pandas.io.stata import (
     StataMissingValue,
     StataReader,
     StataWriterUTF8,
+    ValueLabelTypeMismatch,
     read_stata,
 )
-
-# TODO(ArrayManager) the stata code relies on BlockManager internals (eg blknos)
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture()
@@ -432,7 +431,7 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
+            with tm.assert_produces_warning(InvalidColumnName):
                 original.to_stata(path, None)
 
             written_and_read_again = self.read_dta(path)
@@ -640,7 +639,7 @@ class TestStata:
         # Data obtained from:
         # http://go.worldbank.org/ZXY29PVJ21
         dpath = os.path.join(self.dirpath, "S4_EDUC1.dta")
-        df = pd.read_stata(dpath)
+        df = read_stata(dpath)
         df0 = [[1, 1, 3, -2], [2, 1, 2, -2], [4, 1, 1, -2]]
         df0 = DataFrame(df0)
         df0.columns = ["clustnum", "pri_schl", "psch_num", "psch_dis"]
@@ -1019,7 +1018,7 @@ class TestStata:
             [original[col].astype("category") for col in original], axis=1
         )
 
-        with tm.assert_produces_warning(pd.io.stata.ValueLabelTypeMismatch):
+        with tm.assert_produces_warning(ValueLabelTypeMismatch):
             original.to_stata(path)
             # should get a warning for mixed content
 
@@ -1538,7 +1537,7 @@ The repeated labels are:\n-+\nwolof
         with tm.ensure_clean() as path:
             df.to_stata(path, write_index=write_index)
 
-            with pd.read_stata(path, iterator=True) as dta_iter:
+            with read_stata(path, iterator=True) as dta_iter:
                 value_labels = dta_iter.value_labels()
         assert value_labels == {"A": {0: "A", 1: "B", 2: "C", 3: "E"}}
 
@@ -1548,7 +1547,7 @@ The repeated labels are:\n-+\nwolof
         df.index.name = "index"
         with tm.ensure_clean() as path:
             df.to_stata(path)
-            reread = pd.read_stata(path, index_col="index")
+            reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     @pytest.mark.parametrize(
@@ -1649,7 +1648,7 @@ The repeated labels are:\n-+\nwolof
         )
         original.index.name = "index"
 
-        with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
+        with tm.assert_produces_warning(InvalidColumnName):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_strl=["long", 1], version=117)
                 reread = self.read_dta(path)
@@ -1688,7 +1687,7 @@ The repeated labels are:\n-+\nwolof
             bio.seek(0)
             with open(path, "wb") as dta:
                 dta.write(bio.read())
-            reread = pd.read_stata(path, index_col="index")
+            reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     def test_gzip_writing(self):
@@ -1699,7 +1698,7 @@ The repeated labels are:\n-+\nwolof
             with gzip.GzipFile(path, "wb") as gz:
                 df.to_stata(gz, version=114)
             with gzip.GzipFile(path, "rb") as gz:
-                reread = pd.read_stata(gz, index_col="index")
+                reread = read_stata(gz, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     def test_unicode_dta_118(self):
@@ -1870,8 +1869,8 @@ def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
     ref = os.path.join(data_base, "stata-compat-118.dta")
     old = os.path.join(data_base, f"stata-compat-{version}.dta")
-    expected = pd.read_stata(ref)
-    old_dta = pd.read_stata(old)
+    expected = read_stata(ref)
+    old_dta = read_stata(old)
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
@@ -1981,7 +1980,7 @@ def test_iterator_value_labels():
     with tm.ensure_clean() as path:
         df.to_stata(path, write_index=False)
         expected = pd.Index(["a_label", "b_label", "c_label"], dtype="object")
-        with pd.read_stata(path, chunksize=100) as reader:
+        with read_stata(path, chunksize=100) as reader:
             for j, chunk in enumerate(reader):
                 for i in range(2):
                     tm.assert_index_equal(chunk.dtypes[i].categories, expected)
@@ -2003,3 +2002,48 @@ def test_precision_loss():
         tm.assert_series_equal(reread.dtypes, expected_dt)
         assert reread.loc[0, "little"] == df.loc[0, "little"]
         assert reread.loc[0, "big"] == float(df.loc[0, "big"])
+
+
+def test_compression_roundtrip(compression):
+    df = DataFrame(
+        [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+        index=["A", "B"],
+        columns=["X", "Y", "Z"],
+    )
+    df.index.name = "index"
+
+    with tm.ensure_clean() as path:
+
+        df.to_stata(path, compression=compression)
+        reread = read_stata(path, compression=compression, index_col="index")
+        tm.assert_frame_equal(df, reread)
+
+        # explicitly ensure file was compressed.
+        with tm.decompress_file(path, compression) as fh:
+            contents = io.BytesIO(fh.read())
+        reread = read_stata(contents, index_col="index")
+        tm.assert_frame_equal(df, reread)
+
+
+@pytest.mark.parametrize("to_infer", [True, False])
+@pytest.mark.parametrize("read_infer", [True, False])
+def test_stata_compression(compression_only, read_infer, to_infer):
+    compression = compression_only
+
+    ext = "gz" if compression == "gzip" else compression
+    filename = f"test.{ext}"
+
+    df = DataFrame(
+        [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+        index=["A", "B"],
+        columns=["X", "Y", "Z"],
+    )
+    df.index.name = "index"
+
+    to_compression = "infer" if to_infer else compression
+    read_compression = "infer" if read_infer else compression
+
+    with tm.ensure_clean(filename) as path:
+        df.to_stata(path, compression=to_compression)
+        result = read_stata(path, compression=read_compression, index_col="index")
+        tm.assert_frame_equal(result, df)

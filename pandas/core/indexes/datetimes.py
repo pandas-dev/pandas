@@ -1,13 +1,29 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    tzinfo,
+)
 import operator
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Tuple,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
+from pandas._libs import (
+    NaT,
+    Period,
+    Timestamp,
+    index as libindex,
+    lib,
+)
 from pandas._libs.tslibs import (
     Resolution,
     ints_to_pydatetime,
@@ -16,9 +32,15 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import Dtype, DtypeObj
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -26,17 +48,29 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
-from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
+from pandas.core.arrays.datetimes import (
+    DatetimeArray,
+    tz_to_dtype,
+)
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, get_unanimous_names, maybe_extract_name
+from pandas.core.indexes.base import (
+    Index,
+    get_unanimous_names,
+    maybe_extract_name,
+)
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Float64Index, PeriodIndex, TimedeltaIndex
+    from pandas import (
+        DataFrame,
+        Float64Index,
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 
 def _new_DatetimeIndex(cls, d):
@@ -331,7 +365,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import is_dates_only
 
-        return self.tz is None and is_dates_only(self._values)
+        # error: Argument 1 to "is_dates_only" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
+        # DatetimeArray, Index, DatetimeIndex]"
+        return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
 
@@ -469,7 +506,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         from pandas import Series
 
         if index is None:
-            index = self._shallow_copy()
+            index = self._view()
         if name is None:
             name = self.name
 
@@ -499,7 +536,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # preserve the tz & copy
             values = self.copy(deep=True)
         else:
-            values = self._values.view("M8[ns]").copy()
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray]", variable has type "DatetimeIndex")
+            values = self._values.view("M8[ns]").copy()  # type: ignore[assignment]
 
         return Series(values, index=index, name=name)
 
@@ -555,8 +594,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "quarter",
             "day",
             "hour",
-            "minute",
-            "second",
             "minute",
             "second",
             "millisecond",
@@ -638,7 +675,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise InvalidIndexError(key)
 
         orig_key = key
-        if is_valid_nat_for_dtype(key, self.dtype):
+        if is_valid_na_for_dtype(key, self.dtype):
             key = NaT
 
         if isinstance(key, self._data._recognized_scalars):

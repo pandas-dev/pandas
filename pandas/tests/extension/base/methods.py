@@ -1,3 +1,4 @@
+import inspect
 import operator
 
 import numpy as np
@@ -8,12 +9,19 @@ from pandas.core.dtypes.common import is_bool_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
+
+    def test_value_counts_default_dropna(self, data):
+        # make sure we have consistent default dropna kwarg
+        if not hasattr(data, "value_counts"):
+            pytest.skip("value_counts is not implemented")
+        sig = inspect.signature(data.value_counts)
+        kwarg = sig.parameters["dropna"]
+        assert kwarg.default is True
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
@@ -82,7 +90,7 @@ class BaseMethodsTests(BaseExtensionTests):
         assert data_for_sorting.argmax() == 1
         assert data_for_sorting.argmin() == 2
 
-        # with repeated values -> first occurence
+        # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
         assert data.argmax() == 3
         assert data.argmin() == 0
@@ -101,7 +109,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
-        # all missing with skipna=True is the same as emtpy
+        # all missing with skipna=True is the same as empty
         err_msg = "attempt to get"
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
@@ -522,7 +530,7 @@ class BaseMethodsTests(BaseExtensionTests):
         # different length
         assert data[:2].equals(data[:3]) is False
 
-        # emtpy are equal
+        # empty are equal
         assert data[:0].equals(data[:0]) is True
 
         # other types

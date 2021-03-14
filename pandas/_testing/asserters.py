@@ -1,9 +1,13 @@
-from typing import Union, cast
+from typing import (
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.lib import no_default
+from pandas._libs.missing import is_matching_na
 import pandas._libs.testing as _testing
 
 from pandas.core.dtypes.common import (
@@ -15,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
@@ -29,7 +34,10 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import safe_sort, take_1d
+from pandas.core.algorithms import (
+    safe_sort,
+    take_nd,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -309,7 +317,7 @@ def assert_index_equal(
         # accept level number only
         unique = index.levels[level]
         level_codes = index.codes[level]
-        filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
+        filled = take_nd(unique._values, level_codes, fill_value=unique._na_value)
         return unique._shallow_copy(filled, name=index.names[level])
 
     if check_less_precise is not no_default:
@@ -451,13 +459,8 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
 
     if left_attr is right_attr:
         return True
-    elif (
-        is_number(left_attr)
-        and np.isnan(left_attr)
-        and is_number(right_attr)
-        and np.isnan(right_attr)
-    ):
-        # np.nan
+    elif is_matching_na(left_attr, right_attr):
+        # e.g. both np.nan, both NaT, both pd.NA, ...
         return True
 
     try:
@@ -465,7 +468,9 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     except TypeError:
         # datetimetz on rhs may raise TypeError
         result = False
-    if not isinstance(result, bool):
+    if (left_attr is pd.NA) ^ (right_attr is pd.NA):
+        result = False
+    elif not isinstance(result, bool):
         result = result.all()
 
     if result:
@@ -613,12 +618,12 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif is_categorical_dtype(left):
+    elif is_categorical_dtype(left) or isinstance(left, PandasDtype):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif is_categorical_dtype(right):
+    elif is_categorical_dtype(right) or isinstance(right, PandasDtype):
         right = repr(right)
 
     msg += f"""
@@ -975,8 +980,8 @@ def assert_series_equal(
         left_values = left._values
         right_values = right._values
         # Only check exact if dtype is numeric
-        if is_extension_array_dtype(left_values) and is_extension_array_dtype(
-            right_values
+        if isinstance(left_values, ExtensionArray) and isinstance(
+            right_values, ExtensionArray
         ):
             assert_extension_array_equal(
                 left_values,
