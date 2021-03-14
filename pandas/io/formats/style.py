@@ -957,7 +957,11 @@ class Styler:
         Returns
         -------
         rendered : str
-            The rendered HTML.
+            The rendered HTML (or LaTeX)
+
+        See Also
+        --------
+        Styler.to_latex: Write Styler to a file, buffer or string in LaTeX format.
 
         Notes
         -----
