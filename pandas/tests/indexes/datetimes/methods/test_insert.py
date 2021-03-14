@@ -4,7 +4,14 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas import NA, DatetimeIndex, Index, NaT, Timestamp, date_range
+from pandas import (
+    NA,
+    DatetimeIndex,
+    Index,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -13,8 +20,12 @@ class TestInsert:
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
+
         idx = DatetimeIndex(["2017-01-01"], tz=tz)
         expected = DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
+        if tz is not None and isinstance(null, np.datetime64):
+            expected = Index([null, idx[0]], dtype=object)
+
         res = idx.insert(0, null)
         tm.assert_index_equal(res, expected)
 
@@ -36,7 +47,7 @@ class TestInsert:
         result = dti.insert(0, item)
         assert result.freq == dti.freq
 
-        # But not when we insert an item that doesnt conform to freq
+        # But not when we insert an item that doesn't conform to freq
         dti = DatetimeIndex([], tz=tz, freq="W-THU")
         result = dti.insert(0, item)
         assert result.freq is None

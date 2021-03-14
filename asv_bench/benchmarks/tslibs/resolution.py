@@ -17,34 +17,33 @@ for unit in tr.params[0]:
             df.loc[key] = (val.average, val.stdev)
 
 """
-from datetime import timedelta, timezone
-
-from dateutil.tz import gettz, tzlocal
 import numpy as np
-import pytz
 
 try:
     from pandas._libs.tslibs import get_resolution
 except ImportError:
     from pandas._libs.tslibs.resolution import get_resolution
 
+from .tslib import (
+    _sizes,
+    _tzs,
+    tzlocal_obj,
+)
+
 
 class TimeResolution:
     params = (
         ["D", "h", "m", "s", "us", "ns"],
-        [1, 100, 10 ** 4, 10 ** 6],
-        [
-            None,
-            timezone.utc,
-            timezone(timedelta(minutes=60)),
-            pytz.timezone("US/Pacific"),
-            gettz("Asia/Tokyo"),
-            tzlocal(),
-        ],
+        _sizes,
+        _tzs,
     )
     param_names = ["unit", "size", "tz"]
 
     def setup(self, unit, size, tz):
+        if size == 10 ** 6 and tz is tzlocal_obj:
+            # tzlocal is cumbersomely slow, so skip to keep runtime in check
+            raise NotImplementedError
+
         arr = np.random.randint(0, 10, size=size, dtype="i8")
         arr = arr.view(f"M8[{unit}]").astype("M8[ns]").view("i8")
         self.i8data = arr

@@ -2,7 +2,13 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range, to_datetime
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    date_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 from pandas.tseries import offsets

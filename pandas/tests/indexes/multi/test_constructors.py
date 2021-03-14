@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 
 import numpy as np
@@ -9,7 +12,12 @@ from pandas._libs.tslib import Timestamp
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -100,7 +108,7 @@ def test_constructor_mismatched_codes_levels(idx):
 def test_na_levels():
     # GH26408
     # test if codes are re-assigned value -1 for levels
-    # with mising values (NaN, NaT, None)
+    # with missing values (NaN, NaT, None)
     result = MultiIndex(
         levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]]
     )

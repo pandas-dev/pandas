@@ -6,7 +6,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, isna
+from pandas import (
+    DataFrame,
+    Series,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -203,7 +207,7 @@ class TestDataFrameCorr:
 
         _ = df.corr()
 
-        # Check that the corr didnt break link between ser and df
+        # Check that the corr didn't break link between ser and df
         ser.values[0] = 99
         assert df.loc[0, "A"] == 99
         assert df["A"] is ser

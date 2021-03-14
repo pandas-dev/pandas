@@ -36,8 +36,16 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import Buffer, CompressionOptions, FilePathOrBuffer, StorageOptions
-from pandas.util._decorators import Appender, doc
+from pandas._typing import (
+    Buffer,
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -98,6 +106,19 @@ chunksize : int, default None
     Return StataReader object for iterations, returns chunks with
     given number of lines."""
 
+_compression_params = f"""\
+compression : str or dict, default None
+    If string, specifies compression mode. If dict, value at key 'method'
+    specifies compression mode. Compression mode must be one of {{'infer',
+    'gzip', 'bz2', 'zip', 'xz', None}}. If compression mode is 'infer'
+    and `filepath_or_buffer` is path-like, then detect compression from
+    the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
+    no compression). If dict and compression mode is one of
+    {{'zip', 'gzip', 'bz2'}}, or inferred as one of the above,
+    other entries passed as additional compression options.
+{generic._shared_docs["storage_options"]}"""
+
+
 _iterator_params = """\
 iterator : bool, default False
     Return StataReader object."""
@@ -129,6 +150,7 @@ filepath_or_buffer : str, path object or file-like object
 {_statafile_processing_params2}
 {_chunksize_params}
 {_iterator_params}
+{_compression_params}
 
 Returns
 -------
@@ -180,6 +202,7 @@ path_or_buf : path (string), buffer or path object
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
+{_compression_params}
 
 {_reader_notes}
 """
@@ -1026,6 +1049,7 @@ class StataReader(StataParser, abc.Iterator):
         columns: Optional[Sequence[str]] = None,
         order_categoricals: bool = True,
         chunksize: Optional[int] = None,
+        compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
         super().__init__()
@@ -1064,10 +1088,13 @@ class StataReader(StataParser, abc.Iterator):
             "rb",
             storage_options=storage_options,
             is_text=False,
+            compression=compression,
         ) as handles:
             # Copy to BytesIO, and ensure no encoding
-            contents = handles.handle.read()
-        self.path_or_buf = BytesIO(contents)  # type: ignore[arg-type]
+
+            # Argument 1 to "BytesIO" has incompatible type "Union[Any, bytes, None,
+            # str]"; expected "bytes"
+            self.path_or_buf = BytesIO(handles.handle.read())  # type: ignore[arg-type]
 
         self._read_header()
         self._setup_dtype()
@@ -1206,7 +1233,9 @@ class StataReader(StataParser, abc.Iterator):
             if typ <= 2045:
                 return str(typ)
             try:
-                return self.DTYPE_MAP_XML[typ]
+                # error: Incompatible return value type (got "Type[number]", expected
+                # "Union[str, dtype]")
+                return self.DTYPE_MAP_XML[typ]  # type: ignore[return-value]
             except KeyError as err:
                 raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
@@ -1639,7 +1668,12 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
+                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
+                # "object"
+                if (
+                    dtype != np.dtype(object)  # type: ignore[type-var]
+                    and dtype != self.dtyplist[i]
+                ):
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], ix, self.dtyplist[i]))
@@ -1898,6 +1932,7 @@ def read_stata(
     order_categoricals: bool = True,
     chunksize: Optional[int] = None,
     iterator: bool = False,
+    compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> Union[DataFrame, StataReader]:
 
@@ -1912,6 +1947,7 @@ def read_stata(
         order_categoricals=order_categoricals,
         chunksize=chunksize,
         storage_options=storage_options,
+        compression=compression,
     )
 
     if iterator or chunksize:

@@ -11,7 +11,10 @@ from pandas._typing import EvalResult
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import ENGINES
-from pandas.core.computation.expr import PARSERS, Expr
+from pandas.core.computation.expr import (
+    PARSERS,
+    Expr,
+)
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 

@@ -41,15 +41,8 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
-    - name: Environment Detail
-      run: |
-        conda info
-        conda list
-
     - name: Build Pandas
-      run: |
-        python setup.py build_ext -j 2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+      uses: ./.github/actions/build_pandas
 
     - name: Linting
       run: ci/code_checks.sh lint
@@ -100,14 +93,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Setting conda path
-      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
+    - name: Set up pandas
+      uses: ./.github/actions/setup
 
     - name: Build website
       run: |
@@ -139,21 +129,65 @@ jobs:
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push'
 
+    - name: Move docs into site directory
+      run: mv doc/build/html web/build/docs
+    - name: Save website as an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: website
+        path: web/build
+        retention-days: 14
+
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
     steps:
 
-    - name: Setting conda path
-      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-
     - name: Checkout
       uses: actions/checkout@v1
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
+    - name: Set up pandas
+      uses: ./.github/actions/setup
 
     - name: Run tests
+      env:
+        PANDAS_DATA_MANAGER: array
       run: |
         source activate pandas-dev
-        pytest pandas/tests/frame/methods --array-manager
+
+        pytest pandas/tests/frame/
+        pytest pandas/tests/reductions/
+        pytest pandas/tests/generic/test_generic.py
+        pytest pandas/tests/arithmetic/
+        pytest pandas/tests/groupby/
+        pytest pandas/tests/resample/
+        pytest pandas/tests/reshape/merge
+        pytest pandas/tests/series/
+
+        # indexing subset (temporary since other tests don't pass yet)
+        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups
+        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column
+
+        pytest pandas/tests/api/
+        pytest pandas/tests/arrays/
+        pytest pandas/tests/base/
+        pytest pandas/tests/computation/
+        pytest pandas/tests/config/
+        pytest pandas/tests/dtypes/
+        pytest pandas/tests/generic/
+        pytest pandas/tests/indexes/
+        pytest pandas/tests/io/test_* -m "not slow and not clipboard"
+        pytest pandas/tests/io/excel/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/formats/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/parser/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/sas/ -m "not slow and not clipboard"
+        pytest pandas/tests/io/xml/ -m "not slow and not clipboard"
+        pytest pandas/tests/libs/
+        pytest pandas/tests/plotting/
+        pytest pandas/tests/scalar/
+        pytest pandas/tests/strings/
+        pytest pandas/tests/tools/
+        pytest pandas/tests/tseries/
+        pytest pandas/tests/tslibs/
+        pytest pandas/tests/util/
+        pytest pandas/tests/window/

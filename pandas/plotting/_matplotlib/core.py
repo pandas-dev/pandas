@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Hashable, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+)
 import warnings
 
 from matplotlib.artist import Artist
@@ -29,7 +35,10 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 import pandas.core.common as com
 
@@ -594,17 +603,14 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    # pandas\plotting\_matplotlib\core.py:578: error:
-                    # Incompatible types in assignment (expression has type
+                    # error: Incompatible types in assignment (expression has type
                     # "Iterator[Any]", variable has type "List[Any]")
-                    # [assignment]
                     self.legend_handles = reversed(  # type: ignore[assignment]
                         self.legend_handles
                     )
-                    # pandas\plotting\_matplotlib\core.py:579: error:
-                    # Incompatible types in assignment (expression has type
+                    # error: Incompatible types in assignment (expression has type
                     # "Iterator[Optional[Hashable]]", variable has type
-                    # "List[Optional[Hashable]]")  [assignment]
+                    # "List[Optional[Hashable]]")
                     self.legend_labels = reversed(  # type: ignore[assignment]
                         self.legend_labels
                     )
@@ -694,12 +700,8 @@ class MPLPlot:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is
-            # unsupported
-            if style is not None:
-                args = (x, y, style)
-            else:
-                args = (x, y)  # type: ignore[assignment]
+            # prevent style kwarg from going to errorbar, where it is unsupported
+            args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self) -> Optional[str]:
@@ -1149,10 +1151,9 @@ class LinePlot(MPLPlot):
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            # pandas\plotting\_matplotlib\core.py:1100: error: Incompatible
-            # types in assignment (expression has type "Callable[[Any, Any,
-            # Any, Any, Any, Any, KwArg(Any)], Any]", variable has type
-            # "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
+            # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
             it = self._iter_data()
 
@@ -1601,9 +1602,8 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
-                # types in assignment (expression has type "None", variable has
-                # type "List[Any]")  [assignment]
+                # error: Incompatible types in assignment (expression has type "None",
+                # variable has type "List[Any]")
                 blabels = None  # type: ignore[assignment]
             results = ax.pie(y, labels=blabels, **kwds)
 

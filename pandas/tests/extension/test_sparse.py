@@ -16,7 +16,10 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -217,6 +220,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
     def test_fillna_limit_backfill(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
+
+    def test_fillna_no_op_returns_copy(self, data, request):
+        if np.isnan(data.fill_value):
+            request.node.add_marker(
+                pytest.mark.xfail(reason="returns array with different fill value")
+            )
+        with tm.assert_produces_warning(PerformanceWarning):
+            super().test_fillna_no_op_returns_copy(data)
 
     def test_fillna_series_method(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
@@ -450,7 +461,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Different repr", strict=True)
+    @pytest.mark.xfail(reason="Different repr")
     def test_array_repr(self, data, size):
         super().test_array_repr(data, size)
 

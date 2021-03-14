@@ -3,10 +3,22 @@
 """
 
 import ast
-from functools import partial, reduce
+from functools import (
+    partial,
+    reduce,
+)
 from keyword import iskeyword
 import tokenize
-from typing import Callable, Optional, Set, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    Callable,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
@@ -32,7 +44,10 @@ from pandas.core.computation.ops import (
     UndefinedVariableError,
     is_term,
 )
-from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
+from pandas.core.computation.parsing import (
+    clean_backtick_quoted_toks,
+    tokenize_string,
+)
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing
@@ -662,8 +677,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            # pandas\core\computation\expr.py:663: error: "expr" has no
-            # attribute "id"  [attr-defined]
+            # error: "expr" has no attribute "id"
             raise ValueError(
                 f"Invalid function call {node.func.id}"  # type: ignore[attr-defined]
             )
@@ -687,8 +701,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    # pandas\core\computation\expr.py:684: error: "expr" has no
-                    # attribute "id"  [attr-defined]
+                    # error: "expr" has no attribute "id"
                     raise ValueError(
                         "keyword error in function call "  # type: ignore[attr-defined]
                         f"'{node.func.id}'"

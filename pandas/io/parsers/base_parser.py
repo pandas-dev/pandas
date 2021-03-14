@@ -2,7 +2,19 @@ from collections import defaultdict
 import csv
 import datetime
 import itertools
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Union, cast
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -12,8 +24,14 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import DtypeArg, FilePathOrBuffer
-from pandas.errors import ParserError, ParserWarning
+from pandas._typing import (
+    DtypeArg,
+    FilePathOrBuffer,
+)
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -37,11 +55,18 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    ensure_index_from_sequences,
+)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import IOHandles, get_handle
+from pandas.io.common import (
+    IOHandles,
+    get_handle,
+)
 from pandas.io.date_converters import generic_parser
 
 parser_defaults = {
@@ -84,6 +109,7 @@ parser_defaults = {
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
+    "encoding_errors": "strict",
 }
 
 
@@ -187,6 +213,7 @@ class ParserBase:
             compression=kwds.get("compression", None),
             memory_map=kwds.get("memory_map", False),
             storage_options=kwds.get("storage_options", None),
+            errors=kwds.get("encoding_errors", "strict"),
         )
 
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
@@ -335,9 +362,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            # pandas\io\parsers.py:1559: error: Need type annotation for
-            # 'counts'  [var-annotated]
-            counts = defaultdict(int)  # type: ignore[var-annotated]
+            counts: DefaultDict[Union[int, str, Tuple], int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -382,9 +407,8 @@ class ParserBase:
         # add names for the index
         if indexnamerow:
             coffset = len(indexnamerow) - len(columns)
-            # pandas\io\parsers.py:1604: error: Item "None" of "Optional[Any]"
-            # has no attribute "set_names"  [union-attr]
-            index = index.set_names(indexnamerow[:coffset])  # type: ignore[union-attr]
+            assert index is not None
+            index = index.set_names(indexnamerow[:coffset])
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
@@ -458,9 +482,8 @@ class ParserBase:
                 col_na_fvalues = set()
 
             if isinstance(self.na_values, dict):
-                # pandas\io\parsers.py:1678: error: Value of type
-                # "Optional[Any]" is not indexable  [index]
-                col_name = self.index_names[i]  # type: ignore[index]
+                assert self.index_names is not None
+                col_name = self.index_names[i]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
@@ -508,7 +531,11 @@ class ParserBase:
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
+                    # error: Argument 2 to "isin" has incompatible type "List[Any]";
+                    # expected "Union[Union[ExtensionArray, ndarray], Index, Series]"
+                    mask = algorithms.isin(
+                        values, list(na_values)  # type: ignore[arg-type]
+                    ).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
@@ -549,7 +576,7 @@ class ParserBase:
         return result
 
     def _set_noconvert_dtype_columns(
-        self, col_indices: List[int], names: List[Union[int, str]]
+        self, col_indices: List[int], names: List[Union[int, str, Tuple]]
     ) -> Set[int]:
         """
         Set the columns that should not undergo dtype conversions.
@@ -634,8 +661,12 @@ class ParserBase:
         """
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
-            mask = algorithms.isin(values, list(na_values))
-            na_count = mask.sum()
+            # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
+            # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+            mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
+            # error: Incompatible types in assignment (expression has type
+            # "number[Any]", variable has type "int")
+            na_count = mask.sum()  # type: ignore[assignment]
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
@@ -693,7 +724,8 @@ class ParserBase:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
-                values = astype_nansafe(values, str)
+
+                values = astype_nansafe(values, np.dtype(str))
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
@@ -850,7 +882,7 @@ class ParserBase:
             return [None] * len(index_col), columns, index_col
 
         cp_cols = list(columns)
-        index_names = []
+        index_names: List[Optional[Union[int, str]]] = []
 
         # don't mutate
         index_col = list(index_col)
@@ -871,10 +903,7 @@ class ParserBase:
         # Only clean index names that were placeholders.
         for i, name in enumerate(index_names):
             if isinstance(name, str) and name in unnamed_cols:
-                # pandas\io\parsers.py:3445: error: No overload variant of
-                # "__setitem__" of "list" matches argument types "int", "None"
-                # [call-overload]
-                index_names[i] = None  # type: ignore[call-overload]
+                index_names[i] = None
 
         return index_names, columns, index_col
 
@@ -889,7 +918,20 @@ class ParserBase:
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
             default_dtype = dtype or object
-            dtype = defaultdict(lambda: default_dtype)
+            # error: Argument 1 to "defaultdict" has incompatible type "Callable[[],
+            # Union[ExtensionDtype, str, dtype[Any], Type[object], Dict[Hashable,
+            # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+            # Type[int], Type[complex], Type[bool], Type[object]]]]]"; expected
+            # "Optional[Callable[[], Union[ExtensionDtype, str, dtype[Any],
+            # Type[object]]]]"
+            # error: Incompatible return value type (got "Union[ExtensionDtype, str,
+            # dtype[Any], Type[object], Dict[Hashable, Union[ExtensionDtype, Union[str,
+            # dtype[Any]], Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]]]", expected "Union[ExtensionDtype, str, dtype[Any],
+            # Type[object]]")
+            dtype = defaultdict(
+                lambda: default_dtype  # type: ignore[arg-type, return-value]
+            )
         else:
             dtype = cast(dict, dtype)
             dtype = defaultdict(

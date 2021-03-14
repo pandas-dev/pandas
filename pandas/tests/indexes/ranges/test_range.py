@@ -4,10 +4,14 @@ import pytest
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+)
 import pandas._testing as tm
-
-from ..test_numeric import Numeric
+from pandas.tests.indexes.test_numeric import Numeric
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -18,7 +22,6 @@ OI = Index
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ["shape", "ndim", "size"]
 
     @pytest.fixture(
         params=[
@@ -200,7 +203,7 @@ class TestRangeIndex(Numeric):
         idx._data
         assert isinstance(idx._data, np.ndarray)
         assert idx._data is idx._data  # check cached value is reused
-        assert len(idx._cache) == 4
+        assert len(idx._cache) == 1
         expected = np.arange(0, 100, 10, dtype="int64")
         tm.assert_numpy_array_equal(idx._cache["_data"], expected)
 

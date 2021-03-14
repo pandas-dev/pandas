@@ -11,7 +11,7 @@ cpplint
 flake8
 flake8-comprehensions>=3.1.0
 isort>=5.2.1
-mypy==0.800
+mypy==0.812
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
@@ -76,5 +76,5 @@ cftime
 pyreadstat
 tabulate>=0.8.3
 natsort
-git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
-git+https://github.com/numpy/numpydoc
+git+https://github.com/pydata/pydata-sphinx-theme.git@master
+numpydoc < 1.2
