@@ -2207,7 +2207,7 @@ def _maybe_wrap_formatter(
     else:
         na_func = lambda x: na_rep if pd.isna(x) else formatter_func(x)
 
-    return lambda x: na_func(escape_func(x)) if escape else na_func
+    return (lambda x: na_func(escape_func(x))) if escape else na_func
 
 
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:

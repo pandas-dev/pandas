@@ -647,6 +647,17 @@ class TestStyler:
         self.styler.format()
         assert (0, 0) not in self.styler._display_funcs  # formatter cleared to default
 
+    def test_format_escape(self):
+        df = DataFrame([['<>&"']])
+        s = Styler(df, uuid_len=0).format("X&{0}>X", escape=False)
+        ex = '<td id="T__row0_col0" class="data row0 col0" >X&<>&">X</td>'
+        assert ex in s.render()
+
+        # only the value should be escaped before passing to the formatter
+        s = Styler(df, uuid_len=0).format("X&{0}>X", escape=True)
+        ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
+        assert ex in s.render()
+
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
