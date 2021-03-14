@@ -2459,7 +2459,7 @@ def _parse_latex_table_styles(styles: CSSStyles, selector: str) -> Optional[str]
     """
     for style in styles[::-1]:  # in reverse for most recently applied style
         if style["selector"] == selector:
-            return style["props"][0][1].replace("§", ":")
+            return str(style["props"][0][1]).replace("§", ":")
     return None
 
 
@@ -2484,9 +2484,9 @@ def _parse_latex_cell_styles(styles: CSSList, display_value: str) -> str:
     {\Huge \cellcolor[rgb]{0,1,1}{display_value}}
     """
     for style in styles[::-1]:  # in reverse for most recently applied style
-        if "--wrap" in style[1]:
+        if "--wrap" in str(style[1]):
             display_value = (
-                f"{{\\{style[0]}{style[1].replace('--wrap','')} {display_value}}}"
+                f"{{\\{style[0]}{str(style[1]).replace('--wrap','')} {display_value}}}"
             )
         else:
             display_value = f"\\{style[0]}{style[1]}{{{display_value}}}"
