@@ -65,6 +65,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
@@ -522,7 +523,7 @@ class BaseGrouper:
     @final
     def _ea_wrap_cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+    ) -> np.ndarray:
         """
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
@@ -539,10 +540,7 @@ class BaseGrouper:
             )
             if how in ["rank"]:
                 # preserve float64 dtype
-
-                # error: Incompatible return value type (got "ndarray", expected
-                # "Tuple[ndarray, Optional[List[str]]]")
-                return res_values  # type: ignore[return-value]
+                return res_values
 
             res_values = res_values.astype("i8", copy=False)
             result = type(orig_values)(res_values, dtype=orig_values.dtype)
@@ -555,14 +553,11 @@ class BaseGrouper:
                 kind, values, how, axis, min_count, **kwargs
             )
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            if is_extension_array_dtype(dtype):
-                # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-                # attribute "construct_array_type"
-                cls = dtype.construct_array_type()  # type: ignore[union-attr]
+            if isinstance(dtype, ExtensionDtype):
+                cls = dtype.construct_array_type()
                 return cls._from_sequence(res_values, dtype=dtype)
-            # error: Incompatible return value type (got "ndarray", expected
-            # "Tuple[ndarray, Optional[List[str]]]")
-            return res_values  # type: ignore[return-value]
+
+            return res_values
 
         elif is_float_dtype(values.dtype):
             # FloatingArray
@@ -599,9 +594,7 @@ class BaseGrouper:
         self._disallow_invalid_ops(values, how)
 
         if is_extension_array_dtype(values.dtype):
-            # error: Incompatible return value type (got "Tuple[ndarray,
-            # Optional[List[str]]]", expected "ndarray")
-            return self._ea_wrap_cython_operation(  # type: ignore[return-value]
+            return self._ea_wrap_cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
 
