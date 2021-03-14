@@ -57,10 +57,10 @@ if TYPE_CHECKING:
     from pandas.core.indexes.base import Index
     from pandas.core.internals import (
         ArrayManager,
-        BlockManager,
         SingleArrayManager,
         SingleBlockManager,
     )
+    from pandas.core.internals.managers import BlockManager
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow

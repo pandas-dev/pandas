@@ -137,10 +137,10 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals import (
     ArrayManager,
-    BlockManager,
     SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
+from pandas.core.internals.managers import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat

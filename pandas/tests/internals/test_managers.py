@@ -5,10 +5,8 @@ from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.internals import (
-    ArrayManager,
-    BlockManager,
-)
+from pandas.core.internals import ArrayManager
+from pandas.core.internals.managers import BlockManager
 
 
 def test_dataframe_creation():

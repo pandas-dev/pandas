@@ -243,7 +243,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
     """
     from pandas.core.generic import NDFrame
-    from pandas.core.internals import BlockManager
+    from pandas.core.internals.managers import BlockManager
 
     cls = type(self)
 

@@ -32,11 +32,11 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.internals import (
-    BlockManager,
     SingleBlockManager,
     make_block,
 )
 from pandas.core.internals.blocks import new_block
+from pandas.core.internals.managers import BlockManager
 
 
 @pytest.fixture(params=[new_block, make_block])

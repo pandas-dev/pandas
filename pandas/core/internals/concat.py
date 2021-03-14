@@ -139,13 +139,7 @@ def concatenate_managers(
                 #  than concat_compat
                 values = np.concatenate(vals, axis=blk.ndim - 1)
             else:
-                # TODO(EA2D): special-casing not needed with 2D EAs
-                if all(x.ndim == blk.ndim for x in vals):
-                    # i.e. DTA/TDA
-                    values = concat_compat(vals, axis=blk.ndim - 1)
-                else:
-                    values = concat_compat(vals)
-
+                values = concat_compat(vals, axis=1)
                 values = ensure_block_shape(values, blk.ndim)
 
             if blk.values.dtype == values.dtype:
