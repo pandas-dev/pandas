@@ -48,6 +48,7 @@ from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
+from jinja2.filters import escape as escape_func
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
@@ -113,6 +114,10 @@ class Styler:
 
         .. versionadded:: 1.2.0
 
+    escape : bool, default False
+        Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
+        strings with HTML-safe sequences.
+
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
@@ -169,6 +174,7 @@ class Styler:
         cell_ids: bool = True,
         na_rep: Optional[str] = None,
         uuid_len: int = 5,
+        escape: bool = False,
     ):
         # validate ordered args
         if isinstance(data, pd.Series):
@@ -201,7 +207,7 @@ class Styler:
         ] = defaultdict(lambda: partial(_default_formatter, precision=None))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
-        self.format(formatter=None, precision=precision, na_rep=na_rep)
+        self.format(formatter=None, precision=precision, na_rep=na_rep, escape=escape)
 
     def _repr_html_(self) -> str:
         """
@@ -547,6 +553,7 @@ class Styler:
         subset: Optional[Union[slice, Sequence[Any]]] = None,
         na_rep: Optional[str] = None,
         precision: Optional[int] = None,
+        escape: bool = False,
     ) -> Styler:
         """
         Format the text display value of cells.
@@ -567,6 +574,12 @@ class Styler:
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
+
+            .. versionadded:: 1.3.0
+
+        escape : bool, default False
+            Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
+            string with HTML-safe sequences. Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -640,7 +653,15 @@ class Styler:
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
         """
-        if all((formatter is None, subset is None, precision is None, na_rep is None)):
+        if all(
+            (
+                formatter is None,
+                subset is None,
+                precision is None,
+                na_rep is None,
+                escape is False,
+            )
+        ):
             self._display_funcs.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
@@ -658,7 +679,7 @@ class Styler:
             except KeyError:
                 format_func = None
             format_func = _maybe_wrap_formatter(
-                format_func, na_rep=na_rep, precision=precision
+                format_func, na_rep=na_rep, precision=precision, escape=escape
             )
 
             for row, value in data[[col]].itertuples():
@@ -2154,6 +2175,7 @@ def _maybe_wrap_formatter(
     formatter: Optional[BaseFormatter] = None,
     na_rep: Optional[str] = None,
     precision: Optional[int] = None,
+    escape: bool = False,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -2170,9 +2192,11 @@ def _maybe_wrap_formatter(
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
     if na_rep is None:
-        return formatter_func
+        na_func = formatter_func
     else:
-        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
+        na_func = lambda x: na_rep if pd.isna(x) else formatter_func(x)
+
+    return lambda x: na_func(escape_func(x)) if escape else na_func
 
 
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
