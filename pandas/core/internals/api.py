@@ -30,6 +30,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extract_pandas_array,
     get_block_type,
+    maybe_coerce_values,
 )
 from pandas.core.internals.managers import BlockManager as BM
 
@@ -75,6 +76,7 @@ def make_block(
         values = ensure_block_shape(values, ndim)
 
     check_ndim(values, placement, ndim)
+    values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
 
 
