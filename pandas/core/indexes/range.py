@@ -188,7 +188,7 @@ class RangeIndex(Int64Index):
         return Int64Index
 
     @cache_readonly
-    def _data(self):
+    def _data(self) -> np.ndarray:
         """
         An int array that for performance reasons is created only when needed.
 
@@ -201,7 +201,7 @@ class RangeIndex(Int64Index):
         return Int64Index._simple_new(self._data, name=self.name)
 
     @property
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         # wrap _cached_int64index so we can be sure its name matches self.name
         res = self._cached_int64index
         res._name = self._name
@@ -425,13 +425,15 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
 
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
-    def delete(self, loc):
+    def delete(self, loc) -> Int64Index:
         return self._int64index.delete(loc)
 
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+    def take(
+        self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+    ) -> Int64Index:
         with rewrite_exception("Int64Index", type(self).__name__):
             return self._int64index.take(
                 indices,
