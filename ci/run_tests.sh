@@ -29,9 +29,3 @@ fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
-
-if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
-    echo "uploading coverage"
-    echo "bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME"
-          bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
-fi
