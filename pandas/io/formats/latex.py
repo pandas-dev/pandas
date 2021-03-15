@@ -1,8 +1,19 @@
 """
 Module for formatting output data in Latex.
 """
-from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional, Sequence, Tuple, Type, Union
+from abc import (
+    ABC,
+    abstractmethod,
+)
+from typing import (
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 

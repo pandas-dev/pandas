@@ -5,11 +5,18 @@ Period benchmarks that rely on other parts fo pandas.
 
 import numpy as np
 
-from pandas._libs.tslibs.period import Period, periodarr_to_dt64arr
+from pandas._libs.tslibs.period import (
+    Period,
+    periodarr_to_dt64arr,
+)
 
 from pandas.tseries.frequencies import to_offset
 
-from .tslib import _sizes, _tzs
+from .tslib import (
+    _sizes,
+    _tzs,
+    tzlocal_obj,
+)
 
 try:
     from pandas._libs.tslibs.vectorized import dt64arr_to_periodarr
@@ -123,6 +130,10 @@ class TimeDT64ArrToPeriodArr:
     param_names = ["size", "freq", "tz"]
 
     def setup(self, size, freq, tz):
+        if size == 10 ** 6 and tz is tzlocal_obj:
+            # tzlocal is cumbersomely slow, so skip to keep runtime in check
+            raise NotImplementedError
+
         arr = np.arange(10, dtype="i8").repeat(size // 10)
         self.i8values = arr
 

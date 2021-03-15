@@ -31,11 +31,25 @@ from pandas._libs.tslibs import (
     to_offset,
     tz_compare,
 )
-from pandas._typing import Dtype, DtypeObj, NpDtype, Ordered
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+    NpDtype,
+    Ordered,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndex
-from pandas.core.dtypes.inference import is_bool, is_list_like
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex,
+    ABCIndex,
+)
+from pandas.core.dtypes.inference import (
+    is_bool,
+    is_list_like,
+)
 
 if TYPE_CHECKING:
     import pyarrow
@@ -69,7 +83,7 @@ class PandasExtensionDtype(ExtensionDtype):
     num = 100
     shape: Tuple[int, ...] = ()
     itemsize = 8
-    base = None
+    base: Optional[DtypeObj] = None
     isbuiltin = 0
     isnative = 0
     _cache: Dict[str_type, PandasExtensionDtype] = {}
@@ -453,8 +467,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
             )
         else:
-            cat_array = [cat_array]
-        hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+            # error: Incompatible types in assignment (expression has type
+            # "List[ndarray]", variable has type "ndarray")
+            cat_array = [cat_array]  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "ndarray",
+        # variable has type "int")
+        hashed = combine_hash_arrays(  # type: ignore[assignment]
+            iter(cat_array), num_items=len(cat_array)
+        )
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
@@ -1032,7 +1052,10 @@ class IntervalDtype(PandasExtensionDtype):
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, subtype=None, closed: Optional[str_type] = None):
-        from pandas.core.dtypes.common import is_string_dtype, pandas_dtype
+        from pandas.core.dtypes.common import (
+            is_string_dtype,
+            pandas_dtype,
+        )
 
         if closed is not None and closed not in {"right", "left", "both", "neither"}:
             raise ValueError("closed must be one of 'right', 'left', 'both', 'neither'")

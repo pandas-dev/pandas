@@ -9,7 +9,10 @@ import pytest
 
 from pandas.errors import DtypeWarning
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
 
 
@@ -140,7 +143,10 @@ def test_read_chunksize_jagged_names(all_parsers):
     parser = all_parsers
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
 
-    expected = DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
+    # error: List item 0 has incompatible type "float"; expected "int"
+    expected = DataFrame(
+        [[0] + [np.nan] * 9] * 7 + [[0] * 10]  # type: ignore[list-item]
+    )
     with parser.read_csv(StringIO(data), names=range(10), chunksize=4) as reader:
         result = concat(reader)
     tm.assert_frame_equal(result, expected)
@@ -170,7 +176,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
     assert result.a.dtype == float
 
 
-def test_warn_if_chunks_have_mismatched_type(all_parsers):
+def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
     warning_type = None
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -181,14 +187,33 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
 
-    with tm.assert_produces_warning(warning_type) as record:
-        df = parser.read_csv(StringIO(data))
-    if record:
-        expected = (
-            "Columns (0) have mixed types. Specify dtype option on import or "
-            "set low_memory=False."
+    buf = StringIO(data)
+
+    try:
+        with tm.assert_produces_warning(warning_type) as record:
+            df = parser.read_csv(buf)
+        if record:
+            expected = (
+                "Columns (0) have mixed types. Specify dtype option on import or "
+                "set low_memory=False."
+            )
+            assert str(record[0].message) == expected
+    except AssertionError as err:
+        # 2021-02-21 this occasionally fails on the CI with an unexpected
+        #  ResourceWarning that we have been unable to track down,
+        #  see GH#38630
+        if "ResourceWarning" not in str(err) or parser.engine != "python":
+            raise
+
+        # Check the main assertion of the test before re-raising
+        assert df.a.dtype == object
+
+        mark = pytest.mark.xfail(
+            reason="ResourceWarning for unclosed SSL Socket, GH#38630"
         )
-        assert str(record[0].message) == expected
+        request.node.add_marker(mark)
+        raise
+
     assert df.a.dtype == object
 
 

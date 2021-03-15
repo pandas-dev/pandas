@@ -1,16 +1,33 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple, Type
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import iNaT, lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype, DtypeObj
+from pandas._libs import (
+    iNaT,
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -23,8 +40,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.masked import BaseMaskedArray, BaseMaskedDtype
-from pandas.core.arrays.numeric import NumericArray, NumericDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
+from pandas.core.arrays.numeric import (
+    NumericArray,
+    NumericDtype,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
@@ -78,7 +101,17 @@ class _IntegerDtype(NumericDtype):
         ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
+            # error: List comprehension has incompatible type List[Union[Any,
+            # dtype, ExtensionDtype]]; expected List[Union[dtype, None, type,
+            # _SupportsDtype, str, Tuple[Any, Union[int, Sequence[int]]],
+            # List[Any], _DtypeDict, Tuple[Any, Any]]]
+            [
+                t.numpy_dtype  # type: ignore[misc]
+                if isinstance(t, BaseMaskedDtype)
+                else t
+                for t in dtypes
+            ],
+            [],
         )
         if np.issubdtype(np_dtype, np.integer):
             return INT_STR_TO_DTYPE[str(np_dtype)]
@@ -292,15 +325,6 @@ class IntegerArray(NumericArray):
             )
         super().__init__(values, mask, copy=copy)
 
-    def __neg__(self):
-        return type(self)(-self._data, self._mask)
-
-    def __pos__(self):
-        return self
-
-    def __abs__(self):
-        return type(self)(np.abs(self._data), self._mask)
-
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
@@ -352,7 +376,9 @@ class IntegerArray(NumericArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             na_value = np.nan
         elif is_datetime64_dtype(dtype):
-            na_value = np.datetime64("NaT")
+            # error: Incompatible types in assignment (expression has type
+            # "datetime64", variable has type "float")
+            na_value = np.datetime64("NaT")  # type: ignore[assignment]
         else:
             na_value = lib.no_default
 

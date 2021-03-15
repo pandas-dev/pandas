@@ -49,9 +49,22 @@ Implementation
 """
 
 from collections import namedtuple
-from contextlib import ContextDecorator, contextmanager
+from contextlib import (
+    ContextDecorator,
+    contextmanager,
+)
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    cast,
+)
 import warnings
 
 from pandas._typing import F

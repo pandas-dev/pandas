@@ -1,9 +1,13 @@
-from datetime import date
+from datetime import (
+    date,
+    datetime,
+)
 
 import numpy as np
 import pytest
 
 from pandas import (
+    Categorical,
     DatetimeIndex,
     Index,
     MultiIndex,
@@ -50,19 +54,6 @@ class TestSetitemDT64Values:
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
 
-    def test_setitem_with_different_tz_casts_to_object(self):
-        # GH#24024
-        ser = Series(date_range("2000", periods=2, tz="US/Central"))
-        ser[0] = Timestamp("2000", tz="US/Eastern")
-        expected = Series(
-            [
-                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
-                Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
-            ],
-            dtype=object,
-        )
-        tm.assert_series_equal(ser, expected)
-
     def test_setitem_tuple_with_datetimetz_values(self):
         # GH#20441
         arr = date_range("2017", periods=4, tz="US/Eastern")
@@ -72,6 +63,81 @@ class TestSetitemDT64Values:
         result[(0, 1)] = np.nan
         expected.iloc[0] = np.nan
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
+    def test_setitem_with_tz(self, tz, indexer_sli):
+        orig = Series(date_range("2016-01-01", freq="H", periods=3, tz=tz))
+        assert orig.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-01-01 00:00", tz=tz),
+                Timestamp("2011-01-01 00:00", tz=tz),
+                Timestamp("2016-01-01 02:00", tz=tz),
+            ]
+        )
+
+        # scalar
+        ser = orig.copy()
+        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+        tm.assert_series_equal(ser, exp)
+
+        # vector
+        vals = Series(
+            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
+            index=[1, 2],
+        )
+        assert vals.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-01-01 00:00", tz=tz),
+                Timestamp("2011-01-01 00:00", tz=tz),
+                Timestamp("2012-01-01 00:00", tz=tz),
+            ]
+        )
+
+        ser = orig.copy()
+        indexer_sli(ser)[[1, 2]] = vals
+        tm.assert_series_equal(ser, exp)
+
+    def test_setitem_with_tz_dst(self, indexer_sli):
+        # GH XXX TODO: fill in GH ref
+        tz = "US/Eastern"
+        orig = Series(date_range("2016-11-06", freq="H", periods=3, tz=tz))
+        assert orig.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-11-06 00:00-04:00", tz=tz),
+                Timestamp("2011-01-01 00:00-05:00", tz=tz),
+                Timestamp("2016-11-06 01:00-05:00", tz=tz),
+            ]
+        )
+
+        # scalar
+        ser = orig.copy()
+        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+        tm.assert_series_equal(ser, exp)
+
+        # vector
+        vals = Series(
+            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
+            index=[1, 2],
+        )
+        assert vals.dtype == f"datetime64[ns, {tz}]"
+
+        exp = Series(
+            [
+                Timestamp("2016-11-06 00:00", tz=tz),
+                Timestamp("2011-01-01 00:00", tz=tz),
+                Timestamp("2012-01-01 00:00", tz=tz),
+            ]
+        )
+
+        ser = orig.copy()
+        indexer_sli(ser)[[1, 2]] = vals
+        tm.assert_series_equal(ser, exp)
 
 
 class TestSetitemScalarIndexer:
@@ -128,6 +194,13 @@ class TestSetitemSlices:
         assert (ser[:4] == 0).all()
         assert not (ser[4:] == 0).any()
 
+    def test_setitem_slicestep(self):
+        # caught this bug when writing tests
+        series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
+
+        series[::2] = 0
+        assert (series[::2] == 0).all()
+
 
 class TestSetitemBooleanMask:
     def test_setitem_boolean(self, string_series):
@@ -180,15 +253,6 @@ class TestSetitemBooleanMask:
         expected = Series(["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.parametrize("value", [None, NaT, np.nan])
-    def test_setitem_boolean_td64_values_cast_na(self, value):
-        # GH#18586
-        series = Series([0, 1, 2], dtype="timedelta64[ns]")
-        mask = series == series[0]
-        series[mask] = value
-        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
-        tm.assert_series_equal(series, expected)
-
     def test_setitem_boolean_nullable_int_types(self, any_nullable_numeric_dtype):
         # GH: 26468
         ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
@@ -204,6 +268,15 @@ class TestSetitemBooleanMask:
         loc_ser = Series(range(4), dtype=any_nullable_numeric_dtype)
         ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
         tm.assert_series_equal(ser, expected)
+
+    def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length(self):
+        # GH#30567
+        ser = Series([None] * 10)
+        mask = [False] * 3 + [True] * 5 + [False] * 2
+        ser[mask] = range(5)
+        result = ser
+        expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        tm.assert_series_equal(result, expected)
 
 
 class TestSetitemViewCopySemantics:
@@ -233,8 +306,8 @@ class TestSetitemViewCopySemantics:
         ser = Series(dti)
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
-        assert ser._mgr.blocks[0].values is not dti
-        assert ser._mgr.blocks[0].values._data.base is not dti._data._data.base
+        assert ser._mgr.arrays[0] is not dti
+        assert ser._mgr.arrays[0]._data.base is not dti._data._data.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
@@ -259,6 +332,144 @@ class TestSetitemCallable:
 
         expected = Series([1, 2, inc, 4])
         tm.assert_series_equal(ser, expected)
+
+
+class TestSetitemWithExpansion:
+    def test_setitem_empty_series(self):
+        # GH#10193
+        key = Timestamp("2012-01-01")
+        series = Series(dtype=object)
+        series[key] = 47
+        expected = Series(47, [key])
+        tm.assert_series_equal(series, expected)
+
+    def test_setitem_empty_series_datetimeindex_preserves_freq(self):
+        # GH#33573 our index should retain its freq
+        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
+        key = Timestamp("2012-01-01")
+        series[key] = 47
+        expected = Series(47, DatetimeIndex([key], freq="D"))
+        tm.assert_series_equal(series, expected)
+        assert series.index.freq == expected.index.freq
+
+    def test_setitem_empty_series_timestamp_preserves_dtype(self):
+        # GH 21881
+        timestamp = Timestamp(1412526600000000000)
+        series = Series([timestamp], index=["timestamp"], dtype=object)
+        expected = series["timestamp"]
+
+        series = Series([], dtype=object)
+        series["anything"] = 300.0
+        series["timestamp"] = timestamp
+        result = series["timestamp"]
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "td",
+        [
+            Timedelta("9 days"),
+            Timedelta("9 days").to_timedelta64(),
+            Timedelta("9 days").to_pytimedelta(),
+        ],
+    )
+    def test_append_timedelta_does_not_cast(self, td):
+        # GH#22717 inserting a Timedelta should _not_ cast to int64
+        expected = Series(["x", td], index=[0, "td"], dtype=object)
+
+        ser = Series(["x"])
+        ser["td"] = td
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+        ser = Series(["x"])
+        ser.loc["td"] = Timedelta("9 days")
+        tm.assert_series_equal(ser, expected)
+        assert isinstance(ser["td"], Timedelta)
+
+    def test_setitem_with_expansion_type_promotion(self):
+        # GH#12599
+        ser = Series(dtype=object)
+        ser["a"] = Timestamp("2016-01-01")
+        ser["b"] = 3.0
+        ser["c"] = "foo"
+        expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_not_contained(self, string_series):
+        # set item that's not contained
+        ser = string_series.copy()
+        assert "foobar" not in ser.index
+        ser["foobar"] = 1
+
+        app = Series([1], index=["foobar"], name="series")
+        expected = string_series.append(app)
+        tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_scalar_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    for n in range(len(series)):
+        msg = "assignment destination is read-only"
+        with pytest.raises(ValueError, match=msg):
+            series[n] = 1
+
+        assert array[n] == 0
+
+
+def test_setitem_slice_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    msg = "assignment destination is read-only"
+    with pytest.raises(ValueError, match=msg):
+        series[1:3] = 1
+
+    assert not array.any()
+
+
+def test_setitem_categorical_assigning_ops():
+    orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
+    ser = orig.copy()
+    ser[:] = "a"
+    exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[1] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[ser.index > 0] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser[[False, True]] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+    tm.assert_series_equal(ser, exp)
+
+    ser = orig.copy()
+    ser.index = ["x", "y"]
+    ser["y"] = "a"
+    exp = Series(Categorical(["b", "a"], categories=["a", "b"]), index=["x", "y"])
+    tm.assert_series_equal(ser, exp)
+
+
+def test_setitem_nan_into_categorical():
+    # ensure that one can set something to np.nan
+    ser = Series(Categorical([1, 2, 3]))
+    exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
+    ser[1] = np.nan
+    tm.assert_series_equal(ser, exp)
 
 
 class TestSetitemCasting:
@@ -310,7 +521,12 @@ class SetitemCastingEquivalents:
             # We are not (yet) checking whether setting is inplace or not
             pass
         elif is_inplace:
-            assert obj._values is arr
+            if arr.dtype.kind in ["m", "M"]:
+                # We may not have the same DTA/TDA, but will have the same
+                #  underlying data
+                assert arr._data is obj._values._data
+            else:
+                assert obj._values is arr
         else:
             # otherwise original array should be unchanged
             tm.assert_equal(arr, orig._values)
@@ -459,88 +675,6 @@ class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
         return request.param
 
 
-class TestSetitemWithExpansion:
-    def test_setitem_empty_series(self):
-        # GH#10193
-        key = Timestamp("2012-01-01")
-        series = Series(dtype=object)
-        series[key] = 47
-        expected = Series(47, [key])
-        tm.assert_series_equal(series, expected)
-
-    def test_setitem_empty_series_datetimeindex_preserves_freq(self):
-        # GH#33573 our index should retain its freq
-        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
-        key = Timestamp("2012-01-01")
-        series[key] = 47
-        expected = Series(47, DatetimeIndex([key], freq="D"))
-        tm.assert_series_equal(series, expected)
-        assert series.index.freq == expected.index.freq
-
-    def test_setitem_empty_series_timestamp_preserves_dtype(self):
-        # GH 21881
-        timestamp = Timestamp(1412526600000000000)
-        series = Series([timestamp], index=["timestamp"], dtype=object)
-        expected = series["timestamp"]
-
-        series = Series([], dtype=object)
-        series["anything"] = 300.0
-        series["timestamp"] = timestamp
-        result = series["timestamp"]
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "td",
-        [
-            Timedelta("9 days"),
-            Timedelta("9 days").to_timedelta64(),
-            Timedelta("9 days").to_pytimedelta(),
-        ],
-    )
-    def test_append_timedelta_does_not_cast(self, td):
-        # GH#22717 inserting a Timedelta should _not_ cast to int64
-        expected = Series(["x", td], index=[0, "td"], dtype=object)
-
-        ser = Series(["x"])
-        ser["td"] = td
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser["td"], Timedelta)
-
-        ser = Series(["x"])
-        ser.loc["td"] = Timedelta("9 days")
-        tm.assert_series_equal(ser, expected)
-        assert isinstance(ser["td"], Timedelta)
-
-
-def test_setitem_scalar_into_readonly_backing_data():
-    # GH#14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    for n in range(len(series)):
-        msg = "assignment destination is read-only"
-        with pytest.raises(ValueError, match=msg):
-            series[n] = 1
-
-        assert array[n] == 0
-
-
-def test_setitem_slice_into_readonly_backing_data():
-    # GH#14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    msg = "assignment destination is read-only"
-    with pytest.raises(ValueError, match=msg):
-        series[1:3] = 1
-
-    assert not array.any()
-
-
 class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
     # timedelta64 should not be treated as integers when setting into
     #  numeric Series
@@ -646,3 +780,108 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def is_inplace(self):
         return True
+
+
+class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
+    # some nat-like values should be cast to datetime64/timedelta64 when
+    #  inserting into a datetime64/timedelta64 series.  Others should coerce
+    #  to object and retain their dtypes.
+    # GH#18586 for td64 and boolean mask case
+
+    @pytest.fixture(
+        params=["m8[ns]", "M8[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Central]"]
+    )
+    def dtype(self, request):
+        return request.param
+
+    @pytest.fixture
+    def obj(self, dtype):
+        i8vals = date_range("2016-01-01", periods=3).asi8
+        idx = Index(i8vals, dtype=dtype)
+        assert idx.dtype == dtype
+        return Series(idx)
+
+    @pytest.fixture(
+        params=[
+            None,
+            np.nan,
+            NaT,
+            np.timedelta64("NaT", "ns"),
+            np.datetime64("NaT", "ns"),
+        ]
+    )
+    def val(self, request):
+        return request.param
+
+    @pytest.fixture
+    def is_inplace(self, val, obj):
+        # td64   -> cast to object iff val is datetime64("NaT")
+        # dt64   -> cast to object iff val is timedelta64("NaT")
+        # dt64tz -> cast to object with anything _but_ NaT
+        return val is NaT or val is None or val is np.nan or obj.dtype == val.dtype
+
+    @pytest.fixture
+    def expected(self, obj, val, is_inplace):
+        dtype = obj.dtype if is_inplace else object
+        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        return expected
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+
+class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
+    # GH#24024
+    @pytest.fixture
+    def obj(self):
+        return Series(date_range("2000", periods=2, tz="US/Central"))
+
+    @pytest.fixture
+    def val(self):
+        return Timestamp("2000", tz="US/Eastern")
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def expected(self):
+        expected = Series(
+            [
+                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
+                Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
+            ],
+            dtype=object,
+        )
+        return expected
+
+
+@pytest.mark.parametrize(
+    "obj,expected",
+    [
+        # For numeric series, we should coerce to NaN.
+        (Series([1, 2, 3]), Series([np.nan, 2, 3])),
+        (Series([1.0, 2.0, 3.0]), Series([np.nan, 2.0, 3.0])),
+        # For datetime series, we should coerce to NaT.
+        (
+            Series([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+            Series([NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+        ),
+        # For objects, we should preserve the None value.
+        (Series(["foo", "bar", "baz"]), Series([None, "bar", "baz"])),
+    ],
+)
+class TestSeriesNoneCoercion(SetitemCastingEquivalents):
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def val(self):
+        return None
+
+    @pytest.fixture
+    def is_inplace(self, obj):
+        # This is specific to the 4 cases currently implemented for this class.
+        return obj.dtype.kind != "i"

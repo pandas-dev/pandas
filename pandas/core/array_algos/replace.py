@@ -3,11 +3,19 @@ Methods used by Block.replace and related methods.
 """
 import operator
 import re
-from typing import Any, Optional, Pattern, Union
+from typing import (
+    Any,
+    Optional,
+    Pattern,
+    Union,
+)
 
 import numpy as np
 
-from pandas._typing import ArrayLike, Scalar
+from pandas._typing import (
+    ArrayLike,
+    Scalar,
+)
 
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -144,6 +152,8 @@ def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.nd
     f = np.vectorize(re_replacer, otypes=[values.dtype])
 
     if mask is None:
-        values[:] = f(values)
+        # error: Invalid index type "slice" for "ExtensionArray"; expected type
+        # "Union[int, ndarray]"
+        values[:] = f(values)  # type: ignore[index]
     else:
         values[mask] = f(values[mask])

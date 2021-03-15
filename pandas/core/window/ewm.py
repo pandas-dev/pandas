@@ -3,14 +3,22 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import Optional, Union
+from typing import (
+    Optional,
+    Union,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, TimedeltaConvertibleTypes
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    TimedeltaConvertibleTypes,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -35,7 +43,10 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby
+from pandas.core.window.rolling import (
+    BaseWindow,
+    BaseWindowGroupby,
+)
 
 
 def get_center_of_mass(
@@ -69,22 +80,6 @@ def get_center_of_mass(
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
     return float(comass)
-
-
-def dispatch(name: str, *args, **kwargs):
-    """
-    Dispatch to groupby apply.
-    """
-
-    def outer(self, *args, **kwargs):
-        def f(x):
-            x = self._shallow_copy(x, groupby=self._groupby)
-            return getattr(x, name)(*args, **kwargs)
-
-        return self._groupby.apply(f)
-
-    outer.__name__ = name
-    return outer
 
 
 class ExponentialMovingWindow(BaseWindow):
@@ -219,11 +214,21 @@ class ExponentialMovingWindow(BaseWindow):
     4  3.233686
     """
 
-    _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
+    _attributes = [
+        "com",
+        "span",
+        "halflife",
+        "alpha",
+        "min_periods",
+        "adjust",
+        "ignore_na",
+        "axis",
+        "times",
+    ]
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         com: Optional[float] = None,
         span: Optional[float] = None,
         halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
@@ -231,49 +236,76 @@ class ExponentialMovingWindow(BaseWindow):
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
-        axis: int = 0,
+        axis: Axis = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
-        **kwargs,
     ):
-        self.obj = obj
-        self.min_periods = max(int(min_periods), 1)
+        super().__init__(
+            obj=obj,
+            min_periods=max(int(min_periods), 1),
+            on=None,
+            center=False,
+            closed=None,
+            method="single",
+            axis=axis,
+        )
+        self.com = com
+        self.span = span
+        self.halflife = halflife
+        self.alpha = alpha
         self.adjust = adjust
         self.ignore_na = ignore_na
-        self.axis = axis
-        self.on = None
-        self.center = False
-        self.closed = None
-        self.method = "single"
-        if times is not None:
-            if isinstance(times, str):
-                times = self._selected_obj[times]
-            if not is_datetime64_ns_dtype(times):
+        self.times = times
+        if self.times is not None:
+            if not self.adjust:
+                raise NotImplementedError("times is not supported with adjust=False.")
+            if isinstance(self.times, str):
+                self.times = self._selected_obj[self.times]
+            if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            if len(times) != len(obj):
+            # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
+            # FrameOrSeries, None]"; expected "Sized"
+            if len(self.times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
-            if not isinstance(halflife, (str, datetime.timedelta)):
+            if not isinstance(self.halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            if isna(times).any():
+            if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            self.times = np.asarray(times.view(np.int64))
-            self.halflife = Timedelta(halflife).value
+            # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+            # attribute "view"
+            # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+            # attribute "view"
+            _times = np.asarray(
+                self.times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
+            )
+            _halflife = float(Timedelta(self.halflife).value)
+            self._deltas = np.diff(_times) / _halflife
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
-            if common.count_not_none(com, span, alpha) > 0:
-                self.com = get_center_of_mass(com, span, None, alpha)
+            if common.count_not_none(self.com, self.span, self.alpha) > 0:
+                self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
             else:
-                self.com = 0.0
+                self._com = 1.0
         else:
-            if halflife is not None and isinstance(halflife, (str, datetime.timedelta)):
+            if self.halflife is not None and isinstance(
+                self.halflife, (str, datetime.timedelta)
+            ):
                 raise ValueError(
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
-            self.times = None
-            self.halflife = None
-            self.com = get_center_of_mass(com, span, halflife, alpha)
+            # Without times, points are equally spaced
+            self._deltas = np.ones(max(len(self.obj) - 1, 0), dtype=np.float64)
+            self._com = get_center_of_mass(
+                # error: Argument 3 to "get_center_of_mass" has incompatible type
+                # "Union[float, Any, None, timedelta64, signedinteger[_64Bit]]";
+                # expected "Optional[float]"
+                self.com,
+                self.span,
+                self.halflife,  # type: ignore[arg-type]
+                self.alpha,
+            )
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -331,21 +363,14 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        if self.times is not None:
-            window_func = window_aggregations.ewma_time
-            window_func = partial(
-                window_func,
-                times=self.times,
-                halflife=self.halflife,
-            )
-        else:
-            window_func = window_aggregations.ewma
-            window_func = partial(
-                window_func,
-                com=self.com,
-                adjust=self.adjust,
-                ignore_na=self.ignore_na,
-            )
+        window_func = window_aggregations.ewma
+        window_func = partial(
+            window_func,
+            com=self._com,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            deltas=self._deltas,
+        )
         return self._apply(window_func)
 
     @doc(
@@ -406,7 +431,7 @@ class ExponentialMovingWindow(BaseWindow):
         window_func = window_aggregations.ewmcov
         window_func = partial(
             window_func,
-            com=self.com,
+            com=self._com,
             adjust=self.adjust,
             ignore_na=self.ignore_na,
             bias=bias,
@@ -422,7 +447,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -457,13 +482,25 @@ class ExponentialMovingWindow(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
             result = window_aggregations.ewmcov(
                 x_array,
-                np.array([0], dtype=np.int64),
-                np.array([0], dtype=np.int64),
+                start,
+                end,
                 self.min_periods,
                 y_array,
-                self.com,
+                self._com,
                 self.adjust,
                 self.ignore_na,
                 bias,
@@ -477,7 +514,7 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -509,15 +546,27 @@ class ExponentialMovingWindow(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
 
             def _cov(X, Y):
                 return window_aggregations.ewmcov(
                     X,
-                    np.array([0], dtype=np.int64),
-                    np.array([0], dtype=np.int64),
+                    start,
+                    end,
                     self.min_periods,
                     Y,
-                    self.com,
+                    self._com,
                     self.adjust,
                     self.ignore_na,
                     1,
@@ -538,9 +587,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     Provide an exponential moving window groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return ExponentialMovingWindow
+    _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
@@ -551,15 +598,10 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._groupby.indices,
+            groupby_indicies=self._grouper.indices,
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
-
-    var = dispatch("var", bias=False)
-    std = dispatch("std", bias=False)
-    cov = dispatch("cov", other=None, pairwise=None, bias=False)
-    corr = dispatch("corr", other=None, pairwise=None)
 
     def mean(self, engine=None, engine_kwargs=None):
         """
@@ -591,7 +633,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         if maybe_use_numba(engine):
             groupby_ewma_func = generate_numba_groupby_ewma_func(
                 engine_kwargs,
-                self.com,
+                self._com,
                 self.adjust,
                 self.ignore_na,
             )
@@ -602,11 +644,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
-
-            def f(x):
-                x = self._shallow_copy(x, groupby=self._groupby)
-                return x.mean()
-
-            return self._groupby.apply(f)
+            return super().mean()
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")

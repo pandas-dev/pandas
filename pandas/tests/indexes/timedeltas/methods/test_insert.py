@@ -6,7 +6,12 @@ import pytest
 from pandas._libs import lib
 
 import pandas as pd
-from pandas import Index, Timedelta, TimedeltaIndex, timedelta_range
+from pandas import (
+    Index,
+    Timedelta,
+    TimedeltaIndex,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 
@@ -123,7 +128,7 @@ class TestTimedeltaIndexInsert:
         tm.assert_index_equal(result, expected)
 
     def test_insert_empty(self):
-        # Corner case inserting with length zero doesnt raise IndexError
+        # Corner case inserting with length zero doesn't raise IndexError
         # GH#33573 for freq preservation
         idx = timedelta_range("1 Day", periods=3)
         td = idx[0]

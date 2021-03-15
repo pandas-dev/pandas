@@ -5,7 +5,10 @@ import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.indexes.api import MultiIndex
 

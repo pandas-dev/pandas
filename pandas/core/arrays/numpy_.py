@@ -1,19 +1,31 @@
 from __future__ import annotations
 
 import numbers
-from typing import Optional, Tuple, Union
+from typing import (
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
-from pandas._typing import Dtype, NpDtype, Scalar
+from pandas._typing import (
+    Dtype,
+    NpDtype,
+    Scalar,
+)
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
+from pandas.core import (
+    nanops,
+    ops,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -85,7 +97,20 @@ class PandasArray(
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
-        result = np.asarray(scalars, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
+        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"
+        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+        if (
+            result.ndim > 1
+            and not hasattr(scalars, "dtype")
+            and (dtype is None or dtype == object)
+        ):
+            # e.g. list-of-tuples
+            result = construct_1d_object_array_from_listlike(scalars)
+
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
@@ -112,7 +137,7 @@ class PandasArray(
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
@@ -321,7 +346,10 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
