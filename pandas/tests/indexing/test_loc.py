@@ -23,7 +23,6 @@ from pandas import (
     DatetimeIndex,
     Index,
     IndexSlice,
-    IntervalIndex,
     MultiIndex,
     Period,
     Series,
@@ -1680,9 +1679,6 @@ class TestLocSetitemWithExpansion:
         # GH#40096
         if not len(index):
             return
-        if isinstance(index, IntervalIndex):
-            mark = pytest.mark.xfail(reason="IntervalIndex raises")
-            request.node.add_marker(mark)
 
         index = index.repeat(2)  # ensure non-unique
         N = len(index)
