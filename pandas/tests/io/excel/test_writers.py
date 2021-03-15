@@ -1402,6 +1402,21 @@ class TestExcelWriterEngineTests:
                 except TypeError:
                     pass
 
+    @pytest.mark.parametrize(
+        "ext",
+        [
+            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
+            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
+            pytest.param(".ods", marks=td.skip_if_no("odf")),
+        ],
+    )
+    def test_engine_kwargs_and_kwargs_raises(self, ext):
+        # GH 40430
+        msg = re.escape("Cannot use both engine_kwargs and **kwargs")
+        with pytest.raises(ValueError, match=msg):
+            with ExcelWriter("", engine_kwargs={"a": 1}, b=2):
+                pass
+
 
 @td.skip_if_no("xlrd")
 @td.skip_if_no("openpyxl")

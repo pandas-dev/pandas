@@ -669,6 +669,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         .. versionadded:: 1.2.0
     engine_kwargs : dict, optional
         Keyword arguments to be passed into the engine.
+
+        .. versionadded:: 1.3.0
     **kwargs : dict, optional
         Keyword arguments to be passed into the engine.
 
