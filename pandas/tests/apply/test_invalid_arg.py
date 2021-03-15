@@ -91,27 +91,15 @@ def test_nested_renamer(box, method, func):
         getattr(obj, method)(func)
 
 
-def test_series_agg_nested_renamer():
+@pytest.mark.parametrize(
+    "renamer",
+    [{"foo": ["min", "max"]}, {"foo": ["min", "max"], "bar": ["sum", "mean"]}],
+)
+def test_series_nested_renamer(renamer):
     s = Series(range(6), dtype="int64", name="series")
     msg = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        s.agg({"foo": ["min", "max"]})
-
-
-def test_multiple_aggregators_with_dict_api():
-
-    s = Series(range(6), dtype="int64", name="series")
-    # nested renaming
-    msg = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
-
-
-def test_transform_nested_renamer():
-    # GH 35964
-    match = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=match):
-        Series([1]).transform({"A": {"B": ["sum"]}})
+        s.agg(renamer)
 
 
 def test_agg_dict_nested_renaming_depr_agg():
@@ -154,14 +142,6 @@ def test_missing_column(method, func):
     match = re.escape("Column(s) ['B'] do not exist")
     with pytest.raises(KeyError, match=match):
         getattr(obj, method)(func)
-
-
-def test_transform_missing_columns(axis):
-    # GH#35964
-    df = DataFrame({"A": [1, 2], "B": [3, 4]})
-    match = re.escape("Column(s) ['C'] do not exist")
-    with pytest.raises(KeyError, match=match):
-        df.transform({"C": "cumsum"})
 
 
 def test_transform_mixed_column_name_dtypes():
@@ -328,14 +308,8 @@ def test_transform_and_agg_err_agg(axis, float_frame):
         with np.errstate(all="ignore"):
             float_frame.agg(["max", "sqrt"], axis=axis)
 
-    df = DataFrame({"A": range(5), "B": 5})
 
-    def f():
-        with np.errstate(all="ignore"):
-            df.agg({"A": ["abs", "sum"], "B": ["mean", "max"]}, axis=axis)
-
-
-def test_transform_and_agg_error_agg(string_series):
+def test_transform_and_agg_err_series(string_series):
     # we are trying to transform with an aggregator
     msg = "cannot combine transform and aggregation"
     with pytest.raises(ValueError, match=msg):
@@ -348,7 +322,7 @@ def test_transform_and_agg_error_agg(string_series):
             string_series.agg({"foo": np.sqrt, "bar": "sum"})
 
 
-def test_transform_and_agg_err_transform(axis, float_frame):
+def test_transform_and_agg_err_frame(axis, float_frame):
     # GH 35964
     # cannot both transform and agg
     msg = "Function did not transform"

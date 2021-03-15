@@ -196,9 +196,10 @@ class Styler:
         self.cell_context: Dict[str, Any] = {}
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
         self.tooltips: Optional[_Tooltips] = None
+        def_precision = get_option("display.precision")
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             Tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=None))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
         self.format(formatter=None, precision=precision, na_rep=na_rep)
@@ -350,12 +351,6 @@ class Styler:
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
         """
-        table_styles = self.table_styles or []
-        caption = self.caption
-        ctx = self.ctx
-        hidden_index = self.hidden_index
-        hidden_columns = self.hidden_columns
-        uuid = self.uuid
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -364,11 +359,21 @@ class Styler:
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
 
+        # mapping variables
+        ctx = self.ctx  # td css styles from apply() and applymap()
+        cell_context = self.cell_context  # td css classes from set_td_classes()
+        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+
+        # copied attributes
+        table_styles = self.table_styles or []
+        caption = self.caption
+        hidden_index = self.hidden_index
+        hidden_columns = self.hidden_columns
+        uuid = self.uuid
+
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
-
-        cell_context = self.cell_context
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
@@ -381,10 +386,7 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
-
         head = []
-
         for r in range(n_clvls):
             # Blank for Index columns...
             row_es = [
@@ -2127,7 +2129,7 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
+def _default_formatter(x: Any, precision: int) -> Any:
     """
     Format the display of a value
 
@@ -2135,7 +2137,7 @@ def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
     ----------
     x : Any
         Input variable to be formatted
-    precision : Int, optional
+    precision : Int
         Floating point precision used if ``x`` is float or complex.
 
     Returns
@@ -2143,8 +2145,6 @@ def _default_formatter(x: Any, precision: Optional[int] = None) -> Any:
     value : Any
         Matches input type, or string if input is float or complex.
     """
-    if precision is None:
-        precision = get_option("display.precision")
     if isinstance(x, (float, complex)):
         return f"{x:.{precision}f}"
     return x
@@ -2165,6 +2165,7 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         formatter_func = formatter
     elif formatter is None:
+        precision = get_option("display.precision") if precision is None else precision
         formatter_func = partial(_default_formatter, precision=precision)
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
