@@ -48,7 +48,7 @@ from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import Index
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from jinja2.filters import escape as escape_func
+from markupsafe import escape as escape_func  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
@@ -624,7 +624,7 @@ class Styler:
         0    MISS   1.000       A
         1   2.000    MISS   3.000
 
-        Using a format specification on consistent column dtypes
+        Using a ``formatter`` specification on consistent column dtypes
 
         >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])
                 0      1          2
@@ -647,7 +647,7 @@ class Styler:
         0    MISS   1.00      A
         1     2.0   PASS   3.00
 
-        Using a callable formatting function
+        Using a callable ``formatter`` function.
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
@@ -655,16 +655,16 @@ class Styler:
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
 
-        Using a formatter with HTML ``escape``.
+        Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
 
-        >>> df = pd.DataFrame([['<div></div>', '"A&B"']])
-        >>> s = df.style.format('<a href="a.com/{0}">{0}</a>', escape=True)
+        >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
+        >>> s = df.style.format('<a href="a.com/{0}">{0}</a>', escape=True, na_rep="NA")
         >>> s.render()
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
+        <td .. >NA</td>
         ...
-
         """
         if all(
             (
@@ -2204,11 +2204,12 @@ def _maybe_wrap_formatter(
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
     if na_rep is None:
-        na_func = formatter_func
+        return (lambda x: formatter_func(escape_func(x))) if escape else formatter_func
     else:
-        na_func = lambda x: na_rep if pd.isna(x) else formatter_func(x)
-
-    return (lambda x: na_func(escape_func(x))) if escape else na_func
+        if escape:
+            return lambda x: na_rep if pd.isna(x) else formatter_func(escape_func(x))
+        else:
+            return lambda x: na_rep if pd.isna(x) else formatter_func(x)
 
 
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
