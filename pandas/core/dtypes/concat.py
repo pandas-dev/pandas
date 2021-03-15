@@ -14,9 +14,9 @@ from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_sparse,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCSeries,
@@ -64,14 +64,13 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # are not coming from Index/Series._values), eg in BlockManager.quantile
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
-        # numpy's astype cannot handle ExtensionDtypes
-        return pd_array(arr, dtype=dtype, copy=False)
-    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
-    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
-    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-    # List[Any], _DTypeDict, Tuple[Any, Any]]]"
-    return arr.astype(dtype, copy=False)  # type: ignore[arg-type]
+    if isinstance(dtype, ExtensionDtype):
+        if isinstance(arr, np.ndarray):
+            # numpy's astype cannot handle ExtensionDtypes
+            return pd_array(arr, dtype=dtype, copy=False)
+        return arr.astype(dtype, copy=False)
+
+    return arr.astype(dtype, copy=False)
 
 
 def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
@@ -116,7 +115,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
-    any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
+    any_ea = any(isinstance(x.dtype, ExtensionDtype) for x in to_concat)
 
     if _contains_datetime:
         return _concat_datetime(to_concat, axis=axis)
