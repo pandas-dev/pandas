@@ -1884,7 +1884,7 @@ class Styler:
         ... })
         >>> df.style.highlight_between(left=2.1, right=2.9)
 
-        .. figure:: ../../_static/style/hr_basic.png
+        .. figure:: ../../_static/style/hbetw_basic.png
 
         Using a range input sequnce along an ``axis``, in this case setting a ``left``
         and ``right`` for each column individually
@@ -1892,7 +1892,7 @@ class Styler:
         >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
         ...     axis=1, color="#fffd75")
 
-        .. figure:: ../../_static/style/hr_seq.png
+        .. figure:: ../../_static/style/hbetw_seq.png
 
         Using ``axis=None`` and providing the ``left`` argument as an array that
         matches the input DataFrame, with a constant ``right``
@@ -1900,14 +1900,14 @@ class Styler:
         >>> df.style.highlight_between(left=[[2,2,3],[2,2,3],[3,3,3]], right=3.5,
         ...     axis=None, color="#fffd75")
 
-        .. figure:: ../../_static/style/hr_axNone.png
+        .. figure:: ../../_static/style/hbetw_axNone.png
 
         Using ``props`` instead of default background coloring
 
         >>> df.style.highlight_between(left=1.5, right=3.5,
         ...     props='font-weight:bold;color:#e83e8c')
 
-        .. figure:: ../../_static/style/hr_props.png
+        .. figure:: ../../_static/style/hbetw_props.png
         """
 
         def f(
