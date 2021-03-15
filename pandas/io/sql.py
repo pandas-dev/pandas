@@ -862,11 +862,17 @@ class SQLTable(PandasObject):
         list of str
             primary key values in incoming dataframe which already exist in database
         """
-        from sqlalchemy import select
+        from sqlalchemy import and_, select
 
         cols_to_fetch = [self.table.c[key] for key in primary_keys]
+        # select_stmt = select(cols_to_fetch).where(
+        #     tuple_(*cols_to_fetch).in_(primary_key_values)
+        # )
         select_stmt = select(cols_to_fetch).where(
-            (*cols_to_fetch).in_(primary_key_values)
+            and_(
+                col.in_(key[i] for key in primary_key_values)
+                for i, col in enumerate(cols_to_fetch)
+            )
         )
         return self.pd_sql.execute(select_stmt).fetchall()
 
