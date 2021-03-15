@@ -152,6 +152,8 @@ def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.nd
     f = np.vectorize(re_replacer, otypes=[values.dtype])
 
     if mask is None:
-        values[:] = f(values)
+        # error: Invalid index type "slice" for "ExtensionArray"; expected type
+        # "Union[int, ndarray]"
+        values[:] = f(values)  # type: ignore[index]
     else:
         values[mask] = f(values[mask])
