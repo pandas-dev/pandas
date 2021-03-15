@@ -108,19 +108,28 @@ def _get_same_shape_values(
 
     # TODO(EA2D): with 2D EAs only this first clause would be needed
     if not (left_ea or right_ea):
-        lvals = lvals[rblk.mgr_locs.indexer, :]
+        # error: Invalid index type "Tuple[Any, slice]" for "Union[ndarray,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        lvals = lvals[rblk.mgr_locs.indexer, :]  # type: ignore[index]
         assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
     elif left_ea and right_ea:
         assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
     elif right_ea:
         # lvals are 2D, rvals are 1D
-        lvals = lvals[rblk.mgr_locs.indexer, :]
+
+        # error: Invalid index type "Tuple[Any, slice]" for "Union[ndarray,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        lvals = lvals[rblk.mgr_locs.indexer, :]  # type: ignore[index]
         assert lvals.shape[0] == 1, lvals.shape
-        lvals = lvals[0, :]
+        # error: Invalid index type "Tuple[int, slice]" for "Union[Any,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        lvals = lvals[0, :]  # type: ignore[index]
     else:
         # lvals are 1D, rvals are 2D
         assert rvals.shape[0] == 1, rvals.shape
-        rvals = rvals[0, :]
+        # error: Invalid index type "Tuple[int, slice]" for "Union[ndarray,
+        # ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        rvals = rvals[0, :]  # type: ignore[index]
 
     return lvals, rvals
 

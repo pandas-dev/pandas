@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
-    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
+    from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame  # noqa: F401
     from pandas.core.groupby.generic import (
@@ -74,8 +74,8 @@ else:
 
 # array-like
 
-AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
-ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
+ArrayLike = Union["ExtensionArray", np.ndarray]
+AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
 # scalars
 

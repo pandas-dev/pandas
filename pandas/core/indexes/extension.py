@@ -339,7 +339,9 @@ class ExtensionIndex(Index):
 
     @cache_readonly
     def _isnan(self) -> np.ndarray:
-        return self._data.isna()
+        # error: Incompatible return value type (got "ExtensionArray", expected
+        # "ndarray")
+        return self._data.isna()  # type: ignore[return-value]
 
     @doc(Index.equals)
     def equals(self, other) -> bool:
@@ -418,11 +420,17 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
             dtype = find_common_type([self.dtype, dtype])
             return self.astype(dtype).insert(loc, item)
         else:
-            new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
+            new_vals = np.concatenate(
+                (
+                    arr._ndarray[:loc],
+                    np.asarray([code], dtype=arr._ndarray.dtype),
+                    arr._ndarray[loc:],
+                )
+            )
             new_arr = arr._from_backing_data(new_vals)
             return type(self)._simple_new(new_arr, name=self.name)
 
-    def putmask(self, mask, value):
+    def putmask(self, mask, value) -> Index:
         res_values = self._data.copy()
         try:
             res_values.putmask(mask, value)
