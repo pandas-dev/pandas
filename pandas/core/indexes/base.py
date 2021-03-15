@@ -66,7 +66,6 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
-    maybe_cast_to_integer_array,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -144,6 +143,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
@@ -191,8 +191,7 @@ _index_shared_docs = {}
 str_t = str
 
 
-# error: Value of type variable "_DTypeScalar" of "dtype" cannot be "object"
-_o_dtype = np.dtype(object)  # type: ignore[type-var]
+_o_dtype = np.dtype("object")
 
 
 _Identity = NewType("_Identity", object)
@@ -399,29 +398,24 @@ class Index(IndexOpsMixin, PandasObject):
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
+            if isinstance(data, ABCMultiIndex):
+                data = data._values
+
             if dtype is not None:
                 # we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
+                data = sanitize_array(data, None, dtype=dtype, copy=copy)
 
-                # error: Argument 1 to "_maybe_cast_with_dtype" has incompatible type
-                # "Union[ndarray, Index, Series]"; expected "ndarray"
-                data = _maybe_cast_with_dtype(
-                    data, dtype, copy  # type: ignore[arg-type]
-                )
                 dtype = data.dtype
 
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
             else:
-                # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-                # "Type[object]"; expected "Union[str, dtype[Any], None]"
-                arr = com.asarray_tuplesafe(
-                    data, dtype=object  # type: ignore[arg-type]
-                )
+                arr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
 
                 if dtype is None:
                     arr = _maybe_cast_data_without_dtype(arr)
@@ -456,9 +450,7 @@ class Index(IndexOpsMixin, PandasObject):
                     )
             # other iterable of some kind
 
-            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-            # "Type[object]"; expected "Union[str, dtype[Any], None]"
-            subarr = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
+            subarr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     @classmethod
@@ -2902,16 +2894,10 @@ class Index(IndexOpsMixin, PandasObject):
                 # <T>   | <T>    -> T
                 # <T>   | <U>    -> object
                 if not (is_integer_dtype(self.dtype) and is_integer_dtype(other.dtype)):
-                    # error: Incompatible types in assignment (expression has type
-                    # "str", variable has type "Union[dtype[Any], ExtensionDtype]")
-                    dtype = "float64"  # type: ignore[assignment]
+                    dtype = np.dtype("float64")
                 else:
                     # one is int64 other is uint64
-
-                    # error: Incompatible types in assignment (expression has type
-                    # "Type[object]", variable has type "Union[dtype[Any],
-                    # ExtensionDtype]")
-                    dtype = object  # type: ignore[assignment]
+                    dtype = np.dtype("object")
 
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
@@ -3906,6 +3892,9 @@ class Index(IndexOpsMixin, PandasObject):
         self_is_mi = isinstance(self, ABCMultiIndex)
         other_is_mi = isinstance(other, ABCMultiIndex)
 
+        lindexer: Optional[np.ndarray]
+        rindexer: Optional[np.ndarray]
+
         # try to figure out the join level
         # GH3662
         if level is None and (self_is_mi or other_is_mi):
@@ -4003,15 +3992,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         if return_indexers:
             if join_index is self:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "ndarray")
-                lindexer = None  # type: ignore[assignment]
+                lindexer = None
             else:
                 lindexer = self.get_indexer(join_index)
             if join_index is other:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "ndarray")
-                rindexer = None  # type: ignore[assignment]
+                rindexer = None
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
@@ -4114,15 +4099,11 @@ class Index(IndexOpsMixin, PandasObject):
         left_idx = ensure_platform_int(left_idx)
         right_idx = ensure_platform_int(right_idx)
 
-        join_index = np.asarray(lvalues.take(left_idx))
+        join_array = np.asarray(lvalues.take(left_idx))
         mask = left_idx == -1
-        np.putmask(join_index, mask, rvalues.take(right_idx))
+        np.putmask(join_array, mask, rvalues.take(right_idx))
 
-        # error: Incompatible types in assignment (expression has type "Index", variable
-        # has type "ndarray")
-        join_index = self._wrap_joined_index(
-            join_index, other  # type: ignore[assignment]
-        )
+        join_index = self._wrap_joined_index(join_array, other)
 
         if return_indexers:
             return join_index, left_idx, right_idx
@@ -4286,6 +4267,9 @@ class Index(IndexOpsMixin, PandasObject):
         sv = self._get_engine_target()
         ov = other._get_engine_target()
 
+        ridx: Optional[np.ndarray]
+        lidx: Optional[np.ndarray]
+
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
             if how == "left":
@@ -4295,61 +4279,24 @@ class Index(IndexOpsMixin, PandasObject):
             elif how == "right":
                 join_index = other
                 lidx = self._left_indexer_unique(ov, sv)
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "ndarray")
-                ridx = None  # type: ignore[assignment]
+                ridx = None
             elif how == "inner":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._inner_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
-                # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
-                # type "Index"; expected "ndarray"
-                join_index = self._wrap_joined_index(
-                    join_index, other  # type: ignore[arg-type]
-                )
+                join_array, lidx, ridx = self._inner_indexer(sv, ov)
+                join_index = self._wrap_joined_index(join_array, other)
             elif how == "outer":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._outer_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
-                # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible
-                # type "Index"; expected "ndarray"
-                join_index = self._wrap_joined_index(
-                    join_index, other  # type: ignore[arg-type]
-                )
+                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+                join_index = self._wrap_joined_index(join_array, other)
         else:
             if how == "left":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._left_indexer(  # type: ignore[assignment]
-                    sv, ov
-                )
+                join_array, lidx, ridx = self._left_indexer(sv, ov)
             elif how == "right":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, ridx, lidx = self._left_indexer(  # type: ignore[assignment]
-                    ov, sv
-                )
+                join_array, ridx, lidx = self._left_indexer(ov, sv)
             elif how == "inner":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._inner_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
+                join_array, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == "outer":
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Index")
-                join_index, lidx, ridx = self._outer_indexer(  # type:ignore[assignment]
-                    sv, ov
-                )
-            # error: Argument 1 to "_wrap_joined_index" of "Index" has incompatible type
-            # "Index"; expected "ndarray"
-            join_index = self._wrap_joined_index(
-                join_index, other  # type: ignore[arg-type]
-            )
+                join_array, lidx, ridx = self._outer_indexer(sv, ov)
+
+            join_index = self._wrap_joined_index(join_array, other)
 
         if return_indexers:
             lidx = None if lidx is None else ensure_platform_int(lidx)
@@ -4700,7 +4647,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = concat_compat(to_concat_vals)
         return Index(result, name=name)
 
-    def putmask(self, mask, value):
+    def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.
 
@@ -6366,56 +6313,6 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
-    """
-    If a dtype is passed, cast to the closest matching dtype that is supported
-    by Index.
-
-    Parameters
-    ----------
-    data : np.ndarray
-    dtype : np.dtype
-    copy : bool
-
-    Returns
-    -------
-    np.ndarray
-    """
-    # we need to avoid having numpy coerce
-    # things that look like ints/floats to ints unless
-    # they are actually ints, e.g. '0' and 0.0
-    # should not be coerced
-    # GH 11836
-    if is_integer_dtype(dtype):
-        inferred = lib.infer_dtype(data, skipna=False)
-        if inferred == "integer":
-            data = maybe_cast_to_integer_array(data, dtype, copy=copy)
-        elif inferred in ["floating", "mixed-integer-float"]:
-            if isna(data).any():
-                raise ValueError("cannot convert float NaN to integer")
-
-            if inferred == "mixed-integer-float":
-                data = maybe_cast_to_integer_array(data, dtype)
-
-            # If we are actually all equal to integers,
-            # then coerce to integer.
-            try:
-                data = _try_convert_to_int_array(data, copy, dtype)
-            except ValueError:
-                data = np.array(data, dtype=np.float64, copy=copy)
-
-        elif inferred != "string":
-            data = data.astype(dtype)
-    elif is_float_dtype(dtype):
-        inferred = lib.infer_dtype(data, skipna=False)
-        if inferred != "string":
-            data = data.astype(dtype)
-    else:
-        data = np.array(data, dtype=dtype, copy=copy)
-
-    return data
-
-
 def _maybe_cast_data_without_dtype(subarr):
     """
     If we have an arraylike input but no passed dtype, try to infer
@@ -6481,12 +6378,8 @@ def _maybe_cast_data_without_dtype(subarr):
                 pass
 
         elif inferred.startswith("timedelta"):
-            # error: Incompatible types in assignment (expression has type
-            # "TimedeltaArray", variable has type "ndarray")
-            data = TimedeltaArray._from_sequence(  # type: ignore[assignment]
-                subarr, copy=False
-            )
-            return data
+            tda = TimedeltaArray._from_sequence(subarr, copy=False)
+            return tda
         elif inferred == "period":
             try:
                 data = PeriodArray._from_sequence(subarr)
