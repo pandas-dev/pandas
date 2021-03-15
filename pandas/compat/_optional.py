@@ -11,7 +11,7 @@ VERSIONS = {
     "bs4": "4.6.0",
     "bottleneck": "1.2.1",
     "fsspec": "0.7.4",
-    "fastparquet": "0.3.2",
+    "fastparquet": "0.4.0",
     "gcsfs": "0.6.0",
     "lxml.etree": "4.3.0",
     "matplotlib": "2.2.3",
