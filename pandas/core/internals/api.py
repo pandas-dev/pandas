@@ -22,6 +22,7 @@ from pandas.core.internals.blocks import (
     check_ndim,
     extract_pandas_array,
     get_block_type,
+    maybe_coerce_values,
 )
 
 
@@ -58,6 +59,7 @@ def make_block(
 
     ndim = _maybe_infer_ndim(values, placement, ndim)
     check_ndim(values, placement, ndim)
+    values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
 
 
