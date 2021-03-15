@@ -35,6 +35,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -295,6 +296,22 @@ def ndarray_to_mgr(
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
+
+    if typ == "array":
+
+        values = sanitize_to_nanoseconds(values)
+        if issubclass(values.dtype.type, str):
+            values = np.array(values, dtype=object)
+
+        if dtype is None and is_object_dtype(values.dtype):
+            arrays = [
+                maybe_infer_to_datetimelike(values[:, i].copy())
+                for i in range(values.shape[1])
+            ]
+        else:
+            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+        return ArrayManager(arrays, [index, columns], verify_integrity=False)
+
     values = values.T
 
     # if we don't have a dtype specified, then try to convert objects
