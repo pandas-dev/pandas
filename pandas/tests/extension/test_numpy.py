@@ -305,16 +305,6 @@ class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
 
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
-    def test_fillna_scalar(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_scalar(data_missing)
-
-    @skip_nested
-    def test_fillna_no_op_returns_copy(self, data):
-        # Non-scalar "scalar" values.
-        super().test_fillna_no_op_returns_copy(data)
-
-    @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_series(data_missing)

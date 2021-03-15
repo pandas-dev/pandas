@@ -15,6 +15,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
 )
 from pandas.util._decorators import (
     Appender,
@@ -374,7 +375,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
-        cat = self._data.fillna(value)
+        try:
+            cat = self._data.fillna(value)
+        except (ValueError, TypeError):
+            # invalid fill_value
+            if not self.isna().any():
+                # nothing to fill, we can get away without casting
+                return self.copy()
+            return self.astype(object).fillna(value, downcast=downcast)
+
         return type(self)._simple_new(cat, name=self.name)
 
     @doc(Index.unique)
@@ -538,7 +547,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    def _is_comparable_dtype(self, dtype):
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):
