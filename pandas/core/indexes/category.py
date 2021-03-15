@@ -15,6 +15,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
 )
 from pandas.util._decorators import (
     Appender,
@@ -538,7 +539,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    def _is_comparable_dtype(self, dtype):
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):
