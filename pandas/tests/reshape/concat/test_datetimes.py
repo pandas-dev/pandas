@@ -457,7 +457,7 @@ class TestTimezoneConcat:
     )
     def test_concat_tz_NaT(self, t1):
         # GH#22796
-        # Concating tz-aware multicolumn DataFrames
+        # Concatenating tz-aware multicolumn DataFrames
         ts1 = Timestamp(t1, tz="UTC")
         ts2 = Timestamp("2015-01-01", tz="UTC")
         ts3 = Timestamp("2015-01-01", tz="UTC")

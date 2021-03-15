@@ -1158,7 +1158,7 @@ class TestTimedeltaArraylikeAddSubOps:
         msg = "Addition/subtraction of integers"
         assert_invalid_addsub_type(tdarr, one, msg)
 
-        # TOOD: get inplace ops into assert_invalid_addsub_type
+        # TODO: get inplace ops into assert_invalid_addsub_type
         with pytest.raises(TypeError, match=msg):
             tdarr += one
         with pytest.raises(TypeError, match=msg):

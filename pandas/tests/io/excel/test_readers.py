@@ -79,7 +79,7 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
 
 def _transfer_marks(engine, read_ext):
     """
-    engine gives us a pytest.param objec with some marks, read_ext is just
+    engine gives us a pytest.param object with some marks, read_ext is just
     a string.  We need to generate a new pytest.param inheriting the marks.
     """
     values = engine.values + (read_ext,)
@@ -1184,6 +1184,14 @@ class TestReaders:
             file_name, sheet_name="index_col_none", index_col=[0, 1], header=None
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_one_col_noskip_blank_line(self, read_ext):
+        # GH 39808
+        file_name = "one_col_blank_line" + read_ext
+        data = [0.5, np.nan, 1, 2]
+        expected = DataFrame(data, columns=["numbers"])
+        result = pd.read_excel(file_name)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestExcelFileRead:
