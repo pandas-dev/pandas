@@ -2205,17 +2205,19 @@ def _maybe_wrap_formatter(
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    def _str_escape(x):
-        """only use escape_func on str, else return input"""
-        return escape_func(x) if isinstance(x, str) else x
+    def _str_escape(x, escape: bool):
+        """if escaping: only use on str, else return input"""
+        if escape and isinstance(x, str):
+            return escape_func(x)
+        else:
+            return x
+
+    display_func = lambda x: formatter_func(partial(_str_escape, escape=escape)(x))
 
     if na_rep is None:
-        return (lambda x: formatter_func(_str_escape(x))) if escape else formatter_func
+        return display_func
     else:
-        if escape:
-            return lambda x: na_rep if pd.isna(x) else formatter_func(_str_escape(x))
-        else:
-            return lambda x: na_rep if pd.isna(x) else formatter_func(x)
+        return lambda x: na_rep if pd.isna(x) else display_func(x)
 
 
 def _maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
