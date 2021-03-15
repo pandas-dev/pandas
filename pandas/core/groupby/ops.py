@@ -65,6 +65,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
@@ -522,7 +523,7 @@ class BaseGrouper:
     @final
     def _ea_wrap_cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+    ) -> np.ndarray:
         """
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
@@ -552,9 +553,10 @@ class BaseGrouper:
                 kind, values, how, axis, min_count, **kwargs
             )
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            if is_extension_array_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
                 cls = dtype.construct_array_type()
                 return cls._from_sequence(res_values, dtype=dtype)
+
             return res_values
 
         elif is_float_dtype(values.dtype):
@@ -652,7 +654,7 @@ class BaseGrouper:
             result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
             result = maybe_fill(
-                np.empty_like(values, dtype=out_dtype), fill_value=np.nan
+                np.empty(values.shape, dtype=out_dtype), fill_value=np.nan
             )
 
             # TODO: min_count
@@ -680,7 +682,9 @@ class BaseGrouper:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cython_cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
-            result = maybe_downcast_to_dtype(result, dtype)
+            # error: Argument 2 to "maybe_downcast_to_dtype" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype]"; expected "Union[str, dtype[Any]]"
+            result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[arg-type]
 
         return result
 
@@ -780,7 +784,11 @@ class BaseGrouper:
             result[label] = res
 
         result = lib.maybe_convert_objects(result, try_float=False)
-        result = maybe_cast_result(result, obj, numeric_only=True)
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
+        result = maybe_cast_result(  # type: ignore[assignment]
+            result, obj, numeric_only=True
+        )
 
         return result, counts
 

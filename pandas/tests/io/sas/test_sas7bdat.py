@@ -194,10 +194,13 @@ def test_compact_numerical_values(datapath):
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
-def test_many_columns(datapath):
+def test_many_columns(datapath, using_array_manager):
     # Test for looking for column information in more places (PR #22628)
     fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
-    with tm.assert_produces_warning(PerformanceWarning):
+    expected_warning = None
+    if not using_array_manager:
+        expected_warning = PerformanceWarning
+    with tm.assert_produces_warning(expected_warning):
         # Many DataFrame.insert calls
         df = pd.read_sas(fname, encoding="latin-1")
 

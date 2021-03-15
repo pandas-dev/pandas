@@ -16,7 +16,6 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown]
         files: ^(pandas|doc)/
-        exclude: ^pandas/tests/
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
@@ -95,7 +94,7 @@ repos:
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
         language: python
         types: [python]
-        files: ^pandas/tests/frame/
+        files: ^pandas/tests/
     -   id: incorrect-code-directives
         name: Check for incorrect code block or IPython directives
         language: pygrep
