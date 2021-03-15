@@ -2205,11 +2205,15 @@ def _maybe_wrap_formatter(
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
+    def _str_escape(x):
+        """only use escape_func on str, else return input"""
+        return escape_func(x) if isinstance(x, str) else x
+
     if na_rep is None:
-        return (lambda x: formatter_func(escape_func(x))) if escape else formatter_func
+        return (lambda x: formatter_func(_str_escape(x))) if escape else formatter_func
     else:
         if escape:
-            return lambda x: na_rep if pd.isna(x) else formatter_func(escape_func(x))
+            return lambda x: na_rep if pd.isna(x) else formatter_func(_str_escape(x))
         else:
             return lambda x: na_rep if pd.isna(x) else formatter_func(x)
 

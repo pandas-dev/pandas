@@ -667,6 +667,16 @@ class TestStyler:
         assert ex in s.render()
         assert expected2 in s.render()
 
+    def test_format_escape_floats(self):
+        # test given formatter for number format is not impacted by escape
+        s = self.df.style.format("{:.1f}", escape=True)
+        for expected in [">0.0<", ">1.0<", ">-1.2<", ">-0.6<"]:
+            assert expected in s.render()
+        # tests precision of floats is not impacted by escape
+        s = self.df.style.format(precision=1, escape=True)
+        for expected in [">0<", ">1<", ">-1.2<", ">-0.6<"]:
+            assert expected in s.render()
+
     def test_nonunique_raises(self):
         df = DataFrame([[1, 2]], columns=["A", "A"])
         msg = "style is not supported for non-unique indices."
