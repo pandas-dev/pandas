@@ -873,11 +873,14 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         -------
         IntervalIndex
         """
-        left_insert, right_insert = self._data._validate_scalar(item)
+        try:
+            result = self._data.insert(loc, item)
+        except (ValueError, TypeError):
+            # e.g trying to insert a string
+            dtype, _ = infer_dtype_from_scalar(item, pandas_dtype=True)
+            dtype = find_common_type([self.dtype, dtype])
+            return self.astype(dtype).insert(loc, item)
 
-        new_left = self.left.insert(loc, left_insert)
-        new_right = self.right.insert(loc, right_insert)
-        result = self._data._shallow_copy(new_left, new_right)
         return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
