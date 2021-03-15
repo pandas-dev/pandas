@@ -693,27 +693,18 @@ def to_arrays(
         return arrays, columns
 
     if isinstance(data[0], (list, tuple)):
-        content = _list_to_arrays(data)
+        arr = _list_to_arrays(data)
     elif isinstance(data[0], abc.Mapping):
-        content, columns = _list_of_dict_to_arrays(data, columns)
+        arr, columns = _list_of_dict_to_arrays(data, columns)
     elif isinstance(data[0], ABCSeries):
-        content, columns = _list_of_series_to_arrays(data, columns)
+        arr, columns = _list_of_series_to_arrays(data, columns)
     else:
         # last ditch effort
         data = [tuple(x) for x in data]
-        content = _list_to_arrays(data)
+        arr = _list_to_arrays(data)
 
-    # error: Incompatible types in assignment (expression has type "List[ndarray]",
-    # variable has type "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
-    # Any]]]")
-    content, columns = _finalize_columns_and_data(  # type: ignore[assignment]
-        content, columns, dtype
-    )
-    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
-    # "Tuple[List[ExtensionArray], Index]")
-    # error: Incompatible return value type (got "Tuple[ndarray, Index]", expected
-    # "Tuple[List[ndarray], Index]")
-    return content, columns  # type: ignore[return-value]
+    content, columns = _finalize_columns_and_data(arr, columns, dtype)
+    return content, columns
 
 
 def _list_to_arrays(data: List[Union[Tuple, List]]) -> np.ndarray:
@@ -804,7 +795,7 @@ def _finalize_columns_and_data(
     content: np.ndarray,  # ndim == 2
     columns: Optional[Index],
     dtype: Optional[DtypeObj],
-) -> Tuple[List[np.ndarray], Index]:
+) -> Tuple[List[ArrayLike], Index]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
