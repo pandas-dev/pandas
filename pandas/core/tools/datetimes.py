@@ -147,7 +147,11 @@ def should_cache(
 
     assert 0 < unique_share < 1, "unique_share must be in next bounds: (0; 1)"
 
-    unique_elements = set(islice(arg, check_count))
+    try:
+        # We can't cache if the items are not hashable.
+        unique_elements = set(islice(arg, check_count))
+    except TypeError:
+        return False
     if len(unique_elements) > check_count * unique_share:
         do_caching = False
     return do_caching

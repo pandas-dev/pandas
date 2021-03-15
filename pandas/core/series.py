@@ -20,6 +20,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -142,6 +143,8 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas._typing import (
         TimedeltaConvertibleTypes,
         TimestampConvertibleTypes,
@@ -4341,6 +4344,26 @@ Keep all original rows and also all original values
             )
         else:
             return self._set_name(index, inplace=inplace)
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> Series:
+        ...
+
+    @overload
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[Series]:
+        ...
 
     @Appender(
         """
