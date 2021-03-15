@@ -116,7 +116,7 @@ Intro to pandas
                 <div class="card-body">
 
 When working with tabular data, such as data stored in spreadsheets or databases, pandas is the right tool for you. pandas will help you
-to explore, clean and process your data. In pandas, a data table is called a :class:`DataFrame`.
+to explore, clean, and process your data. In pandas, a data table is called a :class:`DataFrame`.
 
 .. image:: ../_static/schemas/01_table_dataframe.svg
    :align: center
@@ -351,7 +351,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
                 <div class="card-body">
 
 Basic statistics (mean, median, min, max, counts...) are easily calculable. These or custom aggregations can be applied on the entire
-data set, a sliding window of the data or grouped by categories. The latter is also known as the split-apply-combine approach.
+data set, a sliding window of the data, or grouped by categories. The latter is also known as the split-apply-combine approach.
 
 .. image:: ../_static/schemas/06_groupby.svg
    :align: center
@@ -444,7 +444,7 @@ from long to wide format. With aggregations built-in, a pivot table is created w
             <div id="collapseEight" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Multiple tables can be concatenated both column wise as row wise and database-like join/merge operations are provided to combine multiple tables of data.
+Multiple tables can be concatenated both column wise and row wise as database-like join/merge operations are provided to combine multiple tables of data.
 
 .. image:: ../_static/schemas/08_concat_row.svg
    :align: center
@@ -547,7 +547,7 @@ Data sets do not only contain numerical data. pandas provides a wide range of fu
                         </span>
                         <span class="badge gs-badge-link">
 
-:ref:`To user guide <timeseries>`
+:ref:`To user guide <text>`
 
 .. raw:: html
 

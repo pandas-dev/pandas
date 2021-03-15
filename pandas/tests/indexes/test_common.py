@@ -175,7 +175,7 @@ class TestCommon:
             vals = index[[0] * 5]._data
             vals[0] = pd.NaT
         elif needs_i8_conversion(index.dtype):
-            vals = index.asi8[[0] * 5]
+            vals = index._data._ndarray[[0] * 5]
             vals[0] = iNaT
         else:
             vals = index.values[[0] * 5]
@@ -184,7 +184,7 @@ class TestCommon:
         vals_unique = vals[:2]
         if index.dtype.kind in ["m", "M"]:
             # i.e. needs_i8_conversion but not period_dtype, as above
-            vals = type(index._data)._simple_new(vals, dtype=index.dtype)
+            vals = type(index._data)(vals, dtype=index.dtype)
             vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)

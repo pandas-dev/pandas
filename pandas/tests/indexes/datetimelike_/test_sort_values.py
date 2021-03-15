@@ -295,7 +295,7 @@ class TestSortValues:
         self.check_sort_values_without_freq(idx, expected)
 
     def test_sort_values_without_freq_periodindex_nat(self):
-        # doesnt quite fit into check_sort_values_without_freq
+        # doesn't quite fit into check_sort_values_without_freq
         idx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
         expected = PeriodIndex(["NaT", "2011", "2011", "2013"], name="pidx", freq="D")
 
