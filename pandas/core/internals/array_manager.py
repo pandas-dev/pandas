@@ -22,14 +22,12 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
-    DtypeObj,
     Hashable,
 )
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_array_safe,
-    find_common_type,
     infer_dtype_from_scalar,
     soft_convert_objects,
 )
@@ -84,6 +82,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
@@ -159,17 +158,12 @@ class ArrayManager(DataManager):
         return [self._axes[1], self._axes[0]]
 
     @property
-    def shape(self) -> Tuple[int, ...]:
-        # this still gives the BlockManager-compatible transposed shape
-        return tuple(len(ax) for ax in self.axes)
-
-    @property
     def shape_proper(self) -> Tuple[int, ...]:
         # this returns (n_rows, n_columns)
         return tuple(len(ax) for ax in self._axes)
 
     @staticmethod
-    def _normalize_axis(axis):
+    def _normalize_axis(axis: int) -> int:
         # switch axis
         axis = 1 if axis == 0 else 0
         return axis
@@ -208,7 +202,7 @@ class ArrayManager(DataManager):
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
-        if self.ndim == 1:
+        if self.ndim == 2:
             output += f"\nColumns: {self._axes[1]}"
         output += f"\n{len(self.arrays)} arrays:"
         for arr in self.arrays:
@@ -509,16 +503,9 @@ class ArrayManager(DataManager):
         interpolation="linear",
     ) -> ArrayManager:
 
-        # error: Value of type variable "ArrayLike" of "ensure_block_shape" cannot be
-        # "Union[ndarray, ExtensionArray]"
-        arrs = [ensure_block_shape(x, 2) for x in self.arrays]  # type: ignore[type-var]
+        arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
-        # error: Value of type variable "ArrayLike" of "quantile_compat" cannot be
-        # "object"
-        new_arrs = [
-            quantile_compat(x, qs, interpolation, axis=axis)  # type: ignore[type-var]
-            for x in arrs
-        ]
+        new_arrs = [quantile_compat(x, qs, interpolation, axis=axis) for x in arrs]
         for i, arr in enumerate(new_arrs):
             if arr.ndim == 2:
                 assert arr.shape[0] == 1, arr.shape
@@ -526,9 +513,6 @@ class ArrayManager(DataManager):
 
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
-
-    def isna(self, func) -> ArrayManager:
-        return self.apply("apply", func=func)
 
     def where(self, other, cond, align: bool, errors: str, axis: int) -> ArrayManager:
         if align:
@@ -768,7 +752,7 @@ class ArrayManager(DataManager):
         copy = copy or na_value is not lib.no_default
 
         if not dtype:
-            dtype = _interleaved_dtype(self.arrays)
+            dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
 
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
@@ -802,11 +786,9 @@ class ArrayManager(DataManager):
             arrays = self.arrays[slobj]
 
         new_axes = list(self._axes)
-        new_axes[axis] = new_axes[axis][slobj]
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
         return type(self)(arrays, new_axes, verify_integrity=False)
-
-    getitem_mgr = get_slice
 
     def fast_xs(self, loc: int) -> ArrayLike:
         """
@@ -820,7 +802,7 @@ class ArrayManager(DataManager):
         -------
         np.ndarray or ExtensionArray
         """
-        dtype = _interleaved_dtype(self.arrays)
+        dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
 
         values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
@@ -845,11 +827,7 @@ class ArrayManager(DataManager):
         """
         Return the data for column i as the values (ndarray or ExtensionArray).
         """
-        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
-        # expected "ExtensionArray")
-        # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
-        # expected "ndarray")
-        return self.arrays[i]  # type: ignore[return-value]
+        return self.arrays[i]
 
     def idelete(self, indexer):
         """
@@ -883,7 +861,7 @@ class ArrayManager(DataManager):
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
                 assert value.shape[1] == 1
-                value = value[0, :]
+                value = value[:, 0]
 
             # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
             # but we should avoid that and pass directly the proper array
@@ -1028,9 +1006,7 @@ class ArrayManager(DataManager):
         else:
             validate_indices(indexer, len(self._axes[0]))
             new_arrays = [
-                # error: Value of type variable "ArrayLike" of "take_1d" cannot be
-                # "Union[ndarray, ExtensionArray]"  [type-var]
-                take_1d(  # type: ignore[type-var]
+                take_1d(
                     arr,
                     indexer,
                     allow_fill=True,
@@ -1045,7 +1021,7 @@ class ArrayManager(DataManager):
 
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
         """
@@ -1058,12 +1034,7 @@ class ArrayManager(DataManager):
         )
 
         n = self.shape_proper[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
@@ -1089,9 +1060,7 @@ class ArrayManager(DataManager):
         assuming shape and indexes have already been checked.
         """
         for left, right in zip(self.arrays, other.arrays):
-            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
-            # "Union[Any, ndarray, ExtensionArray]"
-            if not array_equals(left, right):  # type: ignore[type-var]
+            if not array_equals(left, right):
                 return False
         else:
             return True
@@ -1118,9 +1087,7 @@ class ArrayManager(DataManager):
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                # error: Value of type variable "ArrayLike" of "take_1d" cannot be
-                # "Union[ndarray, ExtensionArray]"  [type-var]
-                new_arr = take_1d(  # type: ignore[type-var]
+                new_arr = take_1d(
                     arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
                 )
                 new_arrays.append(new_arr)
@@ -1134,26 +1101,6 @@ class ArrayManager(DataManager):
     # TODO
     # equals
     # to_dict
-    # quantile
-
-
-def _interleaved_dtype(blocks) -> Optional[DtypeObj]:
-    """
-    Find the common dtype for `blocks`.
-
-    Parameters
-    ----------
-    blocks : List[Block]
-
-    Returns
-    -------
-    dtype : np.dtype, ExtensionDtype, or None
-        None is returned when `blocks` is empty.
-    """
-    if not len(blocks):
-        return None
-
-    return find_common_type([b.dtype for b in blocks])
 
 
 class SingleArrayManager(ArrayManager, SingleDataManager):
@@ -1191,7 +1138,13 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def _verify_integrity(self) -> None:
         (n_rows,) = self.shape
         assert len(self.arrays) == 1
-        assert len(self.arrays[0]) == n_rows
+        arr = self.arrays[0]
+        assert len(arr) == n_rows
+        if not arr.ndim == 1:
+            raise ValueError(
+                "Passed array should be 1-dimensional, got array with "
+                f"{arr.ndim} dimensions instead."
+            )
 
     @staticmethod
     def _normalize_axis(axis):
@@ -1215,10 +1168,6 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     @property
     def index(self) -> Index:
         return self._axes[0]
-
-    @property
-    def array(self):
-        return self.arrays[0]
 
     @property
     def dtype(self):
@@ -1264,7 +1213,12 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
             raise IndexError("Requested axis not found in manager")
 
         new_array = self.array[slobj]
-        new_index = self.index[slobj]
+        new_index = self.index._getitem_slice(slobj)
+        return type(self)([new_array], [new_index], verify_integrity=False)
+
+    def getitem_mgr(self, indexer) -> SingleArrayManager:
+        new_array = self.array[indexer]
+        new_index = self.index[indexer]
         return type(self)([new_array], [new_index])
 
     def apply(self, func, **kwargs):

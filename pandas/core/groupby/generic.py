@@ -1174,20 +1174,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # We've split an object block! Everything we've assumed
                 # about a single block input returning a single block output
                 # is a lie. See eg GH-39329
-
-                # error: Incompatible return value type (got "ndarray", expected
-                # "ExtensionArray")
-                return mgr.as_array()  # type: ignore[return-value]
+                return mgr.as_array()
             else:
                 # We are a single block from a BlockManager
                 # or one array from SingleArrayManager
-
-                # error: Incompatible return value type (got "Union[ndarray,
-                # ExtensionArray, ArrayLike]", expected "ExtensionArray")
-                # error: Incompatible return value type (got "Union[ndarray,
-                # ExtensionArray, ArrayLike]", expected
-                # "ndarray")
-                return arrays[0]  # type: ignore[return-value]
+                return arrays[0]
 
         def array_func(values: ArrayLike) -> ArrayLike:
 

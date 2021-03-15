@@ -147,7 +147,11 @@ def should_cache(
 
     assert 0 < unique_share < 1, "unique_share must be in next bounds: (0; 1)"
 
-    unique_elements = set(islice(arg, check_count))
+    try:
+        # We can't cache if the items are not hashable.
+        unique_elements = set(islice(arg, check_count))
+    except TypeError:
+        return False
     if len(unique_elements) > check_count * unique_share:
         do_caching = False
     return do_caching
@@ -245,9 +249,9 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    # error: Value of type variable "ArrayLike" of "_box_as_indexlike" cannot
-    # be "Series"
-    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[type-var]
+    # error: Argument 1 to "_box_as_indexlike" has incompatible type "Series"; expected
+    # "Union[ExtensionArray, ndarray]"
+    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[arg-type]
 
 
 def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
@@ -534,25 +538,19 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: Optional[str]) -> Index:
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
-        result = arg.astype(f"datetime64[{unit}]")
+        arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
-        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-
-        # error: Incompatible types in assignment (expression has type "Index", variable
-        # has type "ExtensionArray")
-        result = Index(result, name=name)  # type: ignore[assignment]
+        result = Index(arr, name=name)
     else:
-        # error: Incompatible types in assignment (expression has type "DatetimeIndex",
-        # variable has type "ExtensionArray")
-        result = DatetimeIndex(result, name=name)  # type: ignore[assignment]
+        result = DatetimeIndex(arr, name=name)
 
     if not isinstance(result, DatetimeIndex):
-        # error: Incompatible return value type (got "ExtensionArray", expected "Index")
-        return result  # type: ignore[return-value]
+        return result
 
     # GH#23758: We may still need to localize the result with tz
     # GH#25546: Apply tz_parsed first (from arg), then tz (from caller)
@@ -1081,9 +1079,9 @@ def _attempt_YYYYMMDD(arg: np.ndarray, errors: Optional[str]) -> Optional[np.nda
 
     # string with NaN-like
     try:
-        # error: Value of type variable "AnyArrayLike" of "isin" cannot be
-        # "Iterable[Any]"
-        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[type-var]
+        # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
+        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
+        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[arg-type]
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass

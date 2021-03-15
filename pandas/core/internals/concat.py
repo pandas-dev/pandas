@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna_all,
@@ -331,9 +332,7 @@ class JoinUnit:
             if self.is_valid_na_for(empty_dtype):
                 blk_dtype = getattr(self.block, "dtype", None)
 
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
-                if blk_dtype == np.dtype(object):  # type: ignore[type-var]
+                if blk_dtype == np.dtype("object"):
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
@@ -344,17 +343,11 @@ class JoinUnit:
                 if is_datetime64tz_dtype(empty_dtype):
                     # TODO(EA2D): special case unneeded with 2D EAs
                     i8values = np.full(self.shape[1], fill_value.value)
-                    # error: Incompatible return value type (got "DatetimeArray",
-                    # expected "ndarray")
-                    return DatetimeArray(  # type: ignore[return-value]
-                        i8values, dtype=empty_dtype
-                    )
+                    return DatetimeArray(i8values, dtype=empty_dtype)
                 elif is_extension_array_dtype(blk_dtype):
                     pass
-                elif is_extension_array_dtype(empty_dtype):
-                    # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]"
-                    # has no attribute "construct_array_type"
-                    cls = empty_dtype.construct_array_type()  # type: ignore[union-attr]
+                elif isinstance(empty_dtype, ExtensionDtype):
+                    cls = empty_dtype.construct_array_type()
                     missing_arr = cls._from_sequence([], dtype=empty_dtype)
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
@@ -366,14 +359,7 @@ class JoinUnit:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
 
-                    # error: Argument "dtype" to "empty" has incompatible type
-                    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any],
-                    # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-                    # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-                    # Any]]]"
-                    missing_arr = np.empty(
-                        self.shape, dtype=empty_dtype  # type: ignore[arg-type]
-                    )
+                    missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
 
@@ -439,31 +425,22 @@ def _concatenate_join_units(
     elif any(isinstance(t, ExtensionArray) for t in to_concat):
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
-
-        # error: Invalid index type "Tuple[int, slice]" for "ExtensionArray"; expected
-        # type "Union[int, slice, ndarray]"
-        to_concat = [
-            t if isinstance(t, ExtensionArray) else t[0, :]  # type: ignore[index]
-            for t in to_concat
-        ]
+        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
-    # error: Incompatible return value type (got "ExtensionArray", expected "ndarray")
-    return concat_values  # type: ignore[return-value]
+    return concat_values
 
 
 def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     Find the NA value to go with this dtype.
     """
-    if is_extension_array_dtype(dtype):
-        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-        # attribute "na_value"
-        return dtype.na_value  # type: ignore[union-attr]
+    if isinstance(dtype, ExtensionDtype):
+        return dtype.na_value
     elif dtype.kind in ["m", "M"]:
         return dtype.type("NaT")
     elif dtype.kind in ["f", "c"]:

@@ -33,10 +33,7 @@ from pandas._typing import (
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    infer_dtype_from_scalar,
-)
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_dtype_equal,
@@ -65,6 +62,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
     Block,
@@ -75,6 +73,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
 )
 from pandas.core.internals.ops import (
@@ -253,11 +252,7 @@ class BlockManager(DataManager):
     # Python3 compat
     __bool__ = __nonzero__
 
-    @property
-    def shape(self) -> Shape:
-        return tuple(len(ax) for ax in self.axes)
-
-    def _normalize_axis(self, axis):
+    def _normalize_axis(self, axis: int) -> int:
         # switch axis to follow BlockManager logic
         if self.ndim == 2:
             axis = 1 if axis == 0 else 0
@@ -322,11 +317,7 @@ class BlockManager(DataManager):
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
         """
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[ExtensionArray]
-        # error: List comprehension has incompatible type List[Union[ndarray,
-        # ExtensionArray]]; expected List[ndarray]
-        return [blk.values for blk in self.blocks]  # type: ignore[misc]
+        return [blk.values for blk in self.blocks]
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -371,9 +362,6 @@ class BlockManager(DataManager):
         self._is_consolidated = False
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
-
-    def __len__(self) -> int:
-        return len(self.items)
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -585,9 +573,6 @@ class BlockManager(DataManager):
         ]
 
         return type(self)(blocks, new_axes)
-
-    def isna(self, func) -> BlockManager:
-        return self.apply("apply", func=func)
 
     def where(self, other, cond, align: bool, errors: str, axis: int) -> BlockManager:
         axis = self._normalize_axis(axis)
@@ -935,7 +920,7 @@ class BlockManager(DataManager):
         Items must be contained in the blocks
         """
         if not dtype:
-            dtype = _interleaved_dtype(self.blocks)
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
@@ -1013,7 +998,7 @@ class BlockManager(DataManager):
         if len(self.blocks) == 1:
             return self.blocks[0].iget((slice(None), loc))
 
-        dtype = _interleaved_dtype(self.blocks)
+        dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         n = len(self)
         if is_extension_array_dtype(dtype):
@@ -1036,9 +1021,7 @@ class BlockManager(DataManager):
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return result  # type: ignore[return-value]
+        return result
 
     def consolidate(self) -> BlockManager:
         """
@@ -1072,6 +1055,7 @@ class BlockManager(DataManager):
 
         # shortcut for select a single-dim from a 2-dim BM
         bp = BlockPlacement(slice(0, len(values)))
+        values = maybe_coerce_values(values)
         nb = type(block)(values, placement=bp, ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
@@ -1364,7 +1348,7 @@ class BlockManager(DataManager):
             new_blocks = [
                 blk.take_nd(
                     indexer,
-                    axis=axis,
+                    axis=1,
                     fill_value=(
                         fill_value if fill_value is not None else blk.fill_value
                     ),
@@ -1516,10 +1500,21 @@ class BlockManager(DataManager):
         block_values.fill(fill_value)
         return new_block(block_values, placement=placement, ndim=block_values.ndim)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
+
+        indexer : np.ndarray or slice
+        axis : int, default 1
+        verify : bool, default True
+            Check that all entries are between 0 and len(self) - 1, inclusive.
+            Pass verify=False if this check has been done by the caller.
+
+        Returns
+        -------
+        BlockManager
         """
+        # We have 6 tests that get here with a slice
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)
@@ -1527,12 +1522,7 @@ class BlockManager(DataManager):
         )
 
         n = self.shape[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1554,9 +1544,7 @@ class BlockManager(DataManager):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            # error: Value of type variable "ArrayLike" of "array_equals" cannot be
-            # "Union[ndarray, ExtensionArray]"
-            return array_equals(left, right)  # type: ignore[type-var]
+            return array_equals(left, right)
 
         return blockwise_all(self, other, array_equals)
 
@@ -1973,25 +1961,6 @@ def _stack_arrays(tuples, dtype: np.dtype):
         stacked[i] = arr
 
     return stacked, placement
-
-
-def _interleaved_dtype(blocks: Sequence[Block]) -> Optional[DtypeObj]:
-    """
-    Find the common dtype for `blocks`.
-
-    Parameters
-    ----------
-    blocks : List[Block]
-
-    Returns
-    -------
-    dtype : np.dtype, ExtensionDtype, or None
-        None is returned when `blocks` is empty.
-    """
-    if not len(blocks):
-        return None
-
-    return find_common_type([b.dtype for b in blocks])
 
 
 def _consolidate(blocks: Tuple[Block, ...]) -> List[Block]:

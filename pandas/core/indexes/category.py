@@ -15,6 +15,7 @@ from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
 )
 from pandas.util._decorators import (
     Appender,
@@ -489,9 +490,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
-        # error: Value of type variable "ArrayLike" of "_get_indexer_non_unique" of
-        # "CategoricalIndex" cannot be "Union[ExtensionArray, ndarray]"
-        return self._get_indexer_non_unique(target._values)[0]  # type: ignore[type-var]
+        return self._get_indexer_non_unique(target._values)[0]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -540,7 +539,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    def _is_comparable_dtype(self, dtype):
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):

@@ -123,6 +123,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -584,25 +585,17 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
-            # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-            # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-            # "Union[dtype[Any], ExtensionDtype, None]"
-            mgr = dict_to_mgr(
-                data, index, columns, dtype=dtype, typ=manager  # type: ignore[arg-type]
-            )
+            mgr = dict_to_mgr(data, index, columns, dtype=dtype, typ=manager)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                # error: Argument 4 to "rec_array_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = rec_array_to_mgr(
                     data,
                     index,
                     columns,
-                    dtype,  # type: ignore[arg-type]
+                    dtype,
                     copy,
                     typ=manager,
                 )
@@ -611,13 +604,10 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 data = sanitize_masked_array(data)
                 mgr = ndarray_to_mgr(
-                    # error: Argument "dtype" to "ndarray_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     data,
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     copy=copy,
                     typ=manager,
                 )
@@ -626,14 +616,11 @@ class DataFrame(NDFrame, OpsMixin):
             if data.dtype.names:
                 # i.e. numpy structured array
 
-                # error: Argument 4 to "rec_array_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = rec_array_to_mgr(
                     data,
                     index,
                     columns,
-                    dtype,  # type: ignore[arg-type]
+                    dtype,
                     copy,
                     typ=manager,
                 )
@@ -642,24 +629,18 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
-                    # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     {data.name: data},  # type: ignore[union-attr]
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     typ=manager,
                 )
             else:
                 mgr = ndarray_to_mgr(
-                    # error: Argument "dtype" to "ndarray_to_mgr" has incompatible type
-                    # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
-                    # expected "Union[dtype[Any], ExtensionDtype, None]"
                     data,
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     copy=copy,
                     typ=manager,
                 )
@@ -673,52 +654,41 @@ class DataFrame(NDFrame, OpsMixin):
                     data = dataclasses_to_dicts(data)
                 if treat_as_nested(data):
                     if columns is not None:
-                        # error: Value of type variable "AnyArrayLike" of "ensure_index"
-                        # cannot be "Collection[Any]"
-                        columns = ensure_index(columns)  # type: ignore[type-var]
+                        # error: Argument 1 to "ensure_index" has incompatible type
+                        # "Collection[Any]"; expected "Union[Union[Union[ExtensionArray,
+                        # ndarray], Index, Series], Sequence[Any]]"
+                        columns = ensure_index(columns)  # type: ignore[arg-type]
                     arrays, columns, index = nested_data_to_arrays(
                         # error: Argument 3 to "nested_data_to_arrays" has incompatible
                         # type "Optional[Collection[Any]]"; expected "Optional[Index]"
-                        # error: Argument 4 to "nested_data_to_arrays" has incompatible
-                        # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                        # None]"; expected "Union[dtype[Any], ExtensionDtype, None]"
                         data,
                         columns,
                         index,  # type: ignore[arg-type]
-                        dtype,  # type: ignore[arg-type]
+                        dtype,
                     )
                     mgr = arrays_to_mgr(
-                        # error: Argument "dtype" to "arrays_to_mgr" has incompatible
-                        # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                        # None]"; expected "Union[dtype[Any], ExtensionDtype, None]"
                         arrays,
                         columns,
                         index,
                         columns,
-                        dtype=dtype,  # type: ignore[arg-type]
+                        dtype=dtype,
                         typ=manager,
                     )
                 else:
                     mgr = ndarray_to_mgr(
-                        # error: Argument "dtype" to "ndarray_to_mgr" has incompatible
-                        # type "Union[ExtensionDtype, str, dtype[Any], Type[object],
-                        # None]"; expected "Union[dtype[Any], ExtensionDtype, None]"
                         data,
                         index,
                         columns,
-                        dtype=dtype,  # type: ignore[arg-type]
+                        dtype=dtype,
                         copy=copy,
                         typ=manager,
                     )
             else:
-                # error: Argument "dtype" to "dict_to_mgr" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
                 mgr = dict_to_mgr(
                     {},
                     index,
                     columns,
-                    dtype=dtype,  # type: ignore[arg-type]
+                    dtype=dtype,
                     typ=manager,
                 )
         # For data is scalar
@@ -730,16 +700,11 @@ class DataFrame(NDFrame, OpsMixin):
                 dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
 
             # For data is a scalar extension dtype
-            if is_extension_array_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
                 # TODO(EA2D): special case not needed with 2D EAs
 
                 values = [
-                    # error: Argument 3 to "construct_1d_arraylike_from_scalar"
-                    # has incompatible type "Union[ExtensionDtype, str, dtype,
-                    # Type[object]]"; expected "Union[dtype, ExtensionDtype]"
-                    construct_1d_arraylike_from_scalar(
-                        data, len(index), dtype  # type: ignore[arg-type]
-                    )
+                    construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
                 mgr = arrays_to_mgr(
@@ -749,13 +714,10 @@ class DataFrame(NDFrame, OpsMixin):
                 # error: Incompatible types in assignment (expression has type
                 # "ndarray", variable has type "List[ExtensionArray]")
                 values = construct_2d_arraylike_from_scalar(  # type: ignore[assignment]
-                    # error: Argument 4 to "construct_2d_arraylike_from_scalar" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                    # Type[object]]"; expected "dtype[Any]"
                     data,
                     len(index),
                     len(columns),
-                    dtype,  # type: ignore[arg-type]
+                    dtype,
                     copy,
                 )
 
@@ -1344,11 +1306,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dot(self, other: Union[DataFrame, Index, ArrayLike]) -> DataFrame:
         ...
 
-    # error: Overloaded function implementation cannot satisfy signature 2 due to
-    # inconsistencies in how they use type variables
-    def dot(  # type: ignore[misc]
-        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
-    ) -> FrameOrSeriesUnion:
+    def dot(self, other: Union[AnyArrayLike, FrameOrSeriesUnion]) -> FrameOrSeriesUnion:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -3390,9 +3348,7 @@ class DataFrame(NDFrame, OpsMixin):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
-        # error: Incompatible return value type (got "ExtensionArray", expected
-        # "ndarray")
-        return self._mgr.iget_values(i)  # type: ignore[return-value]
+        return self._mgr.iget_values(i)
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
@@ -3400,9 +3356,7 @@ class DataFrame(NDFrame, OpsMixin):
         This returns the values as stored in the Block (ndarray or ExtensionArray).
         """
         for i in range(len(self.columns)):
-            # error: Incompatible types in "yield" (actual type
-            # "ExtensionArray", expected type "ndarray")
-            yield self._get_column_array(i)  # type: ignore[misc]
+            yield self._get_column_array(i)
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
@@ -3806,8 +3760,8 @@ class DataFrame(NDFrame, OpsMixin):
             You can refer to column names that are not valid Python variable names
             by surrounding them in backticks. Thus, column names containing spaces
             or punctuations (besides underscores) or starting with digits must be
-            surrounded by backticks. (For example, a column named "Area (cm^2) would
-            be referenced as `Area (cm^2)`). Column names which are Python keywords
+            surrounded by backticks. (For example, a column named "Area (cm^2)" would
+            be referenced as ```Area (cm^2)```). Column names which are Python keywords
             (like "list", "for", "import", etc) cannot be used.
 
             For example, if one of your columns is called ``a a`` and you want
@@ -4586,6 +4540,26 @@ class DataFrame(NDFrame, OpsMixin):
             fill_axis=fill_axis,
             broadcast_axis=broadcast_axis,
         )
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[DataFrame]:
+        ...
 
     @Appender(
         """
@@ -6471,6 +6445,57 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"Grade": ["A", "B", "A", "C"]},
+        ...     index=[
+        ...         ["Final exam", "Final exam", "Coursework", "Coursework"],
+        ...         ["History", "Geography", "History", "Geography"],
+        ...         ["January", "February", "March", "April"],
+        ...     ],
+        ... )
+        >>> df
+                                            Grade
+        Final exam  History     January      A
+                    Geography   February     B
+        Coursework  History     March        A
+                    Geography   April        C
+
+        In the following example, we will swap the levels of the indices.
+        Here, we will swap the levels column-wise, but levels can be swapped row-wise
+        in a similar manner. Note that column-wise is the default behaviour.
+        By not supplying any arguments for i and j, we swap the last and second to
+        last indices.
+
+        >>> df.swaplevel()
+                                            Grade
+        Final exam  January     History         A
+                    February    Geography       B
+        Coursework  March       History         A
+                    April       Geography       C
+
+        By supplying one argument, we can choose which index to swap the last
+        index with. We can for example swap the first index with the last one as
+        follows.
+
+        >>> df.swaplevel(0)
+                                            Grade
+        January     History     Final exam      A
+        February    Geography   Final exam      B
+        March       History     Coursework      A
+        April       Geography   Coursework      C
+
+        We can also define explicitly which indices we want to swap by supplying values
+        for both i and j. Here, we for example swap the first and second indices.
+
+        >>> df.swaplevel(0, 1)
+                                            Grade
+        History     Final exam  January         A
+        Geography   Final exam  February        B
+        History     Coursework  March           A
+        Geography   Coursework  April           C
         """
         result = self.copy()
 
@@ -10168,9 +10193,7 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        # error: Incompatible return value type (got "Union[ndarray, Any]", expected
-        # "ExtensionArray")
-        return value._values.copy()  # type: ignore[return-value]
+        return value._values.copy()
 
     # GH#4107
     try:

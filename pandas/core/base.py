@@ -23,6 +23,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     IndexLabel,
+    Shape,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -389,7 +390,7 @@ class IndexOpsMixin(OpsMixin):
     )
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """
@@ -511,7 +512,7 @@ class IndexOpsMixin(OpsMixin):
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
-    ):
+    ) -> np.ndarray:
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -735,8 +736,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # error: "ExtensionArray" has no attribute "any"
-            if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
+            if not skipna and delegate.isna().any():
                 return -1
             else:
                 return delegate.argmax()
@@ -798,8 +798,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # error: "ExtensionArray" has no attribute "any"
-            if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
+            if not skipna and delegate.isna().any():
                 return -1
             else:
                 return delegate.argmin()
@@ -854,7 +853,7 @@ class IndexOpsMixin(OpsMixin):
             return map(self._values.item, range(self._values.size))
 
     @cache_readonly
-    def hasnans(self):
+    def hasnans(self) -> bool:
         """
         Return if I have any nans; enables various perf speedups.
         """
@@ -1333,6 +1332,4 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep: Union[str, bool] = "first") -> np.ndarray:
-        # error: Value of type variable "ArrayLike" of "duplicated" cannot be
-        # "Union[ExtensionArray, ndarray]"
-        return duplicated(self._values, keep=keep)  # type: ignore[type-var]
+        return duplicated(self._values, keep=keep)
