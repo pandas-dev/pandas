@@ -171,9 +171,9 @@ def test_to_string_with_formatters():
     "formatters",
     [
         {
-            int=lambda x: f"[1] {x}",
-            float=lambda x: f"[2] {x}",
-            object=lambda x: f"[3] {x}",
+            "int": lambda x: f"[1] {x}",
+            "float": lambda x: f"[2] {x}",
+            "object": lambda x: f"[3] {x}",
         },
         [lambda x: f"[1] {x}", lambda x: f"[2] {x}", lambda x: f"[3] {x}"],
     ],
