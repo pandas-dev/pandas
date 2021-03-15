@@ -72,6 +72,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
 )
 from pandas.core.internals.ops import (
@@ -1051,6 +1052,7 @@ class BlockManager(DataManager):
         values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
+        values = maybe_coerce_values(values)
         nb = type(block)(values, placement=slice(0, len(values)), ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
@@ -1491,10 +1493,21 @@ class BlockManager(DataManager):
         block_values.fill(fill_value)
         return new_block(block_values, placement=placement, ndim=block_values.ndim)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
+
+        indexer : np.ndarray or slice
+        axis : int, default 1
+        verify : bool, default True
+            Check that all entries are between 0 and len(self) - 1, inclusive.
+            Pass verify=False if this check has been done by the caller.
+
+        Returns
+        -------
+        BlockManager
         """
+        # We have 6 tests that get here with a slice
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)
@@ -1502,12 +1515,7 @@ class BlockManager(DataManager):
         )
 
         n = self.shape[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -1642,6 +1650,7 @@ class SingleBlockManager(BlockManager, SingleDataManager):
         if array.ndim > blk.values.ndim:
             # This will be caught by Series._get_values
             raise ValueError("dimension-expanding indexing not allowed")
+
         block = blk.make_block_same_class(array, placement=slice(0, len(array)))
         return type(self)(block, self.index[indexer])
 

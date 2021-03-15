@@ -235,7 +235,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 # Indexer Conversion
 
 
-def maybe_convert_indices(indices, n: int):
+def maybe_convert_indices(indices, n: int, verify: bool = True):
     """
     Attempt to convert indices into valid, positive indices.
 
@@ -248,6 +248,8 @@ def maybe_convert_indices(indices, n: int):
         Array of indices that we are to convert.
     n : int
         Number of elements in the array that we are indexing.
+    verify : bool, default True
+        Check that all entries are between 0 and n - 1, inclusive.
 
     Returns
     -------
@@ -273,9 +275,10 @@ def maybe_convert_indices(indices, n: int):
         indices = indices.copy()
         indices[mask] += n
 
-    mask = (indices >= n) | (indices < 0)
-    if mask.any():
-        raise IndexError("indices are out-of-bounds")
+    if verify:
+        mask = (indices >= n) | (indices < 0)
+        if mask.any():
+            raise IndexError("indices are out-of-bounds")
     return indices
 
 
