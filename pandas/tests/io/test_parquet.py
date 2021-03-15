@@ -916,7 +916,6 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-
     def test_basic(self, fp, df_full):
         df = df_full
 
