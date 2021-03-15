@@ -2,7 +2,10 @@
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
 """
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import logging
 
 import numpy as np
@@ -209,6 +212,7 @@ class TestS3:
         with pytest.raises(IOError, match=msg):
             read_csv("s3://cant_get_it/file.csv")
 
+    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     def test_write_s3_csv_fails(self, tips_df, s3so):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
@@ -224,6 +228,7 @@ class TestS3:
                 "s3://an_s3_bucket_data_doesnt_exit/not_real.csv", storage_options=s3so
             )
 
+    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df, s3so):
         # GH 27679
@@ -248,7 +253,8 @@ class TestS3:
             Bucket="pandas-test", Key="tips.csv"
         )
 
-        result = read_csv(BytesIO(s3_object["Body"].read()), encoding="utf8")
+        with BytesIO(s3_object["Body"].read()) as buffer:
+            result = read_csv(buffer, encoding="utf8")
         assert isinstance(result, DataFrame)
         assert not result.empty
 
@@ -256,7 +262,7 @@ class TestS3:
         tm.assert_frame_equal(result, expected)
 
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
-        # 8 MB, S3FS usees 5MB chunks
+        # 8 MB, S3FS uses 5MB chunks
         import s3fs
 
         df = DataFrame(np.random.randn(100000, 4), columns=list("abcd"))

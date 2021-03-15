@@ -1,6 +1,7 @@
 """
 missing types & inference
 """
+from decimal import Decimal
 from functools import partial
 
 import numpy as np
@@ -9,8 +10,15 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
-from pandas._libs.tslibs import NaT, Period, iNaT
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._libs.tslibs import (
+    NaT,
+    Period,
+    iNaT,
+)
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -29,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_string_like_dtype,
     needs_i8_conversion,
-    pandas_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -156,14 +163,22 @@ def _isna(obj, inf_as_na: bool = False):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)):
-        return _isna_ndarraylike(obj, inf_as_na=inf_as_na)
+    elif isinstance(obj, (np.ndarray, ABCExtensionArray)):
+        return _isna_array(obj, inf_as_na=inf_as_na)
+    elif isinstance(obj, (ABCSeries, ABCIndex)):
+        result = _isna_array(obj._values, inf_as_na=inf_as_na)
+        # box
+        if isinstance(obj, ABCSeries):
+            result = obj._constructor(
+                result, index=obj.index, name=obj.name, copy=False
+            )
+        return result
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
     elif isinstance(obj, list):
-        return _isna_ndarraylike(np.asarray(obj, dtype=object), inf_as_na=inf_as_na)
+        return _isna_array(np.asarray(obj, dtype=object), inf_as_na=inf_as_na)
     elif hasattr(obj, "__array__"):
-        return _isna_ndarraylike(np.asarray(obj), inf_as_na=inf_as_na)
+        return _isna_array(np.asarray(obj), inf_as_na=inf_as_na)
     else:
         return False
 
@@ -199,13 +214,13 @@ def _use_inf_as_na(key):
         globals()["INF_AS_NA"] = False
 
 
-def _isna_ndarraylike(obj, inf_as_na: bool = False):
+def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     """
     Return an array indicating which values of the input array are NaN / NA.
 
     Parameters
     ----------
-    obj: array-like
+    obj: ndarray or ExtensionArray
         The input array whose elements are to be checked.
     inf_as_na: bool
         Whether or not to treat infinite values as NA.
@@ -215,28 +230,43 @@ def _isna_ndarraylike(obj, inf_as_na: bool = False):
     array-like
         Array of boolean values denoting the NA status of each element.
     """
-    values = getattr(obj, "_values", obj)
     dtype = values.dtype
 
     if is_extension_array_dtype(dtype):
         if inf_as_na and is_categorical_dtype(dtype):
-            result = libmissing.isnaobj_old(values.to_numpy())
+            # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
+            # "to_numpy"
+            result = libmissing.isnaobj_old(
+                values.to_numpy()  # type: ignore[union-attr]
+            )
         else:
-            result = values.isna()
+            # error: Item "ndarray" of "Union[ExtensionArray, ndarray]" has no attribute
+            # "isna"
+            result = values.isna()  # type: ignore[union-attr]
     elif is_string_dtype(dtype):
-        result = _isna_string_dtype(values, dtype, inf_as_na=inf_as_na)
+        # error: Argument 1 to "_isna_string_dtype" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
+        # error: Argument 2 to "_isna_string_dtype" has incompatible type
+        # "ExtensionDtype"; expected "dtype[Any]"
+        result = _isna_string_dtype(
+            values, dtype, inf_as_na=inf_as_na  # type: ignore[arg-type]
+        )
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
         result = values.view("i8") == iNaT
     else:
         if inf_as_na:
-            result = ~np.isfinite(values)
+            # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+            # "ExtensionArray"; expected "Union[Union[int, float, complex, str, bytes,
+            # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], _SupportsArray]"
+            result = ~np.isfinite(values)  # type: ignore[arg-type]
         else:
-            result = np.isnan(values)
-
-    # box
-    if isinstance(obj, ABCSeries):
-        result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
+            # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+            # "ExtensionArray"; expected "Union[Union[int, float, complex, str, bytes,
+            # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], _SupportsArray]"
+            result = np.isnan(values)  # type: ignore[arg-type]
 
     return result
 
@@ -358,8 +388,8 @@ def isna_compat(arr, fill_value=np.nan) -> bool:
     -------
     True if we can fill using this fill_value
     """
-    dtype = arr.dtype
     if isna(fill_value):
+        dtype = arr.dtype
         return not (is_bool_dtype(dtype) or is_integer_dtype(dtype))
     return True
 
@@ -430,7 +460,7 @@ def array_equivalent(
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
-        if not (np.prod(left.shape) and np.prod(right.shape)):
+        if not (left.size and right.size):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
@@ -447,9 +477,10 @@ def array_equivalent(
         right = right.view("i8")
 
     # if we have structured dtypes, compare first
-    if left.dtype.type is np.void or right.dtype.type is np.void:
-        if left.dtype != right.dtype:
-            return False
+    if (
+        left.dtype.type is np.void or right.dtype.type is np.void
+    ) and left.dtype != right.dtype:
+        return False
 
     return np.array_equal(left, right)
 
@@ -534,7 +565,7 @@ def maybe_fill(arr, fill_value=np.nan):
     return arr
 
 
-def na_value_for_dtype(dtype, compat: bool = True):
+def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     """
     Return a dtype compat na value
 
@@ -558,14 +589,15 @@ def na_value_for_dtype(dtype, compat: bool = True):
     >>> na_value_for_dtype(np.dtype('bool'))
     False
     >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
-    NaT
+    numpy.datetime64('NaT')
     """
-    dtype = pandas_dtype(dtype)
 
     if is_extension_array_dtype(dtype):
-        return dtype.na_value
-    if needs_i8_conversion(dtype):
-        return NaT
+        # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+        # attribute "na_value"
+        return dtype.na_value  # type: ignore[union-attr]
+    elif needs_i8_conversion(dtype):
+        return dtype.type("NaT", "ns")
     elif is_float_dtype(dtype):
         return np.nan
     elif is_integer_dtype(dtype):
@@ -589,7 +621,7 @@ def remove_na_arraylike(arr):
         return arr[notna(np.asarray(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
+def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 
@@ -604,16 +636,24 @@ def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):
         return False
-    if dtype.kind == "M":
-        return not isinstance(obj, np.timedelta64)
-    if dtype.kind == "m":
-        return not isinstance(obj, np.datetime64)
-    if dtype.kind in ["i", "u", "f", "c"]:
+    elif dtype.kind == "M":
+        if isinstance(dtype, np.dtype):
+            # i.e. not tzaware
+            return not isinstance(obj, (np.timedelta64, Decimal))
+        # we have to rule out tznaive dt64("NaT")
+        return not isinstance(obj, (np.timedelta64, np.datetime64, Decimal))
+    elif dtype.kind == "m":
+        return not isinstance(obj, (np.datetime64, Decimal))
+    elif dtype.kind in ["i", "u", "f", "c"]:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
+    elif dtype == np.dtype("object"):
+        # This is needed for Categorical, but is kind of weird
+        return True
+
     # must be PeriodDType
-    return not isinstance(obj, (np.datetime64, np.timedelta64))
+    return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
 
 
 def isna_all(arr: ArrayLike) -> bool:
@@ -632,13 +672,22 @@ def isna_all(arr: ArrayLike) -> bool:
         checker = nan_checker
 
     elif dtype.kind in ["m", "M"] or dtype.type is Period:
-        checker = lambda x: np.asarray(x.view("i8")) == iNaT
+        # error: Incompatible types in assignment (expression has type
+        # "Callable[[Any], Any]", variable has type "ufunc")
+        checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
 
     else:
-        checker = lambda x: _isna_ndarraylike(x, inf_as_na=INF_AS_NA)
+        # error: Incompatible types in assignment (expression has type "Callable[[Any],
+        # Any]", variable has type "ufunc")
+        checker = lambda x: _isna_array(  # type: ignore[assignment]
+            x, inf_as_na=INF_AS_NA
+        )
 
-    for i in range(0, total_len, chunk_len):
-        if not checker(arr[i : i + chunk_len]).all():
-            return False
-
-    return True
+    return all(
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex, str,
+        # bytes, generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        checker(arr[i : i + chunk_len]).all()  # type: ignore[arg-type]
+        for i in range(0, total_len, chunk_len)
+    )

@@ -1,6 +1,12 @@
 import numpy as np
 
-from pandas import Period, Series, Timedelta, Timestamp, date_range
+from pandas import (
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 

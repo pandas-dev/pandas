@@ -83,14 +83,14 @@ void traced_free(void* ptr){
 // predisposed to superlinear running times (see GH 36729 for comparison)
 
 
-khint64_t PANDAS_INLINE asint64(double key) {
-    khint64_t val;
+khuint64_t PANDAS_INLINE asuint64(double key) {
+    khuint64_t val;
     memcpy(&val, &key, sizeof(double));
     return val;
 }
 
-khint32_t PANDAS_INLINE asint32(float key) {
-    khint32_t val;
+khuint32_t PANDAS_INLINE asuint32(float key) {
+    khuint32_t val;
     memcpy(&val, &key, sizeof(float));
     return val;
 }
@@ -98,7 +98,7 @@ khint32_t PANDAS_INLINE asint32(float key) {
 #define ZERO_HASH 0
 #define NAN_HASH  0
 
-khint32_t PANDAS_INLINE kh_float64_hash_func(double val){
+khuint32_t PANDAS_INLINE kh_float64_hash_func(double val){
     // 0.0 and -0.0 should have the same hash:
     if (val == 0.0){
         return ZERO_HASH;
@@ -107,11 +107,11 @@ khint32_t PANDAS_INLINE kh_float64_hash_func(double val){
     if ( val!=val ){
         return NAN_HASH;
     }
-    khint64_t as_int = asint64(val);
+    khuint64_t as_int = asuint64(val);
     return murmur2_64to32(as_int);
 }
 
-khint32_t PANDAS_INLINE kh_float32_hash_func(float val){
+khuint32_t PANDAS_INLINE kh_float32_hash_func(float val){
     // 0.0 and -0.0 should have the same hash:
     if (val == 0.0f){
         return ZERO_HASH;
@@ -120,7 +120,7 @@ khint32_t PANDAS_INLINE kh_float32_hash_func(float val){
     if ( val!=val ){
         return NAN_HASH;
     }
-    khint32_t as_int = asint32(val);
+    khuint32_t as_int = asuint32(val);
     return murmur2_32to32(as_int);
 }
 
@@ -178,11 +178,31 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 	return result;
 }
 
-// For PyObject_Hash holds:
-//    hash(0.0) == 0 == hash(-0.0)
-//    hash(X) == 0 if X is a NaN-value
-// so it is OK to use it directly
-#define kh_python_hash_func(key) (PyObject_Hash(key))
+
+khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key){
+    // For PyObject_Hash holds:
+    //    hash(0.0) == 0 == hash(-0.0)
+    //    hash(X) == 0 if X is a NaN-value
+    // so it is OK to use it directly for doubles
+    Py_hash_t hash = PyObject_Hash(key);
+	if (hash == -1) {
+		PyErr_Clear();
+		return 0;
+	}
+    #if SIZEOF_PY_HASH_T == 4
+        // it is already 32bit value
+        return hash;
+    #else
+        // for 64bit builds,
+        // we need information of the upper 32bits as well
+        // see GH 37615
+        khuint64_t as_uint = (khuint64_t) hash;
+        // uints avoid undefined behavior of signed ints
+        return (as_uint>>32)^as_uint;
+    #endif
+}
+
+
 #define kh_python_hash_equal(a, b) (pyobject_cmp(a, b))
 
 
@@ -220,15 +240,15 @@ p_kh_str_starts_t PANDAS_INLINE kh_init_str_starts(void) {
 	return result;
 }
 
-khint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
-    khint_t result = kh_put_str(table->table, key, ret);
+khuint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
+    khuint_t result = kh_put_str(table->table, key, ret);
 	if (*ret != 0) {
 		table->starts[(unsigned char)key[0]] = 1;
 	}
     return result;
 }
 
-khint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const char* key) {
+khuint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const char* key) {
     unsigned char ch = *key;
 	if (table->starts[ch]) {
 		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;
@@ -241,6 +261,16 @@ void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
 	KHASH_FREE(table);
 }
 
-void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {
+void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khuint_t val) {
 	kh_resize_str(table->table, val);
+}
+
+// utility function: given the number of elements
+// returns number of necessary buckets
+khuint_t PANDAS_INLINE kh_needed_n_buckets(khuint_t n_elements){
+    khuint_t candidate = n_elements;
+    kroundup32(candidate);
+    khuint_t upper_bound = (khuint_t)(candidate * __ac_HASH_UPPER + 0.5);
+    return (upper_bound < n_elements) ? 2*candidate : candidate;
+
 }

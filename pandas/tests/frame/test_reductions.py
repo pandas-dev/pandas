@@ -285,7 +285,10 @@ class TestDataFrameAnalytics:
         assert_stat_op_api("median", float_frame, float_string_frame)
 
         try:
-            from scipy.stats import kurtosis, skew  # noqa:F401
+            from scipy.stats import (  # noqa:F401
+                kurtosis,
+                skew,
+            )
 
             assert_stat_op_api("skew", float_frame, float_string_frame)
             assert_stat_op_api("kurt", float_frame, float_string_frame)
@@ -368,7 +371,10 @@ class TestDataFrameAnalytics:
         )
 
         try:
-            from scipy import kurtosis, skew  # noqa:F401
+            from scipy import (  # noqa:F401
+                kurtosis,
+                skew,
+            )
 
             assert_stat_op_calc("skew", skewness, float_frame_with_na)
             assert_stat_op_calc("kurt", kurt, float_frame_with_na)
@@ -663,7 +669,7 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
 
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(UserWarning):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
 
@@ -825,7 +831,7 @@ class TestDataFrameAnalytics:
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [0, 0], "b": [0, np.nan], "c": [np.nan, np.nan]})
 
-        df2 = df.apply(pd.to_timedelta)
+        df2 = df.apply(to_timedelta)
 
         # 0 by default
         result = df2.sum()
@@ -839,6 +845,13 @@ class TestDataFrameAnalytics:
         # min_count=1
         result = df2.sum(min_count=1)
         expected = Series([0, 0, np.nan], dtype="m8[ns]", index=idx)
+        tm.assert_series_equal(result, expected)
+
+    def test_sum_nanops_min_count(self):
+        # https://github.com/pandas-dev/pandas/issues/39738
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        result = df.sum(min_count=10)
+        expected = Series([np.nan, np.nan], index=["x", "y"])
         tm.assert_series_equal(result, expected)
 
     def test_sum_object(self, float_frame):
@@ -855,9 +868,9 @@ class TestDataFrameAnalytics:
 
     def test_sum_mixed_datetime(self):
         # GH#30886
-        df = DataFrame(
-            {"A": pd.date_range("2000", periods=4), "B": [1, 2, 3, 4]}
-        ).reindex([2, 3, 4])
+        df = DataFrame({"A": date_range("2000", periods=4), "B": [1, 2, 3, 4]}).reindex(
+            [2, 3, 4]
+        )
         result = df.sum()
 
         expected = Series({"B": 7.0})
@@ -887,7 +900,7 @@ class TestDataFrameAnalytics:
         df = DataFrame(
             {
                 "A": np.arange(3),
-                "B": pd.date_range("2016-01-01", periods=3),
+                "B": date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
                 "D": pd.period_range("2016", periods=3, freq="A"),
             }
@@ -906,7 +919,7 @@ class TestDataFrameAnalytics:
         df = DataFrame(
             {
                 "A": np.arange(3),
-                "B": pd.date_range("2016-01-01", periods=3),
+                "B": date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
             }
         )
@@ -977,7 +990,7 @@ class TestDataFrameAnalytics:
 
     def test_idxmax_mixed_dtype(self):
         # don't cast to object, which would raise in nanops
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
 
         df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
 
@@ -1229,13 +1242,15 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
-    def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
+    def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
-            pytest.xfail(
-                reason="GH#37659 OSError raised within tzlocal bc Windows "
-                "chokes in times before 1970-01-01"
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#37659 OSError raised within tzlocal bc Windows "
+                    "chokes in times before 1970-01-01"
+                )
             )
 
         df = DataFrame(
@@ -1265,8 +1280,8 @@ class TestDataFrameReductions:
         # returned NaT for series. These tests check that the API is consistent in
         # min/max calls on empty Series/DataFrames. See GH:33704 for more
         # information
-        df = DataFrame({"x": pd.to_datetime([])})
-        expected_dt_series = Series(pd.to_datetime([]))
+        df = DataFrame({"x": to_datetime([])})
+        expected_dt_series = Series(to_datetime([]))
         # check axis 0
         assert (df.min(axis=0).x is pd.NaT) == (expected_dt_series.min() is pd.NaT)
         assert (df.max(axis=0).x is pd.NaT) == (expected_dt_series.max() is pd.NaT)
@@ -1294,7 +1309,7 @@ class TestDataFrameReductions:
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_preserve_timezone(self, initial: str, method):
         # GH 28552
-        initial_dt = pd.to_datetime(initial)
+        initial_dt = to_datetime(initial)
         expected = Series([initial_dt])
         df = DataFrame([expected])
         result = getattr(df, method)(axis=1)
@@ -1322,7 +1337,7 @@ class TestDataFrameReductions:
         df = DataFrame(
             {
                 "a": Series([0, 0]),
-                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+                "t": Series([to_timedelta(0, "s"), to_timedelta(1, "ms")]),
             }
         )
 

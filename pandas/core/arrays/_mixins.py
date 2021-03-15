@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from functools import wraps
-from typing import Any, Optional, Sequence, Type, TypeVar, Union
+from typing import (
+    Any,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -9,15 +16,21 @@ from pandas._libs import lib
 from pandas._typing import Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
-from pandas.core.algorithms import take, unique
+from pandas.core.algorithms import (
+    take,
+    unique,
+    value_counts,
+)
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
@@ -91,7 +104,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         new_data = take(
             self._ndarray,
-            indices,
+            # error: Argument 2 to "take" has incompatible type "Sequence[int]";
+            # expected "ndarray"
+            indices,  # type: ignore[arg-type]
             allow_fill=allow_fill,
             fill_value=fill_value,
             axis=axis,
@@ -134,7 +149,8 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @cache_readonly
     def size(self) -> int:
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @cache_readonly
     def nbytes(self) -> int:
@@ -204,7 +220,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         new_values = [x._ndarray for x in to_concat]
         new_values = np.concatenate(new_values, axis=axis)
-        return to_concat[0]._from_backing_data(new_values)
+        # error: Argument 1 to "_from_backing_data" of "NDArrayBackedExtensionArray" has
+        # incompatible type "List[ndarray]"; expected "ndarray"
+        return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(self, value, side="left", sorter=None):
@@ -245,7 +263,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 return self._box_func(result)
             return self._from_backing_data(result)
 
-        key = extract_array(key, extract_numpy=True)
+        # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
+        # "Union[int, slice, ndarray]"
+        # error: Incompatible types in assignment (expression has type "ExtensionArray",
+        # variable has type "Union[int, slice, ndarray]")
+        key = extract_array(  # type: ignore[type-var,assignment]
+            key, extract_numpy=True
+        )
         key = check_array_indexer(self, key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
@@ -258,23 +282,25 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def fillna(
         self: NDArrayBackedExtensionArrayT, value=None, method=None, limit=None
     ) -> NDArrayBackedExtensionArrayT:
-        value, method = validate_fillna_kwargs(value, method)
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
 
         mask = self.isna()
-
-        # TODO: share this with EA base class implementation
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
+        # error: Argument 2 to "check_value_size" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
+        value = missing.check_value_size(
+            value, mask, len(self)  # type: ignore[arg-type]
+        )
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
-                new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
+                # TODO: check value is None
+                # (for now) when self.ndim == 2, we assume axis=0
+                func = missing.get_fill_func(method, ndim=self.ndim)
+                new_values, _ = func(self._ndarray.T.copy(), limit=limit, mask=mask.T)
+                new_values = new_values.T
+
                 # TODO: PandasArray didn't used to copy, need tests for this
                 new_values = self._from_backing_data(new_values)
             else:
@@ -282,6 +308,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 new_values = self.copy()
                 new_values[mask] = value
         else:
+            # We validate the fill_value even if there is nothing to fill
+            if value is not None:
+                self._validate_setitem_value(value)
+
             new_values = self.copy()
         return new_values
 
@@ -364,6 +394,52 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
 
-    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
-        res_values = np.delete(self._ndarray, loc)
+    def delete(
+        self: NDArrayBackedExtensionArrayT, loc, axis: int = 0
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc, axis=axis)
         return self._from_backing_data(res_values)
+
+    def swapaxes(
+        self: NDArrayBackedExtensionArrayT, axis1, axis2
+    ) -> NDArrayBackedExtensionArrayT:
+        res_values = self._ndarray.swapaxes(axis1, axis2)
+        return self._from_backing_data(res_values)
+
+    # ------------------------------------------------------------------------
+    # Additional array methods
+    #  These are not part of the EA API, but we implement them because
+    #  pandas assumes they're there.
+
+    def value_counts(self, dropna: bool = True):
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of NA values.
+
+        Returns
+        -------
+        Series
+        """
+        if self.ndim != 1:
+            raise NotImplementedError
+
+        from pandas import (
+            Index,
+            Series,
+        )
+
+        if dropna:
+            # error: Unsupported operand type for ~ ("ExtensionArray")
+            values = self[~self.isna()]._ndarray  # type: ignore[operator]
+        else:
+            values = self._ndarray
+
+        result = value_counts(values, sort=False, dropna=dropna)
+
+        index_arr = self._from_backing_data(np.asarray(result.index._data))
+        index = Index(index_arr, name=result.index.name)
+        return Series(result._values, index=index, name=result.name)

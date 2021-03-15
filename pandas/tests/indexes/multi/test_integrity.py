@@ -6,7 +6,11 @@ import pytest
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import IntervalIndex, MultiIndex, RangeIndex
+from pandas import (
+    IntervalIndex,
+    MultiIndex,
+    RangeIndex,
+)
 import pandas._testing as tm
 
 
@@ -137,7 +141,7 @@ def test_dims():
     pass
 
 
-def take_invalid_kwargs():
+def test_take_invalid_kwargs():
     vals = [["A", "B"], [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]]
     idx = MultiIndex.from_product(vals, names=["str", "dt"])
     indices = [1, 2]

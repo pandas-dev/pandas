@@ -1,10 +1,17 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, isna
+from pandas import (
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -466,11 +473,14 @@ def test_where_categorical(klass):
     tm.assert_equal(exp, res)
 
 
+# TODO(ArrayManager) DataFrame.values not yet correctly returning datetime array
+# for categorical with datetime categories
+@td.skip_array_manager_not_yet_implemented
 def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture
 
-    dr = pd.date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
+    dr = date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
     lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])
     rvals = pd.Categorical([dr[0], pd.NaT, dr[2]])
 
@@ -489,10 +499,6 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     tm.assert_series_equal(res, Series(dr))
 
     # DataFrame.where
-    if tz is None:
-        res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
-    else:
-        with pytest.xfail(reason="frame._values loses tz"):
-            res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
+    res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))

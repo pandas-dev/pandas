@@ -1,3 +1,18 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import string
 
 import numpy as np
@@ -9,6 +24,29 @@ import pandas as pd
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.string_arrow import ArrowStringDtype
 from pandas.tests.extension import base
+
+
+def split_array(arr):
+    if not isinstance(arr.dtype, ArrowStringDtype):
+        pytest.skip("chunked array n/a")
+
+    def _split_array(arr):
+        import pyarrow as pa
+
+        arrow_array = arr._data
+        split = len(arrow_array) // 2
+        arrow_array = pa.chunked_array(
+            [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
+        )
+        assert arrow_array.num_chunks == 2
+        return type(arr)(arrow_array)
+
+    return _split_array(arr)
+
+
+@pytest.fixture(params=[True, False])
+def chunked(request):
+    return request.param
 
 
 @pytest.fixture(
@@ -24,28 +62,32 @@ def dtype(request):
 
 
 @pytest.fixture
-def data(dtype):
+def data(dtype, chunked):
     strings = np.random.choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
         strings = np.random.choice(list(string.ascii_letters), size=100)
 
-    return dtype.construct_array_type()._from_sequence(strings)
+    arr = dtype.construct_array_type()._from_sequence(strings)
+    return split_array(arr) if chunked else arr
 
 
 @pytest.fixture
-def data_missing(dtype):
+def data_missing(dtype, chunked):
     """Length 2 array with [NA, Valid]"""
-    return dtype.construct_array_type()._from_sequence([pd.NA, "A"])
+    arr = dtype.construct_array_type()._from_sequence([pd.NA, "A"])
+    return split_array(arr) if chunked else arr
 
 
 @pytest.fixture
-def data_for_sorting(dtype):
-    return dtype.construct_array_type()._from_sequence(["B", "C", "A"])
+def data_for_sorting(dtype, chunked):
+    arr = dtype.construct_array_type()._from_sequence(["B", "C", "A"])
+    return split_array(arr) if chunked else arr
 
 
 @pytest.fixture
-def data_missing_for_sorting(dtype):
-    return dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
+def data_missing_for_sorting(dtype, chunked):
+    arr = dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
+    return split_array(arr) if chunked else arr
 
 
 @pytest.fixture
@@ -54,10 +96,11 @@ def na_value():
 
 
 @pytest.fixture
-def data_for_grouping(dtype):
-    return dtype.construct_array_type()._from_sequence(
+def data_for_grouping(dtype, chunked):
+    arr = dtype.construct_array_type()._from_sequence(
         ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
     )
+    return split_array(arr) if chunked else arr
 
 
 class TestDtype(base.BaseDtypeTests):

@@ -2,8 +2,7 @@ import numpy as np
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseMissingTests(BaseExtensionTests):
@@ -69,6 +68,18 @@ class BaseMissingTests(BaseExtensionTests):
         result = pd.Series(arr).fillna(method="backfill", limit=2)
         expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
         self.assert_series_equal(result, expected)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
+
+        result = data.fillna(method="backfill")
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
 
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]

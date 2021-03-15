@@ -7,7 +7,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -713,7 +719,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
-        df_index = pd.date_range(
+        df_index = date_range(
             start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
         )
         expected = DataFrame(index=df_index)

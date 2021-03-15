@@ -6,7 +6,14 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -499,6 +506,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -672,3 +680,15 @@ class TestDataFrameIndexingWhere:
         expected["B"] = expected["B"].astype(object)
         result = df.where(mask, ser2, axis=1)
         tm.assert_frame_equal(result, expected)
+
+
+def test_where_try_cast_deprecated(frame_or_series):
+    obj = DataFrame(np.random.randn(4, 3))
+    if frame_or_series is not DataFrame:
+        obj = obj[0]
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        # try_cast keyword deprecated
+        obj.where(mask, -1, try_cast=False)

@@ -7,12 +7,24 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
-from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
+from pandas.core.computation.expressions import (
+    _MIN_ELEMENTS,
+    NUMEXPR_INSTALLED,
+)
+from pandas.tests.frame.common import (
+    _check_mixed_float,
+    _check_mixed_int,
+)
 
 
 class DummyElement:
@@ -46,6 +58,21 @@ class DummyElement:
 
 class TestFrameComparisons:
     # Specifically _not_ flex-comparisons
+
+    def test_comparison_with_categorical_dtype(self):
+        # GH#12564
+
+        df = DataFrame({"A": ["foo", "bar", "baz"]})
+        exp = DataFrame({"A": [True, False, False]})
+
+        res = df == "foo"
+        tm.assert_frame_equal(res, exp)
+
+        # casting to categorical shouldn't affect the result
+        df["A"] = df["A"].astype("category")
+
+        res = df == "foo"
+        tm.assert_frame_equal(res, exp)
 
     def test_frame_in_list(self):
         # GH#12689 this should raise at the DataFrame level, not blocks
@@ -587,6 +614,26 @@ class TestFrameFlexArithmetic:
         res = df.add(2, fill_value=0)
         tm.assert_frame_equal(res, exp)
 
+    def test_sub_alignment_with_duplicate_index(self):
+        # GH#5185 dup aligning operations should work
+        df1 = DataFrame([1, 2, 3, 4, 5], index=[1, 2, 1, 2, 3])
+        df2 = DataFrame([1, 2, 3], index=[1, 2, 3])
+        expected = DataFrame([0, 2, 0, 2, 2], index=[1, 1, 2, 2, 3])
+        result = df1.sub(df2)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("op", ["__add__", "__mul__", "__sub__", "__truediv__"])
+    def test_arithmetic_with_duplicate_columns(self, op):
+        # operations
+        df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
+        expected = getattr(df, op)(df)
+        expected.columns = ["A", "A"]
+        df.columns = ["A", "A"]
+        result = getattr(df, op)(df)
+        tm.assert_frame_equal(result, expected)
+        str(result)
+        result.dtypes
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -641,6 +688,7 @@ class TestFrameArithmetic:
         result = collike + df
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
     def test_df_arith_2d_array_rowlike_broadcasts(self, all_arithmetic_operators):
         # GH#23000
         opname = all_arithmetic_operators
@@ -662,6 +710,7 @@ class TestFrameArithmetic:
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
     def test_df_arith_2d_array_collike_broadcasts(self, all_arithmetic_operators):
         # GH#23000
         opname = all_arithmetic_operators
@@ -821,7 +870,6 @@ class TestFrameArithmetic:
             (np.datetime64(20, "ns"), "<M8[ns]"),
         ],
     )
-    @pytest.mark.xfail(reason="GH38630", strict=False)
     @pytest.mark.parametrize(
         "op",
         [
@@ -835,9 +883,12 @@ class TestFrameArithmetic:
         ids=lambda x: x.__name__,
     )
     def test_binop_other(self, op, value, dtype):
+
         skip = {
             (operator.truediv, "bool"),
             (operator.pow, "bool"),
+            (operator.add, "bool"),
+            (operator.mul, "bool"),
         }
 
         e = DummyElement(value, dtype)
@@ -879,11 +930,17 @@ class TestFrameArithmetic:
 
         elif (op, dtype) in skip:
 
-            msg = "operator '.*' not implemented for .* dtypes"
-            with pytest.raises(NotImplementedError, match=msg):
+            if op in [operator.add, operator.mul]:
                 with tm.assert_produces_warning(UserWarning):
                     # "evaluating in Python space because ..."
                     op(s, e.value)
+
+            else:
+                msg = "operator '.*' not implemented for .* dtypes"
+                with pytest.raises(NotImplementedError, match=msg):
+                    with tm.assert_produces_warning(UserWarning):
+                        # "evaluating in Python space because ..."
+                        op(s, e.value)
 
         else:
             # FIXME: Since dispatching to Series, this test no longer
@@ -964,7 +1021,7 @@ class TestFrameArithmeticUnsorted:
 
         result = ts + ts[::2]
         expected = ts + ts
-        expected.values[1::2] = np.nan
+        expected.iloc[1::2] = np.nan
         tm.assert_frame_equal(result, expected)
 
         half = ts[::2]
@@ -1298,7 +1355,7 @@ class TestFrameArithmeticUnsorted:
 
     def test_comparison_protected_from_errstate(self):
         missing_df = tm.makeDataFrame()
-        missing_df.iloc[0]["A"] = np.nan
+        missing_df.loc[missing_df.index[0], "A"] = np.nan
         with np.errstate(invalid="ignore"):
             expected = missing_df.values < 0
         with np.errstate(invalid="raise"):

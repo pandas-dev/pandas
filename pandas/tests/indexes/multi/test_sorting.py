@@ -3,10 +3,20 @@ import random
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.errors import (
+    PerformanceWarning,
+    UnsortedIndexError,
+)
 
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    RangeIndex,
+)
 import pandas._testing as tm
+from pandas.core.indexes.frozen import FrozenList
 
 
 def test_sortlevel(idx):
@@ -131,27 +141,25 @@ def test_unsortedindex_doc_examples():
     with pytest.raises(UnsortedIndexError, match=msg):
         dfm.loc[(0, "y"):(1, "z")]
 
-    assert not dfm.index.is_lexsorted()
-    assert dfm.index.lexsort_depth == 1
+    assert not dfm.index._is_lexsorted()
+    assert dfm.index._lexsort_depth == 1
 
     # sort it
     dfm = dfm.sort_index()
     dfm.loc[(1, "z")]
     dfm.loc[(0, "y"):(1, "z")]
 
-    assert dfm.index.is_lexsorted()
-    assert dfm.index.lexsort_depth == 2
+    assert dfm.index._is_lexsorted()
+    assert dfm.index._lexsort_depth == 2
 
 
 def test_reconstruct_sort():
 
     # starts off lexsorted & monotonic
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
-    assert mi.is_lexsorted()
     assert mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert recons.is_lexsorted()
     assert recons.is_monotonic
     assert mi is recons
 
@@ -163,11 +171,9 @@ def test_reconstruct_sort():
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
-    assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_lexsorted()
     assert not recons.is_monotonic
 
     assert mi.equals(recons)
@@ -179,11 +185,9 @@ def test_reconstruct_sort():
         codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
         names=["col1", "col2"],
     )
-    assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_lexsorted()
     assert not recons.is_monotonic
 
     assert mi.equals(recons)
@@ -271,3 +275,13 @@ def test_argsort(idx):
     result = idx.argsort()
     expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_remove_unused_levels_with_nan():
+    # GH 37510
+    idx = Index([(1, np.nan), (3, 4)]).rename(["id1", "id2"])
+    idx = idx.set_levels(["a", np.nan], level="id1")
+    idx = idx.remove_unused_levels()
+    result = idx.levels
+    expected = FrozenList([["a", np.nan], [4]])
+    assert str(result) == str(expected)
