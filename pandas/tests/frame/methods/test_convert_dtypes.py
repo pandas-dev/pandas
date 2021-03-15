@@ -26,3 +26,8 @@ class TestConvertDtypes:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_convert_empty(self):
+        # Empty DataFrame can pass convert_dtypes, see GH#40393
+        empty_df = pd.DataFrame()
+        tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
