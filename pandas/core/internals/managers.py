@@ -1942,7 +1942,7 @@ def _simple_blockify(tuples, dtype, consolidate: bool) -> List[Block]:
     return [block]
 
 
-def _multi_blockify(tuples, dtype: Optional[Dtype] = None, consolidate: bool = True):
+def _multi_blockify(tuples, dtype: Optional[DtypeObj] = None, consolidate: bool = True):
     """ return an array of blocks that potentially have different dtypes """
 
     if not consolidate:
