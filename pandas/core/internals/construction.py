@@ -365,15 +365,15 @@ def dict_to_mgr(
 
         # no obvious "empty" int column
         if missing.any() and not is_integer_dtype(dtype):
+            nan_dtype: DtypeObj
+
             if dtype is None or (
                 isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.flexible)
             ):
                 # GH#1783
                 nan_dtype = np.dtype("object")
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Union[dtype, ExtensionDtype]", variable has type "dtype")
-                nan_dtype = dtype  # type: ignore[assignment]
+                nan_dtype = dtype
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
 
