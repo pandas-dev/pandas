@@ -82,8 +82,11 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -106,7 +109,6 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas import (
-        Categorical,
         DataFrame,
         Series,
     )
@@ -1565,12 +1567,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             # no attribute "_formatter"
             formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
 
-        if is_categorical_dtype(values.dtype):
+        if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
-
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "_internal_get_values"
-            array = values._internal_get_values()  # type: ignore[union-attr]
+            array = values._internal_get_values()
         else:
             array = np.asarray(values)
 

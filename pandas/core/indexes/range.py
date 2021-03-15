@@ -6,6 +6,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     List,
     Optional,
@@ -900,7 +901,7 @@ class RangeIndex(Int64Index):
         ]:
             return op(self._int64index, other)
 
-        step = False
+        step: Optional[Callable] = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
@@ -913,8 +914,7 @@ class RangeIndex(Int64Index):
             # apply if we have an override
             if step:
                 with np.errstate(all="ignore"):
-                    # error: "bool" not callable
-                    rstep = step(left.step, right)  # type: ignore[operator]
+                    rstep = step(left.step, right)
 
                 # we don't have a representable op
                 # so return a base index
