@@ -32,6 +32,7 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    ensure_int64,
     is_bool_dtype,
     is_datetime64_ns_dtype,
     is_dtype_equal,
@@ -202,7 +203,7 @@ class ArrayManager(DataManager):
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
-        if self.ndim == 1:
+        if self.ndim == 2:
             output += f"\nColumns: {self._axes[1]}"
         output += f"\n{len(self.arrays)} arrays:"
         for arr in self.arrays:
@@ -861,7 +862,7 @@ class ArrayManager(DataManager):
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
                 assert value.shape[1] == 1
-                value = value[0, :]
+                value = value[:, 0]
 
             # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
             # but we should avoid that and pass directly the proper array
@@ -1005,11 +1006,16 @@ class ArrayManager(DataManager):
 
         else:
             validate_indices(indexer, len(self._axes[0]))
+            indexer = ensure_int64(indexer)
+            if (indexer == -1).any():
+                allow_fill = True
+            else:
+                allow_fill = False
             new_arrays = [
                 take_1d(
                     arr,
                     indexer,
-                    allow_fill=True,
+                    allow_fill=allow_fill,
                     fill_value=fill_value,
                     # if fill_value is not None else blk.fill_value
                 )
@@ -1021,7 +1027,7 @@ class ArrayManager(DataManager):
 
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
-    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
         Take items along any axis.
         """
@@ -1034,12 +1040,7 @@ class ArrayManager(DataManager):
         )
 
         n = self.shape_proper[axis]
-        if convert:
-            indexer = maybe_convert_indices(indexer, n)
-
-        if verify:
-            if ((indexer == -1) | (indexer >= n)).any():
-                raise Exception("Indices must be nonzero and less than the axis length")
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
@@ -1085,15 +1086,24 @@ class ArrayManager(DataManager):
         unstacked : BlockManager
         """
         indexer, _ = unstacker._indexer_and_to_sort
-        new_indexer = np.full(unstacker.mask.shape, -1)
-        new_indexer[unstacker.mask] = indexer
+        if unstacker.mask.all():
+            new_indexer = indexer
+            allow_fill = False
+        else:
+            new_indexer = np.full(unstacker.mask.shape, -1)
+            new_indexer[unstacker.mask] = indexer
+            allow_fill = True
         new_indexer2D = new_indexer.reshape(*unstacker.full_shape)
+        new_indexer2D = ensure_int64(new_indexer2D)
 
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
                 new_arr = take_1d(
-                    arr, new_indexer2D[:, i], allow_fill=True, fill_value=fill_value
+                    arr,
+                    new_indexer2D[:, i],
+                    allow_fill=allow_fill,
+                    fill_value=fill_value,
                 )
                 new_arrays.append(new_arr)
 
@@ -1143,7 +1153,13 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     def _verify_integrity(self) -> None:
         (n_rows,) = self.shape
         assert len(self.arrays) == 1
-        assert len(self.arrays[0]) == n_rows
+        arr = self.arrays[0]
+        assert len(arr) == n_rows
+        if not arr.ndim == 1:
+            raise ValueError(
+                "Passed array should be 1-dimensional, got array with "
+                f"{arr.ndim} dimensions instead."
+            )
 
     @staticmethod
     def _normalize_axis(axis):
@@ -1167,10 +1183,6 @@ class SingleArrayManager(ArrayManager, SingleDataManager):
     @property
     def index(self) -> Index:
         return self._axes[0]
-
-    @property
-    def array(self):
-        return self.arrays[0]
 
     @property
     def dtype(self):
