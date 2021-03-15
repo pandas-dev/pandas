@@ -97,6 +97,17 @@ def test_to_read_gcs(gcs_buffer, format):
     tm.assert_frame_equal(df1, df2)
 
 
+def assert_equal_zip_safe(result: bytes, expected: bytes):
+    """
+    We would like to assert these are equal, but the 11th byte is a last-modified
+    timestamp, which in some builds is off-by-one, so we check around that.
+
+    See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
+    """
+    assert result[:10] == expected[:10]
+    assert result[11:] == expected[11:]
+
+
 @td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
 def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding):
@@ -121,7 +132,10 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     # write compressed file with explicit compression
     path_gcs = "gs://test/test.csv"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
-    assert gcs_buffer.getvalue() == buffer.getvalue()
+    res = gcs_buffer.getvalue()
+    expected = buffer.getvalue()
+    assert_equal_zip_safe(res, expected)
+
     read_df = read_csv(
         path_gcs, index_col=0, compression=compression_only, encoding=encoding
     )
@@ -136,11 +150,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
 
     res = gcs_buffer.getvalue()
     expected = buffer.getvalue()
-    # We would like to assert these are equal, but the 11th byte is a last-modified
-    #  timestamp, which in some builds is off-by-one, so we check around that
-    #  See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
-    assert res[:10] == expected[:10]
-    assert res[11:] == expected[11:]
+    assert_equal_zip_safe(res, expected)
 
     read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
     tm.assert_frame_equal(df, read_df)

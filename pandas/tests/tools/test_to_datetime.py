@@ -1651,6 +1651,12 @@ class TestToDatetimeMisc:
         with pytest.raises(TypeError, match=msg):
             to_datetime([1, "1"], errors="raise", cache=cache)
 
+    @pytest.mark.parametrize("cache", [True, False])
+    def test_to_datetime_unhashable_input(self, cache):
+        series = Series([["a"]] * 100)
+        result = to_datetime(series, errors="ignore", cache=cache)
+        tm.assert_series_equal(series, result)
+
     def test_to_datetime_other_datetime64_units(self):
         # 5/25/2012
         scalar = np.int64(1337904000000000).view("M8[us]")
