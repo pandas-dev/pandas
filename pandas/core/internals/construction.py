@@ -808,34 +808,18 @@ def _finalize_columns_and_data(
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
-    # error: Incompatible types in assignment (expression has type "List[Any]", variable
-    # has type "ndarray")
-    content = list(content.T)  # type: ignore[assignment]
+    contents = list(content.T)
 
     try:
-        # error: Argument 1 to "_validate_or_indexify_columns" has incompatible type
-        # "ndarray"; expected "List[Any]"
-        columns = _validate_or_indexify_columns(
-            content, columns  # type: ignore[arg-type]
-        )
+        columns = _validate_or_indexify_columns(contents, columns)
     except AssertionError as err:
         # GH#26429 do not raise user-facing AssertionError
         raise ValueError(err) from err
 
-    if len(content) and content[0].dtype == np.object_:
-        # error: Incompatible types in assignment (expression has type
-        # "List[Union[Union[str, int, float, bool], Union[Any, Any, Any, Any]]]",
-        # variable has type "ndarray")
-        # error: Argument 1 to "_convert_object_array" has incompatible type "ndarray";
-        # expected "List[Union[Union[str, int, float, bool], Union[Any, Any, Any,
-        # Any]]]"
-        content = _convert_object_array(  # type: ignore[assignment]
-            content, dtype=dtype  # type: ignore[arg-type]
-        )
-    # error: Incompatible return value type (got "Tuple[ndarray, Union[Index,
-    # List[Union[str, int]]]]", expected "Tuple[List[ndarray], Union[Index,
-    # List[Union[str, int]]]]")
-    return content, columns  # type: ignore[return-value]
+    if len(contents) and contents[0].dtype == np.object_:
+        contents = _convert_object_array(contents, dtype=dtype)
+
+    return contents, columns
 
 
 def _validate_or_indexify_columns(
