@@ -135,6 +135,7 @@ Other enhancements
 - :meth:`.Styler.set_table_styles` amended to optionally allow certain css-string input arguments (:issue:`39564`)
 - :meth:`.Styler.apply` now more consistently accepts ndarray function returns, i.e. in all cases for ``axis`` is ``0, 1 or None`` (:issue:`39359`)
 - :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if wrong format CSS is passed on render (:issue:`39660`)
+- :meth:`.Styler.format` adds keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
 - Builtin highlighting methods in :class:`Styler` have a more consistent signature and css customisability (:issue:`40242`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :meth:`pandas.read_stata` and :class:`StataReader` support reading data from compressed files.

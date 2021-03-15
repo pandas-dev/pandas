@@ -118,6 +118,8 @@ class Styler:
         Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
         strings with HTML-safe sequences.
 
+        ... versionadded:: 1.3.0
+
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
