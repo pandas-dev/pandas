@@ -44,7 +44,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
-    AnyArrayLike,
     ArrayLike,
     Dtype,
     DtypeObj,
@@ -1464,7 +1463,7 @@ def soft_convert_objects(
 
 
 def convert_dtypes(
-    input_array: AnyArrayLike,
+    input_array: ArrayLike,
     convert_string: bool = True,
     convert_integer: bool = True,
     convert_boolean: bool = True,
