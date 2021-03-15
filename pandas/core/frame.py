@@ -599,6 +599,13 @@ class DataFrame(NDFrame, OpsMixin):
                     copy,
                     typ=manager,
                 )
+                warnings.warn(
+                    "Support for MaskedRecords is deprecated and will be "
+                    "removed in a future version.  Pass "
+                    "{name: data[name] for name in data.dtype.names} instead.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
             # a masked array
             else:
@@ -3745,7 +3752,7 @@ class DataFrame(NDFrame, OpsMixin):
     # Unsorted
 
     def query(self, expr: str, inplace: bool = False, **kwargs):
-        r"""
+        """
         Query the columns of a DataFrame with a boolean expression.
 
         Parameters
@@ -3761,7 +3768,7 @@ class DataFrame(NDFrame, OpsMixin):
             by surrounding them in backticks. Thus, column names containing spaces
             or punctuations (besides underscores) or starting with digits must be
             surrounded by backticks. (For example, a column named "Area (cm^2)" would
-            be referenced as \`Area (cm^2)\`). Column names which are Python keywords
+            be referenced as ```Area (cm^2)```). Column names which are Python keywords
             (like "list", "for", "import", etc) cannot be used.
 
             For example, if one of your columns is called ``a a`` and you want
@@ -4540,6 +4547,26 @@ class DataFrame(NDFrame, OpsMixin):
             fill_axis=fill_axis,
             broadcast_axis=broadcast_axis,
         )
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_axis(
+        self, labels, axis: Axis = ..., inplace: bool = ...
+    ) -> Optional[DataFrame]:
+        ...
 
     @Appender(
         """
