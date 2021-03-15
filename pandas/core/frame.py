@@ -599,6 +599,13 @@ class DataFrame(NDFrame, OpsMixin):
                     copy,
                     typ=manager,
                 )
+                warnings.warn(
+                    "Support for MaskedRecords is deprecated and will be "
+                    "removed in a future version.  Pass "
+                    "{name: data[name] for name in data.dtype.names} instead.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
             # a masked array
             else:

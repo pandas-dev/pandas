@@ -993,9 +993,18 @@ class TestDataFrameConstructors:
             np.ma.zeros(5, dtype=[("date", "<f8"), ("price", "<f8")]), mask=[False] * 5
         )
         data = data.view(mrecords.mrecarray)
-        result = DataFrame(data, dtype=int)
+
+        with tm.assert_produces_warning(FutureWarning):
+            # Support for MaskedRecords deprecated
+            result = DataFrame(data, dtype=int)
+
         expected = DataFrame(np.zeros((5, 2), dtype=int), columns=["date", "price"])
         tm.assert_frame_equal(result, expected)
+
+        # GH#40363 check that the alternative suggested in the deprecation
+        #  warning behaves as expected
+        alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
+        tm.assert_frame_equal(result, alt)
 
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
@@ -1024,18 +1033,24 @@ class TestDataFrameConstructors:
             # fill the comb
             comb = {k: (v.filled() if hasattr(v, "filled") else v) for k, v in comb}
 
+            with tm.assert_produces_warning(FutureWarning):
+                # Support for MaskedRecords deprecated
+                result = DataFrame(mrecs)
             expected = DataFrame(comb, columns=names)
-            result = DataFrame(mrecs)
             assert_fr_equal(result, expected)
 
             # specify columns
+            with tm.assert_produces_warning(FutureWarning):
+                # Support for MaskedRecords deprecated
+                result = DataFrame(mrecs, columns=names[::-1])
             expected = DataFrame(comb, columns=names[::-1])
-            result = DataFrame(mrecs, columns=names[::-1])
             assert_fr_equal(result, expected)
 
             # specify index
+            with tm.assert_produces_warning(FutureWarning):
+                # Support for MaskedRecords deprecated
+                result = DataFrame(mrecs, index=[1, 2])
             expected = DataFrame(comb, columns=names, index=[1, 2])
-            result = DataFrame(mrecs, index=[1, 2])
             assert_fr_equal(result, expected)
 
     def test_constructor_corner_shape(self):
