@@ -192,6 +192,13 @@ class TestStylerLatex:
         assert expected == s.render(latex=True)
         assert expected.replace("lllll", "llrrl") == s.to_latex()
 
+    def test_multiindex_columns_hidden(self):
+        df = DataFrame([[1, 2, 3, 4]])
+        df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
+        s = df.style.hide_columns([("A", 2)])
+        assert "{tabular}{llll}" in s.render(latex=True)
+        assert "{tabular}{lrrr}" in s.to_latex()
+
     def test_comprehensive(self):
         # test as many low level features simultaneously as possible
         cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
