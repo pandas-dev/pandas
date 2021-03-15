@@ -123,6 +123,8 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.arrays import (
         DatetimeArray,
         TimedeltaArray,
@@ -456,6 +458,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @overload
     def view(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
+        ...
+
+    @overload
+    def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray:
+        ...
+
+    @overload
+    def view(self, dtype: Literal["m8[ns]"]) -> TimedeltaArray:
         ...
 
     @overload
@@ -878,12 +888,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self.asi8 == iNaT
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self) -> np.ndarray:
+    def _hasnans(self) -> bool:
         """
         return if I have any nans; enables various perf speedups
         """
-        # error: Incompatible return value type (got "bool", expected "ndarray")
-        return bool(self._isnan.any())  # type: ignore[return-value]
+        return bool(self._isnan.any())
 
     def _maybe_mask_results(
         self, result: np.ndarray, fill_value=iNaT, convert=None
