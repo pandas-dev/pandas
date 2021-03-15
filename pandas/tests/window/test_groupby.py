@@ -83,6 +83,9 @@ class TestRolling:
 
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
@@ -92,6 +95,9 @@ class TestRolling:
 
         result = getattr(r, f)(ddof=1)
         expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -100,10 +106,14 @@ class TestRolling:
     def test_rolling_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
+
         result = r.quantile(0.4, interpolation=interpolation)
         expected = g.apply(
             lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
         )
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
@@ -117,6 +127,9 @@ class TestRolling:
             return getattr(x.rolling(4), f)(self.frame)
 
         expected = g.apply(func)
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
+        expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = getattr(r.B, f)(pairwise=True)
@@ -134,6 +147,9 @@ class TestRolling:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_apply_mutability(self):
@@ -556,31 +572,23 @@ class TestRolling:
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
             df.groupby("c").rolling("60min", **rollings)
 
-    @pytest.mark.parametrize("group_keys", [True, False])
-    def test_groupby_rolling_group_keys(self, group_keys):
+    def test_groupby_rolling_group_keys(self):
         # GH 37641
-        # GH 38523: GH 37641 actually was not a bug.
-        # group_keys only applies to groupby.apply directly
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
         s = Series([1, 2, 3], index=index)
-        result = s.groupby(["idx1", "idx2"], group_keys=group_keys).rolling(1).mean()
+        result = s.groupby(["idx1", "idx2"], group_keys=False).rolling(1).mean()
         expected = Series(
             [1.0, 2.0, 3.0],
             index=MultiIndex.from_tuples(
-                [
-                    ("val1", "val1", "val1", "val1"),
-                    ("val1", "val1", "val1", "val1"),
-                    ("val2", "val2", "val2", "val2"),
-                ],
-                names=["idx1", "idx2", "idx1", "idx2"],
+                [("val1", "val1"), ("val1", "val1"), ("val2", "val2")],
+                names=["idx1", "idx2"],
             ),
         )
         tm.assert_series_equal(result, expected)
 
     def test_groupby_rolling_index_level_and_column_label(self):
-        # The groupby keys should not appear as a resulting column
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
@@ -589,12 +597,7 @@ class TestRolling:
         expected = DataFrame(
             {"B": [0.0, 1.0, 2.0]},
             index=MultiIndex.from_tuples(
-                [
-                    ("val1", 1, "val1", "val1"),
-                    ("val1", 1, "val1", "val1"),
-                    ("val2", 2, "val2", "val2"),
-                ],
-                names=["idx1", "A", "idx1", "idx2"],
+                [("val1", 1), ("val1", 1), ("val2", 2)], names=["idx1", "A"]
             ),
         )
         tm.assert_frame_equal(result, expected)
@@ -653,29 +656,15 @@ class TestRolling:
         )
         tm.assert_index_equal(result.index, expected_index)
 
-    def test_groupby_level(self):
-        # GH 38523
-        arrays = [
-            ["Falcon", "Falcon", "Parrot", "Parrot"],
-            ["Captive", "Wild", "Captive", "Wild"],
-        ]
-        index = MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
-        df = DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
-        result = df.groupby(level=0)["Max Speed"].rolling(2).sum()
-        expected = Series(
-            [np.nan, 740.0, np.nan, 50.0],
-            index=MultiIndex.from_tuples(
-                [
-                    ("Falcon", "Falcon", "Captive"),
-                    ("Falcon", "Falcon", "Wild"),
-                    ("Parrot", "Parrot", "Captive"),
-                    ("Parrot", "Parrot", "Wild"),
-                ],
-                names=["Animal", "Animal", "Type"],
-            ),
-            name="Max Speed",
-        )
-        tm.assert_series_equal(result, expected)
+    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
+        # GH 39732
+        g = self.frame.groupby("A")
+        expected = g.apply(lambda x: x.rolling(4).sum()).index
+        _ = g.rolling(window=4)
+        result = g.apply(lambda x: x.rolling(4).sum()).index
+        tm.assert_index_equal(result, expected)
+        assert not g.mutated
+        assert not g.grouper.mutated
 
 
 class TestExpanding:
@@ -691,6 +680,9 @@ class TestExpanding:
 
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.expanding(), f)())
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
@@ -700,6 +692,9 @@ class TestExpanding:
 
         result = getattr(r, f)(ddof=0)
         expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -708,10 +703,14 @@ class TestExpanding:
     def test_expanding_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.expanding()
+
         result = r.quantile(0.4, interpolation=interpolation)
         expected = g.apply(
             lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
         )
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
@@ -725,6 +724,13 @@ class TestExpanding:
             return getattr(x.expanding(), f)(self.frame)
 
         expected = g.apply(func)
+        # GH 39591: groupby.apply returns 1 instead of nan for windows
+        # with all nan values
+        null_idx = list(range(20, 61)) + list(range(72, 113))
+        expected.iloc[null_idx, 1] = np.nan
+        # GH 39591: The grouped column should be all np.nan
+        # (groupby.apply inserts 0s for cov)
+        expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = getattr(r.B, f)(pairwise=True)
@@ -742,6 +748,9 @@ class TestExpanding:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
+        # GH 39732
+        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
 

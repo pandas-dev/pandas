@@ -1,25 +1,41 @@
 """Sparse Dtype"""
+from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 import numpy as np
 
-from pandas._typing import Dtype, DtypeObj
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, na_value_for_dtype
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas.core.arrays.sparse.array import SparseArray
@@ -172,7 +188,7 @@ class SparseDtype(ExtensionDtype):
         return self.name
 
     @classmethod
-    def construct_array_type(cls) -> Type["SparseArray"]:
+    def construct_array_type(cls) -> Type[SparseArray]:
         """
         Return the array type associated with this dtype.
 
@@ -185,7 +201,7 @@ class SparseDtype(ExtensionDtype):
         return SparseArray
 
     @classmethod
-    def construct_from_string(cls, string: str) -> "SparseDtype":
+    def construct_from_string(cls, string: str) -> SparseDtype:
         """
         Construct a SparseDtype from a string form.
 
@@ -322,7 +338,7 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
 
         if not isinstance(dtype, cls):
-            if is_extension_array_dtype(dtype):
+            if not isinstance(dtype, np.dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
             fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()

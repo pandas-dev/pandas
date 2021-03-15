@@ -1,5 +1,8 @@
 """ Test cases for DataFrame.plot """
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 import re
 import string
@@ -13,9 +16,19 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    PeriodIndex,
+    Series,
+    bdate_range,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
@@ -258,7 +271,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(**{input_param: "sm"})
 
     def test_xcompat(self):
-        import pandas as pd
 
         df = self.tdf
         ax = df.plot(x_compat=True)
@@ -267,14 +279,14 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(ax, xrot=30)
 
         tm.close()
-        pd.plotting.plot_params["xaxis.compat"] = True
+        plotting.plot_params["xaxis.compat"] = True
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         self._check_ticks_props(ax, xrot=30)
 
         tm.close()
-        pd.plotting.plot_params["x_compat"] = False
+        plotting.plot_params["x_compat"] = False
 
         ax = df.plot()
         lines = ax.get_lines()
@@ -283,7 +295,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
         # useful if you're plotting a bunch together
-        with pd.plotting.plot_params.use("x_compat", True):
+        with plotting.plot_params.use("x_compat", True):
             ax = df.plot()
             lines = ax.get_lines()
             assert not isinstance(lines[0].get_xdata(), PeriodIndex)
@@ -669,7 +681,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_raise_error_on_datetime_time_data(self):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
         df = DataFrame(np.random.randn(10), columns=["a"])
-        df["dtime"] = pd.date_range(start="2014-01-01", freq="h", periods=10).time
+        df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
         msg = "must be a string or a number, not 'datetime.time'"
 
         with pytest.raises(TypeError, match=msg):
@@ -677,7 +689,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_scatterplot_datetime_data(self):
         # GH 30391
-        dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")
+        dates = date_range(start=date(2019, 1, 1), periods=12, freq="W")
         vals = np.random.normal(0, 1, len(dates))
         df = DataFrame({"dates": dates, "vals": vals})
 
@@ -695,6 +707,37 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
+
+    @pytest.mark.parametrize("ordered", [True, False])
+    @pytest.mark.parametrize(
+        "categories",
+        (["setosa", "versicolor", "virginica"], ["versicolor", "virginica", "setosa"]),
+    )
+    def test_scatterplot_color_by_categorical(self, ordered, categories):
+        df = DataFrame(
+            [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
+            columns=["length", "width"],
+        )
+        df["species"] = pd.Categorical(
+            ["setosa", "setosa", "virginica", "virginica", "versicolor"],
+            ordered=ordered,
+            categories=categories,
+        )
+        ax = df.plot.scatter(x=0, y=1, c="species")
+        (colorbar_collection,) = ax.collections
+        colorbar = colorbar_collection.colorbar
+
+        expected_ticks = np.array([0.5, 1.5, 2.5])
+        result_ticks = colorbar.get_ticks()
+        tm.assert_numpy_array_equal(result_ticks, expected_ticks)
+
+        expected_boundaries = np.array([0.0, 1.0, 2.0, 3.0])
+        result_boundaries = colorbar._boundaries
+        tm.assert_numpy_array_equal(result_boundaries, expected_boundaries)
+
+        expected_yticklabels = categories
+        result_yticklabels = [i.get_text() for i in colorbar.ax.get_ymajorticklabels()]
+        assert all(i == j for i, j in zip(result_yticklabels, expected_yticklabels))
 
     @pytest.mark.parametrize("x, y", [("x", "y"), ("y", "x"), ("y", "y")])
     def test_plot_scatter_with_categorical_data(self, x, y):
@@ -2051,7 +2094,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_x_multiindex_values_ticks(self):
         # Test if multiindex plot index have a fixed xtick position
         # GH: 15912
-        index = pd.MultiIndex.from_product([[2012, 2013], [1, 2]])
+        index = MultiIndex.from_product([[2012, 2013], [1, 2]])
         df = DataFrame(np.random.randn(4, 2), columns=["A", "B"], index=index)
         ax = df.plot()
         ax.set_xlim(-1, 4)
@@ -2165,7 +2208,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_xlabel() == old_label
         assert ax.get_ylabel() == ""
 
-        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = df.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == str(new_label)
         assert ax.get_xlabel() == str(new_label)
@@ -2190,80 +2233,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind=kind, x=xcol, y=ycol, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == (xcol if xlabel is None else xlabel)
         assert ax.get_ylabel() == (ycol if ylabel is None else ylabel)
-
-    @pytest.mark.parametrize("method", ["bar", "barh"])
-    def test_bar_ticklabel_consistence(self, method):
-        # Draw two consecutiv bar plot with consistent ticklabels
-        # The labels positions should not move between two drawing on the same axis
-        # GH: 26186
-        def get_main_axis(ax):
-            if method == "barh":
-                return ax.yaxis
-            elif method == "bar":
-                return ax.xaxis
-
-        # Plot the first bar plot
-        data = {"A": 0, "B": 3, "C": -4}
-        df = DataFrame.from_dict(data, orient="index", columns=["Value"])
-        ax = getattr(df.plot, method)()
-        ax.get_figure().canvas.draw()
-
-        # Retrieve the label positions for the first drawing
-        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
-        label_positions_1 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
-
-        # Modify the dataframe order and values and plot on same axis
-        df = df.sort_values("Value") * -2
-        ax = getattr(df.plot, method)(ax=ax, color="red")
-        ax.get_figure().canvas.draw()
-
-        # Retrieve the label positions for the second drawing
-        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
-        label_positions_2 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
-
-        # Assert that the label positions did not change between the plotting
-        assert label_positions_1 == label_positions_2
-
-    def test_bar_numeric(self):
-        # Bar plot with numeric index have tick location values equal to index
-        # values
-        # GH: 11465
-        df = DataFrame(np.random.rand(10), index=np.arange(10, 20))
-        ax = df.plot.bar()
-        ticklocs = ax.xaxis.get_ticklocs()
-        expected = np.arange(10, 20, dtype=np.int64)
-        tm.assert_numpy_array_equal(ticklocs, expected)
-
-    def test_bar_multiindex(self):
-        # Test from pandas/doc/source/user_guide/visualization.rst
-        # at section Plotting With Error Bars
-        # Related to issue GH: 26186
-
-        ix3 = pd.MultiIndex.from_arrays(
-            [
-                ["a", "a", "a", "a", "b", "b", "b", "b"],
-                ["foo", "foo", "bar", "bar", "foo", "foo", "bar", "bar"],
-            ],
-            names=["letter", "word"],
-        )
-
-        df3 = DataFrame(
-            {"data1": [3, 2, 4, 3, 2, 4, 3, 2], "data2": [6, 5, 7, 5, 4, 5, 6, 5]},
-            index=ix3,
-        )
-
-        # Group by index labels and take the means and standard deviations
-        # for each group
-        gp3 = df3.groupby(level=("letter", "word"))
-        means = gp3.mean()
-        errors = gp3.std()
-
-        # No assertion we just ensure that we can plot a MultiIndex bar plot
-        # and are getting a UserWarning if redrawing
-        with tm.assert_produces_warning(None):
-            ax = means.plot.bar(yerr=errors, capsize=4)
-        with tm.assert_produces_warning(UserWarning):
-            means.plot.bar(yerr=errors, capsize=4, ax=ax)
 
 
 def _generate_4_axes_via_gridspec():

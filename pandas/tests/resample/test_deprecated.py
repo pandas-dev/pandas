@@ -1,16 +1,28 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
+from pandas.core.indexes.period import (
+    PeriodIndex,
+    period_range,
+)
 from pandas.core.indexes.timedeltas import timedelta_range
 
-from pandas.tseries.offsets import BDay, Minute
+from pandas.tseries.offsets import (
+    BDay,
+    Minute,
+)
 
 DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
 PERIOD_RANGE = (period_range, "pi", datetime(2005, 1, 1), datetime(2005, 1, 10))
@@ -40,7 +52,7 @@ def create_index(_index_factory):
 def test_deprecating_on_loffset_and_base():
     # GH 31809
 
-    idx = pd.date_range("2001-01-01", periods=4, freq="T")
+    idx = date_range("2001-01-01", periods=4, freq="T")
     df = DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
 
     with tm.assert_produces_warning(FutureWarning):
@@ -231,7 +243,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
 )
 def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, offset):
     # GH 23882
-    s = Series(0, index=pd.period_range(start, end, freq=start_freq))
+    s = Series(0, index=period_range(start, end, freq=start_freq))
     s = s + np.arange(len(s))
     with tm.assert_produces_warning(FutureWarning):
         result = s.resample(end_freq, base=base).mean()

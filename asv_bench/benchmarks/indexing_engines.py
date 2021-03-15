@@ -1,3 +1,10 @@
+"""
+Benchmarks in this fiel depend exclusively on code in _libs/
+
+If a PR does not edit anything in _libs, it is very unlikely that benchmarks
+in this file will be affected.
+"""
+
 import numpy as np
 
 from pandas._libs import index as libindex

@@ -1,13 +1,22 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas._libs.algos import Infinity, NegInfinity
+from pandas._libs.algos import (
+    Infinity,
+    NegInfinity,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -238,6 +247,7 @@ class TestRank:
                     expected = DataFrame(sprank, columns=cols).astype("float64")
                     tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     def test_rank_descending(self, method, dtype):
 
@@ -443,5 +453,17 @@ class TestRank:
         # GH#32593
         df = DataFrame({"a": [-np.inf, 0, np.inf]})
         expected = DataFrame({"a": [1.0, 2.0, 3.0]})
+        result = df.rank()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data,expected",
+        [
+            ({"a": [1, 2, "a"], "b": [4, 5, 6]}, DataFrame({"b": [1.0, 2.0, 3.0]})),
+            ({"a": [1, 2, "a"]}, DataFrame(index=range(3))),
+        ],
+    )
+    def test_rank_mixed_axis_zero(self, data, expected):
+        df = DataFrame(data)
         result = df.rank()
         tm.assert_frame_equal(result, expected)

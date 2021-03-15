@@ -20,7 +20,11 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.floating import Float32Dtype, Float64Dtype
+from pandas.api.types import is_float_dtype
+from pandas.core.arrays.floating import (
+    Float32Dtype,
+    Float64Dtype,
+)
 from pandas.tests.extension import base
 
 
@@ -98,33 +102,29 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
+            sdtype = tm.get_dtype(s)
             if (
                 hasattr(other, "dtype")
                 and not is_extension_array_dtype(other.dtype)
-                and pd.api.types.is_float_dtype(other.dtype)
+                and is_float_dtype(other.dtype)
             ):
                 # other is np.float64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype
-                other = other.astype(s.dtype.numpy_dtype)
+                other = other.astype(sdtype.numpy_dtype)
 
             result = op(s, other)
-            expected = s.combine(other, op)
+            expected = self._combine(s, other, op)
 
             # combine method result in 'biggest' (float64) dtype
-            expected = expected.astype(s.dtype)
+            expected = expected.astype(sdtype)
 
-            self.assert_series_equal(result, expected)
+            self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)
 
     def _check_divmod_op(self, s, op, other, exc=None):
         super()._check_divmod_op(s, op, other, None)
-
-    @pytest.mark.skip(reason="intNA does not error on ops")
-    def test_error(self, data, all_arithmetic_operators):
-        # other specific errors tested in the float array specific tests
-        pass
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

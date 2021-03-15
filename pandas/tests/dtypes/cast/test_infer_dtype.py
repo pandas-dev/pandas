@@ -1,4 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -105,13 +109,11 @@ def test_infer_from_scalar_tz(tz, pandas_dtype):
 
     if pandas_dtype:
         exp_dtype = f"datetime64[ns, {tz}]"
-        exp_val = dt.value
     else:
         exp_dtype = np.object_
-        exp_val = dt
 
     assert dtype == exp_dtype
-    assert val == exp_val
+    assert val == dt
 
 
 @pytest.mark.parametrize(
@@ -128,7 +130,7 @@ def test_infer_from_interval(left, right, subtype, closed, pandas_dtype):
     # GH 30337
     interval = Interval(left, right, closed)
     result_dtype, result_value = infer_dtype_from_scalar(interval, pandas_dtype)
-    expected_dtype = f"interval[{subtype}]" if pandas_dtype else np.object_
+    expected_dtype = f"interval[{subtype}, {closed}]" if pandas_dtype else np.object_
     assert result_dtype == expected_dtype
     assert result_value == interval
 

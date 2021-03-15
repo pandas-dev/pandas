@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, date_range
+from pandas import (
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 

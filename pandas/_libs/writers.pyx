@@ -1,8 +1,14 @@
 import cython
 import numpy as np
 
-from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_LENGTH
-from numpy cimport ndarray, uint8_t
+from cpython cimport (
+    PyBytes_GET_SIZE,
+    PyUnicode_GET_LENGTH,
+)
+from numpy cimport (
+    ndarray,
+    uint8_t,
+)
 
 ctypedef fused pandas_string:
     str

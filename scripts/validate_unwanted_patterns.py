@@ -15,7 +15,14 @@ import ast
 import sys
 import token
 import tokenize
-from typing import IO, Callable, Iterable, List, Set, Tuple
+from typing import (
+    IO,
+    Callable,
+    Iterable,
+    List,
+    Set,
+    Tuple,
+)
 
 PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_extension_array_shared_docs",
@@ -29,7 +36,6 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_doc_template",
     "_agg_template",
     "_pipe_template",
-    "_get_version",
     "__main__",
     "_transform_template",
     "_flex_comp_doc_FRAME",
