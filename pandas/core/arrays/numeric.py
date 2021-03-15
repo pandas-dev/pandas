@@ -152,7 +152,7 @@ class NumericArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For NumericArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":

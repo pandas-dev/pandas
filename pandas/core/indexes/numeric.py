@@ -292,12 +292,9 @@ class UInt64Index(IntegerIndex):
         if is_integer_dtype(keyarr) or (
             lib.infer_dtype(keyarr, skipna=False) == "integer"
         ):
-            dtype = np.uint64
+            dtype = np.dtype(np.uint64)
 
-        # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-        # "Optional[Type[unsignedinteger[Any]]]"; expected "Union[str, dtype[Any],
-        # None]"
-        return com.asarray_tuplesafe(keyarr, dtype=dtype)  # type: ignore[arg-type]
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
 
 _float64_descr_args = {
