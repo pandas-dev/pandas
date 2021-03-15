@@ -1,4 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 from functools import partial
 from io import BytesIO
 import os
@@ -9,7 +13,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, get_option, set_option
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    get_option,
+    set_option,
+)
 import pandas._testing as tm
 
 from pandas.io.excel import (
@@ -265,7 +275,7 @@ class TestRoundTrip:
 
     def test_multiindex_interval_datetimes(self, ext):
         # GH 30986
-        midx = pd.MultiIndex.from_arrays(
+        midx = MultiIndex.from_arrays(
             [
                 range(4),
                 pd.interval_range(
@@ -279,7 +289,7 @@ class TestRoundTrip:
             result = pd.read_excel(pth, index_col=[0, 1])
         expected = DataFrame(
             range(4),
-            pd.MultiIndex.from_arrays(
+            MultiIndex.from_arrays(
                 [
                     range(4),
                     [
@@ -426,7 +436,7 @@ class TestExcelWriter:
     def test_ts_frame(self, tsframe, path):
         df = tsframe
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
@@ -505,7 +515,7 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, tsframe, path):
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -1304,6 +1314,15 @@ class TestExcelWriter:
         df = DataFrame([data], dtype=dtype)
         with pytest.raises(ValueError, match="Excel does not support"):
             df.to_excel(path)
+
+    def test_excel_duplicate_columns_with_names(self, path):
+        # GH#39695
+        df = DataFrame({"A": [0, 1], "B": [10, 11]})
+        df.to_excel(path, columns=["A", "B", "A"], index=False)
+
+        result = pd.read_excel(path)
+        expected = DataFrame([[0, 10, 0], [1, 11, 1]], columns=["A", "B", "A.1"])
+        tm.assert_frame_equal(result, expected)
 
 
 class TestExcelWriterEngineTests:

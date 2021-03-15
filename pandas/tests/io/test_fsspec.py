@@ -166,6 +166,7 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("fastparquet")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
@@ -210,6 +211,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     )
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
 def test_s3_parquet(s3_resource, s3so):
@@ -247,12 +249,20 @@ def test_pickle_options(fsspectest):
     tm.assert_frame_equal(df, out)
 
 
-@td.skip_array_manager_not_yet_implemented
-def test_json_options(fsspectest):
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
+def test_json_options(fsspectest, compression):
     df = DataFrame({"a": [0]})
-    df.to_json("testmem://afile", storage_options={"test": "json_write"})
+    df.to_json(
+        "testmem://afile",
+        compression=compression,
+        storage_options={"test": "json_write"},
+    )
     assert fsspectest.test[0] == "json_write"
-    out = read_json("testmem://afile", storage_options={"test": "json_read"})
+    out = read_json(
+        "testmem://afile",
+        compression=compression,
+        storage_options={"test": "json_read"},
+    )
     assert fsspectest.test[0] == "json_read"
     tm.assert_frame_equal(df, out)
 

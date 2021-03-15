@@ -1,8 +1,14 @@
 import cython
 from cython import Py_ssize_t
 
-from libc.math cimport fabs, sqrt
-from libc.stdlib cimport free, malloc
+from libc.math cimport (
+    fabs,
+    sqrt,
+)
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 from libc.string cimport memmove
 
 import numpy as np
@@ -46,7 +52,10 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
-from pandas._libs.util cimport get_nat, numeric
+from pandas._libs.util cimport (
+    get_nat,
+    numeric,
+)
 
 import pandas._libs.missing as missing
 
@@ -588,10 +597,11 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
+def pad_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
+        uint8_t prev_mask
         int lim, fill_count = 0
 
     N = len(values)
@@ -603,15 +613,18 @@ def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     lim = validate_limit(N, limit)
 
     val = values[0]
+    prev_mask = mask[0]
     for i in range(N):
         if mask[i]:
             if fill_count >= lim:
                 continue
             fill_count += 1
             values[i] = val
+            mask[i] = prev_mask
         else:
             fill_count = 0
             val = values[i]
+            prev_mask = mask[i]
 
 
 @cython.boundscheck(False)
@@ -730,10 +743,11 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
+def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
+        uint8_t prev_mask
         int lim, fill_count = 0
 
     N = len(values)
@@ -745,15 +759,18 @@ def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     lim = validate_limit(N, limit)
 
     val = values[N - 1]
+    prev_mask = mask[N - 1]
     for i in range(N - 1, -1, -1):
         if mask[i]:
             if fill_count >= lim:
                 continue
             fill_count += 1
             values[i] = val
+            mask[i] = prev_mask
         else:
             fill_count = 0
             val = values[i]
+            prev_mask = mask[i]
 
 
 @cython.boundscheck(False)

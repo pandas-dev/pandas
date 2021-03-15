@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, option_context
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    option_context,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -373,6 +379,7 @@ class TestChaining:
         with pytest.raises(com.SettingWithCopyError, match=msg):
             df[["c"]][mask] = df[["b"]][mask]
 
+    def test_setting_with_copy_bug_no_warning(self):
         # invalid warning as we are returning a new object
         # GH 8730
         df1 = DataFrame({"x": Series(["a", "b", "c"]), "y": Series(["d", "e", "f"])})
@@ -450,3 +457,19 @@ class TestChaining:
         tm.assert_frame_equal(df, expected)
         expected = Series([0, 0, 0, 2, 0], name="f")
         tm.assert_series_equal(df.f, expected)
+
+    def test_iloc_setitem_chained_assignment(self):
+        # GH#3970
+        with option_context("chained_assignment", None):
+            df = DataFrame({"aa": range(5), "bb": [2.2] * 5})
+            df["cc"] = 0.0
+
+            ck = [True] * len(df)
+
+            df["bb"].iloc[0] = 0.13
+
+            # TODO: unused
+            df_tmp = df.iloc[ck]  # noqa
+
+            df["bb"].iloc[0] = 0.15
+            assert df["bb"].iloc[0] == 0.15

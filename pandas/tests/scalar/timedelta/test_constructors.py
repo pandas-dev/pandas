@@ -6,7 +6,11 @@ import pytest
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 
-from pandas import Timedelta, offsets, to_timedelta
+from pandas import (
+    Timedelta,
+    offsets,
+    to_timedelta,
+)
 
 
 def test_construction():
@@ -196,7 +200,7 @@ def test_overflow_on_construction():
     with pytest.raises(OverflowError, match=msg):
         Timedelta(7 * 19999, unit="D")
 
-    with pytest.raises(OverflowError, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(timedelta(days=13 * 19999))
 
 

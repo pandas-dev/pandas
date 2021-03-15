@@ -9,7 +9,10 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, is_platform_windows
+from pandas.compat import (
+    PY38,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -38,9 +41,11 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning"),
+    # TODO(ArrayManager) fastparquet / pyarrow rely on BlockManager internals
+    td.skip_array_manager_not_yet_implemented,
+]
 
 
 # setup engines & skips
@@ -356,7 +361,7 @@ class Base:
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
             "master/pandas/tests/io/data/parquet/simple.parquet"
         )
-        df = pd.read_parquet(url)
+        df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
 
 
@@ -435,7 +440,7 @@ class TestBasic(Base):
         for index in indexes:
             df.index = index
             if isinstance(index, pd.DatetimeIndex):
-                df.index = df.index._with_freq(None)  # freq doesnt round-trip
+                df.index = df.index._with_freq(None)  # freq doesn't round-trip
             check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
@@ -575,7 +580,7 @@ class TestParquetPyArrow(Base):
 
         # additional supported types for pyarrow
         dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
-        dti = dti._with_freq(None)  # freq doesnt round-trip
+        dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
 
@@ -602,7 +607,7 @@ class TestParquetPyArrow(Base):
         assert isinstance(buf_bytes, bytes)
 
         buf_stream = BytesIO(buf_bytes)
-        res = pd.read_parquet(buf_stream)
+        res = read_parquet(buf_stream)
 
         tm.assert_frame_equal(df_full, res)
 
@@ -737,7 +742,7 @@ class TestParquetPyArrow(Base):
     def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
-        df_from_buf = pd.read_parquet(buffer)
+        df_from_buf = read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
     @td.skip_if_no("pyarrow")
@@ -745,7 +750,7 @@ class TestParquetPyArrow(Base):
         monkeypatch.setenv("HOME", "TestingUser")
         monkeypatch.setenv("USERPROFILE", "TestingUser")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
-            pd.read_parquet("~/file.parquet")
+            read_parquet("~/file.parquet")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
             df_compat.to_parquet("~/file.parquet")
 
@@ -916,7 +921,7 @@ class TestParquetFastParquet(Base):
         df = df_full
 
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
-        dti = dti._with_freq(None)  # freq doesnt round-trip
+        dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)

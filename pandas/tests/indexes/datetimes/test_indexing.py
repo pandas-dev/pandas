@@ -1,4 +1,9 @@
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -6,10 +11,20 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, bdate_range, date_range, notna
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Timestamp,
+    bdate_range,
+    date_range,
+    notna,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, CDay
+from pandas.tseries.offsets import (
+    BDay,
+    CDay,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -536,6 +551,13 @@ class TestGetLoc:
         with pytest.raises(KeyError, match="2000"):
             index.get_loc("1/1/2000")
 
+    def test_get_loc_year_str(self):
+        rng = date_range("1/1/2000", "1/1/2010")
+
+        result = rng.get_loc("2009")
+        expected = slice(3288, 3653)
+        assert result == expected
+
 
 class TestContains:
     def test_dti_contains_with_duplicates(self):
@@ -602,7 +624,8 @@ class TestGetIndexer:
             pd.Timedelta("1 hour").to_timedelta64(),
             "foo",
         ]
-        with pytest.raises(ValueError, match="abbreviation w/o a number"):
+        msg = "Could not convert 'foo' to NumPy timedelta"
+        with pytest.raises(ValueError, match=msg):
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")

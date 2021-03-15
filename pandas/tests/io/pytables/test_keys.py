@@ -1,13 +1,19 @@
 import pytest
 
-from pandas import DataFrame, HDFStore, _testing as tm
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    HDFStore,
+    _testing as tm,
+)
 from pandas.tests.io.pytables.common import (
     ensure_clean_path,
     ensure_clean_store,
     tables,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
 
 
 def test_keys(setup_path):

@@ -1,12 +1,26 @@
 cimport cython
-from cpython.mem cimport PyMem_Free, PyMem_Malloc
-from cpython.ref cimport Py_INCREF, PyObject
-from libc.stdlib cimport free, malloc
+from cpython.mem cimport (
+    PyMem_Free,
+    PyMem_Malloc,
+)
+from cpython.ref cimport (
+    Py_INCREF,
+    PyObject,
+)
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, ndarray, uint8_t, uint32_t
+from numpy cimport (
+    float64_t,
+    ndarray,
+    uint8_t,
+    uint32_t,
+)
 from numpy.math cimport NAN
 
 cnp.import_array()
