@@ -1165,6 +1165,7 @@ class Block(PandasObject):
             limit_area=limit_area,
         )
 
+        values = maybe_coerce_values(values)
         blocks = [self.make_block_same_class(values)]
         return self._maybe_downcast(blocks, downcast)
 
@@ -1221,6 +1222,7 @@ class Block(PandasObject):
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
 
+        interp_values = maybe_coerce_values(interp_values)
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
@@ -1927,13 +1929,11 @@ class NDArrayBackedExtensionBlock(HybridMixin, Block):
         values = self.values
 
         new_values = values - values.shift(n, axis=axis)
-        new_values = maybe_coerce_values(new_values)
         return [self.make_block(new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> List[Block]:
         values = self.values
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        new_values = maybe_coerce_values(new_values)
         return [self.make_block_same_class(new_values)]
 
     def fillna(
