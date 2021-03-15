@@ -6,6 +6,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     List,
     Optional,
@@ -188,7 +189,7 @@ class RangeIndex(Int64Index):
         return Int64Index
 
     @cache_readonly
-    def _data(self):
+    def _data(self) -> np.ndarray:
         """
         An int array that for performance reasons is created only when needed.
 
@@ -201,7 +202,7 @@ class RangeIndex(Int64Index):
         return Int64Index._simple_new(self._data, name=self.name)
 
     @property
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         # wrap _cached_int64index so we can be sure its name matches self.name
         res = self._cached_int64index
         res._name = self._name
@@ -425,13 +426,15 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
 
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
-    def delete(self, loc):
+    def delete(self, loc) -> Int64Index:
         return self._int64index.delete(loc)
 
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+    def take(
+        self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs
+    ) -> Int64Index:
         with rewrite_exception("Int64Index", type(self).__name__):
             return self._int64index.take(
                 indices,
@@ -898,7 +901,7 @@ class RangeIndex(Int64Index):
         ]:
             return op(self._int64index, other)
 
-        step = False
+        step: Optional[Callable] = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
@@ -911,8 +914,7 @@ class RangeIndex(Int64Index):
             # apply if we have an override
             if step:
                 with np.errstate(all="ignore"):
-                    # error: "bool" not callable
-                    rstep = step(left.step, right)  # type: ignore[operator]
+                    rstep = step(left.step, right)
 
                 # we don't have a representable op
                 # so return a base index
