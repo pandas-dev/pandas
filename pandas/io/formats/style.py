@@ -351,12 +351,6 @@ class Styler:
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
         into a dictionary of {head, body, uuid, cellstyle}.
         """
-        table_styles = self.table_styles or []
-        caption = self.caption
-        ctx = self.ctx
-        hidden_index = self.hidden_index
-        hidden_columns = self.hidden_columns
-        uuid = self.uuid
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -365,11 +359,21 @@ class Styler:
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
 
+        # mapping variables
+        ctx = self.ctx  # td css styles from apply() and applymap()
+        cell_context = self.cell_context  # td css classes from set_td_classes()
+        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
+
+        # copied attributes
+        table_styles = self.table_styles or []
+        caption = self.caption
+        hidden_index = self.hidden_index
+        hidden_columns = self.hidden_columns
+        uuid = self.uuid
+
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
-
-        cell_context = self.cell_context
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
@@ -382,10 +386,7 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle_map: DefaultDict[Tuple[CSSPair, ...], List[str]] = defaultdict(list)
-
         head = []
-
         for r in range(n_clvls):
             # Blank for Index columns...
             row_es = [
