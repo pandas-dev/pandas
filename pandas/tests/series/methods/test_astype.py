@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from importlib import reload
 import string
 import sys
@@ -18,6 +21,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    cut,
     date_range,
 )
 import pandas._testing as tm
@@ -76,6 +80,35 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    @pytest.mark.parametrize("dtype", np.typecodes["All"])
+    def test_astype_empty_constructor_equality(self, dtype):
+        # see GH#15524
+
+        if dtype not in (
+            "S",
+            "V",  # poor support (if any) currently
+            "M",
+            "m",  # Generic timestamps raise a ValueError. Already tested.
+        ):
+            init_empty = Series([], dtype=dtype)
+            with tm.assert_produces_warning(DeprecationWarning):
+                as_type_empty = Series([]).astype(dtype)
+            tm.assert_series_equal(init_empty, as_type_empty)
+
+    @pytest.mark.parametrize("dtype", [str, np.str_])
+    @pytest.mark.parametrize(
+        "series",
+        [
+            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
+            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
+        ],
+    )
+    def test_astype_str_map(self, dtype, series):
+        # see GH#4405
+        result = series.astype(dtype)
+        expected = series.map(str)
+        tm.assert_series_equal(result, expected)
+
     def test_astype_float_to_period(self):
         result = Series([np.nan]).astype("period[D]")
         expected = Series([NaT], dtype="period[D]")
@@ -163,10 +196,14 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
         # astype - datetime64[ns, tz]
-        result = Series(s.values).astype("datetime64[ns, US/Eastern]")
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64->dt64tz astype deprecated
+            result = Series(s.values).astype("datetime64[ns, US/Eastern]")
         tm.assert_series_equal(result, s)
 
-        result = Series(s.values).astype(s.dtype)
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64->dt64tz astype deprecated
+            result = Series(s.values).astype(s.dtype)
         tm.assert_series_equal(result, s)
 
         result = s.astype("datetime64[ns, CET]")
@@ -307,8 +344,70 @@ class TestAstype:
             reload(sys)
             sys.setdefaultencoding(former_encoding)
 
+    def test_astype_bytes(self):
+        # GH#39474
+        result = Series(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes == np.dtype("S3")
+
 
 class TestAstypeCategorical:
+    def test_astype_categorical_to_other(self):
+        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
+        ser = Series(np.random.RandomState(0).randint(0, 10000, 100)).sort_values()
+        ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
+
+        expected = ser
+        tm.assert_series_equal(ser.astype("category"), expected)
+        tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
+        msg = r"Cannot cast object dtype to float64"
+        with pytest.raises(ValueError, match=msg):
+            ser.astype("float64")
+
+        cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
+        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
+        tm.assert_series_equal(cat.astype("str"), exp)
+        s2 = Series(Categorical(["1", "2", "3", "4"]))
+        exp2 = Series([1, 2, 3, 4]).astype("int")
+        tm.assert_series_equal(s2.astype("int"), exp2)
+
+        # object don't sort correctly, so just compare that we have the same
+        # values
+        def cmp(a, b):
+            tm.assert_almost_equal(np.sort(np.unique(a)), np.sort(np.unique(b)))
+
+        expected = Series(np.array(ser.values), name="value_group")
+        cmp(ser.astype("object"), expected)
+        cmp(ser.astype(np.object_), expected)
+
+        # array conversion
+        tm.assert_almost_equal(np.array(ser), np.array(ser.values))
+
+        tm.assert_series_equal(ser.astype("category"), ser)
+        tm.assert_series_equal(ser.astype(CategoricalDtype()), ser)
+
+        roundtrip_expected = ser.cat.set_categories(
+            ser.cat.categories.sort_values()
+        ).cat.remove_unused_categories()
+        result = ser.astype("object").astype("category")
+        tm.assert_series_equal(result, roundtrip_expected)
+        result = ser.astype("object").astype(CategoricalDtype())
+        tm.assert_series_equal(result, roundtrip_expected)
+
+    def test_astype_categorical_invalid_conversions(self):
+        # invalid conversion (these are NOT a dtype)
+        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
+        ser = Series(np.random.randint(0, 10000, 100)).sort_values()
+        ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
+
+        msg = (
+            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
+            "not understood"
+        )
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(Categorical)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype("object").astype(Categorical)
+
     def test_astype_categoricaldtype(self):
         s = Series(["a", "b", "a"])
         result = s.astype(CategoricalDtype(["a", "b"], ordered=True))
@@ -370,3 +469,22 @@ class TestAstypeCategorical:
         s = Series(["a", "b", "a"])
         with pytest.raises(TypeError, match="got an unexpected"):
             s.astype("category", categories=["a", "b"], ordered=True)
+
+    @pytest.mark.parametrize("items", [["a", "b", "c", "a"], [1, 2, 3, 1]])
+    def test_astype_from_categorical(self, items):
+        ser = Series(items)
+        exp = Series(Categorical(items))
+        res = ser.astype("category")
+        tm.assert_series_equal(res, exp)
+
+    def test_astype_from_categorical_with_keywords(self):
+        # with keywords
+        lst = ["a", "b", "c", "a"]
+        ser = Series(lst)
+        exp = Series(Categorical(lst, ordered=True))
+        res = ser.astype(CategoricalDtype(None, ordered=True))
+        tm.assert_series_equal(res, exp)
+
+        exp = Series(Categorical(lst, categories=list("abcdef"), ordered=True))
+        res = ser.astype(CategoricalDtype(list("abcdef"), ordered=True))
+        tm.assert_series_equal(res, exp)

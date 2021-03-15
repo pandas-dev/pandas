@@ -4,12 +4,36 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    timedelta_range,
+    to_timedelta,
+)
 import pandas._testing as tm
-from pandas.core.arrays import TimedeltaArray
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArray,
+    sequence_to_td64ns,
+)
 
 
 class TestTimedeltaIndex:
+    def test_array_of_dt64_nat_raises(self):
+        # GH#39462
+        nat = np.datetime64("NaT", "ns")
+        arr = np.array([nat], dtype=object)
+
+        # TODO: should be TypeError?
+        msg = "Invalid type for timedelta scalar"
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(arr)
+
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray._from_sequence(arr)
+
+        with pytest.raises(ValueError, match=msg):
+            sequence_to_td64ns(arr)
+
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
         msg = "Units 'M', 'Y', and 'y' are no longer supported"
@@ -27,7 +51,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
         #  has one
-        tdi = pd.timedelta_range("1 second", periods=10 ** 7, freq="1s")
+        tdi = timedelta_range("1 second", periods=10 ** 7, freq="1s")
 
         result = TimedeltaIndex(tdi, freq="infer")
         assert result.freq == tdi.freq
@@ -40,7 +64,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for invalidating a frequency if the passed data already
         #  has one and it does not match the `freq` input
-        tdi = pd.timedelta_range("1 second", periods=100, freq="1s")
+        tdi = timedelta_range("1 second", periods=100, freq="1s")
 
         msg = (
             "Inferred frequency .* from passed values does "

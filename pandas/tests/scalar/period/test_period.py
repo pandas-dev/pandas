@@ -1,19 +1,41 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import iNaT, period as libperiod
-from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+from pandas._libs.tslibs import (
+    iNaT,
+    period as libperiod,
+)
+from pandas._libs.tslibs.ccalendar import (
+    DAYS,
+    MONTHS,
+)
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
-from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat.numpy import np_datetime64_compat
+from pandas._libs.tslibs.period import (
+    INVALID_FREQ_ERR_MSG,
+    IncompatibleFrequency,
+)
+from pandas._libs.tslibs.timezones import (
+    dateutil_gettz,
+    maybe_get_tz,
+)
+from pandas.compat import np_datetime64_compat
 
 import pandas as pd
-from pandas import NaT, Period, Timedelta, Timestamp, offsets
+from pandas import (
+    NaT,
+    Period,
+    Timedelta,
+    Timestamp,
+    offsets,
+)
 import pandas._testing as tm
 
 
@@ -34,9 +56,7 @@ class TestPeriodConstruction:
         i4 = Period("2005", freq="M")
         i5 = Period("2005", freq="m")
 
-        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            i1 != i4
+        assert i1 != i4
         assert i4 == i5
 
         i1 = Period.now("Q")
@@ -487,11 +507,27 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="1D1W")
 
+    @pytest.mark.parametrize("day", ["1970/01/01 ", "2020-12-31 ", "1981/09/13 "])
+    @pytest.mark.parametrize("hour", ["00:00:00", "00:00:01", "23:59:59", "12:00:59"])
+    @pytest.mark.parametrize(
+        "sec_float, expected",
+        [
+            (".000000001", 1),
+            (".000000999", 999),
+            (".123456789", 789),
+            (".999999999", 999),
+        ],
+    )
+    def test_period_constructor_nanosecond(self, day, hour, sec_float, expected):
+        # GH 34621
+
+        assert Period(day + hour + sec_float).start_time.nanosecond == expected
+
     @pytest.mark.parametrize("hour", range(24))
     def test_period_large_ordinal(self, hour):
         # Issue #36430
         # Integer overflow for Period over the maximum timestamp
-        p = pd.Period(ordinal=2562048 + hour, freq="1H")
+        p = Period(ordinal=2562048 + hour, freq="1H")
         assert p.hour == hour
 
 
@@ -652,7 +688,7 @@ class TestPeriodMethods:
         assert result == expected
 
     def test_to_timestamp_business_end(self):
-        per = pd.Period("1990-01-05", "B")  # Friday
+        per = Period("1990-01-05", "B")  # Friday
         result = per.to_timestamp("B", how="E")
 
         expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
@@ -1055,11 +1091,9 @@ class TestPeriodComparisons:
         jan = Period("2000-01", "M")
         day = Period("2012-01-01", "D")
 
+        assert not jan == day
+        assert jan != day
         msg = r"Input has different freq=D from Period\(freq=M\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan == day
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan != day
         with pytest.raises(IncompatibleFrequency, match=msg):
             jan < day
         with pytest.raises(IncompatibleFrequency, match=msg):

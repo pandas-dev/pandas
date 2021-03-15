@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -11,11 +15,11 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
     # GH: 29764 groupby loses index sometimes
     df = DataFrame(
         [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
-        columns=pd.Index(["type", "a", "b"], name="idx"),
+        columns=Index(["type", "a", "b"], name="idx"),
     )
     df_grouped = df.groupby(["type"])[["a", "b"]]
     result = getattr(df_grouped, func)().columns
-    expected = pd.Index(["a", "b"], name="idx")
+    expected = Index(["a", "b"], name="idx")
     tm.assert_index_equal(result, expected)
 
 
@@ -116,3 +120,22 @@ def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     expected = df_without_nan_rows.reindex(ridx).reset_index(drop=True)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("min_count, value", [(2, np.nan), (-1, 1.0)])
+@pytest.mark.parametrize("func", ["first", "last", "max", "min"])
+def test_min_count(func, min_count, value):
+    # GH#37821
+    df = DataFrame({"a": [1] * 3, "b": [1, np.nan, np.nan], "c": [np.nan] * 3})
+    result = getattr(df.groupby("a"), func)(min_count=min_count)
+    expected = DataFrame({"b": [value], "c": [np.nan]}, index=Index([1], name="a"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_indicies_with_missing():
+    # GH 9304
+    df = DataFrame({"a": [1, 1, np.nan], "b": [2, 3, 4], "c": [5, 6, 7]})
+    g = df.groupby(["a", "b"])
+    result = g.indices
+    expected = {(1.0, 2): np.array([0]), (1.0, 3): np.array([1])}
+    assert result == expected

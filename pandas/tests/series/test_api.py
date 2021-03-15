@@ -1,27 +1,22 @@
+import inspect
 import pydoc
 
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-from pandas.util._test_decorators import async_mark
+from pandas.util._test_decorators import skip_if_no
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timedelta, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestSeriesMisc:
-    def test_getitem_preserve_name(self, datetime_series):
-        result = datetime_series[datetime_series > 0]
-        assert result.name == datetime_series.name
-
-        result = datetime_series[[0, 2, 4]]
-        assert result.name == datetime_series.name
-
-        result = datetime_series[5:10]
-        assert result.name == datetime_series.name
-
     def test_tab_completion(self):
         # GH 9910
         s = Series(list("abcd"))
@@ -115,11 +110,6 @@ class TestSeriesMisc:
     def test_contains(self, datetime_series):
         tm.assert_contains_all(datetime_series.index, datetime_series)
 
-    def test_values(self, datetime_series):
-        tm.assert_almost_equal(
-            datetime_series.values, datetime_series, check_dtype=False
-        )
-
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
         msg = "'Series' object has no attribute 'info'"
@@ -137,50 +127,6 @@ class TestSeriesMisc:
         # https://github.com/pandas-dev/pandas/issues/18147
         # no exception and no empty docstring
         assert pydoc.getdoc(Series.index)
-
-    def test_item(self):
-        s = Series([1])
-        result = s.item()
-        assert result == 1
-        assert result == s.iloc[0]
-        assert isinstance(result, int)  # i.e. not np.int64
-
-        ser = Series([0.5], index=[3])
-        result = ser.item()
-        assert isinstance(result, float)
-        assert result == 0.5
-
-        ser = Series([1, 2])
-        msg = "can only convert an array of size 1"
-        with pytest.raises(ValueError, match=msg):
-            ser.item()
-
-        dti = pd.date_range("2016-01-01", periods=2)
-        with pytest.raises(ValueError, match=msg):
-            dti.item()
-        with pytest.raises(ValueError, match=msg):
-            Series(dti).item()
-
-        val = dti[:1].item()
-        assert isinstance(val, Timestamp)
-        val = Series(dti)[:1].item()
-        assert isinstance(val, Timestamp)
-
-        tdi = dti - dti
-        with pytest.raises(ValueError, match=msg):
-            tdi.item()
-        with pytest.raises(ValueError, match=msg):
-            Series(tdi).item()
-
-        val = tdi[:1].item()
-        assert isinstance(val, Timedelta)
-        val = Series(tdi)[:1].item()
-        assert isinstance(val, Timedelta)
-
-        # Case where ser[0] would not work
-        ser = Series(dti, index=[5, 6])
-        val = ser[:1].item()
-        assert val == dti[0]
 
     def test_ndarray_compat(self):
 
@@ -216,30 +162,6 @@ class TestSeriesMisc:
         for full_series in [Series([1]), s2]:
             assert not full_series.empty
 
-    @async_mark()
-    @td.check_file_leaks
-    async def test_tab_complete_warning(self, ip):
-        # https://github.com/pandas-dev/pandas/issues/16409
-        pytest.importorskip("IPython", minversion="6.0.0")
-        from IPython.core.completer import provisionalcompleter
-
-        code = "import pandas as pd; s = Series(dtype=object)"
-        await ip.run_code(code)
-
-        # TODO: remove it when Ipython updates
-        # GH 33567, jedi version raises Deprecation warning in Ipython
-        import jedi
-
-        if jedi.__version__ < "0.17.0":
-            warning = tm.assert_produces_warning(None)
-        else:
-            warning = tm.assert_produces_warning(
-                DeprecationWarning, check_stacklevel=False
-            )
-        with warning:
-            with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("s.", 1))
-
     def test_integer_series_size(self):
         # GH 25580
         s = Series(range(9))
@@ -254,28 +176,9 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
-    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
-    def test_set_flags(self, allows_duplicate_labels):
-        df = Series([1, 2])
-        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
-        if allows_duplicate_labels is None:
-            # We don't update when it's not provided
-            assert result.flags.allows_duplicate_labels is True
-        else:
-            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
-
-        # We made a copy
-        assert df is not result
-        # We didn't mutate df
-        assert df.flags.allows_duplicate_labels is True
-
-        # But we didn't copy data
-        result.iloc[0] = 0
-        assert df.iloc[0] == 0
-
-        # Now we do copy.
-        result = df.set_flags(
-            copy=True, allows_duplicate_labels=allows_duplicate_labels
-        )
-        result.iloc[0] = 10
-        assert df.iloc[0] == 0
+    @skip_if_no("jinja2")
+    def test_inspect_getmembers(self):
+        # GH38782
+        ser = Series(dtype=object)
+        with tm.assert_produces_warning(None):
+            inspect.getmembers(ser)

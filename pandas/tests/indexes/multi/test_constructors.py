@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
 
 import numpy as np
@@ -9,7 +12,12 @@ from pandas._libs.tslib import Timestamp
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -100,7 +108,7 @@ def test_constructor_mismatched_codes_levels(idx):
 def test_na_levels():
     # GH26408
     # test if codes are re-assigned value -1 for levels
-    # with mising values (NaN, NaT, None)
+    # with missing values (NaN, NaT, None)
     result = MultiIndex(
         levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]]
     )
@@ -189,37 +197,24 @@ def test_from_arrays_tuples(idx):
     tm.assert_index_equal(result, idx)
 
 
-def test_from_arrays_index_series_datetimetz():
-    idx1 = pd.date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
-    idx2 = pd.date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo")
-    result = MultiIndex.from_arrays([idx1, idx2])
-    tm.assert_index_equal(result.get_level_values(0), idx1)
-    tm.assert_index_equal(result.get_level_values(1), idx2)
-
-    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
-    tm.assert_index_equal(result2.get_level_values(0), idx1)
-    tm.assert_index_equal(result2.get_level_values(1), idx2)
-
-    tm.assert_index_equal(result, result2)
-
-
-def test_from_arrays_index_series_timedelta():
-    idx1 = pd.timedelta_range("1 days", freq="D", periods=3)
-    idx2 = pd.timedelta_range("2 hours", freq="H", periods=3)
-    result = MultiIndex.from_arrays([idx1, idx2])
-    tm.assert_index_equal(result.get_level_values(0), idx1)
-    tm.assert_index_equal(result.get_level_values(1), idx2)
-
-    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
-    tm.assert_index_equal(result2.get_level_values(0), idx1)
-    tm.assert_index_equal(result2.get_level_values(1), idx2)
-
-    tm.assert_index_equal(result, result2)
-
-
-def test_from_arrays_index_series_period():
-    idx1 = pd.period_range("2011-01-01", freq="D", periods=3)
-    idx2 = pd.period_range("2015-01-01", freq="H", periods=3)
+@pytest.mark.parametrize(
+    ("idx1", "idx2"),
+    [
+        (
+            pd.period_range("2011-01-01", freq="D", periods=3),
+            pd.period_range("2015-01-01", freq="H", periods=3),
+        ),
+        (
+            date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
+            date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo"),
+        ),
+        (
+            pd.timedelta_range("1 days", freq="D", periods=3),
+            pd.timedelta_range("2 hours", freq="H", periods=3),
+        ),
+    ],
+)
+def test_from_arrays_index_series_period_datetimetz_and_timedelta(idx1, idx2):
     result = MultiIndex.from_arrays([idx1, idx2])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
@@ -232,8 +227,8 @@ def test_from_arrays_index_series_period():
 
 
 def test_from_arrays_index_datetimelike_mixed():
-    idx1 = pd.date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
-    idx2 = pd.date_range("2015-01-01 10:00", freq="H", periods=3)
+    idx1 = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
+    idx2 = date_range("2015-01-01 10:00", freq="H", periods=3)
     idx3 = pd.timedelta_range("1 days", freq="D", periods=3)
     idx4 = pd.period_range("2011-01-01", freq="D", periods=3)
 
@@ -477,6 +472,14 @@ def test_from_product_datetimeindex():
     tm.assert_numpy_array_equal(mi.values, etalon)
 
 
+def test_from_product_rangeindex():
+    # RangeIndex is preserved by factorize, so preserved in levels
+    rng = Index(range(5))
+    other = ["a", "b"]
+    mi = MultiIndex.from_product([rng, other])
+    tm.assert_index_equal(mi._levels[0], rng, exact=True)
+
+
 @pytest.mark.parametrize("ordered", [False, True])
 @pytest.mark.parametrize("f", [lambda x: x, lambda x: Series(x), lambda x: x.values])
 def test_from_product_index_series_categorical(ordered, f):
@@ -667,7 +670,7 @@ def test_from_frame_dtype_fidelity():
     # GH 22420
     df = pd.DataFrame(
         {
-            "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            "dates": date_range("19910905", periods=6, tz="US/Eastern"),
             "a": [1, 1, 1, 2, 2, 2],
             "b": pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
             "c": ["x", "x", "y", "z", "x", "y"],
@@ -677,7 +680,7 @@ def test_from_frame_dtype_fidelity():
 
     expected_mi = MultiIndex.from_arrays(
         [
-            pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            date_range("19910905", periods=6, tz="US/Eastern"),
             [1, 1, 1, 2, 2, 2],
             pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
             ["x", "x", "y", "z", "x", "y"],
@@ -754,7 +757,7 @@ def test_datetimeindex():
     idx1 = pd.DatetimeIndex(
         ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo"
     )
-    idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
+    idx2 = date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
     idx = MultiIndex.from_arrays([idx1, idx2])
 
     expected1 = pd.DatetimeIndex(
@@ -766,7 +769,7 @@ def test_datetimeindex():
 
     # from datetime combos
     # GH 7888
-    date1 = date.today()
+    date1 = np.datetime64("today")
     date2 = datetime.today()
     date3 = Timestamp.today()
 
@@ -774,6 +777,12 @@ def test_datetimeindex():
         index = MultiIndex.from_product([[d1], [d2]])
         assert isinstance(index.levels[0], pd.DatetimeIndex)
         assert isinstance(index.levels[1], pd.DatetimeIndex)
+
+    # but NOT date objects, matching Index behavior
+    date4 = date.today()
+    index = MultiIndex.from_product([[date4], [date2]])
+    assert not isinstance(index.levels[0], pd.DatetimeIndex)
+    assert isinstance(index.levels[1], pd.DatetimeIndex)
 
 
 def test_constructor_with_tz():
@@ -796,3 +805,26 @@ def test_constructor_with_tz():
     assert result.names == ["dt1", "dt2"]
     tm.assert_index_equal(result.levels[0], index)
     tm.assert_index_equal(result.levels[1], columns)
+
+
+def test_multiindex_inference_consistency():
+    # check that inference behavior matches the base class
+
+    v = date.today()
+
+    arr = [v, v]
+
+    idx = Index(arr)
+    assert idx.dtype == object
+
+    mi = MultiIndex.from_arrays([arr])
+    lev = mi.levels[0]
+    assert lev.dtype == object
+
+    mi = MultiIndex.from_product([arr])
+    lev = mi.levels[0]
+    assert lev.dtype == object
+
+    mi = MultiIndex.from_tuples([(x,) for x in arr])
+    lev = mi.levels[0]
+    assert lev.dtype == object

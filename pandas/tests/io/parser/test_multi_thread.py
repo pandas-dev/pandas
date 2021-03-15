@@ -2,6 +2,7 @@
 Tests multithreading behaviour for reading and
 parsing files for each parser defined in parsers.py
 """
+from contextlib import ExitStack
 from io import BytesIO
 from multiprocessing.pool import ThreadPool
 
@@ -46,16 +47,18 @@ def test_multi_thread_string_io_read_csv(all_parsers):
         "\n".join([f"{i:d},{i:d},{i:d}" for i in range(max_row_range)]).encode()
         for _ in range(num_files)
     ]
-    files = [BytesIO(b) for b in bytes_to_df]
 
     # Read all files in many threads.
-    pool = ThreadPool(8)
+    with ExitStack() as stack:
+        files = [stack.enter_context(BytesIO(b)) for b in bytes_to_df]
 
-    results = pool.map(parser.read_csv, files)
-    first_result = results[0]
+        pool = stack.enter_context(ThreadPool(8))
 
-    for result in results:
-        tm.assert_frame_equal(first_result, result)
+        results = pool.map(parser.read_csv, files)
+        first_result = results[0]
+
+        for result in results:
+            tm.assert_frame_equal(first_result, result)
 
 
 def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
@@ -116,8 +119,8 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
         (num_rows * i // num_tasks, num_rows // num_tasks) for i in range(num_tasks)
     ]
 
-    pool = ThreadPool(processes=num_tasks)
-    results = pool.map(reader, tasks)
+    with ThreadPool(processes=num_tasks) as pool:
+        results = pool.map(reader, tasks)
 
     header = results[0].columns
 

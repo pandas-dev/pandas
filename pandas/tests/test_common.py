@@ -6,7 +6,7 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_under1p17
+from pandas.compat import np_version_under1p17
 
 import pandas as pd
 from pandas import Series
@@ -158,3 +158,11 @@ def test_serializable(obj):
     # GH 35611
     unpickled = tm.round_trip_pickle(obj)
     assert type(obj) == type(unpickled)
+
+
+class TestIsBoolIndexer:
+    def test_non_bool_array_with_na(self):
+        # in particular, this should not raise
+        arr = np.array(["A", "B", np.nan])
+
+        assert not com.is_bool_indexer(arr)

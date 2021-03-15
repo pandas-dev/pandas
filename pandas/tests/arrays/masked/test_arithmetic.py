@@ -1,4 +1,7 @@
-from typing import Any, List
+from typing import (
+    Any,
+    List,
+)
 
 import numpy as np
 import pytest
@@ -43,11 +46,7 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
     for scalar in [scalar, data.dtype.type(scalar)]:
         result = op(data, scalar)
         expected = op(data, scalar_array)
-        if isinstance(expected, ExtensionArray):
-            tm.assert_extension_array_equal(result, expected)
-        else:
-            # TODO div still gives float ndarray -> remove this once we have Float EA
-            tm.assert_numpy_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
 
 def test_array_NA(data, all_arithmetic_operators):
@@ -163,3 +162,18 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
         s = pd.Series(data)
         with pytest.raises(ValueError, match="Lengths must match"):
             op(s, other)
+
+
+@pytest.mark.parametrize("op", ["__neg__", "__abs__", "__invert__"])
+def test_unary_op_does_not_propagate_mask(data, op, request):
+    # https://github.com/pandas-dev/pandas/issues/39943
+    data, _ = data
+    if data.dtype in ["Float32", "Float64"] and op == "__invert__":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="invert is not implemented for float ea dtypes")
+        )
+    s = pd.Series(data)
+    result = getattr(s, op)()
+    expected = result.copy(deep=True)
+    s[0] = None
+    tm.assert_series_equal(result, expected)

@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Index, MultiIndex, NaT
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    NaT,
+)
 import pandas._testing as tm
 
 
@@ -85,7 +90,7 @@ Index values are different \\(33\\.33333 %\\)
 def test_index_equal_values_less_close(check_exact, rtol):
     idx1 = Index([1, 2, 3.0])
     idx2 = Index([1, 2, 3.0001])
-    kwargs = dict(check_exact=check_exact, rtol=rtol)
+    kwargs = {"check_exact": check_exact, "rtol": rtol}
 
     if check_exact or rtol < 0.5e-3:
         msg = """Index are different
@@ -103,7 +108,7 @@ Index values are different \\(33\\.33333 %\\)
 def test_index_equal_values_too_far(check_exact, rtol):
     idx1 = Index([1, 2, 3])
     idx2 = Index([1, 2, 4])
-    kwargs = dict(check_exact=check_exact, rtol=rtol)
+    kwargs = {"check_exact": check_exact, "rtol": rtol}
 
     msg = """Index are different
 
@@ -140,7 +145,7 @@ Index values are different \\(66\\.66667 %\\)
 def test_index_equal_level_values_mismatch(check_exact, rtol):
     idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
-    kwargs = dict(check_exact=check_exact, rtol=rtol)
+    kwargs = {"check_exact": check_exact, "rtol": rtol}
 
     msg = """MultiIndex level \\[1\\] are different
 
@@ -192,3 +197,9 @@ ordered=False\\)"""
             tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
     else:
         tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
+
+
+def test_assert_index_equal_mixed_dtype():
+    # GH#39168
+    idx = Index(["foo", "bar", 42])
+    tm.assert_index_equal(idx, idx, check_order=False)

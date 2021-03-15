@@ -16,6 +16,8 @@ Development
     code_style
     maintaining
     internals
+    test_writing
+    debugging_extensions
     extending
     developer
     policies

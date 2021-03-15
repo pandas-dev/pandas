@@ -4,7 +4,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range, isna
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -37,7 +43,7 @@ def nontemporal_method(request):
     separately from these non-temporal methods.
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -67,7 +73,7 @@ def interp_methods_ind(request):
     'values' as a parameterization
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -458,6 +464,82 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method, limit_direction=limit_direction)
 
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
+                {"method": "pad", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                range(5),
+                range(5),
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_pad(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_backfill(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -560,7 +642,7 @@ class TestSeriesInterpolateData:
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
-        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
+        dti = date_range("2015-04-05", periods=3, tz="US/Central")
         ser = Series(dti)
         ser[1] = pd.NaT
         result = ser.interpolate(method="pad")
@@ -653,13 +735,13 @@ class TestSeriesInterpolateData:
 
     def test_series_interpolate_intraday(self):
         # #1698
-        index = pd.date_range("1/1/2012", periods=4, freq="12D")
+        index = date_range("1/1/2012", periods=4, freq="12D")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(days=1)).sort_values()
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = pd.date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12H")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")

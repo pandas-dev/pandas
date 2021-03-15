@@ -1,25 +1,29 @@
 """Common IO api utilities"""
+from __future__ import annotations
 
 import bz2
+import codecs
 from collections import abc
 import dataclasses
 import gzip
-from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
+from io import (
+    BufferedIOBase,
+    BytesIO,
+    RawIOBase,
+    StringIO,
+    TextIOWrapper,
+)
 import mmap
 import os
-import pathlib
 from typing import (
     IO,
-    TYPE_CHECKING,
     Any,
     AnyStr,
     Dict,
-    Generic,
     List,
     Mapping,
     Optional,
     Tuple,
-    Type,
     Union,
     cast,
 )
@@ -37,13 +41,14 @@ from pandas._typing import (
     Buffer,
     CompressionDict,
     CompressionOptions,
-    EncodingVar,
     FileOrBuffer,
     FilePathOrBuffer,
-    ModeVar,
     StorageOptions,
 )
-from pandas.compat import get_lzma_file, import_lzma
+from pandas.compat import (
+    get_lzma_file,
+    import_lzma,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
@@ -55,16 +60,10 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
 
 
-if TYPE_CHECKING:
-    from io import IOBase
-
-
 @dataclasses.dataclass
-class IOArgs(Generic[ModeVar, EncodingVar]):
+class IOArgs:
     """
-    Return value of io/common.py:get_filepath_or_buffer.
-
-    This is used to easily close created fsspec objects.
+    Return value of io/common.py:_get_filepath_or_buffer.
 
     Note (copy&past from io/parsers):
     filepath_or_buffer can be Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
@@ -73,28 +72,18 @@ class IOArgs(Generic[ModeVar, EncodingVar]):
     """
 
     filepath_or_buffer: FileOrBuffer
-    encoding: EncodingVar
-    mode: Union[ModeVar, str]
+    encoding: str
+    mode: str
     compression: CompressionDict
     should_close: bool = False
-
-    def close(self) -> None:
-        """
-        Close the buffer if it was created by get_filepath_or_buffer.
-        """
-        if self.should_close:
-            assert not isinstance(self.filepath_or_buffer, str)
-            try:
-                self.filepath_or_buffer.close()
-            except (OSError, ValueError):
-                pass
-        self.should_close = False
 
 
 @dataclasses.dataclass
 class IOHandles:
     """
     Return value of io/common.py:get_handle
+
+    Can be used as a context manager.
 
     This is used to easily close created buffers and to handle corner cases when
     TextIOWrapper is inserted.
@@ -105,6 +94,7 @@ class IOHandles:
     """
 
     handle: Buffer
+    compression: CompressionDict
     created_handles: List[Buffer] = dataclasses.field(default_factory=list)
     is_wrapped: bool = False
     is_mmap: bool = False
@@ -128,6 +118,12 @@ class IOHandles:
             pass
         self.created_handles = []
         self.is_wrapped = False
+
+    def __enter__(self) -> IOHandles:
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.close()
 
 
 def is_url(url) -> bool:
@@ -178,6 +174,7 @@ def validate_header_arg(header) -> None:
 
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
+    convert_file_like: bool = False,
 ) -> FileOrBuffer[AnyStr]:
     """
     Attempt to convert a path-like object to a string.
@@ -195,25 +192,17 @@ def stringify_path(
     Objects supporting the fspath protocol (python 3.6+) are coerced
     according to its __fspath__ method.
 
-    For backwards compatibility with older pythons, pathlib.Path and
-    py.path objects are specially coerced.
-
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    if hasattr(filepath_or_buffer, "__fspath__"):
-        # https://github.com/python/mypy/issues/1424
-        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
-        # attribute "__fspath__"  [union-attr]
-        filepath_or_buffer = filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
-    elif isinstance(filepath_or_buffer, pathlib.Path):
-        filepath_or_buffer = str(filepath_or_buffer)
+    if not convert_file_like and is_file_like(filepath_or_buffer):
+        # GH 38125: some fsspec objects implement os.PathLike but have already opened a
+        # file. This prevents opening the file a second time. infer_compression calls
+        # this function with convert_file_like=True to infer the compression.
+        return cast(FileOrBuffer[AnyStr], filepath_or_buffer)
+
+    if isinstance(filepath_or_buffer, os.PathLike):
+        filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
 
 
@@ -239,18 +228,13 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     )
 
 
-# https://github.com/python/mypy/issues/8708
-# error: Incompatible default for argument "encoding" (default has type "None",
-# argument has type "str")
-# error: Incompatible default for argument "mode" (default has type "None",
-# argument has type "str")
-def get_filepath_or_buffer(
+def _get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
-    encoding: EncodingVar = None,  # type: ignore[assignment]
+    encoding: str = "utf-8",
     compression: CompressionOptions = None,
-    mode: ModeVar = None,  # type: ignore[assignment]
+    mode: str = "r",
     storage_options: StorageOptions = None,
-) -> IOArgs[ModeVar, EncodingVar]:
+) -> IOArgs:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -284,12 +268,7 @@ def get_filepath_or_buffer(
     compression_method = infer_compression(filepath_or_buffer, compression_method)
 
     # GH21227 internal compression is not used for non-binary handles.
-    if (
-        compression_method
-        and hasattr(filepath_or_buffer, "write")
-        and mode
-        and "b" not in mode
-    ):
+    if compression_method and hasattr(filepath_or_buffer, "write") and "b" not in mode:
         warnings.warn(
             "compression has no effect when passing a non-binary object as input.",
             RuntimeWarning,
@@ -306,8 +285,7 @@ def get_filepath_or_buffer(
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
     if (
-        mode
-        and "w" in mode
+        "w" in mode
         and compression_method in ["bz2", "xz"]
         and encoding in ["utf-16", "utf-32"]
     ):
@@ -319,23 +297,28 @@ def get_filepath_or_buffer(
     # Use binary mode when converting path-like objects to file-like objects (fsspec)
     # except when text mode is explicitly requested. The original mode is returned if
     # fsspec is not used.
-    fsspec_mode = mode or "rb"
+    fsspec_mode = mode
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
-        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
-        if storage_options:
-            raise ValueError(
-                "storage_options passed with file object or non-fsspec file path"
-            )
-        req = urlopen(filepath_or_buffer)
-        content_encoding = req.headers.get("Content-Encoding", None)
-        if content_encoding == "gzip":
-            # Override compression based on Content-Encoding header
-            compression = {"method": "gzip"}
-        reader = BytesIO(req.read())
-        req.close()
+        # TODO: fsspec can also handle HTTP via requests, but leaving this
+        # unchanged. using fsspec appears to break the ability to infer if the
+        # server responded with gzipped data
+        storage_options = storage_options or {}
+
+        # waiting until now for importing to match intended lazy logic of
+        # urlopen function defined elsewhere in this module
+        import urllib.request
+
+        # assuming storage_options is to be interpreted as headers
+        req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
+        with urlopen(req_info) as req:
+            content_encoding = req.headers.get("Content-Encoding", None)
+            if content_encoding == "gzip":
+                # Override compression based on Content-Encoding header
+                compression = {"method": "gzip"}
+            reader = BytesIO(req.read())
         return IOArgs(
             filepath_or_buffer=reader,
             encoding=encoding,
@@ -362,7 +345,10 @@ def get_filepath_or_buffer(
         err_types_to_retry_with_anon: List[Any] = []
         try:
             import_optional_dependency("botocore")
-            from botocore.exceptions import ClientError, NoCredentialsError
+            from botocore.exceptions import (
+                ClientError,
+                NoCredentialsError,
+            )
 
             err_types_to_retry_with_anon = [
                 ClientError,
@@ -504,14 +490,13 @@ def infer_compression(
     ------
     ValueError on invalid compression specified.
     """
-    # No compression has been explicitly specified
     if compression is None:
         return None
 
     # Infer compression
     if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
+        filepath_or_buffer = stringify_path(filepath_or_buffer, convert_file_like=True)
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
             return None
@@ -526,9 +511,15 @@ def infer_compression(
     if compression in _compression_to_extension:
         return compression
 
-    msg = f"Unrecognized compression type: {compression}"
-    valid = ["infer", None] + sorted(_compression_to_extension)
-    msg += f"\nValid compression types are {valid}"
+    # https://github.com/python/mypy/issues/5492
+    # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
+    valid = ["infer", None] + sorted(
+        _compression_to_extension
+    )  # type: ignore[operator]
+    msg = (
+        f"Unrecognized compression type: {compression}\n"
+        f"Valid compression types are {valid}"
+    )
     raise ValueError(msg)
 
 
@@ -540,6 +531,7 @@ def get_handle(
     memory_map: bool = False,
     is_text: bool = True,
     errors: Optional[str] = None,
+    storage_options: StorageOptions = None,
 ) -> IOHandles:
     """
     Get file handle for given path/buffer and mode.
@@ -583,66 +575,99 @@ def get_handle(
         Specifies how encoding and decoding errors are to be handled.
         See the errors argument for :func:`open` for a full list
         of options.
+    storage_options: StorageOptions = None
+        Passed to _get_filepath_or_buffer
 
     .. versionchanged:: 1.2.0
 
     Returns the dataclass IOHandles
     """
-    need_text_wrapping: Tuple[Type["IOBase"], ...]
-    try:
-        from s3fs import S3File
-
-        need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
-    except ImportError:
-        need_text_wrapping = (BufferedIOBase, RawIOBase)
-    # fsspec is an optional dependency. If it is available, add its file-object
-    # class to the list of classes that need text wrapping. If fsspec is too old and is
-    # needed, get_filepath_or_buffer would already have thrown an exception.
-    try:
-        from fsspec.spec import AbstractFileSystem
-
-        need_text_wrapping = (*need_text_wrapping, AbstractFileSystem)
-    except ImportError:
-        pass
-
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
-    if encoding is None:
-        encoding = "utf-8"
+    encoding = encoding or "utf-8"
 
-    # Convert pathlib.Path/py.path.local or string
-    handle = stringify_path(path_or_buf)
+    # read_csv does not know whether the buffer is opened in binary/text mode
+    if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
+        mode += "b"
 
-    compression, compression_args = get_compression_method(compression)
-    compression = infer_compression(handle, compression)
+    # valdiate errors
+    if isinstance(errors, str):
+        errors = errors.lower()
+    if errors not in (
+        None,
+        "strict",
+        "ignore",
+        "replace",
+        "xmlcharrefreplace",
+        "backslashreplace",
+        "namereplace",
+        "surrogateescape",
+        "surrogatepass",
+    ):
+        raise ValueError(
+            f"Invalid value for `encoding_errors` ({errors}). Please see "
+            + "https://docs.python.org/3/library/codecs.html#error-handlers "
+            + "for valid values."
+        )
+
+    # open URLs
+    ioargs = _get_filepath_or_buffer(
+        path_or_buf,
+        encoding=encoding,
+        compression=compression,
+        mode=mode,
+        storage_options=storage_options,
+    )
+
+    handle = ioargs.filepath_or_buffer
+    handles: List[Buffer]
 
     # memory mapping needs to be the first step
     handle, memory_map, handles = _maybe_memory_map(
-        handle, memory_map, encoding, mode, errors
+        handle, memory_map, ioargs.encoding, ioargs.mode, errors
     )
 
     is_path = isinstance(handle, str)
+    compression_args = dict(ioargs.compression)
+    compression = compression_args.pop("method")
+
     if compression:
+        # compression libraries do not like an explicit text-mode
+        ioargs.mode = ioargs.mode.replace("t", "")
+
         # GZ Compression
         if compression == "gzip":
             if is_path:
                 assert isinstance(handle, str)
-                handle = gzip.GzipFile(filename=handle, mode=mode, **compression_args)
+                handle = gzip.GzipFile(
+                    filename=handle,
+                    mode=ioargs.mode,
+                    **compression_args,
+                )
             else:
                 handle = gzip.GzipFile(
+                    # error: Argument "fileobj" to "GzipFile" has incompatible type
+                    # "Union[str, Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+                    # TextIOWrapper, mmap]]"; expected "Optional[IO[bytes]]"
                     fileobj=handle,  # type: ignore[arg-type]
-                    mode=mode,
+                    mode=ioargs.mode,
                     **compression_args,
                 )
 
         # BZ Compression
         elif compression == "bz2":
             handle = bz2.BZ2File(
-                handle, mode=mode, **compression_args  # type: ignore[arg-type]
+                # Argument 1 to "BZ2File" has incompatible type "Union[str,
+                # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
+                # mmap]]"; expected "Union[Union[str, bytes, _PathLike[str],
+                # _PathLike[bytes]], IO[bytes]]"
+                handle,  # type: ignore[arg-type]
+                mode=ioargs.mode,
+                **compression_args,
             )
 
         # ZIP Compression
         elif compression == "zip":
-            handle = _BytesZipFile(handle, mode, **compression_args)
+            handle = _BytesZipFile(handle, ioargs.mode, **compression_args)
             if handle.mode == "r":
                 handles.append(handle)
                 zip_names = handle.namelist()
@@ -658,7 +683,7 @@ def get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            handle = get_lzma_file(lzma)(handle, mode)
+            handle = get_lzma_file(lzma)(handle, ioargs.mode)
 
         # Unrecognized Compression
         else:
@@ -668,42 +693,53 @@ def get_handle(
         assert not isinstance(handle, str)
         handles.append(handle)
 
-    elif is_path:
+    elif isinstance(handle, str):
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
-        assert isinstance(handle, str)
-        if encoding and "b" not in mode:
+        if ioargs.encoding and "b" not in ioargs.mode:
             # Encoding
-            handle = open(handle, mode, encoding=encoding, errors=errors, newline="")
+            handle = open(
+                handle,
+                ioargs.mode,
+                encoding=ioargs.encoding,
+                errors=errors,
+                newline="",
+            )
         else:
             # Binary mode
-            handle = open(handle, mode)
+            handle = open(handle, ioargs.mode)
         handles.append(handle)
 
     # Convert BytesIO or file objects passed with an encoding
     is_wrapped = False
-    if is_text and (
-        compression
-        or isinstance(handle, need_text_wrapping)
-        or "b" in getattr(handle, "mode", "")
-    ):
+    if is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
         handle = TextIOWrapper(
+            # error: Argument 1 to "TextIOWrapper" has incompatible type
+            # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
+            # expected "IO[bytes]"
             handle,  # type: ignore[arg-type]
-            encoding=encoding,
+            encoding=ioargs.encoding,
             errors=errors,
             newline="",
         )
         handles.append(handle)
-        # do not mark as wrapped when the user provided a string
-        is_wrapped = not is_path
+        # only marked as wrapped when the caller provided a handle
+        is_wrapped = not (
+            isinstance(ioargs.filepath_or_buffer, str) or ioargs.should_close
+        )
 
     handles.reverse()  # close the most recently added buffer first
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        handles.append(ioargs.filepath_or_buffer)
+
     assert not isinstance(handle, str)
     return IOHandles(
         handle=handle,
         created_handles=handles,
         is_wrapped=is_wrapped,
         is_mmap=memory_map,
+        compression=ioargs.compression,
     )
 
 
@@ -736,17 +772,40 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         archive_name: Optional[str] = None,
         **kwargs,
     ):
-        if mode in ["wb", "rb"]:
-            mode = mode.replace("b", "")
+        mode = mode.replace("b", "")
         self.archive_name = archive_name
+        self.multiple_write_buffer: Optional[Union[StringIO, BytesIO]] = None
+
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
+
+        # error: Argument 1 to "__init__" of "ZipFile" has incompatible type
+        # "Union[_PathLike[str], Union[str, Union[IO[Any], RawIOBase, BufferedIOBase,
+        # TextIOBase, TextIOWrapper, mmap]]]"; expected "Union[Union[str,
+        # _PathLike[str]], IO[bytes]]"
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
+        # buffer multiple write calls, write on flush
+        if self.multiple_write_buffer is None:
+            self.multiple_write_buffer = (
+                BytesIO() if isinstance(data, bytes) else StringIO()
+            )
+        self.multiple_write_buffer.write(data)
+
+    def flush(self) -> None:
+        # write to actual handle and close write buffer
+        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
+            return
+
         # ZipFile needs a non-empty string
         archive_name = self.archive_name or self.filename or "zip"
-        super().writestr(archive_name, data)
+        with self.multiple_write_buffer:
+            super().writestr(archive_name, self.multiple_write_buffer.getvalue())
+
+    def close(self):
+        self.flush()
+        super().close()
 
     @property
     def closed(self):
@@ -779,7 +838,7 @@ class _MMapWrapper(abc.Iterator):
             return lambda: self.attributes[name]
         return getattr(self.mmap, name)
 
-    def __iter__(self) -> "_MMapWrapper":
+    def __iter__(self) -> _MMapWrapper:
         return self
 
     def __next__(self) -> str:
@@ -804,7 +863,7 @@ def _maybe_memory_map(
     mode: str,
     errors: Optional[str],
 ) -> Tuple[FileOrBuffer, bool, List[Buffer]]:
-    """Try to use memory map file/buffer."""
+    """Try to memory map file/buffer."""
     handles: List[Buffer] = []
     memory_map &= hasattr(handle, "fileno") or isinstance(handle, str)
     if not memory_map:
@@ -821,6 +880,8 @@ def _maybe_memory_map(
         handles.append(handle)
 
     try:
+        # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
+        # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
         wrapped = cast(mmap.mmap, _MMapWrapper(handle))  # type: ignore[arg-type]
         handle.close()
         handles.remove(handle)
@@ -834,3 +895,33 @@ def _maybe_memory_map(
         memory_map = False
 
     return handle, memory_map, handles
+
+
+def file_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
+    """Test whether file exists."""
+    exists = False
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    if not isinstance(filepath_or_buffer, str):
+        return exists
+    try:
+        exists = os.path.exists(filepath_or_buffer)
+        # gh-5874: if the filepath is too long will raise here
+    except (TypeError, ValueError):
+        pass
+    return exists
+
+
+def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
+    """Whether the handle is opened in binary mode"""
+    # specified by user
+    if "t" in mode or "b" in mode:
+        return "b" in mode
+
+    # classes that expect string but have 'b' in mode
+    text_classes = (codecs.StreamWriter, codecs.StreamReader, codecs.StreamReaderWriter)
+    if issubclass(type(handle), text_classes):
+        return False
+
+    # classes that expect bytes
+    binary_classes = (BufferedIOBase, RawIOBase)
+    return isinstance(handle, binary_classes) or "b" in getattr(handle, "mode", mode)

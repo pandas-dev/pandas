@@ -2,8 +2,11 @@
 
 ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
+import string
 
 import pytest
+
+import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
@@ -278,7 +281,7 @@ def test_css_to_excel_good_colors(input_color, output_color):
         f"color: {input_color}"
     )
 
-    expected = dict()
+    expected = {}
 
     expected["fill"] = {"patternType": "solid", "fgColor": output_color}
 
@@ -305,7 +308,7 @@ def test_css_to_excel_bad_colors(input_color):
         f"color: {input_color}"
     )
 
-    expected = dict()
+    expected = {}
 
     if input_color is not None:
         expected["fill"] = {"patternType": "solid"}
@@ -313,3 +316,18 @@ def test_css_to_excel_bad_colors(input_color):
     with tm.assert_produces_warning(CSSWarning):
         convert = CSSToExcelConverter()
         assert expected == convert(css)
+
+
+def tests_css_named_colors_valid():
+    upper_hexs = set(map(str.upper, string.hexdigits))
+    for color in CSSToExcelConverter.NAMED_COLORS.values():
+        assert len(color) == 6 and all(c in upper_hexs for c in color)
+
+
+@td.skip_if_no_mpl
+def test_css_named_colors_from_mpl_present():
+    from matplotlib.colors import CSS4_COLORS as mpl_colors
+
+    pd_colors = CSSToExcelConverter.NAMED_COLORS
+    for name, color in mpl_colors.items():
+        assert name in pd_colors and pd_colors[name] == color[1:]

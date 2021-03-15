@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -53,10 +55,10 @@ class TestFillNA:
         mf = mixed_float_frame.reindex(columns=["A", "B", "D"])
         mf.loc[mf.index[-10:], "A"] = np.nan
         result = mf.fillna(value=0)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         result = mf.fillna(method="pad")
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
     def test_fillna_empty(self):
         # empty frame (GH#2778)
@@ -230,6 +232,7 @@ class TestFillNA:
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) implement downcast
     def test_fillna_downcast(self):
         # GH#15277
         # infer int64 from float64
@@ -244,6 +247,7 @@ class TestFillNA:
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
@@ -261,13 +265,15 @@ class TestFillNA:
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-        # equiv of replace
-        df = DataFrame(dict(A=[1, np.nan], B=[1.0, 2.0]))
-        for v in ["", 1, np.nan, 1.0]:
-            expected = df.replace(np.nan, v)
-            result = df.fillna(v)
-            tm.assert_frame_equal(result, expected)
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
+    @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
+    def test_fillna_dtype_conversion_equiv_replace(self, val):
+        df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
+        expected = df.replace(np.nan, val)
+        result = df.fillna(val)
+        tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test
     def test_fillna_datetime_columns(self):
         # GH#7095
         df = DataFrame(
@@ -335,13 +341,13 @@ class TestFillNA:
         result = df[:2].reindex(index, method="pad", limit=5)
 
         expected = df[:2].reindex(index).fillna(method="pad")
-        expected.values[-3:] = np.nan
+        expected.iloc[-3:] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = df[-2:].reindex(index, method="backfill", limit=5)
 
         expected = df[-2:].reindex(index).fillna(method="backfill")
-        expected.values[:3] = np.nan
+        expected.iloc[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_frame_fillna_limit(self):
@@ -352,14 +358,14 @@ class TestFillNA:
         result = result.fillna(method="pad", limit=5)
 
         expected = df[:2].reindex(index).fillna(method="pad")
-        expected.values[-3:] = np.nan
+        expected.iloc[-3:] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = df[-2:].reindex(index)
         result = result.fillna(method="backfill", limit=5)
 
         expected = df[-2:].reindex(index).fillna(method="backfill")
-        expected.values[:3] = np.nan
+        expected.iloc[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_skip_certain_blocks(self):
@@ -524,3 +530,18 @@ class TestFillNA:
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
+
+
+def test_fillna_nonconsolidated_frame():
+    # https://github.com/pandas-dev/pandas/issues/36495
+    df = DataFrame(
+        [
+            [1, 1, 1, 1.0],
+            [2, 2, 2, 2.0],
+            [3, 3, 3, 3.0],
+        ],
+        columns=["i1", "i2", "i3", "f1"],
+    )
+    df_nonconsol = df.pivot("i1", "i2")
+    result = df_nonconsol.fillna(0)
+    assert result.isna().sum().sum() == 0

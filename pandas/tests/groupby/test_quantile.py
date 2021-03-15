@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -157,7 +160,7 @@ def test_quantile_raises():
 
 def test_quantile_out_of_bounds_q_raises():
     # https://github.com/pandas-dev/pandas/issues/27470
-    df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
+    df = DataFrame({"a": [0, 0, 0, 1, 1, 1], "b": range(6)})
     g = df.groupby([0, 0, 0, 1, 1, 1])
     with pytest.raises(ValueError, match="Got '50.0' instead"):
         g.quantile(50)
@@ -169,7 +172,7 @@ def test_quantile_out_of_bounds_q_raises():
 def test_quantile_missing_group_values_no_segfaults():
     # GH 28662
     data = np.array([1.0, np.nan, 1.0])
-    df = DataFrame(dict(key=data, val=range(3)))
+    df = DataFrame({"key": data, "val": range(3)})
 
     # Random segfaults; would have been guaranteed in loop
     grp = df.groupby("key")
@@ -194,7 +197,7 @@ def test_quantile_missing_group_values_correct_results(
     df = DataFrame({"key": key, "val": val})
 
     expected = DataFrame(
-        expected_val, index=pd.Index(expected_key, name="key"), columns=["val"]
+        expected_val, index=Index(expected_key, name="key"), columns=["val"]
     )
 
     grp = df.groupby("key")
@@ -223,7 +226,7 @@ def test_groupby_quantile_nullable_array(values, q):
         idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
         true_quantiles = [0.0, 0.5, 1.0]
     else:
-        idx = pd.Index(["x", "y"], name="a")
+        idx = Index(["x", "y"], name="a")
         true_quantiles = [0.5]
 
     expected = pd.Series(true_quantiles * 2, index=idx, name="b")
@@ -251,6 +254,29 @@ def test_groupby_timedelta_quantile():
                 pd.Timedelta("0 days 00:00:02.990000"),
             ]
         },
-        index=pd.Index([1, 2], name="group"),
+        index=Index([1, 2], name="group"),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_columns_groupby_quantile():
+    # GH 33795
+    df = DataFrame(
+        np.arange(12).reshape(3, -1),
+        index=list("XYZ"),
+        columns=pd.Series(list("ABAB"), name="col"),
+    )
+    result = df.groupby("col", axis=1).quantile(q=[0.8, 0.2])
+    expected = DataFrame(
+        [
+            [1.6, 0.4, 2.6, 1.4],
+            [5.6, 4.4, 6.6, 5.4],
+            [9.6, 8.4, 10.6, 9.4],
+        ],
+        index=list("XYZ"),
+        columns=pd.MultiIndex.from_tuples(
+            [("A", 0.8), ("A", 0.2), ("B", 0.8), ("B", 0.2)], names=["col", None]
+        ),
+    )
+
     tm.assert_frame_equal(result, expected)

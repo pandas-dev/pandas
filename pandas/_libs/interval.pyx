@@ -1,7 +1,13 @@
 import numbers
-from operator import le, lt
+from operator import (
+    le,
+    lt,
+)
 
-from cpython.datetime cimport PyDateTime_IMPORT, PyDelta_Check
+from cpython.datetime cimport (
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+)
 
 PyDateTime_IMPORT
 
@@ -179,7 +185,8 @@ cdef class IntervalMixin:
         return (self.right == self.left) & (self.closed != 'both')
 
     def _check_closed_matches(self, other, name='other'):
-        """Check if the closed attribute of `other` matches.
+        """
+        Check if the closed attribute of `other` matches.
 
         Note that 'left' and 'right' are considered different from 'both'.
 

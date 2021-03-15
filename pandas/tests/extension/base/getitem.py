@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseGetitemTests(BaseExtensionTests):
@@ -160,11 +159,12 @@ class BaseGetitemTests(BaseExtensionTests):
 
     def test_getitem_mask_raises(self, data):
         mask = np.array([True, False])
-        with pytest.raises(IndexError):
+        msg = f"Boolean index has wrong length: 2 instead of {len(data)}"
+        with pytest.raises(IndexError, match=msg):
             data[mask]
 
         mask = pd.array(mask, dtype="boolean")
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             data[mask]
 
     def test_getitem_boolean_array_mask(self, data):
@@ -305,7 +305,9 @@ class BaseGetitemTests(BaseExtensionTests):
         result = empty.take([-1], allow_fill=True)
         assert na_cmp(result[0], na_value)
 
-        with pytest.raises(IndexError):
+        msg = "cannot do a non-empty take from an empty axes|out of bounds"
+
+        with pytest.raises(IndexError, match=msg):
             empty.take([-1])
 
         with pytest.raises(IndexError, match="cannot do a non-empty take"):
@@ -322,21 +324,22 @@ class BaseGetitemTests(BaseExtensionTests):
         fill_value = data_missing[1]  # valid
         na = data_missing[0]
 
-        array = data_missing._from_sequence(
+        arr = data_missing._from_sequence(
             [na, fill_value, na], dtype=data_missing.dtype
         )
-        result = array.take([-1, 1], fill_value=fill_value, allow_fill=True)
-        expected = array.take([1, 1])
+        result = arr.take([-1, 1], fill_value=fill_value, allow_fill=True)
+        expected = arr.take([1, 1])
         self.assert_extension_array_equal(result, expected)
 
     def test_take_pandas_style_negative_raises(self, data, na_value):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=""):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
 
     @pytest.mark.parametrize("allow_fill", [True, False])
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         arr = data[:3]
-        with pytest.raises(IndexError):
+
+        with pytest.raises(IndexError, match="out of bounds|out-of-bounds"):
             arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
 
     def test_take_series(self, data):
@@ -372,8 +375,8 @@ class BaseGetitemTests(BaseExtensionTests):
         valid = data_missing[1]
         na = data_missing[0]
 
-        array = data_missing._from_sequence([na, valid], dtype=data_missing.dtype)
-        ser = pd.Series(array)
+        arr = data_missing._from_sequence([na, valid], dtype=data_missing.dtype)
+        ser = pd.Series(arr)
         result = ser.reindex([0, 1, 2], fill_value=valid)
         expected = pd.Series(
             data_missing._from_sequence([na, valid, valid], dtype=data_missing.dtype)

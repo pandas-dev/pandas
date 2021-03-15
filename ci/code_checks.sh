@@ -37,12 +37,6 @@ function invgrep {
     return $((! $EXIT_STATUS))
 }
 
-function check_namespace {
-    local -r CLASS=${1}
-    grep -R -l --include "*.py" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}[(\.]"
-    test $? -gt 0
-}
-
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code)s:%(text)s"
     INVGREP_PREPEND="##[error]"
@@ -64,14 +58,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # readability/casting: Warnings about C casting instead of C++ casting
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory
-
-    # We don't lint all C files because we don't want to lint any that are built
-    # from Cython files nor do we want to lint C files that we didn't modify for
-    # this particular codebase (e.g. src/headers, src/klib). However,
-    # we can lint all header files since they aren't "generated" like C files are.
-    MSG='Linting .c and .h' ; echo $MSG
-    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
 
@@ -120,13 +106,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # -------------------------------------------------------------------------
-    MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
-    for class in "Series" "DataFrame" "Index" "MultiIndex" "Timestamp" "Timedelta" "TimedeltaIndex" "DatetimeIndex" "Categorical"; do
-        check_namespace ${class}
-        RET=$(($RET + $?))
-    done
     echo $MSG "DONE"
 fi
 
@@ -191,6 +170,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/strings/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests sql.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/io/sql.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Directories
 
     MSG='Doctests arrays'; echo $MSG
@@ -238,12 +221,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA02, SA03)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
-    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development $BASE_DIR/doc/source/reference
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS01, SS02, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA02, SA03)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS02,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

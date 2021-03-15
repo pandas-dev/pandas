@@ -6,11 +6,24 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, Series, isna
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    Series,
+    isna,
+)
 import pandas._testing as tm
 
 
 class TestCategoricalMissing:
+    def test_isna(self):
+        exp = np.array([False, False, True])
+        cat = Categorical(["a", "b", np.nan])
+        res = cat.isna()
+
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_na_flags_int_categories(self):
         # #1457
 
@@ -55,13 +68,13 @@ class TestCategoricalMissing:
         "fillna_kwargs, msg",
         [
             (
-                dict(value=1, method="ffill"),
+                {"value": 1, "method": "ffill"},
                 "Cannot specify both 'value' and 'method'.",
             ),
-            (dict(), "Must specify a fill 'value' or 'method'."),
-            (dict(method="bad"), "Invalid fill method. Expecting .* bad"),
+            ({}, "Must specify a fill 'value' or 'method'."),
+            ({"method": "bad"}, "Invalid fill method. Expecting .* bad"),
             (
-                dict(value=Series([1, 2, 3, 4, "a"])),
+                {"value": Series([1, 2, 3, 4, "a"])},
                 "Cannot setitem on a Categorical with a new category",
             ),
         ],
@@ -94,13 +107,13 @@ class TestCategoricalMissing:
         other = cat.fillna("C")
         result = cat.fillna(other)
         tm.assert_categorical_equal(result, other)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
         other = np.array(["A", "B", "C", "B", "A"])
         result = cat.fillna(other)
         expected = Categorical(["A", "B", "C", "B", "A"], dtype=cat.dtype)
         tm.assert_categorical_equal(result, expected)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
     @pytest.mark.parametrize(
         "values, expected",
@@ -141,14 +154,14 @@ class TestCategoricalMissing:
         cat = Categorical(values)
 
         with pd.option_context("mode.use_inf_as_na", True):
-            result = pd.isna(cat)
+            result = isna(cat)
             tm.assert_numpy_array_equal(result, expected)
 
-            result = pd.isna(Series(cat))
+            result = isna(Series(cat))
             expected = Series(expected)
             tm.assert_series_equal(result, expected)
 
-            result = pd.isna(DataFrame(cat))
+            result = isna(DataFrame(cat))
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
 

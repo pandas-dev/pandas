@@ -85,10 +85,21 @@ Featuretools is a Python library for automated feature engineering built on top 
 
 Compose is a machine learning tool for labeling data and prediction engineering. It allows you to structure the labeling process by parameterizing prediction problems and transforming time-driven relational data into target values with cutoff times that can be used for supervised learning.
 
+`STUMPY <https://github.com/TDAmeritrade/stumpy>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+STUMPY is a powerful and scalable Python library for modern time series analysis.
+At its core, STUMPY efficiently computes something called a
+`matrix profile <https://stumpy.readthedocs.io/en/latest/Tutorial_The_Matrix_Profile.html>`__,
+which can be used for a wide variety of time series data mining tasks.
+
 .. _ecosystem.visualization:
 
 Visualization
 -------------
+
+While :ref:`pandas has built-in support for data visualization with matplotlib <visualization>`,
+there are a number of other pandas-compatible libraries.
 
 `Altair <https://altair-viz.github.io/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -145,7 +156,7 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
-<https://github.com/trifacta/vega>`__ to create plots within Jupyter Notebook.
+<https://github.com/vega/vega>`__ to create plots within Jupyter Notebook.
 
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -174,9 +185,19 @@ invoked with the following command
 
     dtale.show(df)
 
-D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
 and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
+
+`hvplot <https://hvplot.holoviz.org/index.html>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+hvPlot is a high-level plotting API for the PyData ecosystem built on `HoloViews <https://holoviews.org/>`__.
+It can be loaded as a native pandas plotting backend via
+
+.. code:: python
+
+    pd.set_option("plotting.backend", "hvplot")
 
 .. _ecosystem.ide:
 
@@ -421,7 +442,7 @@ If also displays progress bars.
 `Vaex <https://docs.vaex.io/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a Python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
 
  * vaex.from_pandas
  * vaex.to_pandas_df
@@ -455,6 +476,14 @@ storing numeric arrays with units. These arrays can be stored inside pandas'
 Series and DataFrame. Operations between Series and DataFrame columns which
 use pint's extension array are then units aware.
 
+`Text Extensions for Pandas`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Text Extensions for Pandas <https://ibm.biz/text-extensions-for-pandas>``
+provides extension types to cover common data structures for representing natural language
+data, plus library integrations that convert the outputs of popular natural language
+processing libraries into Pandas DataFrames.
+
 .. _ecosystem.accessors:
 
 Accessors
@@ -464,15 +493,16 @@ A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for library authors to coordinate on the namespace.
 
-=============== ========== ========================= ===============================================================
-Library         Accessor   Classes                   Description
-=============== ========== ========================= ===============================================================
-`cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
-`pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
-`pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
-`pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
-`composeml`_    ``slice``  ``DataFrame``             Provides a generator for enhanced data slicing.
-=============== ========== ========================= ===============================================================
+=============== ============ ==================================== ===============================================================
+Library         Accessor     Classes                              Description
+=============== ============ ==================================== ===============================================================
+`cyberpandas`_  ``ip``       ``Series``                           Provides common operations for working with IP addresses.
+`pdvega`_       ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
+`pandas_path`_  ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_  ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
+`composeml`_    ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
+`datatest`_     ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
+=============== ============ ==================================== ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
@@ -482,3 +512,4 @@ Library         Accessor   Classes                   Description
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
 .. _pint-pandas: https://github.com/hgrecco/pint-pandas
 .. _composeml: https://github.com/FeatureLabs/compose
+.. _datatest: https://datatest.readthedocs.io/

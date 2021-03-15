@@ -6,7 +6,12 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 import collections
 from typing import List
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas._typing import final
+
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_scalar,
+)
 
 from pandas.core.base import PandasObject
 
@@ -16,6 +21,7 @@ OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 class ShallowMixin(PandasObject):
     _attributes: List[str] = []
 
+    @final
     def _shallow_copy(self, obj, **kwargs):
         """
         return a new object with the replacement attributes
@@ -35,6 +41,7 @@ class GotItemMixin(PandasObject):
 
     _attributes: List[str]
 
+    @final
     def _gotitem(self, key, ndim, subset=None):
         """
         Sub-classes to define. Return a sliced object.
@@ -49,7 +56,8 @@ class GotItemMixin(PandasObject):
         """
         # create a new object to prevent aliasing
         if subset is None:
-            subset = self.obj
+            # error: "GotItemMixin" has no attribute "obj"
+            subset = self.obj  # type: ignore[attr-defined]
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
@@ -57,11 +65,18 @@ class GotItemMixin(PandasObject):
 
         # Try to select from a DataFrame, falling back to a Series
         try:
-            groupby = self._groupby[key]
+            # error: "GotItemMixin" has no attribute "_groupby"
+            groupby = self._groupby[key]  # type: ignore[attr-defined]
         except IndexError:
-            groupby = self._groupby
+            # error: "GotItemMixin" has no attribute "_groupby"
+            groupby = self._groupby  # type: ignore[attr-defined]
 
-        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
+        # error: Too many arguments for "GotItemMixin"
+        # error: Unexpected keyword argument "groupby" for "GotItemMixin"
+        # error: Unexpected keyword argument "parent" for "GotItemMixin"
+        self = type(self)(
+            subset, groupby=groupby, parent=self, **kwargs  # type: ignore[call-arg]
+        )
         self._reset_cache()
         if subset.ndim == 2 and (is_scalar(key) and key in subset or is_list_like(key)):
             self._selection = key
@@ -176,6 +191,7 @@ groupby_other_methods = frozenset(
         "describe",
         "dtypes",
         "expanding",
+        "ewm",
         "filter",
         "get_group",
         "groups",

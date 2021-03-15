@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.compat import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import needs_i8_conversion
 
@@ -232,18 +232,14 @@ def test_value_counts_datetime64(index_or_series):
 
     # with NaT
     s = df["dt"].copy()
-    s = klass(list(s.values) + [pd.NaT])
+    s = klass(list(s.values) + [pd.NaT] * 4)
 
     result = s.value_counts()
     assert result.index.dtype == "datetime64[ns]"
     tm.assert_series_equal(result, expected_s)
 
     result = s.value_counts(dropna=False)
-    # GH 35922. NaN-like now sorts to the beginning of duplicate counts
-    idx = pd.to_datetime(
-        ["2010-01-01 00:00:00", "2008-09-09 00:00:00", pd.NaT, "2009-01-01 00:00:00"]
-    )
-    expected_s = Series([3, 2, 1, 1], index=idx)
+    expected_s = pd.concat([Series([4], index=DatetimeIndex([pd.NaT])), expected_s])
     tm.assert_series_equal(result, expected_s)
 
     unique = s.unique()

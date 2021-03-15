@@ -7,7 +7,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -127,7 +133,7 @@ class TestDataFrameEval:
     def test_dataframe_sub_numexpr_path(self):
         # GH7192: Note we need a large number of rows to ensure this
         #  goes through the numexpr path
-        df = DataFrame(dict(A=np.random.randn(25000)))
+        df = DataFrame({"A": np.random.randn(25000)})
         df.iloc[0:5] = np.nan
         expected = 1 - np.isnan(df.iloc[0:25])
         result = (1 - np.isnan(df)).iloc[0:25]
@@ -713,7 +719,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
-        df_index = pd.date_range(
+        df_index = date_range(
             start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
         )
         expected = DataFrame(index=df_index)

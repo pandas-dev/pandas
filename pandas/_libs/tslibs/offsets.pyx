@@ -24,7 +24,10 @@ from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 cnp.import_array()
 
@@ -57,7 +60,10 @@ from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
 )
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -1403,6 +1409,19 @@ cdef class BusinessDay(BusinessMixin):
 cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "BH"
@@ -3251,6 +3270,19 @@ cdef class CustomBusinessDay(BusinessDay):
 cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "CBH"
@@ -3539,7 +3571,7 @@ cpdef to_offset(freq):
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
-    elif isinstance(freq, timedelta):
+    elif PyDelta_Check(freq):
         return delta_to_tick(freq)
 
     elif isinstance(freq, str):
@@ -3547,7 +3579,7 @@ cpdef to_offset(freq):
         stride_sign = None
 
         try:
-            split = re.split(opattern, freq)
+            split = opattern.split(freq)
             if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")

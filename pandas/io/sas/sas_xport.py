@@ -10,7 +10,10 @@ https://support.sas.com/techsup/technote/ts140.pdf
 from collections import abc
 from datetime import datetime
 import struct
-from typing import IO, cast
+from typing import (
+    IO,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -19,7 +22,7 @@ from pandas.util._decorators import Appender
 
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.sas.sasreader import ReaderBase
 
 _correct_line1 = (
@@ -253,13 +256,10 @@ class XportReader(ReaderBase, abc.Iterator):
         self._index = index
         self._chunksize = chunksize
 
-        self.ioargs = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
-
-        if isinstance(self.ioargs.filepath_or_buffer, str):
-            self.ioargs.filepath_or_buffer = open(self.ioargs.filepath_or_buffer, "rb")
-            self.ioargs.should_close = True
-
-        self.filepath_or_buffer = cast(IO[bytes], self.ioargs.filepath_or_buffer)
+        self.handles = get_handle(
+            filepath_or_buffer, "rb", encoding=encoding, is_text=False
+        )
+        self.filepath_or_buffer = cast(IO[bytes], self.handles.handle)
 
         try:
             self._read_header()
@@ -268,7 +268,7 @@ class XportReader(ReaderBase, abc.Iterator):
             raise
 
     def close(self):
-        self.ioargs.close()
+        self.handles.close()
 
     def _get_row(self):
         return self.filepath_or_buffer.read(80).decode()
@@ -279,14 +279,12 @@ class XportReader(ReaderBase, abc.Iterator):
         # read file header
         line1 = self._get_row()
         if line1 != _correct_line1:
-            self.close()
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
         fif = [["prefix", 24], ["version", 8], ["OS", 8], ["_", 24], ["created", 16]]
         file_info = _split_line(line2, fif)
         if file_info["prefix"] != "SAS     SAS     SASLIB":
-            self.close()
             raise ValueError("Header record has invalid prefix.")
         file_info["created"] = _parse_date(file_info["created"])
         self.file_info = file_info
@@ -300,7 +298,6 @@ class XportReader(ReaderBase, abc.Iterator):
         headflag1 = header1.startswith(_correct_header1)
         headflag2 = header2 == _correct_header2
         if not (headflag1 and headflag2):
-            self.close()
             raise ValueError("Member header not found")
         # usually 140, could be 135
         fieldnamelength = int(header1[-5:-2])
@@ -349,7 +346,6 @@ class XportReader(ReaderBase, abc.Iterator):
             field["ntype"] = types[field["ntype"]]
             fl = field["field_length"]
             if field["ntype"] == "numeric" and ((fl < 2) or (fl > 8)):
-                self.close()
                 msg = f"Floating field width {fl} is not between 2 and 8."
                 raise TypeError(msg)
 
@@ -364,7 +360,6 @@ class XportReader(ReaderBase, abc.Iterator):
 
         header = self._get_row()
         if not header == _correct_obs_header:
-            self.close()
             raise ValueError("Observation header not found.")
 
         self.fields = fields

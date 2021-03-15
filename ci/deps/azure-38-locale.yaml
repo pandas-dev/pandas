@@ -18,23 +18,24 @@ dependencies:
   - html5lib
   - ipython
   - jinja2
+  - jedi<0.18.0
   - lxml
   - matplotlib <3.3.0
   - moto
   - nomkl
   - numexpr
-  - numpy
+  - numpy<1.20  # GH#39541 compat with pyarrow<3
   - openpyxl
   - pytables
   - python-dateutil
   - pytz
   - scipy
   - xarray
-  - xlrd
+  - xlrd<2.0
   - xlsxwriter
   - xlwt
   - moto
-  - pyarrow>=0.15
+  - pyarrow=1.0.0
   - pip
   - pip:
     - pyxlsb

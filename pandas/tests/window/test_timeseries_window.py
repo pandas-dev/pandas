@@ -621,23 +621,8 @@ class TestRollingTS:
         expected = er.quantile(0.5)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "f",
-        [
-            "sum",
-            "mean",
-            "count",
-            "median",
-            "std",
-            "var",
-            "kurt",
-            "skew",
-            "min",
-            "max",
-        ],
-    )
-    def test_all2(self, f):
-
+    def test_all2(self, arithmetic_win_operators):
+        f = arithmetic_win_operators
         # more sophisticated comparison of integer vs.
         # time-based windowing
         df = DataFrame(

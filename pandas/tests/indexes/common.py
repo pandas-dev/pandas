@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -33,7 +32,6 @@ class Base:
     """ base class for index sub-class tests """
 
     _holder: Type[Index]
-    _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def create_index(self) -> Index:
         raise NotImplementedError("Method not implemented")
@@ -73,7 +71,10 @@ class Base:
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        msg = f"Not supported for type {type(idx).__name__}"
+        msg = (
+            f"This method is only implemented for DatetimeIndex, PeriodIndex and "
+            f"TimedeltaIndex; Got type {type(idx).__name__}"
+        )
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
@@ -189,47 +190,6 @@ class Base:
         with pytest.raises(TypeError, match="cannot perform any"):
             idx.any()
 
-    def test_reindex_base(self):
-        idx = self.create_index()
-        expected = np.arange(idx.size, dtype=np.intp)
-
-        actual = idx.get_indexer(idx)
-        tm.assert_numpy_array_equal(expected, actual)
-
-        with pytest.raises(ValueError, match="Invalid fill method"):
-            idx.get_indexer(idx, method="invalid")
-
-    def test_get_indexer_consistency(self, index):
-        # See GH 16819
-        if isinstance(index, IntervalIndex):
-            return
-
-        if index.is_unique or isinstance(index, CategoricalIndex):
-            indexer = index.get_indexer(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
-        else:
-            e = "Reindexing only valid with uniquely valued Index objects"
-            with pytest.raises(InvalidIndexError, match=e):
-                index.get_indexer(index[0:2])
-
-        indexer, _ = index.get_indexer_non_unique(index[0:2])
-        assert isinstance(indexer, np.ndarray)
-        assert indexer.dtype == np.intp
-
-    def test_ndarray_compat_properties(self):
-        idx = self.create_index()
-        assert idx.T.equals(idx)
-        assert idx.transpose().equals(idx)
-
-        values = idx.values
-        for prop in self._compat_props:
-            assert getattr(idx, prop) == getattr(values, prop)
-
-        # test for validity
-        idx.nbytes
-        idx.values.nbytes
-
     def test_repr_roundtrip(self):
 
         idx = self.create_index()
@@ -282,11 +242,6 @@ class Base:
         msg = f"{type(index).__name__}.name must be a hashable type"
         with pytest.raises(TypeError, match=msg):
             index.copy(name=[["mario"]])
-
-    def test_copy_dtype_deprecated(self, index):
-        # GH35853
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            index.copy(dtype=object)
 
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -363,6 +318,7 @@ class Base:
         # cannot be changed at the moment due to
         # backwards compatibility concerns
         if isinstance(type(index), (CategoricalIndex, RangeIndex)):
+            # TODO: why type(index)?
             msg = "the 'axis' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
                 np.argsort(index, axis=1)
@@ -374,49 +330,6 @@ class Base:
             msg = "the 'order' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
                 np.argsort(index, order=("a", "b"))
-
-    def test_take(self, index):
-        indexer = [4, 3, 0, 2]
-        if len(index) < 5:
-            # not enough elements; ignore
-            return
-
-        result = index.take(indexer)
-        expected = index[indexer]
-        assert result.equals(expected)
-
-        if not isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-            # GH 10791
-            msg = r"'(.*Index)' object has no attribute 'freq'"
-            with pytest.raises(AttributeError, match=msg):
-                index.freq
-
-    def test_take_invalid_kwargs(self):
-        idx = self.create_index()
-        indices = [1, 2]
-
-        msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        with pytest.raises(TypeError, match=msg):
-            idx.take(indices, foo=2)
-
-        msg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(indices, out=indices)
-
-        msg = "the 'mode' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(indices, mode="clip")
-
-    def test_take_minus1_without_fill(self, index):
-        # -1 does not get treated as NA unless allow_fill=True is passed
-        if len(index) == 0:
-            # Test is not applicable
-            return
-
-        result = index.take([0, 0, -1])
-
-        expected = index.take([0, 0, len(index) - 1])
-        tm.assert_index_equal(result, expected)
 
     def test_repeat(self):
         rep = 2
@@ -442,7 +355,7 @@ class Base:
     @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
     def test_where(self, klass):
         i = self.create_index()
-        if isinstance(i, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+        if isinstance(i, (DatetimeIndex, TimedeltaIndex)):
             # where does not preserve freq
             i = i._with_freq(None)
 
@@ -455,117 +368,6 @@ class Base:
         expected = Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("case", [0.5, "xxx"])
-    @pytest.mark.parametrize(
-        "method", ["intersection", "union", "difference", "symmetric_difference"]
-    )
-    def test_set_ops_error_cases(self, case, method, index):
-        # non-iterable input
-        msg = "Input must be Index or array-like"
-        with pytest.raises(TypeError, match=msg):
-            getattr(index, method)(case)
-
-    def test_intersection_base(self, index):
-        if isinstance(index, CategoricalIndex):
-            return
-
-        first = index[:5]
-        second = index[:3]
-        intersect = first.intersection(second)
-        assert tm.equalContents(intersect, second)
-
-        if is_datetime64tz_dtype(index.dtype):
-            # The second.values below will drop tz, so the rest of this test
-            #  is not applicable.
-            return
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.intersection(case)
-            assert tm.equalContents(result, second)
-
-        if isinstance(index, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.intersection([1, 2, 3])
-
-    def test_union_base(self, index):
-        first = index[3:]
-        second = index[:5]
-        everything = index
-        union = first.union(second)
-        assert tm.equalContents(union, everything)
-
-        if is_datetime64tz_dtype(index.dtype):
-            # The second.values below will drop tz, so the rest of this test
-            #  is not applicable.
-            return
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            if not isinstance(index, CategoricalIndex):
-                result = first.union(case)
-                assert tm.equalContents(result, everything), (
-                    result,
-                    everything,
-                    type(case),
-                )
-
-        if isinstance(index, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.union([1, 2, 3])
-
-    def test_difference_base(self, sort, index):
-        first = index[2:]
-        second = index[:4]
-        if isinstance(index, CategoricalIndex) or index.is_boolean():
-            answer = []
-        else:
-            answer = index[4:]
-        result = first.difference(second, sort)
-        assert tm.equalContents(result, answer)
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                assert type(result) == type(answer)
-                tm.assert_numpy_array_equal(
-                    result.sort_values().asi8, answer.sort_values().asi8
-                )
-            else:
-                result = first.difference(case, sort)
-                assert tm.equalContents(result, answer)
-
-        if isinstance(index, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.difference([1, 2, 3], sort)
-
-    def test_symmetric_difference(self, index):
-        if isinstance(index, CategoricalIndex):
-            return
-
-        first = index[1:]
-        second = index[:-1]
-        answer = index[[0, -1]]
-        result = first.symmetric_difference(second)
-        assert tm.equalContents(result, answer)
-
-        # GH 10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
-        for case in cases:
-            result = first.symmetric_difference(case)
-            assert tm.equalContents(result, answer)
-
-        if isinstance(index, MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.symmetric_difference([1, 2, 3])
 
     def test_insert_base(self, index):
         result = index[1:4]
@@ -601,7 +403,8 @@ class Base:
 
     def test_equals(self, index):
         if isinstance(index, IntervalIndex):
-            # IntervalIndex tested separately
+            # IntervalIndex tested separately, the index.equals(index.astype(object))
+            #  fails for IntervalIndex
             return
 
         assert index.equals(index)
@@ -681,6 +484,7 @@ class Base:
             # assuming the 2nd to last item is unique in the data
             item = index_a[-2]
             tm.assert_numpy_array_equal(index_a == item, expected3)
+            # For RangeIndex we can convert to Int64Index
             tm.assert_series_equal(series_a == item, Series(expected3))
 
     def test_format(self):
@@ -695,10 +499,9 @@ class Base:
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
-    def test_hasnans_isnans(self, index):
+    def test_hasnans_isnans(self, index_flat):
         # GH 11343, added tests for hasnans / isnans
-        if isinstance(index, MultiIndex):
-            return
+        index = index_flat
 
         # cases in indices doesn't include NaN
         idx = index.copy(deep=True)
@@ -802,12 +605,13 @@ class Base:
         index = self.create_index()
 
         # we don't infer UInt64
-        if isinstance(index, pd.UInt64Index):
+        if isinstance(index, UInt64Index):
             expected = index.astype("int64")
         else:
             expected = index
 
         result = index.map(lambda x: x)
+        # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -820,18 +624,19 @@ class Base:
     def test_map_dictlike(self, mapper):
 
         index = self.create_index()
-        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+        if isinstance(index, CategoricalIndex):
             pytest.skip(f"skipping tests for {type(index)}")
 
         identity = mapper(index.values, index)
 
         # we don't infer to UInt64 for a dict
-        if isinstance(index, pd.UInt64Index) and isinstance(identity, dict):
+        if isinstance(index, UInt64Index) and isinstance(identity, dict):
             expected = index.astype("int64")
         else:
             expected = index
 
         result = index.map(identity)
+        # For RangeIndex we convert to Int64Index
         tm.assert_index_equal(result, expected)
 
         # empty mappable
@@ -845,21 +650,6 @@ class Base:
         result = index.map(str)
         expected = Index([str(x) for x in index], dtype=object)
         tm.assert_index_equal(result, expected)
-
-    def test_putmask_with_wrong_mask(self):
-        # GH18368
-        index = self.create_index()
-        fill = index[0]
-
-        msg = "putmask: mask and data must be the same size"
-        with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
-
-        with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
-
-        with pytest.raises(ValueError, match=msg):
-            index.putmask("foo", fill)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
@@ -925,25 +715,6 @@ class Base:
 
         assert isinstance(res, np.ndarray), type(res)
 
-    def test_contains_requires_hashable_raises(self):
-        idx = self.create_index()
-
-        msg = "unhashable type: 'list'"
-        with pytest.raises(TypeError, match=msg):
-            [] in idx
-
-        msg = "|".join(
-            [
-                r"unhashable type: 'dict'",
-                r"must be real number, not dict",
-                r"an integer is required",
-                r"\{\}",
-                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
-            ]
-        )
-        with pytest.raises(TypeError, match=msg):
-            {} in idx._engine
-
     def test_copy_shares_cache(self):
         # GH32898, GH36840
         idx = self.create_index()
@@ -956,7 +727,7 @@ class Base:
         # GH32669, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
-        shallow_copy = idx._shallow_copy()
+        shallow_copy = idx._view()
 
         assert shallow_copy._cache is idx._cache
 

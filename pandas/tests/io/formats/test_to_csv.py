@@ -6,7 +6,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, compat
+from pandas import (
+    DataFrame,
+    compat,
+)
 import pandas._testing as tm
 
 
@@ -323,7 +326,7 @@ $1$,$2$
             ),
         ],
     )
-    @pytest.mark.parametrize("klass", [pd.DataFrame, pd.Series])
+    @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
     def test_to_csv_single_level_multi_index(self, ind, expected, klass):
         # see gh-19589
         result = klass(pd.Series([1], ind, name="data")).to_csv(
@@ -545,12 +548,12 @@ z
             df.to_csv(
                 path, compression={"method": compression, "archive_name": archive_name}
             )
-            zp = ZipFile(path)
-            expected_arcname = path if archive_name is None else archive_name
-            expected_arcname = os.path.basename(expected_arcname)
-            assert len(zp.filelist) == 1
-            archived_file = os.path.basename(zp.filelist[0].filename)
-            assert archived_file == expected_arcname
+            with ZipFile(path) as zp:
+                expected_arcname = path if archive_name is None else archive_name
+                expected_arcname = os.path.basename(expected_arcname)
+                assert len(zp.filelist) == 1
+                archived_file = os.path.basename(zp.filelist[0].filename)
+                assert archived_file == expected_arcname
 
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):
@@ -602,19 +605,22 @@ z
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
-    def test_to_csv_binary_handle(self):
+    @pytest.mark.parametrize("mode", ["wb", "w"])
+    def test_to_csv_binary_handle(self, mode):
         """
-        Binary file objects should work if 'mode' contains a 'b'.
+        Binary file objects should work (if 'mode' contains a 'b') or even without
+        it in most cases.
 
         GH 35058 and GH 19827
         """
         df = tm.makeDataFrame()
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
-                df.to_csv(handle, mode="w+b")
+                df.to_csv(handle, mode=mode)
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
-    def test_to_csv_encoding_binary_handle(self):
+    @pytest.mark.parametrize("mode", ["wb", "w"])
+    def test_to_csv_encoding_binary_handle(self, mode):
         """
         Binary file objects should honor a specified encoding.
 
@@ -626,14 +632,36 @@ z
         df = pd.read_csv(buffer, encoding="utf-8-sig")
 
         buffer = io.BytesIO()
-        df.to_csv(buffer, mode="w+b", encoding="utf-8-sig", index=False)
+        df.to_csv(buffer, mode=mode, encoding="utf-8-sig", index=False)
         buffer.seek(0)  # tests whether file handle wasn't closed
         assert buffer.getvalue().startswith(content)
 
         # example from GH 13068
         with tm.ensure_clean() as path:
             with open(path, "w+b") as handle:
-                DataFrame().to_csv(handle, mode="w+b", encoding="utf-8-sig")
+                DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
 
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
+
+
+def test_to_csv_iterative_compression_name(compression):
+    # GH 38714
+    df = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        df.to_csv(path, compression=compression, chunksize=1)
+        tm.assert_frame_equal(
+            pd.read_csv(path, compression=compression, index_col=0), df
+        )
+
+
+def test_to_csv_iterative_compression_buffer(compression):
+    # GH 38714
+    df = tm.makeDataFrame()
+    with io.BytesIO() as buffer:
+        df.to_csv(buffer, compression=compression, chunksize=1)
+        buffer.seek(0)
+        tm.assert_frame_equal(
+            pd.read_csv(buffer, compression=compression, index_col=0), df
+        )
+        assert not buffer.closed

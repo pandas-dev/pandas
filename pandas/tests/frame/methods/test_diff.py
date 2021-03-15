@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -75,7 +80,7 @@ class TestDataFrameDiff:
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_with_nat_zero_periods(self, tz):
         # diff on NaT values should give NaT, not timedelta64(0)
-        dti = pd.date_range("2016-01-01", periods=4, tz=tz)
+        dti = date_range("2016-01-01", periods=4, tz=tz)
         ser = Series(dti)
         df = ser.to_frame()
 
@@ -132,10 +137,10 @@ class TestDataFrameDiff:
     def test_diff_timedelta(self):
         # GH#4533
         df = DataFrame(
-            dict(
-                time=[Timestamp("20130101 9:01"), Timestamp("20130101 9:02")],
-                value=[1.0, 2.0],
-            )
+            {
+                "time": [Timestamp("20130101 9:01"), Timestamp("20130101 9:02")],
+                "value": [1.0, 2.0],
+            }
         )
 
         res = df.diff()
@@ -173,7 +178,7 @@ class TestDataFrameDiff:
 
     def test_diff_period(self):
         # GH#32995 Don't pass an incorrect axis
-        pi = pd.date_range("2016-01-01", periods=3).to_period("D")
+        pi = date_range("2016-01-01", periods=3).to_period("D")
         df = DataFrame({"A": pi})
 
         result = df.diff(1, axis=1)

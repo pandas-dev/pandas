@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_under1p17, np_version_under1p18
+from pandas.compat import (
+    np_version_under1p17,
+    np_version_under1p18,
+)
 
 from pandas import (
     DatetimeIndex,
@@ -49,8 +52,7 @@ def test_numpy_ufuncs_basic(index, func):
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
     if isinstance(index, DatetimeIndexOpsMixin):
-        # raise TypeError or ValueError (PeriodIndex)
-        with pytest.raises(Exception):
+        with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
     elif isinstance(index, (Float64Index, Int64Index, UInt64Index)):
@@ -66,7 +68,7 @@ def test_numpy_ufuncs_basic(index, func):
         if len(index) == 0:
             pass
         else:
-            with pytest.raises(Exception):
+            with tm.external_error_raised((TypeError, AttributeError)):
                 with np.errstate(all="ignore"):
                     func(index)
 
@@ -74,14 +76,15 @@ def test_numpy_ufuncs_basic(index, func):
 @pytest.mark.parametrize(
     "func", [np.isfinite, np.isinf, np.isnan, np.signbit], ids=lambda x: x.__name__
 )
-def test_numpy_ufuncs_other(index, func):
+def test_numpy_ufuncs_other(index, func, request):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
-
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
         if isinstance(index, DatetimeIndex) and index.tz is not None:
             if func in [np.isfinite, np.isnan, np.isinf]:
-                pytest.xfail(reason="__array_ufunc__ is not defined")
+                if not np_version_under1p17:
+                    mark = pytest.mark.xfail(reason="__array_ufunc__ is not defined")
+                    request.node.add_marker(mark)
 
         if not np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
             # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64
@@ -94,13 +97,11 @@ def test_numpy_ufuncs_other(index, func):
             result = func(index)
             assert isinstance(result, np.ndarray)
         else:
-            # raise TypeError or ValueError (PeriodIndex)
-            with pytest.raises(Exception):
+            with tm.external_error_raised(TypeError):
                 func(index)
 
     elif isinstance(index, PeriodIndex):
-        # raise TypeError or ValueError (PeriodIndex)
-        with pytest.raises(Exception):
+        with tm.external_error_raised(TypeError):
             func(index)
 
     elif isinstance(index, (Float64Index, Int64Index, UInt64Index)):
@@ -112,5 +113,5 @@ def test_numpy_ufuncs_other(index, func):
         if len(index) == 0:
             pass
         else:
-            with pytest.raises(Exception):
+            with tm.external_error_raised(TypeError):
                 func(index)

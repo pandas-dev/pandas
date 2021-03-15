@@ -6,7 +6,12 @@ __setitem__.
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index
+from pandas.errors import PerformanceWarning
+
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -66,3 +71,21 @@ class TestDataFrameInsert:
             [["a", "d", "g"], ["b", "e", "h"], ["c", "f", "i"]], columns=["A", "A", "A"]
         )
         tm.assert_frame_equal(df, exp)
+
+    def test_insert_item_cache(self, using_array_manager):
+        df = DataFrame(np.random.randn(4, 3))
+        ser = df[0]
+
+        if using_array_manager:
+            expected_warning = None
+        else:
+            # with BlockManager warn about high fragmentation of single dtype
+            expected_warning = PerformanceWarning
+
+        with tm.assert_produces_warning(expected_warning):
+            for n in range(100):
+                df[n + 3] = df[1] * n
+
+        ser.values[0] = 99
+
+        assert df.iloc[0, 0] == df[0][0]

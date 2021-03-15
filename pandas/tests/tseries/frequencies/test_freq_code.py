@@ -1,6 +1,10 @@
 import pytest
 
-from pandas._libs.tslibs import Period, Resolution, to_offset
+from pandas._libs.tslibs import (
+    Period,
+    Resolution,
+    to_offset,
+)
 from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
 
 

@@ -117,7 +117,7 @@ dtype if needed.
    # coerce when needed
    s + 0.01
 
-These dtypes can operate as part of of ``DataFrame``.
+These dtypes can operate as part of ``DataFrame``.
 
 .. ipython:: python
 

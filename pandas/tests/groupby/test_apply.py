@@ -1,11 +1,22 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 from io import StringIO
 
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    bdate_range,
+)
 import pandas._testing as tm
 
 
@@ -75,6 +86,7 @@ def test_apply_trivial_fail():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 def test_fast_apply():
     # make sure that fast apply is correctly called
     # rather than raising any kind of error
@@ -101,7 +113,7 @@ def test_fast_apply():
 
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
-    sdata = splitter._get_sorted_data()
+    sdata = splitter.sorted_data
 
     values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
@@ -204,6 +216,7 @@ def test_group_apply_once_per_group2(capsys):
     assert result == expected
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 @pytest.mark.xfail(reason="GH-34998")
 def test_apply_fast_slow_identical():
     # GH 31613
@@ -224,6 +237,7 @@ def test_apply_fast_slow_identical():
     tm.assert_frame_equal(fast_df, slow_df)
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 @pytest.mark.parametrize(
     "func",
     [
@@ -665,7 +679,7 @@ def test_apply_aggregating_timedelta_and_datetime():
     df["time_delta_zero"] = df.datetime - df.datetime
     result = df.groupby("clientid").apply(
         lambda ddf: Series(
-            dict(clientid_age=ddf.time_delta_zero.min(), date=ddf.datetime.min())
+            {"clientid_age": ddf.time_delta_zero.min(), "date": ddf.datetime.min()}
         )
     )
     expected = DataFrame(
@@ -784,7 +798,7 @@ def test_groupby_apply_none_first():
 
 def test_groupby_apply_return_empty_chunk():
     # GH 22221: apply filter which returns some empty groups
-    df = DataFrame(dict(value=[0, 1], group=["filled", "empty"]))
+    df = DataFrame({"value": [0, 1], "group": ["filled", "empty"]})
     groups = df.groupby("group")
     result = groups.apply(lambda group: group[group.value != 1]["value"])
     expected = Series(
@@ -921,7 +935,7 @@ def test_groupby_apply_datetime_result_dtypes():
         pd.CategoricalIndex(list("abc")),
         pd.interval_range(0, 3),
         pd.period_range("2020", periods=3, freq="D"),
-        pd.MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
+        MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
     ],
 )
 def test_apply_index_has_complex_internals(index):
@@ -994,9 +1008,10 @@ def test_apply_function_with_indexing_return_column():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-34998")
-def test_apply_with_timezones_aware():
+def test_apply_with_timezones_aware(using_array_manager, request):
     # GH: 27212
+    if not using_array_manager:
+        request.node.add_marker(pytest.mark.xfail(reason="GH-34998"))
 
     dates = ["2001-01-01"] * 2 + ["2001-01-02"] * 2 + ["2001-01-03"] * 2
     index_no_tz = pd.DatetimeIndex(dates)
@@ -1061,7 +1076,7 @@ def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
 
     expected = df.iloc[[0, 2, 3]]
     expected = expected.reset_index()
-    expected.index = pd.MultiIndex.from_frame(expected[["A", "B", "idx"]])
+    expected.index = MultiIndex.from_frame(expected[["A", "B", "idx"]])
     expected = expected.drop(columns="idx")
 
     tm.assert_frame_equal(result, expected)
@@ -1077,7 +1092,7 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
 
     df = DataFrame(
         np.random.random([6, 4]),
-        columns=pd.MultiIndex.from_product([["A", "B"], [1, 2]]),
+        columns=MultiIndex.from_product([["A", "B"], [1, 2]]),
     )
 
     by_rows = df.T.groupby(axis=0, level=0).apply(
@@ -1087,3 +1102,25 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
 
     tm.assert_frame_equal(by_cols, by_rows.T)
     tm.assert_frame_equal(by_cols, df)
+
+
+def test_apply_dropna_with_indexed_same():
+    # GH 38227
+
+    df = DataFrame(
+        {
+            "col": [1, 2, 3, 4, 5],
+            "group": ["a", np.nan, np.nan, "b", "b"],
+        },
+        index=list("xxyxz"),
+    )
+    result = df.groupby("group").apply(lambda x: x)
+    expected = DataFrame(
+        {
+            "col": [1, 4, 5],
+            "group": ["a", "b", "b"],
+        },
+        index=list("xxz"),
+    )
+
+    tm.assert_frame_equal(result, expected)

@@ -1,11 +1,19 @@
+from __future__ import annotations
+
 import itertools
-from typing import List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    List,
+    Optional,
+    Union,
+    cast,
+)
 
 import numpy as np
 
-import pandas._libs.algos as libalgos
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
+from pandas._typing import Dtype
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -25,14 +33,21 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
     get_compressed_ids,
     get_group_index,
+    get_group_index_sorter,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray
 
 
 class _Unstacker:
@@ -129,15 +144,14 @@ class _Unstacker:
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
         ngroups = len(obs_ids)
 
-        indexer = libalgos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = ensure_platform_int(indexer)
+        indexer = get_group_index_sorter(comp_index, ngroups)
 
         return indexer, to_sort
 
     @cache_readonly
     def sorted_labels(self):
         indexer, to_sort = self._indexer_and_to_sort
-        return [l.take(indexer) for l in to_sort]
+        return [line.take(indexer) for line in to_sort]
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
@@ -160,7 +174,9 @@ class _Unstacker:
         self.full_shape = ngroups, stride
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
-        mask = np.zeros(np.prod(self.full_shape), dtype=bool)
+        # error: Argument 1 to "zeros" has incompatible type "number"; expected
+        # "Union[int, Sequence[int]]"
+        mask = np.zeros(np.prod(self.full_shape), dtype=bool)  # type: ignore[arg-type]
         mask.put(selector, True)
 
         if mask.sum() < len(self.index):
@@ -258,7 +274,7 @@ class _Unstacker:
     def get_new_columns(self, value_columns):
         if value_columns is None:
             if self.lift == 0:
-                return self.removed_level._shallow_copy(name=self.removed_name)
+                return self.removed_level._rename(name=self.removed_name)
 
             lev = self.removed_level.insert(0, item=self.removed_level._na_value)
             return lev.rename(self.removed_name)
@@ -399,6 +415,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 def unstack(obj, level, fill_value=None):
+
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -416,6 +433,13 @@ def unstack(obj, level, fill_value=None):
             return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)
+    elif not isinstance(obj.index, MultiIndex):
+        # GH 36113
+        # Give nicer error messages when unstack a Series whose
+        # Index is not a MultiIndex.
+        raise ValueError(
+            f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
+        )
     else:
         if is_extension_array_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
@@ -423,7 +447,7 @@ def unstack(obj, level, fill_value=None):
             obj.index, level=level, constructor=obj._constructor_expanddim
         )
         return unstacker.get_result(
-            obj.values, value_columns=None, fill_value=fill_value
+            obj._values, value_columns=None, fill_value=fill_value
         )
 
 
@@ -433,9 +457,10 @@ def _unstack_frame(obj, level, fill_value=None):
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(mgr)
     else:
-        return _Unstacker(
-            obj.index, level=level, constructor=obj._constructor
-        ).get_result(obj._values, value_columns=obj.columns, fill_value=fill_value)
+        unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
+        return unstacker.get_result(
+            obj._values, value_columns=obj.columns, fill_value=fill_value
+        )
 
 
 def _unstack_extension_series(series, level, fill_value):
@@ -513,7 +538,7 @@ def stack(frame, level=-1, dropna=True):
             verify_integrity=False,
         )
 
-    if frame._is_homogeneous_type:
+    if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)
@@ -582,6 +607,33 @@ def stack_multiple(frame, level, dropna=True):
     return result
 
 
+def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
+    """Creates a MultiIndex from the first N-1 levels of this MultiIndex."""
+    if len(columns.levels) <= 2:
+        return columns.levels[0]._rename(name=columns.names[0])
+
+    levs = [
+        [lev[c] if c >= 0 else None for c in codes]
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+    ]
+
+    # Remove duplicate tuples in the MultiIndex.
+    tuples = zip(*levs)
+    unique_tuples = (key for key, _ in itertools.groupby(tuples))
+    new_levs = zip(*unique_tuples)
+
+    # The dtype of each level must be explicitly set to avoid inferring the wrong type.
+    # See GH-36991.
+    return MultiIndex.from_arrays(
+        [
+            # Not all indices can accept None values.
+            Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
+            for new_lev, lev in zip(new_levs, columns.levels)
+        ],
+        names=columns.names[:-1],
+    )
+
+
 def _stack_multi_columns(frame, level_num=-1, dropna=True):
     def _convert_level_number(level_num, columns):
         """
@@ -609,40 +661,25 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = roll_columns
 
-    if not this.columns.is_lexsorted():
+    if not this.columns._is_lexsorted():
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
         level_to_sort = _convert_level_number(0, this.columns)
         this = this.sort_index(level=level_to_sort, axis=1)
 
-    # tuple list excluding level for grouping columns
-    if len(frame.columns.levels) > 2:
-        tuples = list(
-            zip(
-                *[
-                    lev.take(level_codes)
-                    for lev, level_codes in zip(
-                        this.columns.levels[:-1], this.columns.codes[:-1]
-                    )
-                ]
-            )
-        )
-        unique_groups = [key for key, _ in itertools.groupby(tuples)]
-        new_names = this.columns.names[:-1]
-        new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
-    else:
-        new_columns = this.columns.levels[0]._shallow_copy(name=this.columns.names[0])
-        unique_groups = new_columns
+    new_columns = _stack_multi_column_index(this.columns)
 
     # time to ravel the values
     new_data = {}
     level_vals = this.columns.levels[-1]
     level_codes = sorted(set(this.columns.codes[-1]))
-    level_vals_used = level_vals[level_codes]
+    level_vals_nan = level_vals.insert(len(level_vals), None)
+
+    level_vals_used = np.take(level_vals_nan, level_codes)
     levsize = len(level_codes)
     drop_cols = []
-    for key in unique_groups:
+    for key in new_columns:
         try:
             loc = this.columns.get_loc(key)
         except KeyError:
@@ -660,7 +697,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
-            chunk.columns = level_vals.take(chunk.columns.codes[-1])
+            chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if frame._is_homogeneous_type and is_extension_array_dtype(
@@ -724,12 +761,12 @@ def get_dummies(
     data,
     prefix=None,
     prefix_sep="_",
-    dummy_na=False,
+    dummy_na: bool = False,
     columns=None,
-    sparse=False,
-    drop_first=False,
-    dtype=None,
-) -> "DataFrame":
+    sparse: bool = False,
+    drop_first: bool = False,
+    dtype: Optional[Dtype] = None,
+) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
 
@@ -910,11 +947,11 @@ def _get_dummies_1d(
     data,
     prefix,
     prefix_sep="_",
-    dummy_na=False,
-    sparse=False,
-    drop_first=False,
-    dtype=None,
-):
+    dummy_na: bool = False,
+    sparse: bool = False,
+    drop_first: bool = False,
+    dtype: Optional[Dtype] = None,
+) -> DataFrame:
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
@@ -922,7 +959,9 @@ def _get_dummies_1d(
 
     if dtype is None:
         dtype = np.uint8
-    dtype = np.dtype(dtype)
+    # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
+    # dtype[Any], Type[object]]"; expected "Type[Any]"
+    dtype = np.dtype(dtype)  # type: ignore[arg-type]
 
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
@@ -995,6 +1034,8 @@ def _get_dummies_1d(
             sparse_series.append(Series(data=sarr, index=index, name=col))
 
         out = concat(sparse_series, axis=1, copy=False)
+        # TODO: overload concat with Literal for axis
+        out = cast(DataFrame, out)
         return out
 
     else:
@@ -1011,7 +1052,9 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
-def _reorder_for_extension_array_stack(arr, n_rows: int, n_columns: int):
+def _reorder_for_extension_array_stack(
+    arr: ExtensionArray, n_rows: int, n_columns: int
+) -> ExtensionArray:
     """
     Re-orders the values when stacking multiple extension-arrays.
 

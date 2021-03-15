@@ -1,7 +1,17 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Index,
+    Interval,
+    IntervalIndex,
+    PeriodIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
@@ -202,17 +212,25 @@ class TestCategoricalIndexing:
     # Combinations of missing/unique
     @pytest.mark.parametrize("key_values", [[1, 2], [1, 5], [1, 1], [5, 5]])
     @pytest.mark.parametrize("key_class", [Categorical, CategoricalIndex])
-    def test_get_indexer_non_unique(self, idx_values, key_values, key_class):
+    @pytest.mark.parametrize("dtype", [None, "category", "key"])
+    def test_get_indexer_non_unique(self, idx_values, key_values, key_class, dtype):
         # GH 21448
         key = key_class(key_values, categories=range(1, 5))
-        # Test for flat index and CategoricalIndex with same/different cats:
-        for dtype in [None, "category", key.dtype]:
-            idx = Index(idx_values, dtype=dtype)
-            expected, exp_miss = idx.get_indexer_non_unique(key_values)
-            result, res_miss = idx.get_indexer_non_unique(key)
 
-            tm.assert_numpy_array_equal(expected, result)
-            tm.assert_numpy_array_equal(exp_miss, res_miss)
+        if dtype == "key":
+            dtype = key.dtype
+
+        # Test for flat index and CategoricalIndex with same/different cats:
+        idx = Index(idx_values, dtype=dtype)
+        expected, exp_miss = idx.get_indexer_non_unique(key_values)
+        result, res_miss = idx.get_indexer_non_unique(key)
+
+        tm.assert_numpy_array_equal(expected, result)
+        tm.assert_numpy_array_equal(exp_miss, res_miss)
+
+        exp_unique = idx.unique().get_indexer(key_values)
+        res_unique = idx.unique().get_indexer(key)
+        tm.assert_numpy_array_equal(res_unique, exp_unique)
 
     def test_where_unobserved_nan(self):
         ser = Series(Categorical(["a", "b"]))
@@ -254,6 +272,55 @@ class TestCategoricalIndexing:
         )
         with pytest.raises(ValueError, match="without identical categories"):
             ser.where([True, False, True], other)
+
+
+class TestContains:
+    def test_contains(self):
+        # GH#21508
+        c = Categorical(list("aabbca"), categories=list("cab"))
+
+        assert "b" in c
+        assert "z" not in c
+        assert np.nan not in c
+        with pytest.raises(TypeError, match="unhashable type: 'list'"):
+            assert [1] in c
+
+        # assert codes NOT in index
+        assert 0 not in c
+        assert 1 not in c
+
+        c = Categorical(list("aabbca") + [np.nan], categories=list("cab"))
+        assert np.nan in c
+
+    @pytest.mark.parametrize(
+        "item, expected",
+        [
+            (Interval(0, 1), True),
+            (1.5, True),
+            (Interval(0.5, 1.5), False),
+            ("a", False),
+            (Timestamp(1), False),
+            (Timedelta(1), False),
+        ],
+        ids=str,
+    )
+    def test_contains_interval(self, item, expected):
+        # GH#23705
+        cat = Categorical(IntervalIndex.from_breaks(range(3)))
+        result = item in cat
+        assert result is expected
+
+    def test_contains_list(self):
+        # GH#21729
+        cat = Categorical([1, 2, 3])
+
+        assert "a" not in cat
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a"] in cat
+
+        with pytest.raises(TypeError, match="unhashable type"):
+            ["a", "b"] in cat
 
 
 @pytest.mark.parametrize("index", [True, False])

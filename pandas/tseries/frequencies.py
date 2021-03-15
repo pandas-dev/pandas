@@ -4,7 +4,10 @@ import warnings
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
-from pandas._libs.tslibs import Timestamp, tzconversion
+from pandas._libs.tslibs import (
+    Timestamp,
+    tzconversion,
+)
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTH_ALIASES,
@@ -12,7 +15,10 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
-from pandas._libs.tslibs.fields import build_field_sarray, month_position_check
+from pandas._libs.tslibs.fields import (
+    build_field_sarray,
+    month_position_check,
+)
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
     Day,
@@ -240,16 +246,17 @@ class _FrequencyInferer:
             return None
 
         delta = self.deltas[0]
-        if _is_multiple(delta, _ONE_DAY):
+        if delta and _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
             return "BH"
+
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values
         # will not work around DST transitions.  See #8772
-        elif not self.is_unique_asi8:
+        if not self.is_unique_asi8:
             return None
 
         delta = self.deltas_asi8[0]
@@ -321,13 +328,7 @@ class _FrequencyInferer:
             return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
         if self.is_unique:
-            days = self.deltas[0] / _ONE_DAY
-            if days % 7 == 0:
-                # Weekly
-                day = int_to_weekday[self.rep_stamp.weekday()]
-                return _maybe_add_count(f"W-{day}", days / 7)
-            else:
-                return _maybe_add_count("D", days)
+            return self._get_daily_rule()
 
         if self._is_business_daily():
             return "B"
@@ -337,6 +338,16 @@ class _FrequencyInferer:
             return wom_rule
 
         return None
+
+    def _get_daily_rule(self) -> Optional[str]:
+        days = self.deltas[0] / _ONE_DAY
+        if days % 7 == 0:
+            # Weekly
+            wd = int_to_weekday[self.rep_stamp.weekday()]
+            alias = f"W-{wd}"
+            return _maybe_add_count(alias, days / 7)
+        else:
+            return _maybe_add_count("D", days)
 
     def _get_annual_rule(self) -> Optional[str]:
         if len(self.ydiffs) > 1:
@@ -374,7 +385,8 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        return np.all(
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return np.all(  # type: ignore[return-value]
             ((weekdays == 0) & (shifts == 3))
             | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
         )
@@ -406,14 +418,7 @@ class _FrequencyInferer:
 class _TimedeltaFrequencyInferer(_FrequencyInferer):
     def _infer_daily_rule(self):
         if self.is_unique:
-            days = self.deltas[0] / _ONE_DAY
-            if days % 7 == 0:
-                # Weekly
-                wd = int_to_weekday[self.rep_stamp.weekday()]
-                alias = f"W-{wd}"
-                return _maybe_add_count(alias, days / 7)
-            else:
-                return _maybe_add_count("D", days)
+            return self._get_daily_rule()
 
 
 def _is_multiple(us, mult: int) -> bool:

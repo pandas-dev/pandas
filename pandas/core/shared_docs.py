@@ -1,6 +1,6 @@
 from typing import Dict
 
-_shared_docs: Dict[str, str] = dict()
+_shared_docs: Dict[str, str] = {}
 
 _shared_docs[
     "aggregate"
@@ -41,22 +41,26 @@ Notes
 -----
 `agg` is an alias for `aggregate`. Use the alias.
 
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
+
 A passed user-defined-function will be passed a Series for evaluation.
 {examples}"""
 
 _shared_docs[
     "compare"
 ] = """
-Compare to another %(klass)s and show the differences.
+Compare to another {klass} and show the differences.
 
 .. versionadded:: 1.1.0
 
 Parameters
 ----------
-other : %(klass)s
+other : {klass}
     Object to compare with.
 
-align_axis : {0 or 'index', 1 or 'columns'}, default 1
+align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
@@ -296,6 +300,12 @@ See Also
 {klass}.agg : Only perform aggregating type operations.
 {klass}.apply : Invoke function on a {klass}.
 
+Notes
+-----
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`udf-mutation`
+for more details.
+
 Examples
 --------
 >>> df = pd.DataFrame({{'A': range(3), 'B': range(1, 4)}})
@@ -324,4 +334,344 @@ dtype: int64
 0  0.000000   1.000000
 1  1.000000   2.718282
 2  1.414214   7.389056
+
+You can call transform on a GroupBy object:
+
+>>> df = pd.DataFrame({{
+...     "Date": [
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05",
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05"],
+...     "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+... }})
+>>> df
+         Date  Data
+0  2015-05-08     5
+1  2015-05-07     8
+2  2015-05-06     6
+3  2015-05-05     1
+4  2015-05-08    50
+5  2015-05-07   100
+6  2015-05-06    60
+7  2015-05-05   120
+>>> df.groupby('Date')['Data'].transform('sum')
+0     55
+1    108
+2     66
+3    121
+4     55
+5    108
+6     66
+7    121
+Name: Data, dtype: int64
+
+>>> df = pd.DataFrame({{
+...     "c": [1, 1, 1, 2, 2, 2, 2],
+...     "type": ["m", "n", "o", "m", "m", "n", "n"]
+... }})
+>>> df
+   c type
+0  1    m
+1  1    n
+2  1    o
+3  2    m
+4  2    m
+5  2    n
+6  2    n
+>>> df['size'] = df.groupby('c')['type'].transform(len)
+>>> df
+   c type size
+0  1    m    3
+1  1    n    3
+2  1    o    3
+3  2    m    4
+4  2    m    4
+5  2    n    4
+6  2    n    4
+"""
+
+_shared_docs[
+    "storage_options"
+] = """storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib`` as header options. For other URLs (e.g.
+    starting with "s3://", and "gcs://") the key-value pairs are forwarded to
+    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details."""
+
+_shared_docs[
+    "replace"
+] = """
+    Replace values given in `to_replace` with `value`.
+
+    Values of the {klass} are replaced with other values dynamically.
+    {replace_iloc}
+
+    Parameters
+    ----------
+    to_replace : str, regex, list, dict, Series, int, float, or None
+        How to find the values that will be replaced.
+
+        * numeric, str or regex:
+
+            - numeric: numeric values equal to `to_replace` will be
+                replaced with `value`
+            - str: string exactly matching `to_replace` will be replaced
+                with `value`
+            - regex: regexs matching `to_replace` will be replaced with
+                `value`
+
+        * list of str, regex, or numeric:
+
+            - First, if `to_replace` and `value` are both lists, they
+                **must** be the same length.
+            - Second, if ``regex=True`` then all of the strings in **both**
+                lists will be interpreted as regexs otherwise they will match
+                directly. This doesn't matter much for `value` since there
+                are only a few possible substitution regexes you can use.
+            - str, regex and numeric rules apply as above.
+
+        * dict:
+
+            - Dicts can be used to specify different replacement values
+                for different existing values. For example,
+                ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
+                'y' with 'z'. To use a dict in this way the `value`
+                parameter should be `None`.
+            - For a DataFrame a dict can specify that different values
+                should be replaced in different columns. For example,
+                ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
+                and the value 'z' in column 'b' and replaces these values
+                with whatever is specified in `value`. The `value` parameter
+                should not be ``None`` in this case. You can treat this as a
+                special case of passing two lists except that you are
+                specifying the column to search in.
+            - For a DataFrame nested dictionaries, e.g.,
+                ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
+                'a' for the value 'b' and replace it with NaN. The `value`
+                parameter should be ``None`` to use a nested dict in this
+                way. You can nest regular expressions as well. Note that
+                column names (the top-level dictionary keys in a nested
+                dictionary) **cannot** be regular expressions.
+
+        * None:
+
+            - This means that the `regex` argument must be a string,
+                compiled regular expression, or list, dict, ndarray or
+                Series of such elements. If `value` is also ``None`` then
+                this **must** be a nested dictionary or Series.
+
+        See the examples section for examples of each of these.
+    value : scalar, dict, list, str, regex, default None
+        Value to replace any values matching `to_replace` with.
+        For a DataFrame a dict of values can be used to specify which
+        value to use for each column (columns not in the dict will not be
+        filled). Regular expressions, strings and lists or dicts of such
+        objects are also allowed.
+    {inplace}
+    limit : int, default None
+        Maximum size gap to forward or backward fill.
+    regex : bool or same types as `to_replace`, default False
+        Whether to interpret `to_replace` and/or `value` as regular
+        expressions. If this is ``True`` then `to_replace` *must* be a
+        string. Alternatively, this could be a regular expression or a
+        list, dict, or array of regular expressions in which case
+        `to_replace` must be ``None``.
+    method : {{'pad', 'ffill', 'bfill', `None`}}
+        The method to use when for replacement, when `to_replace` is a
+        scalar, list or tuple and `value` is ``None``.
+
+        .. versionchanged:: 0.23.0
+            Added to DataFrame.
+
+    Returns
+    -------
+    {klass}
+        Object after replacement.
+
+    Raises
+    ------
+    AssertionError
+        * If `regex` is not a ``bool`` and `to_replace` is not
+            ``None``.
+
+    TypeError
+        * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
+        * If `to_replace` is a ``dict`` and `value` is not a ``list``,
+            ``dict``, ``ndarray``, or ``Series``
+        * If `to_replace` is ``None`` and `regex` is not compilable
+            into a regular expression or is a list, dict, ndarray, or
+            Series.
+        * When replacing multiple ``bool`` or ``datetime64`` objects and
+            the arguments to `to_replace` does not match the type of the
+            value being replaced
+
+    ValueError
+        * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
+            `value` but they are not the same length.
+
+    See Also
+    --------
+    {klass}.fillna : Fill NA values.
+    {klass}.where : Replace values based on boolean condition.
+    Series.str.replace : Simple string replacement.
+
+    Notes
+    -----
+    * Regex substitution is performed under the hood with ``re.sub``. The
+        rules for substitution for ``re.sub`` are the same.
+    * Regular expressions will only substitute on strings, meaning you
+        cannot provide, for example, a regular expression matching floating
+        point numbers and expect the columns in your frame that have a
+        numeric dtype to be matched. However, if those floating point
+        numbers *are* strings, then you can do this.
+    * This method has *a lot* of options. You are encouraged to experiment
+        and play with this method to gain intuition about how it works.
+    * When dict is used as the `to_replace` value, it is like
+        key(s) in the dict are the to_replace part and
+        value(s) in the dict are the value parameter.
+
+    Examples
+    --------
+
+    **Scalar `to_replace` and `value`**
+
+    >>> s = pd.Series([0, 1, 2, 3, 4])
+    >>> s.replace(0, 5)
+    0    5
+    1    1
+    2    2
+    3    3
+    4    4
+    dtype: int64
+
+    >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
+    ...                    'B': [5, 6, 7, 8, 9],
+    ...                    'C': ['a', 'b', 'c', 'd', 'e']}})
+    >>> df.replace(0, 5)
+        A  B  C
+    0  5  5  a
+    1  1  6  b
+    2  2  7  c
+    3  3  8  d
+    4  4  9  e
+
+    **List-like `to_replace`**
+
+    >>> df.replace([0, 1, 2, 3], 4)
+        A  B  C
+    0  4  5  a
+    1  4  6  b
+    2  4  7  c
+    3  4  8  d
+    4  4  9  e
+
+    >>> df.replace([0, 1, 2, 3], [4, 3, 2, 1])
+        A  B  C
+    0  4  5  a
+    1  3  6  b
+    2  2  7  c
+    3  1  8  d
+    4  4  9  e
+
+    >>> s.replace([1, 2], method='bfill')
+    0    0
+    1    3
+    2    3
+    3    3
+    4    4
+    dtype: int64
+
+    **dict-like `to_replace`**
+
+    >>> df.replace({{0: 10, 1: 100}})
+            A  B  C
+    0   10  5  a
+    1  100  6  b
+    2    2  7  c
+    3    3  8  d
+    4    4  9  e
+
+    >>> df.replace({{'A': 0, 'B': 5}}, 100)
+            A    B  C
+    0  100  100  a
+    1    1    6  b
+    2    2    7  c
+    3    3    8  d
+    4    4    9  e
+
+    >>> df.replace({{'A': {{0: 100, 4: 400}}}})
+            A  B  C
+    0  100  5  a
+    1    1  6  b
+    2    2  7  c
+    3    3  8  d
+    4  400  9  e
+
+    **Regular expression `to_replace`**
+
+    >>> df = pd.DataFrame({{'A': ['bat', 'foo', 'bait'],
+    ...                    'B': ['abc', 'bar', 'xyz']}})
+    >>> df.replace(to_replace=r'^ba.$', value='new', regex=True)
+            A    B
+    0   new  abc
+    1   foo  new
+    2  bait  xyz
+
+    >>> df.replace({{'A': r'^ba.$'}}, {{'A': 'new'}}, regex=True)
+            A    B
+    0   new  abc
+    1   foo  bar
+    2  bait  xyz
+
+    >>> df.replace(regex=r'^ba.$', value='new')
+            A    B
+    0   new  abc
+    1   foo  new
+    2  bait  xyz
+
+    >>> df.replace(regex={{r'^ba.$': 'new', 'foo': 'xyz'}})
+            A    B
+    0   new  abc
+    1   xyz  new
+    2  bait  xyz
+
+    >>> df.replace(regex=[r'^ba.$', 'foo'], value='new')
+            A    B
+    0   new  abc
+    1   new  new
+    2  bait  xyz
+
+    Compare the behavior of ``s.replace({{'a': None}})`` and
+    ``s.replace('a', None)`` to understand the peculiarities
+    of the `to_replace` parameter:
+
+    >>> s = pd.Series([10, 'a', 'a', 'b', 'a'])
+
+    When one uses a dict as the `to_replace` value, it is like the
+    value(s) in the dict are equal to the `value` parameter.
+    ``s.replace({{'a': None}})`` is equivalent to
+    ``s.replace(to_replace={{'a': None}}, value=None, method=None)``:
+
+    >>> s.replace({{'a': None}})
+    0      10
+    1    None
+    2    None
+    3       b
+    4    None
+    dtype: object
+
+    When ``value=None`` and `to_replace` is a scalar, list or
+    tuple, `replace` uses the method parameter (default 'pad') to do the
+    replacement. So this is why the 'a' values are being replaced by 10
+    in rows 1 and 2 and 'b' in row 4 in this case.
+    The command ``s.replace('a', None)`` is actually equivalent to
+    ``s.replace(to_replace='a', value=None, method='pad')``:
+
+    >>> s.replace('a', None)
+    0    10
+    1    10
+    2    10
+    3     b
+    4     b
+    dtype: object
 """

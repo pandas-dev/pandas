@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import itertools
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -28,7 +31,7 @@ Color = Union[str, Sequence[float]]
 
 def get_standard_colors(
     num_colors: int,
-    colormap: Optional["Colormap"] = None,
+    colormap: Optional[Colormap] = None,
     color_type: str = "default",
     color: Optional[Union[Dict[str, Color], Color, Collection[Color]]] = None,
 ):
@@ -74,13 +77,13 @@ def get_standard_colors(
         num_colors=num_colors,
     )
 
-    return _cycle_colors(colors, num_colors=num_colors)
+    return list(_cycle_colors(colors, num_colors=num_colors))
 
 
 def _derive_colors(
     *,
     color: Optional[Union[Color, Collection[Color]]],
-    colormap: Optional[Union[str, "Colormap"]],
+    colormap: Optional[Union[str, Colormap]],
     color_type: str,
     num_colors: int,
 ) -> List[Color]:
@@ -128,23 +131,18 @@ def _derive_colors(
         return _get_colors_from_color_type(color_type, num_colors=num_colors)
 
 
-def _cycle_colors(colors: List[Color], num_colors: int) -> List[Color]:
-    """Append more colors by cycling if there is not enough color.
+def _cycle_colors(colors: List[Color], num_colors: int) -> Iterator[Color]:
+    """Cycle colors until achieving max of `num_colors` or length of `colors`.
 
     Extra colors will be ignored by matplotlib if there are more colors
     than needed and nothing needs to be done here.
     """
-    if len(colors) < num_colors:
-        multiple = num_colors // len(colors) - 1
-        mod = num_colors % len(colors)
-        colors += multiple * colors
-        colors += colors[:mod]
-
-    return colors
+    max_colors = max(num_colors, len(colors))
+    yield from itertools.islice(itertools.cycle(colors), max_colors)
 
 
 def _get_colors_from_colormap(
-    colormap: Union[str, "Colormap"],
+    colormap: Union[str, Colormap],
     num_colors: int,
 ) -> List[Color]:
     """Get colors from colormap."""
@@ -152,7 +150,7 @@ def _get_colors_from_colormap(
     return [colormap(num) for num in np.linspace(0, 1, num=num_colors)]
 
 
-def _get_cmap_instance(colormap: Union[str, "Colormap"]) -> "Colormap":
+def _get_cmap_instance(colormap: Union[str, Colormap]) -> Colormap:
     """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap

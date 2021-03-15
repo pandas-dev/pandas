@@ -43,6 +43,11 @@ jobs:
           CONDA_PY: "38"
           PATTERN: "not slow and not network and not clipboard"
 
+        py38_slow:
+          ENV_FILE: ci/deps/azure-38-slow.yaml
+          CONDA_PY: "38"
+          PATTERN: "slow"
+
         py38_locale:
           ENV_FILE: ci/deps/azure-38-locale.yaml
           CONDA_PY: "38"
@@ -60,6 +65,11 @@ jobs:
           TEST_ARGS: "-W error"
           PANDAS_TESTING_MODE: "deprecate"
           EXTRA_APT: "xsel"
+
+        py39:
+          ENV_FILE: ci/deps/azure-39.yaml
+          CONDA_PY: "39"
+          PATTERN: "not slow and not network and not clipboard"
 
   steps:
     - script: |

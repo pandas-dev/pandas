@@ -1,5 +1,18 @@
+"""
+Module consolidating common testing functions for checking plotting.
+
+Currently all plotting tests are marked as slow via
+``pytestmark = pytest.mark.slow`` at the module level.
+"""
+
+from __future__ import annotations
+
 import os
-from typing import TYPE_CHECKING, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -10,7 +23,11 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, Series, to_datetime
+from pandas import (
+    DataFrame,
+    Series,
+    to_datetime,
+)
 import pandas._testing as tm
 
 if TYPE_CHECKING:
@@ -177,7 +194,7 @@ class TestPlotBase:
             assert patch.get_visible() == visible
 
     def _check_patches_all_filled(
-        self, axes: Union["Axes", Sequence["Axes"]], filled: bool = True
+        self, axes: Union[Axes, Sequence[Axes]], filled: bool = True
     ) -> None:
         """
         Check for each artist whether it is filled or not
@@ -219,7 +236,11 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
-        from matplotlib.collections import Collection, LineCollection, PolyCollection
+        from matplotlib.collections import (
+            Collection,
+            LineCollection,
+            PolyCollection,
+        )
         from matplotlib.lines import Line2D
 
         conv = self.colorconverter
@@ -550,39 +571,84 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
 
-def _check_plot_works(f, filterwarnings="always", **kwargs):
+def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
+    """
+    Create plot and ensure that plot return object is valid.
+
+    Parameters
+    ----------
+    f : func
+        Plotting function.
+    filterwarnings : str
+        Warnings filter.
+        See https://docs.python.org/3/library/warnings.html#warning-filter
+    default_axes : bool, optional
+        If False (default):
+            - If `ax` not in `kwargs`, then create subplot(211) and plot there
+            - Create new subplot(212) and plot there as well
+            - Mind special corner case for bootstrap_plot (see `_gen_two_subplots`)
+        If True:
+            - Simply run plotting function with kwargs provided
+            - All required axes instances will be created automatically
+            - It is recommended to use it when the plotting function
+            creates multiple axes itself. It helps avoid warnings like
+            'UserWarning: To output multiple subplots,
+            the figure containing the passed axes is being cleared'
+    **kwargs
+        Keyword arguments passed to the plotting function.
+
+    Returns
+    -------
+    Plot object returned by the last plotting.
+    """
     import matplotlib.pyplot as plt
+
+    if default_axes:
+        gen_plots = _gen_default_plot
+    else:
+        gen_plots = _gen_two_subplots
 
     ret = None
     with warnings.catch_warnings():
         warnings.simplefilter(filterwarnings)
         try:
-            try:
-                fig = kwargs["figure"]
-            except KeyError:
-                fig = plt.gcf()
-
+            fig = kwargs.get("figure", plt.gcf())
             plt.clf()
 
-            kwargs.get("ax", fig.add_subplot(211))
-            ret = f(**kwargs)
-
-            tm.assert_is_valid_plot_return_object(ret)
-
-            if f is pd.plotting.bootstrap_plot:
-                assert "ax" not in kwargs
-            else:
-                kwargs["ax"] = fig.add_subplot(212)
-
-            ret = f(**kwargs)
-            tm.assert_is_valid_plot_return_object(ret)
+            for ret in gen_plots(f, fig, **kwargs):
+                tm.assert_is_valid_plot_return_object(ret)
 
             with tm.ensure_clean(return_filelike=True) as path:
                 plt.savefig(path)
+
+        except Exception as err:
+            raise err
         finally:
             tm.close(fig)
 
         return ret
+
+
+def _gen_default_plot(f, fig, **kwargs):
+    """
+    Create plot in a default way.
+    """
+    yield f(**kwargs)
+
+
+def _gen_two_subplots(f, fig, **kwargs):
+    """
+    Create plot on two subplots forcefully created.
+    """
+    if "ax" not in kwargs:
+        fig.add_subplot(211)
+    yield f(**kwargs)
+
+    if f is pd.plotting.bootstrap_plot:
+        assert "ax" not in kwargs
+    else:
+        kwargs["ax"] = fig.add_subplot(212)
+    yield f(**kwargs)
 
 
 def curpath():

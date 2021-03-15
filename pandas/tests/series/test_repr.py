@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -71,8 +74,8 @@ class TestSeriesRepr:
         str(string_series.astype(int))
         str(object_series)
 
-        str(Series(tm.randn(1000), index=np.arange(1000)))
-        str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
+        str(Series(np.random.randn(1000), index=np.arange(1000)))
+        str(Series(np.random.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
         str(Series(dtype=object))
@@ -104,7 +107,7 @@ class TestSeriesRepr:
             repr(string_series)
 
         biggie = Series(
-            tm.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
+            np.random.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
         )
         repr(biggie)
 
@@ -166,7 +169,7 @@ class TestSeriesRepr:
 
     def test_repr_max_rows(self):
         # GH 6863
-        with pd.option_context("max_rows", None):
+        with option_context("max_rows", None):
             str(Series(range(1001)))  # should not raise exception
 
     def test_unicode_string_with_unicode(self):
@@ -184,9 +187,7 @@ class TestSeriesRepr:
         index = Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        with tm.assert_produces_warning(FutureWarning):
-            # Index.is_all_dates deprecated
-            ts = Series(np.random.randn(len(index)), index)
+        ts = Series(np.random.randn(len(index)), index)
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
@@ -251,7 +252,7 @@ class TestCategoricalRepr:
             def __repr__(self) -> str:
                 return self.name + ", " + self.state
 
-        cat = pd.Categorical([County() for _ in range(61)])
+        cat = Categorical([County() for _ in range(61)])
         idx = Index(cat)
         ser = idx.to_series()
 

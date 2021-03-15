@@ -19,25 +19,52 @@ Instead of splitting it was decided to define sections here:
 """
 
 from collections import abc
-from datetime import date, time, timedelta, timezone
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+    timezone,
+)
 from decimal import Decimal
 import operator
 import os
 
-from dateutil.tz import tzlocal, tzutc
+from dateutil.tz import (
+    tzlocal,
+    tzutc,
+)
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import FixedOffset, utc
+from pytz import (
+    FixedOffset,
+    utc,
+)
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
+
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Interval,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 
 
 # ----------------------------------------------------------------
@@ -163,7 +190,7 @@ def add_imports(doctest_namespace):
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis {repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -264,7 +291,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
+@pytest.fixture(params=tm.NULL_OBJECTS, ids=lambda x: type(x).__name__)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -286,7 +313,6 @@ def unique_nulls_fixture(request):
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
 
-
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
@@ -300,6 +326,7 @@ def frame_or_series(request):
     return request.param
 
 
+# error: List item 0 has incompatible type "Type[Index]"; expected "Type[IndexOpsMixin]"
 @pytest.fixture(
     params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
 )
@@ -317,6 +344,16 @@ def index_or_series(request):
 
 # Generate cartesian product of index_or_series fixture:
 index_or_series2 = index_or_series
+
+
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.array], ids=["index", "series", "array"]
+)
+def index_or_series_or_array(request):
+    """
+    Fixture to parametrize over Index, Series, and ExtensionArray
+    """
+    return request.param
 
 
 @pytest.fixture
@@ -456,13 +493,41 @@ def index(request):
 index_fixture2 = index
 
 
-@pytest.fixture(params=indices_dict.keys())
+@pytest.fixture(
+    params=[
+        key for key in indices_dict if not isinstance(indices_dict[key], MultiIndex)
+    ]
+)
+def index_flat(request):
+    """
+    index fixture, but excluding MultiIndex cases.
+    """
+    key = request.param
+    return indices_dict[key].copy()
+
+
+# Alias so we can test with cartesian product of index_flat
+index_flat2 = index_flat
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key in indices_dict
+        if key not in ["int", "uint", "range", "empty", "repeats"]
+        and not isinstance(indices_dict[key], MultiIndex)
+    ]
+)
 def index_with_missing(request):
     """
-    Fixture for indices with missing values
+    Fixture for indices with missing values.
+
+    Integer-dtype and empty cases are excluded because they cannot hold missing
+    values.
+
+    MultiIndex is excluded because isna() is not defined for MultiIndex.
     """
-    if request.param in ["int", "uint", "range", "empty", "repeats"]:
-        pytest.xfail("missing values not supported")
+
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
@@ -470,8 +535,8 @@ def index_with_missing(request):
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
-        vals[0] = tuple([None]) + vals[0][1:]
-        vals[-1] = tuple([None]) + vals[-1][1:]
+        vals[0] = (None,) + vals[0][1:]
+        vals[-1] = (None,) + vals[-1][1:]
         return MultiIndex.from_tuples(vals)
     else:
         vals[0] = None
@@ -685,6 +750,65 @@ def float_frame():
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getSeriesData())
+
+
+@pytest.fixture
+def mixed_type_frame():
+    """
+    Fixture for DataFrame of float/int/string columns with RangeIndex
+    Columns are ['a', 'b', 'c', 'float32', 'int32'].
+    """
+    return DataFrame(
+        {
+            "a": 1.0,
+            "b": 2,
+            "c": "foo",
+            "float32": np.array([1.0] * 10, dtype="float32"),
+            "int32": np.array([1] * 10, dtype="int32"),
+        },
+        index=np.arange(10),
+    )
+
+
+@pytest.fixture
+def rand_series_with_duplicate_datetimeindex():
+    """
+    Fixture for Series with a DatetimeIndex that has duplicates.
+    """
+    dates = [
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 2),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 3),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 4),
+        datetime(2000, 1, 5),
+    ]
+
+    return Series(np.random.randn(len(dates)), index=dates)
+
+
+# ----------------------------------------------------------------
+# Scalars
+# ----------------------------------------------------------------
+@pytest.fixture(
+    params=[
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
+        (Period("2012-01", freq="M"), "period[M]"),
+        (Period("2012-02-01", freq="D"), "period[D]"),
+        (
+            Timestamp("2011-01-01", tz="US/Eastern"),
+            DatetimeTZDtype(tz="US/Eastern"),
+        ),
+        (Timedelta(seconds=500), "timedelta64[ns]"),
+    ]
+)
+def ea_scalar_and_dtype(request):
+    return request.param
 
 
 # ----------------------------------------------------------------
@@ -971,20 +1095,15 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(scope="module")
-def datetime_tz_utc():
-    """
-    Yields the UTC timezone object from the datetime module.
-    """
-    return timezone.utc
-
-
 @pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.
     """
     return request.param
+
+
+utc_fixture2 = utc_fixture
 
 
 # ----------------------------------------------------------------
@@ -1069,6 +1188,20 @@ def float_ea_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_allowed_nullable_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1139,6 +1272,52 @@ def any_nullable_int_dtype(request):
     * 'Int32'
     * 'UInt64'
     * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
+def any_int_or_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_nullable_numeric_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype and
+    any float ea dtypes.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
     """
     return request.param
 
@@ -1367,3 +1546,57 @@ def fsspectest():
     registry.pop("testmem", None)
     TestMemoryFS.test[0] = None
     TestMemoryFS.store.clear()
+
+
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc, tm.iloc])
+def indexer_sli(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.iloc])
+def indexer_si(request):
+    """
+    Parametrize over __setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc])
+def indexer_sl(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.at, tm.loc])
+def indexer_al(request):
+    """
+    Parametrize over at.__setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture
+def using_array_manager(request):
+    """
+    Fixture to check if the array manager is being used.
+    """
+    return pd.options.mode.data_manager == "array"

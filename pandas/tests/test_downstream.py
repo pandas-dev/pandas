@@ -41,7 +41,6 @@ def test_dask(df):
     assert ddf.compute() is not None
 
 
-@pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
     xarray = import_module("xarray")  # noqa
@@ -90,7 +89,10 @@ def test_statsmodels():
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa
-    from sklearn import datasets, svm
+    from sklearn import (
+        datasets,
+        svm,
+    )
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)

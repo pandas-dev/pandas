@@ -219,7 +219,7 @@ and re-boxes it if necessary.
 
 If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
 extension array to avoid coercion to an ndarray. See
-`the numpy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
+`the NumPy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
 for an example.
 
 As part of your implementation, we require that you defer to pandas when a pandas
@@ -329,21 +329,11 @@ Each data structure has several *constructor properties* for returning a new
 data structure as the result of an operation. By overriding these properties,
 you can retain subclasses through ``pandas`` data manipulations.
 
-There are 3 constructor properties to be defined:
+There are 3 possible constructor properties to be defined on a subclass:
 
-* ``_constructor``: Used when a manipulation result has the same dimensions as the original.
-* ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
-* ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()``.
-
-Following table shows how ``pandas`` data structures define constructor properties by default.
-
-===========================  ======================= =============
-Property Attributes          ``Series``              ``DataFrame``
-===========================  ======================= =============
-``_constructor``             ``Series``              ``DataFrame``
-``_constructor_sliced``      ``NotImplementedError`` ``Series``
-``_constructor_expanddim``   ``DataFrame``           ``NotImplementedError``
-===========================  ======================= =============
+* ``DataFrame/Series._constructor``: Used when a manipulation result has the same dimension as the original.
+* ``DataFrame._constructor_sliced``: Used when a ``DataFrame`` (sub-)class manipulation result should be a ``Series`` (sub-)class.
+* ``Series._constructor_expanddim``: Used when a ``Series`` (sub-)class manipulation result should be a ``DataFrame`` (sub-)class, e.g. ``Series.to_frame()``.
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
 

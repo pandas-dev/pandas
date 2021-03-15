@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 
 import numpy as np
@@ -24,7 +27,11 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.ops import roperator
 
 
@@ -520,7 +527,7 @@ def test_to_numpy_alias():
         pytest.param(
             Timedelta(0).to_timedelta64(),
             marks=pytest.mark.xfail(
-                reason="td64 doesnt return NotImplemented, see numpy#17017"
+                reason="td64 doesn't return NotImplemented, see numpy#17017"
             ),
         ),
         Timestamp(0),
@@ -528,7 +535,7 @@ def test_to_numpy_alias():
         pytest.param(
             Timestamp(0).to_datetime64(),
             marks=pytest.mark.xfail(
-                reason="dt64 doesnt return NotImplemented, see numpy#17017"
+                reason="dt64 doesn't return NotImplemented, see numpy#17017"
             ),
         ),
         Timestamp(0).tz_localize("UTC"),
@@ -558,21 +565,63 @@ def test_nat_comparisons_numpy(other):
     assert not NaT >= other
 
 
-@pytest.mark.parametrize("other", ["foo", 2, 2.0])
-@pytest.mark.parametrize("op", [operator.le, operator.lt, operator.ge, operator.gt])
-def test_nat_comparisons_invalid(other, op):
+@pytest.mark.parametrize("other_and_type", [("foo", "str"), (2, "int"), (2.0, "float")])
+@pytest.mark.parametrize(
+    "symbol_and_op",
+    [("<=", operator.le), ("<", operator.lt), (">=", operator.ge), (">", operator.gt)],
+)
+def test_nat_comparisons_invalid(other_and_type, symbol_and_op):
     # GH#35585
+    other, other_type = other_and_type
+    symbol, op = symbol_and_op
+
     assert not NaT == other
     assert not other == NaT
 
     assert NaT != other
     assert other != NaT
 
-    with pytest.raises(TypeError):
+    msg = f"'{symbol}' not supported between instances of 'NaTType' and '{other_type}'"
+    with pytest.raises(TypeError, match=msg):
         op(NaT, other)
 
-    with pytest.raises(TypeError):
+    msg = f"'{symbol}' not supported between instances of '{other_type}' and 'NaTType'"
+    with pytest.raises(TypeError, match=msg):
         op(other, NaT)
+
+
+def test_compare_date():
+    # GH#39151 comparing NaT with date object is deprecated
+    # See also: tests.scalar.timestamps.test_comparisons::test_compare_date
+
+    dt = Timestamp.now().to_pydatetime().date()
+
+    for left, right in [(NaT, dt), (dt, NaT)]:
+        assert not left == right
+        assert left != right
+
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left < right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left <= right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left > right
+        with tm.assert_produces_warning(FutureWarning):
+            assert not left >= right
+
+    # Once the deprecation is enforced, the following assertions
+    #  can be enabled:
+    #    assert not left == right
+    #    assert left != right
+    #
+    #    with pytest.raises(TypeError):
+    #        left < right
+    #    with pytest.raises(TypeError):
+    #        left <= right
+    #    with pytest.raises(TypeError):
+    #        left > right
+    #    with pytest.raises(TypeError):
+    #        left >= right
 
 
 @pytest.mark.parametrize(

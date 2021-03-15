@@ -1,6 +1,25 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -202,6 +221,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
 
+    def test_fillna_no_op_returns_copy(self, data, request):
+        if np.isnan(data.fill_value):
+            request.node.add_marker(
+                pytest.mark.xfail(reason="returns array with different fill value")
+            )
+        with tm.assert_produces_warning(PerformanceWarning):
+            super().test_fillna_no_op_returns_copy(data)
+
     def test_fillna_series_method(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
@@ -355,7 +382,7 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
-        expected_dtype = pd.SparseDtype(str, str(data.fill_value))
+        expected_dtype = SparseDtype(str, str(data.fill_value))
         expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
         self.assert_series_equal(result, expected)
 
@@ -377,9 +404,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # general, so we can't make the expected. This is tested elsewhere
             raise pytest.skip("Incorrected expected from Series.combine")
 
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
@@ -387,6 +411,25 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if data.dtype.fill_value != 0:
+            pass
+        elif all_arithmetic_operators.strip("_") not in [
+            "mul",
+            "rmul",
+            "floordiv",
+            "rfloordiv",
+            "pow",
+            "mod",
+            "rmod",
+        ]:
+            mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
+            request.node.add_marker(mark)
+        elif is_platform_windows() or not IS64:
+            mark = pytest.mark.xfail(reason="results are int32, expected int64")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
@@ -418,7 +461,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Different repr", strict=True)
+    @pytest.mark.xfail(reason="Different repr")
     def test_array_repr(self, data, size):
         super().test_array_repr(data, size)
 

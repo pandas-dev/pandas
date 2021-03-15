@@ -3,19 +3,40 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+from __future__ import annotations
 
-from collections import abc, defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import contextlib
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import np_version_under1p18
+from pandas._typing import (
+    AnyArrayLike,
+    NpDtype,
+    Scalar,
+    T,
+)
+from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -27,11 +48,13 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
-    ABCIndexClass,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class SettingWithCopyError(ValueError):
@@ -42,13 +65,13 @@ class SettingWithCopyWarning(Warning):
     pass
 
 
-def flatten(l):
+def flatten(line):
     """
     Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
-    l : sequence
+    line : sequence
         The non string sequence to flatten
 
     Notes
@@ -59,11 +82,11 @@ def flatten(l):
     -------
     flattened : generator
     """
-    for el in l:
-        if iterable_not_string(el):
-            yield from flatten(el)
+    for element in line:
+        if iterable_not_string(element):
+            yield from flatten(element)
         else:
-            yield el
+            yield element
 
 
 def consensus_name_attr(objs):
@@ -113,7 +136,9 @@ def is_bool_indexer(key: Any) -> bool:
 
             if not lib.is_bool_array(key):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
-                if isna(key).any():
+                if lib.infer_dtype(key) == "boolean" and isna(key).any():
+                    # Don't raise on e.g. ["A", "B", np.nan], see
+                    #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)
                 return False
             return True
@@ -129,7 +154,7 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float=False):
+def cast_scalar_indexer(val, warn_float: bool = False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
@@ -198,14 +223,21 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype=None):
+def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
-    elif isinstance(values, ABCIndexClass):
-        return values._values
+    elif isinstance(values, ABCIndex):
+        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "ndarray")
+        return values._values  # type: ignore[return-value]
 
-    if isinstance(values, list) and dtype in [np.object_, object]:
+    # error: Non-overlapping container check (element type: "Union[str, dtype[Any],
+    # None]", container item type: "type")
+    if isinstance(values, list) and dtype in [  # type: ignore[comparison-overlap]
+        np.object_,
+        object,
+    ]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
@@ -221,7 +253,7 @@ def asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def index_labels_to_array(labels, dtype=None):
+def index_labels_to_array(labels, dtype: Optional[NpDtype] = None) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -260,10 +292,6 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    # error: Incompatible return value type (got
-    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
-    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
-    # "Union[Collection[T], T]")  [return-value]
     obj = cast(Collection, obj)
     return obj
 
@@ -280,20 +308,23 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(l):
+def is_true_slices(line) -> List[bool]:
     """
-    Find non-trivial slices in "l": return a list of booleans with same length.
+    Find non-trivial slices in "line": return a list of booleans with same length.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l) -> bool:
+def is_full_slice(obj, line: int) -> bool:
     """
     We have a full length slice.
     """
     return (
-        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+        isinstance(obj, slice)
+        and obj.start == 0
+        and obj.stop == line
+        and obj.step is None
     )
 
 
@@ -405,7 +436,9 @@ def random_state(state=None):
         )
 
 
-def pipe(obj, func, *args, **kwargs):
+def pipe(
+    obj, func: Union[Callable[..., T], Tuple[Callable[..., T], str]], *args, **kwargs
+) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -490,3 +523,16 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
     setattr(obj, attr, value)
     yield obj
     setattr(obj, attr, old_value)
+
+
+def require_length_match(data, index: Index):
+    """
+    Check the length of data matches the length of the index.
+    """
+    if len(data) != len(index):
+        raise ValueError(
+            "Length of values "
+            f"({len(data)}) "
+            "does not match length of index "
+            f"({len(index)})"
+        )

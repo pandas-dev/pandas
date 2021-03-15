@@ -14,20 +14,46 @@ Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
 from collections import abc
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import struct
-from typing import IO, Any, Union, cast
+from typing import (
+    IO,
+    Any,
+    Union,
+    cast,
+)
 
 import numpy as np
 
-from pandas.errors import EmptyDataError, OutOfBoundsDatetime
+from pandas.errors import (
+    EmptyDataError,
+    OutOfBoundsDatetime,
+)
 
 import pandas as pd
+from pandas import isna
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
+
+
+def _parse_datetime(sas_datetime: float, unit: str):
+    if isna(sas_datetime):
+        return pd.NaT
+
+    if unit == "s":
+        return datetime(1960, 1, 1) + timedelta(seconds=sas_datetime)
+
+    elif unit == "d":
+        return datetime(1960, 1, 1) + timedelta(days=sas_datetime)
+
+    else:
+        raise ValueError("unit must be 'd' or 's'")
 
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
@@ -51,16 +77,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     try:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
     except OutOfBoundsDatetime:
-        if unit == "s":
-            return sas_datetimes.apply(
-                lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
-            )
-        elif unit == "d":
-            return sas_datetimes.apply(
-                lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
-            )
-        else:
-            raise ValueError("unit must be 'd' or 's'")
+        s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
+        s_series = cast(pd.Series, s_series)
+        return s_series
 
 
 class _SubheaderPointer:
@@ -168,12 +187,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self.ioargs = get_filepath_or_buffer(path_or_buf)
-        if isinstance(self.ioargs.filepath_or_buffer, str):
-            self.ioargs.filepath_or_buffer = open(path_or_buf, "rb")
-            self.ioargs.should_close = True
+        self.handles = get_handle(path_or_buf, "rb", is_text=False)
 
-        self._path_or_buf = cast(IO[Any], self.ioargs.filepath_or_buffer)
+        self._path_or_buf = cast(IO[Any], self.handles.handle)
 
         try:
             self._get_properties()
@@ -198,7 +214,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
     def close(self):
-        self.ioargs.close()
+        self.handles.close()
 
     def _get_properties(self):
 
@@ -206,7 +222,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._path_or_buf.seek(0)
         self._cached_page = self._path_or_buf.read(288)
         if self._cached_page[0 : len(const.magic)] != const.magic:
-            self.close()
             raise ValueError("magic number mismatch (not a SAS file?)")
 
         # Get alignment information
@@ -282,7 +297,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         buf = self._path_or_buf.read(self.header_length - 288)
         self._cached_page += buf
         if len(self._cached_page) != self.header_length:
-            self.close()
             raise ValueError("The SAS7BDAT file appears to be truncated.")
 
         self._page_length = self._read_int(
@@ -336,6 +350,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def __next__(self):
         da = self.read(nrows=self.chunksize or 1)
         if da is None:
+            self.close()
             raise StopIteration
         return da
 
@@ -380,7 +395,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             if len(self._cached_page) <= 0:
                 break
             if len(self._cached_page) != self._page_length:
-                self.close()
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
 

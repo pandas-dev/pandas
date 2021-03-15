@@ -167,7 +167,10 @@ class TestGrouping:
 
         # GH 7885
         # with level and freq specified in a pd.Grouper
-        from datetime import date, timedelta
+        from datetime import (
+            date,
+            timedelta,
+        )
 
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())
@@ -254,7 +257,8 @@ class TestGrouping:
         )
         result = s.groupby(pd.Grouper(level="three", freq="M")).sum()
         expected = Series(
-            [28], index=Index([Timestamp("2013-01-31")], freq="M", name="three")
+            [28],
+            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="M", name="three"),
         )
         tm.assert_series_equal(result, expected)
 
@@ -307,9 +311,8 @@ class TestGrouping:
         # reset_index changes columns dtype to object
         by_columns = df.reset_index().groupby(idx_names).mean()
 
-        tm.assert_frame_equal(by_levels, by_columns, check_column_type=False)
-
-        by_columns.columns = Index(by_columns.columns, dtype=np.int64)
+        # without casting, by_columns.columns is object-dtype
+        by_columns.columns = by_columns.columns.astype(np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_groupby_categorical_index_and_columns(self, observed):
@@ -608,18 +611,18 @@ class TestGrouping:
 
     def test_list_grouper_with_nat(self):
         # GH 14715
-        df = DataFrame({"date": pd.date_range("1/1/2011", periods=365, freq="D")})
+        df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
         grouper = pd.Grouper(key="date", freq="AS")
 
         # Grouper in a list grouping
         result = df.groupby([grouper])
-        expected = {pd.Timestamp("2011-01-01"): Index(list(range(364)))}
+        expected = {Timestamp("2011-01-01"): Index(list(range(364)))}
         tm.assert_dict_equal(result.groups, expected)
 
         # Test case without a list
         result = df.groupby(grouper)
-        expected = {pd.Timestamp("2011-01-01"): 365}
+        expected = {Timestamp("2011-01-01"): 365}
         tm.assert_dict_equal(result.groups, expected)
 
     @pytest.mark.parametrize(
@@ -627,7 +630,7 @@ class TestGrouping:
         [
             (
                 "transform",
-                Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
+                Series(name=2, dtype=np.float64, index=Index([])),
             ),
             (
                 "agg",
@@ -938,12 +941,12 @@ class TestIteration:
         grouped = df.groupby([pd.Grouper(freq="M"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
-        assert (pd.Timestamp("2014-09-30"), "start") in grouped.groups
-        assert (pd.Timestamp("2013-10-31"), "start") in grouped.groups
+        assert (Timestamp("2014-09-30"), "start") in grouped.groups
+        assert (Timestamp("2013-10-31"), "start") in grouped.groups
 
-        res = grouped.get_group((pd.Timestamp("2014-09-30"), "start"))
+        res = grouped.get_group((Timestamp("2014-09-30"), "start"))
         tm.assert_frame_equal(res, df.iloc[[0], :])
-        res = grouped.get_group((pd.Timestamp("2013-10-31"), "start"))
+        res = grouped.get_group((Timestamp("2013-10-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[1], :])
 
         df = DataFrame(
@@ -953,12 +956,12 @@ class TestIteration:
         grouped = df.groupby([pd.Grouper(freq="M"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
-        assert (pd.Timestamp("2014-09-30"), "start") in grouped.groups
-        assert (pd.Timestamp("2013-10-31"), "start") in grouped.groups
+        assert (Timestamp("2014-09-30"), "start") in grouped.groups
+        assert (Timestamp("2013-10-31"), "start") in grouped.groups
 
-        res = grouped.get_group((pd.Timestamp("2014-09-30"), "start"))
+        res = grouped.get_group((Timestamp("2014-09-30"), "start"))
         tm.assert_frame_equal(res, df.iloc[[0, 2], :])
-        res = grouped.get_group((pd.Timestamp("2013-10-31"), "start"))
+        res = grouped.get_group((Timestamp("2013-10-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[1], :])
 
         # length=3
@@ -969,15 +972,15 @@ class TestIteration:
         grouped = df.groupby([pd.Grouper(freq="M"), "event"])
         assert len(grouped.groups) == 3
         assert grouped.ngroups == 3
-        assert (pd.Timestamp("2014-09-30"), "start") in grouped.groups
-        assert (pd.Timestamp("2013-10-31"), "start") in grouped.groups
-        assert (pd.Timestamp("2014-08-31"), "start") in grouped.groups
+        assert (Timestamp("2014-09-30"), "start") in grouped.groups
+        assert (Timestamp("2013-10-31"), "start") in grouped.groups
+        assert (Timestamp("2014-08-31"), "start") in grouped.groups
 
-        res = grouped.get_group((pd.Timestamp("2014-09-30"), "start"))
+        res = grouped.get_group((Timestamp("2014-09-30"), "start"))
         tm.assert_frame_equal(res, df.iloc[[0], :])
-        res = grouped.get_group((pd.Timestamp("2013-10-31"), "start"))
+        res = grouped.get_group((Timestamp("2013-10-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[1], :])
-        res = grouped.get_group((pd.Timestamp("2014-08-31"), "start"))
+        res = grouped.get_group((Timestamp("2014-08-31"), "start"))
         tm.assert_frame_equal(res, df.iloc[[2], :])
 
     def test_grouping_string_repr(self):

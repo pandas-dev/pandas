@@ -4,10 +4,14 @@ import pytest
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+)
 import pandas._testing as tm
-
-from ..test_numeric import Numeric
+from pandas.tests.indexes.test_numeric import Numeric
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -18,7 +22,6 @@ OI = Index
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ["shape", "ndim", "size"]
 
     @pytest.fixture(
         params=[
@@ -200,7 +203,7 @@ class TestRangeIndex(Numeric):
         idx._data
         assert isinstance(idx._data, np.ndarray)
         assert idx._data is idx._data  # check cached value is reused
-        assert len(idx._cache) == 4
+        assert len(idx._cache) == 1
         expected = np.arange(0, 100, 10, dtype="int64")
         tm.assert_numpy_array_equal(idx._cache["_data"], expected)
 
@@ -317,31 +320,6 @@ class TestRangeIndex(Numeric):
     def test_slice_keep_name(self):
         idx = RangeIndex(1, 2, name="asdf")
         assert idx.name == idx[1:].name
-
-    def test_explicit_conversions(self):
-
-        # GH 8608
-        # add/sub are overridden explicitly for Float/Int Index
-        idx = RangeIndex(5)
-
-        # float conversions
-        arr = np.arange(5, dtype="int64") * 3.2
-        expected = Float64Index(arr)
-        fidx = idx * 3.2
-        tm.assert_index_equal(fidx, expected)
-        fidx = 3.2 * idx
-        tm.assert_index_equal(fidx, expected)
-
-        # interops with numpy arrays
-        expected = Float64Index(arr)
-        a = np.zeros(5, dtype="float64")
-        result = fidx - a
-        tm.assert_index_equal(result, expected)
-
-        expected = Float64Index(-arr)
-        a = np.zeros(5, dtype="float64")
-        result = a - fidx
-        tm.assert_index_equal(result, expected)
 
     def test_has_duplicates(self, index):
         assert index.is_unique
@@ -531,3 +509,18 @@ class TestRangeIndex(Numeric):
         empty_idx = self._holder(0)
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
+
+    @pytest.mark.parametrize(
+        "RI",
+        [
+            RangeIndex(0, -1, -1),
+            RangeIndex(0, 1, 1),
+            RangeIndex(1, 3, 2),
+            RangeIndex(0, -1, -2),
+            RangeIndex(-3, -5, -2),
+        ],
+    )
+    def test_append_len_one(self, RI):
+        # GH39401
+        result = RI.append([])
+        tm.assert_index_equal(result, RI, exact=True)

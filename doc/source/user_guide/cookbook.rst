@@ -15,11 +15,8 @@ Simplified, condensed, new-user friendly, in-line examples have been inserted wh
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
 above what the in-line examples offer.
 
-pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
+pandas (pd) and NumPy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
-
-These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
-versions.
 
 Idioms
 ------
@@ -71,7 +68,7 @@ Or use pandas where after you've set up a mask
    )
    df.where(df_mask, -1000)
 
-`if-then-else using numpy's where()
+`if-then-else using NumPy's where()
 <https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 .. ipython:: python
@@ -1013,7 +1010,7 @@ The :ref:`Plotting <visualization>` docs.
 `Setting x-axis major and minor labels
 <https://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
 
-`Plotting multiple charts in an ipython notebook
+`Plotting multiple charts in an IPython Jupyter notebook
 <https://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
 
 `Creating a multi-line plot
@@ -1409,11 +1406,11 @@ Often it's useful to obtain the lower (or upper) triangular form of a correlatio
     df = pd.DataFrame(np.random.random(size=(100, 5)))
 
     corr_mat = df.corr()
-    mask = np.tril(np.ones_like(corr_mat, dtype=np.bool), k=-1)
+    mask = np.tril(np.ones_like(corr_mat, dtype=np.bool_), k=-1)
 
     corr_mat.where(mask)
 
-The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the ``distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>``__ matrix for a ``DataFrame`` object.
+The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a ``DataFrame`` object.
 
 .. ipython:: python
 
